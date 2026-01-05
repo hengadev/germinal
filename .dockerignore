@@ -1,0 +1,46 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Build outputs
+build
+.svelte-kit
+dist
+
+# Development
+.git
+.gitignore
+.vscode
+.idea
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+coverage
+*.test.ts
+*.spec.ts
+
+# Documentation
+README.md
+PLAN.md
+CLAUDE.local.md
+prompt.md
+todo.md
+docs/
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore

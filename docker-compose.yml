@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  # Germinal application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/germinal
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME:-germinal-media}
+      - S3_PUBLIC_URL=${S3_PUBLIC_URL}
+      - MAX_FILE_SIZE=${MAX_FILE_SIZE:-10485760}
+      - ALLOWED_IMAGE_TYPES=${ALLOWED_IMAGE_TYPES:-image/jpeg,image/png,image/webp,image/gif}
+      - ALLOWED_VIDEO_TYPES=${ALLOWED_VIDEO_TYPES:-video/mp4,video/webm,video/quicktime}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - germinal-network
+
+  # PostgreSQL database
+  db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=germinal
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - germinal-network
+
+  # Optional: Drizzle Studio for database management
+  drizzle-studio:
+    image: node:20-alpine
+    working_dir: /app
+    command: sh -c "corepack enable && corepack prepare pnpm@latest --activate && pnpm install && pnpm drizzle-kit studio --port 4983 --host 0.0.0.0"
+    ports:
+      - "4983:4983"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/germinal
+    volumes:
+      - ./:/app
+    depends_on:
+      - db
+    networks:
+      - germinal-network
+    profiles:
+      - tools
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  germinal-network:
+    driver: bridge
