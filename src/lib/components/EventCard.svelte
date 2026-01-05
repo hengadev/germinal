@@ -15,7 +15,7 @@
                 <img
                     src={event.coverMedia.url}
                     alt={event.title}
-                    class="w-full h-full object-cover hover:scale-105 transition-transform"
+                    class="w-full h-full object-cover grayscale hover:scale-105 transition-transform"
                 />
             {:else}
                 <video
