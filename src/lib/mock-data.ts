@@ -51,7 +51,7 @@ export const MOCK_EVENTS = [
         coverMediaId: null,
         coverMedia: {
             type: "image",
-            url: "https://images.unsplash.com/photo-1470723710355-95304d8aece4?q=80&amp;w=2670&amp;auto=format&amp;fit=crop",
+            url: "https://images.unsplash.com/photo-1544531586-fde5298cdd40?q=80&w=2670&auto=format&fit=crop",
         },
         media: [],
     },
@@ -67,7 +67,10 @@ export const MOCK_EVENTS = [
         createdAt: new Date(),
         updatedAt: new Date(),
         coverMediaId: null,
-        coverMedia: null,
+        coverMedia: {
+            type: "image",
+            url: "https://images.unsplash.com/photo-1600607686527-6fb886090705?q=80&w=2500&auto=format&fit=crop",
+        },
         media: [],
     },
     {
@@ -82,7 +85,28 @@ export const MOCK_EVENTS = [
         createdAt: new Date(),
         updatedAt: new Date(),
         coverMediaId: null,
-        coverMedia: null,
+        coverMedia: {
+            type: "image",
+            url: "https://images.unsplash.com/photo-1519750783826-e2420f4d687f?q=80&w=2574&auto=format&fit=crop",
+        },
+        media: [],
+    },
+    {
+        id: '6',
+        title: 'Abstract Thought',
+        slug: 'marathon-for-charity',
+        description: 'Lecture series on contemporary philosophy.',
+        startDate: new Date('2026-11-15T06:00:00Z'),
+        endDate: new Date('2026-11-15T14:00:00Z'),
+        location: 'London',
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        coverMediaId: null,
+        coverMedia: {
+            type: "image",
+            url: "https://images.unsplash.com/photo-1554907984-15263bfd63bd?q=80&w=2670&auto=format&fit=crop",
+        },
         media: [],
     },
 ];
