@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  # Just the SvelteKit app with mock data - NO database required!
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "5173:5173"
+    environment:
+      - NODE_ENV=development
+      - USE_MOCK_DATA=true
+    volumes:
+      # Mount source code for hot reload
+      - ./src:/app/src
+      - ./static:/app/static
+      # Exclude node_modules from mount
+      - /app/node_modules
+      - /app/.svelte-kit
+    command: pnpm dev --host 0.0.0.0
