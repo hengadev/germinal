@@ -15,14 +15,19 @@
     }
 </script>
 
-<nav class="bg-white">
+<nav class="">
     <div class="container mx-auto px-4">
         <div
-            class="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-dark-100/50 flex items-center justify-between px-4 py-4 xl:grid xl:grid-cols-[1fr_auto_1fr] xl:py-4 xl:px-12"
+            class="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md flex items-center justify-between px-4 py-4 xl:grid xl:grid-cols-[1fr_auto_1fr] xl:py-4 xl:px-12 border border-border-card"
         >
-            <a href="/" class="text-3xl font-serif text-dark-900"> Germinal </a>
+            <a
+                href="/"
+                class="text-xl font-medium font-serif text-dark-900 uppercase"
+            >
+                Germinal
+            </a>
 
-            <ul class="flex gap-8">
+            <ul class="flex gap-12">
                 {#each navItems as item}
                     <li>
                         <a
@@ -38,5 +43,4 @@
             </ul>
         </div>
     </div>
-  </div>
 </nav>
