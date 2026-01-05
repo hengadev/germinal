@@ -1,14 +1,30 @@
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
-import { env } from '../env';
+import { env, isS3Enabled } from '../env';
 import { randomUUID } from 'node:crypto';
 
-const s3Client = new S3Client({
-  region: env.AWS_REGION,
-  credentials: {
-    accessKeyId: env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: env.AWS_SECRET_ACCESS_KEY,
-  },
-});
+// Lazy initialization - only create S3 client if credentials are provided
+let s3Client: S3Client | null = null;
+
+function getS3Client(): S3Client {
+  if (!isS3Enabled()) {
+    throw new Error(
+      'S3 is not configured. Please set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY in your .env file. ' +
+      'File uploads are disabled in development mode without S3 credentials.'
+    );
+  }
+
+  if (!s3Client) {
+    s3Client = new S3Client({
+      region: env.AWS_REGION,
+      credentials: {
+        accessKeyId: env.AWS_ACCESS_KEY_ID!,
+        secretAccessKey: env.AWS_SECRET_ACCESS_KEY!,
+      },
+    });
+  }
+
+  return s3Client;
+}
 
 export interface UploadResult {
   url: string;
@@ -29,6 +45,8 @@ export async function uploadToS3(
   mimeType: string,
   folder: 'events' | 'talents'
 ): Promise<UploadResult> {
+  const client = getS3Client();
+
   const fileExtension = getExtensionFromMimeType(mimeType);
   const fileName = `${randomUUID()}${fileExtension}`;
   const key = `${folder}/${fileName}`;
@@ -41,7 +59,7 @@ export async function uploadToS3(
     ACL: 'public-read',
   });
 
-  await s3Client.send(command);
+  await client.send(command);
 
   const url = `${env.S3_PUBLIC_URL}/${key}`;
 
@@ -58,12 +76,14 @@ export async function uploadToS3(
  * @param key - S3 object key
  */
 export async function deleteFromS3(key: string): Promise<void> {
+  const client = getS3Client();
+
   const command = new DeleteObjectCommand({
     Bucket: env.S3_BUCKET_NAME,
     Key: key,
   });
 
-  await s3Client.send(command);
+  await client.send(command);
 }
 
 /**
