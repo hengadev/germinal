@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { AlertCircle } from 'lucide-svelte';
+	import type { PageData } from './$types';
 
-	let { form } = $props();
+	let { data, form }: { data: PageData; form: import('./$types').ActionData } = $props();
 </script>
 
 <svelte:head>
@@ -39,7 +40,7 @@
 						id="email"
 						name="email"
 						type="email"
-						autocomplete="email"
+					 autocomplete="email"
 						required
 						placeholder="you@example.com"
 						class="w-full px-4 py-3 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent"
@@ -71,9 +72,11 @@
 			</button>
 		</form>
 
-		<div class="mt-6 text-center text-sm text-dark-400">
-			<p>For development, use:</p>
-			<p class="font-mono mt-1">admin@germinal.com / admin123</p>
-		</div>
+		{#if data.showMockCredentials}
+			<div class="mt-6 text-center text-sm text-dark-400">
+				<p>For development, use:</p>
+				<p class="font-mono mt-1">{data.mockEmail} / (your password)</p>
+			</div>
+		{/if}
 	</div>
 </div>

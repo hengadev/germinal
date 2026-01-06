@@ -2,7 +2,7 @@ import { redirect, fail, type Actions } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
 import { users } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
-import { verifyPassword, verifyPasswordMock } from '$lib/server/auth';
+import { verifyPassword, verifyPasswordMock, getMockAdminEmail } from '$lib/server/auth';
 import { createSession } from '$lib/server/session';
 import { env } from '$lib/server/env';
 import { checkRateLimit, resetRateLimit, getRateLimitReset } from '$lib/server/rate-limit';
@@ -13,6 +13,15 @@ export const load: PageServerLoad = async ({ locals }) => {
 	if (locals.user) {
 		throw redirect(302, '/admin');
 	}
+
+	// Show mock admin credentials in development mode
+	const showMockCredentials = env.USE_MOCK_DATA;
+	const mockEmail = showMockCredentials ? getMockAdminEmail() : null;
+
+	return {
+		showMockCredentials,
+		mockEmail
+	};
 };
 
 export const actions: Actions = {
