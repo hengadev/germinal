@@ -1,5 +1,21 @@
 // Mock data for local development - no database required!
 
+// Helper to create a mock media object
+function createMockMedia(url: string, type: 'image' | 'video' = 'image') {
+	return {
+		id: `mock-media-${Math.random().toString(36).substr(2, 9)}`,
+		type,
+		url,
+		s3Key: `mock/${url.split('/').pop()}`,
+		mimeType: type === 'image' ? 'image/jpeg' : 'video/mp4',
+		size: 1234567,
+		eventId: null as string | null,
+		talentId: null as string | null,
+		isCover: false,
+		createdAt: new Date()
+	};
+}
+
 export const MOCK_EVENTS = [
     {
         id: '1',
@@ -12,18 +28,15 @@ export const MOCK_EVENTS = [
         published: true,
         createdAt: new Date(),
         updatedAt: new Date(),
-        coverMediaId: null,
-        coverMedia: {
-            type: "image",
-            url: "https://hoirqrkdgbmvpwutwuwj.supabase.co/storage/v1/object/public/assets/assets/917d6f93-fb36-439a-8c48-884b67b35381_1600w.jpg",
-        },
+        coverMediaId: 'mock-cover-1',
+        coverMedia: createMockMedia("https://hoirqrkdgbmvpwutwuwj.supabase.co/storage/v1/object/public/assets/assets/917d6f93-fb36-439a-8c48-884b67b35381_1600w.jpg"),
         media: [
-            "https://hoirqrkdgbmvpwutwuwj.supabase.co/storage/v1/object/public/assets/assets/917d6f93-fb36-439a-8c48-884b67b35381_1600w.jpg",
-            "https://images.unsplash.com/photo-1470723710355-95304d8aece4?q=80&amp;w=2670&amp;auto=format&amp;fit=crop",
-            "https://images.unsplash.com/photo-1544531586-fde5298cdd40?q=80&w=2670&auto=format&fit=crop",
-            "https://images.unsplash.com/photo-1600607686527-6fb886090705?q=80&w=2500&auto=format&fit=crop",
-            "https://images.unsplash.com/photo-1519750783826-e2420f4d687f?q=80&w=2574&auto=format&fit=crop",
-            "https://images.unsplash.com/photo-1554907984-15263bfd63bd?q=80&w=2670&auto=format&fit=crop",
+            createMockMedia("https://hoirqrkdgbmvpwutwuwj.supabase.co/storage/v1/object/public/assets/assets/917d6f93-fb36-439a-8c48-884b67b35381_1600w.jpg"),
+            createMockMedia("https://images.unsplash.com/photo-1470723710355-95304d8aece4?q=80&w=2670&auto=format&fit=crop"),
+            createMockMedia("https://images.unsplash.com/photo-1544531586-fde5298cdd40?q=80&w=2670&auto=format&fit=crop"),
+            createMockMedia("https://images.unsplash.com/photo-1600607686527-6fb886090705?q=80&w=2500&auto=format&fit=crop"),
+            createMockMedia("https://images.unsplash.com/photo-1519750783826-e2420f4d687f?q=80&w=2574&auto=format&fit=crop"),
+            createMockMedia("https://images.unsplash.com/photo-1554907984-15263bfd63bd?q=80&w=2670&auto=format&fit=crop"),
         ],
     },
     {
@@ -38,10 +51,7 @@ export const MOCK_EVENTS = [
         createdAt: new Date(),
         updatedAt: new Date(),
         coverMediaId: null,
-        coverMedia: {
-            type: "image",
-            url: "https://images.unsplash.com/photo-1470723710355-95304d8aece4?q=80&amp;w=2670&amp;auto=format&amp;fit=crop",
-        },
+        coverMedia: createMockMedia("https://images.unsplash.com/photo-1470723710355-95304d8aece4?q=80&w=2670&auto=format&fit=crop"),
         media: [],
     },
     {
@@ -56,10 +66,7 @@ export const MOCK_EVENTS = [
         createdAt: new Date(),
         updatedAt: new Date(),
         coverMediaId: null,
-        coverMedia: {
-            type: "image",
-            url: "https://images.unsplash.com/photo-1544531586-fde5298cdd40?q=80&w=2670&auto=format&fit=crop",
-        },
+        coverMedia: createMockMedia("https://images.unsplash.com/photo-1544531586-fde5298cdd40?q=80&w=2670&auto=format&fit=crop"),
         media: [],
     },
     {
@@ -74,10 +81,7 @@ export const MOCK_EVENTS = [
         createdAt: new Date(),
         updatedAt: new Date(),
         coverMediaId: null,
-        coverMedia: {
-            type: "image",
-            url: "https://images.unsplash.com/photo-1600607686527-6fb886090705?q=80&w=2500&auto=format&fit=crop",
-        },
+        coverMedia: createMockMedia("https://images.unsplash.com/photo-1600607686527-6fb886090705?q=80&w=2500&auto=format&fit=crop"),
         media: [],
     },
     {
@@ -92,16 +96,13 @@ export const MOCK_EVENTS = [
         createdAt: new Date(),
         updatedAt: new Date(),
         coverMediaId: null,
-        coverMedia: {
-            type: "image",
-            url: "https://images.unsplash.com/photo-1519750783826-e2420f4d687f?q=80&w=2574&auto=format&fit=crop",
-        },
+        coverMedia: createMockMedia("https://images.unsplash.com/photo-1519750783826-e2420f4d687f?q=80&w=2574&auto=format&fit=crop"),
         media: [],
     },
     {
         id: '6',
         title: 'Abstract Thought',
-        slug: 'marathon-for-charity',
+        slug: 'abstract-thought',
         description: 'Lecture series on contemporary philosophy.',
         startDate: new Date('2026-11-15T06:00:00Z'),
         endDate: new Date('2026-11-15T14:00:00Z'),
@@ -110,10 +111,7 @@ export const MOCK_EVENTS = [
         createdAt: new Date(),
         updatedAt: new Date(),
         coverMediaId: null,
-        coverMedia: {
-            type: "image",
-            url: "https://images.unsplash.com/photo-1554907984-15263bfd63bd?q=80&w=2670&auto=format&fit=crop",
-        },
+        coverMedia: createMockMedia("https://images.unsplash.com/photo-1554907984-15263bfd63bd?q=80&w=2670&auto=format&fit=crop"),
         media: [],
     },
 ];
@@ -132,10 +130,8 @@ export const MOCK_TALENTS = [
         published: true,
         createdAt: new Date(),
         updatedAt: new Date(),
-        profileMediaId: null,
-        profileMedia: {
-            url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=2564&auto=format&fit=crop",
-        },
+        profileMediaId: 'mock-profile-1',
+        profileMedia: createMockMedia("https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=2564&auto=format&fit=crop"),
         media: [],
     },
     {
@@ -152,10 +148,7 @@ export const MOCK_TALENTS = [
         createdAt: new Date(),
         updatedAt: new Date(),
         profileMediaId: null,
-        profileMedia: {
-            url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&amp;w=2574&amp;auto=format&amp;fit=crop",
-        },
-
+        profileMedia: createMockMedia("https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=2574&auto=format&fit=crop"),
         media: [],
     },
     {
@@ -172,9 +165,7 @@ export const MOCK_TALENTS = [
         createdAt: new Date(),
         updatedAt: new Date(),
         profileMediaId: null,
-        profileMedia: {
-            url: "https://images.unsplash.com/photo-1531123897727-8f129e1688ce?q=80&amp;w=2574&amp;auto=format&amp;fit=crop",
-        },
+        profileMedia: createMockMedia("https://images.unsplash.com/photo-1531123897727-8f129e1688ce?q=80&w=2574&auto=format&fit=crop"),
         media: [],
     },
     {
@@ -191,7 +182,7 @@ export const MOCK_TALENTS = [
         createdAt: new Date(),
         updatedAt: new Date(),
         profileMediaId: null,
-        profileMedia: null,
+        profileMedia: null as typeof createMockMedia extends () => infer R ? R : never,
         media: [],
     },
     {
@@ -208,7 +199,7 @@ export const MOCK_TALENTS = [
         createdAt: new Date(),
         updatedAt: new Date(),
         profileMediaId: null,
-        profileMedia: null,
+        profileMedia: null as typeof createMockMedia extends () => infer R ? R : never,
         media: [],
     },
 ];
