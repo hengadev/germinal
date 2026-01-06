@@ -125,199 +125,188 @@
 
 	// Snippet for form fields
 	type InputSnippet = Snippet<[fieldName: string]>;
-
-	// Input snippets
-	//#region createInput
-	{#snippet createInput(fieldName: string)}
-		{#if fieldName === 'firstName'}
-			<input
-				id="createFirstName"
-				name="firstName"
-				type="text"
-				bind:value={createFirstName}
-				required
-				placeholder="Sarah"
-				class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
-			/>
-		{:else if fieldName === 'lastName'}
-			<input
-				id="createLastName"
-				name="lastName"
-				type="text"
-				bind:value={createLastName}
-				required
-				placeholder="Johnson"
-				class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
-			/>
-		{:else if fieldName === 'role'}
-			<input
-				id="createRole"
-				name="role"
-				type="text"
-				bind:value={createRole}
-				required
-				placeholder="Lead Vocalist & Songwriter"
-				class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
-			/>
-		{:else if fieldName === 'bio'}
-			<textarea
-				id="createBio"
-				name="bio"
-				bind:value={createBio}
-				required
-				rows="4"
-				placeholder="Tell us about this talent..."
-				class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm resize-none"
-			></textarea>
-		{:else if fieldName === 'instagram'}
-			<input
-				id="createInstagram"
-				name="instagram"
-				type="url"
-				bind:value={createInstagram}
-				placeholder="https://instagram.com/username"
-				class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
-			/>
-		{:else if fieldName === 'linkedin'}
-			<input
-				id="createLinkedin"
-				name="linkedin"
-				type="url"
-				bind:value={createLinkedin}
-				placeholder="https://linkedin.com/in/username"
-				class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
-			/>
-		{:else if fieldName === 'twitter'}
-			<input
-				id="createTwitter"
-				name="twitter"
-				type="url"
-				bind:value={createTwitter}
-				placeholder="https://twitter.com/username"
-				class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
-			/>
-		{:else if fieldName === 'website'}
-			<input
-				id="createWebsite"
-				name="website"
-				type="url"
-				bind:value={createWebsite}
-				placeholder="https://example.com"
-				class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
-			/>
-		{/if}
-	{/snippet}
-	//#endregion
-
-	//#region editInput
-	{#snippet editInput(fieldName: string)}
-		{#if fieldName === 'firstName'}
-			<input
-				id="editFirstName"
-				name="firstName"
-				type="text"
-				bind:value={editFirstName}
-				required
-				placeholder="Sarah"
-				class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
-			/>
-		{:else if fieldName === 'lastName'}
-			<input
-				id="editLastName"
-				name="lastName"
-				type="text"
-				bind:value={editLastName}
-				required
-				placeholder="Johnson"
-				class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
-			/>
-		{:else if fieldName === 'role'}
-			<input
-				id="editRole"
-				name="role"
-				type="text"
-				bind:value={editRole}
-				required
-				placeholder="Lead Vocalist & Songwriter"
-				class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
-			/>
-		{:else if fieldName === 'bio'}
-			<textarea
-				id="editBio"
-				name="bio"
-				bind:value={editBio}
-				required
-				rows="4"
-				placeholder="Tell us about this talent..."
-				class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm resize-none"
-			></textarea>
-		{:else if fieldName === 'instagram'}
-			<input
-				id="editInstagram"
-				name="instagram"
-				type="url"
-				bind:value={editInstagram}
-				placeholder="https://instagram.com/username"
-				class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
-			/>
-		{:else if fieldName === 'linkedin'}
-			<input
-				id="editLinkedin"
-				name="linkedin"
-				type="url"
-				bind:value={editLinkedin}
-				placeholder="https://linkedin.com/in/username"
-				class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
-			/>
-		{:else if fieldName === 'twitter'}
-			<input
-				id="editTwitter"
-				name="twitter"
-				type="url"
-				bind:value={editTwitter}
-				placeholder="https://twitter.com/username"
-				class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
-			/>
-		{:else if fieldName === 'website'}
-			<input
-				id="editWebsite"
-				name="website"
-				type="url"
-				bind:value={editWebsite}
-				placeholder="https://example.com"
-				class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
-			/>
-		{/if}
-	{/snippet}
-	//#endregion
-
-	//#region field
-	{#snippet field(
-		name: string,
-		label: string,
-		inputSnippet: InputSnippet,
-		value: string,
-		error: string | null
-	)}
-		<label for={name} class="block text-sm font-medium text-dark-700 mb-1">
-			{label}
-		</label>
-		<div class="relative w-full">
-			{@render inputSnippet(name)}
-			{#if error}
-				<p class="text-xs text-red-600 mt-1">{error}</p>
-			{/if}
-		</div>
-	{/snippet}
-	//#endregion
 </script>
+
+{#snippet createInput(fieldName: string)}
+	{#if fieldName === 'firstName'}
+		<input
+			id="createFirstName"
+			name="firstName"
+			type="text"
+			bind:value={createFirstName}
+			required
+			placeholder="Sarah"
+			class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+		/>
+	{:else if fieldName === 'lastName'}
+		<input
+			id="createLastName"
+			name="lastName"
+			type="text"
+			bind:value={createLastName}
+			required
+			placeholder="Johnson"
+			class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+		/>
+	{:else if fieldName === 'role'}
+		<input
+			id="createRole"
+			name="role"
+			type="text"
+			bind:value={createRole}
+			required
+			placeholder="Lead Vocalist & Songwriter"
+			class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+		/>
+	{:else if fieldName === 'bio'}
+		<textarea
+			id="createBio"
+			name="bio"
+			bind:value={createBio}
+			required
+			rows="4"
+			placeholder="Tell us about this talent..."
+			class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm resize-none"
+		></textarea>
+	{:else if fieldName === 'instagram'}
+		<input
+			id="createInstagram"
+			name="instagram"
+			type="url"
+			bind:value={createInstagram}
+			placeholder="https://instagram.com/username"
+			class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+		/>
+	{:else if fieldName === 'linkedin'}
+		<input
+			id="createLinkedin"
+			name="linkedin"
+			type="url"
+			bind:value={createLinkedin}
+			placeholder="https://linkedin.com/in/username"
+			class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+		/>
+	{:else if fieldName === 'twitter'}
+		<input
+			id="createTwitter"
+			name="twitter"
+			type="url"
+			bind:value={createTwitter}
+			placeholder="https://twitter.com/username"
+			class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+		/>
+	{:else if fieldName === 'website'}
+		<input
+			id="createWebsite"
+			name="website"
+			type="url"
+			bind:value={createWebsite}
+			placeholder="https://example.com"
+			class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+		/>
+	{/if}
+{/snippet}
+
+{#snippet editInput(fieldName: string)}
+	{#if fieldName === 'firstName'}
+		<input
+			id="editFirstName"
+			name="firstName"
+			type="text"
+			bind:value={editFirstName}
+			required
+			placeholder="Sarah"
+			class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+		/>
+	{:else if fieldName === 'lastName'}
+		<input
+			id="editLastName"
+			name="lastName"
+			type="text"
+			bind:value={editLastName}
+			required
+			placeholder="Johnson"
+			class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+		/>
+	{:else if fieldName === 'role'}
+		<input
+			id="editRole"
+			name="role"
+			type="text"
+			bind:value={editRole}
+			required
+			placeholder="Lead Vocalist & Songwriter"
+			class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+		/>
+	{:else if fieldName === 'bio'}
+		<textarea
+			id="editBio"
+			name="bio"
+			bind:value={editBio}
+			required
+			rows="4"
+			placeholder="Tell us about this talent..."
+			class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm resize-none"
+		></textarea>
+	{:else if fieldName === 'instagram'}
+		<input
+			id="editInstagram"
+			name="instagram"
+			type="url"
+			bind:value={editInstagram}
+			placeholder="https://instagram.com/username"
+			class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+		/>
+	{:else if fieldName === 'linkedin'}
+		<input
+			id="editLinkedin"
+			name="linkedin"
+			type="url"
+			bind:value={editLinkedin}
+			placeholder="https://linkedin.com/in/username"
+			class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+		/>
+	{:else if fieldName === 'twitter'}
+		<input
+			id="editTwitter"
+			name="twitter"
+			type="url"
+			bind:value={editTwitter}
+			placeholder="https://twitter.com/username"
+			class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+		/>
+	{:else if fieldName === 'website'}
+		<input
+			id="editWebsite"
+			name="website"
+			type="url"
+			bind:value={editWebsite}
+			placeholder="https://example.com"
+			class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+		/>
+	{/if}
+{/snippet}
+
+{#snippet field(name: string, label: string, inputSnippet: InputSnippet, value: string, error: string | null)}
+	<label for={name} class="block text-sm font-medium text-dark-700 mb-1">
+		{label}
+	</label>
+	<div class="relative w-full">
+		{@render inputSnippet(name)}
+		{#if error}
+			<p class="text-xs text-red-600 mt-1">{error}</p>
+		{/if}
+	</div>
+{/snippet}
 
 <svelte:head>
 	<title>Talents | Admin Dashboard</title>
 </svelte:head>
 
 <div class="container mx-auto px-4 py-8 lg:py-12">
-	<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+	<div
+		class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8"
+	>
 		<div>
 			<h1 class="text-3xl lg:text-4xl font-bold mb-2">Talents</h1>
 			<p class="text-dark-400">Manage your talent collection</p>
@@ -347,10 +336,16 @@
 	{/if}
 
 	{#if data.talents.length === 0}
-		<div class="bg-white rounded-lg border border-border-card p-12 text-center">
+		<div
+			class="bg-white rounded-lg border border-border-card p-12 text-center"
+		>
 			<User size={48} class="mx-auto mb-4 text-dark-300" />
-			<h3 class="text-xl font-semibold text-dark-900 mb-2">No talents yet</h3>
-			<p class="text-dark-400 mb-6">Add your first talent to get started</p>
+			<h3 class="text-xl font-semibold text-dark-900 mb-2">
+				No talents yet
+			</h3>
+			<p class="text-dark-400 mb-6">
+				Add your first talent to get started
+			</p>
 			<button
 				onclick={openCreateDialog}
 				class="inline-flex items-center gap-2 px-4 py-2 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors"
@@ -409,24 +404,34 @@
 										<div
 											class="w-14 h-14 bg-dark-100 rounded-full flex items-center justify-center"
 										>
-											<User size={24} class="text-dark-300" />
+											<User
+												size={24}
+												class="text-dark-300"
+											/>
 										</div>
 									{/if}
 									<div>
 										<div class="font-medium text-dark-900">
-											{talent.firstName} {talent.lastName}
+											{talent.firstName}
+											{talent.lastName}
 										</div>
 									</div>
 								</div>
 							</td>
 							<td class="px-6 py-4">
-								<div class="flex items-center gap-2 text-sm text-dark-600">
+								<div
+									class="flex items-center gap-2 text-sm text-dark-600"
+								>
 									<Briefcase size={16} />
-									<span class="truncate max-w-[200px]">{talent.role}</span>
+									<span class="truncate max-w-[200px]"
+										>{talent.role}</span
+									>
 								</div>
 							</td>
 							<td class="px-6 py-4">
-								<p class="text-sm text-dark-500 line-clamp-2 max-w-[300px]">
+								<p
+									class="text-sm text-dark-500 line-clamp-2 max-w-[300px]"
+								>
 									{talent.bio}
 								</p>
 							</td>
@@ -448,7 +453,9 @@
 								{/if}
 							</td>
 							<td class="px-6 py-4">
-								<div class="flex items-center justify-end gap-2">
+								<div
+									class="flex items-center justify-end gap-2"
+								>
 									<button
 										onclick={() => openEditDialog(talent)}
 										class="p-2 text-dark-600 hover:text-dark-900 hover:bg-dark-50 rounded-lg transition-colors"
@@ -494,7 +501,8 @@
 								class="flex items-start justify-between gap-2 mb-1"
 							>
 								<h3 class="font-semibold text-dark-900">
-									{talent.firstName} {talent.lastName}
+									{talent.firstName}
+									{talent.lastName}
 								</h3>
 								{#if talent.published}
 									<span
@@ -510,7 +518,9 @@
 									</span>
 								{/if}
 							</div>
-							<div class="flex items-center gap-1 text-sm text-dark-600">
+							<div
+								class="flex items-center gap-1 text-sm text-dark-600"
+							>
 								<Briefcase size={14} />
 								<span class="truncate">{talent.role}</span>
 							</div>
@@ -874,8 +884,9 @@
 				</button>
 			</div>
 			<p class="text-dark-400 text-sm">
-				Are you sure you want to delete "{selectedTalent?.firstName}
-				{selectedTalent?.lastName}"? This action cannot be undone.
+				Are you sure you want to delete "<span
+					class="font-medium">{selectedTalent?.firstName}</span
+				> {selectedTalent?.lastName}"? This action cannot be undone.
 			</p>
 		</div>
 
@@ -904,27 +915,27 @@
 {:else}
 	<Modal
 		bind:isOpen={deleteDialogOpen}
-		title="Delete Talent"
-		description='Are you sure you want to delete "{selectedTalent?.firstName} {selectedTalent?.lastName}"? This action cannot be undone.'
-	>
-		<form method="POST" action="?/deleteTalent" use:enhance class="mt-6">
-			<input type="hidden" name="id" value={selectedTalent?.id} />
+	title="Delete Talent"
+	description='Are you sure you want to delete "{selectedTalent?.firstName} {selectedTalent?.lastName}"? This action cannot be undone.'
+>
+	<form method="POST" action="?/deleteTalent" use:enhance>
+		<input type="hidden" name="id" value={selectedTalent?.id} />
 
-			<div class="flex w-full justify-end gap-3">
-				<button
-					type="button"
-					onclick={() => (deleteDialogOpen = false)}
-					class="px-6 py-2.5 border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium"
-				>
-					Cancel
-				</button>
-				<button
-					type="submit"
-					class="px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
-				>
-					Delete
-				</button>
-			</div>
-		</form>
+		<div class="flex w-full justify-end gap-3 mt-6">
+			<button
+				type="button"
+				onclick={() => (deleteDialogOpen = false)}
+				class="px-6 py-2.5 border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium"
+			>
+				Cancel
+			</button>
+			<button
+				type="submit"
+				class="px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+			>
+				Delete
+			</button>
+		</div>
+	</form>
 	</Modal>
 {/if}
