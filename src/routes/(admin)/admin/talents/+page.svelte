@@ -13,11 +13,12 @@
 		Link as LinkIcon
 	} from 'lucide-svelte';
 	import type { PageData, ActionData } from './$types';
+	import type { Snippet } from 'svelte';
 	import { browser } from '$app/environment';
 	import Drawer from '$lib/components/ui/Drawer.svelte';
 	import Modal from '$lib/components/ui/Modal.svelte';
 
-	let { data, form }: { data: PageData; form: ActionData } = $props();
+	let { data, form }: { data: PageData; form: ActionData & { success?: string } } = $props();
 
 	// Detect if we're on mobile
 	let isMobile = $state(false);
@@ -124,9 +125,6 @@
 
 	// Snippet for form fields
 	type InputSnippet = Snippet<[fieldName: string]>;
-	type FieldSnippet = Snippet<
-		[name: string, label: string, inputSnippet: InputSnippet, value: string, error: string | null]
-	>;
 
 	// Input snippets
 	//#region createInput
