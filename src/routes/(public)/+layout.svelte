@@ -1,8 +1,7 @@
 <script lang="ts">
-	import Navigation from "$lib/components/Navigation.svelte";
-	import "$app.css";
+    import Navigation from "$lib/components/Navigation.svelte";
 
-	let { children } = $props();
+    let { children } = $props();
 </script>
 
 <div class="min-h-screen flex flex-col">
