@@ -5,6 +5,7 @@ const isDevelopment = process.env.NODE_ENV !== 'production';
 // Development schema - only DATABASE_URL required
 const devEnvSchema = z.object({
     DATABASE_URL: z.string().default('postgresql://postgres:postgres@localhost:5432/germinal'),
+    USE_MOCK_DATA: z.string().default('false').transform(v => v === 'true'),
     AWS_REGION: z.string().optional().default('us-east-1'),
     AWS_ACCESS_KEY_ID: z.string().optional().default(''),
     AWS_SECRET_ACCESS_KEY: z.string().optional().default(''),
