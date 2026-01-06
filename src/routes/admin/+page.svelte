@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { LogOut } from 'lucide-svelte';
+	import { LogOut, KeyRound } from 'lucide-svelte';
 
 	let { data } = $props();
 </script>
@@ -22,6 +22,14 @@
 						<span class="text-dark-700">{data.user.email}</span>
 						<span class="text-dark-400 ml-2">({data.user.role})</span>
 					</div>
+
+					<a
+						href="/admin/change-password"
+						class="flex items-center gap-2 text-dark-600 hover:text-dark-900 transition-colors text-sm"
+					>
+						<KeyRound size={16} />
+						<span>Change Password</span>
+					</a>
 
 					<form method="POST" action="/logout" use:enhance>
 						<button
