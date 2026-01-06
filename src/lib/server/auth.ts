@@ -1,4 +1,5 @@
 import * as argon2 from 'argon2';
+import { env } from './env';
 
 /**
  * Hash a plain text password using Argon2
@@ -25,12 +26,19 @@ export async function verifyPassword(hash: string, password: string): Promise<bo
 
 /**
  * Mock password verification for development mode
- * Simple string comparison for mock credentials
+ * Uses environment variables for configurable credentials
  */
 export async function verifyPasswordMock(email: string, password: string): Promise<boolean> {
-	// Mock admin credentials: admin@germinal.com / admin123
-	if (email === 'admin@germinal.com' && password === 'admin123') {
+	// Use environment variables for mock admin credentials
+	if (email === env.MOCK_ADMIN_EMAIL && password === env.MOCK_ADMIN_PASSWORD) {
 		return true;
 	}
 	return false;
+}
+
+/**
+ * Get the mock admin email from environment
+ */
+export function getMockAdminEmail(): string {
+	return env.MOCK_ADMIN_EMAIL;
 }

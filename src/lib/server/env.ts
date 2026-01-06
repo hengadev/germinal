@@ -6,6 +6,8 @@ const isDevelopment = process.env.NODE_ENV !== 'production';
 const devEnvSchema = z.object({
     DATABASE_URL: z.string().default('postgresql://postgres:postgres@localhost:5432/germinal'),
     USE_MOCK_DATA: z.string().default('false').transform(v => v === 'true'),
+    MOCK_ADMIN_EMAIL: z.string().default('admin@germinal.com'),
+    MOCK_ADMIN_PASSWORD: z.string().default('admin123'),
     AWS_REGION: z.string().optional().default('us-east-1'),
     AWS_ACCESS_KEY_ID: z.string().optional().default(''),
     AWS_SECRET_ACCESS_KEY: z.string().optional().default(''),
@@ -20,6 +22,8 @@ const devEnvSchema = z.object({
 const prodEnvSchema = z.object({
     DATABASE_URL: z.string().url(),
     USE_MOCK_DATA: z.string().default('false').transform(v => v === 'true'),
+    MOCK_ADMIN_EMAIL: z.string().default('admin@germinal.com'),
+    MOCK_ADMIN_PASSWORD: z.string().default('admin123'),
     AWS_REGION: z.string().min(1),
     AWS_ACCESS_KEY_ID: z.string().min(1),
     AWS_SECRET_ACCESS_KEY: z.string().min(1),
