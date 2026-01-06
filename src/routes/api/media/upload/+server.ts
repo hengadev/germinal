@@ -2,10 +2,13 @@ import { json, error } from '@sveltejs/kit';
 import { uploadToS3 } from '$lib/server/services/s3';
 import { createMedia } from '$lib/server/services/media';
 import { env } from '$lib/server/env';
+import { requireAdmin } from '$lib/server/guards';
 import type { RequestHandler } from './$types';
 
-export const POST: RequestHandler = async ({ request }) => {
-  const formData = await request.formData();
+export const POST: RequestHandler = async (event) => {
+  requireAdmin(event);
+
+  const formData = await event.request.formData();
   const files = formData.getAll('files') as File[];
   const entityType = formData.get('entityType') as 'event' | 'talent';
   const entityId = formData.get('entityId') as string;

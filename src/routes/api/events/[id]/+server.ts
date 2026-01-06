@@ -1,6 +1,7 @@
 import { json, error } from '@sveltejs/kit';
 import { getEventById, updateEvent, deleteEvent } from '$lib/server/services/events';
 import { updateEventSchema } from '$lib/server/validators/events';
+import { requireAdmin } from '$lib/server/guards';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ params }) => {
@@ -12,8 +13,10 @@ export const GET: RequestHandler = async ({ params }) => {
   }
 };
 
-export const PUT: RequestHandler = async ({ params, request }) => {
-  const data = await request.json();
+export const PUT: RequestHandler = async (event) => {
+  requireAdmin(event);
+
+  const data = await event.request.json();
   const parsed = updateEventSchema.safeParse(data);
 
   if (!parsed.success) {
@@ -21,16 +24,18 @@ export const PUT: RequestHandler = async ({ params, request }) => {
   }
 
   try {
-    const event = await updateEvent(params.id, parsed.data);
-    return json(event);
+    const updatedEvent = await updateEvent(event.params.id, parsed.data);
+    return json(updatedEvent);
   } catch {
     throw error(404, 'Event not found');
   }
 };
 
-export const DELETE: RequestHandler = async ({ params }) => {
+export const DELETE: RequestHandler = async (event) => {
+  requireAdmin(event);
+
   try {
-    await deleteEvent(params.id);
+    await deleteEvent(event.params.id);
     return json({ success: true });
   } catch {
     throw error(404, 'Event not found');

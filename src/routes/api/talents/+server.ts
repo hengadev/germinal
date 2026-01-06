@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { getAllTalents, createTalent } from '$lib/server/services/talents';
 import { createTalentSchema } from '$lib/server/validators/talents';
+import { requireAdmin } from '$lib/server/guards';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ url }) => {
@@ -9,8 +10,10 @@ export const GET: RequestHandler = async ({ url }) => {
   return json(talents);
 };
 
-export const POST: RequestHandler = async ({ request }) => {
-  const data = await request.json();
+export const POST: RequestHandler = async (event) => {
+  requireAdmin(event);
+
+  const data = await event.request.json();
   const parsed = createTalentSchema.safeParse(data);
 
   if (!parsed.success) {

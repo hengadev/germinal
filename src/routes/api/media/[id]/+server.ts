@@ -1,5 +1,6 @@
 import { json, error } from '@sveltejs/kit';
 import { getMediaById, deleteMedia } from '$lib/server/services/media';
+import { requireAdmin } from '$lib/server/guards';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ params }) => {
@@ -11,9 +12,11 @@ export const GET: RequestHandler = async ({ params }) => {
   }
 };
 
-export const DELETE: RequestHandler = async ({ params }) => {
+export const DELETE: RequestHandler = async (event) => {
+  requireAdmin(event);
+
   try {
-    await deleteMedia(params.id);
+    await deleteMedia(event.params.id);
     return json({ success: true });
   } catch {
     throw error(404, 'Media not found');
