@@ -1,6 +1,6 @@
 import { db } from './db';
 import { sessions, users } from './db/schema';
-import { eq, and, gt } from 'drizzle-orm';
+import { eq, and, gt, lt } from 'drizzle-orm';
 import { randomBytes } from 'crypto';
 import { env } from './env';
 
@@ -118,19 +118,34 @@ export async function deleteSession(sessionId: string): Promise<void> {
 
 /**
  * Delete all expired sessions (cleanup job)
+ * @returns Number of sessions deleted
  */
-export async function deleteExpiredSessions(): Promise<void> {
+export async function deleteExpiredSessions(): Promise<number> {
 	if (env.USE_MOCK_DATA) {
 		// Mock mode: clean up expired sessions
 		const now = Date.now();
+		let deletedCount = 0;
+
 		for (const [sessionId, sessionData] of mockSessions.entries()) {
 			if (now > sessionData.expiresAt) {
 				mockSessions.delete(sessionId);
+				deletedCount++;
 			}
 		}
-		return;
+		return deletedCount;
 	}
 
-	// Database mode: delete expired sessions
-	await db.delete(sessions).where(gt(new Date(), sessions.expiresAt));
+	// Database mode: delete expired sessions and return count
+	// First, get the count of expired sessions (expiresAt < now)
+	const expiredSessions = await db
+		.select({ id: sessions.id })
+		.from(sessions)
+		.where(lt(sessions.expiresAt, new Date()));
+
+	// Delete them
+	if (expiredSessions.length > 0) {
+		await db.delete(sessions).where(lt(sessions.expiresAt, new Date()));
+	}
+
+	return expiredSessions.length;
 }
