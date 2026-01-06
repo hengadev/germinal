@@ -2,18 +2,18 @@
 
 // Helper to create a mock media object
 function createMockMedia(url: string, type: 'image' | 'video' = 'image') {
-	return {
-		id: `mock-media-${Math.random().toString(36).substr(2, 9)}`,
-		type,
-		url,
-		s3Key: `mock/${url.split('/').pop()}`,
-		mimeType: type === 'image' ? 'image/jpeg' : 'video/mp4',
-		size: 1234567,
-		eventId: null as string | null,
-		talentId: null as string | null,
-		isCover: false,
-		createdAt: new Date()
-	};
+    return {
+        id: `mock-media-${Math.random().toString(36).substr(2, 9)}`,
+        type,
+        url,
+        s3Key: `mock/${url.split('/').pop()}`,
+        mimeType: type === 'image' ? 'image/jpeg' : 'video/mp4',
+        size: 1234567,
+        eventId: null as string | null,
+        talentId: null as string | null,
+        isCover: false,
+        createdAt: new Date()
+    };
 }
 
 export const MOCK_EVENTS = [
