@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm';
 import { verifyPassword, verifyPasswordMock } from '$lib/server/auth';
 import { createSession } from '$lib/server/session';
 import { env } from '$lib/server/env';
+import { checkRateLimit, resetRateLimit, getRateLimitReset } from '$lib/server/rate-limit';
 import type { PageServerLoad } from './$types';
 
 // Redirect to /admin if already logged in
@@ -15,7 +16,19 @@ export const load: PageServerLoad = async ({ locals }) => {
 };
 
 export const actions: Actions = {
-	default: async ({ request, cookies }) => {
+	default: async ({ request, cookies, getClientAddress }) => {
+		// Get client IP for rate limiting
+		const ip = getClientAddress();
+
+		// Check rate limit
+		if (!checkRateLimit(ip)) {
+			const resetTime = getRateLimitReset(ip);
+			return fail(429, {
+				error: `Too many login attempts. Try again in ${resetTime} seconds.`,
+				rateLimited: true
+			});
+		}
+
 		const formData = await request.formData();
 		const email = formData.get('email');
 		const password = formData.get('password');
@@ -36,6 +49,9 @@ export const actions: Actions = {
 			if (!validPassword) {
 				return fail(400, { error: 'Invalid email or password' });
 			}
+
+			// Reset rate limit on successful login
+			resetRateLimit(ip);
 
 			// Create session (uses email as userId in mock mode)
 			const session = await createSession(email);
@@ -66,6 +82,9 @@ export const actions: Actions = {
 		if (!validPassword) {
 			return fail(400, { error: 'Invalid email or password' });
 		}
+
+		// Reset rate limit on successful login
+		resetRateLimit(ip);
 
 		// Create session
 		const session = await createSession(user.id);

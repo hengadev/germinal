@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { AlertCircle } from 'lucide-svelte';
 
 	let { form } = $props();
 </script>
@@ -23,7 +24,8 @@
 
 		<form method="POST" use:enhance class="space-y-6">
 			{#if form?.error}
-				<div class="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded">
+				<div class="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg flex items-start gap-3">
+					<AlertCircle size={20} class="shrink-0 mt-0.5" />
 					<p class="text-sm">{form.error}</p>
 				</div>
 			{/if}
@@ -62,10 +64,16 @@
 
 			<button
 				type="submit"
-				class="w-full bg-dark-900 text-white py-3 px-4 rounded-lg hover:bg-dark-800 focus:outline-none focus:ring-2 focus:ring-dark-900 focus:ring-offset-2 transition-colors"
+				disabled={form?.rateLimited}
+				class="w-full bg-dark-900 text-white py-3 px-4 rounded-lg hover:bg-dark-800 focus:outline-none focus:ring-2 focus:ring-dark-900 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-dark-900"
 			>
-				Sign In
+				{form?.rateLimited ? 'Rate Limited' : 'Sign In'}
 			</button>
 		</form>
+
+		<div class="mt-6 text-center text-sm text-dark-400">
+			<p>For development, use:</p>
+			<p class="font-mono mt-1">admin@germinal.com / admin123</p>
+		</div>
 	</div>
 </div>
