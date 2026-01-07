@@ -8,6 +8,13 @@
       "when": 1767664450440,
       "tag": "0000_even_falcon",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1767806582700,
+      "tag": "0001_fixed_dark_beast",
+      "breakpoints": true
     }
   ]
 }
