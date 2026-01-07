@@ -1,15 +1,56 @@
 <script lang="ts">
-    import {ArrowRight, Instagram, Globe, Mail} from "lucide-svelte"
-    let filters: string[] = ["Collaboration", "New Project", "Join Roster", "Other"]
-    let selected = $state(filters[0])
+    import { ArrowRight, Instagram, Globe, CheckCircle, AlertCircle } from "lucide-svelte";
+    import { enhance } from '$app/forms';
+    import type { ActionData } from './$types';
+
+    let { form }: { form: ActionData } = $props();
+
+    let filters: string[] = ["Collaboration", "New Project", "Join Roster", "Other"];
+    let selected = $state("Collaboration");
+    let isSubmitting = $state(false);
+
     interface Link {
         href: string;
         Icon: typeof import("lucide-svelte").Icon;
     }
+
     let links: Link[] = [
         {href: "", Icon: Instagram},
         {href: "", Icon: Globe},
-    ] 
+    ];
+
+    function getInquiryTypeValue(displayName: string): string {
+        const map: Record<string, string> = {
+            "Collaboration": "collaboration",
+            "New Project": "new_project",
+            "Join Roster": "join_roster",
+            "Other": "other",
+        };
+        return map[displayName] || "other";
+    }
+
+    // Helper to get form data value safely
+    function getFormDataValue(key: string): string {
+        if (form && 'formData' in form && form.formData) {
+            const value = form.formData[key as keyof typeof form.formData];
+            return typeof value === 'string' ? value : '';
+        }
+        return '';
+    }
+
+    // Helper to get field error safely
+    function getFieldError(key: string): string | undefined {
+        if (form && 'fieldErrors' in form && form.fieldErrors) {
+            const errors = form.fieldErrors[key as keyof typeof form.fieldErrors];
+            return Array.isArray(errors) && errors.length > 0 ? errors[0] : undefined;
+        }
+        return undefined;
+    }
+
+    // Helper to check if field has error
+    function hasFieldError(key: string): boolean {
+        return getFieldError(key) !== undefined;
+    }
 </script>
 
 <svelte:head>
@@ -17,19 +58,20 @@
 </svelte:head>
 
 {#snippet asidePart(title: string, content: string)}
-        <div>
-            <p class="uppercase text-dark-300 text-xs">{title}</p>
-            <p class="text-dark-800 font-bold">{content}</p>
-        </div>
+    <div>
+        <p class="uppercase text-dark-300 text-xs">{title}</p>
+        <p class="text-dark-800 font-bold">{content}</p>
+    </div>
 {/snippet}
 
 {#snippet tag(content: string)}
-        <button 
-            class="px-4 py-2 text-dark-500 cursor-pointer border border-dark-300 rounded-full {selected === content ? `bg-dark-900 text-white` : ``}"
-            onclick={() => selected = content}
-        >
-            <p class="capitalize">{content}</p>
-        </button>
+    <button
+        type="button"
+        class="px-4 py-2 text-dark-500 cursor-pointer border border-dark-300 rounded-full {selected === content ? `bg-dark-900 text-white` : ``}"
+        onclick={() => selected = content}
+    >
+        <p class="capitalize">{content}</p>
+    </button>
 {/snippet}
 
 <div class="container mx-auto px-4 py-32 max-w-8xl">
@@ -40,6 +82,7 @@
             architectural projects. Reach out to start a conversation.
         </p>
     </div>
+
     <div class="mt-24 grid grid-cols-[auto_1fr] gap-24">
         <section class="min-w-100 flex flex-col gap-12">
             <div class="grid gap-8">
@@ -49,9 +92,7 @@
                     <p class="uppercase text-dark-300 text-xs">Follow us</p>
                     <div class="flex items-center gap-4">
                         {#each links as link}
-                            <button 
-                                class="rounded-full p-2 border border-dark-100"
-                            >
+                            <button class="rounded-full p-2 border border-dark-100">
                                 <link.Icon size={16}/>
                             </button>
                         {/each}
@@ -59,83 +100,124 @@
                 </div>
             </div>
         </section>
+
         <section class="grid gap-8">
+            {#if form?.success}
+                <div class="flex items-start gap-3 p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <CheckCircle class="text-green-600 flex-shrink-0" size={20} />
+                    <p class="text-green-800">{form.message}</p>
+                </div>
+            {/if}
+
+            {#if form?.error}
+                <div class="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <AlertCircle class="text-red-600 flex-shrink-0" size={20} />
+                    <p class="text-red-800">{form.error}</p>
+                </div>
+            {/if}
+
             <div class="grid gap-4">
-                <p>What is this regarding ?</p>
+                <p>What is this regarding?</p>
                 <div class="flex items-center gap-4">
                     {#each filters as filter}
                         {@render tag(filter)}
                     {/each}
-                    <p></p>
                 </div>
             </div>
-            <form class="space-y-6">
+
+            <form
+                method="POST"
+                class="space-y-6"
+                use:enhance={() => {
+                    isSubmitting = true;
+                    return async ({ update }) => {
+                        await update();
+                        isSubmitting = false;
+                    };
+                }}
+            >
+                <input type="hidden" name="inquiryType" value={getInquiryTypeValue(selected)} />
+
+                <div style="position: absolute; left: -5000px;" aria-hidden="true">
+                    <label for="website">Website</label>
+                    <input type="text" id="website" name="website" tabindex="-1" autocomplete="off" />
+                </div>
+
                 <div class="grid grid-cols-2 gap-12">
                     <div class="grid gap-2">
-                        <label
-                            for="name"
-                            class="block text-sm font-medium text-dark-700 mb-2"
-                            >Name</label
-                        >
+                        <label for="name" class="block text-sm font-medium text-dark-700 mb-2">
+                            Name <span class="text-red-500">*</span>
+                        </label>
                         <input
                             type="text"
                             id="name"
                             name="name"
                             required
-                            class="w-full px-4 py-2 border-b-1 border-b-dark-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            value={getFormDataValue('name')}
+                            class="w-full px-4 py-2 border-b-1 border-b-dark-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent {hasFieldError('name') ? 'border-red-500' : ''}"
                         />
+                        {#if getFieldError('name')}
+                            <p class="text-red-500 text-sm">{getFieldError('name')}</p>
+                        {/if}
                     </div>
+
                     <div class="grid gap-2">
-                        <label
-                            for="email"
-                            class="block text-sm font-medium text-dark-700 mb-2"
-                            >Email</label
-                        >
+                        <label for="email" class="block text-sm font-medium text-dark-700 mb-2">
+                            Email <span class="text-red-500">*</span>
+                        </label>
                         <input
                             type="email"
                             id="email"
                             name="email"
                             required
-                            class="w-full px-4 py-2 border-b-1 border-b-dark-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            value={getFormDataValue('email')}
+                            class="w-full px-4 py-2 border-b-1 border-b-dark-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent {hasFieldError('email') ? 'border-red-500' : ''}"
                         />
+                        {#if getFieldError('email')}
+                            <p class="text-red-500 text-sm">{getFieldError('email')}</p>
+                        {/if}
                     </div>
                 </div>
 
                 <div>
-                    <label
-                        for="subject"
-                        class="block text-sm font-medium text-dark-700 mb-2"
-                        >Company/Organization (optional)</label
-                    >
+                    <label for="company" class="block text-sm font-medium text-dark-700 mb-2">
+                        Company/Organization (optional)
+                    </label>
                     <input
                         type="text"
-                        id="subject"
-                        name="subject"
-                        required
-                        class="w-full px-4 py-2 border-b-1 border-b-dark-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        id="company"
+                        name="company"
+                        value={getFormDataValue('company')}
+                        class="w-full px-4 py-2 border-b-1 border-b-dark-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent {hasFieldError('company') ? 'border-red-500' : ''}"
                     />
+                    {#if getFieldError('company')}
+                        <p class="text-red-500 text-sm">{getFieldError('company')}</p>
+                    {/if}
                 </div>
 
                 <div>
-                    <label
-                        for="message"
-                        class="block text-sm font-medium text-dark-700 mb-2"
-                        >Tell us about your project...</label
-                    >
+                    <label for="message" class="block text-sm font-medium text-dark-700 mb-2">
+                        Tell us about your project... <span class="text-red-500">*</span>
+                    </label>
                     <textarea
                         id="message"
                         name="message"
                         rows="5"
                         required
-                        class="w-full px-4 py-2 border border-dark-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        value={getFormDataValue('message')}
+                        class="w-full px-4 py-2 border border-dark-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent {hasFieldError('message') ? 'border-red-500' : ''}"
                     ></textarea>
+                    {#if getFieldError('message')}
+                        <p class="text-red-500 text-sm">{getFieldError('message')}</p>
+                    {/if}
                 </div>
 
                 <button
                     type="submit"
-                    class="flex gap-4 items-center bg-dark-900 text-white py-4 px-8 rounded-full hover:bg-blue-700 transition-colors font-medium"
+                    disabled={isSubmitting}
+                    class="flex gap-4 items-center bg-dark-900 text-white py-4 px-8 rounded-full hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                    <p>Send Message</p>
+                    <p>{isSubmitting ? 'Sending...' : 'Send Message'}</p>
                     <ArrowRight />
                 </button>
             </form>
