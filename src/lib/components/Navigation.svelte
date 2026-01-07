@@ -1,12 +1,23 @@
 <script lang="ts">
     import { page } from "$app/state";
 
+    type Props = {
+        user?: { role: string } | null;
+        isAdminDomain?: boolean;
+    };
+
+    let { user = null, isAdminDomain = false }: Props = $props();
+
     const navItems = [
         { href: "/upcoming", label: "Prochain événement" },
         { href: "/events", label: "Événements" },
         { href: "/talents", label: "Talents" },
         { href: "/contact", label: "Contact" },
     ];
+
+    const showAdminIndicator = $derived(
+        user && user.role === 'admin' && !isAdminDomain
+    );
 
     function isActive(href: string): boolean {
         if (href === "/") {
@@ -42,6 +53,19 @@
                     </li>
                 {/each}
             </ul>
+
+            {#if showAdminIndicator}
+                <div class="flex justify-end">
+                    <a
+                        href="https://admin.germinalstudio.co/admin"
+                        class="text-sm px-3 py-1 border border-dark-300 rounded-md text-dark-600 hover:text-dark-900 hover:border-dark-600 transition-colors"
+                    >
+                        Admin Panel
+                    </a>
+                </div>
+            {:else}
+                <div></div>
+            {/if}
         </div>
     </div>
 </nav>

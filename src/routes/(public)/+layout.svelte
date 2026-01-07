@@ -1,11 +1,12 @@
 <script lang="ts">
     import Navigation from "$lib/components/Navigation.svelte";
+    import type { LayoutData } from './$types';
 
-    let { children } = $props();
+    let { data, children }: { data: LayoutData, children: any } = $props();
 </script>
 
 <div class="min-h-screen flex flex-col">
-    <Navigation />
+    <Navigation user={data.user} isAdminDomain={data.isAdminDomain} />
 
     <main class="flex-1">
         {@render children()}
