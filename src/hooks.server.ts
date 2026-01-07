@@ -1,5 +1,6 @@
 import type { Handle, HandleServerError } from '@sveltejs/kit';
 import { validateSession, deleteExpiredSessions } from '$lib/server/session';
+import { isAdminDomain, getCookieDomain } from '$lib/server/hostname';
 
 // Session cleanup: Run every hour to remove expired sessions
 const CLEANUP_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
@@ -21,6 +22,11 @@ if (typeof setInterval !== 'undefined') {
 }
 
 export const handle: Handle = async ({ event, resolve }) => {
+    // Detect hostname and set domain context
+    const hostname = event.url.hostname;
+    event.locals.isAdminDomain = isAdminDomain(hostname);
+    const cookieDomain = getCookieDomain(hostname);
+
     // Read session cookie
     const sessionId = event.cookies.get('session');
 
@@ -33,8 +39,11 @@ export const handle: Handle = async ({ event, resolve }) => {
         if (user) {
             event.locals.user = user;
         } else {
-            // Invalid/expired session - clear the cookie
-            event.cookies.delete('session', { path: '/' });
+            // Invalid/expired session - clear the cookie with correct domain
+            event.cookies.delete('session', {
+                path: '/',
+                domain: cookieDomain
+            });
         }
     }
 
