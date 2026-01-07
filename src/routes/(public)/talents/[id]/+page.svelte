@@ -9,6 +9,12 @@ import type {Component} from "svelte"
     let socialLinks = $derived(
         data.talent.socialLinks ? JSON.parse(data.talent.socialLinks) : {},
     );
+
+    let specializations = $derived(
+        data.talent.specializations
+            ? JSON.parse(data.talent.specializations)
+            : []
+    );
 </script>
 
 <svelte:head>
@@ -69,14 +75,26 @@ import type {Component} from "svelte"
                     </h1>
                     <p class="text-xl text-dark-500 mb-4">{data.talent.role}</p>
                 </div>
-                <div>
-                    <p class="text-dark-300">Based in</p>
-                    <p class="text-dark-800">Tokyo, Japan</p>
-                </div>
+                {#if data.talent.city || data.talent.country}
+                    <div>
+                        <p class="text-dark-300">Based in</p>
+                        <p class="text-dark-800">
+                            {#if data.talent.city && data.talent.country}
+                                {data.talent.city}, {data.talent.country}
+                            {:else if data.talent.city}
+                                {data.talent.city}
+                            {:else}
+                                {data.talent.country}
+                            {/if}
+                        </p>
+                    </div>
+                {/if}
             </div>
             <div class="my-8 border border-dark-50/60 w-full"></div>
             <div class="grid gap-4">
-                <p class="text-lg text-dark-900 leading-relaxed font-medium">"Silence is not the absence of sound, but the beginning of listening."</p>
+                {#if data.talent.quote}
+                    <p class="text-lg text-dark-900 leading-relaxed font-medium">"{data.talent.quote}"</p>
+                {/if}
                 <p class="text-normal text-dark-500 leading-relaxed">
                     {data.talent.bio}
                     {data.talent.bio}
@@ -91,15 +109,17 @@ import type {Component} from "svelte"
                 <p class="text-normal text-dark-500 leading-relaxed">
                     {data.talent.bio}
                 </p>
-                <div class="my-8 border border-dark-50/60 w-full"></div>
-                <div class="grid grid-cols-3">
-                    {#each Array(3) as _, index}
-                        <div class="grid gap-2">
-                            <p class="text-dark-400 uppercase text-sm">Specialization</p>
-                            <p class="text-dark-900 text-sm font-medium">Spatial Audio Installation</p>
-                        </div>
-                    {/each}
-                </div>
+                {#if specializations.length > 0}
+                    <div class="my-8 border border-dark-50/60 w-full"></div>
+                    <div class="grid grid-cols-3 gap-4">
+                        {#each specializations as spec}
+                            <div class="grid gap-2">
+                                <p class="text-dark-400 uppercase text-sm">Specialization</p>
+                                <p class="text-dark-900 text-sm font-medium">{spec}</p>
+                            </div>
+                        {/each}
+                    </div>
+                {/if}
             </div>
         </div>
     </div>
