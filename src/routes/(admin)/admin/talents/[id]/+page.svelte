@@ -9,6 +9,12 @@
 	let lastName = $state(data.talent.lastName);
 	let role = $state(data.talent.role);
 	let bio = $state(data.talent.bio);
+	let city = $state(data.talent.city || "");
+	let country = $state(data.talent.country || "");
+	let quote = $state(data.talent.quote || "");
+	let specializations = $state<string[]>(
+		data.talent.specializations ? JSON.parse(data.talent.specializations) : []
+	);
 	let instagram = $state(data.talent.socialLinks?.instagram || '');
 	let linkedin = $state(data.talent.socialLinks?.linkedin || '');
 	let twitter = $state(data.talent.socialLinks?.twitter || '');
@@ -137,6 +143,94 @@
 							class="w-full pl-10 pr-4 py-3 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent resize-none"
 						></textarea>
 					</div>
+				</div>
+
+				<!-- Location -->
+				<div class="space-y-4">
+					<h3 class="text-sm font-medium text-dark-700">Location (Optional)</h3>
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+						<div>
+							<label for="city" class="block text-sm font-medium text-dark-600 mb-2">
+								City
+							</label>
+							<input
+								id="city"
+								name="city"
+								type="text"
+								bind:value={city}
+								placeholder="Tokyo"
+								class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+							/>
+						</div>
+						<div>
+							<label for="country" class="block text-sm font-medium text-dark-600 mb-2">
+								Country
+							</label>
+							<input
+								id="country"
+								name="country"
+								type="text"
+								bind:value={country}
+								placeholder="Japan"
+								class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+							/>
+						</div>
+					</div>
+				</div>
+
+				<!-- Quote -->
+				<div>
+					<label for="quote" class="block text-sm font-medium text-dark-700 mb-2">
+						Personal Quote (Optional)
+					</label>
+					<textarea
+						id="quote"
+						name="quote"
+						bind:value={quote}
+						rows="2"
+						placeholder="A meaningful quote or tagline..."
+						class="w-full px-4 py-3 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent resize-none"
+					></textarea>
+				</div>
+
+				<!-- Specializations -->
+				<div>
+					<label class="block text-sm font-medium text-dark-700 mb-2">
+						Specializations (Optional)
+					</label>
+					<p class="text-xs text-dark-400 mb-3">Add up to 5 specializations</p>
+
+					<div class="space-y-2">
+						{#each specializations as spec, i}
+							<div class="flex gap-2">
+								<input
+									type="text"
+									bind:value={specializations[i]}
+									placeholder="e.g., Spatial Audio Installation"
+									class="flex-1 px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+								/>
+								<button
+									type="button"
+									onclick={() => specializations = specializations.filter((_, idx) => idx !== i)}
+									class="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+								>
+									Remove
+								</button>
+							</div>
+						{/each}
+
+						{#if specializations.length < 5}
+							<button
+								type="button"
+								onclick={() => specializations = [...specializations, ""]}
+								class="text-sm text-dark-600 hover:text-dark-900 font-medium"
+							>
+								+ Add Specialization
+							</button>
+						{/if}
+					</div>
+
+					<input type="hidden" name="specializations" value={JSON.stringify(specializations.filter(s => s.trim()))} />
 				</div>
 
 				<!-- Social Links -->
