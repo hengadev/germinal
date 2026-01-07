@@ -126,6 +126,8 @@ export const MOCK_TALENTS = [
         socialLinks: JSON.stringify({
             instagram: 'https://instagram.com/sarahjohnson',
             twitter: 'https://twitter.com/sarahjohnson',
+            website: 'https://sarah.johnson.com',
+            email: 'sarah.johnson@email.com',
         }),
         published: true,
         createdAt: new Date(),
