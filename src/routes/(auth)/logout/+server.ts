@@ -1,8 +1,9 @@
 import { redirect } from '@sveltejs/kit';
 import { deleteSession } from '$lib/server/session';
+import { getCookieDomain } from '$lib/server/hostname';
 import type { RequestHandler } from './$types';
 
-export const POST: RequestHandler = async ({ cookies }) => {
+export const POST: RequestHandler = async ({ cookies, url }) => {
     const sessionId = cookies.get('session');
 
     // Delete session from database
@@ -10,9 +11,13 @@ export const POST: RequestHandler = async ({ cookies }) => {
         await deleteSession(sessionId);
     }
 
-    // Clear session cookie
-    cookies.delete('session', { path: '/' });
+    // Clear session cookie with correct domain
+    const cookieDomain = getCookieDomain(url.hostname);
+    cookies.delete('session', {
+        path: '/',
+        domain: cookieDomain
+    });
 
-    // Redirect to login
-    throw redirect(302, '/login');
+    // Always redirect to admin subdomain login
+    throw redirect(302, 'https://admin.germinalstudio.co/login');
 };

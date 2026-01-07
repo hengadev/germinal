@@ -1,4 +1,4 @@
-import { redirect, fail, type Actions } from '@sveltejs/kit';
+import { redirect, fail, error, type Actions } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
 import { users } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
@@ -6,10 +6,16 @@ import { verifyPassword, verifyPasswordMock, getMockAdminEmail } from '$lib/serv
 import { createSession } from '$lib/server/session';
 import { env } from '$lib/server/env';
 import { checkRateLimit, resetRateLimit, getRateLimitReset } from '$lib/server/rate-limit';
+import { getCookieDomain } from '$lib/server/hostname';
 import type { PageServerLoad } from './$types';
 
 // Redirect to /admin if already logged in
 export const load: PageServerLoad = async ({ locals }) => {
+	// SECURITY: Login only accessible from admin subdomain
+	if (!locals.isAdminDomain) {
+		throw error(404, 'Not Found');
+	}
+
 	if (locals.user) {
 		throw redirect(302, '/admin');
 	}
@@ -25,9 +31,15 @@ export const load: PageServerLoad = async ({ locals }) => {
 };
 
 export const actions: Actions = {
-	default: async ({ request, cookies, getClientAddress }) => {
+	default: async ({ request, cookies, getClientAddress, locals, url }) => {
+		// SECURITY: Login only accessible from admin subdomain
+		if (!locals.isAdminDomain) {
+			throw error(404, 'Not Found');
+		}
+
 		// Get client IP for rate limiting
 		const ip = getClientAddress();
+		const cookieDomain = getCookieDomain(url.hostname);
 
 		// Check rate limit
 		if (!checkRateLimit(ip)) {
@@ -65,9 +77,10 @@ export const actions: Actions = {
 			// Create session (uses email as userId in mock mode)
 			const session = await createSession(email);
 
-			// Set secure cookie
+			// Set secure cookie with subdomain support
 			cookies.set('session', session.id, {
 				path: '/',
+				domain: cookieDomain,
 				httpOnly: true,
 				sameSite: 'lax',
 				secure: true,
@@ -98,9 +111,10 @@ export const actions: Actions = {
 		// Create session
 		const session = await createSession(user.id);
 
-		// Set secure cookie
+		// Set secure cookie with subdomain support
 		cookies.set('session', session.id, {
 			path: '/',
+			domain: cookieDomain,
 			httpOnly: true,
 			sameSite: 'lax',
 			secure: true,
