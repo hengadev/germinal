@@ -1,16 +1,47 @@
 <script lang="ts">
     import TalentCard from "$lib/components/TalentCard.svelte";
     import type { PageData } from "./$types";
+    import { Grid2x2, LayoutList, ArrowDown } from "lucide-svelte";
 
     let { data }: { data: PageData } = $props();
+    let filters = ["Visual Arts", "Design", "Culinary"];
 </script>
 
 <svelte:head>
     <title>Talents | Germinal</title>
 </svelte:head>
 
-<div class="container mx-auto px-4 py-12">
-    <h1 class="text-4xl font-bold mb-8">Our Talents</h1>
+<div class="container mx-auto px-4 py-32">
+    <div class="mb-16 grid gap-4">
+        <h1 class="text-4xl font-normal">Talents</h1>
+        <p class="text-dark-400 w-160">
+            A roster of multidisciplinary artists, architects and thinkers
+            shaping contemporary culture. Select a profile to view their
+            portfolio.
+        </p>
+    </div>
+
+    <div class="flex items-center justify-between mb-16">
+        <div class="flex items-center gap-4">
+            <p class="px-4 py-2 bg-dark-900 text-white rounded-full">All</p>
+            {#each filters as filter}
+                <p
+                    class="px-4 py-2 border border-border-card rounded-full text-dark-600"
+                >
+                    {filter}
+                </p>
+            {/each}
+        </div>
+        <div class="flex items-center gap-4">
+            <p>View:</p>
+            <button>
+                <Grid2x2 />
+            </button>
+            <button>
+                <LayoutList class="text-dark-300" />
+            </button>
+        </div>
+    </div>
 
     {#if data.talents.length === 0}
         <p class="text-gray-500">No talents available at the moment.</p>
@@ -21,4 +52,12 @@
             {/each}
         </div>
     {/if}
+    <div class="flex justify-center items-center mt-16">
+        <button
+            class="flex items-center gap-3 text-dark-600 px-6 py-3 rounded-full border border-border-dark"
+        >
+            <p>Load more talents</p>
+            <ArrowDown size={16} />
+        </button>
+    </div>
 </div>
