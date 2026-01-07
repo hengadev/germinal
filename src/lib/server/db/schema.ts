@@ -7,6 +7,13 @@ import { relations, sql } from 'drizzle-orm';
 
 export const mediaTypeEnum = pgEnum('media_type', ['image', 'video']);
 
+export const inquiryTypeEnum = pgEnum('inquiry_type', [
+  'collaboration',
+  'new_project',
+  'join_roster',
+  'other'
+]);
+
 // ============================================
 // TABLES
 // ============================================
@@ -148,4 +155,29 @@ export const sessionsRelations = relations(sessions, ({ one }) => ({
     fields: [sessions.userId],
     references: [users.id],
   }),
+}));
+
+// ============================================
+// CONTACT FORM TABLES
+// ============================================
+
+export const contactSubmissions = pgTable('contact_submissions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  name: varchar('name', { length: 255 }).notNull(),
+  email: varchar('email', { length: 255 }).notNull(),
+  company: varchar('company', { length: 255 }),
+  inquiryType: inquiryTypeEnum('inquiry_type').notNull(),
+  message: text('message').notNull(),
+  honeypot: varchar('honeypot', { length: 100 }),
+  ipAddress: varchar('ip_address', { length: 45 }),
+  userAgent: varchar('user_agent', { length: 500 }),
+  emailSent: boolean('email_sent').default(false).notNull(),
+  emailSentAt: timestamp('email_sent_at', { withTimezone: true }),
+  emailError: text('email_error'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  emailIdx: index('contact_submissions_email_idx').on(table.email),
+  createdAtIdx: index('contact_submissions_created_at_idx').on(table.createdAt),
+  inquiryTypeIdx: index('contact_submissions_inquiry_type_idx').on(table.inquiryType),
+  emailSentIdx: index('contact_submissions_email_sent_idx').on(table.emailSent),
 }));
