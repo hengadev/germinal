@@ -1,11 +1,22 @@
 <script lang="ts">
-    import { ArrowRight, Instagram, Globe, CheckCircle, AlertCircle } from "lucide-svelte";
-    import { enhance } from '$app/forms';
-    import type { ActionData } from './$types';
+    import {
+        ArrowRight,
+        Instagram,
+        Globe,
+        CheckCircle,
+        AlertCircle,
+    } from "lucide-svelte";
+    import { enhance } from "$app/forms";
+    import type { ActionData } from "./$types";
 
     let { form }: { form: ActionData } = $props();
 
-    let filters: string[] = ["Collaboration", "New Project", "Join Roster", "Other"];
+    let filters: string[] = [
+        "Collaboration",
+        "New Project",
+        "Join Roster",
+        "Other",
+    ];
     let selected = $state("Collaboration");
     let isSubmitting = $state(false);
 
@@ -15,34 +26,37 @@
     }
 
     let links: Link[] = [
-        {href: "", Icon: Instagram},
-        {href: "", Icon: Globe},
+        { href: "", Icon: Instagram },
+        { href: "", Icon: Globe },
     ];
 
     function getInquiryTypeValue(displayName: string): string {
         const map: Record<string, string> = {
-            "Collaboration": "collaboration",
+            Collaboration: "collaboration",
             "New Project": "new_project",
             "Join Roster": "join_roster",
-            "Other": "other",
+            Other: "other",
         };
         return map[displayName] || "other";
     }
 
     // Helper to get form data value safely
     function getFormDataValue(key: string): string {
-        if (form && 'formData' in form && form.formData) {
+        if (form && "formData" in form && form.formData) {
             const value = form.formData[key as keyof typeof form.formData];
-            return typeof value === 'string' ? value : '';
+            return typeof value === "string" ? value : "";
         }
-        return '';
+        return "";
     }
 
     // Helper to get field error safely
     function getFieldError(key: string): string | undefined {
-        if (form && 'fieldErrors' in form && form.fieldErrors) {
-            const errors = form.fieldErrors[key as keyof typeof form.fieldErrors];
-            return Array.isArray(errors) && errors.length > 0 ? errors[0] : undefined;
+        if (form && "fieldErrors" in form && form.fieldErrors) {
+            const errors =
+                form.fieldErrors[key as keyof typeof form.fieldErrors];
+            return Array.isArray(errors) && errors.length > 0
+                ? errors[0]
+                : undefined;
         }
         return undefined;
     }
@@ -67,8 +81,11 @@
 {#snippet tag(content: string)}
     <button
         type="button"
-        class="px-4 py-2 text-dark-500 cursor-pointer border border-dark-300 rounded-full {selected === content ? `bg-dark-900 text-white` : ``}"
-        onclick={() => selected = content}
+        class="px-4 py-2 text-dark-500 cursor-pointer border border-dark-300 rounded-full {selected ===
+        content
+            ? `bg-dark-900 text-white`
+            : ``}"
+        onclick={() => (selected = content)}
     >
         <p class="capitalize">{content}</p>
     </button>
@@ -86,14 +103,16 @@
     <div class="mt-24 grid grid-cols-[auto_1fr] gap-24">
         <section class="min-w-100 flex flex-col gap-12">
             <div class="grid gap-8">
-                {@render asidePart("general inquiries", "hello@germinal.com")}
-                {@render asidePart("press & media", "press@germinal.com")}
+                {@render asidePart("general inquiries", "events@germinal.co")}
+                {@render asidePart("press & media", "events@germinal.co")}
                 <div class="grid gap-2">
                     <p class="uppercase text-dark-300 text-xs">Follow us</p>
                     <div class="flex items-center gap-4">
                         {#each links as link}
-                            <button class="rounded-full p-2 border border-dark-100">
-                                <link.Icon size={16}/>
+                            <button
+                                class="rounded-full p-2 border border-dark-100"
+                            >
+                                <link.Icon size={16} />
                             </button>
                         {/each}
                     </div>
@@ -103,14 +122,21 @@
 
         <section class="grid gap-8">
             {#if form?.success}
-                <div class="flex items-start gap-3 p-4 bg-green-50 border border-green-200 rounded-lg">
-                    <CheckCircle class="text-green-600 flex-shrink-0" size={20} />
+                <div
+                    class="flex items-start gap-3 p-4 bg-green-50 border border-green-200 rounded-lg"
+                >
+                    <CheckCircle
+                        class="text-green-600 flex-shrink-0"
+                        size={20}
+                    />
                     <p class="text-green-800">{form.message}</p>
                 </div>
             {/if}
 
             {#if form?.error}
-                <div class="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <div
+                    class="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-lg"
+                >
                     <AlertCircle class="text-red-600 flex-shrink-0" size={20} />
                     <p class="text-red-800">{form.error}</p>
                 </div>
@@ -136,16 +162,32 @@
                     };
                 }}
             >
-                <input type="hidden" name="inquiryType" value={getInquiryTypeValue(selected)} />
+                <input
+                    type="hidden"
+                    name="inquiryType"
+                    value={getInquiryTypeValue(selected)}
+                />
 
-                <div style="position: absolute; left: -5000px;" aria-hidden="true">
+                <div
+                    style="position: absolute; left: -5000px;"
+                    aria-hidden="true"
+                >
                     <label for="website">Website</label>
-                    <input type="text" id="website" name="website" tabindex="-1" autocomplete="off" />
+                    <input
+                        type="text"
+                        id="website"
+                        name="website"
+                        tabindex="-1"
+                        autocomplete="off"
+                    />
                 </div>
 
                 <div class="grid grid-cols-2 gap-12">
                     <div class="grid gap-2">
-                        <label for="name" class="block text-sm font-medium text-dark-700 mb-2">
+                        <label
+                            for="name"
+                            class="block text-sm font-medium text-dark-700 mb-2"
+                        >
                             Name <span class="text-red-500">*</span>
                         </label>
                         <input
@@ -153,16 +195,25 @@
                             id="name"
                             name="name"
                             required
-                            value={getFormDataValue('name')}
-                            class="w-full px-4 py-2 border-b-1 border-b-dark-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent {hasFieldError('name') ? 'border-red-500' : ''}"
+                            value={getFormDataValue("name")}
+                            class="w-full px-4 py-2 border-b border-b-dark-100 focus:border-transparent {hasFieldError(
+                                'name',
+                            )
+                                ? 'border-b-red-500'
+                                : ''}"
                         />
-                        {#if getFieldError('name')}
-                            <p class="text-red-500 text-sm">{getFieldError('name')}</p>
+                        {#if getFieldError("name")}
+                            <p class="text-red-500 text-sm">
+                                {getFieldError("name")}
+                            </p>
                         {/if}
                     </div>
 
                     <div class="grid gap-2">
-                        <label for="email" class="block text-sm font-medium text-dark-700 mb-2">
+                        <label
+                            for="email"
+                            class="block text-sm font-medium text-dark-700 mb-2"
+                        >
                             Email <span class="text-red-500">*</span>
                         </label>
                         <input
@@ -170,54 +221,80 @@
                             id="email"
                             name="email"
                             required
-                            value={getFormDataValue('email')}
-                            class="w-full px-4 py-2 border-b-1 border-b-dark-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent {hasFieldError('email') ? 'border-red-500' : ''}"
+                            value={getFormDataValue("email")}
+                            class="w-full px-4 py-2 border-b border-b-dark-100 focus:border-transparent {hasFieldError(
+                                'email',
+                            )
+                                ? 'border-b-red-500'
+                                : ''}"
                         />
-                        {#if getFieldError('email')}
-                            <p class="text-red-500 text-sm">{getFieldError('email')}</p>
+                        {#if getFieldError("email")}
+                            <p class="text-red-500 text-sm">
+                                {getFieldError("email")}
+                            </p>
                         {/if}
                     </div>
                 </div>
 
                 <div>
-                    <label for="company" class="block text-sm font-medium text-dark-700 mb-2">
+                    <label
+                        for="company"
+                        class="block text-sm font-medium text-dark-700 mb-2"
+                    >
                         Company/Organization (optional)
                     </label>
                     <input
                         type="text"
                         id="company"
                         name="company"
-                        value={getFormDataValue('company')}
-                        class="w-full px-4 py-2 border-b-1 border-b-dark-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent {hasFieldError('company') ? 'border-red-500' : ''}"
+                        value={getFormDataValue("company")}
+                        class="w-full px-4 py-2 border-b border-b-dark-100 focus:border-transparent {hasFieldError(
+                            'company',
+                        )
+                            ? 'border-b-red-500'
+                            : ''}"
                     />
-                    {#if getFieldError('company')}
-                        <p class="text-red-500 text-sm">{getFieldError('company')}</p>
+                    {#if getFieldError("company")}
+                        <p class="text-red-500 text-sm">
+                            {getFieldError("company")}
+                        </p>
                     {/if}
                 </div>
 
                 <div>
-                    <label for="message" class="block text-sm font-medium text-dark-700 mb-2">
-                        Tell us about your project... <span class="text-red-500">*</span>
+                    <label
+                        for="message"
+                        class="block text-sm font-medium text-dark-700 mb-2"
+                    >
+                        Tell us about your project... <span class="text-red-500"
+                            >*</span
+                        >
                     </label>
                     <textarea
                         id="message"
                         name="message"
                         rows="5"
                         required
-                        value={getFormDataValue('message')}
-                        class="w-full px-4 py-2 border border-dark-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent {hasFieldError('message') ? 'border-red-500' : ''}"
+                        value={getFormDataValue("message")}
+                        class="w-full px-4 py-2 border border-dark-100 rounded-lg focus:border-transparent {hasFieldError(
+                            'message',
+                        )
+                            ? 'border-b-red-500'
+                            : ''}"
                     ></textarea>
-                    {#if getFieldError('message')}
-                        <p class="text-red-500 text-sm">{getFieldError('message')}</p>
+                    {#if getFieldError("message")}
+                        <p class="text-red-500 text-sm">
+                            {getFieldError("message")}
+                        </p>
                     {/if}
                 </div>
 
                 <button
                     type="submit"
                     disabled={isSubmitting}
-                    class="flex gap-4 items-center bg-dark-900 text-white py-4 px-8 rounded-full hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    class="flex gap-4 items-center bg-dark-900 text-white py-4 px-8 rounded-full hover:bg-dark-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                    <p>{isSubmitting ? 'Sending...' : 'Send Message'}</p>
+                    <p>{isSubmitting ? "Sending..." : "Send Message"}</p>
                     <ArrowRight />
                 </button>
             </form>
