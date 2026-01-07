@@ -13,7 +13,7 @@
 
 <div class="container mx-auto px-4 py-32">
     <div class="mb-16 grid gap-4">
-        <h1 class="text-4xl font-bold">Selected Events</h1>
+        <h1 class="text-4xl font-normal">Selected Events</h1>
         <p class="text-dark-400 w-160">
             Explore our curated selection of upcoming exhibition, dining
             experiences, and architectural tours. Click on any event to view
@@ -53,10 +53,10 @@
     {/if}
     <div class="flex justify-center items-center mt-16">
         <button
-            class="flex items-center gap-2 text-dark-600 px-4 py-2 rounded-full border border-border-dark"
+            class="flex items-center gap-3 text-dark-600 px-6 py-3 rounded-full border border-border-dark"
         >
             <p>Load more events</p>
-            <ArrowDown />
+            <ArrowDown size={16}/>
         </button>
     </div>
 </div>
