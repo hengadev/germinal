@@ -14,6 +14,7 @@ declare global {
 				role: string;
 				createdAt: Date;
 			} | null;
+			isAdminDomain: boolean;
 		}
 
 		// interface PageData {}
