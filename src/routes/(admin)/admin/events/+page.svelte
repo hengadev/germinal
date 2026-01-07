@@ -153,7 +153,7 @@
 </script>
 
 {#snippet createInput(fieldName: string)}
-		{#if fieldName === 'title'}
+		{#if fieldName === "title"}
 			<input
 				id="createTitle"
 				name="title"
@@ -163,7 +163,7 @@
 				placeholder="Summer Music Festival"
 				class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
 			/>
-		{:else if fieldName === 'slug'}
+		{:else if fieldName === "slug"}
 			<input
 				id="createSlug"
 				name="slug"
@@ -174,7 +174,7 @@
 				placeholder="summer-music-festival"
 				class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
 			/>
-		{:else if fieldName === 'description'}
+		{:else if fieldName === "description"}
 			<textarea
 				id="createDescription"
 				name="description"
@@ -184,7 +184,7 @@
 				placeholder="Describe your event..."
 				class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm resize-none"
 			></textarea>
-		{:else if fieldName === 'startDate'}
+		{:else if fieldName === "startDate"}
 			<input
 				id="createStartDate"
 				name="startDate"
@@ -193,7 +193,7 @@
 				required
 				class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
 			/>
-		{:else if fieldName === 'endDate'}
+		{:else if fieldName === "endDate"}
 			<input
 				id="createEndDate"
 				name="endDate"
@@ -202,7 +202,7 @@
 				required
 				class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
 			/>
-		{:else if fieldName === 'location'}
+		{:else if fieldName === "location"}
 			<input
 				id="createLocation"
 				name="location"
@@ -214,11 +214,9 @@
 			/>
 		{/if}
 	{/snippet}
-	//#endregion
 
-	//#region editInput
 	{#snippet editInput(fieldName: string)}
-		{#if fieldName === 'title'}
+		{#if fieldName === "title"}
 			<input
 				id="editTitle"
 				name="title"
@@ -228,7 +226,7 @@
 				placeholder="Summer Music Festival"
 				class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
 			/>
-		{:else if fieldName === 'slug'}
+		{:else if fieldName === "slug"}
 			<input
 				id="editSlug"
 				name="slug"
@@ -239,7 +237,7 @@
 				placeholder="summer-music-festival"
 				class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
 			/>
-		{:else if fieldName === 'description'}
+		{:else if fieldName === "description"}
 			<textarea
 				id="editDescription"
 				name="description"
@@ -249,7 +247,7 @@
 				placeholder="Describe your event..."
 				class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm resize-none"
 			></textarea>
-		{:else if fieldName === 'startDate'}
+		{:else if fieldName === "startDate"}
 			<input
 				id="editStartDate"
 				name="startDate"
@@ -258,7 +256,7 @@
 				required
 				class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
 			/>
-		{:else if fieldName === 'endDate'}
+		{:else if fieldName === "endDate"}
 			<input
 				id="editEndDate"
 				name="endDate"
@@ -267,7 +265,7 @@
 				required
 				class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
 			/>
-		{:else if fieldName === 'location'}
+		{:else if fieldName === "location"}
 			<input
 				id="editLocation"
 				name="location"
@@ -279,18 +277,25 @@
 			/>
 		{/if}
 	{/snippet}
-	//#endregion
 
-	//#region field
-	{#snippet field(name: string, label: string, inputSnippet: InputSnippet)}
+	{#snippet field(
+		name: string,
+		label: string,
+		inputSnippet: InputSnippet,
+		value: string,
+		error: string | null,
+	)}
 		<label for={name} class="block text-sm font-medium text-dark-700 mb-1">
 			{label}
 		</label>
 		<div class="relative w-full">
 			{@render inputSnippet(name)}
+			{#if error}
+				<p class="text-xs text-red-600 mt-1">{error}</p>
+			{/if}
 		</div>
 	{/snippet}
-	//#endregion
+
 <svelte:head>
     <title>Events | Admin Dashboard</title>
 </svelte:head>
@@ -585,12 +590,12 @@
             class="grid gap-4 pt-4"
         >
             <div class="grid grid-cols-1 gap-4 w-full">
-                {@render field("createTitle", "Title", createInput)}
-                {@render field("createSlug", "Slug", createInput)}
-                {@render field("createDescription", "Description", createInput)}
-                {@render field("createStartDate", "Start Date", createInput)}
-                {@render field("createEndDate", "End Date", createInput)}
-                {@render field("createLocation", "Location", createInput)}
+                {@render field("title", "Title", createInput, createTitle, null)}
+                {@render field("slug", "Slug", createInput, createSlug, null)}
+                {@render field("description", "Description", createInput, createDescription, null)}
+                {@render field("startDate", "Start Date", createInput, createStartDate, null)}
+                {@render field("endDate", "End Date", createInput, createEndDate, null)}
+                {@render field("location", "Location", createInput, createLocation, null)}
 
                 <div class="flex items-center gap-3 p-3 bg-dark-50 rounded-lg">
                     <input
@@ -644,22 +649,24 @@
         >
             <div class="grid grid-cols-2 gap-4 w-full">
                 <div class="col-span-2">
-                    {@render field("createTitle", "Title", createInput)}
+                    {@render field("title", "Title", createInput, createTitle, null)}
                 </div>
                 <div class="col-span-2">
-                    {@render field("createSlug", "Slug", createInput)}
+                    {@render field("slug", "Slug", createInput, createSlug, null)}
                 </div>
                 <div class="col-span-2">
                     {@render field(
-                        "createDescription",
+                        "description",
                         "Description",
                         createInput,
+                        createDescription,
+                        null,
                     )}
                 </div>
-                {@render field("createStartDate", "Start Date", createInput)}
-                {@render field("createEndDate", "End Date", createInput)}
+                {@render field("startDate", "Start Date", createInput, createStartDate, null)}
+                {@render field("endDate", "End Date", createInput, createEndDate, null)}
                 <div class="col-span-2">
-                    {@render field("createLocation", "Location", createInput)}
+                    {@render field("location", "Location", createInput, createLocation, null)}
                 </div>
             </div>
 
@@ -731,12 +738,12 @@
             <input type="hidden" name="id" value={selectedEvent?.id} />
 
             <div class="grid grid-cols-1 gap-4 w-full">
-                {@render field("editTitle", "Title", editInput)}
-                {@render field("editSlug", "Slug", editInput)}
-                {@render field("editDescription", "Description", editInput)}
-                {@render field("editStartDate", "Start Date", editInput)}
-                {@render field("editEndDate", "End Date", editInput)}
-                {@render field("editLocation", "Location", editInput)}
+                {@render field("title", "Title", editInput, editTitle, null)}
+                {@render field("slug", "Slug", editInput, editSlug, null)}
+                {@render field("description", "Description", editInput, editDescription, null)}
+                {@render field("startDate", "Start Date", editInput, editStartDate, null)}
+                {@render field("endDate", "End Date", editInput, editEndDate, null)}
+                {@render field("location", "Location", editInput, editLocation, null)}
 
                 <div class="flex items-center gap-3 p-3 bg-dark-50 rounded-lg">
                     <input
@@ -792,18 +799,18 @@
 
             <div class="grid grid-cols-2 gap-4 w-full">
                 <div class="col-span-2">
-                    {@render field("editTitle", "Title", editInput)}
+                    {@render field("title", "Title", editInput, editTitle, null)}
                 </div>
                 <div class="col-span-2">
-                    {@render field("editSlug", "Slug", editInput)}
+                    {@render field("slug", "Slug", editInput, editSlug, null)}
                 </div>
                 <div class="col-span-2">
-                    {@render field("editDescription", "Description", editInput)}
+                    {@render field("description", "Description", editInput, editDescription, null)}
                 </div>
-                {@render field("editStartDate", "Start Date", editInput)}
-                {@render field("editEndDate", "End Date", editInput)}
+                {@render field("startDate", "Start Date", editInput, editStartDate, null)}
+                {@render field("endDate", "End Date", editInput, editEndDate, null)}
                 <div class="col-span-2">
-                    {@render field("editLocation", "Location", editInput)}
+                    {@render field("location", "Location", editInput, editLocation, null)}
                 </div>
             </div>
 
@@ -897,7 +904,7 @@
     <Modal
         bind:isOpen={deleteDialogOpen}
         title="Delete Event"
-        description="Are you sure you want to delete "{selectedEvent?.title}"? This action cannot be undone."
+        description="Are you sure you want to delete '{selectedEvent?.title}'? This action cannot be undone."
     >
         <form method="POST" action="?/deleteEvent" use:enhance class="mt-6">
             <input type="hidden" name="id" value={selectedEvent?.id} />
