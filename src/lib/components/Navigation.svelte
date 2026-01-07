@@ -2,6 +2,7 @@
     import { page } from "$app/state";
 
     const navItems = [
+        { href: "/upcoming", label: "Prochain événement" },
         { href: "/events", label: "Événements" },
         { href: "/talents", label: "Talents" },
         { href: "/contact", label: "Contact" },
