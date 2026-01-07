@@ -16,6 +16,15 @@ const devEnvSchema = z.object({
     MAX_FILE_SIZE: z.string().default('10485760').transform(Number),
     ALLOWED_IMAGE_TYPES: z.string().default('image/jpeg,image/png,image/webp,image/gif').transform(s => s.split(',')),
     ALLOWED_VIDEO_TYPES: z.string().default('video/mp4,video/webm,video/quicktime').transform(s => s.split(',')),
+    // SMTP Configuration - optional in dev, will log to console if not configured
+    SMTP_HOST: z.string().optional().default(''),
+    SMTP_PORT: z.string().optional().default('587').transform(Number),
+    SMTP_SECURE: z.string().optional().default('false').transform(v => v === 'true'),
+    SMTP_USER: z.string().optional().default(''),
+    SMTP_PASSWORD: z.string().optional().default(''),
+    SMTP_FROM_EMAIL: z.string().email().optional().default('noreply@germinal.com'),
+    SMTP_FROM_NAME: z.string().optional().default('Germinal'),
+    CONTACT_EMAIL: z.string().email().optional().default('hello@germinal.com'),
 });
 
 // Production schema - all fields required
@@ -32,6 +41,15 @@ const prodEnvSchema = z.object({
     MAX_FILE_SIZE: z.string().transform(Number),
     ALLOWED_IMAGE_TYPES: z.string().transform(s => s.split(',')),
     ALLOWED_VIDEO_TYPES: z.string().transform(s => s.split(',')),
+    // SMTP Configuration - required in production
+    SMTP_HOST: z.string().min(1),
+    SMTP_PORT: z.string().transform(Number),
+    SMTP_SECURE: z.string().transform(v => v === 'true'),
+    SMTP_USER: z.string().min(1),
+    SMTP_PASSWORD: z.string().min(1),
+    SMTP_FROM_EMAIL: z.string().email(),
+    SMTP_FROM_NAME: z.string().min(1),
+    CONTACT_EMAIL: z.string().email(),
 });
 
 function validateEnv() {
@@ -65,4 +83,9 @@ export const env = validateEnv();
 // Helper to check if S3 is configured
 export const isS3Enabled = () => {
     return !!(env.AWS_ACCESS_KEY_ID && env.AWS_SECRET_ACCESS_KEY);
+};
+
+// Helper to check if SMTP is configured
+export const isSMTPEnabled = () => {
+    return !!(env.SMTP_HOST && env.SMTP_USER && env.SMTP_PASSWORD);
 };
