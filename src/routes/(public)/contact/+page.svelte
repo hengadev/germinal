@@ -26,8 +26,8 @@
     }
 
     let links: Link[] = [
-        { href: "", Icon: Instagram },
-        { href: "", Icon: Globe },
+        { href: "https://www.instagram.com/Germinal.studio/", Icon: Instagram },
+        { href: "https://germinalstudio.co", Icon: Globe },
     ];
 
     function getInquiryTypeValue(displayName: string): string {
@@ -109,11 +109,14 @@
                     <p class="uppercase text-dark-300 text-xs">Follow us</p>
                     <div class="flex items-center gap-4">
                         {#each links as link}
-                            <button
+                            <a
+                                href={link.href}
+                                target="_blank"
                                 class="rounded-full p-2 border border-dark-100"
+                                rel="noopener noreferrer"
                             >
                                 <link.Icon size={16} />
-                            </button>
+                            </a>
                         {/each}
                     </div>
                 </div>
