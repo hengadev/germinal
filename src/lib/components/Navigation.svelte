@@ -90,20 +90,33 @@
                 {/each}
             </ul>
 
-            {#if showAdminIndicator}
-                <div class="flex justify-end">
-                    <a
-                        href="https://admin.germinalstudio.co/admin"
-                        class="text-sm px-3 py-1 border rounded-md transition-colors {showScrolledState
-                            ? `border-dark-300 text-dark-600 hover:text-dark-900 hover:border-dark-600`
-                            : `border-white/30 text-white/80 hover:text-white hover:border-white`}"
-                    >
-                        Admin Panel
-                    </a>
-                </div>
-            {:else}
-                <div></div>
-            {/if}
+            <div>
+                {#if showAdminIndicator}
+                    <div class="flex justify-end">
+                        <a
+                            href="https://admin.germinalstudio.co/admin"
+                            class="text-sm px-4 py-2 border rounded-md transition-colors {showScrolledState
+                                ? `border-dark-300 text-dark-600 hover:text-dark-900 hover:border-dark-600`
+                                : `border-white/30 text-white/80 hover:text-white hover:border-white`}"
+                        >
+                            Admin Panel
+                        </a>
+                    </div>
+                {:else}
+                    <div></div>
+                    <!-- NOTE: that will be implemented later when we have the payment part set -->
+                    <!-- <div class="flex justify-end"> -->
+                    <!--     <a -->
+                    <!--         href="/upcoming" -->
+                    <!--         class="text-sm px-4 py-2 border rounded-md transition-colors {showScrolledState -->
+                    <!--             ? `border-dark-300 text-dark-600 hover:text-dark-900 hover:border-dark-600` -->
+                    <!--             : `border-white/30 text-white/80 hover:text-white hover:border-white`}" -->
+                    <!--     > -->
+                    <!--         Reserve ta place -->
+                    <!--     </a> -->
+                    <!-- </div> -->
+                {/if}
+            </div>
         </div>
     </div>
 </nav>
