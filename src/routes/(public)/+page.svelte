@@ -2,7 +2,7 @@
     import EventCard from "$lib/components/EventCard.svelte";
     import TalentCard from "$lib/components/TalentCard.svelte";
     import type { PageData } from "./$types";
-    import { ArrowRight } from "lucide-svelte";
+    import { ArrowRight, ArrowUpRight } from "lucide-svelte";
     let { data }: { data: PageData } = $props();
 </script>
 
@@ -28,21 +28,65 @@
         <div class="absolute inset-0 bg-black/80"></div>
 
         <!-- Content -->
-        <div class="relative z-10 text-center px-4 max-w-4xl">
-            <h1
-                class="text-5xl md:text-7xl font-sans font-bold text-white mb-6"
+        <div class="relative z-10 text-center px-4 max-w-4xl grid gap-12">
+            <div class="grid gap-3">
+                <h1
+                    class="text-5xl md:text-8xl font-sans font-bold text-white mb-6"
+                >
+                    Sublimer <br /> l’éphémère
+                </h1>
+                <p class="text-lg md:text-xl text-dark-300 leading-relaxed">
+                    Un collectif dédié à l’architecture des expériences
+                    sensorielles. Nous façonnons des instants où le goût, le son et
+                    l’espace entrent en résonance.
+                </p>
+            </div>
+            <a
+                href="/upcoming"
+                class="mx-auto text-dark-900 font-medium px-6 py-3 bg-white flex items-center gap-2 rounded-full cursor-pointer"
             >
-                Sublimer <br /> l’éphémère
-            </h1>
-            <p class="text-lg md:text-xl text-dark-300 leading-relaxed">
-                Une collection d’instants, de lieux et des esprits qui les
-                façonnent
-            </p>
+                <p>Voir le prochain evenement</p>
+                <ArrowUpRight size={20} />
+            </a>
         </div>
     </section>
 
     <!-- Content Sections -->
-    <div class="container mx-auto mb-32 px-4 grid gap-32 pt-32">
+    <div class="container mx-auto mb-32 px-4 grid gap-y-40 pt-32">
+        <section class="grid grid-cols-2 gap-12">
+            {#if data.events.length === 0}
+                <div></div>
+            {:else}
+            <div>
+                <img
+                    src={data.events[0].coverMedia.url}
+                    alt={data.events[0].title}
+                    class="w-full max-h-100 object-cover grayscale"
+                />
+            </div>
+            <div class="flex flex-col justify-between"> 
+                <div class="grid gap-2">
+                    <p class="text-dark-500 uppercase text-sm">Prochain événement</p>
+                    <h2 class="text-4xl font-base">{data.events[0].title}</h2>
+                    <p class="text-dark-500 font-base">An exploration of taste without sound. A sensory deprivation dining experience designed to heighten the palate and focus the mind. Four courses, zero words.</p>
+                </div>
+                <div class="w-full border border-dark-50/80"></div>
+                <div class="grid grid-cols-2 grid-rows-2 gap-y-8">
+                    {#each Array(4) as _, index}
+                        <div class="grid gap-0.5">
+                            <p class="uppercase text-xs text-dark-300">Date</p>
+                            <p class="text-dark-900 text-sm font-medium">October 24, 2024</p>
+                        </div>
+                    {/each}
+                </div>
+                <div class="w-full border border-dark-50/80"></div>
+                <button class="inline-flex w-fit items-center gap-2 px-6 py-3 rounded-lg bg-dark-900 hover:bg-dark-700 text-white">
+                    <p>Reserve your seat</p>
+                    <ArrowRight />
+                </button>
+            </div>
+            {/if}
+        </section>
         <section class="">
             <div class="flex justify-between items-center mb-8">
                 <h2 class="text-3xl font-base">Selected Events</h2>
