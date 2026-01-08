@@ -156,7 +156,7 @@
 
             <form
                 method="POST"
-                class="space-y-6"
+                class="space-y-12 mt-8"
                 use:enhance={() => {
                     isSubmitting = true;
                     return async ({ update }) => {
@@ -185,7 +185,7 @@
                     />
                 </div>
 
-                <div class="grid grid-cols-2 gap-12">
+                <div class="grid grid-cols-2 gap-16">
                     <div class="grid gap-2">
                         <label
                             for="name"
@@ -199,7 +199,7 @@
                             name="name"
                             required
                             value={getFormDataValue("name")}
-                            class="w-full px-4 py-2 border-b border-b-dark-100 focus:border-transparent {hasFieldError(
+                            class="w-full px-4 py-2 border-b border-b-dark-100 focus:outline-none focus:ring-0 focus:shadow-none focus:border-b-dark-200/80 {hasFieldError(
                                 'name',
                             )
                                 ? 'border-b-red-500'
@@ -225,7 +225,7 @@
                             name="email"
                             required
                             value={getFormDataValue("email")}
-                            class="w-full px-4 py-2 border-b border-b-dark-100 focus:border-transparent {hasFieldError(
+                            class="w-full px-4 py-2 border-b border-b-dark-100 focus:outline-none focus:ring-0 focus:shadow-none focus:border-b-dark-200/80 {hasFieldError(
                                 'email',
                             )
                                 ? 'border-b-red-500'
@@ -251,7 +251,7 @@
                         id="company"
                         name="company"
                         value={getFormDataValue("company")}
-                        class="w-full px-4 py-2 border-b border-b-dark-100 focus:border-transparent {hasFieldError(
+                        class="w-full px-4 py-2 border-b border-b-dark-100 focus:outline-none focus:ring-0 focus:shadow-none focus:border-b-dark-200/80 {hasFieldError(
                             'company',
                         )
                             ? 'border-b-red-500'
@@ -279,7 +279,7 @@
                         rows="5"
                         required
                         value={getFormDataValue("message")}
-                        class="w-full px-4 py-2 border border-dark-100 rounded-lg focus:border-transparent {hasFieldError(
+                        class="w-full px-4 py-2 border-b border-b-dark-100 focus:outline-none focus:ring-0 focus:shadow-none focus:border-b-dark-200/80 {hasFieldError(
                             'message',
                         )
                             ? 'border-b-red-500'
@@ -301,6 +301,5 @@
                     <ArrowRight />
                 </button>
             </form>
-        </section>
-    </div>
+        </section> </div>
 </div>
