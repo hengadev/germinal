@@ -1,6 +1,7 @@
 <script lang="ts">
     import Navigation from "$lib/components/Navigation.svelte";
     import type { LayoutData } from "./$types";
+    import { Instagram } from "lucide-svelte";
 
     let { data, children }: { data: LayoutData; children: any } = $props();
 </script>
@@ -19,10 +20,14 @@
             </p>
             <div class="flex gap-8">
                 <a
-                    class="hover:text-white"
+                    class="text-white/80 hover:text-white flex items-center gap-2"
+                    target="_blank"
                     href="https://www.instagram.com/Germinal.studio/"
-                    >Instagram</a
+                    rel="noopener noreferrer"
                 >
+                    <Instagram />
+                    <p>Instagram</p>
+                </a>
                 <!-- <a -->
                 <!--     class="hover:text-white" -->
                 <!--     href="https://www.instagram.com/Germinal.studio/">Terms</a -->
