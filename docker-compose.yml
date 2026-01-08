@@ -26,33 +26,6 @@ services:
     networks:
       - germinal-network
 
-  # Nginx reverse proxy with SSL
-  nginx:
-    image: nginx:alpine
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - certbot_www:/var/www/certbot:ro
-      - certbot_conf:/etc/letsencrypt:ro
-    depends_on:
-      - app
-    restart: unless-stopped
-    networks:
-      - germinal-network
-
-  # Certbot for SSL certificate management
-  certbot:
-    image: certbot/certbot
-    volumes:
-      - certbot_www:/var/www/certbot
-      - certbot_conf:/etc/letsencrypt
-    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
-    depends_on:
-      - nginx
-    networks:
-      - germinal-network
 
   # PostgreSQL database
   db:
@@ -94,10 +67,6 @@ services:
 
 volumes:
   postgres_data:
-    driver: local
-  certbot_www:
-    driver: local
-  certbot_conf:
     driver: local
 
 networks:
