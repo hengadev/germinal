@@ -44,15 +44,15 @@ COPY --from=builder --chown=nodejs:nodejs /app/package.json ./
 USER nodejs
 
 # Expose port
-EXPOSE 3000
+EXPOSE 3001
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3000/', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+    CMD node -e "require('http').get('http://localhost:3001/', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
 # Environment (can be overridden)
 ENV NODE_ENV=production \
-    PORT=3000
+    PORT=3001
 
 # Start the application
 CMD ["node", "build"]
