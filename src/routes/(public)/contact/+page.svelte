@@ -8,16 +8,14 @@
     } from "lucide-svelte";
     import { enhance } from "$app/forms";
     import type { ActionData } from "./$types";
+    import { t } from 'svelte-i18n';
 
     let { form }: { form: ActionData } = $props();
 
-    let filters: string[] = [
-        "Collaboration",
-        "New Project",
-        "Join Roster",
-        "Other",
-    ];
-    let selected = $state("Collaboration");
+    const filterKeys = ['collaboration', 'newProject', 'joinRoster', 'other'];
+    const filterValues = ['collaboration', 'new_project', 'join_roster', 'other'];
+    let filters = $derived(filterKeys.map(key => $t(`contact.filters.${key}`)));
+    let selectedIndex = $state(0);
     let isSubmitting = $state(false);
 
     interface Link {
@@ -30,14 +28,8 @@
         { href: "https://germinalstudio.co", Icon: Globe },
     ];
 
-    function getInquiryTypeValue(displayName: string): string {
-        const map: Record<string, string> = {
-            Collaboration: "collaboration",
-            "New Project": "new_project",
-            "Join Roster": "join_roster",
-            Other: "other",
-        };
-        return map[displayName] || "other";
+    function getInquiryTypeValue(): string {
+        return filterValues[selectedIndex];
     }
 
     // Helper to get form data value safely
@@ -68,7 +60,7 @@
 </script>
 
 <svelte:head>
-    <title>Contact | Germinal</title>
+    <title>{$t('contact.pageTitle')}</title>
 </svelte:head>
 
 {#snippet asidePart(title: string, content: string)}
@@ -78,14 +70,14 @@
     </div>
 {/snippet}
 
-{#snippet tag(content: string)}
+{#snippet tag(content: string, index: number)}
     <button
         type="button"
-        class="px-4 py-2 text-dark-500 cursor-pointer border border-dark-300 rounded-full {selected ===
-        content
+        class="px-4 py-2 text-dark-500 cursor-pointer border border-dark-300 rounded-full {selectedIndex ===
+        index
             ? `bg-dark-900 text-white`
             : ``}"
-        onclick={() => (selected = content)}
+        onclick={() => (selectedIndex = index)}
     >
         <p class="capitalize">{content}</p>
     </button>
@@ -93,20 +85,19 @@
 
 <div class="container mx-auto px-4 py-32 max-w-8xl">
     <div class="mb-16 grid gap-4">
-        <h1 class="text-4xl font-normal">Get in touch.</h1>
+        <h1 class="text-4xl font-normal">{$t('contact.title')}</h1>
         <p class="text-dark-400 text-lg w-160">
-            We are always looking for new talents, collaborators, and
-            architectural projects. Reach out to start a conversation.
+            {$t('contact.description')}
         </p>
     </div>
 
     <div class="mt-24 grid grid-cols-[auto_1fr] gap-24">
         <section class="min-w-100 flex flex-col gap-12">
             <div class="grid gap-8">
-                {@render asidePart("general inquiries", "events@germinal.co")}
-                {@render asidePart("press & media", "events@germinal.co")}
+                {@render asidePart($t('contact.sidebar.generalInquiries'), "events@germinal.co")}
+                {@render asidePart($t('contact.sidebar.pressMedia'), "events@germinal.co")}
                 <div class="grid gap-2">
-                    <p class="uppercase text-dark-300 text-xs">Follow us</p>
+                    <p class="uppercase text-dark-300 text-xs">{$t('contact.sidebar.followUs')}</p>
                     <div class="flex items-center gap-4">
                         {#each links as link}
                             <a
@@ -146,10 +137,10 @@
             {/if}
 
             <div class="grid gap-4">
-                <p>What is this regarding?</p>
+                <p>{$t('contact.regarding')}</p>
                 <div class="flex items-center gap-4">
-                    {#each filters as filter}
-                        {@render tag(filter)}
+                    {#each filters as filter, index}
+                        {@render tag(filter, index)}
                     {/each}
                 </div>
             </div>
@@ -168,7 +159,7 @@
                 <input
                     type="hidden"
                     name="inquiryType"
-                    value={getInquiryTypeValue(selected)}
+                    value={getInquiryTypeValue()}
                 />
 
                 <div
@@ -191,7 +182,7 @@
                             for="name"
                             class="block text-sm font-medium text-dark-700 mb-2"
                         >
-                            Name <span class="text-red-500">*</span>
+                            {$t('contact.form.name')} <span class="text-red-500">*</span>
                         </label>
                         <input
                             type="text"
@@ -217,7 +208,7 @@
                             for="email"
                             class="block text-sm font-medium text-dark-700 mb-2"
                         >
-                            Email <span class="text-red-500">*</span>
+                            {$t('contact.form.email')} <span class="text-red-500">*</span>
                         </label>
                         <input
                             type="email"
@@ -244,7 +235,7 @@
                         for="company"
                         class="block text-sm font-medium text-dark-700 mb-2"
                     >
-                        Company/Organization (optional)
+                        {$t('contact.form.company')}
                     </label>
                     <input
                         type="text"
@@ -269,7 +260,7 @@
                         for="message"
                         class="block text-sm font-medium text-dark-700 mb-2"
                     >
-                        Tell us about your project... <span class="text-red-500"
+                        {$t('contact.form.message')} <span class="text-red-500"
                             >*</span
                         >
                     </label>
@@ -297,7 +288,7 @@
                     disabled={isSubmitting}
                     class="flex gap-4 items-center bg-dark-900 text-white py-4 px-8 rounded-full hover:bg-dark-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                    <p>{isSubmitting ? "Sending..." : "Send Message"}</p>
+                    <p>{isSubmitting ? $t('contact.form.sending') : $t('contact.form.send')}</p>
                     <ArrowRight />
                 </button>
             </form>
