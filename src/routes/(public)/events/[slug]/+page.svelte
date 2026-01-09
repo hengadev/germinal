@@ -3,20 +3,16 @@
     import type { PageData } from "./$types";
     import { ArrowLeft, MapPin, Clock, Info } from "lucide-svelte";
     import { Icon } from "lucide-svelte";
-    import { t } from 'svelte-i18n';
+    import { t } from "svelte-i18n";
 
     let { data }: { data: PageData } = $props();
 
     let collaborators = $derived(
-        data.event.collaborators
-            ? JSON.parse(data.event.collaborators)
-            : []
+        data.event.collaborators ? JSON.parse(data.event.collaborators) : [],
     );
 
     let timings = $derived(
-        data.event.timings
-            ? JSON.parse(data.event.timings)
-            : []
+        data.event.timings ? JSON.parse(data.event.timings) : [],
     );
 </script>
 
@@ -26,10 +22,10 @@
 </svelte:head>
 
 <div class="container mx-auto px-4 py-32 max-w-8xl">
-    <button class="flex items-center gap-2 mb-8 cursor-pointer">
+    <a href="/events" class="flex items-center gap-2 mb-8 cursor-pointer">
         <ArrowLeft />
-        <p class="text-700">{$t('events.backToAll')}</p>
-    </button>
+        <p class="text-700">{$t("events.backToAll")}</p>
+    </a>
     <article>
         <header class="mb-16 grid gap-2">
             <h1 class="text-5xl font-bold">{data.event.title}</h1>
@@ -51,7 +47,7 @@
                     <p
                         class="text-md text-dark-300 text-bold leading-relaxed uppercase"
                     >
-                        {$t('events.inCollaborationWith')}
+                        {$t("events.inCollaborationWith")}
                     </p>
                     <div class="flex gap-12 items-center">
                         {#each collaborators as collab}
@@ -60,7 +56,9 @@
                                     class="rounded-full bg-dark-400 w-12 h-12"
                                 ></div>
                                 <div>
-                                    <p class="text-dark-900 font-bold">{collab.name}</p>
+                                    <p class="text-dark-900 font-bold">
+                                        {collab.name}
+                                    </p>
                                     <p class="text-dark-500">{collab.role}</p>
                                 </div>
                             </div>
@@ -70,7 +68,7 @@
             </div>
             <div class="grid gap-8 min-w-90">
                 <div class="grid gap-4">
-                    {@render asideTitle($t('events.location'), MapPin)}
+                    {@render asideTitle($t("events.location"), MapPin)}
                     <div class="text-dark-500">
                         {#if data.event.venueName}
                             <p>{data.event.venueName}</p>
@@ -80,9 +78,12 @@
                         {/if}
                         {#if data.event.district || data.event.city || data.event.postalCode}
                             <p>
-                                {#if data.event.district}{data.event.district}, {/if}
-                                {#if data.event.city}{data.event.city} {/if}
-                                {#if data.event.postalCode}{data.event.postalCode}{/if}
+                                {#if data.event.district}{data.event.district},
+                                {/if}
+                                {#if data.event.city}{data.event.city}
+                                {/if}
+                                {#if data.event.postalCode}{data.event
+                                        .postalCode}{/if}
                             </p>
                         {/if}
                         {#if data.event.country}
@@ -91,28 +92,37 @@
                     </div>
                 </div>
                 <div class="grid gap-4">
-                    {@render asideTitle($t('events.timings'), Clock)}
+                    {@render asideTitle($t("events.timings"), Clock)}
                     <div class="text-dark-500">
                         {#if timings.length > 0}
                             {#each timings as timing}
                                 <p>{timing.label}: {timing.time}</p>
                             {/each}
                         {:else}
-                            <p>{$t('events.seeEventDates')}</p>
+                            <p>{$t("events.seeEventDates")}</p>
                         {/if}
                     </div>
                 </div>
                 <div class="grid gap-4">
-                    {@render asideTitle($t('events.details'), Info)}
+                    {@render asideTitle($t("events.details"), Info)}
                     <div class="grid gap-2">
                         {#if data.event.curator}
-                            {@render asideLastPart($t('events.curator'), data.event.curator)}
+                            {@render asideLastPart(
+                                $t("events.curator"),
+                                data.event.curator,
+                            )}
                         {/if}
                         {#if data.event.materials}
-                            {@render asideLastPart($t('events.materials'), data.event.materials)}
+                            {@render asideLastPart(
+                                $t("events.materials"),
+                                data.event.materials,
+                            )}
                         {/if}
                         {#if data.event.admissionInfo}
-                            {@render asideLastPart($t('events.admission'), data.event.admissionInfo)}
+                            {@render asideLastPart(
+                                $t("events.admission"),
+                                data.event.admissionInfo,
+                            )}
                         {/if}
                     </div>
                 </div>
@@ -121,7 +131,7 @@
 
         {#if data.event.media && data.event.media.length > 0}
             <section class="mt-12">
-                <h2 class="text-3xl font-bold mb-6">{$t('events.gallery')}</h2>
+                <h2 class="text-3xl font-bold mb-6">{$t("events.gallery")}</h2>
                 <EventGallery media={data.event.media} />
             </section>
         {/if}
