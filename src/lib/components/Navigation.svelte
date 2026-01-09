@@ -2,6 +2,8 @@
     import { page } from "$app/state";
     import { onMount, onDestroy } from "svelte";
     import { browser } from "$app/environment";
+    import { t } from 'svelte-i18n';
+    import LanguageSwitcher from './LanguageSwitcher.svelte';
 
     type Props = {
         user?: { role: string } | null;
@@ -23,12 +25,12 @@
         scrolled = window.scrollY > window.innerHeight;
     }
 
-    const navItems = [
-        { href: "/upcoming", label: "Prochain événement" },
-        { href: "/events", label: "Événements" },
-        { href: "/talents", label: "Talents" },
-        { href: "/contact", label: "Contact" },
-    ];
+    const navItems = $derived([
+        { href: "/upcoming", label: $t('nav.upcomingEvent') },
+        { href: "/events", label: $t('nav.events') },
+        { href: "/talents", label: $t('nav.talents') },
+        { href: "/contact", label: $t('nav.contact') },
+    ]);
 
     const showAdminIndicator = $derived(
         user && user.role === "admin" && !isAdminDomain,
@@ -90,20 +92,18 @@
                 {/each}
             </ul>
 
-            <div>
+            <div class="flex justify-end gap-4 items-center">
+                <LanguageSwitcher />
                 {#if showAdminIndicator}
-                    <div class="flex justify-end">
-                        <a
-                            href="https://admin.germinalstudio.co/admin"
-                            class="text-sm px-4 py-2 border rounded-md transition-colors {showScrolledState
-                                ? `border-dark-300 text-dark-600 hover:text-dark-900 hover:border-dark-600`
-                                : `border-white/30 text-white/80 hover:text-white hover:border-white`}"
-                        >
-                            Admin Panel
-                        </a>
-                    </div>
-                {:else}
-                    <div></div>
+                    <a
+                        href="https://admin.germinalstudio.co/admin"
+                        class="text-sm px-4 py-2 border rounded-md transition-colors {showScrolledState
+                            ? `border-dark-300 text-dark-600 hover:text-dark-900 hover:border-dark-600`
+                            : `border-white/30 text-white/80 hover:text-white hover:border-white`}"
+                    >
+                        {$t('nav.adminPanel')}
+                    </a>
+                {/if}
                     <!-- NOTE: that will be implemented later when we have the payment part set -->
                     <!-- <div class="flex justify-end"> -->
                     <!--     <a -->
@@ -115,7 +115,6 @@
                     <!--         Reserve ta place -->
                     <!--     </a> -->
                     <!-- </div> -->
-                {/if}
             </div>
         </div>
     </div>

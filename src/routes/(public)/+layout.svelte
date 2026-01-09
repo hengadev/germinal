@@ -2,6 +2,7 @@
     import Navigation from "$lib/components/Navigation.svelte";
     import type { LayoutData } from "./$types";
     import { Instagram } from "lucide-svelte";
+    import { t } from 'svelte-i18n';
 
     let { data, children }: { data: LayoutData; children: any } = $props();
 </script>
@@ -16,7 +17,7 @@
     <footer class="bg-dark-900 text-white/80 py-6 mt-12">
         <div class="container mx-auto px-4 flex items-center justify-between">
             <p>
-                &copy; {new Date().getFullYear()} Germinal. All rights reserved.
+                &copy; {new Date().getFullYear()} Germinal. {$t('footer.allRightsReserved')}
             </p>
             <div class="flex gap-8">
                 <a
@@ -26,7 +27,7 @@
                     rel="noopener noreferrer"
                 >
                     <Instagram />
-                    <p>Instagram</p>
+                    <p>{$t('footer.instagram')}</p>
                 </a>
                 <!-- <a -->
                 <!--     class="hover:text-white" -->
