@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { t } from 'svelte-i18n';
 </script>
 
-<div>The next event</div>
+<div>{$t('upcoming.title')}</div>

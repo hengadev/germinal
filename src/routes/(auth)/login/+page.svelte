@@ -2,12 +2,13 @@
 	import { enhance } from '$app/forms';
 	import { AlertCircle } from 'lucide-svelte';
 	import type { PageData } from './$types';
+	import { t } from 'svelte-i18n';
 
 	let { data, form }: { data: PageData; form: import('./$types').ActionData } = $props();
 </script>
 
 <svelte:head>
-	<title>Login | Germinal</title>
+	<title>{$t('admin.login.pageTitle')}</title>
 	<meta
 		name="description"
 		content="Sign in to your Germinal account"
@@ -17,9 +18,9 @@
 <div class="min-h-screen flex items-center justify-center px-4">
 	<div class="max-w-md w-full">
 		<div class="text-center mb-12">
-			<h1 class="text-4xl font-bold mb-4">Sign In</h1>
+			<h1 class="text-4xl font-bold mb-4">{$t('admin.login.title')}</h1>
 			<p class="text-dark-400">
-				Enter your credentials to access the admin dashboard
+				{$t('admin.login.description')}
 			</p>
 		</div>
 
@@ -34,7 +35,7 @@
 			<div class="space-y-4">
 				<div>
 					<label for="email" class="block text-sm font-medium text-dark-700 mb-2">
-						Email address
+						{$t('admin.login.email')}
 					</label>
 					<input
 						id="email"
@@ -49,7 +50,7 @@
 
 				<div>
 					<label for="password" class="block text-sm font-medium text-dark-700 mb-2">
-						Password
+						{$t('admin.login.password')}
 					</label>
 					<input
 						id="password"
@@ -68,7 +69,7 @@
 				disabled={form?.rateLimited}
 				class="w-full bg-dark-900 text-white py-3 px-4 rounded-lg hover:bg-dark-800 focus:outline-none focus:ring-2 focus:ring-dark-900 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-dark-900"
 			>
-				{form?.rateLimited ? 'Rate Limited' : 'Sign In'}
+				{form?.rateLimited ? $t('admin.login.rateLimited') : $t('admin.login.signIn')}
 			</button>
 		</form>
 
