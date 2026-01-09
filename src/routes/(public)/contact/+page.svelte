@@ -9,6 +9,7 @@
     import { enhance } from "$app/forms";
     import type { ActionData } from "./$types";
     import { t } from 'svelte-i18n';
+    import { reveal } from '$lib/actions/reveal';
 
     let { form }: { form: ActionData } = $props();
 
@@ -84,7 +85,7 @@
 {/snippet}
 
 <div class="container mx-auto px-4 py-32 max-w-8xl">
-    <div class="mb-16 grid gap-4">
+    <div class="mb-16 grid gap-4" use:reveal={{ preset: 'fade-down' }}>
         <h1 class="text-4xl font-normal">{$t('contact.title')}</h1>
         <p class="text-dark-400 text-lg w-160">
             {$t('contact.description')}
@@ -92,7 +93,7 @@
     </div>
 
     <div class="mt-24 grid grid-cols-[auto_1fr] gap-24">
-        <section class="min-w-100 flex flex-col gap-12">
+        <section class="min-w-100 flex flex-col gap-12" use:reveal={{ preset: 'fade-up', delay: 100 }}>
             <div class="grid gap-8">
                 {@render asidePart($t('contact.sidebar.generalInquiries'), "events@germinal.co")}
                 {@render asidePart($t('contact.sidebar.pressMedia'), "events@germinal.co")}
@@ -136,7 +137,7 @@
                 </div>
             {/if}
 
-            <div class="grid gap-4">
+            <div class="grid gap-4" use:reveal={{ preset: 'fade-up', delay: 150 }}>
                 <p>{$t('contact.regarding')}</p>
                 <div class="flex items-center gap-4">
                     {#each filters as filter, index}
@@ -176,7 +177,7 @@
                     />
                 </div>
 
-                <div class="grid grid-cols-2 gap-16">
+                <div class="grid grid-cols-2 gap-16" use:reveal={{ preset: 'fade-up', delay: 200 }}>
                     <div class="grid gap-2">
                         <label
                             for="name"
@@ -230,7 +231,7 @@
                     </div>
                 </div>
 
-                <div>
+                <div use:reveal={{ preset: 'fade-up', delay: 250 }}>
                     <label
                         for="company"
                         class="block text-sm font-medium text-dark-700 mb-2"
@@ -255,7 +256,7 @@
                     {/if}
                 </div>
 
-                <div>
+                <div use:reveal={{ preset: 'fade-up', delay: 300 }}>
                     <label
                         for="message"
                         class="block text-sm font-medium text-dark-700 mb-2"
@@ -283,14 +284,16 @@
                     {/if}
                 </div>
 
-                <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    class="flex gap-4 items-center bg-dark-900 text-white py-4 px-8 rounded-full hover:bg-dark-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                    <p>{isSubmitting ? $t('contact.form.sending') : $t('contact.form.send')}</p>
-                    <ArrowRight />
-                </button>
+                <div use:reveal={{ preset: 'fade-up', delay: 350 }}>
+                    <button
+                        type="submit"
+                        disabled={isSubmitting}
+                        class="flex gap-4 items-center bg-dark-900 text-white py-4 px-8 rounded-full hover:bg-dark-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        <p>{isSubmitting ? $t('contact.form.sending') : $t('contact.form.send')}</p>
+                        <ArrowRight />
+                    </button>
+                </div>
             </form>
         </section> </div>
 </div>

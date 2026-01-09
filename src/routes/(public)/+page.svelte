@@ -4,6 +4,7 @@
     import type { PageData } from "./$types";
     import { ArrowRight, ArrowUpRight } from "lucide-svelte";
     import { t } from 'svelte-i18n';
+    import { reveal } from '$lib/actions/reveal';
     let { data }: { data: PageData } = $props();
 </script>
 
@@ -29,7 +30,7 @@
         <div class="absolute inset-0 bg-black/80"></div>
 
         <!-- Content -->
-        <div class="relative z-10 text-center px-4 max-w-4xl grid gap-12">
+        <div class="relative z-10 text-center px-4 max-w-4xl grid gap-12" use:reveal={{ preset: 'fade-in', duration: 800 }}>
             <div class="grid gap-3">
                 <h1
                     class="text-5xl md:text-8xl font-sans font-bold text-white mb-6"
@@ -52,7 +53,7 @@
 
     <!-- Content Sections -->
     <div class="container mx-auto mb-32 px-4 grid gap-y-40 pt-32">
-        <section class="grid grid-cols-2 gap-12">
+        <section class="grid grid-cols-2 gap-12" use:reveal={{ preset: 'fade-up', delay: 100 }}>
             {#if data.events.length === 0}
                 <div></div>
             {:else}
@@ -87,7 +88,7 @@
             {/if}
         </section>
         <section class="">
-            <div class="flex justify-between items-center mb-8">
+            <div class="flex justify-between items-center mb-8" use:reveal={{ preset: 'fade-up', delay: 150 }}>
                 <h2 class="text-3xl font-base">{$t('home.selectedEvents')}</h2>
                 <a
                     href="/events"
@@ -106,15 +107,17 @@
                 <div
                     class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
                 >
-                    {#each data.events.slice(0, 3) as event}
-                        <EventCard {event} />
+                    {#each data.events.slice(0, 3) as event, index}
+                        <div use:reveal={{ preset: 'fade-up', delay: 200 + (index * 60) }}>
+                            <EventCard {event} />
+                        </div>
                     {/each}
                 </div>
             {/if}
         </section>
 
         <section class="">
-            <div class="flex justify-between items-center mb-8">
+            <div class="flex justify-between items-center mb-8" use:reveal={{ preset: 'fade-up', delay: 150 }}>
                 <h2 class="text-3xl font-base">{$t('home.featuredTalents')}</h2>
                 <a
                     href="/talents"
@@ -133,8 +136,10 @@
                 <div
                     class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
                 >
-                    {#each data.talents.slice(0, 3) as talent}
-                        <TalentCard {talent} />
+                    {#each data.talents.slice(0, 3) as talent, index}
+                        <div use:reveal={{ preset: 'fade-up', delay: 200 + (index * 60) }}>
+                            <TalentCard {talent} />
+                        </div>
                     {/each}
                 </div>
             {/if}
