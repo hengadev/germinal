@@ -2,22 +2,21 @@
     import TalentCard from "$lib/components/TalentCard.svelte";
     import type { PageData } from "./$types";
     import { Grid2x2, LayoutList, ArrowDown } from "lucide-svelte";
+    import { t } from 'svelte-i18n';
 
     let { data }: { data: PageData } = $props();
-    let filters = ["Visual Arts", "Design", "Culinary"];
+    let filters = $derived([$t('talents.filters.visualArts'), $t('talents.filters.design'), $t('talents.filters.culinary')]);
 </script>
 
 <svelte:head>
-    <title>Talents | Germinal</title>
+    <title>{$t('talents.pageTitle')}</title>
 </svelte:head>
 
 <div class="container mx-auto px-4 py-32">
     <div class="mb-16 grid gap-4">
-        <h1 class="text-4xl font-normal">Talents</h1>
+        <h1 class="text-4xl font-normal">{$t('talents.title')}</h1>
         <p class="text-dark-400 w-160">
-            A roster of multidisciplinary artists, architects and thinkers
-            shaping contemporary culture. Select a profile to view their
-            portfolio.
+            {$t('talents.description')}
         </p>
     </div>
 
@@ -33,7 +32,7 @@
             {/each}
         </div>
         <div class="flex items-center gap-4">
-            <p>View:</p>
+            <p>{$t('talents.view')}</p>
             <button>
                 <Grid2x2 />
             </button>
@@ -44,7 +43,7 @@
     </div>
 
     {#if data.talents.length === 0}
-        <p class="text-gray-500">No talents available at the moment.</p>
+        <p class="text-gray-500">{$t('talents.noTalents')}</p>
     {:else}
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {#each data.talents as talent}
@@ -56,7 +55,7 @@
         <button
             class="flex items-center gap-3 text-dark-600 px-6 py-3 rounded-full border border-border-dark"
         >
-            <p>Load more talents</p>
+            <p>{$t('talents.loadMore')}</p>
             <ArrowDown size={16} />
         </button>
     </div>

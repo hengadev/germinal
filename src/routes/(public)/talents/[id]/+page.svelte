@@ -3,6 +3,7 @@ import {Instagram, Globe, Mail} from "lucide-svelte"
     import EventGallery from "$lib/components/EventGallery.svelte";
 import type {Component} from "svelte"
     import type { PageData } from "./$types";
+    import { t } from 'svelte-i18n';
 
     let { data }: { data: PageData } = $props();
 
@@ -77,7 +78,7 @@ import type {Component} from "svelte"
                 </div>
                 {#if data.talent.city || data.talent.country}
                     <div>
-                        <p class="text-dark-300">Based in</p>
+                        <p class="text-dark-300">{$t('talents.basedIn')}</p>
                         <p class="text-dark-800">
                             {#if data.talent.city && data.talent.country}
                                 {data.talent.city}, {data.talent.country}
@@ -114,7 +115,7 @@ import type {Component} from "svelte"
                     <div class="grid grid-cols-3 gap-4">
                         {#each specializations as spec}
                             <div class="grid gap-2">
-                                <p class="text-dark-400 uppercase text-sm">Specialization</p>
+                                <p class="text-dark-400 uppercase text-sm">{$t('talents.specialization')}</p>
                                 <p class="text-dark-900 text-sm font-medium">{spec}</p>
                             </div>
                         {/each}
@@ -126,7 +127,7 @@ import type {Component} from "svelte"
 
     {#if data.talent.media && data.talent.media.length > 0}
         <section class="mt-12">
-            <h2 class="text-3xl font-bold mb-6">Gallery</h2>
+            <h2 class="text-3xl font-bold mb-6">{$t('talents.gallery')}</h2>
             <EventGallery media={data.talent.media} />
         </section>
     {/if}
