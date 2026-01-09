@@ -11,6 +11,9 @@
 		"instagram": "Instagram"
 	},
 	"home": {
+		"heroTitle": "Sublimer l'éphémère",
+		"heroSubtitle": "Un collectif dédié à l'architecture des expériences sensorielles. Nous façonnons des instants où le goût, le son et l'espace entrent en résonance.",
+		"viewUpcoming": "Voir le prochain événement",
 		"selectedEvents": "Événements sélectionnés",
 		"noEvents": "Aucun événement disponible pour le moment",
 		"featuredTalents": "Talents en vedette",

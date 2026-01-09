@@ -34,19 +34,17 @@
                 <h1
                     class="text-5xl md:text-8xl font-sans font-bold text-white mb-6"
                 >
-                    Sublimer <br /> l’éphémère
+                    {$t('home.heroTitle')}
                 </h1>
                 <p class="text-lg md:text-xl text-dark-300 leading-relaxed">
-                    Un collectif dédié à l’architecture des expériences
-                    sensorielles. Nous façonnons des instants où le goût, le son et
-                    l’espace entrent en résonance.
+                    {$t('home.heroSubtitle')}
                 </p>
             </div>
             <a
                 href="/upcoming"
                 class="mx-auto text-dark-900 font-medium px-6 py-3 bg-white flex items-center gap-2 rounded-full cursor-pointer"
             >
-                <p>Voir le prochain evenement</p>
+                <p>{$t('home.viewUpcoming')}</p>
                 <ArrowUpRight size={20} />
             </a>
         </div>
