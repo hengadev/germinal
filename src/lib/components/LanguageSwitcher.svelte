@@ -1,15 +1,15 @@
 <script lang="ts">
-    import { locale } from 'svelte-i18n';
-    import { Globe } from 'lucide-svelte';
+    import { locale } from "svelte-i18n";
+    import { Globe } from "lucide-svelte";
 
-    let currentLocale = $state<string>('fr');
+    let currentLocale = $state<string>("fr");
 
     locale.subscribe((value) => {
         if (value) currentLocale = value;
     });
 
     function switchLanguage() {
-        const newLocale = currentLocale === 'en' ? 'fr' : 'en';
+        const newLocale = currentLocale === "en" ? "fr" : "en";
         locale.set(newLocale);
     }
 </script>
