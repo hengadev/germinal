@@ -3,6 +3,7 @@
     import type { PageData } from "./$types";
     import { ArrowLeft, MapPin, Clock, Info } from "lucide-svelte";
     import { Icon } from "lucide-svelte";
+    import { t } from 'svelte-i18n';
 
     let { data }: { data: PageData } = $props();
 
@@ -27,7 +28,7 @@
 <div class="container mx-auto px-4 py-32 max-w-8xl">
     <button class="flex items-center gap-2 mb-8 cursor-pointer">
         <ArrowLeft />
-        <p class="text-700">Back to all events</p>
+        <p class="text-700">{$t('events.backToAll')}</p>
     </button>
     <article>
         <header class="mb-16 grid gap-2">
@@ -50,7 +51,7 @@
                     <p
                         class="text-md text-dark-300 text-bold leading-relaxed uppercase"
                     >
-                        in collaboration with
+                        {$t('events.inCollaborationWith')}
                     </p>
                     <div class="flex gap-12 items-center">
                         {#each collaborators as collab}
@@ -69,7 +70,7 @@
             </div>
             <div class="grid gap-8 min-w-90">
                 <div class="grid gap-4">
-                    {@render asideTitle("location", MapPin)}
+                    {@render asideTitle($t('events.location'), MapPin)}
                     <div class="text-dark-500">
                         {#if data.event.venueName}
                             <p>{data.event.venueName}</p>
@@ -90,28 +91,28 @@
                     </div>
                 </div>
                 <div class="grid gap-4">
-                    {@render asideTitle("timings", Clock)}
+                    {@render asideTitle($t('events.timings'), Clock)}
                     <div class="text-dark-500">
                         {#if timings.length > 0}
                             {#each timings as timing}
                                 <p>{timing.label}: {timing.time}</p>
                             {/each}
                         {:else}
-                            <p>See event dates above</p>
+                            <p>{$t('events.seeEventDates')}</p>
                         {/if}
                     </div>
                 </div>
                 <div class="grid gap-4">
-                    {@render asideTitle("details", Info)}
+                    {@render asideTitle($t('events.details'), Info)}
                     <div class="grid gap-2">
                         {#if data.event.curator}
-                            {@render asideLastPart("curator", data.event.curator)}
+                            {@render asideLastPart($t('events.curator'), data.event.curator)}
                         {/if}
                         {#if data.event.materials}
-                            {@render asideLastPart("materials", data.event.materials)}
+                            {@render asideLastPart($t('events.materials'), data.event.materials)}
                         {/if}
                         {#if data.event.admissionInfo}
-                            {@render asideLastPart("admission", data.event.admissionInfo)}
+                            {@render asideLastPart($t('events.admission'), data.event.admissionInfo)}
                         {/if}
                     </div>
                 </div>
@@ -120,7 +121,7 @@
 
         {#if data.event.media && data.event.media.length > 0}
             <section class="mt-12">
-                <h2 class="text-3xl font-bold mb-6">Gallery</h2>
+                <h2 class="text-3xl font-bold mb-6">{$t('events.gallery')}</h2>
                 <EventGallery media={data.event.media} />
             </section>
         {/if}

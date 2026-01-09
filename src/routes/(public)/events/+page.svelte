@@ -2,22 +2,21 @@
     import EventCard from "$lib/components/EventCard.svelte";
     import type { PageData } from "./$types";
     import { Grid2x2, LayoutList, ArrowDown } from "lucide-svelte";
+    import { t } from 'svelte-i18n';
 
     let { data }: { data: PageData } = $props();
-    let filters = ["Exhibitions", "Dining", "Workshops"];
+    let filters = $derived([$t('events.filters.exhibitions'), $t('events.filters.dining'), $t('events.filters.workshops')]);
 </script>
 
 <svelte:head>
-    <title>Events | Germinal</title>
+    <title>{$t('events.pageTitle')}</title>
 </svelte:head>
 
 <div class="container mx-auto px-4 py-32">
     <div class="mb-16 grid gap-4">
-        <h1 class="text-4xl font-normal">Selected Events</h1>
+        <h1 class="text-4xl font-normal">{$t('events.title')}</h1>
         <p class="text-dark-400 w-160">
-            Explore our curated selection of upcoming exhibition, dining
-            experiences, and architectural tours. Click on any event to view
-            full details.
+            {$t('events.description')}
         </p>
     </div>
     <div class="flex items-center justify-between mb-16">
@@ -32,7 +31,7 @@
             {/each}
         </div>
         <div class="flex items-center gap-4">
-            <p>View:</p>
+            <p>{$t('events.view')}</p>
             <button>
                 <Grid2x2 />
             </button>
@@ -43,7 +42,7 @@
     </div>
 
     {#if data.events.length === 0}
-        <p class="text-gray-500">No events available at the moment.</p>
+        <p class="text-gray-500">{$t('events.noEvents')}</p>
     {:else}
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {#each data.events as event}
@@ -55,7 +54,7 @@
         <button
             class="flex items-center gap-3 text-dark-600 px-6 py-3 rounded-full border border-border-dark"
         >
-            <p>Load more events</p>
+            <p>{$t('events.loadMore')}</p>
             <ArrowDown size={16}/>
         </button>
     </div>
