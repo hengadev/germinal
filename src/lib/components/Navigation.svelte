@@ -93,7 +93,7 @@
             </ul>
 
             <div class="flex justify-end gap-4 items-center">
-                <LanguageSwitcher />
+                <LanguageSwitcher scrolled={showScrolledState} />
                 {#if showAdminIndicator}
                     <a
                         href="https://admin.germinalstudio.co/admin"
