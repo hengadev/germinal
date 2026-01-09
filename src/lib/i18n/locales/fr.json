@@ -1,0 +1,244 @@
+{
+	"nav": {
+		"upcomingEvent": "Prochain événement",
+		"events": "Événements",
+		"talents": "Talents",
+		"contact": "Contact",
+		"adminPanel": "Panneau d'administration"
+	},
+	"footer": {
+		"allRightsReserved": "Tous droits réservés.",
+		"instagram": "Instagram"
+	},
+	"home": {
+		"selectedEvents": "Événements sélectionnés",
+		"noEvents": "Aucun événement disponible pour le moment",
+		"featuredTalents": "Talents en vedette",
+		"noTalents": "Aucun talent disponible pour le moment",
+		"heroDescription": "Une exploration du goût sans le son. Une expérience culinaire de privation sensorielle conçue pour affiner le palais et concentrer l'esprit. Quatre plats, zéro mot.",
+		"reserveSeat": "Réservez votre place",
+		"viewEvents": "Voir les événements",
+		"viewTalents": "Voir les talents"
+	},
+	"events": {
+		"pageTitle": "Événements | Germinal",
+		"title": "Événements sélectionnés",
+		"description": "Explorez notre sélection soignée d'expositions, expériences culinaires et visites architecturales à venir. Cliquez sur un événement pour voir tous les détails.",
+		"view": "Vue :",
+		"loadMore": "Charger plus d'événements",
+		"filters": {
+			"exhibitions": "Expositions",
+			"dining": "Gastronomie",
+			"workshops": "Ateliers"
+		},
+		"noEvents": "Aucun événement disponible pour le moment.",
+		"backToAll": "Retour à tous les événements",
+		"inCollaborationWith": "en collaboration avec",
+		"location": "lieu",
+		"timings": "horaires",
+		"seeEventDates": "Voir les dates de l'événement ci-dessus",
+		"details": "détails",
+		"curator": "commissaire",
+		"materials": "matériaux",
+		"admission": "admission",
+		"gallery": "Galerie"
+	},
+	"talents": {
+		"pageTitle": "Talents | Germinal",
+		"title": "Talents",
+		"description": "Une liste d'artistes, architectes et penseurs multidisciplinaires qui façonnent la culture contemporaine. Sélectionnez un profil pour voir leur portfolio.",
+		"view": "Vue :",
+		"loadMore": "Charger plus de talents",
+		"filters": {
+			"visualArts": "Arts visuels",
+			"design": "Design",
+			"culinary": "Culinaire"
+		},
+		"noTalents": "Aucun talent disponible pour le moment.",
+		"basedIn": "Basé à",
+		"specialization": "Spécialisation",
+		"gallery": "Galerie"
+	},
+	"contact": {
+		"pageTitle": "Contact | Germinal",
+		"title": "Prenons contact.",
+		"description": "Nous sommes toujours à la recherche de nouveaux talents, collaborateurs et projets architecturaux. Contactez-nous pour entamer une conversation.",
+		"regarding": "De quoi s'agit-il ?",
+		"filters": {
+			"collaboration": "Collaboration",
+			"newProject": "Nouveau projet",
+			"joinRoster": "Rejoindre la liste",
+			"other": "Autre"
+		},
+		"form": {
+			"name": "Nom",
+			"email": "Email",
+			"company": "Entreprise/Organisation (optionnel)",
+			"message": "Parlez-nous de votre projet...",
+			"send": "Envoyer le message",
+			"sending": "Envoi en cours..."
+		},
+		"sidebar": {
+			"generalInquiries": "demandes générales",
+			"pressMedia": "presse & médias",
+			"followUs": "Suivez-nous"
+		}
+	},
+	"upcoming": {
+		"title": "Le prochain événement"
+	},
+	"admin": {
+		"login": {
+			"pageTitle": "Connexion | Germinal",
+			"title": "Se connecter",
+			"description": "Entrez vos identifiants pour accéder au tableau de bord d'administration",
+			"email": "Adresse email",
+			"password": "Mot de passe",
+			"signIn": "Se connecter",
+			"rateLimited": "Limite de débit atteinte"
+		},
+		"dashboard": {
+			"title": "Tableau de bord",
+			"welcome": "Bienvenue ! Voici un aperçu de votre contenu Germinal.",
+			"newEvent": {
+				"title": "Nouvel événement",
+				"description": "Créer un nouvel événement ou exposition",
+				"button": "Créer un événement"
+			},
+			"newTalent": {
+				"title": "Nouveau talent",
+				"description": "Ajouter un nouveau talent à la collection",
+				"button": "Ajouter un talent"
+			},
+			"settings": {
+				"title": "Paramètres",
+				"description": "Gérer les paramètres de votre compte",
+				"button": "Changer le mot de passe"
+			},
+			"accountInfo": {
+				"title": "Informations du compte",
+				"email": "Email",
+				"role": "Rôle",
+				"memberSince": "Membre depuis"
+			}
+		},
+		"sidebar": {
+			"title": "Panneau d'administration",
+			"dashboard": "Tableau de bord",
+			"events": "Événements",
+			"talents": "Talents",
+			"password": "Mot de passe",
+			"logout": "Déconnexion"
+		},
+		"layout": {
+			"admin": "Admin",
+			"mobileNav": {
+				"dashboard": "Tableau de bord",
+				"events": "Événements",
+				"talents": "Talents",
+				"settings": "Paramètres"
+			}
+		},
+		"events": {
+			"title": "Événements",
+			"description": "Gérer vos événements et expositions",
+			"newEvent": "Nouvel événement",
+			"noEvents": "Aucun événement pour le moment",
+			"noEventsDescription": "Créez votre premier événement pour commencer",
+			"createEvent": "Créer un événement",
+			"table": {
+				"event": "Événement",
+				"date": "Date",
+				"location": "Lieu",
+				"status": "Statut",
+				"actions": "Actions"
+			},
+			"status": {
+				"published": "Publié",
+				"draft": "Brouillon"
+			},
+			"dialog": {
+				"create": {
+					"title": "Créer un nouvel événement",
+					"description": "Remplissez les détails pour créer un nouvel événement"
+				},
+				"edit": {
+					"title": "Modifier l'événement"
+				},
+				"delete": {
+					"title": "Supprimer l'événement",
+					"confirmation": "Êtes-vous sûr de vouloir supprimer cet événement ?"
+				},
+				"fields": {
+					"title": "Titre",
+					"slug": "Slug",
+					"description": "Description",
+					"startDate": "Date de début",
+					"endDate": "Date de fin",
+					"location": "Lieu",
+					"publishImmediately": "Publier immédiatement",
+					"publishHelp": "Décochez pour enregistrer comme brouillon"
+				},
+				"actions": {
+					"cancel": "Annuler",
+					"create": "Créer l'événement",
+					"save": "Enregistrer les modifications",
+					"delete": "Supprimer"
+				}
+			}
+		},
+		"talents": {
+			"title": "Talents",
+			"description": "Gérer votre collection de talents",
+			"newTalent": "Nouveau talent",
+			"noTalents": "Aucun talent pour le moment",
+			"noTalentsDescription": "Ajoutez votre premier talent pour commencer",
+			"addTalent": "Ajouter un talent",
+			"table": {
+				"talent": "Talent",
+				"role": "Rôle",
+				"bio": "Biographie",
+				"status": "Statut",
+				"actions": "Actions"
+			},
+			"dialog": {
+				"create": {
+					"title": "Ajouter un nouveau talent"
+				},
+				"edit": {
+					"title": "Modifier le talent"
+				},
+				"delete": {
+					"title": "Supprimer le talent",
+					"confirmation": "Êtes-vous sûr de vouloir supprimer ce talent ?"
+				},
+				"fields": {
+					"firstName": "Prénom",
+					"lastName": "Nom",
+					"role": "Rôle",
+					"bio": "Biographie",
+					"socialLinks": "Liens sociaux (optionnel)",
+					"instagram": "Instagram",
+					"linkedin": "LinkedIn",
+					"twitter": "Twitter",
+					"website": "Site web"
+				},
+				"actions": {
+					"cancel": "Annuler",
+					"add": "Ajouter le talent",
+					"save": "Enregistrer les modifications",
+					"delete": "Supprimer"
+				}
+			}
+		},
+		"changePassword": {
+			"title": "Changer le mot de passe",
+			"backToDashboard": "Retour au tableau de bord",
+			"currentPassword": "Mot de passe actuel",
+			"newPassword": "Nouveau mot de passe",
+			"confirmPassword": "Confirmer le nouveau mot de passe",
+			"passwordHelp": "Doit contenir au moins 8 caractères",
+			"updatePassword": "Mettre à jour le mot de passe"
+		}
+	}
+}

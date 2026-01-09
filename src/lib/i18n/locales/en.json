@@ -1,0 +1,244 @@
+{
+	"nav": {
+		"upcomingEvent": "Upcoming Event",
+		"events": "Events",
+		"talents": "Talents",
+		"contact": "Contact",
+		"adminPanel": "Admin Panel"
+	},
+	"footer": {
+		"allRightsReserved": "All rights reserved.",
+		"instagram": "Instagram"
+	},
+	"home": {
+		"selectedEvents": "Selected Events",
+		"noEvents": "No events available at the moment",
+		"featuredTalents": "Featured Talents",
+		"noTalents": "No talents available at the moment",
+		"heroDescription": "An exploration of taste without sound. A sensory deprivation dining experience designed to heighten the palate and focus the mind. Four courses, zero words.",
+		"reserveSeat": "Reserve your seat",
+		"viewEvents": "View Events",
+		"viewTalents": "View Talents"
+	},
+	"events": {
+		"pageTitle": "Events | Germinal",
+		"title": "Selected Events",
+		"description": "Explore our curated selection of upcoming exhibition, dining experiences, and architectural tours. Click on any event to view full details.",
+		"view": "View:",
+		"loadMore": "Load more events",
+		"filters": {
+			"exhibitions": "Exhibitions",
+			"dining": "Dining",
+			"workshops": "Workshops"
+		},
+		"noEvents": "No events available at the moment.",
+		"backToAll": "Back to all events",
+		"inCollaborationWith": "in collaboration with",
+		"location": "location",
+		"timings": "timings",
+		"seeEventDates": "See event dates above",
+		"details": "details",
+		"curator": "curator",
+		"materials": "materials",
+		"admission": "admission",
+		"gallery": "Gallery"
+	},
+	"talents": {
+		"pageTitle": "Talents | Germinal",
+		"title": "Talents",
+		"description": "A roster of multidisciplinary artists, architects and thinkers shaping contemporary culture. Select a profile to view their portfolio.",
+		"view": "View:",
+		"loadMore": "Load more talents",
+		"filters": {
+			"visualArts": "Visual Arts",
+			"design": "Design",
+			"culinary": "Culinary"
+		},
+		"noTalents": "No talents available at the moment.",
+		"basedIn": "Based in",
+		"specialization": "Specialization",
+		"gallery": "Gallery"
+	},
+	"contact": {
+		"pageTitle": "Contact | Germinal",
+		"title": "Get in touch.",
+		"description": "We are always looking for new talents, collaborators, and architectural projects. Reach out to start a conversation.",
+		"regarding": "What is this regarding?",
+		"filters": {
+			"collaboration": "Collaboration",
+			"newProject": "New Project",
+			"joinRoster": "Join Roster",
+			"other": "Other"
+		},
+		"form": {
+			"name": "Name",
+			"email": "Email",
+			"company": "Company/Organization (optional)",
+			"message": "Tell us about your project...",
+			"send": "Send Message",
+			"sending": "Sending..."
+		},
+		"sidebar": {
+			"generalInquiries": "general inquiries",
+			"pressMedia": "press & media",
+			"followUs": "Follow us"
+		}
+	},
+	"upcoming": {
+		"title": "The next event"
+	},
+	"admin": {
+		"login": {
+			"pageTitle": "Login | Germinal",
+			"title": "Sign In",
+			"description": "Enter your credentials to access the admin dashboard",
+			"email": "Email address",
+			"password": "Password",
+			"signIn": "Sign In",
+			"rateLimited": "Rate Limited"
+		},
+		"dashboard": {
+			"title": "Dashboard",
+			"welcome": "Welcome back! Here's an overview of your Germinal content.",
+			"newEvent": {
+				"title": "New Event",
+				"description": "Create a new event or exhibition",
+				"button": "Create Event"
+			},
+			"newTalent": {
+				"title": "New Talent",
+				"description": "Add a new talent to the collection",
+				"button": "Add Talent"
+			},
+			"settings": {
+				"title": "Settings",
+				"description": "Manage your account settings",
+				"button": "Change Password"
+			},
+			"accountInfo": {
+				"title": "Account Information",
+				"email": "Email",
+				"role": "Role",
+				"memberSince": "Member since"
+			}
+		},
+		"sidebar": {
+			"title": "Admin Panel",
+			"dashboard": "Dashboard",
+			"events": "Events",
+			"talents": "Talents",
+			"password": "Password",
+			"logout": "Logout"
+		},
+		"layout": {
+			"admin": "Admin",
+			"mobileNav": {
+				"dashboard": "Dashboard",
+				"events": "Events",
+				"talents": "Talents",
+				"settings": "Settings"
+			}
+		},
+		"events": {
+			"title": "Events",
+			"description": "Manage your events and exhibitions",
+			"newEvent": "New Event",
+			"noEvents": "No events yet",
+			"noEventsDescription": "Create your first event to get started",
+			"createEvent": "Create Event",
+			"table": {
+				"event": "Event",
+				"date": "Date",
+				"location": "Location",
+				"status": "Status",
+				"actions": "Actions"
+			},
+			"status": {
+				"published": "Published",
+				"draft": "Draft"
+			},
+			"dialog": {
+				"create": {
+					"title": "Create New Event",
+					"description": "Fill in the details to create a new event"
+				},
+				"edit": {
+					"title": "Edit Event"
+				},
+				"delete": {
+					"title": "Delete Event",
+					"confirmation": "Are you sure you want to delete this event?"
+				},
+				"fields": {
+					"title": "Title",
+					"slug": "Slug",
+					"description": "Description",
+					"startDate": "Start Date",
+					"endDate": "End Date",
+					"location": "Location",
+					"publishImmediately": "Publish immediately",
+					"publishHelp": "Uncheck to save as draft"
+				},
+				"actions": {
+					"cancel": "Cancel",
+					"create": "Create Event",
+					"save": "Save Changes",
+					"delete": "Delete"
+				}
+			}
+		},
+		"talents": {
+			"title": "Talents",
+			"description": "Manage your talent collection",
+			"newTalent": "New Talent",
+			"noTalents": "No talents yet",
+			"noTalentsDescription": "Add your first talent to get started",
+			"addTalent": "Add Talent",
+			"table": {
+				"talent": "Talent",
+				"role": "Role",
+				"bio": "Bio",
+				"status": "Status",
+				"actions": "Actions"
+			},
+			"dialog": {
+				"create": {
+					"title": "Add New Talent"
+				},
+				"edit": {
+					"title": "Edit Talent"
+				},
+				"delete": {
+					"title": "Delete Talent",
+					"confirmation": "Are you sure you want to delete this talent?"
+				},
+				"fields": {
+					"firstName": "First Name",
+					"lastName": "Last Name",
+					"role": "Role",
+					"bio": "Bio",
+					"socialLinks": "Social Links (Optional)",
+					"instagram": "Instagram",
+					"linkedin": "LinkedIn",
+					"twitter": "Twitter",
+					"website": "Website"
+				},
+				"actions": {
+					"cancel": "Cancel",
+					"add": "Add Talent",
+					"save": "Save Changes",
+					"delete": "Delete"
+				}
+			}
+		},
+		"changePassword": {
+			"title": "Change Password",
+			"backToDashboard": "Back to Dashboard",
+			"currentPassword": "Current Password",
+			"newPassword": "New Password",
+			"confirmPassword": "Confirm New Password",
+			"passwordHelp": "Must be at least 8 characters long",
+			"updatePassword": "Update Password"
+		}
+	}
+}
