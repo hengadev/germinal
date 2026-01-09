@@ -3,6 +3,7 @@
     import TalentCard from "$lib/components/TalentCard.svelte";
     import type { PageData } from "./$types";
     import { ArrowRight, ArrowUpRight } from "lucide-svelte";
+    import { t } from 'svelte-i18n';
     let { data }: { data: PageData } = $props();
 </script>
 
@@ -66,9 +67,9 @@
             </div>
             <div class="flex flex-col justify-between"> 
                 <div class="grid gap-2">
-                    <p class="text-dark-500 uppercase text-sm">Prochain événement</p>
+                    <p class="text-dark-500 uppercase text-sm">{$t('nav.upcomingEvent')}</p>
                     <h2 class="text-4xl font-base">{data.events[0].title}</h2>
-                    <p class="text-dark-500 font-base">An exploration of taste without sound. A sensory deprivation dining experience designed to heighten the palate and focus the mind. Four courses, zero words.</p>
+                    <p class="text-dark-500 font-base">{$t('home.heroDescription')}</p>
                 </div>
                 <div class="w-full border border-dark-50/80"></div>
                 <div class="grid grid-cols-2 grid-rows-2 gap-y-8">
@@ -81,7 +82,7 @@
                 </div>
                 <div class="w-full border border-dark-50/80"></div>
                 <button class="inline-flex w-fit items-center gap-2 px-6 py-3 rounded-lg bg-dark-900 hover:bg-dark-700 text-white">
-                    <p>Reserve your seat</p>
+                    <p>{$t('home.reserveSeat')}</p>
                     <ArrowRight />
                 </button>
             </div>
@@ -89,19 +90,19 @@
         </section>
         <section class="">
             <div class="flex justify-between items-center mb-8">
-                <h2 class="text-3xl font-base">Selected Events</h2>
+                <h2 class="text-3xl font-base">{$t('home.selectedEvents')}</h2>
                 <a
                     href="/events"
                     class="flex items-center gap-2 text-dark-600 hover:text-dark-800 font-normal"
                 >
-                    <p>Voir Les Événements</p>
+                    <p>{$t('home.viewEvents')}</p>
                     <ArrowRight />
                 </a>
             </div>
 
             {#if data.events.length === 0}
                 <p class="text-dark-500 text-center">
-                    No events available at the moment.
+                    {$t('home.noEvents')}
                 </p>
             {:else}
                 <div
@@ -116,19 +117,19 @@
 
         <section class="">
             <div class="flex justify-between items-center mb-8">
-                <h2 class="text-3xl font-base">Featured Talents</h2>
+                <h2 class="text-3xl font-base">{$t('home.featuredTalents')}</h2>
                 <a
                     href="/talents"
                     class="flex items-center gap-2 text-dark-600 hover:text-dark-800 font-normal"
                 >
-                    <p>Voir Les Talents</p>
+                    <p>{$t('home.viewTalents')}</p>
                     <ArrowRight />
                 </a>
             </div>
 
             {#if data.talents.length === 0}
                 <p class="text-dark-500 text-center">
-                    No talents available at the moment.
+                    {$t('home.noTalents')}
                 </p>
             {:else}
                 <div
