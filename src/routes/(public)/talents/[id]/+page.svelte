@@ -4,6 +4,7 @@ import {Instagram, Globe, Mail} from "lucide-svelte"
 import type {Component} from "svelte"
     import type { PageData } from "./$types";
     import { t } from 'svelte-i18n';
+    import { reveal } from '$lib/actions/reveal';
 
     let { data }: { data: PageData } = $props();
 
@@ -37,7 +38,7 @@ import type {Component} from "svelte"
 
 <article class="container mx-auto px-4 py-32 max-w-8xl">
     <div class="flex flex-col md:flex-row gap-12 mb-8">
-        <div class="flex flex-col gap-6">
+        <div class="flex flex-col gap-6" use:reveal={{ preset: 'fade-in-scale' }}>
             {#if data.talent.profileMedia}
                 <div class="w-96 aspect-3/4 flex-shrink-0">
                     <img
@@ -67,7 +68,7 @@ import type {Component} from "svelte"
                 </div>
             {/if}
         </div>
-        <div class="flex-1">
+        <div class="flex-1" use:reveal={{ preset: 'fade-up', delay: 100 }}>
             <div class="flex justify-between items-end">
                 <div class="grid gap-2">
                     <h1 class="text-5xl font-bold mb-2">
@@ -126,7 +127,7 @@ import type {Component} from "svelte"
     </div>
 
     {#if data.talent.media && data.talent.media.length > 0}
-        <section class="mt-12">
+        <section class="mt-12" use:reveal={{ preset: 'fade-up', delay: 200 }}>
             <h2 class="text-3xl font-bold mb-6">{$t('talents.gallery')}</h2>
             <EventGallery media={data.talent.media} />
         </section>

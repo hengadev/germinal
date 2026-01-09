@@ -4,6 +4,7 @@
     import { ArrowLeft, MapPin, Clock, Info } from "lucide-svelte";
     import { Icon } from "lucide-svelte";
     import { t } from "svelte-i18n";
+    import { reveal } from "$lib/actions/reveal";
 
     let { data }: { data: PageData } = $props();
 
@@ -22,12 +23,19 @@
 </svelte:head>
 
 <div class="container mx-auto px-4 py-32 max-w-8xl">
-    <a href="/events" class="flex items-center gap-2 mb-8 cursor-pointer">
+    <a
+        href="/events"
+        class="flex items-center gap-2 mb-8 cursor-pointer"
+        use:reveal={{ preset: "fade-in" }}
+    >
         <ArrowLeft />
         <p class="text-700">{$t("events.backToAll")}</p>
     </a>
     <article>
-        <header class="mb-16 grid gap-2">
+        <header
+            class="mb-16 grid gap-2"
+            use:reveal={{ preset: "fade-up", delay: 50 }}
+        >
             <h1 class="text-5xl font-bold">{data.event.title}</h1>
             {#if data.event.subtitle}
                 <p class="text-dark-500 text-lg font-light">
@@ -38,12 +46,15 @@
         <div class="w-full border border-border-card/20 mb-16"></div>
         <section class="grid grid-cols-[1fr_auto] gap-32 text-sm">
             <div class="grid gap-8">
-                <div>
+                <div use:reveal={{ preset: "fade-up", delay: 100 }}>
                     <p class="text-lg text-dark-500 leading-relaxed">
                         {data.event.description}
                     </p>
                 </div>
-                <div class="bg-dark-50/60 p-8 grid gap-0">
+                <div
+                    class="bg-dark-50/60 p-8 grid gap-0"
+                    use:reveal={{ preset: "fade-up", delay: 150 }}
+                >
                     <p
                         class="text-md text-dark-300 text-bold leading-relaxed uppercase"
                     >
@@ -66,7 +77,10 @@
                     </div>
                 </div>
             </div>
-            <div class="grid gap-8 min-w-90">
+            <div
+                class="grid gap-8 min-w-90"
+                use:reveal={{ preset: "fade-up", delay: 150 }}
+            >
                 <div class="grid gap-4">
                     {@render asideTitle($t("events.location"), MapPin)}
                     <div class="text-dark-500">
@@ -130,7 +144,10 @@
         </section>
 
         {#if data.event.media && data.event.media.length > 0}
-            <section class="mt-12">
+            <section
+                class="mt-12"
+                use:reveal={{ preset: "fade-up", delay: 200 }}
+            >
                 <h2 class="text-3xl font-bold mb-6">{$t("events.gallery")}</h2>
                 <EventGallery media={data.event.media} />
             </section>
