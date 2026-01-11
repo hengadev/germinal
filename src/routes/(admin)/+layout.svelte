@@ -10,7 +10,7 @@
     }: { data: LayoutData; children: import("svelte").Snippet } = $props();
 </script>
 
-<div class="min-h-screen bg-dark-50 flex flex-col lg:flex-row">
+<div class="min-h-screen bg-dark-50/25 flex flex-col lg:flex-row">
     <!-- Desktop Sidebar -->
     <AdminSidebar {data} />
 

@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { Calendar, Users, ArrowRight } from 'lucide-svelte';
-	import type { PageData } from './$types';
+	import { Calendar, Users, ArrowRight } from 'lucide-svelte'; 
+    import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
 </script>
