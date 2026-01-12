@@ -44,7 +44,8 @@
 		"curator": "commissaire",
 		"materials": "matériaux",
 		"admission": "admission",
-		"gallery": "Galerie"
+		"gallery": "Galerie",
+		"bookTickets": "Réserver des billets"
 	},
 	"talents": {
 		"pageTitle": "Talents | Germinal",

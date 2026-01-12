@@ -1,5 +1,6 @@
 <script lang="ts">
     import EventGallery from "$lib/components/EventGallery.svelte";
+    import SessionSelector from "$lib/components/booking/SessionSelector.svelte";
     import type { PageData } from "./$types";
     import { ArrowLeft, MapPin, Clock, Info } from "lucide-svelte";
     import { Icon } from "lucide-svelte";
@@ -150,6 +151,24 @@
             >
                 <h2 class="text-3xl font-bold mb-6">{$t("events.gallery")}</h2>
                 <EventGallery media={data.event.media} />
+            </section>
+        {/if}
+
+        {#if data.sessions && data.sessions.length > 0}
+            <section class="mt-16" use:reveal={{ preset: "fade-up", delay: 250 }}>
+                <h2 class="text-3xl font-bold mb-8">{$t("events.bookTickets")}</h2>
+                <SessionSelector
+                    sessions={data.sessions}
+                    eventTitle={data.event.title}
+                    eventSlug={data.event.slug}
+                />
+            </section>
+        {:else}
+            <section class="mt-16" use:reveal={{ preset: "fade-up", delay: 250 }}>
+                <h2 class="text-3xl font-bold mb-8">{$t("events.bookTickets")}</h2>
+                <div class="bg-dark-50 rounded-lg border border-border-card p-8 text-center">
+                    <p class="text-dark-500">No sessions available at this time. Please check back later.</p>
+                </div>
             </section>
         {/if}
     </article>

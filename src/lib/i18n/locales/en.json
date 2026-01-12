@@ -44,7 +44,8 @@
 		"curator": "curator",
 		"materials": "materials",
 		"admission": "admission",
-		"gallery": "Gallery"
+		"gallery": "Gallery",
+		"bookTickets": "Book Tickets"
 	},
 	"talents": {
 		"pageTitle": "Talents | Germinal",
