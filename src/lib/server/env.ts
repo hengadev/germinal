@@ -25,6 +25,13 @@ const devEnvSchema = z.object({
     SMTP_FROM_EMAIL: z.string().email().optional().default('noreply@germinal.com'),
     SMTP_FROM_NAME: z.string().optional().default('Germinal'),
     CONTACT_EMAIL: z.string().email().optional().default('hello@germinal.com'),
+    // Stripe Configuration - optional in dev
+    STRIPE_SECRET_KEY: z.string().optional().default(''),
+    STRIPE_WEBHOOK_SECRET: z.string().optional().default(''),
+    PUBLIC_URL: z.string().url().optional().default('http://localhost:5173'),
+    RESERVATION_EXPIRY_MINUTES: z.string().optional().default('15').transform(Number),
+    // Sentry monitoring - optional
+    SENTRY_DSN: z.string().optional().default(''),
 });
 
 // Production schema - all fields required
@@ -50,6 +57,13 @@ const prodEnvSchema = z.object({
     SMTP_FROM_EMAIL: z.string().email(),
     SMTP_FROM_NAME: z.string().min(1),
     CONTACT_EMAIL: z.string().email(),
+    // Stripe Configuration - required in production for reservations
+    STRIPE_SECRET_KEY: z.string().min(1),
+    STRIPE_WEBHOOK_SECRET: z.string().min(1),
+    PUBLIC_URL: z.string().url(),
+    RESERVATION_EXPIRY_MINUTES: z.string().optional().default('15').transform(Number),
+    // Sentry monitoring - optional but recommended in production
+    SENTRY_DSN: z.string().optional(),
 });
 
 function validateEnv() {
@@ -88,4 +102,9 @@ export const isS3Enabled = () => {
 // Helper to check if SMTP is configured
 export const isSMTPEnabled = () => {
     return !!(env.SMTP_HOST && env.SMTP_USER && env.SMTP_PASSWORD);
+};
+
+// Helper to check if Stripe is configured
+export const isStripeEnabled = () => {
+    return !!(env.STRIPE_SECRET_KEY && env.STRIPE_WEBHOOK_SECRET);
 };
