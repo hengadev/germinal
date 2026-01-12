@@ -1,8 +1,66 @@
-import { getReservationById } from '$lib/server/services/reservations';
+import { env } from '$lib/server/env';
+import { MOCK_RESERVATIONS } from '$lib/mock-data';
+import { MOCK_EVENTS } from '$lib/mock-data';
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params }) => {
+	if (env.USE_MOCK_DATA) {
+		// Mock mode - find reservation by ID
+		const reservation = MOCK_RESERVATIONS.find(r => r.id === params.id);
+
+		if (!reservation) {
+			throw error(404, 'Reservation not found');
+		}
+
+		// Find the event from MOCK_EVENTS to get full details
+		const event = MOCK_EVENTS.find(e => e.title === reservation.eventTitle) || MOCK_EVENTS[0];
+
+		return {
+			reservation: {
+				id: reservation.id,
+				guestName: reservation.guestName,
+				guestEmail: reservation.guestEmail,
+				guestPhone: null,
+				quantity: reservation.quantity,
+				totalAmount: reservation.totalAmount,
+				currency: reservation.currency,
+				status: reservation.status,
+				accessToken: 'mock-token-' + reservation.id,
+				expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+				confirmedAt: reservation.confirmedAt,
+				cancelledAt: null,
+				createdAt: reservation.createdAt,
+				session: {
+					title: reservation.sessionTitle,
+					startTime: reservation.sessionStartTime,
+					endTime: new Date(new Date(reservation.sessionStartTime).getTime() + 3 * 60 * 60 * 1000).toISOString(),
+					event: {
+						id: event.id,
+						title: event.title,
+						slug: event.slug,
+						location: event.location,
+						venueName: event.venueName,
+						streetAddress: event.streetAddress,
+						city: event.city,
+						country: event.country
+					}
+				},
+				payment: {
+					status: reservation.paymentStatus,
+					amount: reservation.totalAmount,
+					currency: reservation.currency,
+					stripePaymentIntentId: 'pi_mock_' + reservation.id,
+					receiptUrl: null,
+					refundedAmount: reservation.paymentStatus === 'refunded' ? reservation.totalAmount : null
+				}
+			}
+		};
+	}
+
+	// Database mode - use actual database
+	const { getReservationById } = await import('$lib/server/services/reservations');
+
 	try {
 		const reservation = await getReservationById(params.id);
 
