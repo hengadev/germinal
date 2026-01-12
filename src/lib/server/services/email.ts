@@ -2,6 +2,9 @@ import nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
 import { env, isSMTPEnabled } from '../env';
 import type { ContactEmailData } from '$lib/types/contact';
+import type { TicketEmailData } from '$lib/types/reservations';
+import { formatCurrency } from '$lib/utils/currency';
+import { escapeHtml, escapeHtmlAttr } from '$lib/utils/html';
 
 let transporter: Transporter | null = null;
 
@@ -75,7 +78,7 @@ function generateHtmlTemplate(data: ContactEmailData): string {
           <strong style="color: #495057;">Name:</strong>
         </td>
         <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; color: #212529;">
-          ${data.name}
+          ${escapeHtml(data.name)}
         </td>
       </tr>
       <tr>
@@ -83,7 +86,7 @@ function generateHtmlTemplate(data: ContactEmailData): string {
           <strong style="color: #495057;">Email:</strong>
         </td>
         <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
-          <a href="mailto:${data.email}" style="color: #007bff; text-decoration: none;">${data.email}</a>
+          <a href="mailto:${escapeHtmlAttr(data.email)}" style="color: #007bff; text-decoration: none;">${escapeHtml(data.email)}</a>
         </td>
       </tr>
       ${data.company ? `
@@ -92,7 +95,7 @@ function generateHtmlTemplate(data: ContactEmailData): string {
           <strong style="color: #495057;">Company/Organization:</strong>
         </td>
         <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; color: #212529;">
-          ${data.company}
+          ${escapeHtml(data.company)}
         </td>
       </tr>
       ` : ''}
@@ -101,7 +104,7 @@ function generateHtmlTemplate(data: ContactEmailData): string {
           <strong style="color: #495057;">Inquiry Type:</strong>
         </td>
         <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; color: #212529;">
-          ${formatInquiryType(data.inquiryType)}
+          ${escapeHtml(formatInquiryType(data.inquiryType))}
         </td>
       </tr>
     </table>
@@ -109,7 +112,7 @@ function generateHtmlTemplate(data: ContactEmailData): string {
 
   <div style="background-color: #ffffff; border: 1px solid #e9ecef; border-radius: 8px; padding: 24px; margin-bottom: 16px;">
     <h3 style="margin: 0 0 12px 0; color: #495057; font-size: 16px; font-weight: 600;">Message:</h3>
-    <p style="margin: 0; color: #212529; white-space: pre-wrap;">${data.message}</p>
+    <p style="margin: 0; color: #212529; white-space: pre-wrap;">${escapeHtml(data.message)}</p>
   </div>
 
   <div style="border-top: 1px solid #e9ecef; padding-top: 16px;">
@@ -153,6 +156,155 @@ export async function sendContactEmail(data: ContactEmailData): Promise<void> {
   } catch (error) {
     console.error('❌ Failed to send contact email:', error);
     throw new Error('Failed to send email notification');
+  }
+}
+
+function generateTicketTextTemplate(data: TicketEmailData): string {
+  return `
+Your Ticket Confirmation
+
+Hi ${data.guestName},
+
+Your tickets for ${data.event.title} are confirmed!
+
+EVENT DETAILS:
+${data.session.title}
+${data.session.startTime.toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })}
+${data.event.location}
+
+TICKETS:
+${data.reservation.quantity} × ${formatCurrency(data.session.priceAmount, data.session.currency)}
+Total: ${formatCurrency(data.reservation.totalAmount, data.reservation.currency)}
+
+VIEW YOUR TICKETS:
+${env.PUBLIC_URL}/tickets/${data.accessToken}
+
+Present this link or QR code at the event entrance.
+
+See you there!
+
+---
+This is an automated confirmation from Germinal.
+  `.trim();
+}
+
+function generateTicketHtmlTemplate(data: TicketEmailData): string {
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your Ticket Confirmation</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background-color: #f8f9fa; border-radius: 8px; padding: 24px; margin-bottom: 24px;">
+    <h2 style="margin: 0 0 8px 0; color: #1a1a1a; font-size: 24px;">🎫 Ticket Confirmation</h2>
+    <p style="margin: 0; color: #6c757d; font-size: 14px;">Order #${data.reservation.id.substring(0, 8)}</p>
+  </div>
+
+  <div style="background-color: #ffffff; border: 1px solid #e9ecef; border-radius: 8px; padding: 24px; margin-bottom: 16px;">
+    <p style="margin: 0 0 16px 0; font-size: 16px;">Hi ${escapeHtml(data.guestName)},</p>
+    <p style="margin: 0 0 16px 0; font-size: 16px;">Your tickets for <strong>${escapeHtml(data.event.title)}</strong> are confirmed!</p>
+
+    <h3 style="margin: 24px 0 12px 0; color: #495057; font-size: 16px; font-weight: 600;">Event Details</h3>
+    <table style="width: 100%; border-collapse: collapse;">
+      <tr>
+        <td style="padding: 8px 0; color: #212529;"><strong>${escapeHtml(data.session.title)}</strong></td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0; color: #6c757d;">
+          ${data.session.startTime.toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })}
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0; color: #6c757d;">
+          ${escapeHtml(data.event.location)}
+        </td>
+      </tr>
+    </table>
+
+    <h3 style="margin: 24px 0 12px 0; color: #495057; font-size: 16px; font-weight: 600;">Tickets</h3>
+    <table style="width: 100%; border-collapse: collapse;">
+      <tr>
+        <td style="padding: 8px 0; border-bottom: 1px solid #e9ecef;">
+          ${data.reservation.quantity} × ${formatCurrency(data.session.priceAmount, data.session.currency)}
+        </td>
+        <td style="padding: 8px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
+          ${formatCurrency(data.reservation.totalAmount, data.reservation.currency)}
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 12px 0; font-weight: 600;">Total</td>
+        <td style="padding: 12px 0; text-align: right; font-weight: 600;">
+          ${formatCurrency(data.reservation.totalAmount, data.reservation.currency)}
+        </td>
+      </tr>
+    </table>
+
+    <div style="margin-top: 24px; text-align: center;">
+      <a href="${env.PUBLIC_URL}/tickets/${data.accessToken}"
+         style="display: inline-block; background-color: #007bff; color: white; text-decoration: none; padding: 12px 32px; border-radius: 6px; font-weight: 600;">
+        View Your Tickets
+      </a>
+    </div>
+
+    <p style="margin: 24px 0 0 0; font-size: 14px; color: #6c757d; text-align: center;">
+      Present this link or QR code at the event entrance.
+    </p>
+  </div>
+
+  <div style="border-top: 1px solid #e9ecef; padding-top: 16px;">
+    <p style="margin: 0; color: #6c757d; font-size: 12px; text-align: center;">
+      This is an automated confirmation from Germinal.<br>
+      If you have any questions, please contact us.
+    </p>
+  </div>
+</body>
+</html>
+  `.trim();
+}
+
+export async function sendTicketConfirmationEmail(data: TicketEmailData): Promise<void> {
+  const textBody = generateTicketTextTemplate(data);
+  const htmlBody = generateTicketHtmlTemplate(data);
+
+  if (!isSMTPEnabled()) {
+    console.log('\n🎫 Ticket confirmation email would be sent to:', data.guestEmail);
+    console.log('Access token:', data.accessToken);
+    console.log('Ticket URL:', `${env.PUBLIC_URL}/tickets/${data.accessToken}`);
+    return;
+  }
+
+  const transport = getTransporter();
+
+  const mailOptions = {
+    from: `"${env.SMTP_FROM_NAME}" <${env.SMTP_FROM_EMAIL}>`,
+    to: data.guestEmail,
+    subject: `Your Tickets for ${data.event.title}`,
+    text: textBody,
+    html: htmlBody,
+  };
+
+  try {
+    const info = await transport.sendMail(mailOptions);
+    console.log('🎫 Ticket confirmation email sent successfully:', info.messageId);
+  } catch (error) {
+    console.error('❌ Failed to send ticket confirmation email:', error);
+    // Queue for retry instead of throwing
+    const { queueEmail } = await import('../jobs/process-email-queue');
+    await queueEmail({
+      type: 'ticket_confirmation',
+      recipient: data.guestEmail,
+      subject: `Your Tickets for ${data.event.title}`,
+      textBody,
+      htmlBody,
+      metadata: {
+        reservationId: data.reservation.id,
+        accessToken: data.accessToken,
+      },
+    });
+    console.log('📋 Email queued for retry');
   }
 }
 
