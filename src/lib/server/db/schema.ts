@@ -175,53 +175,6 @@ export const sessionsRelations = relations(sessions, ({ one }) => ({
 }));
 
 // ============================================
-// RESERVATION AND TICKETING RELATIONS
-// ============================================
-
-export const eventSessionsRelations = relations(eventSessions, ({ one, many }) => ({
-    event: one(events, {
-        fields: [eventSessions.eventId],
-        references: [events.id],
-    }),
-    reservations: many(reservations),
-    waitlistEntries: many(waitlist),
-}));
-
-export const reservationsRelations = relations(reservations, ({ one }) => ({
-    eventSession: one(eventSessions, {
-        fields: [reservations.eventSessionId],
-        references: [eventSessions.id],
-    }),
-    user: one(users, {
-        fields: [reservations.userId],
-        references: [users.id],
-    }),
-    payment: one(payments, {
-        fields: [reservations.id],
-        references: [payments.reservationId],
-    }),
-}));
-
-export const paymentsRelations = relations(payments, ({ one }) => ({
-    reservation: one(reservations, {
-        fields: [payments.reservationId],
-        references: [reservations.id],
-    }),
-}));
-
-export const waitlistRelations = relations(waitlist, ({ one }) => ({
-    eventSession: one(eventSessions, {
-        fields: [waitlist.eventSessionId],
-        references: [eventSessions.id],
-    }),
-}));
-
-export const emailQueueRelations = relations(emailQueue, () => ({
-    // Email queue is a standalone table with no direct relations
-    // Metadata field contains JSON with references to other entities
-}));
-
-// ============================================
 // CONTACT FORM TABLES
 // ============================================
 
@@ -399,4 +352,51 @@ export const payments = pgTable('payments', {
     refundCheck: check('payments_refund_check',
         sql`refunded_amount >= 0 AND refunded_amount <= amount`
     ),
+}));
+
+// ============================================
+// RESERVATION AND TICKETING RELATIONS
+// ============================================
+
+export const eventSessionsRelations = relations(eventSessions, ({ one, many }) => ({
+    event: one(events, {
+        fields: [eventSessions.eventId],
+        references: [events.id],
+    }),
+    reservations: many(reservations),
+    waitlistEntries: many(waitlist),
+}));
+
+export const reservationsRelations = relations(reservations, ({ one }) => ({
+    eventSession: one(eventSessions, {
+        fields: [reservations.eventSessionId],
+        references: [eventSessions.id],
+    }),
+    user: one(users, {
+        fields: [reservations.userId],
+        references: [users.id],
+    }),
+    payment: one(payments, {
+        fields: [reservations.id],
+        references: [payments.reservationId],
+    }),
+}));
+
+export const paymentsRelations = relations(payments, ({ one }) => ({
+    reservation: one(reservations, {
+        fields: [payments.reservationId],
+        references: [reservations.id],
+    }),
+}));
+
+export const waitlistRelations = relations(waitlist, ({ one }) => ({
+    eventSession: one(eventSessions, {
+        fields: [waitlist.eventSessionId],
+        references: [eventSessions.id],
+    }),
+}));
+
+export const emailQueueRelations = relations(emailQueue, () => ({
+    // Email queue is a standalone table with no direct relations
+    // Metadata field contains JSON with references to other entities
 }));
