@@ -11,6 +11,8 @@
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
     import Overview from "./Overview.svelte"
+    import Sessions from "./Sessions.svelte"
+    import Reservations from "./Reservations.svelte"
 
     interface Trigger {
         value: string;
@@ -75,10 +77,13 @@
                 <Overview {data} {form} />
             </TabsContent>
             <TabsContent value="sessions" class="h-full p-6">
+                <Sessions {data} {form} />
             </TabsContent>
             <TabsContent value="reservations" class="h-full p-6">
+                <Reservations {data} />
             </TabsContent>
             <TabsContent value="communication" class="h-full p-6">
+                <p class="text-dark-400">Communication features coming soon...</p>
             </TabsContent>
         </div>
 </Tabs>
