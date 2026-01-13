@@ -1,300 +1,304 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
-	import {
-		Plus,
-		Calendar,
-		MapPin,
-		Eye,
-		EyeOff,
-		Edit,
-		Trash2,
-		X,
-		FileText
-	} from 'lucide-svelte';
-	import type { PageData, ActionData } from './$types';
-	import type { Snippet } from 'svelte';
-	import { browser } from '$app/environment';
-	import Drawer from '$lib/components/ui/Drawer.svelte';
-	import Modal from '$lib/components/ui/Modal.svelte';
+    import { enhance } from "$app/forms";
+import { goto } from "$app/navigation";
+    import {
+        Plus,
+        Calendar,
+        MapPin,
+        Eye,
+        EyeOff,
+        Edit,
+        Trash2,
+        X,
+        FileText,
+    } from "lucide-svelte";
+    import type { PageData, ActionData } from "./$types";
+    import type { Snippet } from "svelte";
+    import { browser } from "$app/environment";
+    import Drawer from "$lib/components/ui/Drawer.svelte";
+    import Modal from "$lib/components/ui/Modal.svelte";
 
-	let { data, form }: { data: PageData; form: ActionData & { success?: string } } = $props();
+    let {
+        data,
+        form,
+    }: { data: PageData; form: ActionData & { success?: string } } = $props();
 
-	// Detect if we're on mobile
-	let isMobile = $state(false);
+    // Detect if we're on mobile
+    let isMobile = $state(false);
 
-	if (browser) {
-		isMobile = window.innerWidth < 768;
-		window.addEventListener('resize', () => {
-			isMobile = window.innerWidth < 768;
-		});
-	}
+    if (browser) {
+        isMobile = window.innerWidth < 768;
+        window.addEventListener("resize", () => {
+            isMobile = window.innerWidth < 768;
+        });
+    }
 
-	// Event type
-	type Event = (typeof data.events)[number];
+    // Event type
+    type Event = (typeof data.events)[number];
 
-	// Dialog states
-	let createDialogOpen = $state(false);
-	let editDialogOpen = $state(false);
-	let deleteDialogOpen = $state(false);
+    // Dialog states
+    let createDialogOpen = $state(false);
+    let editDialogOpen = $state(false);
+    let deleteDialogOpen = $state(false);
 
-	// Currently selected event for edit/delete
-	let selectedEvent: Event | null = $state(null);
+    // Currently selected event for edit/delete
+    let selectedEvent: Event | null = $state(null);
 
-	// Form state for create
-	let createTitle = $state('');
-	let createSlug = $state('');
-	let createDescription = $state('');
-	let createStartDate = $state('');
-	let createEndDate = $state('');
-	let createLocation = $state('');
-	let createPublished = $state(false);
+    // Form state for create
+    let createTitle = $state("");
+    let createSlug = $state("");
+    let createDescription = $state("");
+    let createStartDate = $state("");
+    let createEndDate = $state("");
+    let createLocation = $state("");
+    let createPublished = $state(false);
 
-	// Auto-generate slug from title
-	$effect(() => {
-		if (createTitle) {
-			createSlug = createTitle
-				.toLowerCase()
-				.replace(/[^a-z0-9]+/g, '-')
-				.replace(/^-+|-+$/g, '');
-		}
-	});
+    // Auto-generate slug from title
+    $effect(() => {
+        if (createTitle) {
+            createSlug = createTitle
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, "-")
+                .replace(/^-+|-+$/g, "");
+        }
+    });
 
-	// Form state for edit
-	let editTitle = $state('');
-	let editSlug = $state('');
-	let editDescription = $state('');
-	let editStartDate = $state('');
-	let editEndDate = $state('');
-	let editLocation = $state('');
-	let editPublished = $state(false);
+    // Form state for edit
+    let editTitle = $state("");
+    let editSlug = $state("");
+    let editDescription = $state("");
+    let editStartDate = $state("");
+    let editEndDate = $state("");
+    let editLocation = $state("");
+    let editPublished = $state(false);
 
-	// Auto-generate slug from title for edit
-	$effect(() => {
-		if (editTitle) {
-			editSlug = editTitle
-				.toLowerCase()
-				.replace(/[^a-z0-9]+/g, '-')
-				.replace(/^-+|-+$/g, '');
-		}
-	});
+    // Auto-generate slug from title for edit
+    $effect(() => {
+        if (editTitle) {
+            editSlug = editTitle
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, "-")
+                .replace(/^-+|-+$/g, "");
+        }
+    });
 
-	// Reset form after successful action
-	$effect(() => {
-		if (form?.success) {
-			createDialogOpen = false;
-			editDialogOpen = false;
-			deleteDialogOpen = false;
-			resetCreateForm();
-		}
-	});
+    // Reset form after successful action
+    $effect(() => {
+        if (form?.success) {
+            createDialogOpen = false;
+            editDialogOpen = false;
+            deleteDialogOpen = false;
+            resetCreateForm();
+        }
+    });
 
-	function resetCreateForm() {
-		createTitle = '';
-		createSlug = '';
-		createDescription = '';
-		createStartDate = '';
-		createEndDate = '';
-		createLocation = '';
-		createPublished = false;
-	}
+    function resetCreateForm() {
+        createTitle = "";
+        createSlug = "";
+        createDescription = "";
+        createStartDate = "";
+        createEndDate = "";
+        createLocation = "";
+        createPublished = false;
+    }
 
-	function formatDateForInput(date: Date | string): string {
-		const d = new Date(date);
-		const year = d.getFullYear();
-		const month = String(d.getMonth() + 1).padStart(2, '0');
-		const day = String(d.getDate()).padStart(2, '0');
-		const hours = String(d.getHours()).padStart(2, '0');
-		const minutes = String(d.getMinutes()).padStart(2, '0');
-		return `${year}-${month}-${day}T${hours}:${minutes}`;
-	}
+    function formatDateForInput(date: Date | string): string {
+        const d = new Date(date);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        const hours = String(d.getHours()).padStart(2, "0");
+        const minutes = String(d.getMinutes()).padStart(2, "0");
+        return `${year}-${month}-${day}T${hours}:${minutes}`;
+    }
 
-	function openCreateDialog() {
-		resetCreateForm();
-		createDialogOpen = true;
-	}
+    function openCreateDialog() {
+        resetCreateForm();
+        createDialogOpen = true;
+    }
 
-	function openEditDialog(event: Event) {
-		selectedEvent = event;
-		editTitle = event.title;
-		editSlug = event.slug;
-		editDescription = event.description;
-		editStartDate = formatDateForInput(event.startDate);
-		editEndDate = formatDateForInput(event.endDate);
-		editLocation = event.location;
-		editPublished = event.published;
-		editDialogOpen = true;
-	}
+    function openEditDialog(event: Event) {
+        selectedEvent = event;
+        editTitle = event.title;
+        editSlug = event.slug;
+        editDescription = event.description;
+        editStartDate = formatDateForInput(event.startDate);
+        editEndDate = formatDateForInput(event.endDate);
+        editLocation = event.location;
+        editPublished = event.published;
+        editDialogOpen = true;
+    }
 
-	function openDeleteDialog(event: Event) {
-		selectedEvent = event;
-		deleteDialogOpen = true;
-	}
+    function openDeleteDialog(event: Event) {
+        selectedEvent = event;
+        deleteDialogOpen = true;
+    }
 
-	function formatDate(date: Date | string): string {
-		return new Date(date).toLocaleDateString('en-US', {
-			year: 'numeric',
-			month: 'short',
-			day: 'numeric'
-		});
-	}
+    function formatDate(date: Date | string): string {
+        return new Date(date).toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+        });
+    }
 
-	function formatDateTime(date: Date | string): string {
-		return new Date(date).toLocaleString('en-US', {
-			year: 'numeric',
-			month: 'short',
-			day: 'numeric',
-			hour: '2-digit',
-			minute: '2-digit'
-		});
-	}
+    function formatDateTime(date: Date | string): string {
+        return new Date(date).toLocaleString("en-US", {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+        });
+    }
 
-	// Snippet for form fields
-	type InputSnippet = Snippet<[fieldName: string]>;
+    // Snippet for form fields
+    type InputSnippet = Snippet<[fieldName: string]>;
 </script>
 
 {#snippet createInput(fieldName: string)}
-		{#if fieldName === "title"}
-			<input
-				id="createTitle"
-				name="title"
-				type="text"
-				bind:value={createTitle}
-				required
-				placeholder="Summer Music Festival"
-				class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
-			/>
-		{:else if fieldName === "slug"}
-			<input
-				id="createSlug"
-				name="slug"
-				type="text"
-				bind:value={createSlug}
-				required
-				pattern="^[a-z0-9-]+$"
-				placeholder="summer-music-festival"
-				class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
-			/>
-		{:else if fieldName === "description"}
-			<textarea
-				id="createDescription"
-				name="description"
-				bind:value={createDescription}
-				required
-				rows="4"
-				placeholder="Describe your event..."
-				class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm resize-none"
-			></textarea>
-		{:else if fieldName === "startDate"}
-			<input
-				id="createStartDate"
-				name="startDate"
-				type="datetime-local"
-				bind:value={createStartDate}
-				required
-				class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
-			/>
-		{:else if fieldName === "endDate"}
-			<input
-				id="createEndDate"
-				name="endDate"
-				type="datetime-local"
-				bind:value={createEndDate}
-				required
-				class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
-			/>
-		{:else if fieldName === "location"}
-			<input
-				id="createLocation"
-				name="location"
-				type="text"
-				bind:value={createLocation}
-				required
-				placeholder="123 Main St, City, Country"
-				class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
-			/>
-		{/if}
-	{/snippet}
+    {#if fieldName === "title"}
+        <input
+            id="createTitle"
+            name="title"
+            type="text"
+            bind:value={createTitle}
+            required
+            placeholder="Summer Music Festival"
+            class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+        />
+    {:else if fieldName === "slug"}
+        <input
+            id="createSlug"
+            name="slug"
+            type="text"
+            bind:value={createSlug}
+            required
+            pattern="^[a-z0-9-]+$"
+            placeholder="summer-music-festival"
+            class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+        />
+    {:else if fieldName === "description"}
+        <textarea
+            id="createDescription"
+            name="description"
+            bind:value={createDescription}
+            required
+            rows="4"
+            placeholder="Describe your event..."
+            class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm resize-none"
+        ></textarea>
+    {:else if fieldName === "startDate"}
+        <input
+            id="createStartDate"
+            name="startDate"
+            type="datetime-local"
+            bind:value={createStartDate}
+            required
+            class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+        />
+    {:else if fieldName === "endDate"}
+        <input
+            id="createEndDate"
+            name="endDate"
+            type="datetime-local"
+            bind:value={createEndDate}
+            required
+            class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+        />
+    {:else if fieldName === "location"}
+        <input
+            id="createLocation"
+            name="location"
+            type="text"
+            bind:value={createLocation}
+            required
+            placeholder="123 Main St, City, Country"
+            class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+        />
+    {/if}
+{/snippet}
 
-	{#snippet editInput(fieldName: string)}
-		{#if fieldName === "title"}
-			<input
-				id="editTitle"
-				name="title"
-				type="text"
-				bind:value={editTitle}
-				required
-				placeholder="Summer Music Festival"
-				class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
-			/>
-		{:else if fieldName === "slug"}
-			<input
-				id="editSlug"
-				name="slug"
-				type="text"
-				bind:value={editSlug}
-				required
-				pattern="^[a-z0-9-]+$"
-				placeholder="summer-music-festival"
-				class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
-			/>
-		{:else if fieldName === "description"}
-			<textarea
-				id="editDescription"
-				name="description"
-				bind:value={editDescription}
-				required
-				rows="4"
-				placeholder="Describe your event..."
-				class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm resize-none"
-			></textarea>
-		{:else if fieldName === "startDate"}
-			<input
-				id="editStartDate"
-				name="startDate"
-				type="datetime-local"
-				bind:value={editStartDate}
-				required
-				class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
-			/>
-		{:else if fieldName === "endDate"}
-			<input
-				id="editEndDate"
-				name="endDate"
-				type="datetime-local"
-				bind:value={editEndDate}
-				required
-				class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
-			/>
-		{:else if fieldName === "location"}
-			<input
-				id="editLocation"
-				name="location"
-				type="text"
-				bind:value={editLocation}
-				required
-				placeholder="123 Main St, City, Country"
-				class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
-			/>
-		{/if}
-	{/snippet}
+{#snippet editInput(fieldName: string)}
+    {#if fieldName === "title"}
+        <input
+            id="editTitle"
+            name="title"
+            type="text"
+            bind:value={editTitle}
+            required
+            placeholder="Summer Music Festival"
+            class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+        />
+    {:else if fieldName === "slug"}
+        <input
+            id="editSlug"
+            name="slug"
+            type="text"
+            bind:value={editSlug}
+            required
+            pattern="^[a-z0-9-]+$"
+            placeholder="summer-music-festival"
+            class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+        />
+    {:else if fieldName === "description"}
+        <textarea
+            id="editDescription"
+            name="description"
+            bind:value={editDescription}
+            required
+            rows="4"
+            placeholder="Describe your event..."
+            class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm resize-none"
+        ></textarea>
+    {:else if fieldName === "startDate"}
+        <input
+            id="editStartDate"
+            name="startDate"
+            type="datetime-local"
+            bind:value={editStartDate}
+            required
+            class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+        />
+    {:else if fieldName === "endDate"}
+        <input
+            id="editEndDate"
+            name="endDate"
+            type="datetime-local"
+            bind:value={editEndDate}
+            required
+            class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+        />
+    {:else if fieldName === "location"}
+        <input
+            id="editLocation"
+            name="location"
+            type="text"
+            bind:value={editLocation}
+            required
+            placeholder="123 Main St, City, Country"
+            class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+        />
+    {/if}
+{/snippet}
 
-	{#snippet field(
-		name: string,
-		label: string,
-		inputSnippet: InputSnippet,
-		value: string,
-		error: string | null,
-	)}
-		<label for={name} class="block text-sm font-medium text-dark-700 mb-1">
-			{label}
-		</label>
-		<div class="relative w-full">
-			{@render inputSnippet(name)}
-			{#if error}
-				<p class="text-xs text-red-600 mt-1">{error}</p>
-			{/if}
-		</div>
-	{/snippet}
+{#snippet field(
+    name: string,
+    label: string,
+    inputSnippet: InputSnippet,
+    value: string,
+    error: string | null,
+)}
+    <label for={name} class="block text-sm font-medium text-dark-700 mb-1">
+        {label}
+    </label>
+    <div class="relative w-full">
+        {@render inputSnippet(name)}
+        {#if error}
+            <p class="text-xs text-red-600 mt-1">{error}</p>
+        {/if}
+    </div>
+{/snippet}
 
 <svelte:head>
     <title>Events | Admin Dashboard</title>
@@ -390,7 +394,10 @@
                 </thead>
                 <tbody class="divide-y divide-border-card">
                     {#each data.events as event}
-                        <tr class="hover:bg-dark-50 transition-colors">
+                        <tr
+                            class="hover:bg-dark-50 transition-colors cursor-pointer"
+                            onclick={() => goto(`/admin/events/${event.id}`)}
+                        >
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-4">
                                     {#if event.coverMedia?.url}
@@ -410,7 +417,9 @@
                                         </div>
                                     {/if}
                                     <div>
-                                        <div class="font-medium text-dark-900">
+                                        <div
+                                            class="font-medium text-dark-900"
+                                        >
                                             {event.title}
                                         </div>
                                         <div class="text-sm text-dark-400">
@@ -461,16 +470,19 @@
                             <td class="px-6 py-4">
                                 <div
                                     class="flex items-center justify-end gap-2"
+                                    onclick={(e) => e.stopPropagation()}
                                 >
                                     <button
-                                        onclick={() => openEditDialog(event)}
+                                        onclick={() =>
+                                            openEditDialog(event)}
                                         class="p-2 text-dark-600 hover:text-dark-900 hover:bg-dark-50 rounded-lg transition-colors"
                                         title="Edit"
                                     >
                                         <Edit size={18} />
                                     </button>
                                     <button
-                                        onclick={() => openDeleteDialog(event)}
+                                        onclick={() =>
+                                            openDeleteDialog(event)}
                                         class="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors"
                                         title="Delete"
                                     >
@@ -487,7 +499,10 @@
         <!-- Card view for mobile -->
         <div class="lg:hidden space-y-4">
             {#each data.events as event}
-                <div class="bg-white rounded-lg border border-border-card p-4">
+                <div
+                    class="bg-white rounded-lg border border-border-card p-4 cursor-pointer hover:shadow-md transition-shadow"
+                    onclick={() => goto(`/admin/events/${event.id}`)}
+                >
                     <div class="flex gap-4 mb-4">
                         {#if event.coverMedia?.url}
                             <img
@@ -538,6 +553,7 @@
                     </div>
                     <div
                         class="flex items-center justify-end gap-2 pt-3 border-t border-border-card"
+                        onclick={(e) => e.stopPropagation()}
                     >
                         <button
                             onclick={() => openEditDialog(event)}
@@ -590,12 +606,42 @@
             class="grid gap-4 pt-4"
         >
             <div class="grid grid-cols-1 gap-4 w-full">
-                {@render field("title", "Title", createInput, createTitle, null)}
+                {@render field(
+                    "title",
+                    "Title",
+                    createInput,
+                    createTitle,
+                    null,
+                )}
                 {@render field("slug", "Slug", createInput, createSlug, null)}
-                {@render field("description", "Description", createInput, createDescription, null)}
-                {@render field("startDate", "Start Date", createInput, createStartDate, null)}
-                {@render field("endDate", "End Date", createInput, createEndDate, null)}
-                {@render field("location", "Location", createInput, createLocation, null)}
+                {@render field(
+                    "description",
+                    "Description",
+                    createInput,
+                    createDescription,
+                    null,
+                )}
+                {@render field(
+                    "startDate",
+                    "Start Date",
+                    createInput,
+                    createStartDate,
+                    null,
+                )}
+                {@render field(
+                    "endDate",
+                    "End Date",
+                    createInput,
+                    createEndDate,
+                    null,
+                )}
+                {@render field(
+                    "location",
+                    "Location",
+                    createInput,
+                    createLocation,
+                    null,
+                )}
 
                 <div class="flex items-center gap-3 p-3 bg-dark-50 rounded-lg">
                     <input
@@ -649,10 +695,22 @@
         >
             <div class="grid grid-cols-2 gap-4 w-full">
                 <div class="col-span-2">
-                    {@render field("title", "Title", createInput, createTitle, null)}
+                    {@render field(
+                        "title",
+                        "Title",
+                        createInput,
+                        createTitle,
+                        null,
+                    )}
                 </div>
                 <div class="col-span-2">
-                    {@render field("slug", "Slug", createInput, createSlug, null)}
+                    {@render field(
+                        "slug",
+                        "Slug",
+                        createInput,
+                        createSlug,
+                        null,
+                    )}
                 </div>
                 <div class="col-span-2">
                     {@render field(
@@ -663,10 +721,28 @@
                         null,
                     )}
                 </div>
-                {@render field("startDate", "Start Date", createInput, createStartDate, null)}
-                {@render field("endDate", "End Date", createInput, createEndDate, null)}
+                {@render field(
+                    "startDate",
+                    "Start Date",
+                    createInput,
+                    createStartDate,
+                    null,
+                )}
+                {@render field(
+                    "endDate",
+                    "End Date",
+                    createInput,
+                    createEndDate,
+                    null,
+                )}
                 <div class="col-span-2">
-                    {@render field("location", "Location", createInput, createLocation, null)}
+                    {@render field(
+                        "location",
+                        "Location",
+                        createInput,
+                        createLocation,
+                        null,
+                    )}
                 </div>
             </div>
 
@@ -740,10 +816,34 @@
             <div class="grid grid-cols-1 gap-4 w-full">
                 {@render field("title", "Title", editInput, editTitle, null)}
                 {@render field("slug", "Slug", editInput, editSlug, null)}
-                {@render field("description", "Description", editInput, editDescription, null)}
-                {@render field("startDate", "Start Date", editInput, editStartDate, null)}
-                {@render field("endDate", "End Date", editInput, editEndDate, null)}
-                {@render field("location", "Location", editInput, editLocation, null)}
+                {@render field(
+                    "description",
+                    "Description",
+                    editInput,
+                    editDescription,
+                    null,
+                )}
+                {@render field(
+                    "startDate",
+                    "Start Date",
+                    editInput,
+                    editStartDate,
+                    null,
+                )}
+                {@render field(
+                    "endDate",
+                    "End Date",
+                    editInput,
+                    editEndDate,
+                    null,
+                )}
+                {@render field(
+                    "location",
+                    "Location",
+                    editInput,
+                    editLocation,
+                    null,
+                )}
 
                 <div class="flex items-center gap-3 p-3 bg-dark-50 rounded-lg">
                     <input
@@ -799,18 +899,48 @@
 
             <div class="grid grid-cols-2 gap-4 w-full">
                 <div class="col-span-2">
-                    {@render field("title", "Title", editInput, editTitle, null)}
+                    {@render field(
+                        "title",
+                        "Title",
+                        editInput,
+                        editTitle,
+                        null,
+                    )}
                 </div>
                 <div class="col-span-2">
                     {@render field("slug", "Slug", editInput, editSlug, null)}
                 </div>
                 <div class="col-span-2">
-                    {@render field("description", "Description", editInput, editDescription, null)}
+                    {@render field(
+                        "description",
+                        "Description",
+                        editInput,
+                        editDescription,
+                        null,
+                    )}
                 </div>
-                {@render field("startDate", "Start Date", editInput, editStartDate, null)}
-                {@render field("endDate", "End Date", editInput, editEndDate, null)}
+                {@render field(
+                    "startDate",
+                    "Start Date",
+                    editInput,
+                    editStartDate,
+                    null,
+                )}
+                {@render field(
+                    "endDate",
+                    "End Date",
+                    editInput,
+                    editEndDate,
+                    null,
+                )}
                 <div class="col-span-2">
-                    {@render field("location", "Location", editInput, editLocation, null)}
+                    {@render field(
+                        "location",
+                        "Location",
+                        editInput,
+                        editLocation,
+                        null,
+                    )}
                 </div>
             </div>
 
