@@ -1,6 +1,5 @@
 import { env } from '$lib/server/env';
-import { MOCK_RESERVATIONS } from '$lib/mock-data';
-import { MOCK_EVENTS } from '$lib/mock-data';
+import { MOCK_EVENTS, MOCK_SESSIONS, MOCK_RESERVATIONS } from '$lib/mock-data';
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 
@@ -13,28 +12,39 @@ export const load: PageServerLoad = async ({ params }) => {
 			throw error(404, 'Reservation not found');
 		}
 
-		// Find the event from MOCK_EVENTS to get full details
-		const event = MOCK_EVENTS.find(e => e.title === reservation.eventTitle) || MOCK_EVENTS[0];
+		// Find the session from MOCK_SESSIONS
+		const session = MOCK_SESSIONS.find(s => s.id === reservation.eventSessionId);
+
+		if (!session) {
+			throw error(404, 'Session not found');
+		}
+
+		// Find the event from MOCK_EVENTS
+		const event = MOCK_EVENTS.find(e => e.id === session.eventId);
+
+		if (!event) {
+			throw error(404, 'Event not found');
+		}
 
 		return {
 			reservation: {
 				id: reservation.id,
 				guestName: reservation.guestName,
 				guestEmail: reservation.guestEmail,
-				guestPhone: null,
+				guestPhone: reservation.guestPhone,
 				quantity: reservation.quantity,
 				totalAmount: reservation.totalAmount,
 				currency: reservation.currency,
 				status: reservation.status,
-				accessToken: 'mock-token-' + reservation.id,
-				expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+				accessToken: reservation.accessToken,
+				expiresAt: reservation.expiresAt,
 				confirmedAt: reservation.confirmedAt,
-				cancelledAt: null,
+				cancelledAt: reservation.cancelledAt,
 				createdAt: reservation.createdAt,
 				session: {
-					title: reservation.sessionTitle,
-					startTime: reservation.sessionStartTime,
-					endTime: new Date(new Date(reservation.sessionStartTime).getTime() + 3 * 60 * 60 * 1000).toISOString(),
+					title: session.title,
+					startTime: session.startTime.toISOString(),
+					endTime: session.endTime.toISOString(),
 					event: {
 						id: event.id,
 						title: event.title,
