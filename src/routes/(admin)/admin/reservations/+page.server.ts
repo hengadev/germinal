@@ -1,13 +1,30 @@
 import { env } from '$lib/server/env';
-import { MOCK_RESERVATIONS } from '$lib/mock-data';
+import { MOCK_EVENTS, MOCK_SESSIONS, MOCK_RESERVATIONS } from '$lib/mock-data';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async () => {
 	if (env.USE_MOCK_DATA) {
-		// Mock mode - return mock reservations
-		return {
-			reservations: MOCK_RESERVATIONS
-		};
+		// Mock mode - join reservations with sessions to get derived fields
+		const reservations = MOCK_RESERVATIONS.map(r => {
+			const session = MOCK_SESSIONS.find(s => s.id === r.eventSessionId);
+			const event = MOCK_EVENTS.find(e => e.id === session?.eventId);
+			return {
+				id: r.id,
+				guestName: r.guestName,
+				guestEmail: r.guestEmail,
+				quantity: r.quantity,
+				totalAmount: r.totalAmount,
+				currency: r.currency,
+				status: r.status,
+				createdAt: r.createdAt,
+				confirmedAt: r.confirmedAt,
+				eventTitle: event?.title || '',
+				sessionTitle: session?.title || '',
+				sessionStartTime: session?.startTime?.toISOString() || '',
+				paymentStatus: r.paymentStatus
+			};
+		});
+		return { reservations };
 	}
 
 	// Database mode - use actual database
