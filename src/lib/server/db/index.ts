@@ -3,18 +3,39 @@ import postgres from 'postgres';
 import { env } from '../env';
 import * as schema from './schema';
 
-// Configure postgres client with timeouts to prevent long-running queries
-const client = postgres(env.DATABASE_URL, {
-	max: 10, // Maximum number of connections
-	idle_timeout: 20, // Close idle connections after 20 seconds
-	connect_timeout: 10, // Connection timeout in seconds
-	// Apply statement timeout to all connections in the pool
-	onconnect: async (connection) => {
-		await connection.unsafe('SET statement_timeout = 10000'); // 10 seconds in milliseconds
+// Lazy database connection - only created when first accessed in non-mock mode
+let _client: postgres.Sql | null = null;
+let _db: any = null;
+
+function initDb() {
+	if (!_db) {
+		_client = postgres(env.DATABASE_URL, {
+			max: 10,
+			idle_timeout: 20,
+			connect_timeout: 10,
+		}) as any;
+		_db = drizzle(_client!, { schema });
+	}
+
+	return _db;
+}
+
+// Export db as a getter that lazily initializes
+export const db = new Proxy({} as any, {
+	get(_target, prop) {
+		if (env.USE_MOCK_DATA) {
+			throw new Error('Database access attempted in mock mode');
+		}
+		return initDb()[prop];
+	},
+	set(_target, prop, value) {
+		if (env.USE_MOCK_DATA) {
+			throw new Error('Database access attempted in mock mode');
+		}
+		initDb()[prop] = value;
+		return true;
 	},
 });
-
-export const db = drizzle(client, { schema });
 
 /**
  * Execute a function with a custom statement timeout
@@ -22,16 +43,17 @@ export const db = drizzle(client, { schema });
  */
 export async function withTimeout<T>(
 	timeoutMs: number,
-	fn: (db: typeof db) => Promise<T>
+	fn: (db: any) => Promise<T>
 ): Promise<T> {
+	if (env.USE_MOCK_DATA) {
+		throw new Error('Database access attempted in mock mode');
+	}
+
 	// Create a new connection with custom timeout for this operation
 	const timeoutClient = postgres(env.DATABASE_URL, {
 		max: 1,
 		connect_timeout: 10,
-		onconnect: async (connection) => {
-			await connection.unsafe(`SET statement_timeout = ${timeoutMs}`);
-		},
-	});
+	}) as any;
 
 	const timeoutDb = drizzle(timeoutClient, { schema });
 
