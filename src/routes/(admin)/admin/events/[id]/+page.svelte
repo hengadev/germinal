@@ -1,18 +1,18 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
-	import { ArrowLeft, Calendar, MapPin, Type, FileText } from 'lucide-svelte';
-	import type { ActionData, PageData } from './$types';
+    import { enhance } from "$app/forms";
+    import { ArrowLeft, Calendar, MapPin, Type, FileText } from "lucide-svelte";
+    import type { ActionData, PageData } from "./$types";
 
     import Tabs from "$lib/components/ui/bits-components/Tabs.svelte";
     import TabsList from "$lib/components/ui/bits-components/TabsList.svelte";
     import TabsTrigger from "$lib/components/ui/bits-components/TabsTrigger.svelte";
     import TabsContent from "$lib/components/ui/bits-components/TabsContent.svelte";
 
-	let { data, form }: { data: PageData; form: ActionData } = $props();
+    let { data, form }: { data: PageData; form: ActionData } = $props();
 
-    import Overview from "./Overview.svelte"
-    import Sessions from "./Sessions.svelte"
-    import Reservations from "./Reservations.svelte"
+    import Overview from "./Overview.svelte";
+    import Sessions from "./Sessions.svelte";
+    import Reservations from "./Reservations.svelte";
 
     interface Trigger {
         value: string;
@@ -28,7 +28,7 @@
 </script>
 
 <svelte:head>
-	<title>Edit Dashboard | Admin Dashboard</title>
+    <title>Edit Dashboard | Admin Dashboard</title>
 </svelte:head>
 
 <Tabs value="overview" class="container mx-auto px-4 py-8 lg:py-12">
@@ -47,13 +47,17 @@
     </div>
 
     {#if form?.error}
-        <div class="mb-6 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg">
+        <div
+            class="mb-6 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg"
+        >
             <p class="text-sm font-medium">{form.error}</p>
         </div>
     {/if}
 
     {#if form?.success}
-        <div class="mb-6 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg">
+        <div
+            class="mb-6 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg"
+        >
             <p class="text-sm font-medium">{form.success}</p>
         </div>
     {/if}
@@ -71,19 +75,19 @@
         {/each}
     </TabsList>
 
-        <!-- Tab content area -->
-        <div class="flex-1 overflow-y-auto">
-            <TabsContent value="overview" class="h-full p-6">
-                <Overview {data} {form} />
-            </TabsContent>
-            <TabsContent value="sessions" class="h-full p-6">
-                <Sessions {data} {form} />
-            </TabsContent>
-            <TabsContent value="reservations" class="h-full p-6">
-                <Reservations {data} />
-            </TabsContent>
-            <TabsContent value="communication" class="h-full p-6">
-                <p class="text-dark-400">Communication features coming soon...</p>
-            </TabsContent>
-        </div>
+    <!-- Tab content area -->
+    <div class="flex-1 overflow-y-auto">
+        <TabsContent value="overview" class="h-full p-6">
+            <Overview {data} {form} />
+        </TabsContent>
+        <TabsContent value="sessions" class="h-full p-6">
+            <Sessions {data} {form} />
+        </TabsContent>
+        <TabsContent value="reservations" class="h-full p-6">
+            <Reservations {data} />
+        </TabsContent>
+        <TabsContent value="communication" class="h-full p-6">
+            <p class="text-dark-400">Communication features coming soon...</p>
+        </TabsContent>
+    </div>
 </Tabs>
