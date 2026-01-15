@@ -1,6 +1,6 @@
 import { fail, redirect, type Actions, type ServerLoad } from '@sveltejs/kit';
 import { env } from '$lib/server/env';
-import { MOCK_EVENTS, MOCK_RESERVATIONS } from '$lib/mock-data';
+import { MOCK_EVENTS, MOCK_SESSIONS, MOCK_RESERVATIONS } from '$lib/mock-data';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params }) => {
@@ -14,15 +14,47 @@ export const load: PageServerLoad = async ({ params }) => {
 			throw fail(404, { error: 'Event not found' });
 		}
 
-		// Mock sessions - empty for now
-		const sessions: any[] = [];
+		// Mock sessions - return sessions for this event with consistent structure
+		const sessions = MOCK_SESSIONS
+			.filter(s => s.eventId === id)
+			.map(s => ({
+				id: s.id,
+				title: s.title,
+				description: s.description,
+				startTime: s.startTime.toISOString(),
+				endTime: s.endTime.toISOString(),
+				totalCapacity: s.totalCapacity,
+				availableCapacity: s.availableCapacity,
+				priceAmount: s.priceAmount,
+				currency: s.currency,
+				published: s.published,
+				allowWaitlist: s.allowWaitlist,
+				reservationCount: MOCK_RESERVATIONS.filter(r => r.eventSessionId === s.id).length
+			}));
 
-		// Mock reservations - filter by event ID
-		const reservations = MOCK_RESERVATIONS.filter(r => {
-			// In mock data, we'd need to check if the reservation's session belongs to this event
-			// For now, return empty array
-			return false;
-		});
+		// Mock reservations - filter by session IDs that belong to this event
+		const sessionIds = sessions.map(s => s.id);
+		const reservations = MOCK_RESERVATIONS
+			.filter(r => sessionIds.includes(r.eventSessionId))
+			.map(r => {
+				const session = MOCK_SESSIONS.find(s => s.id === r.eventSessionId);
+				const evt = MOCK_EVENTS.find(e => e.id === session?.eventId);
+				return {
+					id: r.id,
+					guestName: r.guestName,
+					guestEmail: r.guestEmail,
+					quantity: r.quantity,
+					totalAmount: r.totalAmount,
+					currency: r.currency,
+					status: r.status,
+					createdAt: r.createdAt,
+					confirmedAt: r.confirmedAt,
+					eventTitle: evt?.title || '',
+					sessionTitle: session?.title || '',
+					sessionStartTime: session?.startTime?.toISOString() || '',
+					paymentStatus: r.paymentStatus
+				};
+			});
 
 		return { event, sessions, reservations };
 	}
