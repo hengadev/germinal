@@ -19,10 +19,9 @@ services:
       # Mount source code for hot reload
       - ./src:/app/src
       - ./static:/app/static
-      # Exclude node_modules from mount
+      # Exclude node_modules from mount (use container's version)
       - /app/node_modules
-      - /app/.svelte-kit
-    command: sh -c "pnpm exec svelte-kit sync && pnpm dev --host 0.0.0.0"
+    command: pnpm dev --host 0.0.0.0
     networks:
       - germinal-dev-network
 
