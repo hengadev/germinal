@@ -12,6 +12,9 @@ services:
       - USE_MOCK_DATA=true
       - MOCK_ADMIN_EMAIL=admin@germinal.com
       - MOCK_ADMIN_PASSWORD=admin123
+      - CI=false
+    tty: true
+    stdin_open: true
     volumes:
       # Mount source code for hot reload
       - ./src:/app/src
