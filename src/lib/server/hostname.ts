@@ -8,7 +8,8 @@
  * Add new admin domains here when switching to a new domain
  */
 const ADMIN_DOMAINS = [
-	'admin.henga.dev', // Current production
+	'admin.henga.dev', // Production
+	'dev-admin.henga.dev', // Development
 	'admin.germinalstudio.co' // Future domain
 ];
 
@@ -61,7 +62,12 @@ export function getAdminUrl(hostname: string): string {
 		return '';
 	}
 
-	// henga.dev domains
+	// henga.dev dev environment (dev-germinal.henga.dev or dev-admin.henga.dev)
+	if (hostname.startsWith('dev-') && hostname.endsWith('.henga.dev')) {
+		return 'https://dev-admin.henga.dev';
+	}
+
+	// henga.dev production environment
 	if (hostname.endsWith('.henga.dev')) {
 		return 'https://admin.henga.dev';
 	}
