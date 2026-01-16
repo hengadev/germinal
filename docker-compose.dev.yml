@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # SvelteKit app with mock data - NO database required
   app:
