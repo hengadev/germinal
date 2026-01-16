@@ -15,9 +15,6 @@ RUN pnpm install --frozen-lockfile
 # Copy source code
 COPY . .
 
-# Generate .svelte-kit folder during build (less memory pressure than runtime)
-RUN pnpm exec svelte-kit sync
-
 # Expose dev server port
 EXPOSE 5173
 
