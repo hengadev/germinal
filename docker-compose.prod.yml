@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  # Germinal application - Production
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: germinal-prod
+    ports:
+      - "4100:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+    env_file:
+      - .env.prod
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - germinal-prod-network
+
+  # PostgreSQL database - Production
+  db:
+    image: postgres:15-alpine
+    container_name: germinal-db-prod
+    environment:
+      - POSTGRES_DB=germinal_prod
+      - POSTGRES_USER=germinal
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U germinal -d germinal_prod"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - germinal-prod-network
+    # Database not exposed externally - only accessible from app container
+
+volumes:
+  postgres_data_prod:
+    driver: local
+
+networks:
+  germinal-prod-network:
+    driver: bridge

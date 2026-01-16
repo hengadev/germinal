@@ -1,16 +1,19 @@
 version: '3.8'
 
 services:
-  # Just the SvelteKit app with mock data - NO database required!
+  # SvelteKit app with mock data - NO database required
   app:
     build:
       context: .
       dockerfile: Dockerfile.dev
+    container_name: germinal-dev
     ports:
-      - "5173:5173"
+      - "4101:5173"
     environment:
       - NODE_ENV=development
       - USE_MOCK_DATA=true
+      - MOCK_ADMIN_EMAIL=admin@germinal.com
+      - MOCK_ADMIN_PASSWORD=admin123
     volumes:
       # Mount source code for hot reload
       - ./src:/app/src
@@ -19,3 +22,9 @@ services:
       - /app/node_modules
       - /app/.svelte-kit
     command: pnpm dev --host 0.0.0.0
+    networks:
+      - germinal-dev-network
+
+networks:
+  germinal-dev-network:
+    driver: bridge
