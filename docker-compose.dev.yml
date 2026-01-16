@@ -19,7 +19,7 @@ services:
       # Exclude node_modules from mount
       - /app/node_modules
       - /app/.svelte-kit
-    command: pnpm dev --host 0.0.0.0
+    command: sh -c "pnpm exec svelte-kit sync && pnpm dev --host 0.0.0.0"
     networks:
       - germinal-dev-network
 
