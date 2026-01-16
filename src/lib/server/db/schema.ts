@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, timestamp, boolean, integer, pgEnum, index, check } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, timestamp, boolean, integer, pgEnum, index, check, jsonb } from 'drizzle-orm/pg-core';
 import { relations, sql } from 'drizzle-orm';
 
 // ============================================
@@ -30,6 +30,8 @@ export const paymentStatusEnum = pgEnum('payment_status', [
     'refunded',
     'partially_refunded'
 ]);
+
+export const userRoleEnum = pgEnum('user_role', ['user', 'admin']);
 
 // ============================================
 // TABLES
@@ -144,7 +146,7 @@ export const users = pgTable('users', {
     id: uuid('id').defaultRandom().primaryKey(),
     email: varchar('email', { length: 255 }).notNull().unique(),
     passwordHash: text('password_hash').notNull(),
-    role: varchar('role', { length: 50 }).notNull().default('user'),
+    role: userRoleEnum('role').notNull().default('user'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => ({
@@ -210,7 +212,7 @@ export const emailQueue = pgTable('email_queue', {
     subject: varchar('subject', { length: 500 }).notNull(),
     textBody: text('text_body').notNull(),
     htmlBody: text('html_body').notNull(),
-    metadata: text('metadata'), // JSON with reservation ID, etc.
+    metadata: jsonb('metadata'),
     attempts: integer('attempts').default(0).notNull(),
     maxAttempts: integer('max_attempts').default(3).notNull(),
     status: varchar('status', { length: 20 }).notNull().default('pending'), // pending, sent, failed

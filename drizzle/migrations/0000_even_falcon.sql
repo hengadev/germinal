@@ -1,4 +1,5 @@
 CREATE TYPE "public"."media_type" AS ENUM('image', 'video');--> statement-breakpoint
+CREATE TYPE "public"."user_role" AS ENUM('user', 'admin');--> statement-breakpoint
 CREATE TABLE "events" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"title" varchar(255) NOT NULL,
@@ -68,7 +69,7 @@ CREATE TABLE "users" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"email" varchar(255) NOT NULL,
 	"password_hash" text NOT NULL,
-	"role" varchar(50) DEFAULT 'user' NOT NULL,
+	"role" "user_role" DEFAULT 'user' NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "users_email_unique" UNIQUE("email")
@@ -85,4 +86,8 @@ CREATE INDEX "sessions_user_id_idx" ON "sessions" USING btree ("user_id");--> st
 CREATE INDEX "sessions_expires_at_idx" ON "sessions" USING btree ("expires_at");--> statement-breakpoint
 CREATE INDEX "talents_published_idx" ON "talents" USING btree ("published");--> statement-breakpoint
 CREATE INDEX "talents_name_idx" ON "talents" USING btree ("first_name","last_name");--> statement-breakpoint
-CREATE INDEX "users_email_idx" ON "users" USING btree ("email");
+CREATE INDEX "users_email_idx" ON "users" USING btree ("email");--> statement-breakpoint
+ALTER TABLE "media" ADD CONSTRAINT "media_event_id_events_id_fk" FOREIGN KEY ("event_id") REFERENCES "public"."events"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "media" ADD CONSTRAINT "media_talent_id_talents_id_fk" FOREIGN KEY ("talent_id") REFERENCES "public"."talents"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "events" ADD CONSTRAINT "events_cover_media_id_media_id_fk" FOREIGN KEY ("cover_media_id") REFERENCES "public"."media"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "talents" ADD CONSTRAINT "talents_profile_media_id_media_id_fk" FOREIGN KEY ("profile_media_id") REFERENCES "public"."media"("id") ON DELETE set null ON UPDATE no action;
