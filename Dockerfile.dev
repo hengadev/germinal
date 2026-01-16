@@ -1,6 +1,9 @@
 # Development Dockerfile - optimized for hot reload
 FROM node:20-alpine
 
+# Install libc compatibility layer for esbuild (fixes goroutine deadlock)
+RUN apk add --no-cache libc6-compat
+
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
