@@ -71,6 +71,9 @@ const prodEnvSchema = z.object({
 const isBuildTime = process.env.npm_lifecycle_event === 'build' ||
                     process.argv.some(arg => arg.includes('vite build'));
 
+// Check if mock data mode is enabled (allows relaxed env requirements)
+const useMockData = process.env.USE_MOCK_DATA === 'true';
+
 function validateEnv() {
     // Skip validation during build - env vars will be validated at runtime
     if (isBuildTime) {
@@ -79,13 +82,15 @@ function validateEnv() {
         return devEnvSchema.parse({});
     }
 
-    const schema = isDevelopment ? devEnvSchema : prodEnvSchema;
+    // Use dev schema (relaxed) when mock data is enabled, even in production
+    const useRelaxedSchema = isDevelopment || useMockData;
+    const schema = useRelaxedSchema ? devEnvSchema : prodEnvSchema;
     const parsed = schema.safeParse(process.env);
 
     if (!parsed.success) {
         console.error('❌ Invalid environment variables:', parsed.error.flatten().fieldErrors);
 
-        if (!isDevelopment) {
+        if (!useRelaxedSchema) {
             throw new Error('Invalid environment variables in production');
         }
 
@@ -94,7 +99,10 @@ function validateEnv() {
 
     const data = parsed.success ? parsed.data : schema.parse({});
 
-    if (isDevelopment) {
+    if (useMockData) {
+        console.log('📦 Mock data mode enabled - no database needed!');
+        console.log('   To use real database, set DATABASE_URL in .env');
+    } else if (isDevelopment) {
         console.log('🔧 Development mode - using environment:', {
             DATABASE_URL: data.DATABASE_URL.replace(/:[^:]*@/, ':***@'), // Hide password
             S3_ENABLED: !!(data.AWS_ACCESS_KEY_ID && data.AWS_SECRET_ACCESS_KEY),
