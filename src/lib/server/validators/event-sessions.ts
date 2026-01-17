@@ -3,7 +3,8 @@ import { config } from '../config';
 
 const dateSchema = z.string().datetime().transform(s => new Date(s));
 
-export const createEventSessionSchema = z.object({
+// Base schema without refinements (allows .partial() to work)
+const baseEventSessionSchema = z.object({
 	eventId: z.string().uuid('Invalid event ID'),
 	title: z.string()
 		.min(1, 'Session title is required')
@@ -27,9 +28,13 @@ export const createEventSessionSchema = z.object({
 		.default('EUR'),
 	published: z.boolean().default(false),
 	allowWaitlist: z.boolean().default(false),
-}).refine(data => data.endTime > data.startTime, {
+});
+
+// Create schema with refinement for time validation
+export const createEventSessionSchema = baseEventSessionSchema.refine(data => data.endTime > data.startTime, {
 	message: 'End time must be after start time',
 	path: ['endTime'],
 });
 
-export const updateEventSessionSchema = createEventSessionSchema.partial().omit({ eventId: true });
+// Update schema - partial without eventId (no refinement needed for partial updates)
+export const updateEventSessionSchema = baseEventSessionSchema.partial().omit({ eventId: true });

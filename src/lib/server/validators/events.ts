@@ -2,7 +2,8 @@ import { z } from 'zod';
 
 const dateSchema = z.string().datetime().transform(s => new Date(s));
 
-export const createEventSchema = z.object({
+// Base schema without refinements (allows .partial() to work)
+const baseEventSchema = z.object({
   title: z.string().min(1).max(255),
   slug: z.string().min(1).max(255).regex(/^[a-z0-9-]+$/, 'Slug must contain only lowercase letters, numbers, and hyphens'),
   description: z.string().min(1),
@@ -39,9 +40,13 @@ export const createEventSchema = z.object({
   admissionInfo: z.string().max(150).optional().transform(v => v ?? null),
   coverMediaId: z.string().uuid().optional().transform(v => v ?? null),
   published: z.boolean().default(false),
-}).refine(data => data.endDate >= data.startDate, {
+});
+
+// Create schema with refinement for date validation
+export const createEventSchema = baseEventSchema.refine(data => data.endDate >= data.startDate, {
   message: 'End date must be after start date',
   path: ['endDate'],
 });
 
-export const updateEventSchema = createEventSchema.partial();
+// Update schema - partial (no refinement needed for partial updates)
+export const updateEventSchema = baseEventSchema.partial();
