@@ -1,27 +1,18 @@
 services:
-  # SvelteKit app with mock data - NO database required
+  # Development on VPS - Production build with mock data
+  # For local dev with hot reload, use: pnpm dev or ./dev.sh
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile.dev
+    image: ${DOCKER_IMAGE:-germinal:latest}
     container_name: germinal-dev
     ports:
-      - "4101:5173"
+      - "4101:3001"
     environment:
-      - NODE_ENV=development
+      - NODE_ENV=production
+      - PORT=3001
       - USE_MOCK_DATA=true
       - MOCK_ADMIN_EMAIL=admin@germinal.com
       - MOCK_ADMIN_PASSWORD=admin123
-      - CI=false
-    tty: true
-    stdin_open: true
-    volumes:
-      # Mount source code for hot reload
-      - ./src:/app/src
-      - ./static:/app/static
-      # Exclude node_modules from mount (use container's version)
-      - /app/node_modules
-    command: pnpm dev --host 0.0.0.0
+    restart: unless-stopped
     networks:
       - germinal-dev-network
 

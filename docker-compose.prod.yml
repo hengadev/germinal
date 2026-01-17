@@ -1,15 +1,14 @@
 services:
   # Germinal application - Production
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ${DOCKER_IMAGE:-germinal:latest}
     container_name: germinal-prod
     ports:
       - "4100:3001"
     environment:
       - NODE_ENV=production
       - PORT=3001
+      - USE_MOCK_DATA=false
     env_file:
       - .env.prod
     depends_on:
@@ -37,7 +36,6 @@ services:
     restart: unless-stopped
     networks:
       - germinal-prod-network
-    # Database not exposed externally - only accessible from app container
 
 volumes:
   postgres_data_prod:
