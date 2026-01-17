@@ -1,10 +1,11 @@
-import PgBoss from 'pg-boss';
+import * as PgBossModule from 'pg-boss';
+const PgBoss = (PgBossModule as any).default || PgBossModule;
 import { env } from '../env';
 import { cleanupExpiredReservations } from './cleanup-expired-reservations';
 import { processEmailQueue } from './process-email-queue';
 import { deleteExpiredSessions } from '../session';
 
-let boss: PgBoss | null = null;
+let boss: InstanceType<typeof PgBoss> | null = null;
 
 /**
  * Initialize the job scheduler using pg-boss
@@ -90,6 +91,6 @@ export async function scheduleJob<T>(name: string, data?: T) {
 /**
  * Get the pg-boss instance for advanced usage
  */
-export function getJobScheduler(): PgBoss | null {
+export function getJobScheduler(): InstanceType<typeof PgBoss> | null {
 	return boss;
 }
