@@ -67,7 +67,18 @@ const prodEnvSchema = z.object({
     SENTRY_DSN: z.string().optional(),
 });
 
+// Check if we're in build mode (SvelteKit runs this during build for analysis)
+const isBuildTime = process.env.npm_lifecycle_event === 'build' ||
+                    process.argv.some(arg => arg.includes('vite build'));
+
 function validateEnv() {
+    // Skip validation during build - env vars will be validated at runtime
+    if (isBuildTime) {
+        console.log('🔨 Build mode detected - skipping env validation');
+        // Return dummy values for build
+        return devEnvSchema.parse({});
+    }
+
     const schema = isDevelopment ? devEnvSchema : prodEnvSchema;
     const parsed = schema.safeParse(process.env);
 
