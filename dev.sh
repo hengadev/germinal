@@ -9,6 +9,21 @@ echo ""
 # Set environment variable to use mock data
 export USE_MOCK_DATA=true
 
+# Check if mock admin credentials are set
+if [ -z "$MOCK_ADMIN_EMAIL" ] || [ -z "$MOCK_ADMIN_PASSWORD" ]; then
+  echo "⚠️  Mock admin credentials not set"
+  echo ""
+  echo "To set custom credentials, run with:"
+  echo "  MOCK_ADMIN_EMAIL=your@email.com MOCK_ADMIN_PASSWORD=yourpassword ./dev.sh"
+  echo ""
+  echo "Or enter credentials now:"
+  read -p "Admin email: " ADMIN_EMAIL
+  read -sp "Admin password (min 8 chars): " ADMIN_PASSWORD
+  echo ""
+  export MOCK_ADMIN_EMAIL="$ADMIN_EMAIL"
+  export MOCK_ADMIN_PASSWORD="$ADMIN_PASSWORD"
+fi
+
 # Install dependencies if needed
 if [ ! -d "node_modules" ]; then
   echo "📦 Installing dependencies..."
