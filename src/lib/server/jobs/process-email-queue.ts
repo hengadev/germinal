@@ -1,6 +1,6 @@
 import { db } from '../db';
 import { emailQueue } from '../db/schema';
-import { eq, and, sql, or } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { env, isSMTPEnabled } from '../env';
 import nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
@@ -29,6 +29,15 @@ function getTransporter(): Transporter {
 }
 
 /**
+ * Calculate the next retry time based on exponential backoff
+ */
+function calculateRetryTime(attempts: number): Date {
+	const backoffMinutes = 5 * Math.pow(2, attempts);
+	const retryTime = new Date(Date.now() - backoffMinutes * 60 * 1000);
+	return retryTime;
+}
+
+/**
  * Process pending emails in the queue with exponential backoff retry
  */
 export async function processEmailQueue() {
@@ -37,17 +46,23 @@ export async function processEmailQueue() {
 		return { processed: 0, sent: 0, failed: 0 };
 	}
 
-	const pendingEmails = await db.query.emailQueue.findMany({
-		where: and(
-			eq(emailQueue.status, 'pending'),
-			sql`attempts < max_attempts`,
-			or(
-				sql`last_attempt_at IS NULL`,
-				sql`last_attempt_at < NOW() - INTERVAL '5 minutes' * POWER(2, attempts)` // Exponential backoff: 5min, 10min, 20min...
-			)
-		),
-		limit: 10, // Process up to 10 emails at a time
+	const allPendingEmails = await db.query.emailQueue.findMany({
+		where: eq(emailQueue.status, 'pending'),
 	});
+
+	const now = new Date();
+	const pendingEmails = allPendingEmails.filter((email: { attempts: number; maxAttempts: number; lastAttemptAt: Date | null }) => {
+		if (email.attempts >= email.maxAttempts) {
+			return false;
+		}
+
+		if (!email.lastAttemptAt) {
+			return true;
+		}
+
+		const retryTime = calculateRetryTime(email.attempts);
+		return email.lastAttemptAt < retryTime;
+	}).slice(0, 10);
 
 	if (pendingEmails.length === 0) {
 		return { processed: 0, sent: 0, failed: 0 };

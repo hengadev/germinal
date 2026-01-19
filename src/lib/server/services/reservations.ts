@@ -1,4 +1,5 @@
 import { db } from '../db';
+import { logger } from '$lib/server/logger';
 import { eventSessions, reservations, payments } from '../db/schema';
 import { eq, and, sql, lt } from 'drizzle-orm';
 import { generateAccessToken } from '$lib/utils/tokens';
@@ -127,9 +128,9 @@ export async function createReservation(input: CreateReservationInput) {
 			try {
 				const { cancelPaymentIntent } = await import('./stripe');
 				await cancelPaymentIntent(paymentIntentId);
-				console.log(`[Reservation Cleanup] Cleaned up orphaned PaymentIntent ${paymentIntentId} after transaction failure`);
+				logger.info(`[Reservation Cleanup] Cleaned up orphaned PaymentIntent ${paymentIntentId} after transaction failure`);
 			} catch (cancelError) {
-				console.error(`[Reservation Cleanup] Failed to cancel orphaned PaymentIntent ${paymentIntentId}:`, cancelError);
+				logger.error(`[Reservation Cleanup] Failed to cancel orphaned PaymentIntent ${paymentIntentId}:`, cancelError);
 				// Log to monitoring system for manual cleanup - this PaymentIntent will need manual attention
 				// Consider setting up an alert in your monitoring system
 			}
@@ -270,9 +271,9 @@ export async function cancelReservationWithRefund(reservationId: string) {
 		try {
 			const { notifyWaitlist } = await import('./waitlist');
 			await notifyWaitlist(sessionData.sessionId, sessionData.quantity);
-			console.log(`[Waitlist] Notified for session ${sessionData.sessionId} with ${sessionData.quantity} tickets available`);
+			logger.info(`[Waitlist] Notified for session ${sessionData.sessionId} with ${sessionData.quantity} tickets available`);
 		} catch (error) {
-			console.error('[Waitlist] Failed to notify:', error);
+			logger.error('[Waitlist] Failed to notify:', error);
 			// Don't throw - cancellation was successful
 		}
 	}
@@ -343,9 +344,9 @@ export async function expireReservation(reservationId: string) {
 		try {
 			const { notifyWaitlist } = await import('./waitlist');
 			await notifyWaitlist(sessionData.sessionId, sessionData.availableCapacity);
-			console.log(`[Waitlist] Notified for session ${sessionData.sessionId} with ${sessionData.availableCapacity} tickets available`);
+			logger.info(`[Waitlist] Notified for session ${sessionData.sessionId} with ${sessionData.availableCapacity} tickets available`);
 		} catch (error) {
-			console.error('[Waitlist] Failed to notify:', error);
+			logger.error('[Waitlist] Failed to notify:', error);
 			// Don't throw - expiration was successful
 		}
 	}

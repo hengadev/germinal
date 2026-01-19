@@ -1,11 +1,35 @@
 import { db } from '../db';
-import { eventSessions, reservations } from '../db/schema';
-import { eq, and, desc, sql, gte } from 'drizzle-orm';
+import { eventSessions, reservations, events } from '../db/schema';
+import { eq, and, desc, sql } from 'drizzle-orm';
 import type { CreateEventSessionInput, UpdateEventSessionInput } from '$lib/types/event-sessions';
 
 /**
- * Create a new event session
+ * Define result type for raw SQL query
  */
+interface SessionWithEventAndSoldCount {
+	id: string;
+	event_id: string;
+	title: string;
+	description: string | null;
+	published: boolean;
+	created_at: Date;
+	updated_at: Date;
+	start_time: Date;
+	end_time: Date;
+	total_capacity: number;
+	available_capacity: number;
+	price_amount: number;
+	currency: string;
+	allow_waitlist: boolean;
+	// Event fields (prefixed to avoid conflicts)
+	events_id: string;
+	events_title: string;
+	events_slug: string;
+	events_description: string;
+	// Aggregated count (COUNT returns string in PostgreSQL)
+	sold_count: string;
+}
+
 export async function createEventSession(input: CreateEventSessionInput) {
 	const [session] = await db.insert(eventSessions).values({
 		eventId: input.eventId,
@@ -14,7 +38,7 @@ export async function createEventSession(input: CreateEventSessionInput) {
 		startTime: input.startTime,
 		endTime: input.endTime,
 		totalCapacity: input.totalCapacity,
-		availableCapacity: input.totalCapacity, // Initialize to total
+		availableCapacity: input.totalCapacity,
 		priceAmount: input.priceAmount,
 		currency: input.currency ?? 'EUR',
 		published: input.published ?? false,
@@ -24,9 +48,6 @@ export async function createEventSession(input: CreateEventSessionInput) {
 	return session;
 }
 
-/**
- * Get session by ID with event details
- */
 export async function getSessionById(id: string) {
 	const session = await db.query.eventSessions.findFirst({
 		where: eq(eventSessions.id, id),
@@ -37,11 +58,12 @@ export async function getSessionById(id: string) {
 					title: true,
 					slug: true,
 					location: true,
-					venueName: true,
-					streetAddress: true,
-					city: true,
-					country: true,
+					startDate: true,
+					endDate: true,
 				},
+			},
+			reservations: {
+				where: eq(reservations.status, 'confirmed'),
 			},
 		},
 	});
@@ -53,15 +75,11 @@ export async function getSessionById(id: string) {
 	return session;
 }
 
-/**
- * Get published sessions by event ID (for public display)
- */
 export async function getPublishedSessionsByEventId(eventId: string) {
 	const sessions = await db.query.eventSessions.findMany({
 		where: and(
 			eq(eventSessions.eventId, eventId),
-			eq(eventSessions.published, true),
-			gte(eventSessions.startTime, new Date()) // Only future sessions
+			eq(eventSessions.published, true)
 		),
 		orderBy: [eventSessions.startTime],
 	});
@@ -69,64 +87,84 @@ export async function getPublishedSessionsByEventId(eventId: string) {
 	return sessions;
 }
 
-/**
- * Get all sessions by event ID (for admin)
- */
 export async function getAllSessionsByEventId(eventId: string) {
-	const sessions = await db.query.eventSessions.findMany({
-		where: eq(eventSessions.eventId, eventId),
-		orderBy: [eventSessions.startTime],
-		with: {
-			reservations: {
-				where: eq(reservations.status, 'confirmed'),
-				columns: {
-					id: true,
-					quantity: true,
-				},
-			},
-		},
-	});
+	const result = await db.execute<SessionWithEventAndSoldCount[]>(sql`
+		SELECT
+			es.*,
+			e.id as events_id,
+			e.title as events_title,
+			e.slug as events_slug,
+			e.description as events_description,
+			COUNT(r.id) as sold_count
+		FROM event_sessions es
+		LEFT JOIN events e ON e.id = es.event_id
+		LEFT JOIN reservations r ON r.event_session_id = es.id
+			AND r.status = 'confirmed'
+		WHERE es.event_id = ${eventId}
+		GROUP BY es.id, e.id
+		ORDER BY es.start_time
+	`);
 
-	// Calculate sold count for each session
-	return sessions.map(session => ({
-		...session,
-		soldCount: session.totalCapacity - session.availableCapacity,
-		reservationCount: session.reservations.length,
-	}));
+	return result.rows.map((row: SessionWithEventAndSoldCount) => {
+		const soldCount = parseInt(row.sold_count, 10);
+
+		return {
+			id: row.id,
+			eventId: row.event_id,
+			event: {
+				id: row.events_id,
+				title: row.events_title,
+				slug: row.events_slug,
+				description: row.events_description,
+			},
+			title: row.title,
+			description: row.description,
+			startTime: row.start_time,
+			endTime: row.end_time,
+			totalCapacity: row.total_capacity,
+			availableCapacity: row.available_capacity,
+			priceAmount: row.price_amount,
+			currency: row.currency,
+			allowWaitlist: row.allow_waitlist,
+			published: row.published,
+			createdAt: row.created_at,
+			updatedAt: row.updated_at,
+			soldCount,
+			reservationCount: soldCount,
+		};
+	});
 }
 
-/**
- * Update event session
- */
 export async function updateEventSession(id: string, input: UpdateEventSessionInput) {
-	// If updating capacity, validate
-	if (input.totalCapacity !== undefined) {
-		const session = await getSessionById(id);
-		const soldCount = session.totalCapacity - session.availableCapacity;
+	const session = await getSessionById(id);
+	const soldCount = session.reservations.length;
 
+	if (input.totalCapacity !== undefined) {
 		if (input.totalCapacity < soldCount) {
 			throw new Error(`Cannot reduce capacity below ${soldCount} (already sold)`);
 		}
 
-		// Update both total and available capacity
 		const [updated] = await db.update(eventSessions)
 			.set({
-				...input,
-				availableCapacity: input.totalCapacity - soldCount,
-				updatedAt: new Date(),
-			})
+					...input,
+					availableCapacity: input.totalCapacity - soldCount,
+					updatedAt: new Date(),
+				})
 			.where(eq(eventSessions.id, id))
 			.returning();
+
+		if (!updated) {
+			throw new Error('Session not found');
+		}
 
 		return updated;
 	}
 
-	// Normal update without capacity change
 	const [updated] = await db.update(eventSessions)
 		.set({
-			...input,
-			updatedAt: new Date(),
-		})
+				...input,
+				updatedAt: new Date(),
+			})
 		.where(eq(eventSessions.id, id))
 		.returning();
 
@@ -137,11 +175,7 @@ export async function updateEventSession(id: string, input: UpdateEventSessionIn
 	return updated;
 }
 
-/**
- * Delete event session (only if no confirmed reservations)
- */
 export async function deleteEventSession(id: string) {
-	// Check for confirmed reservations
 	const confirmedReservations = await db.query.reservations.findFirst({
 		where: and(
 			eq(reservations.eventSessionId, id),

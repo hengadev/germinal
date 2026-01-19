@@ -2,10 +2,37 @@ import { z } from 'zod';
 
 const dateSchema = z.string().datetime().transform(s => new Date(s));
 
+/**
+ * Reserved paths that cannot be used as event slugs
+ * These paths are used for routing and system pages
+ */
+const RESERVED_PATHS = [
+  'admin', 'api', 'auth', 'login', 'logout', 'register', 'reset-password',
+  'static', 'favicon', 'robots', 'sitemap', 'health', 'docs', 'dashboard',
+  'account', 'profile', 'settings', 'checkout', 'tickets', 'events', 'talents',
+  'contact', 'about', 'privacy', 'terms', 'legal', 'webhooks', 'callback',
+  'error', '404', '500', 'maintenance', 'coming-soon'
+];
+
 // Base schema without refinements (allows .partial() to work)
 const baseEventSchema = z.object({
   title: z.string().min(1).max(255),
-  slug: z.string().min(1).max(255).regex(/^[a-z0-9-]+$/, 'Slug must contain only lowercase letters, numbers, and hyphens'),
+  slug: z.string()
+    .min(1, 'Slug is required')
+    .max(255, 'Slug is too long')
+    .regex(/^[a-z0-9-]+$/, 'Slug must contain only lowercase letters, numbers, and hyphens')
+    .refine(
+      slug => !RESERVED_PATHS.includes(slug),
+      'This slug is reserved and cannot be used'
+    )
+    .refine(
+      slug => !slug.startsWith('-') && !slug.endsWith('-'),
+      'Slug cannot start or end with a hyphen'
+    )
+    .refine(
+      slug => !slug.includes('--'),
+      'Slug cannot contain consecutive hyphens'
+    ),
   description: z.string().min(1),
   subtitle: z.string().optional().transform(v => v ?? null),
   startDate: dateSchema,

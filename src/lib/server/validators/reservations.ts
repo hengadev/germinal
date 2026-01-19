@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { config } from '../config';
+import { config } from '../env';
 
 export const createReservationSchema = z.object({
 	sessionId: z.string().uuid('Invalid session ID'),

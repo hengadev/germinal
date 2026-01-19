@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import { logger } from '$lib/server/logger';
 import type { Transporter } from 'nodemailer';
 import { env, isSMTPEnabled } from '../env';
 import type { ContactEmailData } from '$lib/types/contact';
@@ -128,14 +129,14 @@ function generateHtmlTemplate(data: ContactEmailData): string {
 
 export async function sendContactEmail(data: ContactEmailData): Promise<void> {
   if (!isSMTPEnabled()) {
-    console.log('\n📧 SMTP not configured. Email would have been sent:');
-    console.log('---------------------------------------------------');
-    console.log(`To: ${env.CONTACT_EMAIL}`);
-    console.log(`From: ${env.SMTP_FROM_NAME} <${env.SMTP_FROM_EMAIL}>`);
-    console.log(`Subject: New Contact Form Submission from ${data.name}`);
-    console.log('\nContent:');
-    console.log(generateTextTemplate(data));
-    console.log('---------------------------------------------------\n');
+    logger.info('\n📧 SMTP not configured. Email would have been sent:');
+    logger.info('---------------------------------------------------');
+    logger.info(`To: ${env.CONTACT_EMAIL}`);
+    logger.info(`From: ${env.SMTP_FROM_NAME} <${env.SMTP_FROM_EMAIL}>`);
+    logger.info(`Subject: New Contact Form Submission from ${data.name}`);
+    logger.info('\nContent:');
+    logger.info(generateTextTemplate(data));
+    logger.info('---------------------------------------------------\n');
     return;
   }
 
@@ -152,9 +153,9 @@ export async function sendContactEmail(data: ContactEmailData): Promise<void> {
 
   try {
     const info = await transport.sendMail(mailOptions);
-    console.log('📧 Contact email sent successfully:', info.messageId);
+    logger.info('📧 Contact email sent successfully:', info.messageId);
   } catch (error) {
-    console.error('❌ Failed to send contact email:', error);
+    logger.error('❌ Failed to send contact email:', error);
     throw new Error('Failed to send email notification');
   }
 }
@@ -270,9 +271,9 @@ export async function sendTicketConfirmationEmail(data: TicketEmailData): Promis
   const htmlBody = generateTicketHtmlTemplate(data);
 
   if (!isSMTPEnabled()) {
-    console.log('\n🎫 Ticket confirmation email would be sent to:', data.guestEmail);
-    console.log('Access token:', data.accessToken);
-    console.log('Ticket URL:', `${env.PUBLIC_URL}/tickets/${data.accessToken}`);
+    logger.info('\n🎫 Ticket confirmation email would be sent to:', data.guestEmail);
+    logger.info('Access token:', data.accessToken);
+    logger.info('Ticket URL:', `${env.PUBLIC_URL}/tickets/${data.accessToken}`);
     return;
   }
 
@@ -288,9 +289,9 @@ export async function sendTicketConfirmationEmail(data: TicketEmailData): Promis
 
   try {
     const info = await transport.sendMail(mailOptions);
-    console.log('🎫 Ticket confirmation email sent successfully:', info.messageId);
+    logger.info('🎫 Ticket confirmation email sent successfully:', info.messageId);
   } catch (error) {
-    console.error('❌ Failed to send ticket confirmation email:', error);
+    logger.error('❌ Failed to send ticket confirmation email:', error);
     // Queue for retry instead of throwing
     const { queueEmail } = await import('../jobs/process-email-queue');
     await queueEmail({
@@ -304,7 +305,7 @@ export async function sendTicketConfirmationEmail(data: TicketEmailData): Promis
         accessToken: data.accessToken,
       },
     });
-    console.log('📋 Email queued for retry');
+    logger.info('📋 Email queued for retry');
   }
 }
 
@@ -317,10 +318,10 @@ export async function verifyEmailConnection(): Promise<boolean> {
   try {
     const transport = getTransporter();
     await transport.verify();
-    console.log('✅ SMTP connection verified');
+    logger.info('✅ SMTP connection verified');
     return true;
   } catch (error) {
-    console.error('❌ SMTP connection failed:', error);
+    logger.error('❌ SMTP connection failed:', error);
     return false;
   }
 }

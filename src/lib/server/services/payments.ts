@@ -1,4 +1,5 @@
 import { db } from '../db';
+import { logger } from '$lib/server/logger';
 import { payments, reservations, eventSessions } from '../db/schema';
 import { eq } from 'drizzle-orm';
 import type Stripe from 'stripe';
@@ -30,7 +31,7 @@ export async function handlePaymentSuccess(paymentIntent: Stripe.PaymentIntent) 
 
 	// Idempotency check
 	if (payment.webhookProcessedAt) {
-		console.log(`Webhook already processed for payment: ${payment.id}`);
+		logger.info(`Webhook already processed for payment: ${payment.id}`);
 		return;
 	}
 
@@ -65,7 +66,7 @@ export async function handlePaymentSuccess(paymentIntent: Stripe.PaymentIntent) 
 			event: payment.reservation.eventSession.event,
 		});
 	} catch (error) {
-		console.error('Failed to send ticket confirmation email:', error);
+		logger.error('Failed to send ticket confirmation email:', error);
 		// Don't throw - payment is still successful
 	}
 }
@@ -121,7 +122,7 @@ export async function handlePaymentFailure(paymentIntent: Stripe.PaymentIntent) 
 				})
 				.where(eq(eventSessions.id, payment.reservation.eventSessionId));
 
-			console.log(`[Payment Failure] Restored ${payment.reservation.quantity} tickets for reservation ${payment.reservationId}`);
+			logger.info(`[Payment Failure] Restored ${payment.reservation.quantity} tickets for reservation ${payment.reservationId}`);
 		}
 	});
 }

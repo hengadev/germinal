@@ -1,4 +1,5 @@
 import * as PgBossModule from 'pg-boss';
+import { logger } from '$lib/server/logger';
 const PgBoss = (PgBossModule as any).default || PgBossModule;
 import { env } from '../env';
 import { cleanupExpiredReservations } from './cleanup-expired-reservations';
@@ -13,7 +14,7 @@ let boss: InstanceType<typeof PgBoss> | null = null;
  */
 export async function initJobScheduler() {
 	if (boss) {
-		console.log('⚠️  Job scheduler already initialized');
+		logger.info('⚠️  Job scheduler already initialized');
 		return boss;
 	}
 
@@ -27,27 +28,27 @@ export async function initJobScheduler() {
 	});
 
 	boss.on('error', (error) => {
-		console.error('[Job Scheduler] Error:', error);
+		logger.error('[Job Scheduler] Error:', error);
 	});
 
 	await boss.start();
-	console.log('✅ Job scheduler started');
+	logger.info('✅ Job scheduler started');
 
 	// Register job handlers
 	await boss.work('cleanup-expired-reservations', { teamSize: 1 }, async () => {
-		console.log('[Job] Running cleanup-expired-reservations');
+		logger.info('[Job] Running cleanup-expired-reservations');
 		const result = await cleanupExpiredReservations();
 		return { cleaned: result.cleaned };
 	});
 
 	await boss.work('cleanup-expired-sessions', { teamSize: 1 }, async () => {
-		console.log('[Job] Running cleanup-expired-sessions');
+		logger.info('[Job] Running cleanup-expired-sessions');
 		const deleted = await deleteExpiredSessions();
 		return { deleted };
 	});
 
 	await boss.work('process-email-queue', { teamSize: 2 }, async () => {
-		console.log('[Job] Running process-email-queue');
+		logger.info('[Job] Running process-email-queue');
 		const result = await processEmailQueue();
 		return { processed: result.processed, sent: result.sent, failed: result.failed };
 	});
@@ -60,7 +61,7 @@ export async function initJobScheduler() {
 	// Every 2 minutes
 	await boss.schedule('process-email-queue', '*/2 * * * *');
 
-	console.log('✅ Jobs scheduled');
+	logger.info('✅ Jobs scheduled');
 
 	return boss;
 }
@@ -72,7 +73,7 @@ export async function stopJobScheduler() {
 	if (boss) {
 		await boss.stop();
 		boss = null;
-		console.log('✅ Job scheduler stopped');
+		logger.info('✅ Job scheduler stopped');
 	}
 }
 
@@ -85,7 +86,7 @@ export async function scheduleJob<T>(name: string, data?: T) {
 	}
 
 	await boss.send(name, data);
-	console.log(`[Job Scheduler] Scheduled job: ${name}`);
+	logger.info(`[Job Scheduler] Scheduled job: ${name}`);
 }
 
 /**

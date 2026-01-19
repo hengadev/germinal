@@ -1,4 +1,5 @@
 import { db } from '../db';
+import { logger } from '$lib/server/logger';
 import { waitlist, eventSessions } from '../db/schema';
 import { eq, and, gt } from 'drizzle-orm';
 import { getSessionById } from './event-sessions';
@@ -108,7 +109,7 @@ export async function notifyWaitlist(sessionId: string, availableCapacity: numbe
 				notifiedCount++;
 			}
 		} catch (error) {
-			console.error('Failed to notify waitlist entry:', entry.id, error);
+			logger.error('Failed to notify waitlist entry:', entry.id, error);
 		}
 	}
 

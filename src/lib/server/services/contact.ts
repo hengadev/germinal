@@ -1,4 +1,5 @@
 import { db } from '../db';
+import { logger } from '$lib/server/logger';
 import { contactSubmissions } from '../db/schema';
 import { eq, desc } from 'drizzle-orm';
 import type { CreateContactSubmissionInput, ContactSubmission } from '$lib/types/contact';
@@ -8,7 +9,7 @@ export async function createContactSubmission(
   input: CreateContactSubmissionInput
 ): Promise<ContactSubmission> {
   if (input.honeypot && input.honeypot.trim() !== '') {
-    console.warn('🚨 Honeypot triggered for submission from:', input.email);
+    logger.warn('🚨 Honeypot triggered for submission from:', input.email);
     throw new Error('Invalid submission');
   }
 
@@ -44,7 +45,7 @@ export async function createContactSubmission(
     emailSent = true;
     emailSentAt = new Date();
   } catch (error) {
-    console.error('Failed to send contact email:', error);
+    logger.error('Failed to send contact email:', error);
     emailError = error instanceof Error ? error.message : 'Unknown error';
   }
 

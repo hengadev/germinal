@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { config } from '../config';
+import { config } from '../env';
 
 const dateSchema = z.string().datetime().transform(s => new Date(s));
 
