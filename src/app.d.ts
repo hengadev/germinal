@@ -15,9 +15,12 @@ declare global {
 				createdAt: Date;
 			} | null;
 			isAdminDomain: boolean;
+			csrfToken: string;
 		}
 
-		// interface PageData {}
+		interface PageData {
+			csrfToken: string;
+		}
 		// interface PageState {}
 		// interface Platform {}
 	}

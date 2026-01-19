@@ -1,8 +1,9 @@
-<script lang="ts">
+ <script lang="ts">
 	import { X, User, Mail, Phone, Ticket, AlertCircle, Loader2 } from 'lucide-svelte';
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import Drawer from '$lib/components/ui/Drawer.svelte';
 	import { browser } from '$app/environment';
+	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { formatCurrency } from '$lib/utils/currency';
 
@@ -80,7 +81,8 @@
 			const response = await fetch('/api/reservations/create', {
 				method: 'POST',
 				headers: {
-					'Content-Type': 'application/json'
+					'Content-Type': 'application/json',
+					'X-CSRF-Token': $page.data.csrfToken
 				},
 				body: JSON.stringify({
 					sessionId: session.id,

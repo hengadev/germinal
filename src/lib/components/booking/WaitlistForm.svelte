@@ -1,8 +1,9 @@
-<script lang="ts">
-	import { X, User, Mail, Phone, Ticket, AlertCircle, CheckCircle2, Loader2 } from 'lucide-svelte';
-	import Modal from '$lib/components/ui/Modal.svelte';
-	import Drawer from '$lib/components/ui/Drawer.svelte';
-	import { browser } from '$app/environment';
+ <script lang="ts">
+ 	import { X, User, Mail, Phone, Ticket, AlertCircle, CheckCircle2, Loader2 } from 'lucide-svelte';
+ 	import Modal from '$lib/components/ui/Modal.svelte';
+ 	import Drawer from '$lib/components/ui/Drawer.svelte';
+ 	import { browser } from '$app/environment';
+  import { page } from '$app/stores';
 
 	interface Session {
 		id: string;
@@ -70,7 +71,8 @@
 			const response = await fetch('/api/waitlist/join', {
 				method: 'POST',
 				headers: {
-					'Content-Type': 'application/json'
+					'Content-Type': 'application/json',
+					'X-CSRF-Token': $page.data.csrfToken
 				},
 				body: JSON.stringify({
 					sessionId: session.id,
