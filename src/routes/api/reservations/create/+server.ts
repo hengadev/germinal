@@ -1,11 +1,21 @@
 import { json } from '@sveltejs/kit';
+import { logger } from '$lib/server/logger';
 import { createReservationSchema } from '$lib/server/validators/reservations';
 import { createReservation } from '$lib/server/services/reservations';
 import { strictRateLimiter } from '$lib/server/rate-limit';
+import { validateCsrfToken } from '$lib/server/csrf';
 import type { RequestHandler } from './$types';
 
-export const POST: RequestHandler = async ({ request, getClientAddress }) => {
+export const POST: RequestHandler = async ({ request, getClientAddress, locals }) => {
 	const ip = getClientAddress();
+
+	// CSRF validation
+	if (!validateCsrfToken(request, locals.csrfToken)) {
+		return json(
+			{ error: 'Invalid CSRF token', code: 'CSRF_ERROR' },
+			{ status: 403 }
+		);
+	}
 
 	// Rate limiting: 10 requests per 10 minutes
 	if (!strictRateLimiter.check(ip)) {
@@ -53,7 +63,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 			{ status: 201 }
 		);
 	} catch (error) {
-		console.error('Reservation creation error:', error);
+		logger.error('Reservation creation error:', error);
 
 		if (error instanceof Error) {
 			// Handle specific errors

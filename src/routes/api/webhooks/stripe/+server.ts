@@ -2,6 +2,7 @@ import { json, error } from '@sveltejs/kit';
 import { env } from '$lib/server/env';
 import { verifyWebhookSignature } from '$lib/server/services/stripe';
 import { handlePaymentSuccess, handlePaymentFailure, handleRefund } from '$lib/server/services/payments';
+import { logger } from '$lib/server/logger';
 import type { RequestHandler } from './$types';
 import type Stripe from 'stripe';
 
@@ -20,11 +21,11 @@ export const POST: RequestHandler = async ({ request }) => {
 		// Verify webhook signature
 		event = verifyWebhookSignature(payload, signature, env.STRIPE_WEBHOOK_SECRET);
 	} catch (err) {
-		console.error('Webhook signature verification failed:', err);
-		throw error(400, `Webhook signature verification failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+		logger.error({ error: err }, 'Webhook signature verification failed');
+		throw error(400, 'Invalid webhook signature');
 	}
 
-	console.log(`Received Stripe webhook: ${event.type}`);
+	logger.info({ eventType: event.type }, 'Received Stripe webhook');
 
 	try {
 		// Handle different event types
@@ -42,14 +43,30 @@ export const POST: RequestHandler = async ({ request }) => {
 				break;
 
 			default:
-				console.log(`Unhandled event type: ${event.type}`);
+				logger.info({ eventType: event.type }, 'Unhandled event type');
 		}
 
 		return json({ received: true });
 	} catch (err) {
-		console.error('Webhook handler error:', err);
-		// Return 200 to acknowledge receipt even if processing fails
-		// Stripe will retry failed webhooks
-		return json({ received: true, error: err instanceof Error ? err.message : 'Unknown error' });
+		const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+		logger.error({ error: err, eventType: event.type }, 'Webhook handler error');
+
+		// Determine if this is a transient or permanent error
+		const isTransientError = err instanceof Error && (
+			errorMsg.includes('connection') ||
+			errorMsg.includes('timeout') ||
+			errorMsg.includes('network') ||
+			errorMsg.includes('ECONNREFUSED') ||
+			errorMsg.includes('ETIMEDOUT')
+		);
+
+		if (isTransientError) {
+			// Transient errors should trigger retry (500 status)
+			throw error(500, 'Webhook processing temporarily failed');
+		} else {
+			// Permanent errors should not trigger retry (200 status)
+			// Stripe will not retry, preventing infinite loop
+			return json({ received: true, error: 'Webhook processing failed' });
+		}
 	}
 };

@@ -1,7 +1,9 @@
 import { json } from '@sveltejs/kit';
+import { logger } from '$lib/server/logger';
 import { z } from 'zod';
 import { joinWaitlist } from '$lib/server/services/waitlist';
 import { strictRateLimiter } from '$lib/server/rate-limit';
+import { validateCsrfToken } from '$lib/server/csrf';
 import type { RequestHandler } from './$types';
 
 const joinWaitlistSchema = z.object({
@@ -12,8 +14,16 @@ const joinWaitlistSchema = z.object({
 	quantity: z.number().int().min(1).max(10)
 });
 
-export const POST: RequestHandler = async ({ request, getClientAddress }) => {
+export const POST: RequestHandler = async ({ request, getClientAddress, locals }) => {
 	const ip = getClientAddress();
+
+	// CSRF validation
+	if (!validateCsrfToken(request, locals.csrfToken)) {
+		return json(
+			{ error: 'Invalid CSRF token' },
+			{ status: 403 }
+		);
+	}
 
 	// Rate limiting
 	if (!strictRateLimiter.check(ip)) {
@@ -42,7 +52,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 		);
 
 	} catch (error) {
-		console.error('Waitlist join error:', error);
+		logger.error('Waitlist join error:', error);
 
 		if (error instanceof Error) {
 			if (error.message.includes('not available')) {

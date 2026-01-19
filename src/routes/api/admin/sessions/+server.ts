@@ -1,4 +1,5 @@
 import { json } from '@sveltejs/kit';
+import { logger } from '$lib/server/logger';
 import { requireAdmin } from '$lib/server/guards';
 import { createEventSession, getAllSessionsByEventId } from '$lib/server/services/event-sessions';
 import { createEventSessionSchema } from '$lib/server/validators/event-sessions';
@@ -17,7 +18,7 @@ export const GET: RequestHandler = async (event) => {
 		const sessions = await getAllSessionsByEventId(eventId);
 		return json({ sessions });
 	} catch (error) {
-		console.error('Failed to fetch sessions:', error);
+		logger.error('Failed to fetch sessions:', error);
 		return json({ error: 'Failed to fetch sessions' }, { status: 500 });
 	}
 };
@@ -36,7 +37,7 @@ export const POST: RequestHandler = async (event) => {
 		const session = await createEventSession(validated.data);
 		return json(session, { status: 201 });
 	} catch (error) {
-		console.error('Failed to create session:', error);
+		logger.error('Failed to create session:', error);
 		return json({ error: 'Failed to create session' }, { status: 500 });
 	}
 };

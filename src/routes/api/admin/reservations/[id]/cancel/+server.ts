@@ -1,4 +1,5 @@
 import { json } from '@sveltejs/kit';
+import { logger } from '$lib/server/logger';
 import { requireAdmin } from '$lib/server/guards';
 import { cancelReservationWithRefund } from '$lib/server/services/reservations';
 import type { RequestHandler } from './$types';
@@ -15,7 +16,7 @@ export const POST: RequestHandler = async (event) => {
 			refund: result.refund,
 		});
 	} catch (error) {
-		console.error('Failed to cancel reservation:', error);
+		logger.error('Failed to cancel reservation:', error);
 
 		if (error instanceof Error) {
 			if (error.message === 'Reservation not found') {
