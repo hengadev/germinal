@@ -65,6 +65,8 @@ export const events = pgTable('events', {
     slugIdx: index('events_slug_idx').on(table.slug),
     publishedIdx: index('events_published_idx').on(table.published),
     startDateIdx: index('events_start_date_idx').on(table.startDate),
+    // Composite index for listing published events sorted by date
+    publishedStartDateIdx: index('events_published_start_date_idx').on(table.published, table.startDate),
 }));
 
 export const talents = pgTable('talents', {
@@ -85,6 +87,8 @@ export const talents = pgTable('talents', {
 }, (table) => ({
     publishedIdx: index('talents_published_idx').on(table.published),
     nameIdx: index('talents_name_idx').on(table.firstName, table.lastName),
+    // Composite index for listing published talents sorted by creation date
+    publishedCreatedAtIdx: index('talents_published_created_at_idx').on(table.published, table.createdAt),
 }));
 
 export const media = pgTable('media', {
@@ -223,6 +227,9 @@ export const emailQueue = pgTable('email_queue', {
 }, (table) => ({
     statusIdx: index('email_queue_status_idx').on(table.status),
     createdAtIdx: index('email_queue_created_at_idx').on(table.createdAt),
+    // Composite index for email queue processing with retry logic
+    statusAttemptsLastAttemptIdx: index('email_queue_status_attempts_last_attempt_idx')
+        .on(table.status, table.attempts, table.lastAttemptAt),
 }));
 
 // ============================================
@@ -247,6 +254,9 @@ export const waitlist = pgTable('waitlist', {
     emailIdx: index('waitlist_email_idx').on(table.email),
     notifiedIdx: index('waitlist_notified_idx').on(table.notified),
     expiresAtIdx: index('waitlist_expires_at_idx').on(table.expiresAt),
+    // Composite index for cleanup jobs
+    notifiedExpiresAtIdx: index('waitlist_notified_expires_at_idx')
+        .on(table.notified, table.expiresAt),
     quantityCheck: check('waitlist_quantity_check', sql`quantity > 0`),
 }));
 
@@ -275,6 +285,9 @@ export const eventSessions = pgTable('event_sessions', {
     eventIdIdx: index('event_sessions_event_id_idx').on(table.eventId),
     publishedIdx: index('event_sessions_published_idx').on(table.published),
     startTimeIdx: index('event_sessions_start_time_idx').on(table.startTime),
+    // Composite indexes for common query patterns
+    eventIdPublishedIdx: index('event_sessions_event_id_published_idx').on(table.eventId, table.published),
+    publishedStartTimeIdx: index('event_sessions_published_start_time_idx').on(table.published, table.startTime),
     capacityCheck: check('event_sessions_capacity_check',
         sql`available_capacity >= 0 AND available_capacity <= total_capacity`
     ),
@@ -318,6 +331,8 @@ export const reservations = pgTable('reservations', {
         .on(table.eventSessionId, table.status),
     statusExpiresIdx: index('reservations_status_expires_idx')
         .on(table.status, table.expiresAt),
+    statusCreatedAtIdx: index('reservations_status_created_at_idx')
+        .on(table.status, table.createdAt),
     quantityCheck: check('reservations_quantity_check', sql`quantity > 0`),
     amountCheck: check('reservations_amount_check', sql`total_amount >= 0`),
 }));
