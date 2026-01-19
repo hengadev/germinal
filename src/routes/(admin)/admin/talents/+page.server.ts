@@ -1,4 +1,5 @@
 import type { PageServerLoad } from './$types';
+import { logger } from '$lib/server/logger';
 import type { Actions } from '@sveltejs/kit';
 import { fail } from '@sveltejs/kit';
 import { env } from '$lib/server/env';
@@ -107,7 +108,7 @@ export const actions: Actions = {
 
 			return { success: `Talent "${firstName} ${lastName}" added successfully` };
 		} catch (error) {
-			console.error('Error creating talent:', error);
+			logger.error('Error creating talent:', error);
 			return fail(500, { error: 'Failed to create talent' });
 		}
 	},
@@ -202,7 +203,7 @@ export const actions: Actions = {
 
 			return { success: `Talent "${firstName} ${lastName}" updated successfully` };
 		} catch (error) {
-			console.error('Error updating talent:', error);
+			logger.error('Error updating talent:', error);
 			return fail(500, { error: 'Failed to update talent' });
 		}
 	},
@@ -239,7 +240,7 @@ export const actions: Actions = {
 			await deleteTalent(id);
 			return { success: 'Talent deleted successfully' };
 		} catch (error) {
-			console.error('Error deleting talent:', error);
+			logger.error('Error deleting talent:', error);
 			return fail(500, { error: 'Failed to delete talent' });
 		}
 	}

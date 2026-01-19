@@ -1,4 +1,5 @@
 import { fail, type Actions } from '@sveltejs/kit';
+import { logger } from '$lib/server/logger';
 import { env } from '$lib/server/env';
 import { MOCK_TALENTS } from '$lib/mock-data';
 import type { PageServerLoad } from './$types';
@@ -136,7 +137,7 @@ export const actions: Actions = {
 
 			return { success: `Talent "${firstName} ${lastName}" updated successfully` };
 		} catch (error) {
-			console.error('Error updating talent:', error);
+			logger.error('Error updating talent:', error);
 			return fail(500, { error: 'Failed to update talent' });
 		}
 	}
