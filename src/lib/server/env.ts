@@ -7,8 +7,11 @@ const isDevelopment = process.env.NODE_ENV !== 'production';
 const devEnvSchema = z.object({
     DATABASE_URL: z.string().default('postgresql://postgres:postgres@localhost:5432/germinal'),
     USE_MOCK_DATA: z.string().default('false').transform(v => v === 'true'),
-    MOCK_ADMIN_EMAIL: z.string().default('admin@germinal.com'),
-    MOCK_ADMIN_PASSWORD: z.string().default('admin123'),
+    MOCK_ADMIN_EMAIL: z.string().refine(
+        v => v && !v.includes('germinal.com'),
+        'Must provide custom admin email'
+    ),
+    MOCK_ADMIN_PASSWORD: z.string().min(8, 'Password must be at least 8 characters'),
     AWS_REGION: z.string().optional().default('us-east-1'),
     AWS_ACCESS_KEY_ID: z.string().optional().default(''),
     AWS_SECRET_ACCESS_KEY: z.string().optional().default(''),
@@ -33,14 +36,18 @@ const devEnvSchema = z.object({
     RESERVATION_EXPIRY_MINUTES: z.string().optional().default('15').transform(Number),
     // Sentry monitoring - optional
     SENTRY_DSN: z.string().optional().default(''),
+    USE_SCHEDULER: z.string().optional().default('false').transform(v => v === 'true'),
 });
 
 // Production schema - all fields required
 const prodEnvSchema = z.object({
     DATABASE_URL: z.string().url(),
     USE_MOCK_DATA: z.string().default('false').transform(v => v === 'true'),
-    MOCK_ADMIN_EMAIL: z.string().default('admin@germinal.com'),
-    MOCK_ADMIN_PASSWORD: z.string().default('admin123'),
+    MOCK_ADMIN_EMAIL: z.string().refine(
+        v => v && !v.includes('germinal.com'),
+        'Must provide custom admin email'
+    ),
+    MOCK_ADMIN_PASSWORD: z.string().min(8, 'Password must be at least 8 characters'),
     AWS_REGION: z.string().min(1),
     AWS_ACCESS_KEY_ID: z.string().min(1),
     AWS_SECRET_ACCESS_KEY: z.string().min(1),
@@ -65,6 +72,7 @@ const prodEnvSchema = z.object({
     RESERVATION_EXPIRY_MINUTES: z.string().optional().default('15').transform(Number),
     // Sentry monitoring - optional but recommended in production
     SENTRY_DSN: z.string().optional(),
+    USE_SCHEDULER: z.string().optional().default('false').transform(v => v === 'true'),
 });
 
 // Check if we're in build mode (SvelteKit runs this during build for analysis)
@@ -74,10 +82,17 @@ const isBuildTime = process.env.npm_lifecycle_event === 'build' ||
 // Check if mock data mode is enabled (allows relaxed env requirements)
 const useMockData = process.env.USE_MOCK_DATA === 'true';
 
+// Use console during bootstrap to avoid circular dependency with logger
+const bootstrapLog = {
+    info: (...args: unknown[]) => console.log(...args),
+    warn: (...args: unknown[]) => console.warn(...args),
+    error: (...args: unknown[]) => console.error(...args),
+};
+
 function validateEnv() {
     // Skip validation during build - env vars will be validated at runtime
     if (isBuildTime) {
-        console.log('🔨 Build mode detected - skipping env validation');
+        bootstrapLog.info('🔨 Build mode detected - skipping env validation');
         // Return dummy values for build
         return devEnvSchema.parse({});
     }
@@ -88,22 +103,39 @@ function validateEnv() {
     const parsed = schema.safeParse(process.env);
 
     if (!parsed.success) {
-        console.error('❌ Invalid environment variables:', parsed.error.flatten().fieldErrors);
+        bootstrapLog.error('❌ Invalid environment variables:', parsed.error.flatten().fieldErrors);
+
+        // Check if mock admin credentials are missing
+        if (useMockData && parsed.error.flatten().fieldErrors.MOCK_ADMIN_EMAIL) {
+            bootstrapLog.error('');
+            bootstrapLog.error('❌ MOCK_ADMIN_EMAIL and MOCK_ADMIN_PASSWORD are required when USE_MOCK_DATA=true');
+            bootstrapLog.error('');
+            bootstrapLog.error('To set mock admin credentials:');
+            bootstrapLog.error('  1. Add to .env file:');
+            bootstrapLog.error('     MOCK_ADMIN_EMAIL=your@email.com');
+            bootstrapLog.error('     MOCK_ADMIN_PASSWORD=yourpassword');
+            bootstrapLog.error('');
+            bootstrapLog.error('  2. Or run dev.sh with credentials:');
+            bootstrapLog.error('     MOCK_ADMIN_EMAIL=your@email.com MOCK_ADMIN_PASSWORD=yourpassword ./dev.sh');
+            bootstrapLog.error('');
+            bootstrapLog.error('  3. Or enter credentials when prompted by dev.sh');
+            bootstrapLog.error('');
+        }
 
         if (!useRelaxedSchema) {
             throw new Error('Invalid environment variables in production');
         }
 
-        console.warn('⚠️  Using default values for development. Some features may not work.');
+        bootstrapLog.warn('⚠️  Using default values for development. Some features may not work.');
     }
 
     const data = parsed.success ? parsed.data : schema.parse({});
 
     if (useMockData) {
-        console.log('📦 Mock data mode enabled - no database needed!');
-        console.log('   To use real database, set DATABASE_URL in .env');
+        bootstrapLog.info('📦 Mock data mode enabled - no database needed!');
+        bootstrapLog.info('   To use real database, set DATABASE_URL in .env');
     } else if (isDevelopment) {
-        console.log('🔧 Development mode - using environment:', {
+        bootstrapLog.info('🔧 Development mode - using environment:', {
             DATABASE_URL: data.DATABASE_URL.replace(/:[^:]*@/, ':***@'), // Hide password
             S3_ENABLED: !!(data.AWS_ACCESS_KEY_ID && data.AWS_SECRET_ACCESS_KEY),
         });
@@ -128,3 +160,126 @@ export const isSMTPEnabled = () => {
 export const isStripeEnabled = () => {
     return !!(env.STRIPE_SECRET_KEY && env.STRIPE_WEBHOOK_SECRET);
 };
+
+/**
+ * Application configuration
+ * Centralizes all magic numbers and configurable values
+ * All values are validated on startup
+ */
+export const config = {
+    // Job intervals (in milliseconds)
+    jobs: {
+        sessionCleanupIntervalMs: 60 * 60 * 1000, // 1 hour
+        reservationCleanupIntervalMs: 5 * 60 * 1000, // 5 minutes
+        emailQueueIntervalMs: 2 * 60 * 1000, // 2 minutes
+    },
+
+    // Reservation settings
+    reservations: {
+        maxTicketsPerReservation: 10,
+        expiryMinutes: env.RESERVATION_EXPIRY_MINUTES,
+        holdTimeWarningMinutes: 5, // Show warning when 5 min left
+    },
+
+    // Rate limiting
+    rateLimit: {
+        reservationWindowMs: 10 * 60 * 1000, // 10 minutes
+        reservationMaxAttempts: 10,
+        contactFormWindowMs: 60 * 60 * 1000, // 1 hour
+        contactFormMaxAttempts: 5,
+    },
+
+    // Email queue settings
+    email: {
+        maxRetryAttempts: 3,
+        retryBaseDelayMinutes: 5,
+        batchSize: 10, // Process up to 10 emails at a time
+    },
+
+    // Payment settings
+    payment: {
+        supportedCurrencies: ['EUR', 'USD', 'GBP', 'CHF', 'JPY', 'CAD', 'AUD'] as const,
+    },
+
+    // Database settings
+    database: {
+        statementTimeoutSeconds: 10,
+        maxConnections: 10,
+        connectionTimeoutSeconds: 10,
+        idleTimeoutSeconds: 20,
+        slowQueryThresholdMs: 100, // Log queries slower than 100ms
+    },
+
+    // Event sessions
+    eventSessions: {
+        minCapacity: 1,
+        maxCapacity: 10000,
+    },
+
+    // Health check thresholds
+    health: {
+        databaseLatencyWarningMs: 500, // Warn if DB queries take >500ms
+        databaseLatencyCriticalMs: 1000, // Critical if DB queries take >1s
+    },
+} as const;
+
+/**
+ * Type-safe config access
+ */
+export type AppConfig = typeof config;
+
+/**
+ * Validate configuration on startup
+ * This function is called once when the application starts
+ */
+export function validateConfig() {
+    const errors: string[] = [];
+
+    // Validate reservation expiry
+    if (env.RESERVATION_EXPIRY_MINUTES < 1) {
+        errors.push('RESERVATION_EXPIRY_MINUTES must be at least 1');
+    }
+
+    if (env.RESERVATION_EXPIRY_MINUTES > 1440) {
+        errors.push('RESERVATION_EXPIRY_MINUTES must be less than 1440 (24 hours)');
+    }
+
+    // Validate file size
+    if (env.MAX_FILE_SIZE < 1024) {
+        errors.push('MAX_FILE_SIZE must be at least 1024 bytes (1KB)');
+    }
+
+    if (env.MAX_FILE_SIZE > 104857600) {
+        errors.push('MAX_FILE_SIZE must be less than 100MB');
+    }
+
+    // Validate database connection string
+    if (!env.USE_MOCK_DATA) {
+        if (!env.DATABASE_URL || !env.DATABASE_URL.startsWith('postgresql://') && !env.DATABASE_URL.startsWith('postgres://')) {
+            errors.push('DATABASE_URL must be a valid PostgreSQL connection string');
+        }
+    }
+
+    // Validate SMTP configuration (only if not in dev mode)
+    if (!isDevelopment && !isSMTPEnabled()) {
+        errors.push('SMTP configuration is required in production (SMTP_HOST, SMTP_USER, SMTP_PASSWORD)');
+    }
+
+    // Validate Stripe configuration (only if not in dev mode)
+    if (!isDevelopment && !isStripeEnabled()) {
+        errors.push('Stripe configuration is required in production (STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET)');
+    }
+
+    // Validate S3 configuration (only if not in dev mode)
+    if (!isDevelopment && !isS3Enabled()) {
+        errors.push('S3 configuration is required in production (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, S3_BUCKET_NAME)');
+    }
+
+    if (errors.length > 0) {
+        bootstrapLog.error('❌ Configuration validation failed:');
+        errors.forEach(error => bootstrapLog.error(`   - ${error}`));
+        throw new Error(`Configuration validation failed: ${errors.join(', ')}`);
+    }
+
+    bootstrapLog.info('✅ Configuration validated successfully');
+}
