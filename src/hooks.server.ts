@@ -1,9 +1,18 @@
 import type { Handle, HandleServerError } from '@sveltejs/kit';
+import crypto from 'crypto';
 import { validateSession, deleteExpiredSessions } from '$lib/server/session';
 import { isAdminDomain, getCookieDomain } from '$lib/server/hostname';
 import { initJobScheduler, stopJobScheduler } from '$lib/server/jobs/scheduler';
 import { initMonitoring, captureException } from '$lib/server/monitoring';
 import { logger } from '$lib/server/logger';
+import { generateToken } from '$lib/server/csrf';
+
+/**
+ * Generate a cryptographically secure nonce for CSP
+ */
+function generateNonce(): string {
+	return crypto.randomBytes(16).toString('base64');
+}
 
 // Initialize monitoring
 initMonitoring();
@@ -19,13 +28,13 @@ if (typeof setInterval !== 'undefined') {
 // Graceful shutdown handlers
 if (typeof process !== 'undefined') {
 	process.on('SIGTERM', async () => {
-		console.log('SIGTERM received, shutting down gracefully...');
+		logger.info('SIGTERM received, shutting down gracefully...');
 		await stopJobScheduler();
 		process.exit(0);
 	});
 
 	process.on('SIGINT', async () => {
-		console.log('SIGINT received, shutting down gracefully...');
+		logger.info('SIGINT received, shutting down gracefully...');
 		await stopJobScheduler();
 		process.exit(0);
 	});
@@ -36,6 +45,22 @@ export const handle: Handle = async ({ event, resolve }) => {
 	const hostname = event.url.hostname;
 	event.locals.isAdminDomain = isAdminDomain(hostname);
 	const cookieDomain = getCookieDomain(hostname);
+
+	// Generate and store CSRF token for session
+	const csrfToken = generateToken();
+	event.locals.csrfToken = csrfToken;
+
+	// Generate nonce for CSP
+	const nonce = generateNonce();
+
+	// Store CSRF token in httpOnly cookie for API validation
+	event.cookies.set('csrf_token', csrfToken, {
+		httpOnly: true,
+		secure: process.env.NODE_ENV === 'production',
+		sameSite: 'strict',
+		path: '/',
+		domain: cookieDomain
+	});
 
 	// Read session cookie
 	const sessionId = event.cookies.get('session');
@@ -57,8 +82,24 @@ export const handle: Handle = async ({ event, resolve }) => {
 		}
 	}
 
-	// Continue with request
-	return resolve(event);
+	// Build Content Security Policy
+	const isDevelopment = process.env.NODE_ENV !== 'production';
+	const csp = isDevelopment
+		? "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'"
+		: `default-src 'self'; script-src 'self' 'nonce-${nonce}'; style-src 'self' 'nonce-${nonce}'; img-src 'self' data: https:; connect-src 'self' https://api.stripe.com https://js.stripe.com; frame-src https://js.stripe.com`;
+
+	// Continue with request, injecting nonce into HTML
+	const response = await resolve(event, {
+		transformPageChunk: ({ html }) => {
+			// Replace %sveltekit.nonce% placeholder with actual nonce
+			return html.replace(/%sveltekit\.nonce%/g, nonce);
+		}
+	});
+
+	// Set Content Security Policy header
+	response.headers.set('Content-Security-Policy', csp);
+
+	return response;
 };
 
 export const handleError: HandleServerError = (({ error, event }) => {
