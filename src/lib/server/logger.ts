@@ -1,5 +1,6 @@
 import pino from 'pino';
 import { env } from './env';
+import { redactSensitiveData, redactError } from '$lib/utils/redaction';
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
@@ -28,9 +29,16 @@ export const logger = pino({
 	},
 	timestamp: pino.stdTimeFunctions.isoTime,
 	serializers: {
-		error: pino.stdSerializers.err,
-		req: pino.stdSerializers.req,
-		res: pino.stdSerializers.res,
+		error: (err) => {
+			const redacted = redactError(err);
+			return {
+				type: redacted.name,
+				message: redacted.message,
+				stack: redacted.stack,
+			};
+		},
+		req: (req) => redactSensitiveData(req),
+		res: (res) => redactSensitiveData(res),
 	},
 });
 
@@ -55,16 +63,18 @@ export function logError(
 	context?: Record<string, unknown>,
 	message = 'An error occurred'
 ) {
+	const redactedContext = context ? (redactSensitiveData(context) as Record<string, unknown>) : undefined;
+
 	loggerInstance.error({
 		err: {
 			type: error.name,
-			message: error.message,
+			message: redactSensitiveData(error.message),
 			stack: error.stack,
-			...context,
+			...redactedContext,
 		},
 	},
-	message
-);
+	redactSensitiveData(message) as string
+	);
 }
 
 /**
@@ -86,12 +96,10 @@ export function logReservationEvent(
 		event,
 		reservationId: data.reservationId,
 		sessionId: data.sessionId,
-		email: data.email,
+		email: redactSensitiveData(data.email),
 		quantity: data.quantity,
 		amount: data.amount,
-	},
-	`Reservation ${event}: ${data.reservationId}`
-	);
+	}, `Reservation ${event}: ${data.reservationId}`);
 }
 
 /**
@@ -111,12 +119,10 @@ export function logPaymentEvent(
 
 	paymentLogger[level]({
 		event,
-		reservationId: data.reservationId,
-		paymentIntentId: data.paymentIntentId,
+		reservationId: redactSensitiveData(data.reservationId),
+		paymentIntentId: redactSensitiveData(data.paymentIntentId),
 		amount: data.amount,
 		currency: data.currency,
 		error: data.error,
-	},
-	`Payment ${event}: ${data.paymentIntentId}`
-	);
+	}, `Payment ${event}: ${data.paymentIntentId}`);
 }

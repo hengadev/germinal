@@ -7,7 +7,7 @@ import { env } from './env';
  */
 export function initMonitoring() {
 	if (!env.SENTRY_DSN) {
-		console.log('⚠️  Sentry DSN not configured - monitoring disabled');
+		logger.info('⚠️  Sentry DSN not configured - monitoring disabled');
 		return;
 	}
 
@@ -42,7 +42,7 @@ export function initMonitoring() {
 		],
 	});
 
-	console.log('✅ Sentry monitoring initialized');
+	logger.info('✅ Sentry monitoring initialized');
 }
 
 /**
@@ -51,7 +51,7 @@ export function initMonitoring() {
 export function captureException(error: Error, context?: Record<string, unknown>) {
 	if (!env.SENTRY_DSN) {
 		// Fallback to regular logging if Sentry is not configured
-		console.error('[Error]', error.message, context);
+		logger.error('[Error]', error.message, context);
 		return;
 	}
 
@@ -67,7 +67,7 @@ export function captureException(error: Error, context?: Record<string, unknown>
 export function captureMessage(message: string, level: 'info' | 'warning' | 'error' = 'info', context?: Record<string, unknown>) {
 	if (!env.SENTRY_DSN) {
 		// Fallback to regular logging
-		console.log(`[${level.toUpperCase()}]`, message, context);
+		logger.info(`[${level.toUpperCase()}]`, message, context);
 		return;
 	}
 
