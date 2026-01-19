@@ -1,15 +1,16 @@
-<script lang="ts">
-    import {
-        ArrowRight,
-        Instagram,
-        Globe,
-        CheckCircle,
-        AlertCircle,
-    } from "lucide-svelte";
-    import { enhance } from "$app/forms";
-    import type { ActionData } from "./$types";
-    import { t } from 'svelte-i18n';
-    import { reveal } from '$lib/actions/reveal';
+ <script lang="ts">
+     import {
+         ArrowRight,
+         Instagram,
+         Globe,
+         CheckCircle,
+         AlertCircle,
+     } from "lucide-svelte";
+     import { enhance } from "$app/forms";
+     import type { ActionData } from "./$types";
+     import { t } from 'svelte-i18n';
+     import { reveal } from '$lib/actions/reveal';
+     import { page } from '$app/stores';
 
     let { form }: { form: ActionData } = $props();
 
@@ -146,17 +147,22 @@
                 </div>
             </div>
 
-            <form
-                method="POST"
-                class="space-y-12 mt-8"
-                use:enhance={() => {
-                    isSubmitting = true;
-                    return async ({ update }) => {
-                        await update();
-                        isSubmitting = false;
-                    };
-                }}
-            >
+             <form
+                 method="POST"
+                 class="space-y-12 mt-8"
+                 use:enhance={() => {
+                     isSubmitting = true;
+                     return async ({ update }) => {
+                         await update();
+                         isSubmitting = false;
+                     };
+                 }}
+             >
+                 <input
+                     type="hidden"
+                     name="csrf_token"
+                     value={$page.data.csrfToken}
+                 />
                 <input
                     type="hidden"
                     name="inquiryType"

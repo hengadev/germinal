@@ -1,15 +1,19 @@
 import { fail, type Actions } from '@sveltejs/kit';
+import { logger } from '$lib/server/logger';
 import { contactSubmissionSchema } from '$lib/server/validators/contact';
 import { createContactSubmission } from '$lib/server/services/contact';
 import { strictRateLimiter } from '$lib/server/rate-limit';
+import { validateCsrfTokenFromForm } from '$lib/server/csrf';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async () => {
-  return {};
+export const load: PageServerLoad = async ({ locals }) => {
+  return {
+    csrfToken: locals.csrfToken
+  };
 };
 
 export const actions: Actions = {
-  default: async ({ request, getClientAddress }) => {
+  default: async ({ request, getClientAddress, locals }) => {
     const ip = getClientAddress();
 
     if (!strictRateLimiter.check(ip)) {
@@ -21,6 +25,13 @@ export const actions: Actions = {
     }
 
     const formData = await request.formData();
+
+    // CSRF validation
+    if (!validateCsrfTokenFromForm(formData, locals.csrfToken)) {
+      return fail(403, {
+        error: 'Invalid CSRF token',
+      });
+    }
     const data = {
       name: formData.get('name'),
       email: formData.get('email'),
@@ -57,7 +68,7 @@ export const actions: Actions = {
         message: 'Thank you for your message. We will get back to you soon!',
       };
     } catch (error) {
-      console.error('Contact form submission error:', error);
+      logger.error('Contact form submission error:', error);
 
       if (error instanceof Error && error.message === 'Invalid submission') {
         return fail(400, {
