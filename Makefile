@@ -7,7 +7,7 @@ DOCKER_IMAGE ?= $(DOCKER_USER)/germinal:latest
 
 .PHONY: help pull \
         prod-start prod-stop prod-restart prod-logs prod-shell prod-migrate prod-create-admin \
-        dev-start dev-stop dev-restart dev-logs dev-shell \
+        dev-start dev-stop dev-restart dev-logs dev-shell dev-mock \
         image-build image-push image-pull \
         status ps clean prune
 
@@ -41,6 +41,9 @@ help:
 	@echo "  make dev-restart   - Restart development"
 	@echo "  make dev-logs      - Follow development logs"
 	@echo "  make dev-shell     - Open shell in dev container"
+	@echo ""
+	@echo "Local Development (run dev.sh with mock data):"
+	@echo "  make dev-mock      - Start local dev with mock data"
 	@echo ""
 	@echo "Maintenance:"
 	@echo "  make clean         - Stop all and remove containers"
@@ -147,6 +150,14 @@ dev-logs:
 
 dev-shell:
 	docker compose -f docker-compose.dev.yml exec app sh
+
+# ===========================================
+# Local Development Commands (run dev.sh directly)
+# ===========================================
+
+dev-mock:
+	@echo "Starting local development with mock data..."
+	MOCK_ADMIN_EMAIL=admin@local.dev MOCK_ADMIN_PASSWORD=password123 ./dev.sh
 
 # ===========================================
 # Quick Workflows
