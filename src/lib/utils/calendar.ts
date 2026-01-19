@@ -1,4 +1,5 @@
 import ics from 'ics';
+import { logger } from '$lib/server/logger';
 
 export type CalendarEvent = {
 	title: string;
@@ -37,13 +38,13 @@ export function generateICSFile(event: CalendarEvent): string | null {
 		});
 
 		if (error) {
-			console.error('Error generating calendar file:', error);
+			logger.error('Error generating calendar file:', error);
 			return null;
 		}
 
 		return value;
 	} catch (error) {
-		console.error('Error generating calendar file:', error);
+		logger.error('Error generating calendar file:', error);
 		return null;
 	}
 }

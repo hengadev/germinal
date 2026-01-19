@@ -1,4 +1,5 @@
 import { getAllSessionsByEventId, createEventSession, updateEventSession, deleteEventSession } from '$lib/server/services/event-sessions';
+import { logger } from '$lib/server/logger';
 import { getEventById } from '$lib/server/services/events';
 import { error, fail } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
@@ -46,7 +47,7 @@ export const actions: Actions = {
 
 			return { success: `Session "${session.title}" created successfully` };
 		} catch (err) {
-			console.error('Create session error:', err);
+			logger.error('Create session error:', err);
 			return fail(500, { error: err instanceof Error ? err.message : 'Failed to create session' });
 		}
 	},
@@ -70,7 +71,7 @@ export const actions: Actions = {
 
 			return { success: 'Session updated successfully' };
 		} catch (err) {
-			console.error('Update session error:', err);
+			logger.error('Update session error:', err);
 			return fail(500, { error: err instanceof Error ? err.message : 'Failed to update session' });
 		}
 	},
@@ -83,7 +84,7 @@ export const actions: Actions = {
 			await deleteEventSession(id);
 			return { success: 'Session deleted successfully' };
 		} catch (err) {
-			console.error('Delete session error:', err);
+			logger.error('Delete session error:', err);
 			return fail(500, { error: err instanceof Error ? err.message : 'Failed to delete session' });
 		}
 	}

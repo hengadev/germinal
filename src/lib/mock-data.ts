@@ -681,6 +681,6 @@ export const MOCK_RESERVATIONS = [
 export const USE_MOCK_DATA = process.env.USE_MOCK_DATA === 'true' || !process.env.DATABASE_URL;
 
 if (USE_MOCK_DATA) {
-    console.log('📦 Mock data mode enabled - no database needed!');
-    console.log('   To use real database, set DATABASE_URL in .env');
+    logger.info('📦 Mock data mode enabled - no database needed!');
+    logger.info('   To use real database, set DATABASE_URL in .env');
 }

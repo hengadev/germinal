@@ -19,6 +19,7 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 
 	// Pass user to admin pages
 	return {
-		user: locals.user
+		user: locals.user,
+		csrfToken: locals.csrfToken
 	};
 };

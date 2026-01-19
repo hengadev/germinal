@@ -1,4 +1,5 @@
 import type { PageServerLoad } from './$types';
+import { logger } from '$lib/server/logger';
 import type { Actions } from '@sveltejs/kit';
 import { fail } from '@sveltejs/kit';
 import { env } from '$lib/server/env';
@@ -117,7 +118,7 @@ export const actions: Actions = {
 
             return { success: `Event "${title}" created successfully` };
         } catch (error) {
-            console.error('Error creating event:', error);
+            logger.error('Error creating event:', error);
             return fail(500, { error: 'Failed to create event. The slug may already be in use.' });
         }
     },
@@ -222,7 +223,7 @@ export const actions: Actions = {
 
             return { success: `Event "${title}" updated successfully` };
         } catch (error) {
-            console.error('Error updating event:', error);
+            logger.error('Error updating event:', error);
             return fail(500, { error: 'Failed to update event' });
         }
     },
@@ -259,7 +260,7 @@ export const actions: Actions = {
             await deleteEvent(id);
             return { success: 'Event deleted successfully' };
         } catch (error) {
-            console.error('Error deleting event:', error);
+            logger.error('Error deleting event:', error);
             return fail(500, { error: 'Failed to delete event' });
         }
     }

@@ -1,4 +1,5 @@
 import { fail, redirect, type Actions, type ServerLoad } from '@sveltejs/kit';
+import { logger } from '$lib/server/logger';
 import { env } from '$lib/server/env';
 import { MOCK_EVENTS, MOCK_SESSIONS, MOCK_RESERVATIONS } from '$lib/mock-data';
 import type { PageServerLoad } from './$types';
@@ -235,7 +236,7 @@ export const actions: Actions = {
 
 			return { success: `Event "${title}" updated successfully` };
 		} catch (error) {
-			console.error('Error updating event:', error);
+			logger.error('Error updating event:', error);
 			return fail(500, { error: 'Failed to update event. The slug may already be in use.' });
 		}
 	},
@@ -262,7 +263,7 @@ export const actions: Actions = {
 
 			return { success: `Session "${session.title}" created successfully` };
 		} catch (err) {
-			console.error('Create session error:', err);
+			logger.error('Create session error:', err);
 			return fail(500, { error: err instanceof Error ? err.message : 'Failed to create session' });
 		}
 	},
@@ -289,7 +290,7 @@ export const actions: Actions = {
 
 			return { success: 'Session updated successfully' };
 		} catch (err) {
-			console.error('Update session error:', err);
+			logger.error('Update session error:', err);
 			return fail(500, { error: err instanceof Error ? err.message : 'Failed to update session' });
 		}
 	},
@@ -305,7 +306,7 @@ export const actions: Actions = {
 			await deleteEventSession(id);
 			return { success: 'Session deleted successfully' };
 		} catch (err) {
-			console.error('Delete session error:', err);
+			logger.error('Delete session error:', err);
 			return fail(500, { error: err instanceof Error ? err.message : 'Failed to delete session' });
 		}
 	}
