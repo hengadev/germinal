@@ -85,7 +85,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 	// Build Content Security Policy
 	const isDevelopment = process.env.NODE_ENV !== 'production';
 	const csp = isDevelopment
-		? "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'"
+		? "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:"
 		: `default-src 'self'; script-src 'self' 'nonce-${nonce}'; style-src 'self' 'nonce-${nonce}'; img-src 'self' data: https:; connect-src 'self' https://api.stripe.com https://js.stripe.com; frame-src https://js.stripe.com`;
 
 	// Continue with request, injecting nonce into HTML
