@@ -40,7 +40,7 @@
                 </p>
             {/each}
         </div>
-        <div class="flex items-center gap-4 justify-start md:justify-end">
+        <div class="hidden md:flex items-center gap-4 justify-start md:justify-end">
             <p class="text-sm">{$t("events.view")}</p>
             <button>
                 <Grid2x2 />
