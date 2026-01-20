@@ -224,6 +224,41 @@ export const MOCK_EVENTS = [
         coverMedia: createMockMedia("https://images.unsplash.com/photo-1554907984-15263bfd63bd?q=80&w=2670&auto=format&fit=crop"),
         media: [],
     },
+    {
+        id: '7',
+        title: 'Sustainable Living Workshop',
+        slug: 'sustainable-living-workshop',
+        description: 'Learn practical tips and techniques for sustainable living in this hands-on workshop. Explore eco-friendly practices, renewable energy solutions, and sustainable gardening. Expert instructors will guide you through composting, solar panel basics, water conservation, and creating a zero-waste home lifestyle. Connect with like-minded individuals and discover how small changes can make a big impact on our planet.',
+        subtitle: 'Practical eco-friendly solutions for everyday life',
+        startDate: new Date('2026-12-05T10:00:00Z'),
+        endDate: new Date('2026-12-05T16:00:00Z'),
+        location: 'Portland Community Center',
+        venueName: 'EcoCenter Portland',
+        streetAddress: '123 Green Way',
+        district: 'Pearl District',
+        city: 'Portland',
+        postalCode: '97209',
+        country: 'USA',
+        collaborators: JSON.stringify([
+            { name: 'Green Earth Initiative', role: 'Organizer' },
+            { name: 'City of Portland Sustainability Office', role: 'Partner' }
+        ]),
+        timings: JSON.stringify([
+            { label: 'Registration', time: '09:30 - 10:00' },
+            { label: 'Morning Sessions', time: '10:00 - 12:30' },
+            { label: 'Lunch Break', time: '12:30 - 13:30' },
+            { label: 'Afternoon Workshops', time: '13:30 - 16:00' }
+        ]),
+        curator: 'Dr. Sarah Green',
+        materials: 'Workshop Materials, Seeds, Compost Bin Demo',
+        admissionInfo: '$35 General Admission, Students Free with ID',
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        coverMediaId: null,
+        coverMedia: createMockMedia("https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?q=80&w=2670&auto=format&fit=crop"),
+        media: [],
+    },
 ];
 
 export const MOCK_TALENTS = [
