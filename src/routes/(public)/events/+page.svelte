@@ -1,7 +1,7 @@
 <script lang="ts">
     import EventCard from "$lib/components/EventCard.svelte";
     import type { PageData } from "./$types";
-    import { Grid2x2, LayoutList, ArrowDown, ArrowRight } from "lucide-svelte";
+    import { Grid2x2, LayoutList, ArrowDown, ArrowRight, Loader2 } from "lucide-svelte";
     import { t } from "svelte-i18n";
     import { reveal } from "$lib/actions/reveal";
 
@@ -18,6 +18,37 @@
     ]);
 
     let viewMode: "grid" | "list" = $state(VIEW_MODE.GRID);
+
+    // Pagination state
+    let allEvents = $state(data.events);
+    let currentPage = $state(1);
+    let isLoading = $state(false);
+    let hasMore = $state(data.pagination?.hasNextPage ?? false);
+    let error = $state<string | null>(null);
+
+    async function loadMoreEvents() {
+        if (isLoading || !hasMore) return;
+
+        isLoading = true;
+        error = null;
+
+        try {
+            const nextPage = currentPage + 1;
+            const response = await fetch(`/api/events?page=${nextPage}&limit=6`);
+
+            if (!response.ok) throw new Error('Failed to load more events');
+
+            const result = await response.json();
+
+            allEvents = [...allEvents, ...result.data];
+            currentPage = nextPage;
+            hasMore = result.pagination.hasNextPage;
+        } catch (err) {
+            error = err instanceof Error ? err.message : 'Failed to load events';
+        } finally {
+            isLoading = false;
+        }
+    }
 </script>
 
 <svelte:head>
@@ -72,13 +103,13 @@
         </div>
     </div>
 
-    {#if data.events.length === 0}
+    {#if allEvents.length === 0}
         <p class="text-gray-500">{$t("events.noEvents")}</p>
     {:else if viewMode === VIEW_MODE.GRID}
         <div
             class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-10 gap-x-6"
         >
-            {#each data.events as event, index}
+            {#each allEvents as event, index}
                 <div
                     use:reveal={{
                         preset: "fade-up",
@@ -91,7 +122,7 @@
         </div>
     {:else}
         <div class="flex flex-col gap-6">
-            {#each data.events as event, index}
+            {#each allEvents as event, index}
                 <a
                     href="/events/{event.slug}"
                     use:reveal={{
@@ -151,12 +182,27 @@
             {/each}
         </div>
     {/if}
-    <div class="flex justify-center items-center mt-16">
-        <button
-            class="flex items-center gap-3 text-dark-600 px-6 py-3 rounded-full border border-border-dark"
-        >
-            <p>{$t("events.loadMore")}</p>
-            <ArrowDown size={16} />
-        </button>
-    </div>
+
+    {#if error}
+        <div class="flex justify-center items-center mt-8">
+            <p class="text-red-500">{error}</p>
+        </div>
+    {/if}
+
+    {#if hasMore}
+        <div class="flex justify-center items-center mt-16">
+            <button
+                onclick={loadMoreEvents}
+                disabled={isLoading}
+                class="flex items-center gap-3 text-dark-600 px-6 py-3 rounded-full border border-border-dark disabled:opacity-50"
+            >
+                {#if isLoading}
+                    <Loader2 size={16} class="animate-spin" />
+                {:else}
+                    <p>{$t("events.loadMore")}</p>
+                    <ArrowDown size={16} />
+                {/if}
+            </button>
+        </div>
+    {/if}
 </div>
