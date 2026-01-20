@@ -18,7 +18,7 @@
 
 <div>
     <!-- Hero Section -->
-    <section class="relative h-screen w-full flex items-center justify-center">
+    <section class="relative min-h-screen md:h-screen w-full flex items-center justify-center">
         <!-- Background Image -->
         <img
             src="/hero/hero.webp"
@@ -30,14 +30,14 @@
         <div class="absolute inset-0 bg-black/80"></div>
 
         <!-- Content -->
-        <div class="relative z-10 text-center px-4 max-w-4xl grid gap-12" use:reveal={{ preset: 'fade-in', duration: 800 }}>
+        <div class="relative z-10 text-center px-4 max-w-4xl grid gap-8 md:gap-12" use:reveal={{ preset: 'fade-in', duration: 800 }}>
             <div class="grid gap-3">
                 <h1
-                    class="text-5xl md:text-8xl font-sans font-bold text-white mb-6"
+                    class="text-4xl md:text-5xl lg:text-8xl font-sans font-bold text-white mb-4 md:mb-6"
                 >
                     {$t('home.heroTitle')}
                 </h1>
-                <p class="text-lg md:text-xl text-dark-300 leading-relaxed">
+                <p class="text-base md:text-lg lg:text-xl text-dark-300 leading-relaxed">
                     {$t('home.heroSubtitle')}
                 </p>
             </div>
@@ -52,8 +52,8 @@
     </section>
 
     <!-- Content Sections -->
-    <div class="container mx-auto mb-32 px-4 grid gap-y-40 pt-32">
-        <section class="grid grid-cols-2 gap-12" use:reveal={{ preset: 'fade-up', delay: 100 }}>
+    <div class="container mx-auto mb-32 px-4 grid gap-y-24 md:gap-y-40 pt-24 md:pt-32">
+        <section class="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12" use:reveal={{ preset: 'fade-up', delay: 100 }}>
             {#if data.events.length === 0}
                 <div></div>
             {:else}
@@ -61,13 +61,13 @@
                 <img
                     src={data.events[0].coverMedia.url}
                     alt={data.events[0].title}
-                    class="w-full max-h-100 object-cover grayscale"
+                    class="w-full max-h-[25rem] md:max-h-[30rem] lg:max-h-[40rem] object-cover grayscale"
                 />
             </div>
-            <div class="flex flex-col justify-between"> 
+            <div class="flex flex-col justify-between gap-6 md:gap-0">
                 <div class="grid gap-2">
                     <p class="text-dark-500 uppercase text-sm">{$t('nav.upcomingEvent')}</p>
-                    <h2 class="text-4xl font-base">{data.events[0].title}</h2>
+                    <h2 class="text-3xl md:text-4xl font-base">{data.events[0].title}</h2>
                     <p class="text-dark-500 font-base">{$t('home.heroDescription')}</p>
                 </div>
                 <div class="w-full border border-dark-50/80"></div>
@@ -88,8 +88,8 @@
             {/if}
         </section>
         <section class="">
-            <div class="flex justify-between items-center mb-8" use:reveal={{ preset: 'fade-up', delay: 150 }}>
-                <h2 class="text-3xl font-base">{$t('home.selectedEvents')}</h2>
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8" use:reveal={{ preset: 'fade-up', delay: 150 }}>
+                <h2 class="text-2xl md:text-3xl font-base">{$t('home.selectedEvents')}</h2>
                 <a
                     href="/events"
                     class="flex items-center gap-2 text-dark-600 hover:text-dark-800 font-normal"
@@ -117,8 +117,8 @@
         </section>
 
         <section class="">
-            <div class="flex justify-between items-center mb-8" use:reveal={{ preset: 'fade-up', delay: 150 }}>
-                <h2 class="text-3xl font-base">{$t('home.featuredTalents')}</h2>
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8" use:reveal={{ preset: 'fade-up', delay: 150 }}>
+                <h2 class="text-2xl md:text-3xl font-base">{$t('home.featuredTalents')}</h2>
                 <a
                     href="/talents"
                     class="flex items-center gap-2 text-dark-600 hover:text-dark-800 font-normal"
