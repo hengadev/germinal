@@ -3,8 +3,8 @@
     import TalentCard from "$lib/components/TalentCard.svelte";
     import type { PageData } from "./$types";
     import { ArrowRight, ArrowUpRight } from "lucide-svelte";
-    import { t } from 'svelte-i18n';
-    import { reveal } from '$lib/actions/reveal';
+    import { t } from "svelte-i18n";
+    import { reveal } from "$lib/actions/reveal";
     let { data }: { data: PageData } = $props();
 </script>
 
@@ -18,7 +18,9 @@
 
 <div>
     <!-- Hero Section -->
-    <section class="relative min-h-screen md:h-screen w-full flex items-center justify-center">
+    <section
+        class="relative min-h-[60vh] md:h-screen w-full flex items-center justify-center"
+    >
         <!-- Background Image -->
         <img
             src="/hero/hero.webp"
@@ -30,85 +32,117 @@
         <div class="absolute inset-0 bg-black/80"></div>
 
         <!-- Content -->
-        <div class="relative z-10 text-center px-4 max-w-4xl grid gap-8 md:gap-12" use:reveal={{ preset: 'fade-in', duration: 800 }}>
+        <div
+            class="relative z-10 text-center px-4 max-w-4xl grid gap-8 md:gap-12"
+            use:reveal={{ preset: "fade-in", duration: 800 }}
+        >
             <div class="grid gap-3">
                 <h1
                     class="text-4xl md:text-5xl lg:text-8xl font-sans font-bold text-white mb-4 md:mb-6"
                 >
-                    {$t('home.heroTitle')}
+                    {$t("home.heroTitle")}
                 </h1>
-                <p class="text-base md:text-lg lg:text-xl text-dark-300 leading-relaxed">
-                    {$t('home.heroSubtitle')}
+                <p
+                    class="text-base md:text-lg lg:text-xl text-dark-300 leading-relaxed"
+                >
+                    {$t("home.heroSubtitle")}
                 </p>
             </div>
             <a
                 href="/upcoming"
                 class="mx-auto text-dark-900 font-medium px-6 py-3 bg-white flex items-center gap-2 rounded-full cursor-pointer"
             >
-                <p>{$t('home.viewUpcoming')}</p>
+                <p>{$t("home.viewUpcoming")}</p>
                 <ArrowUpRight size={20} />
             </a>
         </div>
     </section>
 
     <!-- Content Sections -->
-    <div class="container mx-auto mb-32 px-4 grid gap-y-24 md:gap-y-40 pt-24 md:pt-32">
-        <section class="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12" use:reveal={{ preset: 'fade-up', delay: 100 }}>
+    <div
+        class="container mx-auto mb-32 px-4 grid gap-y-24 md:gap-y-40 pt-24 md:pt-32"
+    >
+        <section
+            class="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12"
+            use:reveal={{ preset: "fade-up", delay: 100 }}
+        >
             {#if data.events.length === 0}
                 <div></div>
             {:else}
-            <div>
-                <img
-                    src={data.events[0].coverMedia.url}
-                    alt={data.events[0].title}
-                    class="w-full max-h-[25rem] md:max-h-[30rem] lg:max-h-[40rem] object-cover grayscale"
-                />
-            </div>
-            <div class="flex flex-col justify-between gap-6 md:gap-0">
-                <div class="grid gap-2">
-                    <p class="text-dark-500 uppercase text-sm">{$t('nav.upcomingEvent')}</p>
-                    <h2 class="text-3xl md:text-4xl font-base">{data.events[0].title}</h2>
-                    <p class="text-dark-500 font-base">{$t('home.heroDescription')}</p>
+                <div>
+                    <img
+                        src={data.events[0].coverMedia.url}
+                        alt={data.events[0].title}
+                        class="w-full max-h-[25rem] md:max-h-[30rem] object-cover grayscale"
+                    />
                 </div>
-                <div class="w-full border border-dark-50/80"></div>
-                <div class="grid grid-cols-2 grid-rows-2 gap-y-8">
-                    {#each Array(4) as _, index}
-                        <div class="grid gap-0.5">
-                            <p class="uppercase text-xs text-dark-300">Date</p>
-                            <p class="text-dark-900 text-sm font-medium">October 24, 2024</p>
-                        </div>
-                    {/each}
+                <div class="flex flex-col justify-between gap-6 md:gap-4">
+                    <div class="grid gap-2">
+                        <p class="text-dark-500 uppercase text-sm">
+                            {$t("nav.upcomingEvent")}
+                        </p>
+                        <h2 class="text-xl md:text-2xl lg:text-3xl font-base">
+                            {data.events[0].title}
+                        </h2>
+                        <p class="text-dark-500 font-base">
+                            {$t("home.heroDescription")}
+                        </p>
+                    </div>
+                    <div class="w-full border border-dark-50/80"></div>
+                    <div class="grid grid-cols-2 grid-rows-2 gap-y-8">
+                        {#each Array(4) as _, index}
+                            <div class="grid gap-0.5">
+                                <p class="uppercase text-xs text-dark-300">
+                                    Date
+                                </p>
+                                <p class="text-dark-900 text-sm font-medium">
+                                    October 24, 2024
+                                </p>
+                            </div>
+                        {/each}
+                    </div>
+                    <div class="w-full border border-dark-50/80"></div>
+                    <button
+                        class="inline-flex w-fit items-center gap-2 px-6 py-3 rounded-lg bg-dark-900 hover:bg-dark-700 text-white"
+                    >
+                        <p>{$t("home.reserveSeat")}</p>
+                        <ArrowRight />
+                    </button>
                 </div>
-                <div class="w-full border border-dark-50/80"></div>
-                <button class="inline-flex w-fit items-center gap-2 px-6 py-3 rounded-lg bg-dark-900 hover:bg-dark-700 text-white">
-                    <p>{$t('home.reserveSeat')}</p>
-                    <ArrowRight />
-                </button>
-            </div>
             {/if}
         </section>
         <section class="">
-            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8" use:reveal={{ preset: 'fade-up', delay: 150 }}>
-                <h2 class="text-2xl md:text-3xl font-base">{$t('home.selectedEvents')}</h2>
+            <div
+                class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8"
+                use:reveal={{ preset: "fade-up", delay: 150 }}
+            >
+                <h2 class="text-2xl md:text-3xl font-base">
+                    {$t("home.selectedEvents")}
+                </h2>
                 <a
                     href="/events"
                     class="flex items-center gap-2 text-dark-600 hover:text-dark-800 font-normal"
                 >
-                    <p>{$t('home.viewEvents')}</p>
+                    <p>{$t("home.viewEvents")}</p>
                     <ArrowRight />
                 </a>
             </div>
 
             {#if data.events.length === 0}
                 <p class="text-dark-500 text-center">
-                    {$t('home.noEvents')}
+                    {$t("home.noEvents")}
                 </p>
             {:else}
                 <div
                     class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
                 >
                     {#each data.events.slice(0, 3) as event, index}
-                        <div use:reveal={{ preset: 'fade-up', delay: 200 + (index * 60) }}>
+                        <div
+                            use:reveal={{
+                                preset: "fade-up",
+                                delay: 200 + index * 60,
+                            }}
+                        >
                             <EventCard {event} />
                         </div>
                     {/each}
@@ -117,27 +151,37 @@
         </section>
 
         <section class="">
-            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8" use:reveal={{ preset: 'fade-up', delay: 150 }}>
-                <h2 class="text-2xl md:text-3xl font-base">{$t('home.featuredTalents')}</h2>
+            <div
+                class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8"
+                use:reveal={{ preset: "fade-up", delay: 150 }}
+            >
+                <h2 class="text-2xl md:text-3xl font-base">
+                    {$t("home.featuredTalents")}
+                </h2>
                 <a
                     href="/talents"
                     class="flex items-center gap-2 text-dark-600 hover:text-dark-800 font-normal"
                 >
-                    <p>{$t('home.viewTalents')}</p>
+                    <p>{$t("home.viewTalents")}</p>
                     <ArrowRight />
                 </a>
             </div>
 
             {#if data.talents.length === 0}
                 <p class="text-dark-500 text-center">
-                    {$t('home.noTalents')}
+                    {$t("home.noTalents")}
                 </p>
             {:else}
                 <div
                     class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
                 >
                     {#each data.talents.slice(0, 3) as talent, index}
-                        <div use:reveal={{ preset: 'fade-up', delay: 200 + (index * 60) }}>
+                        <div
+                            use:reveal={{
+                                preset: "fade-up",
+                                delay: 200 + index * 60,
+                            }}
+                        >
                             <TalentCard {talent} />
                         </div>
                     {/each}
