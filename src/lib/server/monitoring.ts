@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/node';
 import { env } from './env';
+import { logger } from './logger';
 
 /**
  * Initialize Sentry error tracking
