@@ -1,9 +1,14 @@
 <script lang="ts">
     import EventCard from "$lib/components/EventCard.svelte";
     import type { PageData } from "./$types";
-    import { Grid2x2, LayoutList, ArrowDown } from "lucide-svelte";
+    import { Grid2x2, LayoutList, ArrowDown, ArrowRight } from "lucide-svelte";
     import { t } from "svelte-i18n";
     import { reveal } from "$lib/actions/reveal";
+
+    const VIEW_MODE = {
+        GRID: "grid",
+        LIST: "list",
+    } as const;
 
     let { data }: { data: PageData } = $props();
     let filters = $derived([
@@ -11,6 +16,8 @@
         $t("events.filters.dining"),
         $t("events.filters.workshops"),
     ]);
+
+    let viewMode: "grid" | "list" = $state(VIEW_MODE.GRID);
 </script>
 
 <svelte:head>
@@ -40,27 +47,107 @@
                 </p>
             {/each}
         </div>
-        <div class="hidden md:flex items-center gap-4 justify-start md:justify-end">
+        <div
+            class="hidden md:flex items-center gap-4 justify-start md:justify-end"
+        >
             <p class="text-sm">{$t("events.view")}</p>
-            <button>
+            <button
+                type="button"
+                onclick={() => (viewMode = VIEW_MODE.GRID)}
+                class="cursor-pointer p-1"
+                class:text-dark-900={viewMode === VIEW_MODE.GRID}
+                class:text-dark-300={viewMode === VIEW_MODE.LIST}
+            >
                 <Grid2x2 />
             </button>
-            <button>
-                <LayoutList class="text-dark-300" />
+            <button
+                type="button"
+                onclick={() => (viewMode = VIEW_MODE.LIST)}
+                class="cursor-pointer p-1"
+                class:text-dark-900={viewMode === VIEW_MODE.LIST}
+                class:text-dark-300={viewMode === VIEW_MODE.GRID}
+            >
+                <LayoutList />
             </button>
         </div>
     </div>
 
     {#if data.events.length === 0}
         <p class="text-gray-500">{$t("events.noEvents")}</p>
-    {:else}
+    {:else if viewMode === VIEW_MODE.GRID}
         <div
             class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-10 gap-x-6"
         >
             {#each data.events as event, index}
-                <div use:reveal={{ preset: "fade-up", delay: Math.min(index * 60, 300) }}>
+                <div
+                    use:reveal={{
+                        preset: "fade-up",
+                        delay: Math.min(index * 60, 300),
+                    }}
+                >
                     <EventCard {event} />
                 </div>
+            {/each}
+        </div>
+    {:else}
+        <div class="flex flex-col gap-6">
+            {#each data.events as event, index}
+                <a
+                    href="/events/{event.slug}"
+                    use:reveal={{
+                        preset: "fade-up",
+                        delay: Math.min(index * 60, 300),
+                    }}
+                    class="flex flex-col sm:flex-row gap-6 bg-white p-4 rounded-lg hover:shadow-md transition-shadow"
+                >
+                    {#if event.coverMedia}
+                        <div
+                            class="sm:w-64 sm:flex-shrink-0 aspect-video sm:aspect-auto overflow-hidden rounded"
+                        >
+                            {#if event.coverMedia.type === "image"}
+                                <img
+                                    src={event.coverMedia.url}
+                                    alt={event.title}
+                                    class="w-full h-full object-cover grayscale hover:scale-105 transition-transform"
+                                />
+                            {:else}
+                                <video
+                                    src={event.coverMedia.url}
+                                    class="w-full h-full object-cover"
+                                    muted
+                                />
+                            {/if}
+                        </div>
+                    {:else}
+                        <div
+                            class="sm:w-64 sm:flex-shrink-0 aspect-4/3 bg-gray-200 flex items-center justify-center rounded"
+                        >
+                            <span class="text-gray-400 text-4xl"></span>
+                        </div>
+                    {/if}
+                    <div class="flex flex-col justify-between flex-1">
+                        <div>
+                            <h3 class="text-xl font-medium mb-2">
+                                {event.title}
+                            </h3>
+                            <p class="text-dark-500 text-sm line-clamp-2 mb-4">
+                                {event.location}
+                            </p>
+                            <p class="text-dark-400 text-sm line-clamp-3">
+                                {event.description}
+                            </p>
+                        </div>
+                        <div
+                            class="w-full border border-border-card/20 mt-4"
+                        ></div>
+                        <div class="mt-4 flex items-center gap-4">
+                            <span class="text-sm text-dark-600"
+                                >View Details</span
+                            >
+                            <ArrowRight size={16} />
+                        </div>
+                    </div>
+                </a>
             {/each}
         </div>
     {/if}
