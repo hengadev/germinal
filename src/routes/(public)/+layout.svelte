@@ -15,7 +15,7 @@
     </main>
 
     <footer class="bg-dark-900 text-white/80 py-6 mt-12">
-        <div class="container mx-auto px-4 flex items-center justify-between">
+        <div class="container mx-auto px-4 flex items-center justify-between text-xs sm:text-sm">
             <p>
                 &copy; {new Date().getFullYear()} Germinal. {$t('footer.allRightsReserved')}
             </p>
@@ -26,7 +26,7 @@
                     href="https://www.instagram.com/Germinal.studio/"
                     rel="noopener noreferrer"
                 >
-                    <Instagram />
+                    <Instagram class="w-3 h-3 sm:w-[14px] sm:h-[14px]" />
                     <p>{$t('footer.instagram')}</p>
                 </a>
                 <!-- <a -->
