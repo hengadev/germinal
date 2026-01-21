@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, timestamp, boolean, integer, pgEnum, index, check, jsonb } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, timestamp, boolean, integer, pgEnum, index, check, jsonb, unique } from 'drizzle-orm/pg-core';
 import { relations, sql } from 'drizzle-orm';
 
 // ============================================
@@ -59,6 +59,7 @@ export const events = pgTable('events', {
     admissionInfo: varchar('admission_info', { length: 150 }),
     coverMediaId: uuid('cover_media_id'),
     published: boolean('published').default(false).notNull(),
+    isSpotlight: boolean('is_spotlight').default(false).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => ({
@@ -67,6 +68,10 @@ export const events = pgTable('events', {
     startDateIdx: index('events_start_date_idx').on(table.startDate),
     // Composite index for listing published events sorted by date
     publishedStartDateIdx: index('events_published_start_date_idx').on(table.published, table.startDate),
+    // Partial unique index ensuring only one spotlight event exists
+    spotlightIdx: unique('events_spotlight_unique_idx')
+        .on(table.isSpotlight)
+        .where(sql`is_spotlight = true`),
 }));
 
 export const talents = pgTable('talents', {
@@ -121,6 +126,7 @@ export const eventsRelations = relations(events, ({ many, one }) => ({
         fields: [events.coverMediaId],
         references: [media.id],
     }),
+    eventSessions: many(eventSessions),
 }));
 
 export const talentsRelations = relations(talents, ({ many, one }) => ({
