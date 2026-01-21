@@ -24,6 +24,7 @@
 	let materials = $state('');
 	let admissionInfo = $state('');
 	let published = $state(false);
+	let isSpotlight = $state(false);
 
 	// Auto-generate slug from title
 	$effect(() => {
@@ -465,6 +466,25 @@
 						</label>
 						<p class="text-xs text-dark-400">
 							Uncheck to save as draft
+						</p>
+					</div>
+				</div>
+
+				<!-- Spotlight Status -->
+				<div class="flex items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+					<input
+						id="isSpotlight"
+						name="isSpotlight"
+						type="checkbox"
+						bind:checked={isSpotlight}
+						class="w-5 h-5 text-amber-900 border-amber-300 rounded focus:ring-amber-900"
+					/>
+					<div>
+						<label for="isSpotlight" class="block text-sm font-medium text-amber-900 cursor-pointer">
+							Mark as Spotlight Event
+						</label>
+						<p class="text-xs text-amber-600">
+							Spotlight events are featured prominently on the site. Only one event can be spotlight at a time.
 						</p>
 					</div>
 				</div>

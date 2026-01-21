@@ -17,6 +17,7 @@ export const actions: Actions = {
 		const endDate = formData.get('endDate');
 		const location = formData.get('location');
 		const published = formData.get('published') === 'true';
+		const isSpotlight = formData.get('isSpotlight') === 'true';
 
 		// Validation
 		if (!title || typeof title !== 'string') {
@@ -75,6 +76,11 @@ export const actions: Actions = {
 				createdAt: new Date()
 			});
 
+			// If isSpotlight is true, unset others in mock array
+			if (isSpotlight) {
+				MOCK_EVENTS.forEach(e => e.isSpotlight = false);
+			}
+
 			const newEvent = {
 				id: String(MOCK_EVENTS.length + 1),
 				title,
@@ -84,6 +90,7 @@ export const actions: Actions = {
 				endDate: end,
 				location,
 				published,
+				isSpotlight,
 				createdAt: new Date(),
 				updatedAt: new Date(),
 				coverMediaId: null,
@@ -108,7 +115,8 @@ export const actions: Actions = {
 				endDate: end,
 				location,
 				coverMediaId: null,
-				published
+				published,
+				isSpotlight
 			});
 
 			return { success: `Event "${title}" created successfully` };
