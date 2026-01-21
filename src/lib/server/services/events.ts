@@ -1,5 +1,5 @@
 import { db } from '../db';
-import { events, media } from '../db/schema';
+import { events, media, eventSessions } from '../db/schema';
 import { eq, desc, and, isNull, sql } from 'drizzle-orm';
 import type { Event, CreateEventInput, UpdateEventInput } from '$lib/types/events';
 import {
@@ -70,41 +70,75 @@ export async function getEventById(id: string) {
   return event;
 }
 
+export async function getSpotlightEvent() {
+  const spotlightEvent = await db.query.events.findFirst({
+    where: eq(events.isSpotlight, true),
+    with: {
+      coverMedia: true,
+      media: {
+        orderBy: [desc(media.createdAt)],
+      },
+      eventSessions: {
+        where: eq(eventSessions.published, true),
+        orderBy: [eventSessions.startTime],
+      },
+    },
+  });
+
+  // Returns null if no spotlight event exists (valid state)
+  return spotlightEvent ?? null;
+}
+
 export async function createEvent(input: CreateEventInput) {
-  const [event] = await db.insert(events).values({
-    title: input.title,
-    slug: input.slug,
-    description: input.description,
-    startDate: input.startDate,
-    endDate: input.endDate,
-    location: input.location,
-    coverMediaId: input.coverMediaId,
-    published: input.published ?? false,
-  }).returning();
+  return await db.transaction(async (tx) => {
+    // If new event is spotlight, unset any existing spotlight first
+    if (input.isSpotlight) {
+      await tx.update(events)
+        .set({ isSpotlight: false, updatedAt: new Date() })
+        .where(eq(events.isSpotlight, true));
+    }
 
-  // Invalidate events cache
-  invalidateCacheTags([CACHE_TAGS.EVENTS]);
+    const [event] = await tx.insert(events).values({
+      title: input.title,
+      slug: input.slug,
+      description: input.description,
+      startDate: input.startDate,
+      endDate: input.endDate,
+      location: input.location,
+      coverMediaId: input.coverMediaId,
+      published: input.published ?? false,
+      isSpotlight: input.isSpotlight ?? false,
+    }).returning();
 
-  return event;
+    invalidateCacheTags([CACHE_TAGS.EVENTS]);
+    return event;
+  });
 }
 
 export async function updateEvent(id: string, input: UpdateEventInput) {
-  const [updated] = await db.update(events)
-    .set({
-      ...input,
-      updatedAt: new Date(),
-    })
-    .where(eq(events.id, id))
-    .returning();
+  return await db.transaction(async (tx) => {
+    // If event is being set to spotlight, unset others
+    if (input.isSpotlight === true) {
+      await tx.update(events)
+        .set({ isSpotlight: false, updatedAt: new Date() })
+        .where(and(
+          eq(events.isSpotlight, true),
+          sql`id != ${id}`
+        ));
+    }
 
-  if (!updated) {
-    throw new Error('Event not found');
-  }
+    const [updated] = await tx.update(events)
+      .set({ ...input, updatedAt: new Date() })
+      .where(eq(events.id, id))
+      .returning();
 
-  // Invalidate events cache
-  invalidateCacheTags([CACHE_TAGS.EVENTS]);
+    if (!updated) {
+      throw new Error('Event not found');
+    }
 
-  return updated;
+    invalidateCacheTags([CACHE_TAGS.EVENTS]);
+    return updated;
+  });
 }
 
 export async function deleteEvent(id: string) {
