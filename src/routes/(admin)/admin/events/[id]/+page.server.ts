@@ -154,6 +154,7 @@ export const actions: Actions = {
 		const endDate = formData.get('endDate');
 		const location = formData.get('location');
 		const published = formData.get('published') === 'true';
+		const isSpotlight = formData.get('isSpotlight') === 'true';
 
 		// Validation
 		if (!title || typeof title !== 'string') {
@@ -205,6 +206,11 @@ export const actions: Actions = {
 				return fail(404, { error: 'Event not found' });
 			}
 
+			// If isSpotlight is true, unset others in mock array
+			if (isSpotlight) {
+				MOCK_EVENTS.forEach(e => e.isSpotlight = false);
+			}
+
 			MOCK_EVENTS[eventIndex] = {
 				...MOCK_EVENTS[eventIndex],
 				title,
@@ -214,6 +220,7 @@ export const actions: Actions = {
 				endDate: end,
 				location,
 				published,
+				isSpotlight,
 				updatedAt: new Date()
 			};
 
@@ -231,7 +238,8 @@ export const actions: Actions = {
 				startDate: start,
 				endDate: end,
 				location,
-				published
+				published,
+				isSpotlight
 			});
 
 			return { success: `Event "${title}" updated successfully` };
