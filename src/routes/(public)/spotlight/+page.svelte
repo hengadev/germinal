@@ -5,7 +5,7 @@
 
 	let { data }: { data: PageData } = $props();
 
-	const { spotlightEvent } = data;
+	const spotlightEvent = $derived(data.spotlightEvent);
 
 	let collaborators = $derived(
 		spotlightEvent?.collaborators ? JSON.parse(spotlightEvent.collaborators) : []
