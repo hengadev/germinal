@@ -8,6 +8,12 @@ export type UpdateEventInput = Partial<CreateEventInput>;
 export type EventWithMedia = Event & {
   media?: Media[];
   coverMedia?: Media | null;
+  category?: {
+    id: string;
+    name: string;
+    displayName: string;
+    slug: string;
+  } | null;
 };
 
 export type Media = InferSelectModel<typeof media>;
