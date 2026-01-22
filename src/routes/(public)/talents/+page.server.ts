@@ -1,12 +1,21 @@
 import { getAllTalents } from '$lib/server/services/talents';
 import { logger } from '$lib/server/logger';
-import { MOCK_TALENTS, USE_MOCK_DATA } from '$lib/mock-data';
+import { MOCK_TALENTS, MOCK_TALENT_CATEGORIES, USE_MOCK_DATA } from '$lib/mock-data';
 import { calculatePagination } from '$lib/utils/pagination';
 import type { PageServerLoad } from './$types';
 
 const INITIAL_PAGE_SIZE = 6;
 
 export const load: PageServerLoad = async () => {
+    // Load categories
+    let categories;
+    if (USE_MOCK_DATA) {
+        categories = MOCK_TALENT_CATEGORIES.filter(c => c.published);
+    } else {
+        const { getAllTalentCategories } = await import('$lib/server/services/talent-categories');
+        categories = await getAllTalentCategories({ publishedOnly: true });
+    }
+
     // Use mock data if enabled (no database required!)
     if (USE_MOCK_DATA) {
         logger.info('📦 Using mock data for talents');
@@ -17,6 +26,7 @@ export const load: PageServerLoad = async () => {
         return {
             talents: initialTalents,
             pagination,
+            categories,
         };
     }
 
@@ -25,5 +35,6 @@ export const load: PageServerLoad = async () => {
     return {
         talents: result.data,
         pagination: result.pagination,
+        categories,
     };
 };

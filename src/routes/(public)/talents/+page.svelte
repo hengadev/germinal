@@ -12,7 +12,7 @@
     } as const;
 
     let { data }: { data: PageData } = $props();
-    let filters = $derived([$t('talents.filters.visualArts'), $t('talents.filters.design'), $t('talents.filters.culinary')]);
+    let filters = $derived(data.categories || []);
 
     let viewMode: "grid" | "list" = $state(VIEW_MODE.GRID);
 
@@ -60,46 +60,78 @@
         </p>
     </div>
 
-    <div
-        class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-16"
-        use:reveal={{ preset: 'fade-in', delay: 100 }}
-    >
-        <div class="flex flex-wrap items-center gap-3">
-            <p class="px-4 py-2 bg-dark-900 text-white rounded-full text-sm">
-                All
-            </p>
-            {#each filters as filter}
-                <p
-                    class="px-4 py-2 border border-border-card rounded-full text-dark-600 text-sm whitespace-nowrap"
-                >
-                    {filter}
-                </p>
-            {/each}
-        </div>
+    {#if filters.length > 1}
         <div
-            class="hidden md:flex items-center gap-4 justify-start md:justify-end"
+            class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-16"
+            use:reveal={{ preset: 'fade-in', delay: 100 }}
         >
-            <p class="text-sm">{$t('talents.view')}</p>
-            <button
-                type="button"
-                onclick={() => (viewMode = VIEW_MODE.GRID)}
-                class="cursor-pointer p-1"
-                class:text-dark-900={viewMode === VIEW_MODE.GRID}
-                class:text-dark-300={viewMode === VIEW_MODE.LIST}
+            <div class="flex flex-wrap items-center gap-3">
+                <button
+                    class="px-4 py-2 bg-dark-900 text-white rounded-full text-sm font-medium transition-colors"
+                >
+                    All
+                </button>
+                {#each filters as filter}
+                    <button
+                        class="px-4 py-2 border border-border-card rounded-full text-sm whitespace-nowrap transition-colors hover:border-dark-900"
+                        style="border-color: {filter.color}; color: {filter.color}"
+                    >
+                        {filter.displayName}
+                    </button>
+                {/each}
+            </div>
+            <div
+                class="hidden md:flex items-center gap-4 justify-start md:justify-end"
             >
-                <Grid2x2 />
-            </button>
-            <button
-                type="button"
-                onclick={() => (viewMode = VIEW_MODE.LIST)}
-                class="cursor-pointer p-1"
-                class:text-dark-900={viewMode === VIEW_MODE.LIST}
-                class:text-dark-300={viewMode === VIEW_MODE.GRID}
-            >
-                <LayoutList />
-            </button>
+                <p class="text-sm">{$t('talents.view')}</p>
+                <button
+                    type="button"
+                    onclick={() => (viewMode = VIEW_MODE.GRID)}
+                    class="cursor-pointer p-1"
+                    class:text-dark-900={viewMode === VIEW_MODE.GRID}
+                    class:text-dark-300={viewMode === VIEW_MODE.LIST}
+                >
+                    <Grid2x2 />
+                </button>
+                <button
+                    type="button"
+                    onclick={() => (viewMode = VIEW_MODE.LIST)}
+                    class="cursor-pointer p-1"
+                    class:text-dark-900={viewMode === VIEW_MODE.LIST}
+                    class:text-dark-300={viewMode === VIEW_MODE.GRID}
+                >
+                    <LayoutList />
+                </button>
+            </div>
         </div>
-    </div>
+    {:else}
+        <div
+            class="flex justify-end mb-16"
+            use:reveal={{ preset: 'fade-in', delay: 100 }}
+        >
+            <div class="hidden md:flex items-center gap-4">
+                <p class="text-sm">{$t('talents.view')}</p>
+                <button
+                    type="button"
+                    onclick={() => (viewMode = VIEW_MODE.GRID)}
+                    class="cursor-pointer p-1"
+                    class:text-dark-900={viewMode === VIEW_MODE.GRID}
+                    class:text-dark-300={viewMode === VIEW_MODE.LIST}
+                >
+                    <Grid2x2 />
+                </button>
+                <button
+                    type="button"
+                    onclick={() => (viewMode = VIEW_MODE.LIST)}
+                    class="cursor-pointer p-1"
+                    class:text-dark-900={viewMode === VIEW_MODE.LIST}
+                    class:text-dark-300={viewMode === VIEW_MODE.GRID}
+                >
+                    <LayoutList />
+                </button>
+            </div>
+        </div>
+    {/if}
 
     {#if allTalents.length === 0}
         <p class="text-gray-500">{$t('talents.noTalents')}</p>

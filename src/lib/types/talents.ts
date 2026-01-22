@@ -8,6 +8,12 @@ export type UpdateTalentInput = Partial<CreateTalentInput>;
 export type TalentWithMedia = Talent & {
   media?: Media[];
   profileMedia?: Media | null;
+  category?: {
+    id: string;
+    name: string;
+    displayName: string;
+    slug: string;
+  } | null;
 };
 
 export type Media = InferSelectModel<typeof media>;
