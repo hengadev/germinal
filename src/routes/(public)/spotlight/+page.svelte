@@ -2,6 +2,7 @@
 	import { ArrowLeft, MapPin, Calendar, Star } from 'lucide-svelte';
 	import type { PageData } from './$types';
 	import { reveal } from '$lib/actions/reveal';
+	import { locale } from 'svelte-i18n';
 
 	let { data }: { data: PageData } = $props();
 
@@ -14,6 +15,13 @@
 	let timings = $derived(
 		spotlightEvent?.timings ? JSON.parse(spotlightEvent.timings) : []
 	);
+
+	function getEventField(field: 'title' | 'description' | 'subtitle' | 'admissionInfo'): string {
+		if (!spotlightEvent) return '';
+		const enField = (field + 'En') as 'titleEn' | 'descriptionEn' | 'subtitleEn' | 'admissionInfoEn';
+		const frField = (field + 'Fr') as 'titleFr' | 'descriptionFr' | 'subtitleFr' | 'admissionInfoFr';
+		return $locale === 'en' ? (spotlightEvent[enField] || '') : (spotlightEvent[frField] || '');
+	}
 </script>
 
 <svelte:head>
@@ -41,10 +49,10 @@
 					<Star class="text-amber-500 fill-amber-500" size={24} />
 					<span class="text-amber-600 font-semibold uppercase tracking-wide text-sm">Spotlight Event</span>
 				</div>
-				<h1 class="text-5xl font-bold">{spotlightEvent.title}</h1>
-				{#if spotlightEvent.subtitle}
+				<h1 class="text-5xl font-bold">{getEventField('title')}</h1>
+				{#if getEventField('subtitle')}
 					<p class="text-dark-500 text-lg font-light">
-						{spotlightEvent.subtitle}
+						{getEventField('subtitle')}
 					</p>
 				{/if}
 			</header>
@@ -55,7 +63,7 @@
 				<div class="grid gap-8">
 					<div use:reveal={{ preset: 'fade-up', delay: 100 }}>
 						<p class="text-lg text-dark-500 leading-relaxed">
-							{spotlightEvent.description}
+							{getEventField('description')}
 						</p>
 					</div>
 
@@ -154,10 +162,10 @@
 						</div>
 					{/if}
 
-					{#if spotlightEvent.admissionInfo}
+					{#if getEventField('admissionInfo')}
 						<div class="grid gap-4">
 							<p class="capitalize text-dark-900">Admission</p>
-							<p class="text-dark-500">{spotlightEvent.admissionInfo}</p>
+							<p class="text-dark-500">{getEventField('admissionInfo')}</p>
 						</div>
 					{/if}
 				</div>
@@ -174,7 +182,7 @@
 							<div class="aspect-video rounded-lg overflow-hidden bg-dark-100">
 								<img
 									src={mediaItem.url}
-									alt={spotlightEvent.title}
+									alt={getEventField('title')}
 									class="w-full h-full object-cover"
 								/>
 							</div>

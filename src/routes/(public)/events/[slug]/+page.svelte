@@ -4,7 +4,7 @@
     import type { PageData } from "./$types";
     import { ArrowLeft, MapPin, Clock, Info } from "lucide-svelte";
     import { Icon } from "lucide-svelte";
-    import { t } from "svelte-i18n";
+    import { t, locale } from "svelte-i18n";
     import { reveal } from "$lib/actions/reveal";
 
     let { data }: { data: PageData } = $props();
@@ -16,11 +16,17 @@
     let timings = $derived(
         data.event.timings ? JSON.parse(data.event.timings) : [],
     );
+
+    function getEventField(field: 'title' | 'description' | 'subtitle' | 'curator' | 'materials' | 'admissionInfo'): string {
+        const enField = (field + 'En') as 'titleEn' | 'descriptionEn' | 'subtitleEn' | 'curatorEn' | 'materialsEn' | 'admissionInfoEn';
+        const frField = (field + 'Fr') as 'titleFr' | 'descriptionFr' | 'subtitleFr' | 'curatorFr' | 'materialsFr' | 'admissionInfoFr';
+        return $locale === 'en' ? data.event[enField] || '' : data.event[frField] || '';
+    }
 </script>
 
 <svelte:head>
-    <title>{data.event.title} | Germinal</title>
-    <meta name="description" content={data.event.description.slice(0, 160)} />
+    <title>{getEventField('title')} | Germinal</title>
+    <meta name="description" content={getEventField('description').slice(0, 160)} />
 </svelte:head>
 
 <div class="container mx-auto px-4 py-32 max-w-8xl">
@@ -37,10 +43,10 @@
             class="mb-16 grid gap-2"
             use:reveal={{ preset: "fade-up", delay: 50 }}
         >
-            <h1 class="text-5xl font-bold">{data.event.title}</h1>
-            {#if data.event.subtitle}
+            <h1 class="text-5xl font-bold">{getEventField('title')}</h1>
+            {#if getEventField('subtitle')}
                 <p class="text-dark-500 text-lg font-light">
-                    {data.event.subtitle}
+                    {getEventField('subtitle')}
                 </p>
             {/if}
         </header>
@@ -49,7 +55,7 @@
             <div class="grid gap-8">
                 <div use:reveal={{ preset: "fade-up", delay: 100 }}>
                     <p class="text-lg text-dark-500 leading-relaxed">
-                        {data.event.description}
+                        {getEventField('description')}
                     </p>
                 </div>
                 <div
@@ -121,22 +127,22 @@
                 <div class="grid gap-4">
                     {@render asideTitle($t("events.details"), Info)}
                     <div class="grid gap-2">
-                        {#if data.event.curator}
+                        {#if getEventField('curator')}
                             {@render asideLastPart(
                                 $t("events.curator"),
-                                data.event.curator,
+                                getEventField('curator'),
                             )}
                         {/if}
-                        {#if data.event.materials}
+                        {#if getEventField('materials')}
                             {@render asideLastPart(
                                 $t("events.materials"),
-                                data.event.materials,
+                                getEventField('materials'),
                             )}
                         {/if}
-                        {#if data.event.admissionInfo}
+                        {#if getEventField('admissionInfo')}
                             {@render asideLastPart(
                                 $t("events.admission"),
-                                data.event.admissionInfo,
+                                getEventField('admissionInfo'),
                             )}
                         {/if}
                     </div>
@@ -159,7 +165,7 @@
                 <h2 class="text-3xl font-bold mb-8">{$t("events.bookTickets")}</h2>
                 <SessionSelector
                     sessions={data.sessions}
-                    eventTitle={data.event.title}
+                    eventTitle={getEventField('title')}
                     eventSlug={data.event.slug}
                 />
             </section>

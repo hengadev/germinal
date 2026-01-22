@@ -3,7 +3,7 @@ import {Instagram, Globe, Mail} from "lucide-svelte"
     import EventGallery from "$lib/components/EventGallery.svelte";
 import type {Component} from "svelte"
     import type { PageData } from "./$types";
-    import { t } from 'svelte-i18n';
+    import { t, locale } from 'svelte-i18n';
     import { reveal } from '$lib/actions/reveal';
 
     let { data }: { data: PageData } = $props();
@@ -12,16 +12,23 @@ import type {Component} from "svelte"
         data.talent.socialLinks ? JSON.parse(data.talent.socialLinks) : {},
     );
 
-    let specializations = $derived(
-        data.talent.specializations
-            ? JSON.parse(data.talent.specializations)
-            : []
-    );
+    let specializations = $derived(() => {
+        const specs = $locale === 'en'
+            ? (data.talent.specializationsEn || '[]')
+            : (data.talent.specializationsFr || '[]');
+        return JSON.parse(specs);
+    });
+
+    function getTalentField(field: 'role' | 'bio' | 'quote'): string {
+        const enField = (field + 'En') as 'roleEn' | 'bioEn' | 'quoteEn';
+        const frField = (field + 'Fr') as 'roleFr' | 'bioFr' | 'quoteFr';
+        return $locale === 'en' ? (data.talent[enField] || '') : (data.talent[frField] || '');
+    }
 </script>
 
 <svelte:head>
     <title>{data.talent.firstName} {data.talent.lastName} | Germinal</title>
-    <meta name="description" content={data.talent.bio.slice(0, 160)} />
+    <meta name="description" content={getTalentField('bio').slice(0, 160)} />
 </svelte:head>
 
 {#snippet socialLinksIcon(href: string, Icon: Component)}
@@ -75,7 +82,7 @@ import type {Component} from "svelte"
                         {data.talent.firstName}
                         {data.talent.lastName}
                     </h1>
-                    <p class="text-xl text-dark-500 mb-4">{data.talent.role}</p>
+                    <p class="text-xl text-dark-500 mb-4">{getTalentField('role')}</p>
                 </div>
                 {#if data.talent.city || data.talent.country}
                     <div>
@@ -94,27 +101,16 @@ import type {Component} from "svelte"
             </div>
             <div class="my-8 border border-dark-50/60 w-full"></div>
             <div class="grid gap-4">
-                {#if data.talent.quote}
-                    <p class="text-lg text-dark-900 leading-relaxed font-medium">"{data.talent.quote}"</p>
+                {#if getTalentField('quote')}
+                    <p class="text-lg text-dark-900 leading-relaxed font-medium">"{getTalentField('quote')}"</p>
                 {/if}
                 <p class="text-normal text-dark-500 leading-relaxed">
-                    {data.talent.bio}
-                    {data.talent.bio}
-                    {data.talent.bio}
+                    {getTalentField('bio')}
                 </p>
-                <p class="text-normal text-dark-500 leading-relaxed">
-                    {data.talent.bio}
-                    {data.talent.bio}
-                    {data.talent.bio}
-                </p>
-
-                <p class="text-normal text-dark-500 leading-relaxed">
-                    {data.talent.bio}
-                </p>
-                {#if specializations.length > 0}
+                {#if specializations().length > 0}
                     <div class="my-8 border border-dark-50/60 w-full"></div>
                     <div class="grid grid-cols-3 gap-4">
-                        {#each specializations as spec}
+                        {#each specializations() as spec}
                             <div class="grid gap-2">
                                 <p class="text-dark-400 uppercase text-sm">{$t('talents.specialization')}</p>
                                 <p class="text-dark-900 text-sm font-medium">{spec}</p>

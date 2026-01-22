@@ -3,9 +3,15 @@
     import TalentCard from "$lib/components/TalentCard.svelte";
     import type { PageData } from "./$types";
     import { ArrowRight, ArrowUpRight } from "lucide-svelte";
-    import { t } from "svelte-i18n";
+    import { t, locale } from "svelte-i18n";
     import { reveal } from "$lib/actions/reveal";
     let { data }: { data: PageData } = $props();
+
+    function getEventField(event: typeof data.events[0], field: 'title' | 'description' | 'subtitle'): string {
+        const enField = (field + 'En') as 'titleEn' | 'descriptionEn' | 'subtitleEn';
+        const frField = (field + 'Fr') as 'titleFr' | 'descriptionFr' | 'subtitleFr';
+        return $locale === 'en' ? (event[enField] || '') : (event[frField] || '');
+    }
 </script>
 
 <svelte:head>
@@ -72,7 +78,7 @@
                 <div>
                     <img
                         src={data.events[0].coverMedia.url}
-                        alt={data.events[0].title}
+                        alt={getEventField(data.events[0], 'title')}
                         class="w-full max-h-[25rem] md:max-h-[30rem] object-cover grayscale"
                     />
                 </div>
@@ -82,7 +88,7 @@
                             {$t("nav.upcomingEvent")}
                         </p>
                         <h2 class="text-xl md:text-2xl lg:text-3xl font-base">
-                            {data.events[0].title}
+                            {getEventField(data.events[0], 'title')}
                         </h2>
                         <p class="text-dark-500 font-base">
                             {$t("home.heroDescription")}
