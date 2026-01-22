@@ -11,11 +11,7 @@
     } as const;
 
     let { data }: { data: PageData } = $props();
-    let filters = $derived([
-        $t("events.filters.exhibitions"),
-        $t("events.filters.dining"),
-        $t("events.filters.workshops"),
-    ]);
+    let filters = $derived(data.categories || []);
 
     let viewMode: "grid" | "list" = $state(VIEW_MODE.GRID);
 
@@ -67,15 +63,18 @@
         use:reveal={{ preset: "fade-in", delay: 100 }}
     >
         <div class="flex flex-wrap items-center gap-3">
-            <p class="px-4 py-2 bg-dark-900 text-white rounded-full text-sm">
+            <button
+                class="px-4 py-2 bg-dark-900 text-white rounded-full text-sm font-medium transition-colors"
+            >
                 All
-            </p>
+            </button>
             {#each filters as filter}
-                <p
-                    class="px-4 py-2 border border-border-card rounded-full text-dark-600 text-sm whitespace-nowrap"
+                <button
+                    class="px-4 py-2 border border-border-card rounded-full text-sm whitespace-nowrap transition-colors hover:border-dark-900"
+                    style="border-color: {filter.color}; color: {filter.color}"
                 >
-                    {filter}
-                </p>
+                    {filter.displayName}
+                </button>
             {/each}
         </div>
         <div
