@@ -8,7 +8,7 @@
 </script>
 
 <div class="min-h-screen flex flex-col">
-    <Navigation user={data.user} isAdminDomain={data.isAdminDomain} />
+    <Navigation user={data.user} isAdminDomain={data.isAdminDomain} hasSpotlightEvent={data.hasSpotlightEvent} />
 
     <main class="flex-1">
         {@render children()}

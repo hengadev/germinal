@@ -10,9 +10,10 @@
     type Props = {
         user?: { role: string } | null;
         isAdminDomain?: boolean;
+        hasSpotlightEvent?: boolean;
     };
 
-    let { user = null, isAdminDomain = false }: Props = $props();
+    let { user = null, isAdminDomain = false, hasSpotlightEvent = true }: Props = $props();
 
     let scrolled = $state(false);
     let isMobileMenuOpen = $state(false);
@@ -29,7 +30,7 @@
     }
 
     const navItems = $derived([
-        { href: "/spotlight", label: $t('nav.upcomingEvent') },
+        ...(hasSpotlightEvent ? [{ href: "/spotlight", label: $t('nav.upcomingEvent') }] : []),
         { href: "/events", label: $t('nav.events') },
         { href: "/talents", label: $t('nav.talents') },
         { href: "/contact", label: $t('nav.contact') },
