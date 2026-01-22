@@ -45,7 +45,7 @@ export const MOCK_EVENTS = [
         materials: 'Live Stage, Sound Systems, Lighting',
         admissionInfo: '$45 General Admission, $120 VIP',
         published: true,
-        isSpotlight: false,
+        isSpotlight: true,
         createdAt: new Date(),
         updatedAt: new Date(),
         coverMediaId: 'mock-cover-1',
