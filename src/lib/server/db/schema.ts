@@ -40,7 +40,8 @@ export const userRoleEnum = pgEnum('user_role', ['user', 'admin']);
 export const eventCategories = pgTable('event_categories', {
     id: uuid('id').defaultRandom().primaryKey(),
     name: varchar('name', { length: 100 }).notNull().unique(),
-    displayName: varchar('display_name', { length: 100 }).notNull(),
+    displayNameEn: varchar('display_name_en', { length: 100 }).notNull(),
+    displayNameFr: varchar('display_name_fr', { length: 100 }).notNull(),
     slug: varchar('slug', { length: 100 }).notNull().unique(),
     description: text('description'),
     icon: varchar('icon', { length: 50 }),
@@ -62,7 +63,8 @@ export const eventCategories = pgTable('event_categories', {
 export const talentCategories = pgTable('talent_categories', {
     id: uuid('id').defaultRandom().primaryKey(),
     name: varchar('name', { length: 100 }).notNull().unique(),
-    displayName: varchar('display_name', { length: 100 }).notNull(),
+    displayNameEn: varchar('display_name_en', { length: 100 }).notNull(),
+    displayNameFr: varchar('display_name_fr', { length: 100 }).notNull(),
     slug: varchar('slug', { length: 100 }).notNull().unique(),
     description: text('description'),
     icon: varchar('icon', { length: 50 }),
