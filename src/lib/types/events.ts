@@ -11,7 +11,8 @@ export type EventWithMedia = Event & {
   category?: {
     id: string;
     name: string;
-    displayName: string;
+    displayNameEn: string;
+    displayNameFr: string;
     slug: string;
   } | null;
 };
