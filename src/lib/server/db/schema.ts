@@ -56,6 +56,28 @@ export const eventCategories = pgTable('event_categories', {
 }));
 
 // ============================================
+// TALENT CATEGORIES
+// ============================================
+
+export const talentCategories = pgTable('talent_categories', {
+    id: uuid('id').defaultRandom().primaryKey(),
+    name: varchar('name', { length: 100 }).notNull().unique(),
+    displayName: varchar('display_name', { length: 100 }).notNull(),
+    slug: varchar('slug', { length: 100 }).notNull().unique(),
+    description: text('description'),
+    icon: varchar('icon', { length: 50 }),
+    color: varchar('color', { length: 7 }),
+    sortOrder: integer('sort_order').default(0).notNull(),
+    published: boolean('published').default(true).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+    slugIdx: index('talent_categories_slug_idx').on(table.slug),
+    publishedIdx: index('talent_categories_published_idx').on(table.published),
+    sortOrderIdx: index('talent_categories_sort_order_idx').on(table.sortOrder),
+}));
+
+// ============================================
 // TABLES
 // ============================================
 
@@ -106,6 +128,7 @@ export const talents = pgTable('talents', {
     role: varchar('role', { length: 150 }).notNull(),
     bio: text('bio').notNull(),
     profileMediaId: uuid('profile_media_id'),
+    categoryId: uuid('category_id').references(() => talentCategories.id),
     city: varchar('city', { length: 100 }),
     country: varchar('country', { length: 100 }),
     quote: text('quote'),
@@ -119,6 +142,8 @@ export const talents = pgTable('talents', {
     nameIdx: index('talents_name_idx').on(table.firstName, table.lastName),
     // Composite index for listing published talents sorted by creation date
     publishedCreatedAtIdx: index('talents_published_created_at_idx').on(table.published, table.createdAt),
+    // Index for filtering by category
+    categoryIdx: index('talents_category_idx').on(table.categoryId),
 }));
 
 export const media = pgTable('media', {
@@ -168,6 +193,14 @@ export const talentsRelations = relations(talents, ({ many, one }) => ({
         fields: [talents.profileMediaId],
         references: [media.id],
     }),
+    category: one(talentCategories, {
+        fields: [talents.categoryId],
+        references: [talentCategories.id],
+    }),
+}));
+
+export const talentCategoriesRelations = relations(talentCategories, ({ many }) => ({
+    talents: many(talents),
 }));
 
 export const mediaRelations = relations(media, ({ one }) => ({
