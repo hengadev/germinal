@@ -5,10 +5,13 @@
 
 	let { form }: { form: ActionData } = $props();
 
-	let title = $state('');
+	let titleEn = $state('');
+	let titleFr = $state('');
 	let slug = $state('');
-	let description = $state('');
-	let subtitle = $state('');
+	let descriptionEn = $state('');
+	let descriptionFr = $state('');
+	let subtitleEn = $state('');
+	let subtitleFr = $state('');
 	let startDate = $state('');
 	let endDate = $state('');
 	let location = $state('');
@@ -20,16 +23,19 @@
 	let country = $state('');
 	let collaborators = $state<Array<{name: string, role: string}>>([]);
 	let timings = $state<Array<{label: string, time: string}>>([]);
-	let curator = $state('');
-	let materials = $state('');
-	let admissionInfo = $state('');
+	let curatorEn = $state('');
+	let curatorFr = $state('');
+	let materialsEn = $state('');
+	let materialsFr = $state('');
+	let admissionInfoEn = $state('');
+	let admissionInfoFr = $state('');
 	let published = $state(false);
 	let isSpotlight = $state(false);
 
-	// Auto-generate slug from title
+	// Auto-generate slug from English title
 	$effect(() => {
-		if (title && !slug) {
-			slug = title
+		if (titleEn && !slug) {
+			slug = titleEn
 				.toLowerCase()
 				.replace(/[^a-z0-9]+/g, '-')
 				.replace(/^-|-$/g, '');
@@ -71,10 +77,10 @@
 
 		<div class="bg-white rounded-lg border border-border-card p-6 lg:p-8">
 			<form method="POST" use:enhance class="space-y-6">
-				<!-- Title -->
+				<!-- Title (English) -->
 				<div>
-					<label for="title" class="block text-sm font-medium text-dark-700 mb-2">
-						Title <span class="text-red-500">*</span>
+					<label for="titleEn" class="block text-sm font-medium text-dark-700 mb-2">
+						Title (English) <span class="text-red-500">*</span>
 					</label>
 					<div class="relative">
 						<Type
@@ -82,12 +88,34 @@
 							class="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400"
 						/>
 						<input
-							id="title"
-							name="title"
+							id="titleEn"
+							name="titleEn"
 							type="text"
-							bind:value={title}
+							bind:value={titleEn}
 							required
 							placeholder="Summer Music Festival 2026"
+							class="w-full pl-10 pr-4 py-3 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent"
+						/>
+					</div>
+				</div>
+
+				<!-- Title (French) -->
+				<div>
+					<label for="titleFr" class="block text-sm font-medium text-dark-700 mb-2">
+						Title (French) <span class="text-red-500">*</span>
+					</label>
+					<div class="relative">
+						<Type
+							size={18}
+							class="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400"
+						/>
+						<input
+							id="titleFr"
+							name="titleFr"
+							type="text"
+							bind:value={titleFr}
+							required
+							placeholder="Festival de musique d'été 2026"
 							class="w-full pl-10 pr-4 py-3 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent"
 						/>
 					</div>
@@ -119,10 +147,10 @@
 					</p>
 				</div>
 
-				<!-- Description -->
+				<!-- Description (English) -->
 				<div>
-					<label for="description" class="block text-sm font-medium text-dark-700 mb-2">
-						Description <span class="text-red-500">*</span>
+					<label for="descriptionEn" class="block text-sm font-medium text-dark-700 mb-2">
+						Description (English) <span class="text-red-500">*</span>
 					</label>
 					<div class="relative">
 						<FileText
@@ -130,9 +158,9 @@
 							class="absolute left-3 top-3 text-dark-400"
 						/>
 						<textarea
-							id="description"
-							name="description"
-							bind:value={description}
+							id="descriptionEn"
+							name="descriptionEn"
+							bind:value={descriptionEn}
 							required
 							rows="5"
 							placeholder="Describe your event..."
@@ -141,10 +169,32 @@
 					</div>
 				</div>
 
-				<!-- Subtitle -->
+				<!-- Description (French) -->
 				<div>
-					<label for="subtitle" class="block text-sm font-medium text-dark-700 mb-2">
-						Subtitle (Optional)
+					<label for="descriptionFr" class="block text-sm font-medium text-dark-700 mb-2">
+						Description (French) <span class="text-red-500">*</span>
+					</label>
+					<div class="relative">
+						<FileText
+							size={18}
+							class="absolute left-3 top-3 text-dark-400"
+						/>
+						<textarea
+							id="descriptionFr"
+							name="descriptionFr"
+							bind:value={descriptionFr}
+							required
+							rows="5"
+							placeholder="Décrivez votre événement..."
+							class="w-full pl-10 pr-4 py-3 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent resize-none"
+						></textarea>
+					</div>
+				</div>
+
+				<!-- Subtitle (English) -->
+				<div>
+					<label for="subtitleEn" class="block text-sm font-medium text-dark-700 mb-2">
+						Subtitle (English) (Optional)
 					</label>
 					<div class="relative">
 						<FileText
@@ -152,11 +202,32 @@
 							class="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400"
 						/>
 						<input
-							id="subtitle"
-							name="subtitle"
+							id="subtitleEn"
+							name="subtitleEn"
 							type="text"
-							bind:value={subtitle}
+							bind:value={subtitleEn}
 							placeholder="A short tagline for the event..."
+							class="w-full pl-10 pr-4 py-3 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent"
+						/>
+					</div>
+				</div>
+
+				<!-- Subtitle (French) -->
+				<div>
+					<label for="subtitleFr" class="block text-sm font-medium text-dark-700 mb-2">
+						Subtitle (French) (Optional)
+					</label>
+					<div class="relative">
+						<FileText
+							size={18}
+							class="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400"
+						/>
+						<input
+							id="subtitleFr"
+							name="subtitleFr"
+							type="text"
+							bind:value={subtitleFr}
+							placeholder="Une courte phrase accrocheuse pour l'événement..."
 							class="w-full pl-10 pr-4 py-3 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent"
 						/>
 					</div>
@@ -409,43 +480,85 @@
 					<h3 class="text-sm font-medium text-dark-700">Additional Details (Optional)</h3>
 
 					<div>
-						<label for="curator" class="block text-sm font-medium text-dark-600 mb-2">
-							Curator
+						<label for="curatorEn" class="block text-sm font-medium text-dark-600 mb-2">
+							Curator (English)
 						</label>
 						<input
-							id="curator"
-							name="curator"
+							id="curatorEn"
+							name="curatorEn"
 							type="text"
-							bind:value={curator}
+							bind:value={curatorEn}
 							placeholder="e.g., John Smith"
 							class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
 						/>
 					</div>
 
 					<div>
-						<label for="materials" class="block text-sm font-medium text-dark-600 mb-2">
-							Materials
+						<label for="curatorFr" class="block text-sm font-medium text-dark-600 mb-2">
+							Curator (French)
 						</label>
 						<input
-							id="materials"
-							name="materials"
+							id="curatorFr"
+							name="curatorFr"
 							type="text"
-							bind:value={materials}
+							bind:value={curatorFr}
+							placeholder="ex: Jean Smith"
+							class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+						/>
+					</div>
+
+					<div>
+						<label for="materialsEn" class="block text-sm font-medium text-dark-600 mb-2">
+							Materials (English)
+						</label>
+						<input
+							id="materialsEn"
+							name="materialsEn"
+							type="text"
+							bind:value={materialsEn}
 							placeholder="e.g., Canvas, Wood, Digital"
 							class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
 						/>
 					</div>
 
 					<div>
-						<label for="admissionInfo" class="block text-sm font-medium text-dark-600 mb-2">
-							Admission Info
+						<label for="materialsFr" class="block text-sm font-medium text-dark-600 mb-2">
+							Materials (French)
 						</label>
 						<input
-							id="admissionInfo"
-							name="admissionInfo"
+							id="materialsFr"
+							name="materialsFr"
 							type="text"
-							bind:value={admissionInfo}
+							bind:value={materialsFr}
+							placeholder="ex: Toile, Bois, Numérique"
+							class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+						/>
+					</div>
+
+					<div>
+						<label for="admissionInfoEn" class="block text-sm font-medium text-dark-600 mb-2">
+							Admission Info (English)
+						</label>
+						<input
+							id="admissionInfoEn"
+							name="admissionInfoEn"
+							type="text"
+							bind:value={admissionInfoEn}
 							placeholder="e.g., Free, $25, Members Only"
+							class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+						/>
+					</div>
+
+					<div>
+						<label for="admissionInfoFr" class="block text-sm font-medium text-dark-600 mb-2">
+							Admission Info (French)
+						</label>
+						<input
+							id="admissionInfoFr"
+							name="admissionInfoFr"
+							type="text"
+							bind:value={admissionInfoFr}
+							placeholder="ex: Gratuit, 25$, Membres seulement"
 							class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
 						/>
 					</div>
