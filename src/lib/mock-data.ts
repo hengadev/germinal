@@ -5,7 +5,8 @@ export const MOCK_CATEGORIES = [
     {
         id: 'cat-1',
         name: 'dining',
-        displayName: 'Dining',
+        displayNameEn: 'Dining',
+        displayNameFr: 'Gastronomie',
         slug: 'dining',
         description: 'Food festivals, wine tastings, and culinary experiences',
         icon: 'utensils',
@@ -19,7 +20,8 @@ export const MOCK_CATEGORIES = [
     {
         id: 'cat-2',
         name: 'exhibition',
-        displayName: 'Exhibitions',
+        displayNameEn: 'Exhibitions',
+        displayNameFr: 'Expositions',
         slug: 'exhibitions',
         description: 'Art exhibitions, gallery shows, and cultural displays',
         icon: 'image',
@@ -33,7 +35,8 @@ export const MOCK_CATEGORIES = [
     {
         id: 'cat-3',
         name: 'workshop',
-        displayName: 'Workshops',
+        displayNameEn: 'Workshops',
+        displayNameFr: 'Ateliers',
         slug: 'workshops',
         description: 'Hands-on learning experiences and educational sessions',
         icon: 'wrench',
@@ -47,7 +50,8 @@ export const MOCK_CATEGORIES = [
     {
         id: 'cat-4',
         name: 'performance',
-        displayName: 'Performances',
+        displayNameEn: 'Performances',
+        displayNameFr: 'Performances',
         slug: 'performances',
         description: 'Live music, theater, and entertainment shows',
         icon: 'music',
@@ -61,7 +65,8 @@ export const MOCK_CATEGORIES = [
     {
         id: 'cat-5',
         name: 'sports',
-        displayName: 'Sports',
+        displayNameEn: 'Sports',
+        displayNameFr: 'Sports',
         slug: 'sports',
         description: 'Athletic events, competitions, and fitness activities',
         icon: 'trophy',
@@ -79,7 +84,8 @@ export const MOCK_TALENT_CATEGORIES = [
     {
         id: 'talent-cat-1',
         name: 'visual-arts',
-        displayName: 'Visual Arts',
+        displayNameEn: 'Visual Arts',
+        displayNameFr: 'Arts visuels',
         slug: 'visual-arts',
         description: 'Painters, sculptors, photographers, and digital artists',
         icon: 'palette',
@@ -93,7 +99,8 @@ export const MOCK_TALENT_CATEGORIES = [
     {
         id: 'talent-cat-2',
         name: 'design',
-        displayName: 'Design',
+        displayNameEn: 'Design',
+        displayNameFr: 'Design',
         slug: 'design',
         description: 'Graphic, industrial, fashion, and UX designers',
         icon: 'pen-tool',
@@ -107,7 +114,8 @@ export const MOCK_TALENT_CATEGORIES = [
     {
         id: 'talent-cat-3',
         name: 'culinary',
-        displayName: 'Culinary',
+        displayNameEn: 'Culinary',
+        displayNameFr: 'Culinaire',
         slug: 'culinary',
         description: 'Chefs, bakers, and culinary artists',
         icon: 'chef-hat',
@@ -121,7 +129,8 @@ export const MOCK_TALENT_CATEGORIES = [
     {
         id: 'talent-cat-4',
         name: 'music',
-        displayName: 'Music',
+        displayNameEn: 'Music',
+        displayNameFr: 'Musique',
         slug: 'music',
         description: 'Musicians, composers, and vocalists',
         icon: 'music',
@@ -135,7 +144,8 @@ export const MOCK_TALENT_CATEGORIES = [
     {
         id: 'talent-cat-5',
         name: 'performance',
-        displayName: 'Performance',
+        displayNameEn: 'Performance',
+        displayNameFr: 'Performance',
         slug: 'performance',
         description: 'Actors, dancers, and performing artists',
         icon: 'masks-theater',
