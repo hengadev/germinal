@@ -28,6 +28,22 @@ CREATE TABLE "event_categories" (
 	CONSTRAINT "event_categories_slug_unique" UNIQUE("slug")
 );--> statement-breakpoint
 
+CREATE TABLE "talent_categories" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"name" varchar(100) NOT NULL,
+	"display_name" varchar(100) NOT NULL,
+	"slug" varchar(100) NOT NULL,
+	"description" text,
+	"icon" varchar(50),
+	"color" varchar(7),
+	"sort_order" integer DEFAULT 0 NOT NULL,
+	"published" boolean DEFAULT true NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "talent_categories_name_unique" UNIQUE("name"),
+	CONSTRAINT "talent_categories_slug_unique" UNIQUE("slug")
+);--> statement-breakpoint
+
 CREATE TABLE "events" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"title" varchar(255) NOT NULL,
@@ -64,6 +80,7 @@ CREATE TABLE "talents" (
 	"role" varchar(150) NOT NULL,
 	"bio" text NOT NULL,
 	"profile_media_id" uuid,
+	"category_id" uuid,
 	"city" varchar(100),
 	"country" varchar(100),
 	"quote" text,
@@ -234,7 +251,11 @@ CREATE INDEX "email_queue_status_attempts_last_attempt_idx" ON "email_queue" USI
 
 CREATE INDEX "event_categories_slug_idx" ON "event_categories" USING btree ("slug");--> statement-breakpoint
 CREATE INDEX "event_categories_published_idx" ON "event_categories" USING btree ("published");--> statement-breakpoint
-CREATE INDEX "event_categories_sort_order_idx" ON "event_categories" USING btree ("sort_order");
+CREATE INDEX "event_categories_sort_order_idx" ON "event_categories" USING btree ("sort_order");--> statement-breakpoint
+
+CREATE INDEX "talent_categories_slug_idx" ON "talent_categories" USING btree ("slug");--> statement-breakpoint
+CREATE INDEX "talent_categories_published_idx" ON "talent_categories" USING btree ("published");--> statement-breakpoint
+CREATE INDEX "talent_categories_sort_order_idx" ON "talent_categories" USING btree ("sort_order");
 
 CREATE INDEX "events_slug_idx" ON "events" USING btree ("slug");--> statement-breakpoint
 CREATE INDEX "events_published_idx" ON "events" USING btree ("published");--> statement-breakpoint
@@ -272,7 +293,8 @@ CREATE INDEX "sessions_expires_at_idx" ON "sessions" USING btree ("expires_at");
 
 CREATE INDEX "talents_published_idx" ON "talents" USING btree ("published");--> statement-breakpoint
 CREATE INDEX "talents_name_idx" ON "talents" USING btree ("first_name","last_name");--> statement-breakpoint
-CREATE INDEX "talents_published_created_at_idx" ON "talents" USING btree ("published", "created_at");
+CREATE INDEX "talents_published_created_at_idx" ON "talents" USING btree ("published", "created_at");--> statement-breakpoint
+CREATE INDEX "talents_category_idx" ON "talents" USING btree ("category_id");
 
 CREATE INDEX "users_email_idx" ON "users" USING btree ("email");
 
@@ -295,6 +317,7 @@ ALTER TABLE "events" ADD CONSTRAINT "events_cover_media_id_media_id_fk" FOREIGN 
 ALTER TABLE "events" ADD CONSTRAINT "events_category_id_event_categories_id_fk" FOREIGN KEY ("category_id") REFERENCES "public"."event_categories"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 
 ALTER TABLE "talents" ADD CONSTRAINT "talents_profile_media_id_media_id_fk" FOREIGN KEY ("profile_media_id") REFERENCES "public"."media"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "talents" ADD CONSTRAINT "talents_category_id_talent_categories_id_fk" FOREIGN KEY ("category_id") REFERENCES "public"."talent_categories"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 
 ALTER TABLE "event_sessions" ADD CONSTRAINT "event_sessions_event_id_events_id_fk" FOREIGN KEY ("event_id") REFERENCES "public"."events"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 
