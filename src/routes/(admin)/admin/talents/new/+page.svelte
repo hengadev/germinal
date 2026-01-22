@@ -13,12 +13,16 @@
 
     let firstName = $state("");
     let lastName = $state("");
-    let role = $state("");
-    let bio = $state("");
+    let roleEn = $state("");
+    let roleFr = $state("");
+    let bioEn = $state("");
+    let bioFr = $state("");
     let city = $state("");
     let country = $state("");
-    let quote = $state("");
-    let specializations = $state<string[]>([]);
+    let quoteEn = $state("");
+    let quoteFr = $state("");
+    let specializationsEn = $state<string[]>([]);
+    let specializationsFr = $state<string[]>([]);
     let instagram = $state("");
     let linkedin = $state("");
     let twitter = $state("");
@@ -113,13 +117,13 @@
                     </div>
                 </div>
 
-                <!-- Role -->
+                <!-- Role (English) -->
                 <div>
                     <label
-                        for="role"
+                        for="roleEn"
                         class="block text-sm font-medium text-dark-700 mb-2"
                     >
-                        Role <span class="text-red-500">*</span>
+                        Role (English) <span class="text-red-500">*</span>
                     </label>
                     <div class="relative">
                         <Briefcase
@@ -127,10 +131,10 @@
                             class="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400"
                         />
                         <input
-                            id="role"
-                            name="role"
+                            id="roleEn"
+                            name="roleEn"
                             type="text"
-                            bind:value={role}
+                            bind:value={roleEn}
                             required
                             placeholder="Lead Vocalist & Songwriter"
                             class="w-full pl-10 pr-4 py-3 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent"
@@ -138,13 +142,38 @@
                     </div>
                 </div>
 
-                <!-- Bio -->
+                <!-- Role (French) -->
                 <div>
                     <label
-                        for="bio"
+                        for="roleFr"
                         class="block text-sm font-medium text-dark-700 mb-2"
                     >
-                        Bio <span class="text-red-500">*</span>
+                        Role (French) <span class="text-red-500">*</span>
+                    </label>
+                    <div class="relative">
+                        <Briefcase
+                            size={18}
+                            class="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400"
+                        />
+                        <input
+                            id="roleFr"
+                            name="roleFr"
+                            type="text"
+                            bind:value={roleFr}
+                            required
+                            placeholder="Chanteur principal et auteur-compositeur"
+                            class="w-full pl-10 pr-4 py-3 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent"
+                        />
+                    </div>
+                </div>
+
+                <!-- Bio (English) -->
+                <div>
+                    <label
+                        for="bioEn"
+                        class="block text-sm font-medium text-dark-700 mb-2"
+                    >
+                        Bio (English) <span class="text-red-500">*</span>
                     </label>
                     <div class="relative">
                         <FileText
@@ -152,12 +181,37 @@
                             class="absolute left-3 top-3 text-dark-400"
                         />
                         <textarea
-                            id="bio"
-                            name="bio"
-                            bind:value={bio}
+                            id="bioEn"
+                            name="bioEn"
+                            bind:value={bioEn}
                             required
                             rows="5"
                             placeholder="Tell us about this talent..."
+                            class="w-full pl-10 pr-4 py-3 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent resize-none"
+                        ></textarea>
+                    </div>
+                </div>
+
+                <!-- Bio (French) -->
+                <div>
+                    <label
+                        for="bioFr"
+                        class="block text-sm font-medium text-dark-700 mb-2"
+                    >
+                        Bio (French) <span class="text-red-500">*</span>
+                    </label>
+                    <div class="relative">
+                        <FileText
+                            size={18}
+                            class="absolute left-3 top-3 text-dark-400"
+                        />
+                        <textarea
+                            id="bioFr"
+                            name="bioFr"
+                            bind:value={bioFr}
+                            required
+                            rows="5"
+                            placeholder="Parlez-nous de ce talent..."
                             class="w-full pl-10 pr-4 py-3 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent resize-none"
                         ></textarea>
                     </div>
@@ -202,43 +256,61 @@
                     </div>
                 </div>
 
-                <!-- Quote -->
+                <!-- Quote (English) -->
                 <div>
                     <label
-                        for="quote"
+                        for="quoteEn"
                         class="block text-sm font-medium text-dark-700 mb-2"
                     >
-                        Personal Quote (Optional)
+                        Personal Quote (English) (Optional)
                     </label>
                     <textarea
-                        id="quote"
-                        name="quote"
-                        bind:value={quote}
+                        id="quoteEn"
+                        name="quoteEn"
+                        bind:value={quoteEn}
                         rows="2"
                         placeholder="A meaningful quote or tagline..."
                         class="w-full px-4 py-3 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent resize-none"
                     ></textarea>
                 </div>
 
-                <!-- Specializations -->
+                <!-- Quote (French) -->
+                <div>
+                    <label
+                        for="quoteFr"
+                        class="block text-sm font-medium text-dark-700 mb-2"
+                    >
+                        Personal Quote (French) (Optional)
+                    </label>
+                    <textarea
+                        id="quoteFr"
+                        name="quoteFr"
+                        bind:value={quoteFr}
+                        rows="2"
+                        placeholder="Une citation significative ou une phrase accrocheuse..."
+                        class="w-full px-4 py-3 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent resize-none"
+                    ></textarea>
+                </div>
+
+                <!-- Specializations (English) -->
                 <div>
                     <label class="block text-sm font-medium text-dark-700 mb-2">
-                        Specializations (Optional)
+                        Specializations (English) (Optional)
                     </label>
                     <p class="text-xs text-dark-400 mb-3">Add up to 5 specializations</p>
 
                     <div class="space-y-2">
-                        {#each specializations as spec, i}
+                        {#each specializationsEn as spec, i}
                             <div class="flex gap-2">
                                 <input
                                     type="text"
-                                    bind:value={specializations[i]}
+                                    bind:value={specializationsEn[i]}
                                     placeholder="e.g., Spatial Audio Installation"
                                     class="flex-1 px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
                                 />
                                 <button
                                     type="button"
-                                    onclick={() => specializations = specializations.filter((_, idx) => idx !== i)}
+                                    onclick={() => specializationsEn = specializationsEn.filter((_, idx) => idx !== i)}
                                     class="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                                 >
                                     Remove
@@ -246,10 +318,10 @@
                             </div>
                         {/each}
 
-                        {#if specializations.length < 5}
+                        {#if specializationsEn.length < 5}
                             <button
                                 type="button"
-                                onclick={() => specializations = [...specializations, ""]}
+                                onclick={() => specializationsEn = [...specializationsEn, ""]}
                                 class="text-sm text-dark-600 hover:text-dark-900 font-medium"
                             >
                                 + Add Specialization
@@ -257,7 +329,47 @@
                         {/if}
                     </div>
 
-                    <input type="hidden" name="specializations" value={JSON.stringify(specializations.filter(s => s.trim()))} />
+                    <input type="hidden" name="specializationsEn" value={JSON.stringify(specializationsEn.filter(s => s.trim()))} />
+                </div>
+
+                <!-- Specializations (French) -->
+                <div>
+                    <label class="block text-sm font-medium text-dark-700 mb-2">
+                        Specializations (French) (Optional)
+                    </label>
+                    <p class="text-xs text-dark-400 mb-3">Ajoutez jusqu'à 5 spécialisations</p>
+
+                    <div class="space-y-2">
+                        {#each specializationsFr as spec, i}
+                            <div class="flex gap-2">
+                                <input
+                                    type="text"
+                                    bind:value={specializationsFr[i]}
+                                    placeholder="ex: Installation audio spatiale"
+                                    class="flex-1 px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+                                />
+                                <button
+                                    type="button"
+                                    onclick={() => specializationsFr = specializationsFr.filter((_, idx) => idx !== i)}
+                                    class="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                >
+                                    Remove
+                                </button>
+                            </div>
+                        {/each}
+
+                        {#if specializationsFr.length < 5}
+                            <button
+                                type="button"
+                                onclick={() => specializationsFr = [...specializationsFr, ""]}
+                                class="text-sm text-dark-600 hover:text-dark-900 font-medium"
+                            >
+                                + Add Specialization
+                            </button>
+                        {/if}
+                    </div>
+
+                    <input type="hidden" name="specializationsFr" value={JSON.stringify(specializationsFr.filter(s => s.trim()))} />
                 </div>
 
                 <!-- Social Links -->
