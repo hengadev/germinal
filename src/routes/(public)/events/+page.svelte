@@ -2,7 +2,7 @@
     import EventCard from "$lib/components/EventCard.svelte";
     import type { PageData } from "./$types";
     import { Grid2x2, LayoutList, ArrowDown, ArrowRight, Loader2 } from "lucide-svelte";
-    import { t } from "svelte-i18n";
+    import { t, locale } from "svelte-i18n";
     import { reveal } from "$lib/actions/reveal";
 
     const VIEW_MODE = {
@@ -14,6 +14,12 @@
     let filters = $derived(data.categories || []);
 
     let viewMode: "grid" | "list" = $state(VIEW_MODE.GRID);
+    let selectedCategoryId = $state<string | null>(null);
+
+    // Helper function to get localized category display name
+    function getCategoryDisplayName(category: typeof filters[number]): string {
+        return $locale === 'en' ? category.displayNameEn : category.displayNameFr;
+    }
 
     // Pagination state
     let allEvents = $state(data.events);
@@ -21,6 +27,13 @@
     let isLoading = $state(false);
     let hasMore = $state(data.pagination?.hasNextPage ?? false);
     let error = $state<string | null>(null);
+
+    // Filtered events based on selected category
+    let filteredEvents = $derived(
+        selectedCategoryId
+            ? allEvents.filter(e => e.categoryId === selectedCategoryId)
+            : allEvents
+    );
 
     async function loadMoreEvents() {
         if (isLoading || !hasMore) return;
@@ -65,16 +78,29 @@
         >
             <div class="flex flex-wrap items-center gap-3">
                 <button
-                    class="px-4 py-2 bg-dark-900 text-white rounded-full text-sm font-medium transition-colors"
+                    onclick={() => (selectedCategoryId = null)}
+                    class="px-4 py-2 rounded-full text-sm font-medium transition-colors"
+                    class:bg-dark-900={selectedCategoryId === null}
+                    class:text-white={selectedCategoryId === null}
+                    class:bg-transparent={selectedCategoryId !== null}
+                    class:text-dark-600={selectedCategoryId !== null}
+                    class:border={selectedCategoryId !== null}
+                    class:border-border-card={selectedCategoryId !== null}
                 >
                     All
                 </button>
                 {#each filters as filter}
                     <button
-                        class="px-4 py-2 border border-border-card rounded-full text-sm whitespace-nowrap transition-colors hover:border-dark-900"
-                        style="border-color: {filter.color}; color: {filter.color}"
+                        onclick={() => (selectedCategoryId = filter.id)}
+                        class="px-4 py-2 rounded-full text-sm whitespace-nowrap transition-colors"
+                        class:bg-dark-900={selectedCategoryId === filter.id}
+                        class:text-white={selectedCategoryId === filter.id}
+                        class:bg-transparent={selectedCategoryId !== filter.id}
+                        style:border-color={selectedCategoryId !== filter.id ? filter.color : undefined}
+                        style:color={selectedCategoryId === filter.id ? undefined : filter.color}
+                        class:border={selectedCategoryId !== filter.id}
                     >
-                        {filter.displayName}
+                        {getCategoryDisplayName(filter)}
                     </button>
                 {/each}
             </div>
@@ -131,13 +157,15 @@
         </div>
     {/if}
 
-    {#if allEvents.length === 0}
-        <p class="text-gray-500">{$t("events.noEvents")}</p>
+    {#if filteredEvents.length === 0}
+        <p class="text-gray-500">
+            {selectedCategoryId ? 'No events found in this category.' : $t('events.noEvents')}
+        </p>
     {:else if viewMode === VIEW_MODE.GRID}
         <div
             class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-10 gap-x-6"
         >
-            {#each allEvents as event, index}
+            {#each filteredEvents as event, index}
                 <div
                     use:reveal={{
                         preset: "fade-up",
@@ -150,7 +178,7 @@
         </div>
     {:else}
         <div class="flex flex-col gap-6">
-            {#each allEvents as event, index}
+            {#each filteredEvents as event, index}
                 <a
                     href="/events/{event.slug}"
                     use:reveal={{
