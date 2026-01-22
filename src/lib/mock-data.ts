@@ -1,5 +1,79 @@
 // Mock data for local development - no database required!
 
+// Mock categories for events
+export const MOCK_CATEGORIES = [
+    {
+        id: 'cat-1',
+        name: 'dining',
+        displayName: 'Dining',
+        slug: 'dining',
+        description: 'Food festivals, wine tastings, and culinary experiences',
+        icon: 'utensils',
+        color: '#f97316',
+        sortOrder: 0,
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        eventCount: 1
+    },
+    {
+        id: 'cat-2',
+        name: 'exhibition',
+        displayName: 'Exhibitions',
+        slug: 'exhibitions',
+        description: 'Art exhibitions, gallery shows, and cultural displays',
+        icon: 'image',
+        color: '#8b5cf6',
+        sortOrder: 1,
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        eventCount: 2
+    },
+    {
+        id: 'cat-3',
+        name: 'workshop',
+        displayName: 'Workshops',
+        slug: 'workshops',
+        description: 'Hands-on learning experiences and educational sessions',
+        icon: 'wrench',
+        color: '#06b6d4',
+        sortOrder: 2,
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        eventCount: 1
+    },
+    {
+        id: 'cat-4',
+        name: 'performance',
+        displayName: 'Performances',
+        slug: 'performances',
+        description: 'Live music, theater, and entertainment shows',
+        icon: 'music',
+        color: '#ec4899',
+        sortOrder: 3,
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        eventCount: 1
+    },
+    {
+        id: 'cat-5',
+        name: 'sports',
+        displayName: 'Sports',
+        slug: 'sports',
+        description: 'Athletic events, competitions, and fitness activities',
+        icon: 'trophy',
+        color: '#22c55e',
+        sortOrder: 4,
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        eventCount: 1
+    }
+];
+
 // Helper to create a mock media object
 function createMockMedia(url: string, type: 'image' | 'video' = 'image') {
     return {
@@ -46,6 +120,8 @@ export const MOCK_EVENTS = [
         admissionInfo: '$45 General Admission, $120 VIP',
         published: true,
         isSpotlight: true,
+        categoryId: 'cat-4',
+        category: MOCK_CATEGORIES[3],
         createdAt: new Date(),
         updatedAt: new Date(),
         coverMediaId: 'mock-cover-1',
@@ -88,6 +164,8 @@ export const MOCK_EVENTS = [
         admissionInfo: '$299 Professional Pass, $899 All Access',
         published: true,
         isSpotlight: false,
+        categoryId: 'cat-3',
+        category: MOCK_CATEGORIES[2],
         createdAt: new Date(),
         updatedAt: new Date(),
         coverMediaId: null,
@@ -122,6 +200,8 @@ export const MOCK_EVENTS = [
         admissionInfo: 'Free (Donations Welcome)',
         published: true,
         isSpotlight: false,
+        categoryId: 'cat-2',
+        category: MOCK_CATEGORIES[1],
         createdAt: new Date(),
         updatedAt: new Date(),
         coverMediaId: null,
@@ -156,6 +236,8 @@ export const MOCK_EVENTS = [
         admissionInfo: '$85 Per Session, $150 Full Day',
         published: true,
         isSpotlight: false,
+        categoryId: 'cat-1',
+        category: MOCK_CATEGORIES[0],
         createdAt: new Date(),
         updatedAt: new Date(),
         coverMediaId: null,
@@ -191,6 +273,8 @@ export const MOCK_EVENTS = [
         admissionInfo: '$50 Registration Fee (includes t-shirt)',
         published: true,
         isSpotlight: false,
+        categoryId: 'cat-5',
+        category: MOCK_CATEGORIES[4],
         createdAt: new Date(),
         updatedAt: new Date(),
         coverMediaId: null,
@@ -224,6 +308,8 @@ export const MOCK_EVENTS = [
         admissionInfo: 'Free',
         published: true,
         isSpotlight: false,
+        categoryId: 'cat-2',
+        category: MOCK_CATEGORIES[1],
         createdAt: new Date(),
         updatedAt: new Date(),
         coverMediaId: null,
@@ -260,6 +346,8 @@ export const MOCK_EVENTS = [
         admissionInfo: '$35 General Admission, Students Free with ID',
         published: true,
         isSpotlight: false,
+        categoryId: 'cat-3',
+        category: MOCK_CATEGORIES[2],
         createdAt: new Date(),
         updatedAt: new Date(),
         coverMediaId: null,
