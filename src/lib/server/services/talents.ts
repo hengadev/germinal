@@ -1,5 +1,5 @@
 import { db } from '../db';
-import { talents, media } from '../db/schema';
+import { talents, media, talentCategories } from '../db/schema';
 import { eq, desc, or, sql } from 'drizzle-orm';
 import type { Talent, CreateTalentInput, UpdateTalentInput } from '$lib/types/talents';
 import {
@@ -25,6 +25,7 @@ export async function getAllTalents(options: { publishedOnly?: boolean; page?: n
 		offset: (page - 1) * limit,
 		with: {
 			profileMedia: true,
+			category: true,
 		},
 	});
 
@@ -40,6 +41,7 @@ export async function getTalentById(id: string) {
     where: eq(talents.id, id),
     with: {
       profileMedia: true,
+      category: true,
       media: {
         orderBy: [desc(media.createdAt)],
       },
@@ -60,6 +62,7 @@ export async function createTalent(input: CreateTalentInput) {
     role: input.role,
     bio: input.bio,
     profileMediaId: input.profileMediaId,
+    categoryId: input.categoryId,
     socialLinks: input.socialLinks,
     published: input.published ?? false,
   }).returning();
