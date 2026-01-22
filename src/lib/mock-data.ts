@@ -74,6 +74,80 @@ export const MOCK_CATEGORIES = [
     }
 ];
 
+// Mock categories for talents
+export const MOCK_TALENT_CATEGORIES = [
+    {
+        id: 'talent-cat-1',
+        name: 'visual-arts',
+        displayName: 'Visual Arts',
+        slug: 'visual-arts',
+        description: 'Painters, sculptors, photographers, and digital artists',
+        icon: 'palette',
+        color: '#8b5cf6',
+        sortOrder: 0,
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        talentCount: 1
+    },
+    {
+        id: 'talent-cat-2',
+        name: 'design',
+        displayName: 'Design',
+        slug: 'design',
+        description: 'Graphic, industrial, fashion, and UX designers',
+        icon: 'pen-tool',
+        color: '#f97316',
+        sortOrder: 1,
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        talentCount: 1
+    },
+    {
+        id: 'talent-cat-3',
+        name: 'culinary',
+        displayName: 'Culinary',
+        slug: 'culinary',
+        description: 'Chefs, bakers, and culinary artists',
+        icon: 'chef-hat',
+        color: '#ec4899',
+        sortOrder: 2,
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        talentCount: 1
+    },
+    {
+        id: 'talent-cat-4',
+        name: 'music',
+        displayName: 'Music',
+        slug: 'music',
+        description: 'Musicians, composers, and vocalists',
+        icon: 'music',
+        color: '#22c55e',
+        sortOrder: 3,
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        talentCount: 1
+    },
+    {
+        id: 'talent-cat-5',
+        name: 'performance',
+        displayName: 'Performance',
+        slug: 'performance',
+        description: 'Actors, dancers, and performing artists',
+        icon: 'masks-theater',
+        color: '#06b6d4',
+        sortOrder: 4,
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        talentCount: 1
+    }
+];
+
 // Helper to create a mock media object
 function createMockMedia(url: string, type: 'image' | 'video' = 'image') {
     return {
@@ -378,6 +452,8 @@ export const MOCK_TALENTS = [
             email: 'sarah.johnson@email.com',
         }),
         published: true,
+        categoryId: 'talent-cat-4',
+        category: MOCK_TALENT_CATEGORIES[3],
         createdAt: new Date(),
         updatedAt: new Date(),
         profileMediaId: 'mock-profile-1',
@@ -403,6 +479,8 @@ export const MOCK_TALENTS = [
             twitter: 'https://twitter.com/michaelchen',
         }),
         published: true,
+        categoryId: 'talent-cat-2',
+        category: MOCK_TALENT_CATEGORIES[1],
         createdAt: new Date(),
         updatedAt: new Date(),
         profileMediaId: null,
@@ -428,6 +506,8 @@ export const MOCK_TALENTS = [
             website: 'https://emmarodriguez.art',
         }),
         published: true,
+        categoryId: 'talent-cat-1',
+        category: MOCK_TALENT_CATEGORIES[0],
         createdAt: new Date(),
         updatedAt: new Date(),
         profileMediaId: null,
@@ -453,6 +533,8 @@ export const MOCK_TALENTS = [
             website: 'https://davidthompson.com',
         }),
         published: true,
+        categoryId: 'talent-cat-3',
+        category: MOCK_TALENT_CATEGORIES[2],
         createdAt: new Date(),
         updatedAt: new Date(),
         profileMediaId: null,
@@ -478,6 +560,8 @@ export const MOCK_TALENTS = [
             twitter: 'https://twitter.com/lisamartinez',
         }),
         published: true,
+        categoryId: 'talent-cat-5',
+        category: MOCK_TALENT_CATEGORIES[4],
         createdAt: new Date(),
         updatedAt: new Date(),
         profileMediaId: null,
