@@ -34,6 +34,28 @@ export const paymentStatusEnum = pgEnum('payment_status', [
 export const userRoleEnum = pgEnum('user_role', ['user', 'admin']);
 
 // ============================================
+// EVENT CATEGORIES
+// ============================================
+
+export const eventCategories = pgTable('event_categories', {
+    id: uuid('id').defaultRandom().primaryKey(),
+    name: varchar('name', { length: 100 }).notNull().unique(),
+    displayName: varchar('display_name', { length: 100 }).notNull(),
+    slug: varchar('slug', { length: 100 }).notNull().unique(),
+    description: text('description'),
+    icon: varchar('icon', { length: 50 }),
+    color: varchar('color', { length: 7 }),
+    sortOrder: integer('sort_order').default(0).notNull(),
+    published: boolean('published').default(true).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+    slugIdx: index('event_categories_slug_idx').on(table.slug),
+    publishedIdx: index('event_categories_published_idx').on(table.published),
+    sortOrderIdx: index('event_categories_sort_order_idx').on(table.sortOrder),
+}));
+
+// ============================================
 // TABLES
 // ============================================
 
@@ -58,6 +80,7 @@ export const events = pgTable('events', {
     materials: text('materials'),
     admissionInfo: varchar('admission_info', { length: 150 }),
     coverMediaId: uuid('cover_media_id'),
+    categoryId: uuid('category_id').references(() => eventCategories.id),
     published: boolean('published').default(false).notNull(),
     isSpotlight: boolean('is_spotlight').default(false).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
@@ -68,6 +91,8 @@ export const events = pgTable('events', {
     startDateIdx: index('events_start_date_idx').on(table.startDate),
     // Composite index for listing published events sorted by date
     publishedStartDateIdx: index('events_published_start_date_idx').on(table.published, table.startDate),
+    // Index for filtering by category
+    categoryIdx: index('events_category_idx').on(table.categoryId),
     // Partial unique index ensuring only one spotlight event exists
     spotlightIdx: unique('events_spotlight_unique_idx')
         .on(table.isSpotlight)
@@ -126,7 +151,15 @@ export const eventsRelations = relations(events, ({ many, one }) => ({
         fields: [events.coverMediaId],
         references: [media.id],
     }),
+    category: one(eventCategories, {
+        fields: [events.categoryId],
+        references: [eventCategories.id],
+    }),
     eventSessions: many(eventSessions),
+}));
+
+export const eventCategoriesRelations = relations(eventCategories, ({ many }) => ({
+    events: many(events),
 }));
 
 export const talentsRelations = relations(talents, ({ many, one }) => ({
