@@ -44,7 +44,8 @@
 
     // Form state for create
     let createName = $state("");
-    let createDisplayName = $state("");
+    let createDisplayNameEn = $state("");
+    let createDisplayNameFr = $state("");
     let createSlug = $state("");
     let createDescription = $state("");
     let createIcon = $state("");
@@ -64,7 +65,8 @@
 
     // Form state for edit
     let editName = $state("");
-    let editDisplayName = $state("");
+    let editDisplayNameEn = $state("");
+    let editDisplayNameFr = $state("");
     let editSlug = $state("");
     let editDescription = $state("");
     let editIcon = $state("");
@@ -94,7 +96,8 @@
 
     function resetCreateForm() {
         createName = "";
-        createDisplayName = "";
+        createDisplayNameEn = "";
+        createDisplayNameFr = "";
         createSlug = "";
         createDescription = "";
         createIcon = "";
@@ -111,7 +114,8 @@
     function openEditDialog(category: Category) {
         selectedCategory = category;
         editName = category.name;
-        editDisplayName = category.displayName;
+        editDisplayNameEn = category.displayNameEn;
+        editDisplayNameFr = category.displayNameFr;
         editSlug = category.slug;
         editDescription = category.description ?? "";
         editIcon = category.icon ?? "";
@@ -141,14 +145,24 @@
             placeholder="exhibition"
             class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
         />
-    {:else if fieldName === "displayName"}
+    {:else if fieldName === "displayNameEn"}
         <input
-            id="createDisplayName"
-            name="displayName"
+            id="createDisplayNameEn"
+            name="displayNameEn"
             type="text"
-            bind:value={createDisplayName}
+            bind:value={createDisplayNameEn}
             required
             placeholder="Exhibitions"
+            class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+        />
+    {:else if fieldName === "displayNameFr"}
+        <input
+            id="createDisplayNameFr"
+            name="displayNameFr"
+            type="text"
+            bind:value={createDisplayNameFr}
+            required
+            placeholder="Expositions"
             class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
         />
     {:else if fieldName === "slug"}
@@ -220,14 +234,24 @@
             placeholder="exhibition"
             class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
         />
-    {:else if fieldName === "displayName"}
+    {:else if fieldName === "displayNameEn"}
         <input
-            id="editDisplayName"
-            name="displayName"
+            id="editDisplayNameEn"
+            name="displayNameEn"
             type="text"
-            bind:value={editDisplayName}
+            bind:value={editDisplayNameEn}
             required
             placeholder="Exhibitions"
+            class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+        />
+    {:else if fieldName === "displayNameFr"}
+        <input
+            id="editDisplayNameFr"
+            name="displayNameFr"
+            type="text"
+            bind:value={editDisplayNameFr}
+            required
+            placeholder="Expositions"
             class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
         />
     {:else if fieldName === "slug"}
@@ -405,7 +429,7 @@
                                             class="w-10 h-10 rounded-lg flex items-center justify-center text-white text-sm font-medium"
                                             style="background-color: {category.color}"
                                         >
-                                            {category.displayName.charAt(0).toUpperCase()}
+                                            {category.displayNameEn.charAt(0).toUpperCase()}
                                         </div>
                                     {:else}
                                         <div
@@ -416,7 +440,8 @@
                                     {/if}
                                     <div>
                                         <div class="font-medium text-dark-900">
-                                            {category.displayName}
+                                            {category.displayNameEn}
+                                            <span class="text-dark-400 font-normal"> / {category.displayNameFr}</span>
                                         </div>
                                         <div class="text-sm text-dark-400">
                                             {category.slug}
@@ -509,7 +534,8 @@
         >
             <div class="grid grid-cols-1 gap-4 w-full">
                 {@render field("name", "Name", createInput, null)}
-                {@render field("displayName", "Display Name", createInput, null)}
+                {@render field("displayNameEn", "Display Name (English)", createInput, null)}
+                {@render field("displayNameFr", "Display Name (French)", createInput, null)}
                 {@render field("slug", "Slug", createInput, null)}
                 {@render field("description", "Description (optional)", createInput, null)}
                 {@render field("icon", "Icon (Lucide name, optional)", createInput, null)}
@@ -571,7 +597,10 @@
                     {@render field("name", "Name", createInput, null)}
                 </div>
                 <div class="col-span-2">
-                    {@render field("displayName", "Display Name", createInput, null)}
+                    {@render field("displayNameEn", "Display Name (English)", createInput, null)}
+                </div>
+                <div class="col-span-2">
+                    {@render field("displayNameFr", "Display Name (French)", createInput, null)}
                 </div>
                 <div class="col-span-2">
                     {@render field("slug", "Slug", createInput, null)}
@@ -659,7 +688,8 @@
 
             <div class="grid grid-cols-1 gap-4 w-full">
                 {@render field("name", "Name", editInput, null)}
-                {@render field("displayName", "Display Name", editInput, null)}
+                {@render field("displayNameEn", "Display Name (English)", editInput, null)}
+                {@render field("displayNameFr", "Display Name (French)", editInput, null)}
                 {@render field("slug", "Slug", editInput, null)}
                 {@render field("description", "Description (optional)", editInput, null)}
                 {@render field("icon", "Icon (optional)", editInput, null)}
@@ -723,7 +753,10 @@
                     {@render field("name", "Name", editInput, null)}
                 </div>
                 <div class="col-span-2">
-                    {@render field("displayName", "Display Name", editInput, null)}
+                    {@render field("displayNameEn", "Display Name (English)", editInput, null)}
+                </div>
+                <div class="col-span-2">
+                    {@render field("displayNameFr", "Display Name (French)", editInput, null)}
                 </div>
                 <div class="col-span-2">
                     {@render field("slug", "Slug", editInput, null)}
@@ -801,7 +834,7 @@
                 </button>
             </div>
             <p class="text-dark-400 text-sm">
-                Are you sure you want to delete "{selectedCategory?.displayName}"? This
+                Are you sure you want to delete "{selectedCategory?.displayNameEn}"? This
                 action cannot be undone.
             </p>
         </div>
@@ -832,7 +865,7 @@
     <Modal
         bind:isOpen={deleteDialogOpen}
         title="Delete Category"
-        description="Are you sure you want to delete '{selectedCategory?.displayName}'? This action cannot be undone."
+        description="Are you sure you want to delete '{selectedCategory?.displayNameEn}'? This action cannot be undone."
     >
         <form method="POST" action="?/deleteCategory" use:enhance class="mt-6">
             <input type="hidden" name="id" value={selectedCategory?.id} />
