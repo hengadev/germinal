@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Calendar, Users, ArrowRight } from 'lucide-svelte'; 
+	import { Calendar, Users, ArrowRight, BarChart3 } from 'lucide-svelte';
     import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -49,6 +49,23 @@
 			<p class="text-dark-400 text-sm mb-4">Add a new talent to the collection</p>
 			<div class="flex items-center gap-2 text-dark-600 text-sm font-medium group-hover:text-dark-900">
 				<span>Add Talent</span>
+				<ArrowRight size={16} class="group-hover:translate-x-1 transition-transform" />
+			</div>
+		</a>
+
+		<a
+			href="/admin/analytics"
+			class="group bg-white rounded-lg border border-border-card p-6 hover:shadow-md hover:border-dark-200 transition-all"
+		>
+			<div class="flex items-center gap-4 mb-4">
+				<div class="p-3 bg-dark-100 rounded-lg">
+					<BarChart3 size={24} class="text-dark-700" />
+				</div>
+				<h3 class="text-lg font-semibold">Analytics</h3>
+			</div>
+			<p class="text-dark-400 text-sm mb-4">View payment and revenue analytics</p>
+			<div class="flex items-center gap-2 text-dark-600 text-sm font-medium group-hover:text-dark-900">
+				<span>View Analytics</span>
 				<ArrowRight size={16} class="group-hover:translate-x-1 transition-transform" />
 			</div>
 		</a>
