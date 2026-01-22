@@ -29,7 +29,7 @@
     }
 
     const navItems = $derived([
-        { href: "/upcoming", label: $t('nav.upcomingEvent') },
+        { href: "/spotlight", label: $t('nav.upcomingEvent') },
         { href: "/events", label: $t('nav.events') },
         { href: "/talents", label: $t('nav.talents') },
         { href: "/contact", label: $t('nav.contact') },
