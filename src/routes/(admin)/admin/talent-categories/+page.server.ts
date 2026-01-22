@@ -29,7 +29,8 @@ export const actions: Actions = {
 	createCategory: async ({ request }) => {
 		const formData = await request.formData();
 		const name = formData.get('name');
-		const displayName = formData.get('displayName');
+		const displayNameEn = formData.get('displayNameEn');
+		const displayNameFr = formData.get('displayNameFr');
 		const slug = formData.get('slug');
 		const description = formData.get('description');
 		const icon = formData.get('icon');
@@ -42,8 +43,12 @@ export const actions: Actions = {
 			return fail(400, { error: 'Name is required' });
 		}
 
-		if (!displayName || typeof displayName !== 'string') {
-			return fail(400, { error: 'Display name is required' });
+		if (!displayNameEn || typeof displayNameEn !== 'string') {
+			return fail(400, { error: 'Display name (English) is required' });
+		}
+
+		if (!displayNameFr || typeof displayNameFr !== 'string') {
+			return fail(400, { error: 'Display name (French) is required' });
 		}
 
 		if (!slug || typeof slug !== 'string') {
@@ -60,7 +65,8 @@ export const actions: Actions = {
 			const newCategory = {
 				id: String(MOCK_TALENT_CATEGORIES.length + 1),
 				name,
-				displayName,
+				displayNameEn,
+				displayNameFr,
 				slug,
 				description: description || null,
 				icon: icon || null,
@@ -74,7 +80,7 @@ export const actions: Actions = {
 
 			MOCK_TALENT_CATEGORIES.push(newCategory);
 
-			return { success: `Category "${displayName}" created successfully` };
+			return { success: `Category "${displayNameEn}" created successfully` };
 		}
 
 		// Database mode - use actual database functions
@@ -83,7 +89,8 @@ export const actions: Actions = {
 		try {
 			await createTalentCategory({
 				name,
-				displayName,
+				displayNameEn,
+				displayNameFr,
 				slug,
 				description: description || null,
 				icon: icon || null,
@@ -92,7 +99,7 @@ export const actions: Actions = {
 				published
 			});
 
-			return { success: `Category "${displayName}" created successfully` };
+			return { success: `Category "${displayNameEn}" created successfully` };
 		} catch (error) {
 			logger.error('Error creating talent category:', error);
 			return fail(500, { error: 'Failed to create category. The slug may already be in use.' });
@@ -106,7 +113,8 @@ export const actions: Actions = {
 		const formData = await request.formData();
 		const id = formData.get('id');
 		const name = formData.get('name');
-		const displayName = formData.get('displayName');
+		const displayNameEn = formData.get('displayNameEn');
+		const displayNameFr = formData.get('displayNameFr');
 		const slug = formData.get('slug');
 		const description = formData.get('description');
 		const icon = formData.get('icon');
@@ -124,8 +132,12 @@ export const actions: Actions = {
 			return fail(400, { error: 'Name is required' });
 		}
 
-		if (!displayName || typeof displayName !== 'string') {
-			return fail(400, { error: 'Display name is required' });
+		if (!displayNameEn || typeof displayNameEn !== 'string') {
+			return fail(400, { error: 'Display name (English) is required' });
+		}
+
+		if (!displayNameFr || typeof displayNameFr !== 'string') {
+			return fail(400, { error: 'Display name (French) is required' });
 		}
 
 		if (!slug || typeof slug !== 'string') {
@@ -148,7 +160,8 @@ export const actions: Actions = {
 			MOCK_TALENT_CATEGORIES[categoryIndex] = {
 				...MOCK_TALENT_CATEGORIES[categoryIndex],
 				name,
-				displayName,
+				displayNameEn,
+				displayNameFr,
 				slug,
 				description: description || null,
 				icon: icon || null,
@@ -158,7 +171,7 @@ export const actions: Actions = {
 				updatedAt: new Date()
 			};
 
-			return { success: `Category "${displayName}" updated successfully` };
+			return { success: `Category "${displayNameEn}" updated successfully` };
 		}
 
 		// Database mode - use actual database functions
@@ -167,7 +180,8 @@ export const actions: Actions = {
 		try {
 			await updateTalentCategory(id, {
 				name,
-				displayName,
+				displayNameEn,
+				displayNameFr,
 				slug,
 				description: description || null,
 				icon: icon || null,
@@ -176,7 +190,7 @@ export const actions: Actions = {
 				published
 			});
 
-			return { success: `Category "${displayName}" updated successfully` };
+			return { success: `Category "${displayNameEn}" updated successfully` };
 		} catch (error) {
 			logger.error('Error updating talent category:', error);
 			return fail(500, { error: 'Failed to update category' });
@@ -211,7 +225,7 @@ export const actions: Actions = {
 
 			MOCK_TALENT_CATEGORIES.splice(categoryIndex, 1);
 
-			return { success: `Category "${category.displayName}" deleted successfully` };
+			return { success: `Category "${category.displayNameEn}" deleted successfully` };
 		}
 
 		// Database mode - use actual database functions
