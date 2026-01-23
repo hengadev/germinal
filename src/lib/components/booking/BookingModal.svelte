@@ -7,6 +7,8 @@
 	import { goto } from '$app/navigation';
 	import { formatCurrency } from '$lib/utils/currency';
 
+	type NotificationPreference = 'email' | 'sms' | 'both';
+
 	interface Session {
 		id: string;
 		title: string;
@@ -34,6 +36,7 @@
 	let email = $state('');
 	let phone = $state('');
 	let quantity = $state(1);
+	let notificationPreference = $state<NotificationPreference>('both');
 	let isSubmitting = $state(false);
 	let error = $state<string | null>(null);
 
@@ -90,6 +93,7 @@
 					name: name.trim(),
 					phone: phone.trim() || undefined,
 					quantity,
+					notificationPreference,
 					honeypot: '' // Anti-spam field
 				})
 			});
@@ -216,6 +220,52 @@
 					class="w-full pl-10 pr-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm disabled:bg-dark-50 disabled:cursor-not-allowed"
 				/>
 			</div>
+		</div>
+
+		<!-- Notification Preference -->
+		<div>
+			<label class="block text-sm font-medium text-dark-700 mb-2">
+				How would you like to receive notifications?
+			</label>
+			<div class="grid grid-cols-3 gap-2">
+				<button
+					type="button"
+					onclick={() => notificationPreference = 'email'}
+					class="px-3 py-2 text-sm border rounded-lg transition-colors {
+						notificationPreference === 'email'
+							? 'bg-dark-900 text-white border-dark-900'
+							: 'border-border-dark text-dark-700 hover:bg-dark-50'
+					}"
+					disabled={isSubmitting}
+				>
+					Email
+				</button>
+				<button
+					type="button"
+					onclick={() => notificationPreference = 'sms'}
+					class="px-3 py-2 text-sm border rounded-lg transition-colors {
+						notificationPreference === 'sms'
+							? 'bg-dark-900 text-white border-dark-900'
+							: 'border-border-dark text-dark-700 hover:bg-dark-50'
+					}"
+					disabled={isSubmitting}
+				>
+					SMS
+				</button>
+				<button
+					type="button"
+					onclick={() => notificationPreference = 'both'}
+					class="px-3 py-2 text-sm border rounded-lg transition-colors {
+						notificationPreference === 'both'
+							? 'bg-dark-900 text-white border-dark-900'
+							: 'border-border-dark text-dark-700 hover:bg-dark-50'
+					}"
+					disabled={isSubmitting}
+				>
+					Both
+				</button>
+			</div>
+			<p class="text-xs text-dark-500 mt-1">Receive booking confirmations and event reminders</p>
 		</div>
 
 		<!-- Quantity Field -->
