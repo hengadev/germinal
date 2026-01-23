@@ -1,0 +1,22 @@
+# Terraform Variables Example
+# Copy this file to terraform.tfvars and update with your values
+
+# AWS region for resources
+aws_region = "eu-central-1"
+
+# Project name (used for resource naming)
+project_name = "germinal"
+
+# Deployment environment
+environment = "development"
+
+# Allowed CORS origins for S3 uploads
+# Add your production domain here when ready
+allowed_origins = [
+  "http://localhost:5173",
+  "http://localhost:4100",
+  "https://your-domain.com",
+]
+
+# Set to false after initial backend setup
+create_backend_resources = true
