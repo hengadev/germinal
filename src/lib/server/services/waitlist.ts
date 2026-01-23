@@ -16,6 +16,7 @@ export async function joinWaitlist(input: {
 	name: string;
 	phone?: string;
 	quantity: number;
+	notificationPreference?: 'email' | 'sms' | 'both';
 }) {
 	const session = await getSessionById(input.sessionId);
 
@@ -44,6 +45,7 @@ export async function joinWaitlist(input: {
 		email: input.email,
 		name: input.name,
 		phone: input.phone ?? null,
+		notificationPreference: input.notificationPreference ?? 'both',
 		quantity: input.quantity,
 		expiresAt,
 	}).returning();
@@ -103,9 +105,9 @@ export async function notifyWaitlist(sessionId: string, availableCapacity: numbe
 				))
 				.returning();
 
-			// Only send email if we successfully marked it as notified
+			// Only send notification if we successfully marked it as notified
 			if (updated) {
-				await sendWaitlistNotificationEmail(entry, session);
+				await sendWaitlistNotification(entry, session);
 				notifiedCount++;
 			}
 		} catch (error) {
@@ -220,4 +222,32 @@ async function sendWaitlistNotificationEmail(
 			sessionId: session.id,
 		},
 	});
+}
+
+/**
+ * Send waitlist notification (both email and SMS based on preference)
+ */
+async function sendWaitlistNotification(
+	entry: typeof waitlist.$inferSelect & { eventSession: typeof eventSessions.$inferSelect & { event: { slug: string } | null } },
+	session: typeof eventSessions.$inferSelect & { event: { slug: string } | null }
+) {
+	// Send email if user prefers email or both
+	if (entry.notificationPreference !== 'sms') {
+		await sendWaitlistNotificationEmail(entry, session);
+	}
+
+	// Send SMS if user prefers SMS or both, and has a phone number
+	if (entry.phone && entry.notificationPreference !== 'email') {
+		try {
+			const { sendWaitlistNotificationSMS } = await import('./sms');
+			await sendWaitlistNotificationSMS({
+				phone: entry.phone,
+				name: entry.name,
+				eventTitle: session.title,
+			});
+		} catch (error) {
+			logger.error('Failed to send waitlist notification SMS:', error);
+			// Don't throw - email might have been sent
+		}
+	}
 }
