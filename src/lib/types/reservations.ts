@@ -9,6 +9,7 @@ export type CreateReservationInput = {
 	name: string;
 	phone?: string;
 	quantity: number;
+	notificationPreference?: 'email' | 'sms' | 'both';
 	honeypot?: string;
 	ipAddress?: string | null;
 	userAgent?: string | null;

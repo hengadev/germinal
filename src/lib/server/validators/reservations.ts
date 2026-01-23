@@ -15,12 +15,13 @@ export const createReservationSchema = z.object({
 		.regex(/^\+?[0-9\s\-()]+$/, 'Invalid phone number format')
 		.max(50, 'Phone number is too long')
 		.optional()
-		.transform(v => v ?? null),
+		.transform(v => v?.trim() ? v : null),
 	quantity: z.number()
 		.int('Quantity must be a whole number')
 		.min(1, 'Quantity must be at least 1')
 		.max(config.reservations.maxTicketsPerReservation,
 			`Maximum ${config.reservations.maxTicketsPerReservation} tickets per reservation`),
+	notificationPreference: z.enum(['email', 'sms', 'both']).default('both'),
 	// Honeypot for spam protection
 	honeypot: z.string().optional(),
 }).refine(data => !data.honeypot || data.honeypot.trim() === '', {

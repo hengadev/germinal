@@ -79,6 +79,7 @@ export async function createReservation(input: CreateReservationInput) {
 			guestEmail: input.email,
 			guestName: input.name,
 			guestPhone: input.phone ?? null,
+			notificationPreference: input.notificationPreference ?? 'both',
 			quantity: input.quantity,
 			totalAmount,
 			currency: session.currency,

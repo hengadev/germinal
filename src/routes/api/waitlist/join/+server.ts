@@ -11,7 +11,8 @@ const joinWaitlistSchema = z.object({
 	email: z.string().email().toLowerCase(),
 	name: z.string().min(1).max(255),
 	phone: z.string().optional(),
-	quantity: z.number().int().min(1).max(10)
+	quantity: z.number().int().min(1).max(10),
+	notificationPreference: z.enum(['email', 'sms', 'both']).default('both')
 });
 
 export const POST: RequestHandler = async ({ request, getClientAddress, locals }) => {
