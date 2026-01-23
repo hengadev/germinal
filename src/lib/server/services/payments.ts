@@ -69,6 +69,23 @@ export async function handlePaymentSuccess(paymentIntent: Stripe.PaymentIntent) 
 		logger.error('Failed to send ticket confirmation email:', error);
 		// Don't throw - payment is still successful
 	}
+
+	// Send SMS confirmation if user opted in and has phone number
+	if (payment.reservation.guestPhone && payment.reservation.notificationPreference !== 'email') {
+		try {
+			const { sendTicketConfirmationSMS } = await import('./sms');
+			await sendTicketConfirmationSMS({
+				phone: payment.reservation.guestPhone,
+				guestName: payment.reservation.guestName,
+				eventTitle: payment.reservation.eventSession.event.title,
+				sessionStartTime: payment.reservation.eventSession.startTime,
+				accessToken: payment.reservation.accessToken,
+			});
+		} catch (error) {
+			logger.error('Failed to send ticket confirmation SMS:', error);
+			// Don't throw - email was already sent
+		}
+	}
 }
 
 /**
