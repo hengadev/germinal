@@ -130,11 +130,31 @@
 			confirmParams: {
 				return_url: `${window.location.origin}/tickets/${reservationData.accessToken}?success=true`,
 			},
+			redirect: 'if_required'
 		});
 
 		if (submitError) {
-			error = submitError.message || 'Payment failed';
+			// Handle different error types
+			const errorMessage = getErrorMessage(submitError.type, submitError.message);
+			error = errorMessage;
 			isProcessing = false;
+		}
+	}
+
+	function getErrorMessage(errorType: string, defaultMessage: string): string {
+		switch (errorType) {
+			case 'card_error':
+				return 'Your card was declined. Please try a different payment method.';
+			case 'invalid_request_error':
+				return 'Invalid payment information. Please check your details.';
+			case 'api_error':
+				return 'Payment service error. Please try again.';
+			case 'authentication_error':
+				return 'Authentication failed. Please try again.';
+			case 'rate_limit_error':
+				return 'Too many attempts. Please wait and try again later.';
+			default:
+				return defaultMessage || 'Payment failed. Please try again.';
 		}
 	}
 </script>

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Download, CheckCircle2, Clock, MapPin, Calendar, User, Mail, Ticket, CreditCard } from 'lucide-svelte';
+	import { Download, CheckCircle2, Clock, MapPin, Calendar, User, Mail, Ticket, CreditCard, AlertCircle, X } from 'lucide-svelte';
 	import type { PageData } from './$types';
 	import { formatCurrency } from '$lib/utils/currency';
 	import { page } from '$app/stores';
@@ -8,6 +8,14 @@
 	let { data }: { data: PageData } = $props();
 
 	const showSuccess = $page.url.searchParams.get('success') === 'true';
+	const paymentFailed = $page.url.searchParams.get('payment_failed') === 'true';
+	const paymentErrorMessage = $page.url.searchParams.get('error') || 'Your payment could not be processed. Please try again.';
+
+	let showPaymentFailure = $state(paymentFailed && data.reservation.status === 'expired');
+
+	function dismissFailure() {
+		showPaymentFailure = false;
+	}
 
 	function formatDateTime(dateString: string): string {
 		const date = new Date(dateString);
@@ -100,6 +108,39 @@ END:VCALENDAR`;
 					<p class="text-green-700">
 						Your tickets have been confirmed. A confirmation email has been sent to {data.reservation.guestEmail}.
 					</p>
+				</div>
+			</div>
+		{/if}
+
+		<!-- Payment Failure Banner -->
+		{#if showPaymentFailure}
+			<div class="bg-red-50 border border-red-200 rounded-lg p-6 mb-8 print:hidden" use:reveal={{ preset: 'fade-down' }}>
+				<div class="flex items-start gap-4">
+					<AlertCircle size={32} class="text-red-600 flex-shrink-0 mt-0.5" />
+					<div class="flex-1">
+						<h2 class="text-xl font-bold text-red-900 mb-1">Payment Failed</h2>
+						<p class="text-red-700 mb-4">{paymentErrorMessage}</p>
+						<div class="flex items-center gap-3">
+							<a
+								href="/events"
+								class="inline-flex items-center gap-2 px-4 py-2 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors font-medium text-sm"
+							>
+								Browse Other Events
+							</a>
+							<button
+								onclick={dismissFailure}
+								class="text-dark-600 hover:text-dark-900 font-medium text-sm"
+							>
+								Dismiss
+							</button>
+						</div>
+					</div>
+					<button
+						onclick={dismissFailure}
+						class="text-red-400 hover:text-red-600"
+					>
+						<X size={20} />
+					</button>
 				</div>
 			</div>
 		{/if}
