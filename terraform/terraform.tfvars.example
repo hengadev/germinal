@@ -44,3 +44,27 @@ ssh_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC... your_email@example.
 
 # Enable automatic backups (additional 20% of server price)
 enable_backups = true
+
+# ============================================
+# Cloudflare DNS Configuration
+# ============================================
+
+# Cloudflare API token
+# Create at: https://dash.cloudflare.com/profile/api-tokens
+# Required permissions: Zone - DNS - Edit
+cloudflare_token = "your_cloudflare_api_token_here"
+
+# Cloudflare Zone ID for your domain
+# Found in the Cloudflare dashboard: Domain -> Overview -> scroll down to "API" section
+cloudflare_zone_id = "your_zone_id_here"
+
+# Your domain name
+domain_name = "example.com"
+
+# Contact email for DMARC reports (usually your email or admin email)
+contact_email = "admin@example.com"
+
+# Google Site Verification (optional)
+# Get from Google Search Console if you need to verify your domain
+# Leave empty if not needed
+google_site_verification = ""

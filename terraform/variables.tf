@@ -86,3 +86,34 @@ variable "enable_backups" {
   type        = bool
   default     = true
 }
+
+# ============================================
+# Cloudflare DNS Variables
+# ============================================
+
+variable "cloudflare_token" {
+  description = "Cloudflare API token with Zone:Edit permissions"
+  type        = string
+  sensitive   = true
+}
+
+variable "cloudflare_zone_id" {
+  description = "Cloudflare zone ID for your domain"
+  type        = string
+}
+
+variable "domain_name" {
+  description = "Primary domain name (e.g., example.com)"
+  type        = string
+}
+
+variable "contact_email" {
+  description = "Contact email for DMARC reports and domain notifications"
+  type        = string
+}
+
+variable "google_site_verification" {
+  description = "Google site verification token (optional, leave empty if not needed)"
+  type        = string
+  default     = ""
+}

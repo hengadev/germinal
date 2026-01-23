@@ -126,3 +126,77 @@ output "server_deployment_guide" {
     EOT
   description = "Deployment guide for the VPS"
 }
+
+# ============================================
+# Cloudflare DNS Outputs
+# ============================================
+
+output "domain_name" {
+  value       = var.domain_name
+  description = "Primary domain name"
+}
+
+output "app_url" {
+  value       = "https://${var.domain_name}"
+  description = "Full URL to access the application"
+}
+
+output "www_url" {
+  value       = "https://www.${var.domain_name}"
+  description = "WWW URL for the application"
+}
+
+output "dns_records" {
+  value = {
+    main_a = {
+      name    = cloudflare_dns_record.main_a.name
+      type    = cloudflare_dns_record.main_a.type
+      content = cloudflare_dns_record.main_a.content
+      proxied = cloudflare_dns_record.main_a.proxied
+    }
+    www = {
+      name    = cloudflare_dns_record.www.name
+      type    = cloudflare_dns_record.www.type
+      content = cloudflare_dns_record.www.content
+      proxied = cloudflare_dns_record.www.proxied
+    }
+  }
+  description = "Key DNS records for the application"
+}
+
+output "email_setup_status" {
+  value = <<-EOT
+    ========================================
+    Email DNS Configuration (Google Workspace)
+    ========================================
+
+    Domain: ${var.domain_name}
+
+    MX Records (configured):
+      1. ASPMX.L.GOOGLE.COM (priority 1)
+      2. ALT1.ASPMX.L.GOOGLE.COM (priority 5)
+      3. ALT2.ASPMX.L.GOOGLE.COM (priority 5)
+      4. ALT3.ASPMX.L.GOOGLE.COM (priority 10)
+      5. ALT4.ASPMX.L.GOOGLE.COM (priority 10)
+
+    SPF Record: v=spf1 include:_spf.google.com ~all
+    DMARC Record: v=DMARC1; p=none; rua=mailto:${var.contact_email}
+
+    Next steps:
+      1. Verify domain in Google Workspace Admin Console
+      2. Add users in Google Workspace
+      3. Test email delivery
+
+    ========================================
+    EOT
+  description = "Email configuration status and instructions"
+}
+
+output "cloudflare_zone_info" {
+  value = {
+    zone_id = var.cloudflare_zone_id
+    domain  = var.domain_name
+    url     = "https://dash.cloudflare.com/${var.cloudflare_zone_id}/${var.domain_name}/dns"
+  }
+  description = "Cloudflare zone information"
+}
