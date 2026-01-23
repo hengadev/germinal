@@ -18,6 +18,10 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
+    hcloud = {
+      source  = "hetznercloud/hcloud"
+      version = "~> 1.45"
+    }
   }
 
   required_version = ">= 1.0"
@@ -26,4 +30,9 @@ terraform {
 # AWS Provider
 provider "aws" {
   region = var.aws_region
+}
+
+# Hetzner Cloud Provider
+provider "hcloud" {
+  token = var.hcloud_token
 }

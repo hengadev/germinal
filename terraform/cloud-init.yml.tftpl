@@ -1,0 +1,63 @@
+#cloud-config
+# Cloud-init configuration for Germinal VPS
+
+package_update: true
+package_upgrade: true
+
+packages:
+  - curl
+  - git
+  - ufw
+  - fail2ban
+  - ca-certificates
+  - gnupg
+  - lsb-release
+
+# Create docker user
+users:
+  - name: docker
+    groups: sudo, docker
+    shell: /bin/bash
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    ssh_authorized_keys:
+      - ${ssh_public_key}
+
+# Configure firewall
+runcmd:
+  # Setup UFW firewall
+  - ufw default deny incoming
+  - ufw default allow outgoing
+  - ufw allow ssh
+  - ufw allow 80/tcp
+  - ufw allow 443/tcp
+  - ufw allow 4100/tcp
+  - ufw --force enable
+
+  # Install Docker
+  - install -m 0755 -d /etc/apt/keyrings
+  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+  - chmod a+r /etc/apt/keyrings/docker.gpg
+  - echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+  - apt-get update
+  - apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+  # Install Docker Compose standalone (if needed)
+  - curl -SL https://github.com/docker/compose/releases/download/v${docker_compose_version}/docker-compose-linux-x86_64 -o /usr/local/bin/docker-compose
+  - chmod +x /usr/local/bin/docker-compose
+
+  # Create project directory
+  - mkdir -p /opt/${project_name}
+  - chown -R docker:docker /opt/${project_name}
+
+  # Configure fail2ban for SSH
+  - echo '[sshd]' > /etc/fail2ban/jail.local
+  - echo 'enabled = true' >> /etc/fail2ban/jail.local
+  - echo 'port = ssh' >> /etc/fail2ban/jail.local
+  - echo 'filter = sshd' >> /etc/fail2ban/jail.local
+  - echo 'logpath = /var/log/auth.log' >> /etc/fail2ban/jail.local
+  - echo 'maxretry = 5' >> /etc/fail2ban/jail.local
+  - systemctl enable fail2ban
+  - systemctl start fail2ban
+
+# Write final message
+final_message: "Germinal VPS setup complete. The system is now ready for deployment."
