@@ -67,6 +67,7 @@
 		"svelte-i18n": "^4.0.1",
 		"tailwind-merge": "^3.4.0",
 		"tailwind-variants": "^3.2.2",
+		"twilio": "^5.12.0",
 		"zod": "^4.3.5"
 	}
 }
