@@ -33,6 +33,12 @@ export const paymentStatusEnum = pgEnum('payment_status', [
 
 export const userRoleEnum = pgEnum('user_role', ['user', 'admin']);
 
+export const notificationPreferenceEnum = pgEnum('notification_preference', [
+    'email',
+    'sms',
+    'both'
+]);
+
 // ============================================
 // EVENT CATEGORIES
 // ============================================
@@ -123,10 +129,7 @@ export const events = pgTable('events', {
     publishedStartDateIdx: index('events_published_start_date_idx').on(table.published, table.startDate),
     // Index for filtering by category
     categoryIdx: index('events_category_idx').on(table.categoryId),
-    // Partial unique index ensuring only one spotlight event exists
-    spotlightIdx: unique('events_spotlight_unique_idx')
-        .on(table.isSpotlight)
-        .where(sql`is_spotlight = true`),
+    spotlightIdx: index('events_spotlight_idx').on(table.isSpotlight),
 }));
 
 export const talents = pgTable('talents', {
@@ -328,6 +331,7 @@ export const waitlist = pgTable('waitlist', {
     email: varchar('email', { length: 255 }).notNull(),
     name: varchar('name', { length: 255 }).notNull(),
     phone: varchar('phone', { length: 50 }),
+    notificationPreference: notificationPreferenceEnum('notification_preference').notNull().default('both'),
     quantity: integer('quantity').notNull().default(1),
     notified: boolean('notified').default(false).notNull(),
     notifiedAt: timestamp('notified_at', { withTimezone: true }),
@@ -391,6 +395,7 @@ export const reservations = pgTable('reservations', {
     guestEmail: varchar('guest_email', { length: 255 }).notNull(),
     guestName: varchar('guest_name', { length: 255 }).notNull(),
     guestPhone: varchar('guest_phone', { length: 50 }),
+    notificationPreference: notificationPreferenceEnum('notification_preference').notNull().default('both'),
     userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
     quantity: integer('quantity').notNull().default(1),
     totalAmount: integer('total_amount').notNull(),
@@ -402,6 +407,8 @@ export const reservations = pgTable('reservations', {
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
     confirmedAt: timestamp('confirmed_at', { withTimezone: true }),
     cancelledAt: timestamp('cancelled_at', { withTimezone: true }),
+    reminderSent1Week: boolean('reminder_sent_1_week').default(false).notNull(),
+    reminderSent1Day: boolean('reminder_sent_1_day').default(false).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => ({
