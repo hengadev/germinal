@@ -2,7 +2,8 @@
 # Usage: make <target>
 
 .PHONY: help init plan apply output credentials destroy destroy-backend \
-        fmt validate refresh show graph clean
+        fmt validate refresh show graph clean \
+        server-info server-ssh server-deploy server-rebuild server-backup
 
 # Default target
 help:
@@ -21,11 +22,17 @@ help:
 	@echo ""
 	@echo "Outputs:"
 	@echo "  make output        - Show all outputs"
-	@echo "  make credentials   - Show IAM credentials"
+	@echo "  make credentials   - Show AWS S3 credentials"
+	@echo "  make server-info   - Show VPS connection details"
 	@echo "  make env           - Export environment variables for shell"
+	@echo ""
+	@echo "Server:"
+	@echo "  make server-ssh    - SSH into the VPS"
+	@echo "  make server-deploy - Show deployment guide"
 	@echo ""
 	@echo "Destruction:"
 	@echo "  make destroy       - Destroy all resources"
+	@echo "  make destroy-server - Destroy VPS only"
 	@echo "  make destroy-backend - Destroy backend resources (careful!)"
 	@echo ""
 	@echo "Utilities:"
@@ -127,3 +134,44 @@ clean:
 	-rm -f .terraform.lock.hcl
 	-rm -f terraform.tfstate.backup
 	@echo "Clean complete. Run 'make init' to reinitialize."
+
+# ============================================
+# Server Commands
+# ============================================
+
+# Show server connection details
+server-info:
+	@echo "==========================================="
+	@echo "VPS Connection Details"
+	@echo "==========================================="
+	@echo ""
+	@echo "Server: $$(terraform output -raw server_name)"
+	@echo "IPv4: $$(terraform output -raw server_ipv4_address)"
+	@echo "IPv6: $$(terraform output -raw server_ipv6_address)"
+	@echo "Status: $$(terraform output -raw server_status)"
+	@echo ""
+	@echo "SSH connection:"
+	@echo "  $$(terraform output -raw ssh_connection_string)"
+	@echo ""
+	@echo "==========================================="
+
+# SSH into the server
+server-ssh:
+	@ssh root@$$(terraform output -raw server_ipv4_address)
+
+# Show deployment guide
+server-deploy:
+	@terraform output -raw server_deployment_guide
+
+# Destroy only the server (keep other resources)
+destroy-server:
+	@echo "⚠️  WARNING: This will destroy the VPS server!"
+	@read -p "Are you sure? [y/N] " confirm && [ "$$confirm" = "y" ] || exit 1
+	terraform destroy -target=hcloud_ssh_key.default -target=hcloud_server.main
+
+# Create server backup (manual snapshot)
+server-backup:
+	@echo "Creating manual backup of server..."
+	@echo "Note: This requires the Hetzner CLI or manual action in console."
+	@echo "Server: $$(terraform output -raw server_name)"
+	@echo "Visit: https://console.hetzner.cloud/servers"

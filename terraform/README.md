@@ -4,26 +4,44 @@ Infrastructure as Code for the Germinal project using Terraform.
 
 ## What This Manages
 
+### AWS Resources
 - **S3 Bucket**: Media storage for images, videos, and other assets
 - **IAM User & Policy**: Programmatic access credentials for the VPS
 - **Terraform State**: S3 backend with DynamoDB locking for state management
 
+### Hetzner Cloud Resources
+- **VPS Server**: Ubuntu 24.04 with Docker pre-installed
+- **SSH Key**: Automatic SSH key management for secure access
+- **Firewall**: UFW pre-configured (SSH, HTTP, HTTPS, app port)
+- **Backups**: Automatic daily backups enabled
+
 ## Prerequisites
 
+### AWS
 1. **AWS CLI** installed and configured:
    ```bash
    aws configure
    ```
 
-2. **Terraform** installed (>= 1.0):
-   ```bash
-   terraform version
-   ```
-
-3. **AWS Credentials** with permissions to create:
+2. **AWS Credentials** with permissions to create:
    - S3 buckets
    - IAM users and policies
    - DynamoDB tables
+
+### Hetzner Cloud
+1. **Hetzner Cloud Account**: Sign up at https://console.hetzner.cloud
+2. **API Token**: Create at https://console.hetzner.cloud/projects/YOUR_PROJECT_ID/security/tokens
+3. **SSH Key Pair**: Generate if you don't have one:
+   ```bash
+   ssh-keygen -t ed25519 -C "your_email@example.com"
+   cat ~/.ssh/id_ed25519.pub
+   ```
+
+### Terraform
+1. **Terraform** installed (>= 1.0):
+   ```bash
+   terraform version
+   ```
 
 ## Initial Setup
 
@@ -119,27 +137,93 @@ AWS_SECRET_ACCESS_KEY=...
 ## Makefile Commands
 
 ```bash
+# Setup
 make init          # Initialize Terraform
+make validate      # Validate configuration files
+
+# Operations
 make plan          # Show planned changes
 make apply         # Apply changes
+make refresh       # Refresh state file
+make show          # Show current state
+
+# Outputs
 make output        # Show all outputs
-make credentials   # Show IAM credentials
+make credentials   # Show AWS S3 credentials
+make server-info   # Show VPS connection details
+
+# Server
+make server-ssh    # SSH into the VPS
+make server-deploy # Show deployment guide
+
+# Destruction
 make destroy       # Destroy all resources
+make destroy-server # Destroy VPS only
+make destroy-backend # Destroy backend resources (careful!)
 ```
 
 ## Project Structure
 
 ```
 terraform/
-├── main.tf                  # Provider and backend configuration
-├── backend.tf               # S3 state backend resources (first time only)
-├── s3.tf                    # S3 bucket and IAM resources
-├── variables.tf             # Input variables
-├── outputs.tf               # Output values
-├── terraform.tfvars.example # Example variable values
-├── terraform.tfvars         # Your actual values (not in git)
-├── Makefile                 # Convenience commands
-└── README.md                # This file
+├── main.tf                    # Provider and backend configuration
+├── backend.tf                 # S3 state backend resources (first time only)
+├── s3.tf                      # S3 bucket and IAM resources
+├── hetzner.tf                 # Hetzner Cloud server resources
+├── cloud-init.yml.tftpl       # Server initialization template
+├── variables.tf               # Input variables
+├── outputs.tf                 # Output values
+├── terraform.tfvars.example   # Example variable values
+├── terraform.tfvars           # Your actual values (not in git)
+├── Makefile                   # Convenience commands
+└── README.md                  # This file
+```
+
+## VPS Deployment
+
+After Terraform creates the server, you can deploy the application:
+
+### Option 1: Manual Deployment
+
+```bash
+# SSH into the server
+make server-ssh
+# or: ssh root@<server-ip>
+
+# Clone the repository
+cd /opt/germinal
+git clone <your-repo-url> .
+
+# Configure environment
+cp .env.example .env
+nano .env  # Add your S3 credentials and other settings
+
+# Pull and start the Docker image
+make image-pull
+make prod-start
+```
+
+### Option 2: Using the Project Makefile (from local)
+
+```bash
+# Build and push the image locally
+make image-release
+
+# Then on the VPS:
+make deploy
+```
+
+### Server Details After Creation
+
+```bash
+make server-info
+# Output:
+# Server: development-germinal
+# IPv4: xxx.xxx.xxx.xxx
+# IPv6: xxxx:xxxx:xxxx::/64
+# Status: running
+#
+# SSH connection: ssh root@xxx.xxx.xxx.xxx
 ```
 
 ## Security Notes
