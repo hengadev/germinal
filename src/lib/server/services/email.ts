@@ -277,36 +277,21 @@ export async function sendTicketConfirmationEmail(data: TicketEmailData): Promis
     return;
   }
 
-  const transport = getTransporter();
-
-  const mailOptions = {
-    from: `"${env.SMTP_FROM_NAME}" <${env.SMTP_FROM_EMAIL}>`,
-    to: data.guestEmail,
-    subject: `Your Tickets for ${data.event.title}`,
-    text: textBody,
-    html: htmlBody,
-  };
-
-  try {
-    const info = await transport.sendMail(mailOptions);
-    logger.info('🎫 Ticket confirmation email sent successfully:', info.messageId);
-  } catch (error) {
-    logger.error('❌ Failed to send ticket confirmation email:', error);
-    // Queue for retry instead of throwing
-    const { queueEmail } = await import('../jobs/process-email-queue');
-    await queueEmail({
-      type: 'ticket_confirmation',
-      recipient: data.guestEmail,
-      subject: `Your Tickets for ${data.event.title}`,
-      textBody,
-      htmlBody,
-      metadata: {
-        reservationId: data.reservation.id,
-        accessToken: data.accessToken,
-      },
-    });
-    logger.info('📋 Email queued for retry');
-  }
+  // Always queue for delivery with automatic retry
+  const { queueEmail } = await import('../jobs/process-email-queue');
+  await queueEmail({
+    type: 'ticket_confirmation',
+    recipient: data.guestEmail,
+    subject: `Your Tickets - ${data.event.title}`,
+    textBody,
+    htmlBody,
+    metadata: {
+      reservationId: data.reservation.id,
+      accessToken: data.accessToken,
+      guestName: data.guestName,
+    },
+  });
+  logger.info('📋 Ticket confirmation email queued:', data.guestEmail);
 }
 
 export async function verifyEmailConnection(): Promise<boolean> {
