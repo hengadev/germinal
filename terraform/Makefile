@@ -3,7 +3,8 @@
 
 .PHONY: help init plan apply output credentials destroy destroy-backend \
         fmt validate refresh show graph clean \
-        server-info server-ssh server-deploy server-rebuild server-backup
+        server-info server-ssh server-deploy server-rebuild server-backup \
+        dns-info dns-email dns-verify
 
 # Default target
 help:
@@ -24,11 +25,18 @@ help:
 	@echo "  make output        - Show all outputs"
 	@echo "  make credentials   - Show AWS S3 credentials"
 	@echo "  make server-info   - Show VPS connection details"
+	@echo "  make dns-info      - Show DNS records"
+	@echo "  make dns-email     - Show email configuration"
 	@echo "  make env           - Export environment variables for shell"
 	@echo ""
 	@echo "Server:"
 	@echo "  make server-ssh    - SSH into the VPS"
 	@echo "  make server-deploy - Show deployment guide"
+	@echo ""
+	@echo "DNS:"
+	@echo "  make dns-info      - Show application URL and DNS records"
+	@echo "  make dns-email     - Show email (Google Workspace) setup"
+	@echo "  make dns-verify    - Show Cloudflare dashboard link"
 	@echo ""
 	@echo "Destruction:"
 	@echo "  make destroy       - Destroy all resources"
@@ -175,3 +183,38 @@ server-backup:
 	@echo "Note: This requires the Hetzner CLI or manual action in console."
 	@echo "Server: $$(terraform output -raw server_name)"
 	@echo "Visit: https://console.hetzner.cloud/servers"
+
+# ============================================
+# DNS Commands
+# ============================================
+
+# Show application URL and DNS records
+dns-info:
+	@echo "==========================================="
+	@echo "Application DNS Information"
+	@echo "==========================================="
+	@echo ""
+	@echo "Application URL: $$(terraform output -raw app_url)"
+	@echo "WWW URL: $$(terraform output -raw www_url)"
+	@echo ""
+	@echo "DNS Records configured:"
+	@echo "  A (main):    $$(terraform output -raw domain_name) → $$(terraform output -raw server_ipv4_address)"
+	@echo "  CNAME (www): www.$$(terraform output -raw domain_name) → $$(terraform output -raw domain_name)"
+	@echo ""
+	@echo "Note: DNS is proxied through Cloudflare (orange cloud)"
+	@echo "==========================================="
+
+# Show email configuration (Google Workspace)
+dns-email:
+	@terraform output -raw email_setup_status
+
+# Show Cloudflare dashboard link for verification
+dns-verify:
+	@echo "==========================================="
+	@echo "Cloudflare Dashboard"
+	@echo "==========================================="
+	@echo ""
+	@echo "Visit the Cloudflare dashboard to verify DNS:"
+	@terraform output -raw cloudflare_zone_info | jq -r '.url'
+	@echo ""
+	@echo "==========================================="

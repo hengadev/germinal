@@ -15,6 +15,12 @@ Infrastructure as Code for the Germinal project using Terraform.
 - **Firewall**: UFW pre-configured (SSH, HTTP, HTTPS, app port)
 - **Backups**: Automatic daily backups enabled
 
+### Cloudflare DNS
+- **DNS Records**: A/AAAA records pointing to VPS
+- **Email DNS**: MX, SPF, and DMARC records for Google Workspace
+- **SSL/TLS**: Automatic HTTPS via Cloudflare's Universal SSL
+- **DDoS Protection**: Cloudflare's proxy and protection services
+
 ## Prerequisites
 
 ### AWS
@@ -42,6 +48,15 @@ Infrastructure as Code for the Germinal project using Terraform.
    ```bash
    terraform version
    ```
+
+### Cloudflare
+1. **Cloudflare Account**: Sign up at https://dash.cloudflare.com/sign-up
+2. **Domain Added**: Add your domain to Cloudflare
+3. **Nameservers Updated**: Update your domain's nameservers to Cloudflare's
+4. **API Token**: Create at https://dash.cloudflare.com/profile/api-tokens
+   - Required permissions: **Zone - DNS - Edit**
+   - Zone resources: Include - Specific zone - Your domain
+5. **Zone ID**: Found in Cloudflare Dashboard → Your domain → Overview → API section
 
 ## Initial Setup
 
@@ -151,6 +166,9 @@ make show          # Show current state
 make output        # Show all outputs
 make credentials   # Show AWS S3 credentials
 make server-info   # Show VPS connection details
+make dns-info      # Show application URL and DNS records
+make dns-email     # Show email (Google Workspace) setup
+make dns-verify    # Show Cloudflare dashboard link
 
 # Server
 make server-ssh    # SSH into the VPS
@@ -170,6 +188,7 @@ terraform/
 ├── backend.tf                 # S3 state backend resources (first time only)
 ├── s3.tf                      # S3 bucket and IAM resources
 ├── hetzner.tf                 # Hetzner Cloud server resources
+├── cloudflare.tf              # Cloudflare DNS records
 ├── cloud-init.yml.tftpl       # Server initialization template
 ├── variables.tf               # Input variables
 ├── outputs.tf                 # Output values
@@ -224,6 +243,72 @@ make server-info
 # Status: running
 #
 # SSH connection: ssh root@xxx.xxx.xxx.xxx
+```
+
+## DNS and Domain Setup
+
+### Cloudflare Setup
+
+Before running Terraform, ensure your domain is set up on Cloudflare:
+
+1. **Add Domain to Cloudflare**
+   - Go to https://dash.cloudflare.com
+   - Click "Add a Site" and enter your domain
+   - Select the free plan
+
+2. **Update Nameservers**
+   - Cloudflare will provide nameservers (e.g., `alice.ns.cloudflare.com`)
+   - Update your domain's nameservers at your registrar (Square)
+   - Wait for DNS propagation (can take 24-48 hours)
+
+3. **Get Zone ID**
+   - In Cloudflare dashboard, go to your domain
+   - Scroll to the bottom of the Overview page
+   - Copy the "Zone ID"
+
+4. **Create API Token**
+   - Go to https://dash.cloudflare.com/profile/api-tokens
+   - Click "Create Token"
+   - Use "Edit zone DNS" template or create custom with:
+     - Zone → DNS → Edit
+     - Include → Specific zone → Your domain
+
+### Google Workspace Email Setup
+
+After Terraform applies the DNS records:
+
+1. **Verify Domain in Google Workspace**
+   - Go to Google Workspace Admin Console
+   - Verify domain ownership (may use TXT records)
+
+2. **Add Users**
+   - Create user accounts in Google Workspace
+
+3. **Test Email**
+   - Send test emails to verify MX records are working
+   ```bash
+   make dns-email  # Shows email configuration
+   ```
+
+### DNS Records Created
+
+Terraform automatically creates:
+
+| Type | Name | Content | Proxied |
+|------|------|---------|---------|
+| A | `@` | VPS IPv4 | Yes |
+| AAAA | `@` | VPS IPv6 | Yes |
+| CNAME | `www` | `@` | Yes |
+| MX | `@` | Google Workspace servers | No |
+| TXT | `@` | SPF record | No |
+| TXT | `_dmarc` | DMARC record | No |
+
+### View DNS Information
+
+```bash
+make dns-info     # Show application URL and records
+make dns-email    # Show email configuration
+make dns-verify   # Open Cloudflare dashboard
 ```
 
 ## Security Notes
