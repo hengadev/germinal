@@ -449,7 +449,7 @@
                             <td class="px-6 py-4">
                                 {#if talent.published}
                                     <span
-                                        class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-green-50 text-green-700 rounded-full"
+                                        class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-dark-900 text-white rounded-full"
                                     >
                                         <Eye size={14} />
                                         Published
@@ -517,7 +517,7 @@
                                 </h3>
                                 {#if talent.published}
                                     <span
-                                        class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-green-50 text-green-700 rounded-full flex-shrink-0"
+                                        class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-dark-900 text-white rounded-full flex-shrink-0"
                                     >
                                         <Eye size={12} />
                                     </span>
