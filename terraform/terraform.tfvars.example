@@ -20,3 +20,27 @@ allowed_origins = [
 
 # Set to false after initial backend setup
 create_backend_resources = true
+
+# ============================================
+# Hetzner Cloud Configuration
+# ============================================
+
+# Hetzner Cloud API token
+# Get yours from: https://console.hetzner.cloud/projects/YOUR_PROJECT_ID/security/tokens
+hcloud_token = "your_hetzner_api_token_here"
+
+# Server type (cpx11 = 2GB RAM, ~€4/mo; cpx21 = 4GB RAM, ~€8/mo; cpx31 = 8GB RAM, ~€15/mo)
+server_type = "cpx11"
+
+# Datacenter location (nbg1 = Nuremberg, fsn1 = Falkenstein, hil = Hilversum/NL)
+server_location = "nbg1"
+
+# Server OS image
+server_image = "ubuntu-24.04"
+
+# SSH public key for server access
+# Get your public key with: cat ~/.ssh/id_rsa.pub
+ssh_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC... your_email@example.com"
+
+# Enable automatic backups (additional 20% of server price)
+enable_backups = true

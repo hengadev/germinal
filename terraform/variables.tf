@@ -37,3 +37,52 @@ variable "create_backend_resources" {
   type        = bool
   default     = true
 }
+
+# ============================================
+# Hetzner Cloud Variables
+# ============================================
+
+variable "hcloud_token" {
+  description = "Hetzner Cloud API token"
+  type        = string
+  sensitive   = true
+}
+
+variable "server_type" {
+  description = "Hetzner Cloud server type (cpx11, cpx21, cpx31, etc.)"
+  type        = string
+  default     = "cpx11"
+
+  validation {
+    condition     = can(regex("^cpx[0-9]{2}$", var.server_type))
+    error_message = "Server type must be a valid CX plan (e.g., cpx11, cpx21, cpx31)."
+  }
+}
+
+variable "server_location" {
+  description = "Hetzner Cloud datacenter location"
+  type        = string
+  default     = "nbg1"
+
+  validation {
+    condition     = contains(["nbg1", "fsn1", "hel1", "hil", "ash", "sin"], var.server_location)
+    error_message = "Location must be a valid Hetzner datacenter code."
+  }
+}
+
+variable "server_image" {
+  description = "Server OS image"
+  type        = string
+  default     = "ubuntu-24.04"
+}
+
+variable "ssh_public_key" {
+  description = "SSH public key for server access (content of your id_rsa.pub file)"
+  type        = string
+}
+
+variable "enable_backups" {
+  description = "Enable automatic backups for the server (additional cost)"
+  type        = bool
+  default     = true
+}
