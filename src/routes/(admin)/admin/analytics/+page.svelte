@@ -12,7 +12,8 @@
 		Calendar,
 		ArrowUp,
 		ArrowDown,
-		Users
+		Users,
+		Download
 	} from 'lucide-svelte';
 	import type { PageData } from './$types';
 
@@ -156,8 +157,9 @@
 				<h1 class="text-3xl lg:text-4xl font-bold mb-2">Payment Analytics</h1>
 				<p class="text-dark-400">Track revenue, payments, and performance metrics</p>
 			</div>
-			<!-- Date Range Selector -->
-			<div class="flex items-center gap-2 bg-white rounded-lg border border-border-card p-1">
+			<div class="flex items-center gap-3">
+				<!-- Date Range Selector -->
+				<div class="flex items-center gap-2 bg-white rounded-lg border border-border-card p-1">
 				{#each ['7d', '30d', '90d', 'all'] as range}
 					<button
 						onclick={() => updateRange(range)}
@@ -169,6 +171,16 @@
 					</button>
 				{/each}
 			</div>
+				<!-- Export Button -->
+				<a
+					href="/admin/export/analytics"
+					target="_blank"
+					rel="noopener noreferrer"
+					class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium text-sm whitespace-nowrap"
+				>
+					<Download size={16} />
+					Export CSV
+				</a>
 		</div>
 	</div>
 

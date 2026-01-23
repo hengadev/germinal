@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Eye, CheckCircle2, Clock, XCircle, AlertCircle, Search, Calendar, User, Mail, Ticket, CreditCard, ArrowRight } from 'lucide-svelte';
+	import { Eye, CheckCircle2, Clock, XCircle, AlertCircle, Search, Calendar, User, Mail, Ticket, CreditCard, ArrowRight, Download } from 'lucide-svelte';
 	import type { PageData } from './$types';
 	import { formatCurrency } from '$lib/utils/currency';
 
@@ -8,6 +8,13 @@
 	// Filter and search state
 	let statusFilter = $state<'all' | 'confirmed' | 'pending' | 'cancelled' | 'expired'>('all');
 	let searchQuery = $state('');
+
+	// Get export URL
+	let exportUrl = $derived(() => {
+		const params = new URLSearchParams();
+		if (statusFilter !== 'all') params.set('status', statusFilter);
+		return `/admin/export/reservations?${params.toString()}`;
+	});
 
 	// Get status badge
 	function getStatusBadge(status: string) {
@@ -89,9 +96,20 @@
 </svelte:head>
 
 <div class="container mx-auto px-4 py-8 lg:py-12">
-	<div class="mb-8">
-		<h1 class="text-3xl lg:text-4xl font-bold mb-2">Reservations</h1>
-		<p class="text-dark-400">Manage all event reservations</p>
+	<div class="mb-8 flex items-center justify-between">
+		<div>
+			<h1 class="text-3xl lg:text-4xl font-bold mb-2">Reservations</h1>
+			<p class="text-dark-400">Manage all event reservations</p>
+		</div>
+		<a
+			href={exportUrl}
+			target="_blank"
+			rel="noopener noreferrer"
+			class="inline-flex items-center gap-2 px-4 py-2 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors font-medium text-sm"
+		>
+			<Download size={16} />
+			Export CSV
+		</a>
 	</div>
 
 	<!-- Filters and Search -->
