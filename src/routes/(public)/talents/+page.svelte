@@ -87,20 +87,20 @@
                     class:bg-transparent={selectedCategoryId !== null}
                     class:text-dark-600={selectedCategoryId !== null}
                     class:border={selectedCategoryId !== null}
-                    class:border-border-card={selectedCategoryId !== null}
+                    class:border-dark-600={selectedCategoryId !== null}
                 >
                     All
                 </button>
                 {#each filters as filter}
                     <button
                         onclick={() => (selectedCategoryId = filter.id)}
-                        class="px-4 py-2 rounded-full text-sm whitespace-nowrap transition-colors"
+                        class="px-4 py-2 rounded-full text-sm whitespace-nowrap transition-colors cursor-pointer"
                         class:bg-dark-900={selectedCategoryId === filter.id}
                         class:text-white={selectedCategoryId === filter.id}
                         class:bg-transparent={selectedCategoryId !== filter.id}
-                        style:border-color={selectedCategoryId !== filter.id ? filter.color : undefined}
-                        style:color={selectedCategoryId === filter.id ? undefined : filter.color}
+                        class:text-dark-600={selectedCategoryId !== filter.id}
                         class:border={selectedCategoryId !== filter.id}
+                        class:border-dark-900={selectedCategoryId !== filter.id}
                     >
                         {getCategoryDisplayName(filter)}
                     </button>
