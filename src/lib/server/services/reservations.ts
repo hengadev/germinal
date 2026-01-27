@@ -352,3 +352,206 @@ export async function expireReservation(reservationId: string) {
 		}
 	}
 }
+
+/**
+ * Cancel reservation (without refund) - admin action
+ */
+export async function cancelReservation(reservationId: string) {
+	return await db.transaction(async (tx) => {
+		const reservation = await tx.query.reservations.findFirst({
+			where: eq(reservations.id, reservationId),
+		});
+
+		if (!reservation) {
+			throw new Error('Reservation not found');
+		}
+
+		if (reservation.status === 'cancelled') {
+			throw new Error('Reservation is already cancelled');
+		}
+
+		// Lock session and restore capacity
+		const [session] = await tx
+			.select()
+			.from(eventSessions)
+			.where(eq(eventSessions.id, reservation.eventSessionId))
+			.for('update');
+
+		if (!session) {
+			throw new Error('Session not found');
+		}
+
+		await tx.update(eventSessions)
+			.set({
+				availableCapacity: session.availableCapacity + reservation.quantity,
+				updatedAt: new Date(),
+			})
+			.where(eq(eventSessions.id, reservation.eventSessionId));
+
+		// Update reservation status
+		await tx.update(reservations)
+			.set({
+				status: 'cancelled',
+				cancelledAt: new Date(),
+				updatedAt: new Date(),
+			})
+			.where(eq(reservations.id, reservationId));
+
+		return { success: true, sessionId: session.id, quantity: reservation.quantity, allowWaitlist: session.allowWaitlist };
+	});
+}
+
+/**
+ * Process refund for a reservation - admin action
+ */
+export async function processRefund(reservationId: string) {
+	const { createRefund } = await import('./stripe');
+
+	const sessionData = await db.transaction(async (tx) => {
+		const reservation = await tx.query.reservations.findFirst({
+			where: eq(reservations.id, reservationId),
+			with: { payment: true },
+		});
+
+		if (!reservation) {
+			throw new Error('Reservation not found');
+		}
+
+		if (!reservation.payment) {
+			throw new Error('Payment not found for this reservation');
+		}
+
+		if (reservation.payment.status !== 'succeeded') {
+			throw new Error('Can only refund successful payments');
+		}
+
+		// Check if already fully refunded
+		const alreadyRefunded = reservation.payment.refundedAmount || 0;
+		if (alreadyRefunded >= reservation.payment.amount) {
+			throw new Error('Payment has already been fully refunded');
+		}
+
+		// Calculate refund amount (partial refund if partially refunded)
+		const refundAmount = reservation.payment.amount - alreadyRefunded;
+
+		// Process refund via Stripe
+		const refund = await createRefund(reservation.payment.stripePaymentIntentId, refundAmount);
+
+		// Update payment status
+		await tx.update(payments)
+			.set({
+				status: refundAmount >= reservation.payment.amount ? 'refunded' : 'partial_refund',
+				refundedAmount: alreadyRefunded + refund.amount,
+				updatedAt: new Date(),
+			})
+			.where(eq(payments.id, reservation.payment.id));
+
+		// If not already cancelled, cancel the reservation
+		if (reservation.status !== 'cancelled') {
+			// Lock session and restore capacity
+			const [session] = await tx
+				.select()
+				.from(eventSessions)
+				.where(eq(eventSessions.id, reservation.eventSessionId))
+				.for('update');
+
+			if (session) {
+				await tx.update(eventSessions)
+					.set({
+						availableCapacity: session.availableCapacity + reservation.quantity,
+						updatedAt: new Date(),
+					})
+					.where(eq(eventSessions.id, reservation.eventSessionId));
+			}
+
+			// Update reservation status
+			await tx.update(reservations)
+				.set({
+					status: 'cancelled',
+					cancelledAt: new Date(),
+					updatedAt: new Date(),
+				})
+				.where(eq(reservations.id, reservationId));
+		}
+
+		return {
+			success: true,
+			refund,
+			sessionId: reservation.eventSessionId,
+			quantity: reservation.quantity,
+			allowWaitlist: true // Will check below
+		};
+	});
+
+	// Notify waitlist after transaction commits if capacity was restored
+	// Note: We need to check if waitlist is enabled for the session
+	const session = await db.query.eventSessions.findFirst({
+		where: eq(eventSessions.id, sessionData.sessionId),
+	});
+
+	if (session?.allowWaitlist && sessionData.quantity > 0) {
+		try {
+			const { notifyWaitlist } = await import('./waitlist');
+			await notifyWaitlist(sessionData.sessionId, sessionData.quantity);
+			logger.info(`[Waitlist] Notified for session ${sessionData.sessionId} with ${sessionData.quantity} tickets available`);
+		} catch (error) {
+			logger.error('[Waitlist] Failed to notify:', error);
+			// Don't throw - refund was successful
+		}
+	}
+
+	return { success: true, refund: sessionData.refund };
+}
+
+/**
+ * Send reminder email/SMS for a reservation - admin action
+ */
+export async function sendReservationReminder(reservationId: string) {
+	const reservation = await getReservationById(reservationId);
+
+	if (reservation.status !== 'confirmed') {
+		throw new Error('Can only send reminders for confirmed reservations');
+	}
+
+	// Re-send ticket confirmation email
+	const { sendTicketConfirmationEmail } = await import('./email');
+	await sendTicketConfirmationEmail({
+		reservation: {
+			id: reservation.id,
+			quantity: reservation.quantity,
+			totalAmount: reservation.totalAmount,
+		},
+		session: {
+			title: reservation.eventSession.title,
+			startTime: reservation.eventSession.startTime,
+			endTime: reservation.eventSession.endTime,
+			priceAmount: reservation.eventSession.priceAmount,
+			currency: reservation.eventSession.currency,
+		},
+		event: {
+			title: reservation.eventSession.event.title,
+			location: reservation.eventSession.event.location,
+		},
+		guestName: reservation.guestName,
+		guestEmail: reservation.guestEmail,
+		accessToken: reservation.accessToken,
+	});
+
+	// Send SMS if phone number exists and preference is not email-only
+	if (reservation.guestPhone && reservation.notificationPreference !== 'email') {
+		try {
+			const { sendTicketReminderSMS } = await import('./sms');
+			await sendTicketReminderSMS({
+				phone: reservation.guestPhone,
+				name: reservation.guestName,
+				eventTitle: reservation.eventSession.event.title,
+				eventTime: reservation.eventSession.startTime,
+			});
+		} catch (error) {
+			logger.error('Failed to send reminder SMS:', error);
+			// Don't throw - email might have been sent
+		}
+	}
+
+	return { success: true };
+}

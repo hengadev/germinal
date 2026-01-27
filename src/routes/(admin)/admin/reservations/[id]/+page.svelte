@@ -1,10 +1,17 @@
 <script lang="ts">
-	import { ArrowLeft, User, Mail, Phone, Ticket, Calendar, Clock, MapPin, CreditCard, CheckCircle2, ExternalLink, Download, Printer } from 'lucide-svelte';
-	import type { PageData } from './$types';
+	import { ArrowLeft, User, Mail, Phone, Ticket, Calendar, Clock, MapPin, CreditCard, CheckCircle2, ExternalLink, Download, Printer, XCircle, MailCheck, RotateCcw, AlertCircle } from 'lucide-svelte';
+	import type { PageData, ActionData } from './$types';
 	import { formatCurrency } from '$lib/utils/currency';
 	import QRCode from 'qrcode';
+	import { enhance } from '$app/forms';
 
 	let { data }: { data: PageData } = $props();
+
+	let form = $state<{
+		success?: string;
+		error?: string;
+	} | undefined>();
+	let isSubmitting = $state(false);
 
 	let qrCodeUrl = $state<string | null>(null);
 
@@ -117,6 +124,20 @@ END:VCALENDAR`;
 </svelte:head>
 
 <div class="container mx-auto px-4 py-8 lg:py-12">
+	<!-- Success/Error Messages -->
+	{#if form?.success}
+		<div class="mb-6 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg flex items-center gap-3">
+			<CheckCircle2 size={20} />
+			<span>{form.success}</span>
+		</div>
+	{/if}
+	{#if form?.error}
+		<div class="mb-6 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg flex items-center gap-3">
+			<AlertCircle size={20} />
+			<span>{form.error}</span>
+		</div>
+	{/if}
+
 	<!-- Back Button -->
 	<a
 		href="/admin/reservations"
@@ -339,6 +360,78 @@ END:VCALENDAR`;
 			<div class="bg-white rounded-lg border border-border-card p-6">
 				<h2 class="text-lg font-semibold text-dark-900 mb-4">Actions</h2>
 				<div class="space-y-3">
+					<!-- Admin Actions -->
+					{#if data.reservation.status === 'confirmed'}
+						<form method="POST" action="?/reminder" use:enhance={({ formElement }) => {
+							isSubmitting = true;
+							return async ({ result }) => {
+								isSubmitting = false;
+								form = result.data;
+								if (result.type === 'success') {
+									form = { success: result.data.message };
+								} else {
+									form = { error: result.data?.error || 'Action failed' };
+								}
+							};
+						}}>
+							<button
+								type="submit"
+								disabled={isSubmitting}
+								class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+							>
+								<MailCheck size={18} />
+								Send Reminder
+							</button>
+						</form>
+
+						<form method="POST" action="?/cancel" use:enhance={({ formElement }) => {
+							isSubmitting = true;
+							return async ({ result }) => {
+								isSubmitting = false;
+								if (result.type === 'success') {
+									form = { success: result.data.message };
+								} else {
+									form = { error: result.data?.error || 'Action failed' };
+								}
+							};
+						}}>
+							<button
+								type="submit"
+								disabled={isSubmitting}
+								class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+							>
+								<XCircle size={18} />
+								Cancel Reservation
+							</button>
+						</form>
+
+						{#if data.reservation.payment?.status === 'succeeded' && (!data.reservation.payment.refundedAmount || data.reservation.payment.refundedAmount < data.reservation.payment.amount)}
+							<form method="POST" action="?/refund" use:enhance={({ formElement }) => {
+								isSubmitting = true;
+								return async ({ result }) => {
+									isSubmitting = false;
+									if (result.type === 'success') {
+										form = { success: result.data.message };
+									} else {
+										form = { error: result.data?.error || 'Action failed' };
+									}
+								};
+							}}>
+								<button
+									type="submit"
+									disabled={isSubmitting}
+									class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+								>
+									<RotateCcw size={18} />
+									Process Refund
+								</button>
+							</form>
+						{/if}
+					{/if}
+
+					<div class="border-t border-border-card my-3"></div>
+
+					<!-- Utility Actions -->
 					<button
 						onclick={downloadCalendar}
 						class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium text-sm"

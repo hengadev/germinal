@@ -1,7 +1,7 @@
 import { env } from '$lib/server/env';
 import { MOCK_EVENTS, MOCK_SESSIONS, MOCK_RESERVATIONS } from '$lib/mock-data';
-import { error } from '@sveltejs/kit';
-import type { PageServerLoad } from './$types';
+import { error, fail, redirect } from '@sveltejs/kit';
+import type { PageServerLoad, Actions } from './$types';
 
 export const load: PageServerLoad = async ({ params }) => {
 	if (env.USE_MOCK_DATA) {
@@ -108,4 +108,51 @@ export const load: PageServerLoad = async ({ params }) => {
 	} catch (err) {
 		throw error(404, 'Reservation not found');
 	}
+};
+
+export const actions: Actions = {
+	cancel: async ({ params, request }) => {
+		if (env.USE_MOCK_DATA) {
+			// Mock mode - just return success
+			return { success: true, message: 'Reservation cancelled (mock)' };
+		}
+
+		try {
+			const { cancelReservation } = await import('$lib/server/services/reservations');
+			await cancelReservation(params.id);
+			return { success: true, message: 'Reservation cancelled successfully' };
+		} catch (err) {
+			return fail(400, { error: err instanceof Error ? err.message : 'Failed to cancel reservation' });
+		}
+	},
+
+	refund: async ({ params, request }) => {
+		if (env.USE_MOCK_DATA) {
+			// Mock mode - just return success
+			return { success: true, message: 'Refund processed (mock)' };
+		}
+
+		try {
+			const { processRefund } = await import('$lib/server/services/reservations');
+			await processRefund(params.id);
+			return { success: true, message: 'Refund processed successfully' };
+		} catch (err) {
+			return fail(400, { error: err instanceof Error ? err.message : 'Failed to process refund' });
+		}
+	},
+
+	reminder: async ({ params, request }) => {
+		if (env.USE_MOCK_DATA) {
+			// Mock mode - just return success
+			return { success: true, message: 'Reminder sent (mock)' };
+		}
+
+		try {
+			const { sendReservationReminder } = await import('$lib/server/services/reservations');
+			await sendReservationReminder(params.id);
+			return { success: true, message: 'Reminder sent successfully' };
+		} catch (err) {
+			return fail(400, { error: err instanceof Error ? err.message : 'Failed to send reminder' });
+		}
+	},
 };
