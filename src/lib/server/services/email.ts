@@ -310,3 +310,139 @@ export async function verifyEmailConnection(): Promise<boolean> {
     return false;
   }
 }
+
+/**
+ * Generate event reminder email text template
+ */
+function generateEventReminderTextTemplate(data: TicketEmailData & { daysUntil: number }): string {
+	const timePhrase = data.daysUntil === 1 ? 'tomorrow' : `in ${data.daysUntil} days`;
+
+	return `
+Event Reminder: ${data.event.title}
+
+Hi ${data.guestName},
+
+This is a friendly reminder that your event is coming up ${timePhrase}!
+
+EVENT DETAILS:
+${data.session.title}
+${data.session.startTime.toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })}
+${data.event.location}
+
+TICKETS:
+${data.reservation.quantity} × ${formatCurrency(data.session.priceAmount, data.session.currency)}
+
+VIEW YOUR TICKETS:
+${env.PUBLIC_URL}/tickets/${data.accessToken}
+
+We look forward to seeing you there!
+
+---
+This is an automated reminder from Germinal.
+  `.trim();
+}
+
+/**
+ * Generate event reminder email HTML template
+ */
+function generateEventReminderHtmlTemplate(data: TicketEmailData & { daysUntil: number }): string {
+	const timePhrase = data.daysUntil === 1 ? 'tomorrow' : `in ${data.daysUntil} days`;
+
+	return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Event Reminder</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background-color: #f8f9fa; border-radius: 8px; padding: 24px; margin-bottom: 24px;">
+    <h2 style="margin: 0 0 8px 0; color: #1a1a1a; font-size: 24px;">🔔 Event Reminder</h2>
+    <p style="margin: 0; color: #6c757d; font-size: 14px;">Your event is coming up ${timePhrase}!</p>
+  </div>
+
+  <div style="background-color: #ffffff; border: 1px solid #e9ecef; border-radius: 8px; padding: 24px; margin-bottom: 16px;">
+    <p style="margin: 0 0 16px 0; font-size: 16px;">Hi ${escapeHtml(data.guestName)},</p>
+    <p style="margin: 0 0 16px 0; font-size: 16px;">This is a friendly reminder that <strong>${escapeHtml(data.event.title)}</strong> is coming up ${timePhrase}.</p>
+
+    <h3 style="margin: 24px 0 12px 0; color: #495057; font-size: 16px; font-weight: 600;">Event Details</h3>
+    <table style="width: 100%; border-collapse: collapse;">
+      <tr>
+        <td style="padding: 8px 0; color: #212529;"><strong>${escapeHtml(data.session.title)}</strong></td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0; color: #6c757d;">
+          ${data.session.startTime.toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })}
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0; color: #6c757d;">
+          ${escapeHtml(data.event.location)}
+        </td>
+      </tr>
+    </table>
+
+    <h3 style="margin: 24px 0 12px 0; color: #495057; font-size: 16px; font-weight: 600;">Your Tickets</h3>
+    <table style="width: 100%; border-collapse: collapse;">
+      <tr>
+        <td style="padding: 8px 0; border-bottom: 1px solid #e9ecef;">
+          ${data.reservation.quantity} × ${formatCurrency(data.session.priceAmount, data.session.currency)}
+        </td>
+      </tr>
+    </table>
+
+    <div style="margin-top: 24px; text-align: center;">
+      <a href="${env.PUBLIC_URL}/tickets/${data.accessToken}"
+         style="display: inline-block; background-color: #007bff; color: white; text-decoration: none; padding: 12px 32px; border-radius: 6px; font-weight: 600;">
+        View Your Tickets
+      </a>
+    </div>
+
+    <p style="margin: 24px 0 0 0; font-size: 14px; color: #6c757d; text-align: center;">
+      We look forward to seeing you there!
+    </p>
+  </div>
+
+  <div style="border-top: 1px solid #e9ecef; padding-top: 16px;">
+    <p style="margin: 0; color: #6c757d; font-size: 12px; text-align: center;">
+      This is an automated reminder from Germinal.<br>
+      If you have any questions, please contact us.
+    </p>
+  </div>
+</body>
+</html>
+  `.trim();
+}
+
+/**
+ * Send event reminder email
+ */
+export async function sendEventReminderEmail(data: TicketEmailData & { daysUntil: number }): Promise<void> {
+	const textBody = generateEventReminderTextTemplate(data);
+	const htmlBody = generateEventReminderHtmlTemplate(data);
+
+	if (!isSMTPEnabled()) {
+		logger.info('\n🔔 Event reminder email would be sent to:', data.guestEmail);
+		logger.info('Event:', data.event.title);
+		logger.info('Days until:', data.daysUntil);
+		return;
+	}
+
+	// Always queue for delivery with automatic retry
+	const { queueEmail } = await import('../jobs/process-email-queue');
+	await queueEmail({
+		type: 'event_reminder',
+		recipient: data.guestEmail,
+		subject: `Reminder: ${data.event.title} is coming up ${data.daysUntil === 1 ? 'tomorrow' : `in ${data.daysUntil} days`}`,
+		textBody,
+		htmlBody,
+		metadata: {
+			reservationId: data.reservation.id,
+			accessToken: data.accessToken,
+			guestName: data.guestName,
+			daysUntil: data.daysUntil.toString(),
+		},
+	});
+	logger.info('📋 Event reminder email queued:', data.guestEmail);
+}

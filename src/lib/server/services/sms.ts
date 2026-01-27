@@ -173,3 +173,36 @@ This link is valid for 24 hours.`;
 		message,
 	});
 }
+
+/**
+ * Send ticket reminder SMS (alias for sendEventReminderSMS with defaults)
+ * This is used by the reservations service when resending ticket confirmations
+ */
+export async function sendTicketReminderSMS(options: {
+	phone: string;
+	name: string;
+	eventTitle: string;
+	eventTime: Date;
+}): Promise<void> {
+	const formattedDate = options.eventTime.toLocaleDateString('en-US', {
+		month: 'short',
+		day: 'numeric',
+	});
+	const formattedTime = options.eventTime.toLocaleTimeString('en-US', {
+		hour: '2-digit',
+		minute: '2-digit',
+	});
+
+	const message = `🔔 Ticket Reminder: ${options.eventTitle}
+
+Hi ${options.name}! Here's a reminder for your upcoming event.
+
+📅 ${formattedDate} at ${formattedTime}
+
+Don't forget to bring your tickets! See you there.`;
+
+	await sendSMS({
+		to: formatPhoneNumber(options.phone),
+		message,
+	});
+}
