@@ -99,7 +99,8 @@
 			"email": "Adresse email",
 			"password": "Mot de passe",
 			"signIn": "Se connecter",
-			"rateLimited": "Limite de débit atteinte"
+			"rateLimited": "Limite de débit atteinte",
+			"invalidCredentials": "Email ou mot de passe invalide"
 		},
 		"dashboard": {
 			"title": "Tableau de bord",

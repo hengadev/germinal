@@ -99,7 +99,8 @@
 			"email": "Email address",
 			"password": "Password",
 			"signIn": "Sign In",
-			"rateLimited": "Rate Limited"
+			"rateLimited": "Rate Limited",
+			"invalidCredentials": "Invalid email or password"
 		},
 		"dashboard": {
 			"title": "Dashboard",

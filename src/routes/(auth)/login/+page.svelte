@@ -28,7 +28,7 @@
 			{#if form?.error}
 				<div class="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg flex items-start gap-3">
 					<AlertCircle size={20} class="shrink-0 mt-0.5" />
-					<p class="text-sm">{form.error}</p>
+					<p class="text-sm">{$t('admin.login.invalidCredentials')}</p>
 				</div>
 			{/if}
 
