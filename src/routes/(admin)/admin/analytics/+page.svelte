@@ -181,6 +181,7 @@
 					<Download size={16} />
 					Export CSV
 				</a>
+			</div>
 		</div>
 	</div>
 
@@ -248,7 +249,7 @@
 						{/each}
 
 						<!-- Bars -->
-						{#each data.dailyRevenue as (day, index)}
+						{#each data.dailyRevenue as day, index}
 							{@const x = getX(index, data.dailyRevenue.length)}
 							{@const barWidth = Math.max(
 								600 / data.dailyRevenue.length - chartPadding,
