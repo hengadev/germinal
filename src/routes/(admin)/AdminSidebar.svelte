@@ -1,7 +1,7 @@
 <script lang="ts">
     import { page } from "$app/state";
 
-    import { LayoutDashboard, Calendar, User, Ticket, BarChart3 } from "lucide-svelte";
+    import { LayoutDashboard, Calendar, User, Ticket, BarChart3, Tag } from "lucide-svelte";
 
     interface SidebarProps {
         data: {
@@ -49,6 +49,16 @@
             href: "/admin/analytics",
             label: "Analytics",
             icon: BarChart3,
+        },
+        {
+            href: "/admin/categories",
+            label: "Event Categories",
+            icon: Tag,
+        },
+        {
+            href: "/admin/talent-categories",
+            label: "Talent Categories",
+            icon: Tag,
         },
         {
             href: "/admin/talents",
