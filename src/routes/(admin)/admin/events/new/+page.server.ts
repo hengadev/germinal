@@ -10,26 +10,69 @@ export const load: PageServerLoad = async () => {
 export const actions: Actions = {
 	default: async ({ request }) => {
 		const formData = await request.formData();
-		const title = formData.get('title');
+		const titleEn = formData.get('titleEn');
+		const titleFr = formData.get('titleFr');
 		const slug = formData.get('slug');
-		const description = formData.get('description');
+		const descriptionEn = formData.get('descriptionEn');
+		const descriptionFr = formData.get('descriptionFr');
+		const subtitleEn = formData.get('subtitleEn');
+		const subtitleFr = formData.get('subtitleFr');
 		const startDate = formData.get('startDate');
 		const endDate = formData.get('endDate');
 		const location = formData.get('location');
+		const venueName = formData.get('venueName');
+		const streetAddress = formData.get('streetAddress');
+		const district = formData.get('district');
+		const city = formData.get('city');
+		const postalCode = formData.get('postalCode');
+		const country = formData.get('country');
+		const collaborators = formData.get('collaborators');
+		const timings = formData.get('timings');
+		const curatorEn = formData.get('curatorEn');
+		const curatorFr = formData.get('curatorFr');
+		const materialsEn = formData.get('materialsEn');
+		const materialsFr = formData.get('materialsFr');
+		const admissionInfoEn = formData.get('admissionInfoEn');
+		const admissionInfoFr = formData.get('admissionInfoFr');
+		const coverMediaId = formData.get('coverMediaId') as string | null;
+		const galleryMediaIds = formData.get('galleryMediaIds') as string | null;
 		const published = formData.get('published') === 'true';
 		const isSpotlight = formData.get('isSpotlight') === 'true';
 
+		// Parse gallery media IDs
+		let galleryIds: string[] = [];
+		if (galleryMediaIds) {
+			try {
+				galleryIds = JSON.parse(galleryMediaIds);
+			} catch {
+				galleryIds = [];
+			}
+		}
+
+		// Combine cover and gallery media - cover is first if exists
+		const allMediaIds = coverMediaId
+			? [coverMediaId, ...galleryIds.filter(id => id !== coverMediaId)]
+			: galleryIds;
+
 		// Validation
-		if (!title || typeof title !== 'string') {
-			return fail(400, { error: 'Title is required' });
+		if (!titleEn || typeof titleEn !== 'string') {
+			return fail(400, { error: 'Title (English) is required' });
+		}
+
+		if (!titleFr || typeof titleFr !== 'string') {
+			return fail(400, { error: 'Title (French) is required' });
 		}
 
 		if (!slug || typeof slug !== 'string') {
 			return fail(400, { error: 'Slug is required' });
 		}
 
-		if (!description || typeof description !== 'string') {
-			return fail(400, { error: 'Description is required' });
+		if (!descriptionEn || typeof descriptionEn !== 'string') {
+			return fail(400, { error: 'Description (English) is required' });
+		}
+
+		if (!descriptionFr || typeof descriptionFr !== 'string') {
+			return fail(400, { error: 'Description (French) is required' });
 		}
 
 		if (!startDate || typeof startDate !== 'string') {
@@ -83,43 +126,92 @@ export const actions: Actions = {
 
 			const newEvent = {
 				id: String(MOCK_EVENTS.length + 1),
-				title,
+				titleEn,
+				titleFr,
 				slug,
-				description,
+				descriptionEn,
+				descriptionFr,
+				subtitleEn: subtitleEn || null,
+				subtitleFr: subtitleFr || null,
 				startDate: start,
 				endDate: end,
 				location,
+				venueName: venueName || null,
+				streetAddress: streetAddress || null,
+				district: district || null,
+				city: city || null,
+				postalCode: postalCode || null,
+				country: country || null,
+				collaborators: collaborators || null,
+				timings: timings || null,
+				curatorEn: curatorEn || null,
+				curatorFr: curatorFr || null,
+				materialsEn: materialsEn || null,
+				materialsFr: materialsFr || null,
+				admissionInfoEn: admissionInfoEn || null,
+				admissionInfoFr: admissionInfoFr || null,
 				published,
 				isSpotlight,
 				createdAt: new Date(),
 				updatedAt: new Date(),
-				coverMediaId: null,
-				coverMedia: createMockMedia('https://images.unsplash.com/photo-1544531586-fde5298cdd40?q=80&w=2670&auto=format&fit=crop'),
-				media: [] as ReturnType<typeof createMockMedia>[]
+				coverMediaId: coverMediaId || null,
+				coverMedia: coverMediaId ? { id: coverMediaId, url: '' } : createMockMedia('https://images.unsplash.com/photo-1544531586-fde5298cdd40?q=80&w=2670&auto=format&fit=crop'),
+				media: allMediaIds.map(id => createMockMedia(`https://picsum.photos/seed/${id}/800/600`))
 			} as typeof MOCK_EVENTS[number];
 
 			MOCK_EVENTS.push(newEvent);
 
-			return { success: `Event "${title}" created successfully (mock mode - not persisted)` };
+			return { success: `Event "${titleEn}" created successfully (mock mode - not persisted)` };
 		}
 
 		// Database mode - use actual database functions
 		const { createEvent } = await import('$lib/server/services/events');
+		const { db } = await import('$lib/server/db');
+		const { media } = await import('$lib/server/db/schema');
+		const { eq } = await import('drizzle-orm');
 
 		try {
-			await createEvent({
-				title,
+			// Create event
+			const event = await createEvent({
+				titleEn,
+				titleFr,
 				slug,
-				description,
+				descriptionEn,
+				descriptionFr,
+				subtitleEn: subtitleEn || null,
+				subtitleFr: subtitleFr || null,
 				startDate: start,
 				endDate: end,
 				location,
-				coverMediaId: null,
+				venueName: venueName || null,
+				streetAddress: streetAddress || null,
+				district: district || null,
+				city: city || null,
+				postalCode: postalCode || null,
+				country: country || null,
+				collaborators: collaborators || null,
+				timings: timings || null,
+				curatorEn: curatorEn || null,
+				curatorFr: curatorFr || null,
+				materialsEn: materialsEn || null,
+				materialsFr: materialsFr || null,
+				admissionInfoEn: admissionInfoEn || null,
+				admissionInfoFr: admissionInfoFr || null,
+				coverMediaId: coverMediaId || null,
 				published,
 				isSpotlight
 			});
 
-			return { success: `Event "${title}" created successfully` };
+			// Link media to event
+			for (let i = 0; i < allMediaIds.length; i++) {
+				const mediaId = allMediaIds[i];
+				const isCover = i === 0; // First image is cover
+				await db.update(media)
+					.set({ eventId: event.id, isCover })
+					.where(eq(media.id, mediaId));
+			}
+
+			return { success: `Event "${titleEn}" created successfully` };
 		} catch (error) {
 			console.error('Error creating event:', error);
 			return fail(500, { error: 'Failed to create event. The slug may already be in use.' });

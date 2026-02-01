@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { ArrowLeft, Calendar, MapPin, Type, FileText } from 'lucide-svelte';
+	import MediaUpload from '$lib/components/MediaUpload.svelte';
 	import type { ActionData, PageData } from './$types';
+	import type { Media } from '$lib/types/media';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -39,10 +41,105 @@
 	let admissionInfoFr = $state(data.event.admissionInfoFr || "");
 	let published = $state(data.event.published);
 	let isSpotlight = $state(data.event.isSpotlight ?? false);
+
+	// Media state
+	const existingCoverMedia = data.event.coverMedia ? [data.event.coverMedia] : [];
+	const existingGalleryMedia = (data.event.media || []).filter(m => m.id !== data.event.coverMediaId);
+
+	let coverMediaId = $state(data.event.coverMediaId ?? null);
+	let galleryMediaIds = $state(existingGalleryMedia.map(m => m.id));
+	let removedIds: string[] = $state([]);
+	let addedIds: string[] = $state([]);
+
+	// Track original state for comparison
+	const originalCoverId = data.event.coverMediaId ?? null;
+	const originalGalleryIds = existingGalleryMedia.map(m => m.id);
+
+	function handleCoverUpload(media: Media[]) {
+		if (media.length > 0) {
+			// If new media, add to addedIds
+			if (!originalGalleryIds.includes(media[0].id) && originalCoverId !== media[0].id) {
+				addedIds = [...addedIds, media[0].id];
+			}
+			coverMediaId = media[0].id;
+		}
+	}
+
+	function handleCoverRemove(mediaId: string) {
+		if (coverMediaId === mediaId) {
+			removedIds = [...removedIds, mediaId];
+			coverMediaId = null;
+		}
+	}
+
+	function handleGalleryUpload(media: Media[]) {
+		const newIds = media.map(m => m.id);
+		// Track newly added media
+		const trulyNew = newIds.filter(id => !originalGalleryIds.includes(id) && originalCoverId !== id);
+		addedIds = [...addedIds, ...trulyNew];
+		galleryMediaIds = [...galleryMediaIds, ...newIds];
+		// First gallery image becomes cover if no explicit cover
+		if (!coverMediaId && galleryMediaIds.length > 0) {
+			coverMediaId = galleryMediaIds[0];
+		}
+	}
+
+	function handleGalleryRemove(mediaId: string) {
+		removedIds = [...removedIds, mediaId];
+		galleryMediaIds = galleryMediaIds.filter(id => id !== mediaId);
+		if (coverMediaId === mediaId) {
+			// Set new cover from remaining gallery
+			coverMediaId = galleryMediaIds.length > 0 ? galleryMediaIds[0] : null;
+		}
+	}
+
+	function handleGalleryReorder(mediaIds: string[]) {
+		galleryMediaIds = mediaIds;
+	}
 </script>
 
 <div class="bg-white rounded-lg border border-border-card p-6 lg:p-8">
     <form method="POST" use:enhance class="space-y-6">
+        <!-- Cover Photo Section -->
+        <div class="form-section">
+            <label class="block text-sm font-medium text-dark-700 mb-2">
+                Cover Photo
+            </label>
+            <p class="text-xs text-dark-400 mb-3">
+                {existingCoverMedia.length > 0 ? 'Replace or remove the current cover photo' : 'Main image shown in event listings'}
+            </p>
+            <MediaUpload
+                mode="single"
+                entityType="event"
+                existingMedia={existingCoverMedia}
+                maxSizeMB={10}
+                onUpload={handleCoverUpload}
+                onRemove={handleCoverRemove}
+            />
+            <input type="hidden" name="coverMediaId" value={coverMediaId ?? ''} />
+        </div>
+
+        <!-- Gallery Section -->
+        <div class="form-section">
+            <label class="block text-sm font-medium text-dark-700 mb-2">
+                Event Gallery
+            </label>
+            <p class="text-xs text-dark-400 mb-3">Up to 10 additional photos. Drag to reorder.</p>
+            <MediaUpload
+                mode="multiple"
+                maxFiles={10}
+                entityType="event"
+                existingMedia={existingGalleryMedia}
+                maxSizeMB={10}
+                onUpload={handleGalleryUpload}
+                onReorder={handleGalleryReorder}
+                onRemove={handleGalleryRemove}
+            />
+            <input type="hidden" name="galleryMediaIds" value={JSON.stringify(galleryMediaIds)} />
+            <input type="hidden" name="removedIds" value={JSON.stringify(removedIds)} />
+            <input type="hidden" name="addedIds" value={JSON.stringify(addedIds)} />
+        </div>
+
         <!-- Title (English) -->
         <div>
             <label for="titleEn" class="block text-sm font-medium text-dark-700 mb-2">

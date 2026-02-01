@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { ArrowLeft, Calendar, MapPin, Type, FileText } from 'lucide-svelte';
+	import MediaUpload from '$lib/components/MediaUpload.svelte';
 	import type { ActionData } from './$types';
+	import type { Media } from '$lib/types/media';
 
 	let { form }: { form: ActionData } = $props();
 
@@ -31,6 +33,44 @@
 	let admissionInfoFr = $state('');
 	let published = $state(false);
 	let isSpotlight = $state(false);
+
+	// Media upload state
+	let coverMediaId: string | null = $state(null);
+	let galleryMediaIds: string[] = $state([]);
+
+	function handleCoverUpload(media: Media[]) {
+		if (media.length > 0) {
+			coverMediaId = media[0].id;
+		}
+	}
+
+	function handleCoverRemove(mediaId: string) {
+		if (coverMediaId === mediaId) {
+			coverMediaId = null;
+		}
+	}
+
+	function handleGalleryUpload(media: Media[]) {
+		const newIds = media.map(m => m.id);
+		galleryMediaIds = [...galleryMediaIds, ...newIds];
+		// First gallery image becomes cover if no explicit cover
+		if (!coverMediaId && galleryMediaIds.length > 0) {
+			coverMediaId = galleryMediaIds[0];
+		}
+	}
+
+	function handleGalleryRemove(mediaId: string) {
+		galleryMediaIds = galleryMediaIds.filter(id => id !== mediaId);
+		if (coverMediaId === mediaId) {
+			// Set new cover from remaining gallery
+			coverMediaId = galleryMediaIds.length > 0 ? galleryMediaIds[0] : null;
+		}
+	}
+
+	function handleGalleryReorder(mediaIds: string[]) {
+		galleryMediaIds = mediaIds;
+	}
+</script>
 
 	// Auto-generate slug from English title
 	$effect(() => {
@@ -77,6 +117,40 @@
 
 		<div class="bg-white rounded-lg border border-border-card p-6 lg:p-8">
 			<form method="POST" use:enhance class="space-y-6">
+				<!-- Cover Photo Section -->
+				<div class="form-section">
+					<label class="block text-sm font-medium text-dark-700 mb-2">
+						Cover Photo
+					</label>
+					<p class="text-xs text-dark-400 mb-3">Main image shown in event listings</p>
+					<MediaUpload
+						mode="single"
+						entityType="event"
+						maxSizeMB={10}
+						onUpload={handleCoverUpload}
+						onRemove={handleCoverRemove}
+					/>
+					<input type="hidden" name="coverMediaId" value={coverMediaId ?? ''} />
+				</div>
+
+				<!-- Gallery Section -->
+				<div class="form-section">
+					<label class="block text-sm font-medium text-dark-700 mb-2">
+						Event Gallery
+					</label>
+					<p class="text-xs text-dark-400 mb-3">Up to 10 additional photos. Drag to reorder. First image will become cover if no explicit cover is set.</p>
+					<MediaUpload
+						mode="multiple"
+						maxFiles={10}
+						entityType="event"
+						maxSizeMB={10}
+						onUpload={handleGalleryUpload}
+						onReorder={handleGalleryReorder}
+						onRemove={handleGalleryRemove}
+					/>
+					<input type="hidden" name="galleryMediaIds" value={JSON.stringify(galleryMediaIds)} />
+				</div>
+
 				<!-- Title (English) -->
 				<div>
 					<label for="titleEn" class="block text-sm font-medium text-dark-700 mb-2">
