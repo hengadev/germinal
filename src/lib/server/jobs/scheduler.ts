@@ -6,6 +6,7 @@ import { cleanupExpiredReservations } from './cleanup-expired-reservations';
 import { processEmailQueue } from './process-email-queue';
 import { deleteExpiredSessions } from '../session';
 import { sendEventReminders } from './send-event-reminders';
+import { cleanupOrphanedMedia } from './cleanup-orphaned-media';
 
 let boss: InstanceType<typeof PgBoss> | null = null;
 
@@ -60,6 +61,12 @@ export async function initJobScheduler() {
 		return { processed: result.processed, sent1Week: result.sent1Week, sent1Day: result.sent1Day, failed: result.failed };
 	});
 
+	await boss.work('cleanup-orphaned-media', { teamSize: 1 }, async () => {
+		logger.info('[Job] Running cleanup-orphaned-media');
+		const result = await cleanupOrphanedMedia();
+		return { deleted: result.deleted, failed: result.failed };
+	});
+
 	// Schedule recurring jobs using cron syntax
 	// Every 5 minutes
 	await boss.schedule('cleanup-expired-reservations', '*/5 * * * *');
@@ -69,6 +76,8 @@ export async function initJobScheduler() {
 	await boss.schedule('process-email-queue', '*/2 * * * *');
 	// Daily at 9 AM
 	await boss.schedule('send-event-reminders', '0 9 * * *');
+	// Daily at 3 AM
+	await boss.schedule('cleanup-orphaned-media', '0 3 * * *');
 
 	logger.info('✅ Jobs scheduled');
 
