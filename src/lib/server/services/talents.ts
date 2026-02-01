@@ -59,8 +59,16 @@ export async function createTalent(input: CreateTalentInput) {
   const [talent] = await db.insert(talents).values({
     firstName: input.firstName,
     lastName: input.lastName,
-    role: input.role,
-    bio: input.bio,
+    roleEn: input.roleEn,
+    roleFr: input.roleFr,
+    bioEn: input.bioEn,
+    bioFr: input.bioFr,
+    city: input.city,
+    country: input.country,
+    quoteEn: input.quoteEn,
+    quoteFr: input.quoteFr,
+    specializationsEn: input.specializationsEn,
+    specializationsFr: input.specializationsFr,
     profileMediaId: input.profileMediaId,
     categoryId: input.categoryId,
     socialLinks: input.socialLinks,
@@ -77,6 +85,9 @@ export async function updateTalent(id: string, input: UpdateTalentInput) {
   const [updated] = await db.update(talents)
     .set({
       ...input,
+      // Handle both old field names (for backward compatibility) and new ones
+      role: (input as any).role || input.roleEn,
+      bio: (input as any).bio || input.bioEn,
       updatedAt: new Date(),
     })
     .where(eq(talents.id, id))

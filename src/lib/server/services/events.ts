@@ -103,13 +103,32 @@ export async function createEvent(input: CreateEventInput) {
     }
 
     const [event] = await tx.insert(events).values({
-      title: input.title,
+      titleEn: input.titleEn,
+      titleFr: input.titleFr,
       slug: input.slug,
-      description: input.description,
+      descriptionEn: input.descriptionEn,
+      descriptionFr: input.descriptionFr,
+      subtitleEn: input.subtitleEn,
+      subtitleFr: input.subtitleFr,
       startDate: input.startDate,
       endDate: input.endDate,
       location: input.location,
+      venueName: input.venueName,
+      streetAddress: input.streetAddress,
+      district: input.district,
+      city: input.city,
+      postalCode: input.postalCode,
+      country: input.country,
+      collaborators: input.collaborators,
+      timings: input.timings,
+      curatorEn: input.curatorEn,
+      curatorFr: input.curatorFr,
+      materialsEn: input.materialsEn,
+      materialsFr: input.materialsFr,
+      admissionInfoEn: input.admissionInfoEn,
+      admissionInfoFr: input.admissionInfoFr,
       coverMediaId: input.coverMediaId,
+      categoryId: input.categoryId,
       published: input.published ?? false,
       isSpotlight: input.isSpotlight ?? false,
     }).returning();
@@ -132,7 +151,13 @@ export async function updateEvent(id: string, input: UpdateEventInput) {
     }
 
     const [updated] = await tx.update(events)
-      .set({ ...input, updatedAt: new Date() })
+      .set({
+        ...input,
+        // Handle both old field names (for backward compatibility) and new ones
+        title: (input as any).title || input.titleEn,
+        description: (input as any).description || input.descriptionEn,
+        updatedAt: new Date()
+      })
       .where(eq(events.id, id))
       .returning();
 
