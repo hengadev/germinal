@@ -11,23 +11,31 @@ export const POST: RequestHandler = async (event) => {
   requireAdmin(event);
 
   const formData = await event.request.formData();
-  const files = formData.getAll('files') as File[];
 
-  if (!files.length) {
+  // Support both 'files' (legacy) and 'file' (single file upload)
+  const files = formData.getAll('files') as File[];
+  const file = formData.get('file') as File | null;
+  const filesToUpload = file && !files.length ? [file] : files;
+
+  if (!filesToUpload.length) {
     return error(400, 'No files provided');
   }
 
-  const entityType = formData.get('entityType') as 'event' | 'talent';
-  const entityId = formData.get('entityId') as string;
+  const entityType = formData.get('entityType') as 'event' | 'talent' | null;
+  const entityId = formData.get('entityId') as string | null;
 
-  if (!entityType || !entityId) {
-    return error(400, 'Entity type and ID required');
+  if (!entityType) {
+    return error(400, 'Entity type required');
   }
 
   const uploadedMedia = [];
 
   // Upload files using streaming (no memory issues with large files)
-  for (const file of files) {
+  for (const file of filesToUpload) {
+    if (file.size === 0 || typeof file.size !== 'number') {
+      continue; // Skip empty or invalid files
+    }
+
     if (file.size > env.MAX_FILE_SIZE) {
       return error(400, `File ${file.name} exceeds max size of ${env.MAX_FILE_SIZE} bytes`);
     }
@@ -46,7 +54,7 @@ export const POST: RequestHandler = async (event) => {
       const folder = entityType === 'event' ? 'events' : 'talents';
       const key = `${folder}/${randomUUID()}${getExtensionFromMimeType(file.type)}`;
       const fileSize = file.size;
-      
+
       const uploadResult = await uploadStreamToS3(
         key,
         file.stream(),
@@ -56,20 +64,24 @@ export const POST: RequestHandler = async (event) => {
 
       const mediaType = file.type.startsWith('image/') ? 'image' : 'video';
 
+      // If entityId is provided, link immediately. Otherwise leave unlinked (will be linked when form is submitted)
       const mediaRecord = await createMedia({
         type: mediaType,
         url: uploadResult.url,
         s3Key: uploadResult.key,
         mimeType: file.type,
         size: fileSize,
-        eventId: entityType === 'event' ? entityId : null,
-        talentId: entityType === 'talent' ? entityId : null,
+        eventId: entityType === 'event' ? (entityId ?? null) : null,
+        talentId: entityType === 'talent' ? (entityId ?? null) : null,
         isCover: false,
       });
 
       uploadedMedia.push({
         id: mediaRecord.id,
         url: mediaRecord.url,
+        s3Key: mediaRecord.s3Key,
+        mimeType: mediaRecord.mimeType,
+        size: mediaRecord.size,
         type: mediaType,
       });
 
