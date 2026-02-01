@@ -13,12 +13,21 @@ export const actions: Actions = {
 		const formData = await request.formData();
 		const firstName = formData.get('firstName');
 		const lastName = formData.get('lastName');
-		const role = formData.get('role');
-		const bio = formData.get('bio');
+		const roleEn = formData.get('roleEn');
+		const roleFr = formData.get('roleFr');
+		const bioEn = formData.get('bioEn');
+		const bioFr = formData.get('bioFr');
+		const city = formData.get('city');
+		const country = formData.get('country');
+		const quoteEn = formData.get('quoteEn');
+		const quoteFr = formData.get('quoteFr');
+		const specializationsEn = formData.get('specializationsEn');
+		const specializationsFr = formData.get('specializationsFr');
 		const instagram = formData.get('instagram');
 		const linkedin = formData.get('linkedin');
 		const twitter = formData.get('twitter');
 		const website = formData.get('website');
+		const profileMediaId = formData.get('profileMediaId') as string | null;
 		const published = formData.get('published') === 'true';
 
 		// Validation
@@ -30,12 +39,20 @@ export const actions: Actions = {
 			return fail(400, { error: 'Last name is required' });
 		}
 
-		if (!role || typeof role !== 'string') {
-			return fail(400, { error: 'Role is required' });
+		if (!roleEn || typeof roleEn !== 'string') {
+			return fail(400, { error: 'Role (English) is required' });
 		}
 
-		if (!bio || typeof bio !== 'string') {
-			return fail(400, { error: 'Bio is required' });
+		if (!roleFr || typeof roleFr !== 'string') {
+			return fail(400, { error: 'Role (French) is required' });
+		}
+
+		if (!bioEn || typeof bioEn !== 'string') {
+			return fail(400, { error: 'Bio (English) is required' });
+		}
+
+		if (!bioFr || typeof bioFr !== 'string') {
+			return fail(400, { error: 'Bio (French) is required' });
 		}
 
 		// Build social links object
@@ -72,14 +89,22 @@ export const actions: Actions = {
 				id: String(MOCK_TALENTS.length + 1),
 				firstName,
 				lastName,
-				role,
-				bio,
+				roleEn,
+				roleFr,
+				bioEn,
+				bioFr,
+				city,
+				country,
+				quoteEn,
+				quoteFr,
+				specializationsEn: specializationsEn || null,
+				specializationsFr: specializationsFr || null,
 				socialLinks: JSON.stringify(socialLinks),
 				published,
 				createdAt: new Date(),
 				updatedAt: new Date(),
 				profileMediaId: null,
-				profileMedia: createMockMedia('https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=2564&auto=format&fit=crop'),
+				profileMedia: profileMediaId ? { id: profileMediaId, url: '' } : createMockMedia('https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=2564&auto=format&fit=crop'),
 				media: [] as ReturnType<typeof createMockMedia>[]
 			} as typeof MOCK_TALENTS[number];
 
@@ -90,17 +115,36 @@ export const actions: Actions = {
 
 		// Database mode - use actual database functions
 		const { createTalent } = await import('$lib/server/services/talents');
+		const { db } = await import('$lib/server/db');
+		const { media } = await import('$lib/server/db/schema');
+		const { eq } = await import('drizzle-orm');
 
 		try {
-			await createTalent({
+			// Create talent with profileMediaId
+			const talent = await createTalent({
 				firstName,
 				lastName,
-				role,
-				bio,
+				roleEn,
+				roleFr,
+				bioEn,
+				bioFr,
+				city: city || null,
+				country: country || null,
+				quoteEn: quoteEn || null,
+				quoteFr: quoteFr || null,
+				specializationsEn: specializationsEn || null,
+				specializationsFr: specializationsFr || null,
 				socialLinks: JSON.stringify(socialLinks),
-				profileMediaId: null,
+				profileMediaId: profileMediaId || null,
 				published
 			});
+
+			// Link media to talent (update media records that were uploaded but not linked)
+			if (profileMediaId) {
+				await db.update(media)
+					.set({ talentId: talent.id, isCover: true })
+					.where(eq(media.id, profileMediaId));
+			}
 
 			return { success: `Talent "${firstName} ${lastName}" added successfully` };
 		} catch (error) {

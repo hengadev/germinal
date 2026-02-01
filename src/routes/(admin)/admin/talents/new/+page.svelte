@@ -7,7 +7,9 @@
         FileText,
         Link as LinkIcon,
     } from "lucide-svelte";
+    import MediaUpload from "$lib/components/MediaUpload.svelte";
     import type { ActionData } from "./$types";
+    import type { Media } from "$lib/types/media";
 
     let { form }: { form: ActionData } = $props();
 
@@ -28,6 +30,21 @@
     let twitter = $state("");
     let website = $state("");
     let published = $state(false);
+
+    // Media upload state
+    let profileMediaId: string | null = $state(null);
+
+    function handleProfileUpload(media: Media[]) {
+        if (media.length > 0) {
+            profileMediaId = media[0].id;
+        }
+    }
+
+    function handleProfileRemove(mediaId: string) {
+        if (profileMediaId === mediaId) {
+            profileMediaId = null;
+        }
+    }
 </script>
 
 <svelte:head>
@@ -66,6 +83,22 @@
 
         <div class="bg-white rounded-lg border border-border-card p-6 lg:p-8">
             <form method="POST" use:enhance class="space-y-6">
+                <!-- Profile Photo Section -->
+                <div class="form-section">
+                    <label class="block text-sm font-medium text-dark-700 mb-2">
+                        Profile Photo
+                    </label>
+                    <p class="text-xs text-dark-400 mb-3">Upload a profile photo for this talent</p>
+                    <MediaUpload
+                        mode="single"
+                        entityType="talent"
+                        maxSizeMB={5}
+                        onUpload={handleProfileUpload}
+                        onRemove={handleProfileRemove}
+                    />
+                    <input type="hidden" name="profileMediaId" value={profileMediaId ?? ''} />
+                </div>
+
                 <!-- Name -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>

@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { ArrowLeft, User, Briefcase, FileText, Link as LinkIcon } from 'lucide-svelte';
+	import MediaUpload from '$lib/components/MediaUpload.svelte';
 	import type { ActionData, PageData } from './$types';
+	import type { Media } from '$lib/types/media';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -26,6 +28,28 @@
 	let twitter = $state(data.talent.socialLinks?.twitter || '');
 	let website = $state(data.talent.socialLinks?.website || '');
 	let published = $state(data.talent.published);
+
+	// Media upload state
+	const existingProfileMedia = data.talent.profileMedia
+		? [data.talent.profileMedia]
+		: [];
+	let profileMediaId = $state(data.talent.profileMedia?.id ?? null);
+	let mediaAction: 'unchanged' | 'replaced' | 'removed' = $state('unchanged');
+	let newMediaId: string | null = $state(null);
+
+	function handleUpload(media: Media[]) {
+		if (media.length > 0) {
+			newMediaId = media[0].id;
+			mediaAction = 'replaced';
+		}
+	}
+
+	function handleRemove(mediaId: string) {
+		if (profileMediaId === mediaId) {
+			mediaAction = 'removed';
+			newMediaId = null;
+		}
+	}
 </script>
 
 <svelte:head>
@@ -62,6 +86,27 @@
 
 		<div class="bg-white rounded-lg border border-border-card p-6 lg:p-8">
 			<form method="POST" use:enhance class="space-y-6">
+				<!-- Profile Photo Section -->
+				<div class="form-section">
+					<label class="block text-sm font-medium text-dark-700 mb-2">
+						Profile Photo
+					</label>
+					<p class="text-xs text-dark-400 mb-3">
+						{existingProfileMedia.length > 0 ? 'Replace or remove the current profile photo' : 'Upload a profile photo for this talent'}
+					</p>
+					<MediaUpload
+						mode="single"
+						entityType="talent"
+						existingMedia={existingProfileMedia}
+						maxSizeMB={5}
+						onUpload={handleUpload}
+						onRemove={handleRemove}
+					/>
+					<input type="hidden" name="mediaAction" value={mediaAction} />
+					<input type="hidden" name="existingMediaId" value={profileMediaId ?? ''} />
+					<input type="hidden" name="newMediaId" value={newMediaId ?? ''} />
+				</div>
+
 				<!-- Name -->
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 					<div>

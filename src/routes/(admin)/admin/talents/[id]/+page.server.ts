@@ -60,12 +60,23 @@ export const actions: Actions = {
 		const formData = await request.formData();
 		const firstName = formData.get('firstName');
 		const lastName = formData.get('lastName');
-		const role = formData.get('role');
-		const bio = formData.get('bio');
+		const roleEn = formData.get('roleEn');
+		const roleFr = formData.get('roleFr');
+		const bioEn = formData.get('bioEn');
+		const bioFr = formData.get('bioFr');
+		const city = formData.get('city');
+		const country = formData.get('country');
+		const quoteEn = formData.get('quoteEn');
+		const quoteFr = formData.get('quoteFr');
+		const specializationsEn = formData.get('specializationsEn');
+		const specializationsFr = formData.get('specializationsFr');
 		const instagram = formData.get('instagram');
 		const linkedin = formData.get('linkedin');
 		const twitter = formData.get('twitter');
 		const website = formData.get('website');
+		const mediaAction = formData.get('mediaAction');
+		const existingMediaId = formData.get('existingMediaId') as string | null;
+		const newMediaId = formData.get('newMediaId') as string | null;
 		const published = formData.get('published') === 'true';
 
 		// Validation
@@ -77,12 +88,20 @@ export const actions: Actions = {
 			return fail(400, { error: 'Last name is required' });
 		}
 
-		if (!role || typeof role !== 'string') {
-			return fail(400, { error: 'Role is required' });
+		if (!roleEn || typeof roleEn !== 'string') {
+			return fail(400, { error: 'Role (English) is required' });
 		}
 
-		if (!bio || typeof bio !== 'string') {
-			return fail(400, { error: 'Bio is required' });
+		if (!roleFr || typeof roleFr !== 'string') {
+			return fail(400, { error: 'Role (French) is required' });
+		}
+
+		if (!bioEn || typeof bioEn !== 'string') {
+			return fail(400, { error: 'Bio (English) is required' });
+		}
+
+		if (!bioFr || typeof bioFr !== 'string') {
+			return fail(400, { error: 'Bio (French) is required' });
 		}
 
 		// Build social links object
@@ -112,9 +131,20 @@ export const actions: Actions = {
 				...MOCK_TALENTS[talentIndex],
 				firstName,
 				lastName,
-				role,
-				bio,
+				roleEn,
+				roleFr,
+				bioEn,
+				bioFr,
+				city,
+				country,
+				quoteEn,
+				quoteFr,
+				specializationsEn: specializationsEn || null,
+				specializationsFr: specializationsFr || null,
 				socialLinks: JSON.stringify(socialLinks),
+				profileMediaId: mediaAction === 'replaced' && newMediaId ? newMediaId :
+				               mediaAction === 'removed' ? null :
+				               MOCK_TALENTS[talentIndex].profileMediaId,
 				published,
 				updatedAt: new Date()
 			};
@@ -124,16 +154,59 @@ export const actions: Actions = {
 
 		// Database mode - use actual database functions
 		const { updateTalent } = await import('$lib/server/services/talents');
+		const { db } = await import('$lib/server/db');
+		const { media } = await import('$lib/server/db/schema');
+		const { eq } = await import('drizzle-orm');
+		const { deleteMedia } = await import('$lib/server/services/media');
 
 		try {
+			// Update talent fields
 			await updateTalent(id, {
 				firstName,
 				lastName,
-				role,
-				bio,
+				roleEn,
+				roleFr,
+				bioEn,
+				bioFr,
+				city: city || null,
+				country: country || null,
+				quoteEn: quoteEn || null,
+				quoteFr: quoteFr || null,
+				specializationsEn: specializationsEn || null,
+				specializationsFr: specializationsFr || null,
 				socialLinks: JSON.stringify(socialLinks),
+				profileMediaId: mediaAction === 'replaced' && newMediaId ? newMediaId :
+				               mediaAction === 'removed' ? null :
+				               existingMediaId,
 				published
 			});
+
+			// Handle media changes
+			if (mediaAction === 'replaced') {
+				// Delete old media
+				if (existingMediaId) {
+					try {
+						await deleteMedia(existingMediaId);
+					} catch (err) {
+						logger.error('Failed to delete old media:', err);
+					}
+				}
+				// Link new media to talent
+				if (newMediaId) {
+					await db.update(media)
+						.set({ talentId: id, isCover: true })
+						.where(eq(media.id, newMediaId));
+				}
+			} else if (mediaAction === 'removed') {
+				// Delete current profile media
+				if (existingMediaId) {
+					try {
+						await deleteMedia(existingMediaId);
+					} catch (err) {
+						logger.error('Failed to delete media:', err);
+					}
+				}
+			}
 
 			return { success: `Talent "${firstName} ${lastName}" updated successfully` };
 		} catch (error) {
