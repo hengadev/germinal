@@ -24,7 +24,7 @@ vite.config.ts.timestamp-*
 
 *.md
 !README.md
-!terraform/README.md
+!infrastructure/terraform/README.md
 
 # Test Coverage
 coverage/

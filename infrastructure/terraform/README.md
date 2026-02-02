@@ -183,19 +183,20 @@ make destroy-backend # Destroy backend resources (careful!)
 ## Project Structure
 
 ```
-terraform/
-├── main.tf                    # Provider and backend configuration
-├── backend.tf                 # S3 state backend resources (first time only)
-├── s3.tf                      # S3 bucket and IAM resources
-├── hetzner.tf                 # Hetzner Cloud server resources
-├── cloudflare.tf              # Cloudflare DNS records
-├── cloud-init.yml.tftpl       # Server initialization template
-├── variables.tf               # Input variables
-├── outputs.tf                 # Output values
-├── terraform.tfvars.example   # Example variable values
-├── terraform.tfvars           # Your actual values (not in git)
-├── Makefile                   # Convenience commands
-└── README.md                  # This file
+infrastructure/
+└── terraform/
+    ├── main.tf                    # Provider and backend configuration
+    ├── backend.tf                 # S3 state backend resources (first time only)
+    ├── s3.tf                      # S3 bucket and IAM resources
+    ├── hetzner.tf                 # Hetzner Cloud server resources
+    ├── cloudflare.tf              # Cloudflare DNS records
+    ├── cloud-init.yml.tftpl       # Server initialization template
+    ├── variables.tf               # Input variables
+    ├── outputs.tf                 # Output values
+    ├── terraform.tfvars.example   # Example variable values
+    ├── terraform.tfvars           # Your actual values (not in git)
+    ├── Makefile                   # Convenience commands
+    └── README.md                  # This file
 ```
 
 ## VPS Deployment
@@ -346,7 +347,7 @@ For separate environments (development, staging, production):
 
 1. Use different directories:
    ```
-   terraform/
+   infrastructure/terraform/
    ├── development/
    ├── staging/
    └── production/
