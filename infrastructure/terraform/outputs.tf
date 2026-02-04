@@ -54,9 +54,9 @@ output "iam_policy_arn" {
 # Copy this directly to your .env file
 output "env_variables" {
   value = {
-    S3_BUCKET           = aws_s3_bucket.media.bucket
-    S3_REGION           = aws_s3_bucket.media.region
-    AWS_ACCESS_KEY_ID   = aws_iam_access_key.app_user.id
+    S3_BUCKET             = aws_s3_bucket.media.bucket
+    S3_REGION             = aws_s3_bucket.media.region
+    AWS_ACCESS_KEY_ID     = aws_iam_access_key.app_user.id
     AWS_SECRET_ACCESS_KEY = aws_iam_access_key.app_user.secret
   }
   description = "Environment variables to add to .env file"
@@ -98,7 +98,7 @@ output "ssh_connection_string" {
 }
 
 output "server_deployment_guide" {
-  value = <<-EOT
+  value       = <<-EOT
     ========================================
     Germinal VPS Deployment Guide
     ========================================
@@ -165,7 +165,7 @@ output "dns_records" {
 }
 
 output "email_setup_status" {
-  value = <<-EOT
+  value       = <<-EOT
     ========================================
     Email DNS Configuration (Google Workspace)
     ========================================
@@ -199,4 +199,23 @@ output "cloudflare_zone_info" {
     url     = "https://dash.cloudflare.com/${var.cloudflare_zone_id}/${var.domain_name}/dns"
   }
   description = "Cloudflare zone information"
+}
+
+# ============================================
+# CloudFront Outputs
+# ============================================
+
+output "cloudfront_distribution_id" {
+  value       = aws_cloudfront_distribution.media.id
+  description = "CloudFront distribution ID for cache invalidation"
+}
+
+output "cloudfront_domain_name" {
+  value       = aws_cloudfront_distribution.media.domain_name
+  description = "CloudFront distribution domain name"
+}
+
+output "media_url" {
+  value       = "https://media.${var.domain_name}"
+  description = "Media CDN URL for application configuration"
 }
