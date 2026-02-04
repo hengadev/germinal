@@ -26,7 +26,7 @@ variable "environment" {
 variable "allowed_origins" {
   description = "Allowed CORS origins for S3 bucket (e.g., your application domains)"
   type        = list(string)
-  default     = [
+  default = [
     "http://localhost:5173",
     "http://localhost:4100",
   ]
