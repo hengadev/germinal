@@ -17,6 +17,7 @@ const devEnvSchema = z.object({
     AWS_SECRET_ACCESS_KEY: z.string().optional().default(''),
     S3_BUCKET_NAME: z.string().optional().default('germinal-media-dev'),
     S3_PUBLIC_URL: z.string().optional().default('http://localhost:9000'),
+    MEDIA_URL: z.string().url().optional(), // CloudFront URL, falls back to S3_PUBLIC_URL
     MAX_FILE_SIZE: z.string().default('10485760').transform(Number),
     ALLOWED_IMAGE_TYPES: z.string().default('image/jpeg,image/png,image/webp,image/gif').transform(s => s.split(',')),
     ALLOWED_VIDEO_TYPES: z.string().default('video/mp4,video/webm,video/quicktime').transform(s => s.split(',')),
@@ -59,6 +60,7 @@ const prodEnvSchema = z.object({
     AWS_SECRET_ACCESS_KEY: z.string().min(1),
     S3_BUCKET_NAME: z.string().min(1),
     S3_PUBLIC_URL: z.string().url(),
+    MEDIA_URL: z.string().url().optional(), // CloudFront URL, falls back to S3_PUBLIC_URL
     MAX_FILE_SIZE: z.string().transform(Number),
     ALLOWED_IMAGE_TYPES: z.string().transform(s => s.split(',')),
     ALLOWED_VIDEO_TYPES: z.string().transform(s => s.split(',')),
@@ -171,6 +173,11 @@ export const isSMTPEnabled = () => {
 // Helper to check if Stripe is configured
 export const isStripeEnabled = () => {
     return !!(env.STRIPE_SECRET_KEY && env.STRIPE_WEBHOOK_SECRET);
+};
+
+// Helper to get media base URL (CloudFront if configured, otherwise S3)
+export const getMediaBaseUrl = () => {
+    return env.MEDIA_URL || env.S3_PUBLIC_URL;
 };
 
 /**
