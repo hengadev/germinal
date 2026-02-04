@@ -1,7 +1,6 @@
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { randomUUID } from 'node:crypto';
-import { env, isS3Enabled } from '../env';
+import { env, isS3Enabled, getMediaBaseUrl } from '../env';
 
 // Lazy initialization - only create S3 client if credentials are provided
 let s3Client: S3Client | null = null;
@@ -28,8 +27,15 @@ function getS3Client(): S3Client {
 }
 
 export interface UploadStreamResult {
-	url: string;
-	key: string;
+  url: string;
+  key: string;
+}
+
+export interface UploadResult {
+  url: string;
+  key: string;
+  mimeType: string;
+  size: number;
 }
 
 /**
@@ -53,145 +59,18 @@ export async function uploadStreamToS3(
     Key: key,
     Body: stream,
     ContentType: contentType,
-    ACL: 'public-read',
     ContentLength: fileSize,
   });
 
   await client.send(command);
 
-  const url = `${env.S3_PUBLIC_URL}/${key}`;
+  const url = `${getMediaBaseUrl()}/${key}`;
 
   return { url, key };
 }
 
 /**
- * Upload a buffer to S3 (legacy method for backward compatibility)
- */
-export async function uploadToS3(
-  buffer: Buffer,
-  mimeType: string,
-  folder: 'events' | 'talents'
-): Promise<{ url: string; key: string }> {
-  const client = getS3Client();
-
-  const fileName = `${randomUUID()}${getExtensionFromMimeType(mimeType)}`;
-  const key = `${folder}/${fileName}`;
-
-  const command = new PutObjectCommand({
-    Bucket: env.S3_BUCKET_NAME,
-    Key: key,
-    Body: buffer,
-    ContentType: mimeType,
-    ACL: 'public-read',
-  });
-
-  await client.send(command);
-
-  const url = `${env.S3_PUBLIC_URL}/${key}`;
-
-  return { url, key };
-}
-
-/**
- * Upload multiple buffers to S3
- */
-export async function uploadMultipleToS3(
-  items: Array<{ buffer: Buffer; mimeType: string }>,
-  folder: 'events' | 'talents'
-): Promise<Array<{ url: string; key: string }>> {
-  return Promise.all(
-    items.map(item => uploadToS3(item.buffer, item.mimeType, folder))
-  );
-}
-
-/**
- * Delete a file from S3
- */
-export async function deleteFromS3(key: string): Promise<void> {
-  const client = getS3Client();
-
-  const command = new DeleteObjectCommand({
-    Bucket: env.S3_BUCKET_NAME,
-    Key: key,
-  });
-
-  await client.send(command);
-}
-
-/**
- * Delete multiple files from S3
- */
-export async function deleteMultipleFromS3(keys: string[]): Promise<void> {
-  const client = getS3Client();
-
-  await Promise.all(
-    keys.map(key => 
-      client.send(new DeleteObjectCommand({
-        Bucket: env.S3_BUCKET_NAME,
-        Key: key,
-      }))
-    )
-  );
-}
-
-/**
- * Generate a signed URL for private files
- */
-export function generateSignedUrl(key: string, expiresIn = 3600): string {
-  if (!isS3Enabled()) {
-    throw new Error('S3 is not configured');
-  }
-
-  const client = getS3Client();
-
-  const command = new GetSignedUrl({
-    Bucket: env.S3_BUCKET_NAME,
-    Key: key,
-    Expires: expiresIn,
-  });
-
-  return client.send(command).then(res => res.url);
-}
-
-/**
- * Get file extension from MIME type
- */
-function getExtensionFromMimeType(mimeType: string): string {
-  const map: Record<string, string> = {
-    'image/jpeg': '.jpg',
-    'image/png': '.png',
-    'image/webp': '.webp',
-    'image/gif': '.gif',
-    'video/mp4': '.mp4',
-    'video/webm': '.webm',
-    'video/quicktime': '.mov',
-  };
-
-  return map[mimeType] || '';
-}
-
-  if (!s3Client) {
-    s3Client = new S3Client({
-      region: env.AWS_REGION,
-      credentials: {
-        accessKeyId: env.AWS_ACCESS_KEY_ID!,
-        secretAccessKey: env.AWS_SECRET_ACCESS_KEY!,
-      },
-    });
-  }
-
-  return s3Client;
-}
-
-export interface UploadResult {
-  url: string;
-  key: string;
-  mimeType: string;
-  size: number;
-}
-
-/**
- * Upload a file to S3
+ * Upload a buffer to S3
  * @param file - File buffer
  * @param mimeType - MIME type of the file
  * @param folder - S3 folder (events/talents)
@@ -213,12 +92,11 @@ export async function uploadToS3(
     Key: key,
     Body: file,
     ContentType: mimeType,
-    ACL: 'public-read',
   });
 
   await client.send(command);
 
-  const url = `${env.S3_PUBLIC_URL}/${key}`;
+  const url = `${getMediaBaseUrl()}/${key}`;
 
   return {
     url,
@@ -226,6 +104,21 @@ export async function uploadToS3(
     mimeType,
     size: file.length,
   };
+}
+
+/**
+ * Upload multiple files to S3
+ * @param files - Array of file buffers with metadata
+ * @param folder - S3 folder
+ * @returns Array of upload results
+ */
+export async function uploadMultipleToS3(
+  files: Array<{ buffer: Buffer; mimeType: string }>,
+  folder: 'events' | 'talents'
+): Promise<UploadResult[]> {
+  return Promise.all(
+    files.map(file => uploadToS3(file.buffer, file.mimeType, folder))
+  );
 }
 
 /**
@@ -244,20 +137,25 @@ export async function deleteFromS3(key: string): Promise<void> {
 }
 
 /**
- * Upload multiple files to S3
- * @param files - Array of file buffers with metadata
- * @param folder - S3 folder
- * @returns Array of upload results
+ * Delete multiple files from S3
+ * @param keys - Array of S3 object keys
  */
-export async function uploadMultipleToS3(
-  files: Array<{ buffer: Buffer; mimeType: string }>,
-  folder: 'events' | 'talents'
-): Promise<UploadResult[]> {
-  return Promise.all(
-    files.map(file => uploadToS3(file.buffer, file.mimeType, folder))
+export async function deleteMultipleFromS3(keys: string[]): Promise<void> {
+  const client = getS3Client();
+
+  await Promise.all(
+    keys.map(key =>
+      client.send(new DeleteObjectCommand({
+        Bucket: env.S3_BUCKET_NAME,
+        Key: key,
+      }))
+    )
   );
 }
 
+/**
+ * Get file extension from MIME type
+ */
 function getExtensionFromMimeType(mimeType: string): string {
   const map: Record<string, string> = {
     'image/jpeg': '.jpg',
@@ -268,5 +166,6 @@ function getExtensionFromMimeType(mimeType: string): string {
     'video/webm': '.webm',
     'video/quicktime': '.mov',
   };
+
   return map[mimeType] || '';
 }
