@@ -120,5 +120,18 @@ resource "cloudflare_dns_record" "google_site_verification" {
   proxied = false
   ttl     = 3600
 
-  count    = var.google_site_verification != "" ? 1 : 0
+  count = var.google_site_verification != "" ? 1 : 0
+}
+
+# ============================================
+# Media CDN DNS Record (CloudFront)
+# ============================================
+
+resource "cloudflare_dns_record" "media" {
+  zone_id = var.cloudflare_zone_id
+  name    = "media"
+  type    = "CNAME"
+  content = aws_cloudfront_distribution.media.domain_name
+  proxied = false # Cannot proxy CloudFront
+  ttl     = 3600
 }
