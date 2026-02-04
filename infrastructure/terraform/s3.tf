@@ -139,3 +139,26 @@ resource "aws_iam_user_policy_attachment" "s3_access_attach" {
 resource "aws_iam_access_key" "app_user" {
   user = aws_iam_user.app_user.name
 }
+
+# ============================================
+# S3 Bucket Policy for CloudFront OAC
+# ============================================
+
+resource "aws_s3_bucket_policy" "media_cloudfront" {
+  bucket = aws_s3_bucket.media.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Sid       = "AllowCloudFrontOAC"
+      Effect    = "Allow"
+      Principal = { Service = "cloudfront.amazonaws.com" }
+      Action    = "s3:GetObject"
+      Resource  = "${aws_s3_bucket.media.arn}/*"
+      Condition = {
+        StringEquals = {
+          "AWS:SourceArn" = aws_cloudfront_distribution.media.arn
+        }
+      }
+    }]
+  })
+}
