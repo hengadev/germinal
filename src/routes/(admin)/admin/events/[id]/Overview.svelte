@@ -44,16 +44,16 @@
 
 	// Media state
 	const existingCoverMedia = data.event.coverMedia ? [data.event.coverMedia] : [];
-	const existingGalleryMedia = (data.event.media || []).filter(m => m.id !== data.event.coverMediaId);
+	const existingGalleryMedia = (data.event.media || []).filter((m: Media) => m.id !== data.event.coverMediaId);
 
 	let coverMediaId = $state(data.event.coverMediaId ?? null);
-	let galleryMediaIds = $state(existingGalleryMedia.map(m => m.id));
+	let galleryMediaIds = $state(existingGalleryMedia.map((m: Media) => m.id));
 	let removedIds: string[] = $state([]);
 	let addedIds: string[] = $state([]);
 
 	// Track original state for comparison
 	const originalCoverId = data.event.coverMediaId ?? null;
-	const originalGalleryIds = existingGalleryMedia.map(m => m.id);
+	const originalGalleryIds = existingGalleryMedia.map((m: Media) => m.id);
 
 	function handleCoverUpload(media: Media[]) {
 		if (media.length > 0) {

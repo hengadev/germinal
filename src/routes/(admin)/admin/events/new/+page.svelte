@@ -70,7 +70,6 @@
 	function handleGalleryReorder(mediaIds: string[]) {
 		galleryMediaIds = mediaIds;
 	}
-</script>
 
 	// Auto-generate slug from English title
 	$effect(() => {

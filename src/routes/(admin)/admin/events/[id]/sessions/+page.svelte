@@ -319,7 +319,7 @@
 	name: string,
 	label: string,
 	inputSnippet: InputSnippet,
-	value: string,
+	value: string | number,
 	error: string | null,
 )}
 	<label for={name} class="block text-sm font-medium text-dark-700 mb-1">
