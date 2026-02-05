@@ -117,3 +117,18 @@ variable "google_site_verification" {
   type        = string
   default     = ""
 }
+
+# ============================================
+# Backup Configuration Variables
+# ============================================
+
+variable "backup_retention_days" {
+  description = "Number of days to retain daily database backups before deletion"
+  type        = number
+  default     = 90
+
+  validation {
+    condition     = var.backup_retention_days >= 7 && var.backup_retention_days <= 365
+    error_message = "Backup retention must be between 7 and 365 days."
+  }
+}

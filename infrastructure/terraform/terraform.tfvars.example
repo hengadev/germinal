@@ -68,3 +68,12 @@ contact_email = "admin@example.com"
 # Get from Google Search Console if you need to verify your domain
 # Leave empty if not needed
 google_site_verification = ""
+
+# ============================================
+# Database Backup Configuration
+# ============================================
+
+# Number of days to retain daily backups (7-365)
+# Weekly backups are retained for 2x this value
+# Monthly backups are retained for 1 year
+backup_retention_days = 90

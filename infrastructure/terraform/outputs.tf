@@ -219,3 +219,73 @@ output "media_url" {
   value       = "https://media.${var.domain_name}"
   description = "Media CDN URL for application configuration"
 }
+
+# ============================================
+# Database Backup Outputs
+# ============================================
+
+output "backup_bucket_name" {
+  value       = aws_s3_bucket.backups.bucket
+  description = "Name of the database backup S3 bucket"
+}
+
+output "backup_bucket_arn" {
+  value       = aws_s3_bucket.backups.arn
+  description = "ARN of the database backup S3 bucket"
+}
+
+output "backup_bucket_region" {
+  value       = aws_s3_bucket.backups.region
+  description = "AWS region of the backup bucket"
+}
+
+output "backup_env_variables" {
+  value = {
+    BACKUP_S3_BUCKET = aws_s3_bucket.backups.bucket
+    BACKUP_S3_REGION = aws_s3_bucket.backups.region
+  }
+  description = "Environment variables for backup script"
+}
+
+output "backup_script_example" {
+  value       = <<-EOT
+    ========================================
+    Database Backup Script Example
+    ========================================
+
+    Add this to your VPS crontab (crontab -e):
+
+    # Daily backup at 2 AM
+    0 2 * * * /opt/germinal/scripts/backup-db.sh daily
+
+    # Weekly backup on Sunday at 3 AM
+    0 3 * * 0 /opt/germinal/scripts/backup-db.sh weekly
+
+    # Monthly backup on 1st at 4 AM
+    0 4 1 * * /opt/germinal/scripts/backup-db.sh monthly
+
+    ----------------------------------------
+    Example backup script (/opt/germinal/scripts/backup-db.sh):
+
+    #!/bin/bash
+    set -e
+
+    TYPE=$${1:-daily}
+    TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+    FILENAME="germinal_$${TYPE}_$${TIMESTAMP}.sql.gz"
+
+    # Dump and compress
+    docker exec postgres pg_dump -U germinal germinal | gzip > /tmp/$FILENAME
+
+    # Upload to S3
+    aws s3 cp /tmp/$FILENAME s3://${aws_s3_bucket.backups.bucket}/$TYPE/$FILENAME
+
+    # Cleanup
+    rm /tmp/$FILENAME
+
+    echo "Backup uploaded: s3://${aws_s3_bucket.backups.bucket}/$TYPE/$FILENAME"
+
+    ========================================
+    EOT
+  description = "Example backup script and crontab configuration"
+}
