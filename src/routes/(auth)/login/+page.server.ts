@@ -26,7 +26,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 	return {
 		showMockCredentials,
-		mockEmail
+		mockEmail,
+		csrfToken: locals.csrfToken
 	};
 };
 
@@ -80,7 +81,7 @@ export const actions: Actions = {
 			// Set secure cookie with subdomain support
 			cookies.set('session', session.id, {
 				path: '/',
-				domain: cookieDomain,
+				domain: cookieDomain ?? undefined,
 				httpOnly: true,
 				sameSite: 'lax',
 				secure: true,
@@ -114,7 +115,7 @@ export const actions: Actions = {
 		// Set secure cookie with subdomain support
 		cookies.set('session', session.id, {
 			path: '/',
-			domain: cookieDomain,
+			domain: cookieDomain ?? undefined,
 			httpOnly: true,
 			sameSite: 'lax',
 			secure: true,

@@ -43,7 +43,7 @@ export const load: PageServerLoad = async ({ url }) => {
 	});
 
 	return {
-		emails: allEmails.map(e => ({
+		emails: allEmails.map((e: typeof allEmails[number]) => ({
 			id: e.id,
 			type: e.type,
 			recipient: e.recipient,

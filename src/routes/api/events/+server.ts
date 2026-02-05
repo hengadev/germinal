@@ -13,7 +13,8 @@ export const GET: RequestHandler = async ({ url, setHeaders }) => {
 
   // Use mock data if enabled (no database required!)
   if (USE_MOCK_DATA) {
-    const { page, limit } = pagination;
+    const page = pagination.page ?? 1;
+    const limit = pagination.limit ?? 20;
     const totalEvents = MOCK_EVENTS.length;
     const startIndex = (page - 1) * limit;
     const endIndex = startIndex + limit;

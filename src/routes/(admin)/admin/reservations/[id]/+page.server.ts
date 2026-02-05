@@ -47,7 +47,7 @@ export const load: PageServerLoad = async ({ params }) => {
 					endTime: session.endTime.toISOString(),
 					event: {
 						id: event.id,
-						title: event.title,
+						title: event.titleEn,
 						slug: event.slug,
 						location: event.location,
 						venueName: event.venueName,

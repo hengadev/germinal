@@ -18,7 +18,7 @@ export const load: PageServerLoad = async () => {
 				status: r.status,
 				createdAt: r.createdAt,
 				confirmedAt: r.confirmedAt,
-				eventTitle: event?.title || '',
+				eventTitle: event?.titleEn || '',
 				sessionTitle: session?.title || '',
 				sessionStartTime: session?.startTime?.toISOString() || '',
 				paymentStatus: r.paymentStatus
@@ -56,7 +56,7 @@ export const load: PageServerLoad = async () => {
 	});
 
 	return {
-		reservations: allReservations.map(r => ({
+		reservations: allReservations.map((r: typeof allReservations[number]) => ({
 			id: r.id,
 			guestName: r.guestName,
 			guestEmail: r.guestEmail,
@@ -66,7 +66,7 @@ export const load: PageServerLoad = async () => {
 			status: r.status,
 			createdAt: r.createdAt.toISOString(),
 			confirmedAt: r.confirmedAt?.toISOString(),
-			eventTitle: r.eventSession.event.title,
+			eventTitle: r.eventSession.event.titleEn,
 			sessionTitle: r.eventSession.title,
 			sessionStartTime: r.eventSession.startTime.toISOString(),
 			paymentStatus: r.payment?.status || 'none'

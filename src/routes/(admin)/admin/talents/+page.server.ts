@@ -4,21 +4,22 @@ import type { Actions } from '@sveltejs/kit';
 import { fail } from '@sveltejs/kit';
 import { env } from '$lib/server/env';
 import { MOCK_TALENTS } from '$lib/mock-data';
+import type { TalentWithMedia } from '$lib/types/talents';
 
 export const load: PageServerLoad = async () => {
 	if (env.USE_MOCK_DATA) {
 		// Mock mode - return all talents (published and unpublished)
 		return {
-			talents: MOCK_TALENTS
+			talents: MOCK_TALENTS as unknown as TalentWithMedia[]
 		};
 	}
 
 	// Database mode - import and use actual database functions
 	const { getAllTalents } = await import('$lib/server/services/talents');
-	const talents = await getAllTalents(false); // false = get all, not just published
+	const result = await getAllTalents({ publishedOnly: false });
 
 	return {
-		talents
+		talents: result.data as TalentWithMedia[]
 	};
 };
 
@@ -30,8 +31,10 @@ export const actions: Actions = {
 		const formData = await request.formData();
 		const firstName = formData.get('firstName');
 		const lastName = formData.get('lastName');
-		const role = formData.get('role');
-		const bio = formData.get('bio');
+		const roleEn = formData.get('roleEn');
+		const roleFr = formData.get('roleFr');
+		const bioEn = formData.get('bioEn');
+		const bioFr = formData.get('bioFr');
 		const instagram = formData.get('instagram');
 		const linkedin = formData.get('linkedin');
 		const twitter = formData.get('twitter');
@@ -47,12 +50,20 @@ export const actions: Actions = {
 			return fail(400, { error: 'Last name is required' });
 		}
 
-		if (!role || typeof role !== 'string') {
-			return fail(400, { error: 'Role is required' });
+		if (!roleEn || typeof roleEn !== 'string') {
+			return fail(400, { error: 'Role (English) is required' });
 		}
 
-		if (!bio || typeof bio !== 'string') {
-			return fail(400, { error: 'Bio is required' });
+		if (!roleFr || typeof roleFr !== 'string') {
+			return fail(400, { error: 'Role (French) is required' });
+		}
+
+		if (!bioEn || typeof bioEn !== 'string') {
+			return fail(400, { error: 'Bio (English) is required' });
+		}
+
+		if (!bioFr || typeof bioFr !== 'string') {
+			return fail(400, { error: 'Bio (French) is required' });
 		}
 
 		// Build social links object
@@ -76,16 +87,25 @@ export const actions: Actions = {
 				id: String(MOCK_TALENTS.length + 1),
 				firstName,
 				lastName,
-				role,
-				bio,
+				roleEn,
+				roleFr,
+				bioEn,
+				bioFr,
+				city: null,
+				country: null,
+				quoteEn: null,
+				quoteFr: null,
+				specializationsEn: null,
+				specializationsFr: null,
 				socialLinks: JSON.stringify(socialLinks),
 				published,
+				categoryId: null,
 				createdAt: new Date(),
 				updatedAt: new Date(),
 				profileMediaId: null,
 				profileMedia: null,
 				media: []
-			} as typeof MOCK_TALENTS[number];
+			} as unknown as typeof MOCK_TALENTS[number];
 
 			MOCK_TALENTS.push(newTalent);
 
@@ -99,16 +119,25 @@ export const actions: Actions = {
 			await createTalent({
 				firstName,
 				lastName,
-				role,
-				bio,
+				roleEn,
+				roleFr,
+				bioEn,
+				bioFr,
+				city: null,
+				country: null,
+				quoteEn: null,
+				quoteFr: null,
+				specializationsEn: null,
+				specializationsFr: null,
 				socialLinks: JSON.stringify(socialLinks),
 				profileMediaId: null,
+				categoryId: null,
 				published
 			});
 
 			return { success: `Talent "${firstName} ${lastName}" added successfully` };
 		} catch (error) {
-			logger.error('Error creating talent:', error);
+			logger.error({ err: error }, 'Error creating talent');
 			return fail(500, { error: 'Failed to create talent' });
 		}
 	},
@@ -121,8 +150,10 @@ export const actions: Actions = {
 		const id = formData.get('id');
 		const firstName = formData.get('firstName');
 		const lastName = formData.get('lastName');
-		const role = formData.get('role');
-		const bio = formData.get('bio');
+		const roleEn = formData.get('roleEn');
+		const roleFr = formData.get('roleFr');
+		const bioEn = formData.get('bioEn');
+		const bioFr = formData.get('bioFr');
 		const instagram = formData.get('instagram');
 		const linkedin = formData.get('linkedin');
 		const twitter = formData.get('twitter');
@@ -143,12 +174,20 @@ export const actions: Actions = {
 			return fail(400, { error: 'Last name is required' });
 		}
 
-		if (!role || typeof role !== 'string') {
-			return fail(400, { error: 'Role is required' });
+		if (!roleEn || typeof roleEn !== 'string') {
+			return fail(400, { error: 'Role (English) is required' });
 		}
 
-		if (!bio || typeof bio !== 'string') {
-			return fail(400, { error: 'Bio is required' });
+		if (!roleFr || typeof roleFr !== 'string') {
+			return fail(400, { error: 'Role (French) is required' });
+		}
+
+		if (!bioEn || typeof bioEn !== 'string') {
+			return fail(400, { error: 'Bio (English) is required' });
+		}
+
+		if (!bioFr || typeof bioFr !== 'string') {
+			return fail(400, { error: 'Bio (French) is required' });
 		}
 
 		// Build social links object
@@ -178,12 +217,14 @@ export const actions: Actions = {
 				...MOCK_TALENTS[talentIndex],
 				firstName,
 				lastName,
-				role,
-				bio,
+				roleEn,
+				roleFr,
+				bioEn,
+				bioFr,
 				socialLinks: JSON.stringify(socialLinks),
 				published,
 				updatedAt: new Date()
-			};
+			} as typeof MOCK_TALENTS[number];
 
 			return { success: `Talent "${firstName} ${lastName}" updated successfully` };
 		}
@@ -195,15 +236,17 @@ export const actions: Actions = {
 			await updateTalent(id, {
 				firstName,
 				lastName,
-				role,
-				bio,
+				roleEn,
+				roleFr,
+				bioEn,
+				bioFr,
 				socialLinks: JSON.stringify(socialLinks),
 				published
 			});
 
 			return { success: `Talent "${firstName} ${lastName}" updated successfully` };
 		} catch (error) {
-			logger.error('Error updating talent:', error);
+			logger.error({ err: error }, 'Error updating talent');
 			return fail(500, { error: 'Failed to update talent' });
 		}
 	},
@@ -240,7 +283,7 @@ export const actions: Actions = {
 			await deleteTalent(id);
 			return { success: 'Talent deleted successfully' };
 		} catch (error) {
-			logger.error('Error deleting talent:', error);
+			logger.error({ err: error }, 'Error deleting talent');
 			return fail(500, { error: 'Failed to delete talent' });
 		}
 	}

@@ -93,12 +93,12 @@ export const actions: Actions = {
 				roleFr,
 				bioEn,
 				bioFr,
-				city,
-				country,
-				quoteEn,
-				quoteFr,
-				specializationsEn: specializationsEn || null,
-				specializationsFr: specializationsFr || null,
+				city: city?.toString() || null,
+				country: country?.toString() || null,
+				quoteEn: quoteEn?.toString() || null,
+				quoteFr: quoteFr?.toString() || null,
+				specializationsEn: specializationsEn?.toString() || null,
+				specializationsFr: specializationsFr?.toString() || null,
 				socialLinks: JSON.stringify(socialLinks),
 				published,
 				createdAt: new Date(),
@@ -128,14 +128,15 @@ export const actions: Actions = {
 				roleFr,
 				bioEn,
 				bioFr,
-				city: city || null,
-				country: country || null,
-				quoteEn: quoteEn || null,
-				quoteFr: quoteFr || null,
-				specializationsEn: specializationsEn || null,
-				specializationsFr: specializationsFr || null,
+				city: city?.toString() || null,
+				country: country?.toString() || null,
+				quoteEn: quoteEn?.toString() || null,
+				quoteFr: quoteFr?.toString() || null,
+				specializationsEn: specializationsEn?.toString() || null,
+				specializationsFr: specializationsFr?.toString() || null,
 				socialLinks: JSON.stringify(socialLinks),
 				profileMediaId: profileMediaId || null,
+				categoryId: null,
 				published
 			});
 
@@ -148,7 +149,7 @@ export const actions: Actions = {
 
 			return { success: `Talent "${firstName} ${lastName}" added successfully` };
 		} catch (error) {
-			logger.error('Error creating talent:', error);
+			logger.error({ err: error }, 'Error creating talent');
 			return fail(500, { error: 'Failed to create talent' });
 		}
 	}

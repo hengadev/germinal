@@ -3,6 +3,7 @@ import { logger } from '$lib/server/logger';
 import { MOCK_EVENTS, MOCK_CATEGORIES, USE_MOCK_DATA } from '$lib/mock-data';
 import { calculatePagination, DEFAULT_LIMIT } from '$lib/utils/pagination';
 import type { PageServerLoad } from './$types';
+import type { EventWithMedia } from '$lib/types/events';
 
 const INITIAL_PAGE_SIZE = 6;
 
@@ -20,7 +21,7 @@ export const load: PageServerLoad = async () => {
     if (USE_MOCK_DATA) {
         logger.info('📦 Using mock data for events');
         const totalEvents = MOCK_EVENTS.length;
-        const initialEvents = MOCK_EVENTS.slice(0, INITIAL_PAGE_SIZE);
+        const initialEvents = MOCK_EVENTS.slice(0, INITIAL_PAGE_SIZE) as unknown as EventWithMedia[];
         const pagination = calculatePagination(1, INITIAL_PAGE_SIZE, totalEvents);
 
         return {
@@ -33,7 +34,7 @@ export const load: PageServerLoad = async () => {
     const result = await getAllEvents({ publishedOnly: true, page: 1, limit: INITIAL_PAGE_SIZE });
 
     return {
-        events: result.data,
+        events: result.data as EventWithMedia[],
         pagination: result.pagination,
         categories,
     };

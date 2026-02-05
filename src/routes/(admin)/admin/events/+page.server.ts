@@ -4,21 +4,22 @@ import type { Actions } from '@sveltejs/kit';
 import { fail } from '@sveltejs/kit';
 import { env } from '$lib/server/env';
 import { MOCK_EVENTS } from '$lib/mock-data';
+import type { EventWithMedia } from '$lib/types/events';
 
 export const load: PageServerLoad = async () => {
     if (env.USE_MOCK_DATA) {
         // Mock mode - return all events (published and unpublished)
         return {
-            events: MOCK_EVENTS
+            events: MOCK_EVENTS as unknown as EventWithMedia[]
         };
     }
 
     // Database mode - import and use actual database functions
     const { getAllEvents } = await import('$lib/server/services/events');
-    const events = await getAllEvents(false); // false = get all, not just published
+    const result = await getAllEvents({ publishedOnly: false });
 
     return {
-        events
+        events: result.data as EventWithMedia[]
     };
 };
 
@@ -28,25 +29,35 @@ export const actions: Actions = {
      */
     createEvent: async ({ request }) => {
         const formData = await request.formData();
-        const title = formData.get('title');
+        const titleEn = formData.get('titleEn');
+        const titleFr = formData.get('titleFr');
         const slug = formData.get('slug');
-        const description = formData.get('description');
+        const descriptionEn = formData.get('descriptionEn');
+        const descriptionFr = formData.get('descriptionFr');
         const startDate = formData.get('startDate');
         const endDate = formData.get('endDate');
         const location = formData.get('location');
         const published = formData.get('published') === 'true';
 
         // Validation
-        if (!title || typeof title !== 'string') {
-            return fail(400, { error: 'Title is required' });
+        if (!titleEn || typeof titleEn !== 'string') {
+            return fail(400, { error: 'Title (English) is required' });
+        }
+
+        if (!titleFr || typeof titleFr !== 'string') {
+            return fail(400, { error: 'Title (French) is required' });
         }
 
         if (!slug || typeof slug !== 'string') {
             return fail(400, { error: 'Slug is required' });
         }
 
-        if (!description || typeof description !== 'string') {
-            return fail(400, { error: 'Description is required' });
+        if (!descriptionEn || typeof descriptionEn !== 'string') {
+            return fail(400, { error: 'Description (English) is required' });
+        }
+
+        if (!descriptionFr || typeof descriptionFr !== 'string') {
+            return fail(400, { error: 'Description (French) is required' });
         }
 
         if (!startDate || typeof startDate !== 'string') {
@@ -82,23 +93,44 @@ export const actions: Actions = {
             // Mock mode - add to mock data array (not persisted)
             const newEvent = {
                 id: String(MOCK_EVENTS.length + 1),
-                title,
+                titleEn,
+                titleFr,
                 slug,
-                description,
+                descriptionEn,
+                descriptionFr,
+                subtitleEn: '',
+                subtitleFr: '',
                 startDate: start,
                 endDate: end,
                 location,
+                venueName: null,
+                streetAddress: null,
+                district: null,
+                city: null,
+                postalCode: null,
+                country: null,
+                collaborators: null,
+                timings: null,
+                curatorEn: null,
+                curatorFr: null,
+                materialsEn: null,
+                materialsFr: null,
+                admissionInfoEn: null,
+                admissionInfoFr: null,
                 published,
+                isSpotlight: false,
+                categoryId: null,
+                category: null,
                 createdAt: new Date(),
                 updatedAt: new Date(),
                 coverMediaId: null,
                 coverMedia: null,
                 media: []
-            } as typeof MOCK_EVENTS[number];
+            } as unknown as typeof MOCK_EVENTS[number];
 
             MOCK_EVENTS.push(newEvent);
 
-            return { success: `Event "${title}" created successfully` };
+            return { success: `Event "${titleEn}" created successfully` };
         }
 
         // Database mode - use actual database functions
@@ -106,19 +138,39 @@ export const actions: Actions = {
 
         try {
             await createEvent({
-                title,
+                titleEn,
+                titleFr,
                 slug,
-                description,
+                descriptionEn,
+                descriptionFr,
+                subtitleEn: null,
+                subtitleFr: null,
                 startDate: start,
                 endDate: end,
                 location,
+                venueName: null,
+                streetAddress: null,
+                district: null,
+                city: null,
+                postalCode: null,
+                country: null,
+                collaborators: null,
+                timings: null,
+                curatorEn: null,
+                curatorFr: null,
+                materialsEn: null,
+                materialsFr: null,
+                admissionInfoEn: null,
+                admissionInfoFr: null,
                 coverMediaId: null,
-                published
+                categoryId: null,
+                published,
+                isSpotlight: false
             });
 
-            return { success: `Event "${title}" created successfully` };
+            return { success: `Event "${titleEn}" created successfully` };
         } catch (error) {
-            logger.error('Error creating event:', error);
+            logger.error({ err: error }, 'Error creating event');
             return fail(500, { error: 'Failed to create event. The slug may already be in use.' });
         }
     },
@@ -129,9 +181,11 @@ export const actions: Actions = {
     updateEvent: async ({ request }) => {
         const formData = await request.formData();
         const id = formData.get('id');
-        const title = formData.get('title');
+        const titleEn = formData.get('titleEn');
+        const titleFr = formData.get('titleFr');
         const slug = formData.get('slug');
-        const description = formData.get('description');
+        const descriptionEn = formData.get('descriptionEn');
+        const descriptionFr = formData.get('descriptionFr');
         const startDate = formData.get('startDate');
         const endDate = formData.get('endDate');
         const location = formData.get('location');
@@ -143,16 +197,24 @@ export const actions: Actions = {
         }
 
         // Validation
-        if (!title || typeof title !== 'string') {
-            return fail(400, { error: 'Title is required' });
+        if (!titleEn || typeof titleEn !== 'string') {
+            return fail(400, { error: 'Title (English) is required' });
+        }
+
+        if (!titleFr || typeof titleFr !== 'string') {
+            return fail(400, { error: 'Title (French) is required' });
         }
 
         if (!slug || typeof slug !== 'string') {
             return fail(400, { error: 'Slug is required' });
         }
 
-        if (!description || typeof description !== 'string') {
-            return fail(400, { error: 'Description is required' });
+        if (!descriptionEn || typeof descriptionEn !== 'string') {
+            return fail(400, { error: 'Description (English) is required' });
+        }
+
+        if (!descriptionFr || typeof descriptionFr !== 'string') {
+            return fail(400, { error: 'Description (French) is required' });
         }
 
         if (!startDate || typeof startDate !== 'string') {
@@ -194,17 +256,19 @@ export const actions: Actions = {
 
             MOCK_EVENTS[eventIndex] = {
                 ...MOCK_EVENTS[eventIndex],
-                title,
+                titleEn,
+                titleFr,
                 slug,
-                description,
+                descriptionEn,
+                descriptionFr,
                 startDate: start,
                 endDate: end,
                 location,
                 published,
                 updatedAt: new Date()
-            };
+            } as typeof MOCK_EVENTS[number];
 
-            return { success: `Event "${title}" updated successfully` };
+            return { success: `Event "${titleEn}" updated successfully` };
         }
 
         // Database mode - use actual database functions
@@ -212,18 +276,20 @@ export const actions: Actions = {
 
         try {
             await updateEvent(id, {
-                title,
+                titleEn,
+                titleFr,
                 slug,
-                description,
+                descriptionEn,
+                descriptionFr,
                 startDate: start,
                 endDate: end,
                 location,
                 published
             });
 
-            return { success: `Event "${title}" updated successfully` };
+            return { success: `Event "${titleEn}" updated successfully` };
         } catch (error) {
-            logger.error('Error updating event:', error);
+            logger.error({ err: error }, 'Error updating event');
             return fail(500, { error: 'Failed to update event' });
         }
     },
@@ -250,7 +316,7 @@ export const actions: Actions = {
             const event = MOCK_EVENTS[eventIndex];
             MOCK_EVENTS.splice(eventIndex, 1);
 
-            return { success: `Event "${event.title}" deleted successfully` };
+            return { success: `Event "${event.titleEn}" deleted successfully` };
         }
 
         // Database mode - use actual database functions
@@ -260,7 +326,7 @@ export const actions: Actions = {
             await deleteEvent(id);
             return { success: 'Event deleted successfully' };
         } catch (error) {
-            logger.error('Error deleting event:', error);
+            logger.error({ err: error }, 'Error deleting event');
             return fail(500, { error: 'Failed to delete event' });
         }
     }

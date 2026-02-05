@@ -68,17 +68,17 @@ export const actions: Actions = {
 				displayNameEn,
 				displayNameFr,
 				slug,
-				description: description || null,
-				icon: icon || null,
-				color: color || null,
-				sortOrder: sortOrder ? parseInt(sortOrder) : 0,
+				description: description?.toString() || '',
+				icon: icon?.toString() || '',
+				color: color?.toString() || '',
+				sortOrder: sortOrder ? parseInt(sortOrder.toString()) : 0,
 				published,
 				createdAt: new Date(),
 				updatedAt: new Date(),
 				eventCount: 0
 			};
 
-			MOCK_CATEGORIES.push(newCategory);
+			MOCK_CATEGORIES.push(newCategory as typeof MOCK_CATEGORIES[number]);
 
 			return { success: `Category "${displayNameEn}" created successfully` };
 		}
@@ -92,16 +92,16 @@ export const actions: Actions = {
 				displayNameEn,
 				displayNameFr,
 				slug,
-				description: description || null,
-				icon: icon || null,
-				color: color || null,
-				sortOrder: sortOrder ? parseInt(sortOrder) : 0,
+				description: description?.toString() || null,
+				icon: icon?.toString() || null,
+				color: color?.toString() || null,
+				sortOrder: sortOrder ? parseInt(sortOrder.toString()) : 0,
 				published
 			});
 
 			return { success: `Category "${displayNameEn}" created successfully` };
 		} catch (error) {
-			logger.error('Error creating category:', error);
+			logger.error({ err: error }, 'Error creating category');
 			return fail(500, { error: 'Failed to create category. The slug may already be in use.' });
 		}
 	},
@@ -163,13 +163,13 @@ export const actions: Actions = {
 				displayNameEn,
 				displayNameFr,
 				slug,
-				description: description || null,
-				icon: icon || null,
-				color: color || null,
-				sortOrder: sortOrder ? parseInt(sortOrder) : 0,
+				description: description?.toString() || null,
+				icon: icon?.toString() || null,
+				color: color?.toString() || null,
+				sortOrder: sortOrder ? parseInt(sortOrder.toString()) : 0,
 				published,
 				updatedAt: new Date()
-			};
+			} as typeof MOCK_CATEGORIES[number];
 
 			return { success: `Category "${displayNameEn}" updated successfully` };
 		}
@@ -183,16 +183,16 @@ export const actions: Actions = {
 				displayNameEn,
 				displayNameFr,
 				slug,
-				description: description || null,
-				icon: icon || null,
-				color: color || null,
-				sortOrder: sortOrder ? parseInt(sortOrder) : 0,
+				description: description?.toString() || null,
+				icon: icon?.toString() || null,
+				color: color?.toString() || null,
+				sortOrder: sortOrder ? parseInt(sortOrder.toString()) : 0,
 				published
 			});
 
 			return { success: `Category "${displayNameEn}" updated successfully` };
 		} catch (error) {
-			logger.error('Error updating category:', error);
+			logger.error({ err: error }, 'Error updating category');
 			return fail(500, { error: 'Failed to update category' });
 		}
 	},
@@ -235,7 +235,7 @@ export const actions: Actions = {
 			await deleteCategory(id);
 			return { success: 'Category deleted successfully' };
 		} catch (error) {
-			logger.error('Error deleting category:', error);
+			logger.error({ err: error }, 'Error deleting category');
 			if (error instanceof Error && error.message.includes('Cannot delete category with associated events')) {
 				return fail(400, { error: error.message });
 			}

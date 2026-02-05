@@ -50,7 +50,7 @@ export const load: PageServerLoad = async () => {
 	});
 
 	return {
-		payments: unprocessedPayments.map(p => ({
+		payments: unprocessedPayments.map((p: typeof unprocessedPayments[number]) => ({
 			id: p.id,
 			stripePaymentIntentId: p.stripePaymentIntentId,
 			status: p.status,
@@ -68,7 +68,7 @@ export const load: PageServerLoad = async () => {
 				currency: p.reservation.currency,
 				status: p.reservation.status,
 				sessionTitle: p.reservation.eventSession?.title,
-				eventTitle: p.reservation.eventSession?.event?.title,
+				eventTitle: p.reservation.eventSession?.event?.titleEn,
 				sessionStartTime: p.reservation.eventSession?.startTime.toISOString()
 			} : null
 		}))

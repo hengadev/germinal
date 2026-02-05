@@ -139,7 +139,7 @@ async function getMockAnalyticsData(range: DateRange): Promise<AnalyticsData> {
 			const event = session?.eventId ? MOCK_EVENTS.find((e) => e.id === session.eventId) : null;
 			if (event) {
 				const current = eventMap.get(event.id) || {
-					eventTitle: event.title,
+					eventTitle: (event as any).title || (event as any).titleEn || 'Unknown Event',
 					revenue: 0,
 					ticketsSold: 0,
 					payments: 0
@@ -215,16 +215,16 @@ async function getDbAnalyticsData(range: DateRange): Promise<AnalyticsData> {
 	});
 
 	// Calculate metrics
-	const successfulPayments = allPayments.filter((p) => p.status === 'succeeded');
-	const failedPayments = allPayments.filter((p) => p.status === 'failed');
-	const refundedPayments = allPayments.filter((p) => p.status === 'refunded');
-	const partiallyRefundedPayments = allPayments.filter((p) => p.status === 'partially_refunded');
-	const pendingPayments = allPayments.filter((p) => p.status === 'pending' || p.status === 'processing');
+	const successfulPayments = allPayments.filter((p: typeof allPayments[number]) => p.status === 'succeeded');
+	const failedPayments = allPayments.filter((p: typeof allPayments[number]) => p.status === 'failed');
+	const refundedPayments = allPayments.filter((p: typeof allPayments[number]) => p.status === 'refunded');
+	const partiallyRefundedPayments = allPayments.filter((p: typeof allPayments[number]) => p.status === 'partially_refunded');
+	const pendingPayments = allPayments.filter((p: typeof allPayments[number]) => p.status === 'pending' || p.status === 'processing');
 
-	const totalRevenue = successfulPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
+	const totalRevenue = successfulPayments.reduce((sum: number, p: typeof successfulPayments[number]) => sum + (p.amount || 0), 0);
 	const totalRefunds =
-		refundedPayments.reduce((sum, p) => sum + (p.amount || 0), 0) +
-		partiallyRefundedPayments.reduce((sum, p) => sum + (p.refundedAmount || 0), 0);
+		refundedPayments.reduce((sum: number, p: typeof refundedPayments[number]) => sum + (p.amount || 0), 0) +
+		partiallyRefundedPayments.reduce((sum: number, p: typeof partiallyRefundedPayments[number]) => sum + (p.refundedAmount || 0), 0);
 	const netRevenue = totalRevenue - totalRefunds;
 
 	const metrics: AnalyticsMetrics = {
@@ -238,14 +238,14 @@ async function getDbAnalyticsData(range: DateRange): Promise<AnalyticsData> {
 		successRate: allPayments.length > 0 ? (successfulPayments.length / allPayments.length) * 100 : 0,
 		averageOrderValue: successfulPayments.length > 0 ? totalRevenue / successfulPayments.length : 0,
 		totalTicketsSold: successfulPayments.reduce(
-			(sum, p) => sum + (p.reservation?.quantity || 0),
+			(sum: number, p: typeof successfulPayments[number]) => sum + (p.reservation?.quantity || 0),
 			0
 		)
 	};
 
 	// Calculate daily revenue
 	const dailyMap = new Map<string, { revenue: number; payments: number }>();
-	successfulPayments.forEach((p) => {
+	successfulPayments.forEach((p: typeof successfulPayments[number]) => {
 		const date = new Date(p.createdAt).toISOString().split('T')[0];
 		const current = dailyMap.get(date) || { revenue: 0, payments: 0 };
 		current.revenue += p.amount || 0;
@@ -262,7 +262,7 @@ async function getDbAnalyticsData(range: DateRange): Promise<AnalyticsData> {
 		string,
 		{ eventTitle: string; revenue: number; ticketsSold: number; payments: number }
 	>();
-	successfulPayments.forEach((p) => {
+	successfulPayments.forEach((p: typeof successfulPayments[number]) => {
 		const event = p.reservation?.eventSession?.event;
 		if (event) {
 			const current = eventMap.get(event.id) || {
@@ -285,7 +285,7 @@ async function getDbAnalyticsData(range: DateRange): Promise<AnalyticsData> {
 
 	// Payment status breakdown
 	const statusMap = new Map<string, { count: number; amount: number }>();
-	allPayments.forEach((p) => {
+	allPayments.forEach((p: typeof allPayments[number]) => {
 		const current = statusMap.get(p.status) || { count: 0, amount: 0 };
 		current.count += 1;
 		current.amount += p.amount || 0;

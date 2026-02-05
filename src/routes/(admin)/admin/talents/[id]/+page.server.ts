@@ -135,19 +135,19 @@ export const actions: Actions = {
 				roleFr,
 				bioEn,
 				bioFr,
-				city,
-				country,
-				quoteEn,
-				quoteFr,
-				specializationsEn: specializationsEn || null,
-				specializationsFr: specializationsFr || null,
+				city: city?.toString() || null,
+				country: country?.toString() || null,
+				quoteEn: quoteEn?.toString() || null,
+				quoteFr: quoteFr?.toString() || null,
+				specializationsEn: specializationsEn?.toString() || null,
+				specializationsFr: specializationsFr?.toString() || null,
 				socialLinks: JSON.stringify(socialLinks),
 				profileMediaId: mediaAction === 'replaced' && newMediaId ? newMediaId :
 				               mediaAction === 'removed' ? null :
 				               MOCK_TALENTS[talentIndex].profileMediaId,
 				published,
 				updatedAt: new Date()
-			};
+			} as typeof MOCK_TALENTS[number];
 
 			return { success: `Talent "${firstName} ${lastName}" updated successfully (mock mode - not persisted)` };
 		}
@@ -168,12 +168,12 @@ export const actions: Actions = {
 				roleFr,
 				bioEn,
 				bioFr,
-				city: city || null,
-				country: country || null,
-				quoteEn: quoteEn || null,
-				quoteFr: quoteFr || null,
-				specializationsEn: specializationsEn || null,
-				specializationsFr: specializationsFr || null,
+				city: city?.toString() || null,
+				country: country?.toString() || null,
+				quoteEn: quoteEn?.toString() || null,
+				quoteFr: quoteFr?.toString() || null,
+				specializationsEn: specializationsEn?.toString() || null,
+				specializationsFr: specializationsFr?.toString() || null,
 				socialLinks: JSON.stringify(socialLinks),
 				profileMediaId: mediaAction === 'replaced' && newMediaId ? newMediaId :
 				               mediaAction === 'removed' ? null :
@@ -188,7 +188,7 @@ export const actions: Actions = {
 					try {
 						await deleteMedia(existingMediaId);
 					} catch (err) {
-						logger.error('Failed to delete old media:', err);
+						logger.error({ err }, 'Failed to delete old media');
 					}
 				}
 				// Link new media to talent
@@ -203,14 +203,14 @@ export const actions: Actions = {
 					try {
 						await deleteMedia(existingMediaId);
 					} catch (err) {
-						logger.error('Failed to delete media:', err);
+						logger.error({ err }, 'Failed to delete media');
 					}
 				}
 			}
 
 			return { success: `Talent "${firstName} ${lastName}" updated successfully` };
 		} catch (error) {
-			logger.error('Error updating talent:', error);
+			logger.error({ err: error }, 'Error updating talent');
 			return fail(500, { error: 'Failed to update talent' });
 		}
 	}

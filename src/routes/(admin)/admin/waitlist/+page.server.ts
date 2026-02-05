@@ -81,7 +81,7 @@ export const load: PageServerLoad = async ({ url }) => {
 	});
 
 	return {
-		waitlistEntries: allEntries.map(entry => ({
+		waitlistEntries: allEntries.map((entry: typeof allEntries[number]) => ({
 			id: entry.id,
 			name: entry.name,
 			email: entry.email,
@@ -96,13 +96,13 @@ export const load: PageServerLoad = async ({ url }) => {
 				id: entry.eventSession.id,
 				title: entry.eventSession.title,
 				startTime: entry.eventSession.startTime.toISOString(),
-				eventTitle: entry.eventSession.event?.title || '',
+				eventTitle: entry.eventSession.event?.titleEn || '',
 				eventSlug: entry.eventSession.event?.slug || ''
 			}
 		})),
-		sessions: allSessions.map(s => ({
+		sessions: allSessions.map((s: typeof allSessions[number]) => ({
 			id: s.id,
-			title: `${s.event?.title || ''}: ${s.title}`,
+			title: `${s.event?.titleEn || ''}: ${s.title}`,
 			startTime: s.startTime.toISOString()
 		})),
 		filters: {
@@ -128,7 +128,7 @@ export const actions: Actions = {
 		try {
 			const { db } = await import('$lib/server/db');
 			const { waitlist } = await import('$lib/server/db/schema');
-			const { inArray } = await import('drizzle-orm');
+			const { inArray, eq, and } = await import('drizzle-orm');
 
 			// Get entries with their sessions
 			const entries = await db.query.waitlist.findMany({

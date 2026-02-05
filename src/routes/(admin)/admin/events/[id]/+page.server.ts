@@ -50,7 +50,7 @@ export const load: PageServerLoad = async ({ params }) => {
 					status: r.status,
 					createdAt: r.createdAt,
 					confirmedAt: r.confirmedAt,
-					eventTitle: evt?.title || '',
+					eventTitle: evt?.titleEn || '',
 					sessionTitle: session?.title || '',
 					sessionStartTime: session?.startTime?.toISOString() || '',
 					paymentStatus: r.paymentStatus
@@ -65,21 +65,18 @@ export const load: PageServerLoad = async ({ params }) => {
 	const { getAllSessionsByEventId } = await import('$lib/server/services/event-sessions');
 	const { db } = await import('$lib/server/db');
 	const { reservations } = await import('$lib/server/db/schema');
-	const { desc, eq } = await import('drizzle-orm');
+	const { desc, eq, inArray } = await import('drizzle-orm');
 
 	try {
 		const event = await getEventById(id);
 		const sessionsData = await getAllSessionsByEventId(id);
 
+		// Get session IDs for reservation filtering
+		const sessionIds = sessionsData.map((s: typeof sessionsData[number]) => s.id);
+
 		// Get all reservations for this event (through sessions)
 		const reservationsData = await db.query.reservations.findMany({
-			where: (fields, { inArray }) => {
-				const sessionIds = sessionsData.map(s => s.id);
-				if (sessionIds.length === 0) {
-					return eq(fields.id, 'never-match'); // Return no results if no sessions
-				}
-				return inArray(fields.eventSessionId, sessionIds);
-			},
+			where: sessionIds.length > 0 ? inArray(reservations.eventSessionId, sessionIds) : eq(reservations.id, 'never-match'),
 			orderBy: [desc(reservations.createdAt)],
 			with: {
 				eventSession: {
@@ -101,7 +98,7 @@ export const load: PageServerLoad = async ({ params }) => {
 
 		return {
 			event,
-			sessions: sessionsData.map(s => ({
+			sessions: sessionsData.map((s: typeof sessionsData[number]) => ({
 				id: s.id,
 				title: s.title,
 				description: s.description,
@@ -115,7 +112,7 @@ export const load: PageServerLoad = async ({ params }) => {
 				allowWaitlist: s.allowWaitlist,
 				reservationCount: s._count?.reservations || 0
 			})),
-			reservations: reservationsData.map(r => ({
+			reservations: reservationsData.map((r: typeof reservationsData[number]) => ({
 				id: r.id,
 				guestName: r.guestName,
 				guestEmail: r.guestEmail,
@@ -125,7 +122,7 @@ export const load: PageServerLoad = async ({ params }) => {
 				status: r.status,
 				createdAt: r.createdAt.toISOString(),
 				confirmedAt: r.confirmedAt?.toISOString(),
-				eventTitle: event.title,
+				eventTitle: event.titleEn,
 				sessionTitle: r.eventSession.title,
 				sessionStartTime: r.eventSession.startTime.toISOString(),
 				paymentStatus: r.payment?.status || 'none'
@@ -282,30 +279,30 @@ export const actions: Actions = {
 				slug,
 				descriptionEn,
 				descriptionFr,
-				subtitleEn: subtitleEn || null,
-				subtitleFr: subtitleFr || null,
+				subtitleEn: subtitleEn?.toString() || null,
+				subtitleFr: subtitleFr?.toString() || null,
 				startDate: start,
 				endDate: end,
 				location,
-				venueName: venueName || null,
-				streetAddress: streetAddress || null,
-				district: district || null,
-				city: city || null,
-				postalCode: postalCode || null,
-				country: country || null,
-				collaborators: collaborators || null,
-				timings: timings || null,
-				curatorEn: curatorEn || null,
-				curatorFr: curatorFr || null,
-				materialsEn: materialsEn || null,
-				materialsFr: materialsFr || null,
-				admissionInfoEn: admissionInfoEn || null,
-				admissionInfoFr: admissionInfoFr || null,
+				venueName: venueName?.toString() || null,
+				streetAddress: streetAddress?.toString() || null,
+				district: district?.toString() || null,
+				city: city?.toString() || null,
+				postalCode: postalCode?.toString() || null,
+				country: country?.toString() || null,
+				collaborators: collaborators?.toString() || null,
+				timings: timings?.toString() || null,
+				curatorEn: curatorEn?.toString() || null,
+				curatorFr: curatorFr?.toString() || null,
+				materialsEn: materialsEn?.toString() || null,
+				materialsFr: materialsFr?.toString() || null,
+				admissionInfoEn: admissionInfoEn?.toString() || null,
+				admissionInfoFr: admissionInfoFr?.toString() || null,
 				coverMediaId: coverMediaId || null,
 				published,
 				isSpotlight,
 				updatedAt: new Date()
-			};
+			} as typeof MOCK_EVENTS[number];
 
 			return { success: `Event "${titleEn}" updated successfully (mock mode - not persisted)` };
 		}
@@ -325,25 +322,25 @@ export const actions: Actions = {
 				slug,
 				descriptionEn,
 				descriptionFr,
-				subtitleEn: subtitleEn || null,
-				subtitleFr: subtitleFr || null,
+				subtitleEn: subtitleEn?.toString() || null,
+				subtitleFr: subtitleFr?.toString() || null,
 				startDate: start,
 				endDate: end,
 				location,
-				venueName: venueName || null,
-				streetAddress: streetAddress || null,
-				district: district || null,
-				city: city || null,
-				postalCode: postalCode || null,
-				country: country || null,
-				collaborators: collaborators || null,
-				timings: timings || null,
-				curatorEn: curatorEn || null,
-				curatorFr: curatorFr || null,
-				materialsEn: materialsEn || null,
-				materialsFr: materialsFr || null,
-				admissionInfoEn: admissionInfoEn || null,
-				admissionInfoFr: admissionInfoFr || null,
+				venueName: venueName?.toString() || null,
+				streetAddress: streetAddress?.toString() || null,
+				district: district?.toString() || null,
+				city: city?.toString() || null,
+				postalCode: postalCode?.toString() || null,
+				country: country?.toString() || null,
+				collaborators: collaborators?.toString() || null,
+				timings: timings?.toString() || null,
+				curatorEn: curatorEn?.toString() || null,
+				curatorFr: curatorFr?.toString() || null,
+				materialsEn: materialsEn?.toString() || null,
+				materialsFr: materialsFr?.toString() || null,
+				admissionInfoEn: admissionInfoEn?.toString() || null,
+				admissionInfoFr: admissionInfoFr?.toString() || null,
 				coverMediaId: coverMediaId || null,
 				published,
 				isSpotlight
@@ -354,7 +351,7 @@ export const actions: Actions = {
 				try {
 					await deleteMedia(mediaId);
 				} catch (err) {
-					logger.error(`Failed to delete media ${mediaId}:`, err);
+					logger.error({ err, mediaId }, 'Failed to delete media');
 				}
 			}
 
@@ -374,13 +371,16 @@ export const actions: Actions = {
 
 			return { success: `Event "${titleEn}" updated successfully` };
 		} catch (error) {
-			logger.error('Error updating event:', error);
+			logger.error({ err: error }, 'Error updating event');
 			return fail(500, { error: 'Failed to update event. The slug may already be in use.' });
 		}
 	},
 
 	// Create session action
 	createSession: async ({ request, params }) => {
+		if (!params.id) {
+			return fail(400, { error: 'Event ID is required' });
+		}
 		const formData = await request.formData();
 
 		try {
@@ -401,7 +401,7 @@ export const actions: Actions = {
 
 			return { success: `Session "${session.title}" created successfully` };
 		} catch (err) {
-			logger.error('Create session error:', err);
+			logger.error({ err }, 'Create session error');
 			return fail(500, { error: err instanceof Error ? err.message : 'Failed to create session' });
 		}
 	},
@@ -428,7 +428,7 @@ export const actions: Actions = {
 
 			return { success: 'Session updated successfully' };
 		} catch (err) {
-			logger.error('Update session error:', err);
+			logger.error({ err }, 'Update session error');
 			return fail(500, { error: err instanceof Error ? err.message : 'Failed to update session' });
 		}
 	},
@@ -444,7 +444,7 @@ export const actions: Actions = {
 			await deleteEventSession(id);
 			return { success: 'Session deleted successfully' };
 		} catch (err) {
-			logger.error('Delete session error:', err);
+			logger.error({ err }, 'Delete session error');
 			return fail(500, { error: err instanceof Error ? err.message : 'Failed to delete session' });
 		}
 	}

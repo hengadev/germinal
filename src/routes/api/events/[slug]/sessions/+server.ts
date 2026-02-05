@@ -9,7 +9,7 @@ export const GET: RequestHandler = async ({ params }) => {
 		const sessions = await getPublishedSessionsByEventId(event.id);
 
 		return json({
-			sessions: sessions.map(session => ({
+			sessions: sessions.map((session: typeof sessions[number]) => ({
 				id: session.id,
 				title: session.title,
 				description: session.description,

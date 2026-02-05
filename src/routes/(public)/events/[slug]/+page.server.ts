@@ -20,7 +20,7 @@ export const load: PageServerLoad = async ({ params }) => {
 
     return {
       event,
-      sessions: sessions.map(s => ({
+      sessions: sessions.map((s: typeof sessions[number]) => ({
         id: s.id,
         title: s.title,
         description: s.description,

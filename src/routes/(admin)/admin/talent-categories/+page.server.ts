@@ -68,15 +68,15 @@ export const actions: Actions = {
 				displayNameEn,
 				displayNameFr,
 				slug,
-				description: description || null,
-				icon: icon || null,
-				color: color || null,
-				sortOrder: sortOrder ? parseInt(sortOrder) : 0,
+				description: description?.toString() || null,
+				icon: icon?.toString() || null,
+				color: color?.toString() || null,
+				sortOrder: sortOrder ? parseInt(sortOrder.toString()) : 0,
 				published,
 				createdAt: new Date(),
 				updatedAt: new Date(),
 				talentCount: 0
-			};
+			} as typeof MOCK_TALENT_CATEGORIES[number];
 
 			MOCK_TALENT_CATEGORIES.push(newCategory);
 
@@ -92,16 +92,16 @@ export const actions: Actions = {
 				displayNameEn,
 				displayNameFr,
 				slug,
-				description: description || null,
-				icon: icon || null,
-				color: color || null,
-				sortOrder: sortOrder ? parseInt(sortOrder) : 0,
+				description: description?.toString() || null,
+				icon: icon?.toString() || null,
+				color: color?.toString() || null,
+				sortOrder: sortOrder ? parseInt(sortOrder.toString()) : 0,
 				published
 			});
 
 			return { success: `Category "${displayNameEn}" created successfully` };
 		} catch (error) {
-			logger.error('Error creating talent category:', error);
+			logger.error({ err: error }, 'Error creating talent category');
 			return fail(500, { error: 'Failed to create category. The slug may already be in use.' });
 		}
 	},
@@ -163,13 +163,13 @@ export const actions: Actions = {
 				displayNameEn,
 				displayNameFr,
 				slug,
-				description: description || null,
-				icon: icon || null,
-				color: color || null,
-				sortOrder: sortOrder ? parseInt(sortOrder) : 0,
+				description: description?.toString() || null,
+				icon: icon?.toString() || null,
+				color: color?.toString() || null,
+				sortOrder: sortOrder ? parseInt(sortOrder.toString()) : 0,
 				published,
 				updatedAt: new Date()
-			};
+			} as typeof MOCK_TALENT_CATEGORIES[number];
 
 			return { success: `Category "${displayNameEn}" updated successfully` };
 		}
@@ -183,16 +183,16 @@ export const actions: Actions = {
 				displayNameEn,
 				displayNameFr,
 				slug,
-				description: description || null,
-				icon: icon || null,
-				color: color || null,
-				sortOrder: sortOrder ? parseInt(sortOrder) : 0,
+				description: description?.toString() || null,
+				icon: icon?.toString() || null,
+				color: color?.toString() || null,
+				sortOrder: sortOrder ? parseInt(sortOrder.toString()) : 0,
 				published
 			});
 
 			return { success: `Category "${displayNameEn}" updated successfully` };
 		} catch (error) {
-			logger.error('Error updating talent category:', error);
+			logger.error({ err: error }, 'Error updating talent category');
 			return fail(500, { error: 'Failed to update category' });
 		}
 	},
@@ -235,7 +235,7 @@ export const actions: Actions = {
 			await deleteTalentCategory(id);
 			return { success: 'Category deleted successfully' };
 		} catch (error) {
-			logger.error('Error deleting talent category:', error);
+			logger.error({ err: error }, 'Error deleting talent category');
 			if (error instanceof Error && error.message.includes('Cannot delete category with associated talents')) {
 				return fail(400, { error: error.message });
 			}

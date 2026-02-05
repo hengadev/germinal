@@ -10,7 +10,7 @@ export const load: PageServerLoad = async ({ params }) => {
 
 	return {
 		event,
-		sessions: sessions.map(s => ({
+		sessions: sessions.map((s: typeof sessions[number]) => ({
 			id: s.id,
 			title: s.title,
 			description: s.description,
@@ -29,6 +29,9 @@ export const load: PageServerLoad = async ({ params }) => {
 
 export const actions: Actions = {
 	createSession: async ({ request, params }) => {
+		if (!params.id) {
+			return fail(400, { error: 'Event ID is required' });
+		}
 		const formData = await request.formData();
 
 		try {
@@ -47,7 +50,7 @@ export const actions: Actions = {
 
 			return { success: `Session "${session.title}" created successfully` };
 		} catch (err) {
-			logger.error('Create session error:', err);
+			logger.error({ err }, 'Create session error');
 			return fail(500, { error: err instanceof Error ? err.message : 'Failed to create session' });
 		}
 	},
@@ -71,7 +74,7 @@ export const actions: Actions = {
 
 			return { success: 'Session updated successfully' };
 		} catch (err) {
-			logger.error('Update session error:', err);
+			logger.error({ err }, 'Update session error');
 			return fail(500, { error: err instanceof Error ? err.message : 'Failed to update session' });
 		}
 	},
@@ -84,7 +87,7 @@ export const actions: Actions = {
 			await deleteEventSession(id);
 			return { success: 'Session deleted successfully' };
 		} catch (err) {
-			logger.error('Delete session error:', err);
+			logger.error({ err }, 'Delete session error');
 			return fail(500, { error: err instanceof Error ? err.message : 'Failed to delete session' });
 		}
 	}

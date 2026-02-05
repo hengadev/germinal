@@ -3,6 +3,7 @@ import { logger } from '$lib/server/logger';
 import { MOCK_TALENTS, MOCK_TALENT_CATEGORIES, USE_MOCK_DATA } from '$lib/mock-data';
 import { calculatePagination } from '$lib/utils/pagination';
 import type { PageServerLoad } from './$types';
+import type { TalentWithMedia } from '$lib/types/talents';
 
 const INITIAL_PAGE_SIZE = 6;
 
@@ -20,7 +21,7 @@ export const load: PageServerLoad = async () => {
     if (USE_MOCK_DATA) {
         logger.info('📦 Using mock data for talents');
         const totalTalents = MOCK_TALENTS.length;
-        const initialTalents = MOCK_TALENTS.slice(0, INITIAL_PAGE_SIZE);
+        const initialTalents = MOCK_TALENTS.slice(0, INITIAL_PAGE_SIZE) as unknown as TalentWithMedia[];
         const pagination = calculatePagination(1, INITIAL_PAGE_SIZE, totalTalents);
 
         return {
@@ -33,7 +34,7 @@ export const load: PageServerLoad = async () => {
     const result = await getAllTalents({ publishedOnly: true, page: 1, limit: INITIAL_PAGE_SIZE });
 
     return {
-        talents: result.data,
+        talents: result.data as TalentWithMedia[],
         pagination: result.pagination,
         categories,
     };
