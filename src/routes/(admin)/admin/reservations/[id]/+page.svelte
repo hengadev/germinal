@@ -366,11 +366,10 @@ END:VCALENDAR`;
 							isSubmitting = true;
 							return async ({ result }) => {
 								isSubmitting = false;
-								form = result.data;
-								if (result.type === 'success') {
-									form = { success: result.data.message };
-								} else {
-									form = { error: result.data?.error || 'Action failed' };
+								if (result.type === 'success' && result.data) {
+									form = { success: (result.data as { message: string }).message };
+								} else if (result.type === 'failure' && result.data) {
+									form = { error: (result.data as { error?: string }).error || 'Action failed' };
 								}
 							};
 						}}>
@@ -388,10 +387,10 @@ END:VCALENDAR`;
 							isSubmitting = true;
 							return async ({ result }) => {
 								isSubmitting = false;
-								if (result.type === 'success') {
-									form = { success: result.data.message };
-								} else {
-									form = { error: result.data?.error || 'Action failed' };
+								if (result.type === 'success' && result.data) {
+									form = { success: (result.data as { message: string }).message };
+								} else if (result.type === 'failure' && result.data) {
+									form = { error: (result.data as { error?: string }).error || 'Action failed' };
 								}
 							};
 						}}>
@@ -410,10 +409,10 @@ END:VCALENDAR`;
 								isSubmitting = true;
 								return async ({ result }) => {
 									isSubmitting = false;
-									if (result.type === 'success') {
-										form = { success: result.data.message };
-									} else {
-										form = { error: result.data?.error || 'Action failed' };
+									if (result.type === 'success' && result.data) {
+										form = { success: (result.data as { message: string }).message };
+									} else if (result.type === 'failure' && result.data) {
+										form = { error: (result.data as { error?: string }).error || 'Action failed' };
 									}
 								};
 							}}>

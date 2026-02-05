@@ -186,24 +186,22 @@
 						<span class="font-semibold">{selectedEntries.size}</span> entries selected
 					</div>
 					<div class="flex items-center gap-3 flex-wrap">
-						<form method="POST" action="?/notify" use:enhance={() => ({
-							async onSubmit({ action, cancel, formData }) {
+						<form method="POST" action="?/notify" use:enhance={({ formData, action, cancel }) => {
 								// Add selected entry IDs to form data
 								const ids = getSelectedIds();
 								for (const id of ids) {
 									formData.append('entryIds', id);
 								}
 								return async ({ result, update }) => {
-									if (result.type === 'success') {
-										form = { success: result.data.message };
+									if (result.type === 'success' && result.data) {
+										form = { success: (result.data as { message: string }).message };
 										selectedEntries = new Set();
-									} else {
-										form = { error: result.data?.error || 'Action failed' };
+									} else if (result.type === 'failure' && result.data) {
+										form = { error: (result.data as { error?: string }).error || 'Action failed' };
 									}
 									update();
 								};
-							}
-						})}>
+							}}>
 							<button
 								type="submit"
 								class="px-4 py-2 bg-white text-dark-900 rounded-lg hover:bg-dark-50 transition-colors font-medium text-sm inline-flex items-center gap-2"
@@ -213,23 +211,21 @@
 							</button>
 						</form>
 
-						<form method="POST" action="?/markNotified" use:enhance={() => ({
-							async onSubmit({ action, cancel, formData }) {
+						<form method="POST" action="?/markNotified" use:enhance={({ formData, action, cancel }) => {
 								const ids = getSelectedIds();
 								for (const id of ids) {
 									formData.append('entryIds', id);
 								}
 								return async ({ result, update }) => {
-									if (result.type === 'success') {
-										form = { success: result.data.message };
+									if (result.type === 'success' && result.data) {
+										form = { success: (result.data as { message: string }).message };
 										selectedEntries = new Set();
-									} else {
-										form = { error: result.data?.error || 'Action failed' };
+									} else if (result.type === 'failure' && result.data) {
+										form = { error: (result.data as { error?: string }).error || 'Action failed' };
 									}
 									update();
 								};
-							}
-						})}>
+							}}>
 							<button
 								type="submit"
 								class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium text-sm inline-flex items-center gap-2"
@@ -239,8 +235,7 @@
 							</button>
 						</form>
 
-						<form method="POST" action="?/delete" use:enhance={() => ({
-							async onSubmit({ action, cancel, formData }) {
+						<form method="POST" action="?/delete" use:enhance={({ formData, action, cancel }) => {
 								if (!confirm(`Are you sure you want to delete ${selectedEntries.size} entries?`)) {
 									cancel();
 								}
@@ -249,16 +244,15 @@
 									formData.append('entryIds', id);
 								}
 								return async ({ result, update }) => {
-									if (result.type === 'success') {
-										form = { success: result.data.message };
+									if (result.type === 'success' && result.data) {
+										form = { success: (result.data as { message: string }).message };
 										selectedEntries = new Set();
-									} else {
-										form = { error: result.data?.error || 'Action failed' };
+									} else if (result.type === 'failure' && result.data) {
+										form = { error: (result.data as { error?: string }).error || 'Action failed' };
 									}
 									update();
 								};
-							}
-						})}>
+							}}>
 							<button
 								type="submit"
 								class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium text-sm inline-flex items-center gap-2"
@@ -463,21 +457,19 @@
 	{#if data.waitlistEntries.length > 0}
 		<div class="mt-6 bg-white rounded-lg border border-border-card p-4">
 			<h3 class="text-sm font-semibold text-dark-900 mb-3">Cleanup Actions</h3>
-			<form method="POST" action="?/deleteExpired" use:enhance={() => ({
-				async onSubmit({ action, cancel, formData }) {
+			<form method="POST" action="?/deleteExpired" use:enhance={({ formData, action, cancel }) => {
 					if (!confirm('Are you sure you want to delete all expired entries that have already been notified?')) {
 						cancel();
 					}
 					return async ({ result, update }) => {
-						if (result.type === 'success') {
-							form = { success: result.data.message };
-						} else {
-							form = { error: result.data?.error || 'Action failed' };
+						if (result.type === 'success' && result.data) {
+							form = { success: (result.data as { message: string }).message };
+						} else if (result.type === 'failure' && result.data) {
+							form = { error: (result.data as { error?: string }).error || 'Action failed' };
 						}
 						update();
 					};
-				}
-			})}>
+				}}>
 				<button
 					type="submit"
 					class="px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition-colors font-medium text-sm inline-flex items-center gap-2"

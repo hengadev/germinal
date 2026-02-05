@@ -207,21 +207,19 @@
 											<ExternalLink size={18} />
 										</a>
 									{/if}
-									<form method="POST" action="?/retry" use:enhance={() => ({
-										async onSubmit({ action, cancel, formData }) {
+									<form method="POST" action="?/retry" use:enhance={({ formData, action, cancel }) => {
 											if (!confirm('Manually process the webhook for this payment?')) {
 												cancel();
 											}
 											return async ({ result, update }) => {
-												if (result.type === 'success') {
-													form = { success: result.data.message };
-												} else {
-													form = { error: result.data?.error || 'Action failed' };
+												if (result.type === 'success' && result.data) {
+													form = { success: (result.data as { message: string }).message };
+												} else if (result.type === 'failure' && result.data) {
+													form = { error: (result.data as { error?: string }).error || 'Action failed' };
 												}
 												update();
 											};
-										}
-									})}>
+										}}>
 										<input type="hidden" name="paymentId" value={payment.id} />
 										<button
 											type="submit"
@@ -309,21 +307,19 @@
 									<ExternalLink size={16} />
 								</a>
 							{/if}
-							<form method="POST" action="?/retry" use:enhance={() => ({
-								async onSubmit({ action, cancel, formData }) {
+							<form method="POST" action="?/retry" use:enhance={({ formData, action, cancel }) => {
 									if (!confirm('Manually process the webhook for this payment?')) {
 										cancel();
 									}
 									return async ({ result, update }) => {
-										if (result.type === 'success') {
-											form = { success: result.data.message };
-										} else {
-											form = { error: result.data?.error || 'Action failed' };
+										if (result.type === 'success' && result.data) {
+											form = { success: (result.data as { message: string }).message };
+										} else if (result.type === 'failure' && result.data) {
+											form = { error: (result.data as { error?: string }).error || 'Action failed' };
 										}
 										update();
 									};
-								}
-							})}>
+								}}>
 								<input type="hidden" name="paymentId" value={payment.id} />
 								<button
 									type="submit"

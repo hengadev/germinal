@@ -268,18 +268,16 @@
 										<Eye size={18} />
 									</button>
 									{#if email.status === 'failed'}
-										<form method="POST" action="?/retry" use:enhance={() => ({
-											async onSubmit({ action, cancel, formData }) {
+										<form method="POST" action="?/retry" use:enhance={({ formData, action, cancel }) => {
 												return async ({ result, update }) => {
-													if (result.type === 'success') {
-														form = { success: result.data.message };
-													} else {
-														form = { error: result.data?.error || 'Action failed' };
+													if (result.type === 'success' && result.data) {
+														form = { success: (result.data as { message: string }).message };
+													} else if (result.type === 'failure' && result.data) {
+														form = { error: (result.data as { error?: string }).error || 'Action failed' };
 													}
 													update();
 												};
-											}
-										})}>
+											}}>
 											<input type="hidden" name="emailId" value={email.id} />
 											<button
 												type="submit"
@@ -290,21 +288,19 @@
 											</button>
 										</form>
 									{/if}
-									<form method="POST" action="?/delete" use:enhance={() => ({
-										async onSubmit({ action, cancel, formData }) {
+									<form method="POST" action="?/delete" use:enhance={({ formData, action, cancel }) => {
 											if (!confirm('Are you sure you want to delete this email?')) {
 												cancel();
 											}
 											return async ({ result, update }) => {
-												if (result.type === 'success') {
-													form = { success: result.data.message };
-												} else {
-													form = { error: result.data?.error || 'Action failed' };
+												if (result.type === 'success' && result.data) {
+													form = { success: (result.data as { message: string }).message };
+												} else if (result.type === 'failure' && result.data) {
+													form = { error: (result.data as { error?: string }).error || 'Action failed' };
 												}
 												update();
 											};
-										}
-									})}>
+										}}>
 										<input type="hidden" name="emailId" value={email.id} />
 										<button
 											type="submit"
@@ -376,18 +372,16 @@
 								<Eye size={16} />
 							</button>
 							{#if email.status === 'failed'}
-								<form method="POST" action="?/retry" use:enhance={() => ({
-									async onSubmit({ action, cancel, formData }) {
+								<form method="POST" action="?/retry" use:enhance={({ formData, action, cancel }) => {
 										return async ({ result, update }) => {
-											if (result.type === 'success') {
-												form = { success: result.data.message };
-											} else {
-												form = { error: result.data?.error || 'Action failed' };
+											if (result.type === 'success' && result.data) {
+												form = { success: (result.data as { message: string }).message };
+											} else if (result.type === 'failure' && result.data) {
+												form = { error: (result.data as { error?: string }).error || 'Action failed' };
 											}
 											update();
 										};
-									}
-								})}>
+									}}>
 									<input type="hidden" name="emailId" value={email.id} />
 									<button
 										type="submit"
@@ -398,21 +392,19 @@
 									</button>
 								</form>
 							{/if}
-							<form method="POST" action="?/delete" use:enhance={() => ({
-								async onSubmit({ action, cancel, formData }) {
+							<form method="POST" action="?/delete" use:enhance={({ formData, action, cancel }) => {
 									if (!confirm('Are you sure you want to delete this email?')) {
 										cancel();
 									}
 									return async ({ result, update }) => {
-										if (result.type === 'success') {
-											form = { success: result.data.message };
-										} else {
-											form = { error: result.data?.error || 'Action failed' };
+										if (result.type === 'success' && result.data) {
+											form = { success: (result.data as { message: string }).message };
+										} else if (result.type === 'failure' && result.data) {
+											form = { error: (result.data as { error?: string }).error || 'Action failed' };
 										}
 										update();
 									};
-								}
-							})}>
+								}}>
 								<input type="hidden" name="emailId" value={email.id} />
 								<button
 									type="submit"
@@ -433,21 +425,19 @@
 	{#if data.emails.length > 0}
 		<div class="mt-6 bg-white rounded-lg border border-border-card p-4">
 			<h3 class="text-sm font-semibold text-dark-900 mb-3">Bulk Actions</h3>
-			<form method="POST" action="?/deleteOld" use:enhance={() => ({
-				async onSubmit({ action, cancel, formData }) {
+			<form method="POST" action="?/deleteOld" use:enhance={({ formData, action, cancel }) => {
 					if (!confirm('Are you sure you want to delete all sent emails older than 30 days?')) {
 						cancel();
 					}
 					return async ({ result, update }) => {
-						if (result.type === 'success') {
-							form = { success: result.data.message };
-						} else {
-							form = { error: result.data?.error || 'Action failed' };
+						if (result.type === 'success' && result.data) {
+							form = { success: (result.data as { message: string }).message };
+						} else if (result.type === 'failure' && result.data) {
+							form = { error: (result.data as { error?: string }).error || 'Action failed' };
 						}
 						update();
 					};
-				}
-			})}>
+				}}>
 				<button
 					type="submit"
 					class="px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition-colors font-medium text-sm inline-flex items-center gap-2"
