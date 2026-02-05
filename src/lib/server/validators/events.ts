@@ -16,7 +16,8 @@ const RESERVED_PATHS = [
 
 // Base schema without refinements (allows .partial() to work)
 const baseEventSchema = z.object({
-  title: z.string().min(1).max(255),
+  titleEn: z.string().min(1).max(255),
+  titleFr: z.string().min(1).max(255),
   slug: z.string()
     .min(1, 'Slug is required')
     .max(255, 'Slug is too long')
@@ -33,8 +34,10 @@ const baseEventSchema = z.object({
       slug => !slug.includes('--'),
       'Slug cannot contain consecutive hyphens'
     ),
-  description: z.string().min(1),
-  subtitle: z.string().optional().transform(v => v ?? null),
+  descriptionEn: z.string().min(1),
+  descriptionFr: z.string().min(1),
+  subtitleEn: z.string().optional().transform(v => v ?? null),
+  subtitleFr: z.string().optional().transform(v => v ?? null),
   startDate: dateSchema,
   endDate: dateSchema,
   location: z.string().min(1).max(500),
@@ -62,11 +65,16 @@ const baseEventSchema = z.object({
       return null;
     }
   }),
-  curator: z.string().max(150).optional().transform(v => v ?? null),
-  materials: z.string().optional().transform(v => v ?? null),
-  admissionInfo: z.string().max(150).optional().transform(v => v ?? null),
+  curatorEn: z.string().max(150).optional().transform(v => v ?? null),
+  curatorFr: z.string().max(150).optional().transform(v => v ?? null),
+  materialsEn: z.string().optional().transform(v => v ?? null),
+  materialsFr: z.string().optional().transform(v => v ?? null),
+  admissionInfoEn: z.string().max(150).optional().transform(v => v ?? null),
+  admissionInfoFr: z.string().max(150).optional().transform(v => v ?? null),
   coverMediaId: z.string().uuid().optional().transform(v => v ?? null),
+  categoryId: z.string().uuid().optional().transform(v => v ?? null),
   published: z.boolean().default(false),
+  isSpotlight: z.boolean().default(false),
 });
 
 // Create schema with refinement for date validation
