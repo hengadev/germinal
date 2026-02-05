@@ -21,7 +21,7 @@ export async function createReservation(input: CreateReservationInput) {
 	let paymentIntentId: string | null = null;
 
 	try {
-		return await db.transaction(async (tx) => {
+		return await db.transaction(async (tx: typeof db) => {
 		// Step 1: Lock session row and check availability
 		const [session] = await tx
 			.select()
@@ -131,7 +131,7 @@ export async function createReservation(input: CreateReservationInput) {
 				await cancelPaymentIntent(paymentIntentId);
 				logger.info(`[Reservation Cleanup] Cleaned up orphaned PaymentIntent ${paymentIntentId} after transaction failure`);
 			} catch (cancelError) {
-				logger.error(`[Reservation Cleanup] Failed to cancel orphaned PaymentIntent ${paymentIntentId}:`, cancelError);
+				logger.error({ err: cancelError, paymentIntentId }, '[Reservation Cleanup] Failed to cancel orphaned PaymentIntent');
 				// Log to monitoring system for manual cleanup - this PaymentIntent will need manual attention
 				// Consider setting up an alert in your monitoring system
 			}
@@ -210,7 +210,7 @@ export async function getReservationById(id: string): Promise<ReservationWithDet
 export async function cancelReservationWithRefund(reservationId: string) {
 	const { createRefund } = await import('./stripe');
 
-	const sessionData = await db.transaction(async (tx) => {
+	const sessionData = await db.transaction(async (tx: typeof db) => {
 		// Load reservation with payment
 		const reservation = await tx.query.reservations.findFirst({
 			where: eq(reservations.id, reservationId),
@@ -274,7 +274,7 @@ export async function cancelReservationWithRefund(reservationId: string) {
 			await notifyWaitlist(sessionData.sessionId, sessionData.quantity);
 			logger.info(`[Waitlist] Notified for session ${sessionData.sessionId} with ${sessionData.quantity} tickets available`);
 		} catch (error) {
-			logger.error('[Waitlist] Failed to notify:', error);
+			logger.error({ err: error }, '[Waitlist] Failed to notify');
 			// Don't throw - cancellation was successful
 		}
 	}
@@ -301,7 +301,7 @@ export async function findExpiredReservations() {
  * Mark reservation as expired and restore capacity
  */
 export async function expireReservation(reservationId: string) {
-	const sessionData = await db.transaction(async (tx) => {
+	const sessionData = await db.transaction(async (tx: typeof db) => {
 		const reservation = await tx.query.reservations.findFirst({
 			where: eq(reservations.id, reservationId),
 		});
@@ -347,7 +347,7 @@ export async function expireReservation(reservationId: string) {
 			await notifyWaitlist(sessionData.sessionId, sessionData.availableCapacity);
 			logger.info(`[Waitlist] Notified for session ${sessionData.sessionId} with ${sessionData.availableCapacity} tickets available`);
 		} catch (error) {
-			logger.error('[Waitlist] Failed to notify:', error);
+			logger.error({ err: error }, '[Waitlist] Failed to notify');
 			// Don't throw - expiration was successful
 		}
 	}
@@ -357,7 +357,7 @@ export async function expireReservation(reservationId: string) {
  * Cancel reservation (without refund) - admin action
  */
 export async function cancelReservation(reservationId: string) {
-	return await db.transaction(async (tx) => {
+	return await db.transaction(async (tx: typeof db) => {
 		const reservation = await tx.query.reservations.findFirst({
 			where: eq(reservations.id, reservationId),
 		});
@@ -407,7 +407,7 @@ export async function cancelReservation(reservationId: string) {
 export async function processRefund(reservationId: string) {
 	const { createRefund } = await import('./stripe');
 
-	const sessionData = await db.transaction(async (tx) => {
+	const sessionData = await db.transaction(async (tx: typeof db) => {
 		const reservation = await tx.query.reservations.findFirst({
 			where: eq(reservations.id, reservationId),
 			with: { payment: true },
@@ -495,7 +495,7 @@ export async function processRefund(reservationId: string) {
 			await notifyWaitlist(sessionData.sessionId, sessionData.quantity);
 			logger.info(`[Waitlist] Notified for session ${sessionData.sessionId} with ${sessionData.quantity} tickets available`);
 		} catch (error) {
-			logger.error('[Waitlist] Failed to notify:', error);
+			logger.error({ err: error }, '[Waitlist] Failed to notify');
 			// Don't throw - refund was successful
 		}
 	}
@@ -516,18 +516,8 @@ export async function sendReservationReminder(reservationId: string) {
 	// Re-send ticket confirmation email
 	const { sendTicketConfirmationEmail } = await import('./email');
 	await sendTicketConfirmationEmail({
-		reservation: {
-			id: reservation.id,
-			quantity: reservation.quantity,
-			totalAmount: reservation.totalAmount,
-		},
-		session: {
-			title: reservation.eventSession.title,
-			startTime: reservation.eventSession.startTime,
-			endTime: reservation.eventSession.endTime,
-			priceAmount: reservation.eventSession.priceAmount,
-			currency: reservation.eventSession.currency,
-		},
+		reservation: reservation as any,
+		session: reservation.eventSession as any,
 		event: {
 			title: reservation.eventSession.event.title,
 			location: reservation.eventSession.event.location,
@@ -548,7 +538,7 @@ export async function sendReservationReminder(reservationId: string) {
 				eventTime: reservation.eventSession.startTime,
 			});
 		} catch (error) {
-			logger.error('Failed to send reminder SMS:', error);
+			logger.error({ err: error }, 'Failed to send reminder SMS');
 			// Don't throw - email might have been sent
 		}
 	}

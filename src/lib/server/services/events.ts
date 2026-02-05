@@ -94,7 +94,7 @@ export async function getSpotlightEvent() {
 }
 
 export async function createEvent(input: CreateEventInput) {
-  return await db.transaction(async (tx) => {
+  return await db.transaction(async (tx: typeof db) => {
     // If new event is spotlight, unset any existing spotlight first
     if (input.isSpotlight) {
       await tx.update(events)
@@ -139,7 +139,7 @@ export async function createEvent(input: CreateEventInput) {
 }
 
 export async function updateEvent(id: string, input: UpdateEventInput) {
-  return await db.transaction(async (tx) => {
+  return await db.transaction(async (tx: typeof db) => {
     // If event is being set to spotlight, unset others
     if (input.isSpotlight === true) {
       await tx.update(events)
