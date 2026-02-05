@@ -1,4 +1,5 @@
 import { escapeHtml, escapeHtmlAttr } from '$lib/utils/html';
+import { formatCurrency } from '$lib/utils/currency';
 
 export interface TicketEmailData {
 	name: string;
@@ -9,6 +10,7 @@ export interface TicketEmailData {
 	quantity: number;
 	totalAmount: number;
 	currency: string;
+	accessToken?: string;
 }
 
 export interface ContactEmailData {
@@ -66,7 +68,7 @@ If you have any questions, please reply to this email.
 }
 
 export function generateContactNotification(data: ContactEmailData): { html: string; text: string } {
-	const inquiryTypeMap: {
+	const inquiryTypeMap: Record<string, string> = {
 		collaboration: 'Collaboration',
 		new_project: 'New Project',
 		join_roster: 'Join Roster',

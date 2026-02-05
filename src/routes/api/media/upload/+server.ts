@@ -86,7 +86,7 @@ export const POST: RequestHandler = async (event) => {
       });
 
     } catch (err) {
-      logger.error('File upload error:', err);
+      logger.error({ err }, 'File upload error');
       return error(500, `Failed to upload file ${file.name}`);
     }
   }

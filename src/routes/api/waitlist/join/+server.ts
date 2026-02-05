@@ -53,7 +53,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress, locals }
 		);
 
 	} catch (error) {
-		logger.error('Waitlist join error:', error);
+		logger.error({ err: error }, 'Waitlist join error');
 
 		if (error instanceof Error) {
 			if (error.message.includes('not available')) {

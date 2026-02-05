@@ -88,7 +88,7 @@ export async function getPublishedSessionsByEventId(eventId: string) {
 }
 
 export async function getAllSessionsByEventId(eventId: string) {
-	const result = await db.execute<SessionWithEventAndSoldCount[]>(sql`
+	const result = await db.execute(sql`
 		SELECT
 			es.*,
 			e.id as events_id,

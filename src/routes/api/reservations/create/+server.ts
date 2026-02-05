@@ -49,8 +49,9 @@ export const POST: RequestHandler = async ({ request, getClientAddress, locals }
 		// Create reservation with capacity lock
 		const result = await createReservation({
 			...validated.data,
+			phone: validated.data.phone ?? undefined,
 			ipAddress: ip,
-			userAgent,
+			userAgent: userAgent ?? undefined,
 		});
 
 		return json(
@@ -63,7 +64,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress, locals }
 			{ status: 201 }
 		);
 	} catch (error) {
-		logger.error('Reservation creation error:', error);
+		logger.error({ err: error }, 'Reservation creation error');
 
 		if (error instanceof Error) {
 			// Handle specific errors

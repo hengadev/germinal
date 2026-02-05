@@ -18,7 +18,9 @@ export function withValidation<T>(schema: z.ZodSchema<T>) {
 				return validationResponse(parsed.error.flatten().fieldErrors);
 			}
 
-			return handler({ ...event, data: parsed.data as unknown });
+			// Store validated data in locals for access in handler
+			(event.locals as any).validatedData = parsed.data;
+			return handler(event);
 		};
 	};
 }

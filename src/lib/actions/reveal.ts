@@ -29,7 +29,7 @@ export function reveal(
 
 	// Set initial state (invisible)
 	node.style.opacity = '0';
-	node.style.transform = preset.initial.transform || '';
+	node.style.transform = ('transform' in preset.initial ? preset.initial.transform : '') || '';
 	node.style.willChange = 'opacity, transform';
 
 	// Create/reuse observer

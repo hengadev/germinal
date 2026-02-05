@@ -68,7 +68,7 @@ export const actions: Actions = {
         message: 'Thank you for your message. We will get back to you soon!',
       };
     } catch (error) {
-      logger.error('Contact form submission error:', error);
+      logger.error({ err: error }, 'Contact form submission error');
 
       if (error instanceof Error && error.message === 'Invalid submission') {
         return fail(400, {

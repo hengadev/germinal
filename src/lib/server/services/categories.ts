@@ -24,7 +24,7 @@ export async function getAllCategories(options: { publishedOnly?: boolean } = {}
 	});
 
 	// Add event count to each category
-	return categories.map((category) => ({
+	return categories.map((category: typeof categories[number]) => ({
 		...category,
 		eventCount: category.events?.length ?? 0,
 	}));
@@ -98,7 +98,7 @@ export async function deleteCategory(id: string) {
 
 export async function reorderCategories(categoryIds: string[]) {
 	// Update sort order for each category
-	await db.transaction(async (tx) => {
+	await db.transaction(async (tx: typeof db) => {
 		for (let i = 0; i < categoryIds.length; i++) {
 			await tx.update(eventCategories)
 				.set({ sortOrder: i, updatedAt: new Date() })

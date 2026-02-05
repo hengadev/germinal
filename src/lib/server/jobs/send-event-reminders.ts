@@ -41,13 +41,17 @@ export async function sendEventReminders(): Promise<ReminderResult> {
 			eq(reservations.reminderSent1Week, false)
 		),
 		with: {
-			eventSession: true,
+			eventSession: {
+				with: {
+					event: true
+				}
+			},
 			payment: true
 		}
 	});
 
 	// Filter for sessions starting in 7 days
-	const reservationsFor1Week = oneWeekReservations.filter(r => {
+	const reservationsFor1Week = oneWeekReservations.filter((r: typeof oneWeekReservations[number]) => {
 		const sessionStart = new Date(r.eventSession.startTime);
 		return sessionStart >= sevenDaysFromNow && sessionStart <= endOfSevenDaysFromNow;
 	});
@@ -63,7 +67,7 @@ export async function sendEventReminders(): Promise<ReminderResult> {
 				.where(eq(reservations.id, reservation.id));
 			sent1Week++;
 		} catch (error) {
-			logger.error(`[Event Reminders] Failed to send 1-week reminder for reservation ${reservation.id}:`, error);
+			logger.error({ err: error, reservationId: reservation.id }, '[Event Reminders] Failed to send 1-week reminder');
 			failed++;
 		}
 	}
@@ -75,13 +79,17 @@ export async function sendEventReminders(): Promise<ReminderResult> {
 			eq(reservations.reminderSent1Day, false)
 		),
 		with: {
-			eventSession: true,
+			eventSession: {
+				with: {
+					event: true
+				}
+			},
 			payment: true
 		}
 	});
 
 	// Filter for sessions starting tomorrow
-	const reservationsFor1Day = oneDayReservations.filter(r => {
+	const reservationsFor1Day = oneDayReservations.filter((r: typeof oneDayReservations[number]) => {
 		const sessionStart = new Date(r.eventSession.startTime);
 		return sessionStart >= oneDayFromNow && sessionStart <= endOfOneDayFromNow;
 	});
@@ -97,7 +105,7 @@ export async function sendEventReminders(): Promise<ReminderResult> {
 				.where(eq(reservations.id, reservation.id));
 			sent1Day++;
 		} catch (error) {
-			logger.error(`[Event Reminders] Failed to send 1-day reminder for reservation ${reservation.id}:`, error);
+			logger.error({ err: error, reservationId: reservation.id }, '[Event Reminders] Failed to send 1-day reminder');
 			failed++;
 		}
 	}
@@ -117,10 +125,7 @@ export async function sendEventReminders(): Promise<ReminderResult> {
  * Send reminder for a single reservation
  */
 async function sendReminder(
-	reservation: typeof reservations.$inferSelect & {
-		eventSession: typeof eventSessions.$inferSelect;
-		payment: any;
-},
+	reservation: any,
 	type: '1week' | '1day'
 ): Promise<void> {
 	const daysUntil = type === '1week' ? 7 : 1;
@@ -128,18 +133,8 @@ async function sendReminder(
 	// Send email reminder
 	const { sendEventReminderEmail } = await import('../services/email');
 	await sendEventReminderEmail({
-		reservation: {
-			id: reservation.id,
-			quantity: reservation.quantity,
-			totalAmount: reservation.totalAmount,
-		},
-		session: {
-			title: reservation.eventSession.title,
-			startTime: reservation.eventSession.startTime,
-			endTime: reservation.eventSession.endTime,
-			priceAmount: reservation.eventSession.priceAmount,
-			currency: reservation.eventSession.currency,
-		},
+		reservation: reservation as any,
+		session: reservation.eventSession as any,
 		event: {
 			title: reservation.eventSession.event?.title || 'Event',
 			location: reservation.eventSession.event?.location || '',
@@ -163,7 +158,7 @@ async function sendReminder(
 				daysUntil,
 			});
 		} catch (error) {
-			logger.error('[Event Reminders] Failed to send SMS:', error);
+			logger.error({ err: error }, '[Event Reminders] Failed to send SMS');
 			// Don't throw - email might have been sent
 		}
 	}

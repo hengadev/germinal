@@ -38,8 +38,8 @@ export async function sendSMS(options: {
 	message: string;
 }): Promise<void> {
 	if (!isTwilioEnabled()) {
-		logger.info('\n📱 SMS would be sent to:', options.to);
-		logger.info('Message:', options.message);
+		logger.info({ to: options.to }, '📱 SMS would be sent (Twilio not configured)');
+		logger.info({ message: options.message }, 'SMS message content');
 		return;
 	}
 
@@ -54,7 +54,7 @@ export async function sendSMS(options: {
 
 		logger.info(`📱 SMS sent successfully to ${options.to}`);
 	} catch (error) {
-		logger.error('❌ Failed to send SMS:', error);
+		logger.error({ err: error }, '❌ Failed to send SMS');
 		throw error;
 	}
 }

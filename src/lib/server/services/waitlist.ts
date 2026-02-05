@@ -118,10 +118,12 @@ export async function notifyWaitlist(sessionId: string, availableCapacity: numbe
 	return { notified: notifiedCount };
 }
 
+type SessionWithEvent = typeof eventSessions.$inferSelect & { event?: { slug: string } | null };
+
 /**
  * Generate waitlist notification email
  */
-function generateWaitlistTextTemplate(entry: typeof waitlist.$inferSelect, session: typeof eventSessions.$inferSelect): string {
+function generateWaitlistTextTemplate(entry: typeof waitlist.$inferSelect, session: SessionWithEvent): string {
 	return `
 Good news, ${entry.name}!
 
@@ -139,7 +141,7 @@ This link is valid for 24 hours.
   `.trim();
 }
 
-function generateWaitlistHtmlTemplate(entry: typeof waitlist.$inferSelect, session: typeof eventSessions.$inferSelect): string {
+function generateWaitlistHtmlTemplate(entry: typeof waitlist.$inferSelect, session: SessionWithEvent): string {
 	return `
 <!DOCTYPE html>
 <html lang="en">
@@ -227,7 +229,7 @@ async function sendWaitlistNotificationEmail(
 /**
  * Send waitlist notification (both email and SMS based on preference)
  */
-async function sendWaitlistNotification(
+export async function sendWaitlistNotification(
 	entry: typeof waitlist.$inferSelect & { eventSession: typeof eventSessions.$inferSelect & { event: { slug: string } | null } },
 	session: typeof eventSessions.$inferSelect & { event: { slug: string } | null }
 ) {
@@ -246,7 +248,7 @@ async function sendWaitlistNotification(
 				eventTitle: session.title,
 			});
 		} catch (error) {
-			logger.error('Failed to send waitlist notification SMS:', error);
+			logger.error({ err: error }, 'Failed to send waitlist notification SMS');
 			// Don't throw - email might have been sent
 		}
 	}

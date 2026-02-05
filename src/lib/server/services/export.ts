@@ -1,7 +1,13 @@
 import { db } from '../db';
 import { reservations, payments, eventSessions, events, waitlist } from '../db/schema';
 import { eq, and, desc, sql } from 'drizzle-orm';
-import { format } from 'date-fns';
+
+/**
+ * Format date to ISO-like string
+ */
+function formatDate(date: Date): string {
+	return date.toISOString().slice(0, 19).replace('T', ' ');
+}
 
 /**
  * Convert data to CSV format
@@ -39,7 +45,7 @@ function escapeCSV(value: string): string {
  */
 function formatCellValue(value: unknown): string {
 	if (value === null || value === undefined) return '';
-	if (value instanceof Date) return format(value, 'yyyy-MM-dd HH:mm:ss');
+	if (value instanceof Date) return formatDate(value);
 	if (typeof value === 'boolean') return value ? 'Yes' : 'No';
 	if (typeof value === 'number') return value.toString();
 	return String(value);
@@ -71,7 +77,7 @@ export async function exportReservationsToCSV(options: {
 	// Apply filters
 	if (status) {
 		query = db.query.reservations.findMany({
-			where: eq(reservations.status, status),
+			where: eq(reservations.status, status as typeof reservations.status.enumValues[number]),
 			with: {
 				eventSession: {
 					with: {
@@ -86,7 +92,7 @@ export async function exportReservationsToCSV(options: {
 
 	const reservations_data = await query;
 
-	const csvData = reservations_data.map(r => ({
+	const csvData = reservations_data.map((r: typeof reservations_data[number]) => ({
 		'Reservation ID': r.id,
 		'Guest Name': r.guestName,
 		'Guest Email': r.guestEmail,
@@ -158,7 +164,7 @@ export async function exportPaymentsToCSV(options: {
 	// Apply status filter
 	if (status) {
 		query = db.query.payments.findMany({
-			where: eq(payments.status, status),
+			where: eq(payments.status, status as typeof payments.status.enumValues[number]),
 			with: {
 				reservation: {
 					with: {
@@ -176,7 +182,7 @@ export async function exportPaymentsToCSV(options: {
 
 	const payments_data = await query;
 
-	const csvData = payments_data.map(p => ({
+	const csvData = payments_data.map((p: typeof payments_data[number]) => ({
 		'Payment ID': p.id,
 		'Reservation ID': p.reservationId,
 		'Guest Email': p.reservation.guestEmail,
@@ -228,7 +234,7 @@ export async function exportWaitlistToCSV(options: { limit?: number } = {}) {
 		orderBy: [desc(waitlist.createdAt)],
 	}).limit(limit);
 
-	const csvData = waitlist_data.map(w => ({
+	const csvData = waitlist_data.map((w: typeof waitlist_data[number]) => ({
 		'Entry ID': w.id,
 		'Name': w.name,
 		'Email': w.email,
@@ -275,9 +281,9 @@ export async function exportAnalyticsToCSV(options: {
 		where: options.startDate ? sql`${payments.createdAt} >= ${options.startDate}` : undefined,
 	});
 
-	const succeededPayments = payments_data.filter(p => p.status === 'succeeded');
-	const totalRevenue = succeededPayments.reduce((sum, p) => sum + p.amount, 0);
-	const totalTicketsSold = succeededPayments.reduce((sum, p) => sum + (p.reservation?.quantity || 0), 0);
+	const succeededPayments = payments_data.filter((p: typeof payments_data[number]) => p.status === 'succeeded');
+	const totalRevenue = succeededPayments.reduce((sum: number, p: typeof succeededPayments[number]) => sum + p.amount, 0);
+	const totalTicketsSold = succeededPayments.reduce((sum: number, p: typeof succeededPayments[number]) => sum + ((p as any).reservation?.quantity || 0), 0);
 
 	const csvData = [
 		{
@@ -294,11 +300,11 @@ export async function exportAnalyticsToCSV(options: {
 		},
 		{
 			'Metric': 'Failed Payments',
-			'Value': payments_data.filter(p => p.status === 'failed').length.toString(),
+			'Value': payments_data.filter((p: typeof payments_data[number]) => p.status === 'failed').length.toString(),
 		},
 		{
 			'Metric': 'Refunded Payments',
-			'Value': payments_data.filter(p => p.status === 'refunded' || p.status === 'partially_refunded').length.toString(),
+			'Value': payments_data.filter((p: typeof payments_data[number]) => p.status === 'refunded' || p.status === 'partially_refunded').length.toString(),
 		},
 		{
 			'Metric': 'Total Tickets Sold',

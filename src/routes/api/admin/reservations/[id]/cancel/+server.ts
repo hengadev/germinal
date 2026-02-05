@@ -16,7 +16,7 @@ export const POST: RequestHandler = async (event) => {
 			refund: result.refund,
 		});
 	} catch (error) {
-		logger.error('Failed to cancel reservation:', error);
+		logger.error({ err: error }, 'Failed to cancel reservation');
 
 		if (error instanceof Error) {
 			if (error.message === 'Reservation not found') {

@@ -32,14 +32,14 @@ export async function findReservationsNeedingReminders() {
 	});
 
 	// Filter for 1-week reminders
-	const oneWeekReminders = allConfirmedReservations.filter(r => {
+	const oneWeekReminders = allConfirmedReservations.filter((r: typeof allConfirmedReservations[number]) => {
 		if (r.reminderSent1Week) return false;
 		const sessionTime = new Date(r.eventSession.startTime);
 		return sessionTime >= oneWeekFromNow && sessionTime <= oneWeekWindowEnd;
 	});
 
 	// Filter for 1-day reminders
-	const oneDayReminders = allConfirmedReservations.filter(r => {
+	const oneDayReminders = allConfirmedReservations.filter((r: typeof allConfirmedReservations[number]) => {
 		if (r.reminderSent1Day) return false;
 		const sessionTime = new Date(r.eventSession.startTime);
 		return sessionTime >= oneDayFromNow && sessionTime <= oneDayWindowEnd;
@@ -244,7 +244,7 @@ export async function processEventReminders() {
 			oneWeekSent++;
 			logger.info(`[Reminder] Sent 1-week reminder for reservation ${reservation.id}`);
 		} catch (error) {
-			logger.error(`[Reminder] Failed to send 1-week reminder for reservation ${reservation.id}:`, error);
+			logger.error({ err: error, reservationId: reservation.id }, '[Reminder] Failed to send 1-week reminder');
 		}
 	}
 
@@ -277,7 +277,7 @@ export async function processEventReminders() {
 			oneDaySent++;
 			logger.info(`[Reminder] Sent 1-day reminder for reservation ${reservation.id}`);
 		} catch (error) {
-			logger.error(`[Reminder] Failed to send 1-day reminder for reservation ${reservation.id}:`, error);
+			logger.error({ err: error, reservationId: reservation.id }, '[Reminder] Failed to send 1-day reminder');
 		}
 	}
 

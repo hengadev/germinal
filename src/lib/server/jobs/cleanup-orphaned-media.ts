@@ -58,7 +58,7 @@ export async function cleanupOrphanedMedia(): Promise<CleanupOrphanedMediaResult
 					await deleteFromS3(item.s3Key);
 				} catch (s3Error) {
 					// Log S3 error but continue to delete from database
-					logger.warn(`[Cleanup Orphaned Media] Failed to delete from S3: ${item.s3Key}`, s3Error);
+					logger.warn({ err: s3Error, s3Key: item.s3Key }, '[Cleanup Orphaned Media] Failed to delete from S3');
 				}
 
 				// Delete from database
@@ -72,7 +72,7 @@ export async function cleanupOrphanedMedia(): Promise<CleanupOrphanedMediaResult
 					id: item.id,
 					error: error instanceof Error ? error.message : 'Unknown error'
 				});
-				logger.error(`[Cleanup Orphaned Media] Failed to delete orphaned media ${item.id}:`, error);
+				logger.error({ err: error, mediaId: item.id }, '[Cleanup Orphaned Media] Failed to delete orphaned media');
 			}
 		}
 
@@ -82,7 +82,7 @@ export async function cleanupOrphanedMedia(): Promise<CleanupOrphanedMediaResult
 
 		return result;
 	} catch (error) {
-		logger.error('[Cleanup Orphaned Media] Failed to cleanup orphaned media:', error);
+		logger.error({ err: error }, '[Cleanup Orphaned Media] Failed to cleanup orphaned media');
 		throw error;
 	}
 }

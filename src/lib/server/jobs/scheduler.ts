@@ -29,8 +29,8 @@ export async function initJobScheduler() {
 		archiveCompletedAfterSeconds: 60 * 60 * 24 * 7, // 7 days
 	});
 
-	boss.on('error', (error) => {
-		logger.error('[Job Scheduler] Error:', error);
+	boss.on('error', (error: Error) => {
+		logger.error({ err: error }, '[Job Scheduler] Error');
 	});
 
 	await boss.start();

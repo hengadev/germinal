@@ -44,7 +44,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 	// Detect hostname and set domain context
 	const hostname = event.url.hostname;
 	event.locals.isAdminDomain = isAdminDomain(hostname);
-	const cookieDomain = getCookieDomain(hostname);
+	const cookieDomain = getCookieDomain(hostname) ?? undefined;
 
 	// Generate and store CSRF token for session
 	const csrfToken = generateToken();

@@ -24,7 +24,7 @@ export async function getAllTalentCategories(options: { publishedOnly?: boolean 
 	});
 
 	// Add talent count to each category
-	return categories.map((category) => ({
+	return categories.map((category: typeof categories[number]) => ({
 		...category,
 		talentCount: category.talents?.length ?? 0,
 	}));
@@ -98,7 +98,7 @@ export async function deleteTalentCategory(id: string) {
 
 export async function reorderTalentCategories(categoryIds: string[]) {
 	// Update sort order for each category
-	await db.transaction(async (tx) => {
+	await db.transaction(async (tx: typeof db) => {
 		for (let i = 0; i < categoryIds.length; i++) {
 			await tx.update(talentCategories)
 				.set({ sortOrder: i, updatedAt: new Date() })

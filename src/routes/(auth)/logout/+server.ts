@@ -15,7 +15,7 @@ export const POST: RequestHandler = async ({ cookies, url }) => {
 	const cookieDomain = getCookieDomain(url.hostname);
 	cookies.delete('session', {
 		path: '/',
-		domain: cookieDomain
+		domain: cookieDomain ?? undefined
 	});
 
 	// Redirect to admin login for the current domain environment

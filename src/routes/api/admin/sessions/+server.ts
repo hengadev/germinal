@@ -18,7 +18,7 @@ export const GET: RequestHandler = async (event) => {
 		const sessions = await getAllSessionsByEventId(eventId);
 		return json({ sessions });
 	} catch (error) {
-		logger.error('Failed to fetch sessions:', error);
+		logger.error({ err: error }, 'Failed to fetch sessions');
 		return json({ error: 'Failed to fetch sessions' }, { status: 500 });
 	}
 };
@@ -37,7 +37,7 @@ export const POST: RequestHandler = async (event) => {
 		const session = await createEventSession(validated.data);
 		return json(session, { status: 201 });
 	} catch (error) {
-		logger.error('Failed to create session:', error);
+		logger.error({ err: error }, 'Failed to create session');
 		return json({ error: 'Failed to create session' }, { status: 500 });
 	}
 };

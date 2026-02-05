@@ -31,7 +31,7 @@ export function successResponse<T>(data: T, status = 200): Response {
 		success: true,
 		data,
 		timestamp: new Date().toISOString(),
-	} as Response, { status });
+	}, { status });
 }
 
 /**
@@ -48,7 +48,7 @@ export function errorResponse(error: AppError | Error, status?: number): Respons
 			details: isAppError(error) ? error.details : undefined,
 		},
 		timestamp: new Date().toISOString(),
-	} as Response, { status });
+	}, { status: statusCode });
 }
 
 /**
@@ -77,7 +77,7 @@ export function genericErrorResponse(message: string, code = 'INTERNAL_ERROR', s
 			message,
 		},
 		timestamp: new Date().toISOString(),
-	} as Response, { status });
+	}, { status });
 }
 
 /**

@@ -16,7 +16,7 @@ export function initMonitoring() {
 		dsn: env.SENTRY_DSN,
 		environment: process.env.NODE_ENV || 'development',
 		tracesSampleRate: 0.1, // Sample 10% of transactions for performance monitoring
-		beforeSend(event, hint) {
+		beforeSend(event) {
 			// Filter sensitive data
 			if (event.request) {
 				delete event.request.cookies;
@@ -36,10 +36,9 @@ export function initMonitoring() {
 			return event;
 		},
 		integrations: [
-			new Sentry.Integrations.Http({ tracing: true }),
-			new Sentry.Integrations.Express(),
-			new Sentry.Integrations.OnUncaughtException(),
-			new Sentry.Integrations.OnUnhandledRejection(),
+			Sentry.httpIntegration(),
+			Sentry.onUncaughtExceptionIntegration(),
+			Sentry.onUnhandledRejectionIntegration(),
 		],
 	});
 
@@ -52,7 +51,7 @@ export function initMonitoring() {
 export function captureException(error: Error, context?: Record<string, unknown>) {
 	if (!env.SENTRY_DSN) {
 		// Fallback to regular logging if Sentry is not configured
-		logger.error('[Error]', error.message, context);
+		logger.error({ err: error, ...context }, '[Error] Exception captured');
 		return;
 	}
 
@@ -68,7 +67,7 @@ export function captureException(error: Error, context?: Record<string, unknown>
 export function captureMessage(message: string, level: 'info' | 'warning' | 'error' = 'info', context?: Record<string, unknown>) {
 	if (!env.SENTRY_DSN) {
 		// Fallback to regular logging
-		logger.info(`[${level.toUpperCase()}]`, message, context);
+		logger.info({ level, ...context }, message);
 		return;
 	}
 

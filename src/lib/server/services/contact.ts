@@ -9,7 +9,7 @@ export async function createContactSubmission(
   input: CreateContactSubmissionInput
 ): Promise<ContactSubmission> {
   if (input.honeypot && input.honeypot.trim() !== '') {
-    logger.warn('🚨 Honeypot triggered for submission from:', input.email);
+    logger.warn({ email: input.email }, '🚨 Honeypot triggered for submission');
     throw new Error('Invalid submission');
   }
 
@@ -45,7 +45,7 @@ export async function createContactSubmission(
     emailSent = true;
     emailSentAt = new Date();
   } catch (error) {
-    logger.error('Failed to send contact email:', error);
+    logger.error({ err: error }, 'Failed to send contact email');
     emailError = error instanceof Error ? error.message : 'Unknown error';
   }
 

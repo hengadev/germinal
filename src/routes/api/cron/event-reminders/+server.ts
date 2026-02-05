@@ -42,7 +42,7 @@ export const GET: RequestHandler = async ({ request }) => {
 			total: result.total
 		});
 	} catch (error) {
-		logger.error('[Cron] Event reminders processing failed:', error);
+		logger.error({ err: error }, '[Cron] Event reminders processing failed');
 		return json({ error: 'Processing failed' }, { status: 500 });
 	}
 };

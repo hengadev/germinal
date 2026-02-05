@@ -36,11 +36,13 @@ export async function handlePaymentSuccess(paymentIntent: Stripe.PaymentIntent) 
 	}
 
 	// Update payment status
+	// Note: In newer Stripe API, charges is not available on PaymentIntent directly
+	// Receipt URL would need to be fetched separately via stripe.charges.retrieve if needed
 	await db.update(payments)
 		.set({
 			status: 'succeeded',
-			stripeChargeId: paymentIntent.latest_charge as string ?? null,
-			receiptUrl: paymentIntent.charges?.data[0]?.receipt_url ?? null,
+			stripeChargeId: typeof paymentIntent.latest_charge === 'string' ? paymentIntent.latest_charge : paymentIntent.latest_charge?.id ?? null,
+			receiptUrl: null, // Would need separate API call to get receipt URL
 			webhookProcessedAt: new Date(),
 			updatedAt: new Date(),
 		})
@@ -66,7 +68,7 @@ export async function handlePaymentSuccess(paymentIntent: Stripe.PaymentIntent) 
 			event: payment.reservation.eventSession.event,
 		});
 	} catch (error) {
-		logger.error('Failed to send ticket confirmation email:', error);
+		logger.error({ err: error }, 'Failed to send ticket confirmation email');
 		// Don't throw - payment is still successful
 	}
 
@@ -82,7 +84,7 @@ export async function handlePaymentSuccess(paymentIntent: Stripe.PaymentIntent) 
 				accessToken: payment.reservation.accessToken,
 			});
 		} catch (error) {
-			logger.error('Failed to send ticket confirmation SMS:', error);
+			logger.error({ err: error }, 'Failed to send ticket confirmation SMS');
 			// Don't throw - email was already sent
 		}
 	}
@@ -105,7 +107,7 @@ export async function handlePaymentFailure(paymentIntent: Stripe.PaymentIntent) 
 	}
 
 	// Use a transaction to atomically update payment, expire reservation, and restore capacity
-	await db.transaction(async (tx) => {
+	await db.transaction(async (tx: typeof db) => {
 		// Update payment status
 		await tx.update(payments)
 			.set({

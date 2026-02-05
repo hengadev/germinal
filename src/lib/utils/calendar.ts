@@ -38,13 +38,13 @@ export function generateICSFile(event: CalendarEvent): string | null {
 		});
 
 		if (error) {
-			logger.error('Error generating calendar file:', error);
+			logger.error({ err: error }, 'Error generating calendar file');
 			return null;
 		}
 
-		return value;
+		return value ?? null;
 	} catch (error) {
-		logger.error('Error generating calendar file:', error);
+		logger.error({ err: error }, 'Error generating calendar file');
 		return null;
 	}
 }

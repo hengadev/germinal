@@ -129,14 +129,12 @@ function generateHtmlTemplate(data: ContactEmailData): string {
 
 export async function sendContactEmail(data: ContactEmailData): Promise<void> {
   if (!isSMTPEnabled()) {
-    logger.info('\n📧 SMTP not configured. Email would have been sent:');
-    logger.info('---------------------------------------------------');
-    logger.info(`To: ${env.CONTACT_EMAIL}`);
-    logger.info(`From: ${env.SMTP_FROM_NAME} <${env.SMTP_FROM_EMAIL}>`);
-    logger.info(`Subject: New Contact Form Submission from ${data.name}`);
-    logger.info('\nContent:');
-    logger.info(generateTextTemplate(data));
-    logger.info('---------------------------------------------------\n');
+    logger.info({
+      to: env.CONTACT_EMAIL,
+      from: `${env.SMTP_FROM_NAME} <${env.SMTP_FROM_EMAIL}>`,
+      subject: `New Contact Form Submission from ${data.name}`,
+      content: generateTextTemplate(data),
+    }, '📧 SMTP not configured - email would have been sent');
     return;
   }
 
@@ -153,9 +151,9 @@ export async function sendContactEmail(data: ContactEmailData): Promise<void> {
 
   try {
     const info = await transport.sendMail(mailOptions);
-    logger.info('📧 Contact email sent successfully:', info.messageId);
+    logger.info({ messageId: info.messageId }, '📧 Contact email sent successfully');
   } catch (error) {
-    logger.error('❌ Failed to send contact email:', error);
+    logger.error({ err: error }, '❌ Failed to send contact email');
     throw new Error('Failed to send email notification');
   }
 }
@@ -271,9 +269,11 @@ export async function sendTicketConfirmationEmail(data: TicketEmailData): Promis
   const htmlBody = generateTicketHtmlTemplate(data);
 
   if (!isSMTPEnabled()) {
-    logger.info('\n🎫 Ticket confirmation email would be sent to:', data.guestEmail);
-    logger.info('Access token:', data.accessToken);
-    logger.info('Ticket URL:', `${env.PUBLIC_URL}/tickets/${data.accessToken}`);
+    logger.info({
+      to: data.guestEmail,
+      accessToken: data.accessToken,
+      ticketUrl: `${env.PUBLIC_URL}/tickets/${data.accessToken}`,
+    }, '🎫 SMTP not configured - ticket confirmation email would be sent');
     return;
   }
 
@@ -291,7 +291,7 @@ export async function sendTicketConfirmationEmail(data: TicketEmailData): Promis
       guestName: data.guestName,
     },
   });
-  logger.info('📋 Ticket confirmation email queued:', data.guestEmail);
+  logger.info({ to: data.guestEmail }, '📋 Ticket confirmation email queued');
 }
 
 export async function verifyEmailConnection(): Promise<boolean> {
@@ -306,7 +306,7 @@ export async function verifyEmailConnection(): Promise<boolean> {
     logger.info('✅ SMTP connection verified');
     return true;
   } catch (error) {
-    logger.error('❌ SMTP connection failed:', error);
+    logger.error({ err: error }, '❌ SMTP connection failed');
     return false;
   }
 }
@@ -423,9 +423,11 @@ export async function sendEventReminderEmail(data: TicketEmailData & { daysUntil
 	const htmlBody = generateEventReminderHtmlTemplate(data);
 
 	if (!isSMTPEnabled()) {
-		logger.info('\n🔔 Event reminder email would be sent to:', data.guestEmail);
-		logger.info('Event:', data.event.title);
-		logger.info('Days until:', data.daysUntil);
+		logger.info({
+			to: data.guestEmail,
+			event: data.event.title,
+			daysUntil: data.daysUntil,
+		}, '🔔 SMTP not configured - event reminder email would be sent');
 		return;
 	}
 
@@ -444,5 +446,5 @@ export async function sendEventReminderEmail(data: TicketEmailData & { daysUntil
 			daysUntil: data.daysUntil.toString(),
 		},
 	});
-	logger.info('📋 Event reminder email queued:', data.guestEmail);
+	logger.info({ to: data.guestEmail }, '📋 Event reminder email queued');
 }
