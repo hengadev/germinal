@@ -14,7 +14,7 @@
             {#if event.coverMedia.type === "image"}
                 <img
                     src={event.coverMedia.url}
-                    alt={event.title}
+                    alt={event.titleEn}
                     class="w-full h-full object-cover grayscale hover:scale-105 transition-transform"
                 />
             {:else}
@@ -33,7 +33,7 @@
     <div class="w-full border border-border-card/40 mt-6"></div>
 
     <div class="mt-4">
-        <h3 class="text-lg font-medium">{event.title}</h3>
+        <h3 class="text-lg font-medium">{event.titleEn}</h3>
         <p class="text-dark-500 text-sm line-clamp-2">{event.location}</p>
     </div>
 </a>

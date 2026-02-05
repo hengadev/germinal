@@ -119,9 +119,9 @@ import { goto } from "$app/navigation";
 
     function openEditDialog(event: Event) {
         selectedEvent = event;
-        editTitle = event.title;
+        editTitle = event.titleEn;
         editSlug = event.slug;
-        editDescription = event.description;
+        editDescription = event.descriptionEn;
         editStartDate = formatDateForInput(event.startDate);
         editEndDate = formatDateForInput(event.endDate);
         editLocation = event.location;
@@ -403,7 +403,7 @@ import { goto } from "$app/navigation";
                                     {#if event.coverMedia?.url}
                                         <img
                                             src={event.coverMedia.url}
-                                            alt={event.title}
+                                            alt={event.titleEn}
                                             class="w-16 h-16 object-cover rounded-lg"
                                         />
                                     {:else}
@@ -420,7 +420,7 @@ import { goto } from "$app/navigation";
                                         <div
                                             class="font-medium text-dark-900"
                                         >
-                                            {event.title}
+                                            {event.titleEn}
                                         </div>
                                         <div class="text-sm text-dark-400">
                                             {event.slug}
@@ -507,7 +507,7 @@ import { goto } from "$app/navigation";
                         {#if event.coverMedia?.url}
                             <img
                                 src={event.coverMedia.url}
-                                alt={event.title}
+                                alt={event.titleEn}
                                 class="w-20 h-20 object-cover rounded-lg flex-shrink-0"
                             />
                         {:else}
@@ -524,7 +524,7 @@ import { goto } from "$app/navigation";
                                 <h3
                                     class="font-semibold text-dark-900 truncate"
                                 >
-                                    {event.title}
+                                    {event.titleEn}
                                 </h3>
                                 {#if event.published}
                                     <span
@@ -1003,7 +1003,7 @@ import { goto } from "$app/navigation";
                 </button>
             </div>
             <p class="text-dark-400 text-sm">
-                Are you sure you want to delete "{selectedEvent?.title}"? This
+                Are you sure you want to delete "{selectedEvent?.titleEn}"? This
                 action cannot be undone.
             </p>
         </div>
@@ -1034,7 +1034,7 @@ import { goto } from "$app/navigation";
     <Modal
         bind:isOpen={deleteDialogOpen}
         title="Delete Event"
-        description="Are you sure you want to delete '{selectedEvent?.title}'? This action cannot be undone."
+        description="Are you sure you want to delete '{selectedEvent?.titleEn}'? This action cannot be undone."
     >
         <form method="POST" action="?/deleteEvent" use:enhance class="mt-6">
             <input type="hidden" name="id" value={selectedEvent?.id} />

@@ -212,10 +212,10 @@
                                 {talent.firstName} {talent.lastName}
                             </h3>
                             <p class="text-dark-500 text-sm line-clamp-2 mb-4">
-                                {talent.role}
+                                {talent.roleEn}
                             </p>
                             <p class="text-dark-400 text-sm line-clamp-3">
-                                {talent.bio}
+                                {talent.bioEn}
                             </p>
                             <p class="text-dark-600 text-sm mt-2">
                                 {talent.city}, {talent.country}

@@ -97,8 +97,8 @@
         selectedTalent = talent;
         editFirstName = talent.firstName;
         editLastName = talent.lastName;
-        editRole = talent.role;
-        editBio = talent.bio;
+        editRole = talent.roleEn;
+        editBio = talent.bioEn;
         editPublished = talent.published;
 
         // Parse social links
@@ -435,7 +435,7 @@
                                 >
                                     <Briefcase size={16} />
                                     <span class="truncate max-w-[200px]"
-                                        >{talent.role}</span
+                                        >{talent.roleEn}</span
                                     >
                                 </div>
                             </td>
@@ -443,7 +443,7 @@
                                 <p
                                     class="text-sm text-dark-500 line-clamp-2 max-w-[300px]"
                                 >
-                                    {talent.bio}
+                                    {talent.bioEn}
                                 </p>
                             </td>
                             <td class="px-6 py-4">
@@ -533,12 +533,12 @@
                                 class="flex items-center gap-1 text-sm text-dark-600"
                             >
                                 <Briefcase size={14} />
-                                <span class="truncate">{talent.role}</span>
+                                <span class="truncate">{talent.roleEn}</span>
                             </div>
                         </div>
                     </div>
                     <p class="text-sm text-dark-500 line-clamp-2 mb-4">
-                        {talent.bio}
+                        {talent.bioEn}
                     </p>
                     <div
                         class="flex items-center justify-end gap-2 pt-3 border-t border-border-card"

@@ -34,7 +34,7 @@
             {talent.lastName?.[0]}.
         </h3>
         <p class="text-dark-400 font-base text-xs uppercase">
-            {talent.role}
+            {talent.roleEn}
         </p>
     </div>
 </a>
