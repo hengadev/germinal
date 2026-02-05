@@ -23,30 +23,59 @@ Infrastructure as Code for the Germinal project using Terraform.
 
 ## Prerequisites
 
-### AWS
-1. **AWS CLI** installed and configured:
-   ```bash
-   aws configure
-   ```
+### Install Terraform
 
-2. **AWS Credentials** with permissions to create:
-   - S3 buckets
-   - IAM users and policies
-   - DynamoDB tables
+```bash
+# Check if already installed
+terraform --version
+
+# Install on Ubuntu/Debian
+sudo apt-get update && sudo apt-get install -y gnupg software-properties-common
+wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor | sudo tee /usr/share/keyrings/hashicorp-archive-keyring.gpg
+echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+sudo apt update && sudo apt install terraform
+```
+
+### Install AWS CLI
+
+```bash
+# Check if already installed
+aws --version
+
+# Install AWS CLI v2
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
+rm -rf aws awscliv2.zip
+
+# Configure credentials
+aws configure
+# Enter: Access Key ID, Secret Access Key, Region (eu-central-1), Output format (json)
+```
+
+### AWS Credentials
+
+You need AWS credentials with permissions to create:
+- S3 buckets
+- IAM users and policies
+- DynamoDB tables
+- CloudFront distributions
+- ACM certificates
+
+1. Go to [IAM Console](https://console.aws.amazon.com/iam/)
+2. Create a new user with programmatic access
+3. Attach `AdministratorAccess` policy (or a more restrictive custom policy)
+4. Save the Access Key ID and Secret Access Key
 
 ### Hetzner Cloud
+
 1. **Hetzner Cloud Account**: Sign up at https://console.hetzner.cloud
 2. **API Token**: Create at https://console.hetzner.cloud/projects/YOUR_PROJECT_ID/security/tokens
+   - Select Read & Write permissions
 3. **SSH Key Pair**: Generate if you don't have one:
    ```bash
    ssh-keygen -t ed25519 -C "your_email@example.com"
    cat ~/.ssh/id_ed25519.pub
-   ```
-
-### Terraform
-1. **Terraform** installed (>= 1.0):
-   ```bash
-   terraform version
    ```
 
 ### Cloudflare
@@ -187,7 +216,9 @@ infrastructure/
 └── terraform/
     ├── main.tf                    # Provider and backend configuration
     ├── backend.tf                 # S3 state backend resources (first time only)
-    ├── s3.tf                      # S3 bucket and IAM resources
+    ├── s3.tf                      # S3 media bucket and IAM resources
+    ├── backups.tf                 # S3 database backup bucket and lifecycle rules
+    ├── cloudfront.tf              # CloudFront CDN for media delivery
     ├── hetzner.tf                 # Hetzner Cloud server resources
     ├── cloudflare.tf              # Cloudflare DNS records
     ├── cloud-init.yml.tftpl       # Server initialization template
@@ -244,6 +275,69 @@ make server-info
 # Status: running
 #
 # SSH connection: ssh root@xxx.xxx.xxx.xxx
+```
+
+## Database Backups
+
+Terraform creates a dedicated S3 bucket for PostgreSQL database backups with tiered lifecycle rules.
+
+### Backup Retention
+
+| Prefix | → STANDARD_IA | → GLACIER | Delete |
+|--------|---------------|-----------|--------|
+| `daily/` | 7 days | 30 days | 90 days (configurable) |
+| `weekly/` | 14 days | 60 days | 180 days |
+| `monthly/` | 30 days | 90 days | 365 days |
+
+### Setup Backup Cron Jobs
+
+After deployment, add these to your VPS crontab (`crontab -e`):
+
+```bash
+# Daily backup at 2 AM
+0 2 * * * /opt/germinal/scripts/backup-db.sh daily
+
+# Weekly backup on Sunday at 3 AM
+0 3 * * 0 /opt/germinal/scripts/backup-db.sh weekly
+
+# Monthly backup on 1st at 4 AM
+0 4 1 * * /opt/germinal/scripts/backup-db.sh monthly
+```
+
+### Example Backup Script
+
+Create `/opt/germinal/scripts/backup-db.sh`:
+
+```bash
+#!/bin/bash
+set -e
+
+TYPE=${1:-daily}
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+FILENAME="germinal_${TYPE}_${TIMESTAMP}.sql.gz"
+
+# Dump and compress
+docker exec postgres pg_dump -U germinal germinal | gzip > /tmp/$FILENAME
+
+# Upload to S3
+aws s3 cp /tmp/$FILENAME s3://${BACKUP_S3_BUCKET}/$TYPE/$FILENAME
+
+# Cleanup
+rm /tmp/$FILENAME
+
+echo "Backup uploaded: s3://${BACKUP_S3_BUCKET}/$TYPE/$FILENAME"
+```
+
+Make it executable:
+```bash
+chmod +x /opt/germinal/scripts/backup-db.sh
+```
+
+### View Backup Information
+
+```bash
+terraform output backup_bucket_name
+terraform output backup_script_example
 ```
 
 ## DNS and Domain Setup
@@ -323,6 +417,14 @@ make dns-verify   # Open Cloudflare dashboard
 
 ## Troubleshooting
 
+### "No configuration files" Error
+You're running terraform from the wrong directory. Make sure you're in the terraform folder:
+```bash
+cd /path/to/germinal/infrastructure/terraform
+terraform init
+terraform apply
+```
+
 ### Backend Already Configured Error
 If you see "Backend configuration changed", run:
 ```bash
@@ -333,6 +435,19 @@ terraform init -reconfigure
 If a state is locked from a failed run:
 ```bash
 terraform force-unlock <LOCK_ID>
+```
+
+### Provider Authentication Errors
+Verify your credentials are configured correctly:
+```bash
+# AWS
+aws sts get-caller-identity
+
+# Hetzner (test token)
+curl -H "Authorization: Bearer YOUR_TOKEN" https://api.hetzner.cloud/v1/servers
+
+# Cloudflare (test token)
+curl -H "Authorization: Bearer YOUR_TOKEN" https://api.cloudflare.com/client/v4/user/tokens/verify
 ```
 
 ### Import Existing Resources
