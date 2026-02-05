@@ -17,7 +17,7 @@ export const GET: RequestHandler = async ({ url }) => {
 			},
 		});
 	} catch (error) {
-		logger.error('Export analytics error:', error);
+		logger.error({ err: error }, 'Export analytics error');
 		return text('Failed to export analytics', { status: 500 });
 	}
 };

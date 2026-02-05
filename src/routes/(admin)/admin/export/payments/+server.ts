@@ -23,7 +23,7 @@ export const GET: RequestHandler = async ({ url }) => {
 			},
 		});
 	} catch (error) {
-		logger.error('Export payments error:', error);
+		logger.error({ err: error }, 'Export payments error');
 		return text('Failed to export payments', { status: 500 });
 	}
 };

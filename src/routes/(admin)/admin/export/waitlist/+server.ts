@@ -21,7 +21,7 @@ export const GET: RequestHandler = async ({ url }) => {
 			},
 		});
 	} catch (error) {
-		logger.error('Export waitlist error:', error);
+		logger.error({ err: error }, 'Export waitlist error');
 		return text('Failed to export waitlist', { status: 500 });
 	}
 };

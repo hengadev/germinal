@@ -24,7 +24,7 @@ export const GET: RequestHandler = async ({ url }) => {
 			},
 		});
 	} catch (error) {
-		logger.error('Export reservations error:', error);
+		logger.error({ err: error }, 'Export reservations error');
 		return text('Failed to export reservations', { status: 500 });
 	}
 };
