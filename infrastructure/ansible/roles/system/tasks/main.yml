@@ -1,0 +1,128 @@
+---
+# System Hardening Tasks
+# - Update system packages
+# - Set timezone
+# - Configure automatic security updates
+# - Harden kernel parameters
+# - Secure shared memory
+
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Upgrade all packages
+  ansible.builtin.apt:
+    upgrade: dist
+    update_cache: true
+  register: apt_upgrade
+  retries: 3
+  delay: 5
+  until: apt_upgrade is succeeded
+
+- name: Install essential packages
+  ansible.builtin.apt:
+    name:
+      - curl
+      - wget
+      - git
+      - vim
+      - htop
+      - fail2ban
+      - ufw
+      - ca-certificates
+      - gnupg
+      - lsb-release
+      - apt-transport-https
+      - software-properties-common
+      - unzip
+      - logrotate
+    state: present
+
+- name: Set system timezone
+  community.general.timezone:
+    name: "{{ system_timezone }}"
+
+- name: Configure automatic security updates
+  ansible.builtin.apt:
+    name: unattended-upgrades
+    state: present
+  when: auto_security_updates
+
+- name: Copy unattended-upgrades configuration
+  ansible.builtin.template:
+    src: unattended-upgrades.j2
+    dest: /etc/apt/apt.conf.d/50unattended-upgrades
+    mode: '0644'
+  when: auto_security_updates
+  notify: restart unattended-upgrades
+
+- name: Enable auto-upgrades
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/20auto-upgrades
+    content: |
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Download-Upgradeable-Packages "1";
+      APT::Periodic::AutocleanInterval "7";
+      APT::Periodic::Unattended-Upgrade "1";
+      {% if auto_updates_reboot %}
+      APT::Periodic::Unattended-Upgrade::Automatic-Reboot "1";
+      APT::Periodic::Unattended-Upgrade::Automatic-Reboot-Time "02:00";
+      {% endif %}
+    mode: '0644'
+  when: auto_security_updates
+
+- name: Harden sysctl - IP spoofing protection
+  ansible.posix.sysctl:
+    name: "{{ item }}"
+    value: '1'
+    state: present
+    sysctl_set: true
+    reload: true
+  loop:
+    - net.ipv4.conf.all.rp_filter
+    - net.ipv4.conf.default.rp_filter
+    - net.ipv4.conf.all.accept_source_route
+    - net.ipv4.conf.default.accept_source_route
+
+- name: Harden sysctl - Ignore ICMP redirects
+  ansible.posix.sysctl:
+    name: "{{ item }}"
+    value: '0'
+    state: present
+    sysctl_set: true
+    reload: true
+  loop:
+    - net.ipv4.conf.all.accept_redirects
+    - net.ipv4.conf.default.accept_redirects
+    - net.ipv4.conf.all.send_redirects
+    - net.ipv4.conf.default.send_redirects
+
+- name: Harden sysctl - Enable TCP SYN cookies
+  ansible.posix.sysctl:
+    name: net.ipv4.tcp_syncookies
+    value: '1'
+    state: present
+    sysctl_set: true
+    reload: true
+
+- name: Secure shared memory
+  ansible.builtin.lineinfile:
+    path: /etc/fstab
+    regexp: '^tmpfs\s+/run/shm'
+    line: 'tmpfs /run/shm tmpfs defaults,noexec,nosuid,size=64M 0 0'
+    state: present
+    backup: true
+
+- name: Create app directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0750'
+    owner: root
+    group: root
+  loop:
+    - "{{ app_base_dir }}"
+    - "{{ app_data_dir }}"
+    - "{{ app_logs_dir }}"
+    - "{{ app_backup_dir }}"

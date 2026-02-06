@@ -1,0 +1,25 @@
+// Unattended Upgrades Configuration
+// Managed by Ansible - DO NOT EDIT MANUALLY
+
+Unattended-Upgrade::Allowed-Origins {
+  "${distro_id}:${distro_codename}-security";
+};
+
+Unattended-Upgrade::AutoFixInterruptedDpkg "true";
+Unattended-Upgrade::MinimalSteps "true";
+Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";
+Unattended-Upgrade::Remove-Unused-Dependencies "true";
+Unattended-Upgrade::Automatic-Reboot "false";
+Unattended-Upgrade::Automatic-Reboot-Time "02:00";
+Unattended-Upgrade::SyslogEnable "true";
+Unattended-Upgrade::Verbose "false";
+
+// Email notifications (disable by default, enable if needed)
+Unattended-Upgrade::Mail "root";
+Unattended-Upgrade::MailOnlyOnError "true";
+
+// Blacklist packages from auto-upgrade
+Unattended-Upgrade::Package-Blacklist {
+  // "linux-image-generic";
+  // "linux-headers-generic";
+};
