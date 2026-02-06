@@ -1,0 +1,166 @@
+---
+# SSH Hardening Tasks
+# - Disable password authentication
+# - Disable root login (use deploy user instead)
+# - Configure fail2ban for SSH brute-force protection
+# - Set up strict key-based authentication
+
+- name: Create fail2ban jail configuration for SSH
+  ansible.builtin.copy:
+    dest: /etc/fail2ban/jail.local
+    content: |
+      [DEFAULT]
+      bantime = {{ fail2ban_bantime }}
+      findtime = {{ fail2ban_findtime }}
+      maxretry = {{ fail2ban_maxretry }}
+      destemail = root@localhost
+      sender = fail2ban@localhost
+
+      [sshd]
+      enabled = {{ 'true' if fail2ban_enabled else 'false' }}
+      port = {{ ssh_port }}
+      filter = sshd
+      logpath = /var/log/auth.log
+      maxretry = {{ fail2ban_maxretry }}
+      bantime = {{ fail2ban_bantime }}
+      findtime = {{ fail2ban_findtime }}
+    mode: '0644'
+  notify: restart fail2ban
+
+- name: Ensure fail2ban is enabled and started
+  ansible.builtin.service:
+    name: fail2ban
+    state: started
+    enabled: true
+  when: fail2ban_enabled
+
+- name: Configure SSH daemon security settings
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: "^#?{{ item.key }}\\s"
+    line: "{{ item.key }} {{ item.value }}"
+    state: "{{ 'present' if item.value != '' else 'absent' }}"
+    backup: true
+  loop:
+    - { key: "Port", value: "{{ ssh_port }}" }
+    # SECURITY: Root login disabled - deploy user has sudo access
+    - { key: "PermitRootLogin", value: "{{ ssh_permit_root_login }}" }
+    # SECURITY: Password auth disabled - key-only authentication
+    - { key: "PasswordAuthentication", value: "{{ 'yes' if ssh_password_authentication else 'no' }}" }
+    - { key: "PubkeyAuthentication", value: "yes" }
+    - { key: "ChallengeResponseAuthentication", value: "no" }
+    - { key: "UsePAM", value: "yes" }
+    # SECURITY: Disable X11 forwarding (not needed for server)
+    - { key: "X11Forwarding", value: "no" }
+    # SECURITY: Limit authentication attempts
+    - { key: "MaxAuthTries", value: "3" }
+    # SECURITY: Timeout idle connections
+    - { key: "ClientAliveInterval", value: "300" }
+    - { key: "ClientAliveCountMax", value: "2" }
+    - { key: "LoginGraceTime", value: "60" }
+    # SECURITY: Disable unnecessary features
+    - { key: " PermitTunnel", value: "no" }
+    - { key: "AllowTcpForwarding", value: "no" }
+    # SECURITY: Disable agent forwarding (prevents key hijacking)
+    - { key: "AllowAgentForwarding", value: "no" }
+  notify: restart sshd
+
+- name: Configure SSH allowed users (restrict to deploy user only)
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: "^#?AllowUsers"
+    line: "AllowUsers {{ ssh_allowed_users | join(' ') }}"
+    state: present
+    insertafter: "^#?PermitRootLogin"
+  when: ssh_allowed_users | length > 0
+  notify: restart sshd
+
+- name: Configure SSH key-based authentication with modern crypto
+  ansible.builtin.blockinfile:
+    path: /etc/ssh/sshd_config
+    block: |
+      # Modern cryptographic algorithms
+      # Key exchange - Curve25519 only (most secure)
+      KexAlgorithms curve25519-sha256@libssh.org
+
+      # Ciphers - ChaCha20 and AES-GCM only (authenticated encryption)
+      Ciphers chacha20-poly1305@openssh.com,aes256-gcm@openssh.com,aes128-gcm@openssh.com
+
+      # MACs - Encrypt-then-MAC only (prevents padding oracle attacks)
+      MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com
+
+      # Host key algorithms - Ed25519 and RSA with SHA-256/512
+      HostKeyAlgorithms ssh-ed25519,ssh-ed25519-cert-v01@openssh.com,rsa-sha2-512,rsa-sha2-256
+
+      # Required minimum RSA key size
+      PubkeyAcceptedKeyTypes ssh-ed25519,rsa-sha2-512,rsa-sha2-256,ecdsa-sha2-nistp256
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - Cryptographic hardening"
+    insertafter: EOF
+  notify: restart sshd
+
+- name: Add SSH banner with security notice
+  ansible.builtin.copy:
+    dest: /etc/ssh/banner.txt
+    content: |
+      *******************************************************************************
+      * SECURE SERVER - All connections are logged and monitored                   *
+      * Unauthorized access is prohibited                                         *
+      *******************************************************************************
+    mode: '0644'
+  when: ssh_banner_enabled | default(true)
+
+- name: Enable SSH banner
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: "^#?Banner"
+    line: "Banner /etc/ssh/banner.txt"
+    state: present
+  when: ssh_banner_enabled | default(true)
+  notify: restart sshd
+
+- name: Create SSH known hosts fingerprint verification script
+  ansible.builtin.copy:
+    dest: "{{ app_base_dir }}/scripts/verify-ssh-fingerprint.sh"
+    content: |
+      #!/bin/bash
+      # Verify SSH fingerprint matches expected value
+      # Run this on first connection to verify host identity
+
+      echo "Current SSH host key fingerprints:"
+      echo "=================================="
+      ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub
+      ssh-keygen -lf /etc/ssh/ssh_host_rsa_key.pub
+      echo ""
+      echo "Add these to your local ~/.ssh/known_hosts:"
+      echo "ssh-keyscan -H $(hostname) >> ~/.ssh/known_hosts"
+    mode: '0750'
+    owner: "{{ deploy_user }}"
+    group: "{{ deploy_user }}"
+
+- name: Test SSH configuration before applying
+  ansible.builtin.command:
+    cmd: sshd -t
+  register: sshd_test
+  changed_when: false
+  failed_when: sshd_test.rc != 0
+
+- name: Ensure SSH is restarted after configuration
+  ansible.builtin.meta: flush_handlers
+
+- name: Display SSH configuration summary
+  ansible.builtin.debug:
+    msg:
+      - "==========================================="
+      - "SSH Hardening Applied"
+      - "==========================================="
+      - "Port: {{ ssh_port }}"
+      - "Root login: {{ ssh_permit_root_login }}"
+      - "Password auth: {{ ssh_password_authentication }}"
+      - "Allowed users: {{ ssh_allowed_users | join(', ') }}"
+      - ""
+      - "IMPORTANT: After first run, you will ONLY be able to connect as:"
+      - "  ssh {{ ssh_allowed_users[0] }}@<server-ip> -p {{ ssh_port }}"
+      - ""
+      - "Save your SSH fingerprints:"
+      - "  ssh {{ ssh_allowed_users[0] }}@<server-ip> {{ app_base_dir }}/scripts/verify-ssh-fingerprint.sh"
+      - "==========================================="
