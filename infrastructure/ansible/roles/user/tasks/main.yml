@@ -1,0 +1,164 @@
+---
+# User Management Tasks
+# - Create deploy user
+# - Configure restricted sudo access
+# - Setup SSH keys
+
+- name: Create deploy user
+  ansible.builtin.user:
+    name: "{{ deploy_user }}"
+    system: false
+    shell: /bin/bash
+    home: "/home/{{ deploy_user }}"
+    create_home: true
+    groups: "{{ deploy_user_groups }}"
+    append: true
+    state: present
+
+# SECURITY: Restrict sudo to only necessary commands
+# This limits the blast radius if the deploy user is compromised
+# Option 1: Full NOPASSWD (convenient but less secure)
+# Option 2: Restricted commands (more secure, requires specific command paths)
+- name: Configure sudoers for deploy user (restricted access)
+  ansible.builtin.copy:
+    dest: "/etc/sudoers.d/{{ deploy_user }}"
+    content: |
+      # Sudo configuration for {{ deploy_user }} user
+      # Managed by Ansible - DO NOT EDIT MANUALLY
+
+      {% if deploy_sudo_restricted | default(true) %}
+      # RESTRICTED: Only allow specific commands without password
+      # Docker commands
+      {{ deploy_user }} ALL=(ALL) NOPASSWD: /usr/bin/docker, /usr/bin/docker-compose, /usr/local/bin/docker-compose
+
+      # Systemd service management for application services
+      {{ deploy_user }} ALL=(ALL) NOPASSWD: /bin/systemctl status docker, /bin/systemctl restart docker, /bin/systemctl reload nginx
+      {{ deploy_user }} ALL=(ALL) NOPASSWD: /bin/systemctl status nginx, /bin/systemctl restart nginx, /bin/systemctl reload nginx
+
+      # Service management via docker compose
+      {{ deploy_user }} ALL=(ALL) NOPASSWD: /usr/bin/docker *
+
+      # Log viewing
+      {{ deploy_user }} ALL=(ALL) NOPASSWD: /usr/bin/journalctl, /bin/cat /var/log/*
+
+      # Application restart scripts (if they exist)
+      {{ deploy_user }} ALL=(ALL) NOPASSWD: {{ app_base_dir }}/prod-start.sh, {{ app_base_dir }}/scripts/*.sh
+
+      # Backup operations
+      {{ deploy_user }} ALL=(ALL) NOPASSWD: /usr/bin/aws s3 *
+
+      {% if deploy_sudo_password_fallback | default(false) %}
+      # FALLBACK: Allow password-based sudo for other commands
+      {{ deploy_user }} ALL=(ALL) ALL
+      {% endif %}
+
+      {% else %}
+      # UNRESTRICTED: Full sudo access without password
+      # WARNING: Use only for development or if you understand the security implications
+      {{ deploy_user }} ALL=(ALL) NOPASSWD:ALL
+      {% endif %}
+
+      # Security: Don't require tty for sudo (needed for Ansible)
+      Defaults:{{ deploy_user }} !requiretty
+    mode: '0440'
+    validate: 'visudo -cf %s'
+  notify: test sudo configuration
+
+- name: Create .ssh directory for deploy user
+  ansible.builtin.file:
+    path: "/home/{{ deploy_user }}/.ssh"
+    state: directory
+    owner: "{{ deploy_user }}"
+    group: "{{ deploy_user }}"
+    mode: '0700'
+
+- name: Add deploy user SSH public key
+  ansible.builtin.copy:
+    dest: "/home/{{ deploy_user }}/.ssh/authorized_keys"
+    content: "{{ deploy_ssh_public_key }}"
+    owner: "{{ deploy_user }}"
+    group: "{{ deploy_user }}"
+    mode: '0600'
+  when: deploy_ssh_public_key | length > 0
+
+- name: Add current root SSH keys to deploy user (for initial connection)
+  ansible.builtin.shell:
+    cmd: |
+      if [ -f /root/.ssh/authorized_keys ]; then
+        cat /root/.ssh/authorized_keys >> /home/{{ deploy_user }}/.ssh/authorized_keys
+        sort -u /home/{{ deploy_user }}/.ssh/authorized_keys -o /home/{{ deploy_user }}/.ssh/authorized_keys
+      fi
+    creates: "/home/{{ deploy_user }}/.ssh/authorized_keys"
+  changed_when: false
+
+- name: Ensure proper permissions on authorized_keys
+  ansible.builtin.file:
+    path: "/home/{{ deploy_user }}/.ssh/authorized_keys"
+    owner: "{{ deploy_user }}"
+    group: "{{ deploy_user }}"
+    mode: '0600'
+
+- name: Grant deploy user ownership of app directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    owner: "{{ deploy_user }}"
+    group: "{{ deploy_user }}"
+    mode: '0750'
+    recurse: false
+  loop:
+    - "{{ app_base_dir }}"
+    - "{{ app_data_dir }}"
+    - "{{ app_logs_dir }}"
+    - "{{ app_backup_dir }}"
+
+- name: Create sudo test script for deploy user
+  ansible.builtin.copy:
+    dest: "{{ app_base_dir }}/scripts/test-sudo.sh"
+    content: |
+      #!/bin/bash
+      # Test sudo access for deploy user
+
+      echo "Testing sudo access..."
+      echo ""
+
+      # Test docker access
+      echo -n "Docker: "
+      if sudo -n docker --version &>/dev/null; then
+        echo "OK"
+      else
+        echo "FAILED"
+      fi
+
+      # Test systemctl access
+      echo -n "Systemctl: "
+      if sudo -n systemctl status docker &>/dev/null; then
+        echo "OK"
+      else
+        echo "FAILED"
+      fi
+
+      echo ""
+      echo "For full sudo access, use: sudo -v"
+    mode: '0750'
+    owner: "{{ deploy_user }}"
+    group: "{{ deploy_user }}"
+
+- name: Display sudo configuration summary
+  ansible.builtin.debug:
+    msg:
+      - "==========================================="
+      - "Deploy User Sudo Configuration"
+      - "==========================================="
+      - "User: {{ deploy_user }}"
+      - "Groups: {{ deploy_user_groups | join(', ') }}"
+      - "Restricted mode: {{ deploy_sudo_restricted | default(true) }}"
+      - ""
+      - "Allowed commands (no password):"
+      - "  - docker, docker-compose"
+      - "  - systemctl (docker, nginx)"
+      - "  - Application scripts in {{ app_base_dir }}/scripts/"
+      - "  - Other commands (with password): {{ deploy_sudo_password_fallback | default(false) }}"
+      - ""
+      - "Test sudo access:"
+      - "  {{ app_base_dir }}/scripts/test-sudo.sh"
+      - "==========================================="
