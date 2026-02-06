@@ -1,0 +1,19 @@
+# Ansible
+*.retry
+.ansible_facts/
+
+# Sensitive files (vault encrypted or local only)
+vault.yml
+inventory/hosts.local.yml
+group_vars/all.local.yml
+
+# Vault password files - NEVER commit these!
+.vault_pass
+vault_pass.sh
+vault_password.txt
+
+# Local inventory overrides
+inventory/local*
+
+# Encrypted vault files (commit these, but .vault_pass is ignored)
+# group_vars/*.vault.yml - OK to commit when encrypted

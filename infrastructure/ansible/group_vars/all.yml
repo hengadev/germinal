@@ -1,0 +1,78 @@
+# Germinal - Group Variables
+# These variables apply to all hosts
+
+# ============================================
+# Deploy User Configuration
+# ============================================
+deploy_user: deploy
+deploy_user_groups: ["sudo", "docker"]
+
+# SECURITY: Restrict sudo to specific commands (recommended: true)
+# Set to false for development/convenience, true for production
+deploy_sudo_restricted: true
+
+# SECURITY: Allow password-based sudo as fallback (requires deploy user password)
+# Set to true if you want to allow other commands with password
+deploy_sudo_password_fallback: false
+
+# Your public SSH key for the deploy user
+# You can also set this via: ansible-playbook --extra-vars "deploy_ssh_public_key=$(cat ~/.ssh/id_ed25519.pub)"
+deploy_ssh_public_key: "{{ lookup('env', 'DEPLOY_SSH_PUBLIC_KEY') | default('', true) }}"
+
+# ============================================
+# System Configuration
+# ============================================
+# System timezone
+system_timezone: Etc/UTC
+
+# Automatic security updates
+auto_security_updates: true
+auto_updates_reboot: false
+
+# ============================================
+# Docker Configuration
+# ============================================
+docker_daemon_options:
+  log-driver: "json-file"
+  log-opts:
+    max-size: "10m"
+    max-file: "3"
+  # SECURITY: Metrics endpoint bound to localhost only
+  # Change to "0.0.0.0:9323" ONLY if using Prometheus with firewall rules
+  metrics-addr: "127.0.0.1:9323"
+  experimental: false
+
+# ============================================
+# Fail2ban Configuration
+# ============================================
+fail2ban_enabled: true
+fail2ban_maxretry: 5
+fail2ban_bantime: 3600
+fail2ban_findtime: 600
+
+# ============================================
+# Application Environment Variables
+# ============================================
+# These should be overridden via --extra-vars or a vault file
+app_env_vars: {}
+# Example:
+# app_env_vars:
+#   DATABASE_URL: postgresql://user:pass@localhost/dbname
+#   S3_BUCKET: my-bucket
+#   S3_REGION: eu-central-1
+#   AWS_ACCESS_KEY_ID: AKIA...
+#   AWS_SECRET_ACCESS_KEY: ...
+
+# ============================================
+# Backup Configuration
+# ============================================
+backup_enabled: true
+backup_schedule_daily: "0 2 * * *"
+backup_schedule_weekly: "0 3 * * 0"
+backup_schedule_monthly: "0 4 1 * *"
+
+# ============================================
+# Monitoring (Optional)
+# ============================================
+monitoring_enabled: false
+prometheus_node_exporter_port: 9100
