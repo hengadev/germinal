@@ -1,0 +1,47 @@
+#!/bin/bash
+# Germinal Health Check Script
+# Managed by Ansible - DO NOT EDIT MANUALLY
+
+set -e
+
+APP_URL="{{ app_url | default('http://localhost:' + app_port | string) }}"
+TIMEOUT=10
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+echo "Checking {{ app_name }} health..."
+echo ""
+
+# Check application
+echo -n "Application: "
+if curl -f -s -o /dev/null -w "%{http_code}" --max-time $TIMEOUT "$APP_URL/health" | grep -q "200\|302"; then
+    echo -e "${GREEN}OK${NC}"
+else
+    echo -e "${RED}FAILED${NC}"
+    exit 1
+fi
+
+# Check database
+echo -n "Database: "
+if docker exec {{ app_name }}_postgres pg_isready -U germinal -d germinal &>/dev/null; then
+    echo -e "${GREEN}OK${NC}"
+else
+    echo -e "${RED}FAILED${NC}"
+    exit 1
+fi
+
+# Check Redis
+echo -n "Redis: "
+if docker exec {{ app_name }}_redis redis-cli ping | grep -q "PONG"; then
+    echo -e "${GREEN}OK${NC}"
+else
+    echo -e "${RED}FAILED${NC}"
+    exit 1
+fi
+
+echo ""
+echo -e "${GREEN}All services are healthy!${NC}"

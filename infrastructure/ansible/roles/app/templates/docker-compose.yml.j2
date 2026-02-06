@@ -1,0 +1,96 @@
+# Germinal Docker Compose Configuration
+# Managed by Ansible - DO NOT EDIT MANUALLY
+# Generated: {{ ansible_date_time.iso8601 }}
+
+services:
+  # Application Container
+  app:
+    image: {{ app_docker_image | default('ghcr.io/yourusername/germinal:latest') }}
+    container_name: {{ app_name }}_app
+    restart: unless-stopped
+    {% if nginx_enabled | default(false) %}
+    # Bind to localhost only - nginx reverse proxy handles external access
+    ports:
+      - "127.0.0.1:{{ app_port }}:3000"
+    {% else %}
+    # Bind to all interfaces - no reverse proxy (not recommended for production)
+    ports:
+      - "{{ app_port }}:3000"
+    {% endif %}
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - {{ app_data_dir }}/uploads:/app/uploads
+    networks:
+      - {{ app_name }}_network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: {{ app_name }}_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - {{ app_data_dir }}/postgres:/var/lib/postgresql/data
+    networks:
+      - {{ app_name }}_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: {{ app_name }}_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - {{ app_data_dir }}/redis:/data
+    networks:
+      - {{ app_name }}_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# Networks
+networks:
+  {{ app_name }}_network:
+    external: true
+
+# Volumes (for reference only, actual paths defined in service volumes)
+# volumes:
+#   postgres_data:
+#   redis_data:
