@@ -9,7 +9,12 @@ DOCKER_IMAGE ?= $(DOCKER_USER)/germinal:latest
         prod-start prod-stop prod-restart prod-logs prod-shell prod-migrate prod-create-admin \
         dev-start dev-stop dev-restart dev-logs dev-shell dev-mock \
         image-build image-push image-pull \
-        status ps clean prune
+        status ps clean prune \
+        infra-info infra-apply infra-plan infra-destroy \
+        server-info server-ssh server-rebuild \
+        db-backup db-backup-now db-restore \
+        s3-list s3-sync s3-size \
+        dns-info dns-verify
 
 # Default target
 help:
@@ -52,6 +57,31 @@ help:
 	@echo "Quick workflows:"
 	@echo "  make deploy        - Pull image and restart production"
 	@echo "  make deploy-dev    - Pull image and restart development"
+	@echo ""
+	@echo "Infrastructure (terraform/):"
+	@echo "  make infra-info    - Show all infrastructure info (server, DNS, credentials)"
+	@echo "  make infra-plan    - Show terraform plan"
+	@echo "  make infra-apply   - Apply terraform changes"
+	@echo "  make infra-destroy - Destroy all terraform resources"
+	@echo ""
+	@echo "Server:"
+	@echo "  make server-info   - Show VPS connection details"
+	@echo "  make server-ssh    - SSH into the VPS"
+	@echo "  make server-rebuild - Rebuild VPS via terraform"
+	@echo ""
+	@echo "Database Backups (S3):"
+	@echo "  make db-backup-now - Create immediate database backup"
+	@echo "  make db-restore    - Restore database from S3 backup"
+	@echo "  make db-list       - List available backups in S3"
+	@echo ""
+	@echo "S3 Storage:"
+	@echo "  make s3-list       - List S3 media bucket contents"
+	@echo "  make s3-sync       - Sync local media to S3"
+	@echo "  make s3-size       - Show S3 bucket size"
+	@echo ""
+	@echo "DNS:"
+	@echo "  make dns-info      - Show DNS configuration"
+	@echo "  make dns-verify    - Verify DNS propagation"
 	@echo ""
 	@echo "Current image: $(DOCKER_IMAGE)"
 
@@ -194,3 +224,208 @@ clean-all: clean
 	docker compose -f docker-compose.prod.yml down -v
 	docker compose -f docker-compose.dev.yml down -v
 	@echo "All containers and volumes removed."
+
+# ===========================================
+# Infrastructure Commands (terraform/)
+# ===========================================
+
+INFRA_DIR = infrastructure/terraform
+
+# Show all infrastructure info
+infra-info:
+	@echo "==========================================="
+	@echo "Infrastructure Overview"
+	@echo "==========================================="
+	@echo ""
+	@if [ -d "$(INFRA_DIR)" ]; then \
+		cd $(INFRA_DIR) && \
+		echo "--- Server ---" && \
+		terraform output -raw server_name 2>/dev/null || echo "N/A" && \
+		terraform output -raw server_ipv4_address 2>/dev/null || echo "N/A" && \
+		echo "" && \
+		echo "--- DNS ---" && \
+		terraform output -raw app_url 2>/dev/null || echo "N/A" && \
+		echo "" && \
+		echo "--- S3 Media Bucket ---" && \
+		terraform output -raw media_bucket_name 2>/dev/null || echo "N/A" && \
+		echo "" && \
+		echo "--- S3 Backup Bucket ---" && \
+		terraform output -raw backup_bucket_name 2>/dev/null || echo "N/A"; \
+	else \
+		echo "Infrastructure directory not found: $(INFRA_DIR)"; \
+	fi
+	@echo "==========================================="
+
+# Terraform plan
+infra-plan:
+	@if [ -d "$(INFRA_DIR)" ]; then \
+		cd $(INFRA_DIR) && terraform plan; \
+	else \
+		echo "Infrastructure directory not found: $(INFRA_DIR)"; \
+	fi
+
+# Terraform apply
+infra-apply:
+	@if [ -d "$(INFRA_DIR)" ]; then \
+		cd $(INFRA_DIR) && terraform apply; \
+	else \
+		echo "Infrastructure directory not found: $(INFRA_DIR)"; \
+	fi
+
+# Terraform destroy
+infra-destroy:
+	@if [ -d "$(INFRA_DIR)" ]; then \
+		cd $(INFRA_DIR) && terraform destroy; \
+	else \
+		echo "Infrastructure directory not found: $(INFRA_DIR)"; \
+	fi
+
+# ===========================================
+# Server Commands
+# ===========================================
+
+# Show server connection details
+server-info:
+	@if [ -d "$(INFRA_DIR)" ]; then \
+		cd $(INFRA_DIR) && make server-info; \
+	else \
+		echo "Infrastructure directory not found: $(INFRA_DIR)"; \
+	fi
+
+# SSH into the server
+server-ssh:
+	@if [ -d "$(INFRA_DIR)" ]; then \
+		cd $(INFRA_DIR) && make server-ssh; \
+	else \
+		echo "Infrastructure directory not found: $(INFRA_DIR)"; \
+	fi
+
+# Rebuild server via terraform
+server-rebuild:
+	@echo "Rebuilding VPS via Terraform..."
+	@if [ -d "$(INFRA_DIR)" ]; then \
+		cd $(INFRA_DIR) && \
+		terraform apply -replace=hcloud_server.main; \
+	else \
+		echo "Infrastructure directory not found: $(INFRA_DIR)"; \
+	fi
+
+# ===========================================
+# Database Backup Commands (S3)
+# ===========================================
+
+# Create immediate database backup
+db-backup-now:
+	@echo "Creating immediate database backup..."
+	@if [ -f "scripts/backup-db.sh" ]; then \
+		BACKUP_TYPE=onetime ./scripts/backup-db.sh; \
+	else \
+		echo "Backup script not found: scripts/backup-db.sh"; \
+		echo "Create it from the terraform README example"; \
+	fi
+
+# List available backups in S3
+db-list:
+	@echo "Listing database backups in S3..."
+	@if [ -d "$(INFRA_DIR)" ]; then \
+		BUCKET=$$(cd $(INFRA_DIR) && terraform output -raw backup_bucket_name 2>/dev/null); \
+		if [ -n "$$BUCKET" ]; then \
+			aws s3 ls s3://$$BUCKET/ --recursive --human-readable; \
+		else \
+			echo "Could not determine backup bucket name"; \
+		fi \
+	else \
+		echo "Infrastructure directory not found: $(INFRA_DIR)"; \
+	fi
+
+# Restore database from S3 backup
+db-restore:
+	@echo "Restoring database from S3 backup..."
+	@echo "Usage: make db-restore BACKUP=s3://bucket/path/to/backup.sql.gz"
+	@if [ -z "$(BACKUP)" ]; then \
+		echo "Error: Please specify BACKUP parameter"; \
+		echo "Example: make db-restore BACKUP=s3://my-backup-bucket/daily/backup.sql.gz"; \
+		exit 1; \
+	fi
+	@echo "Downloading and restoring $(BACKUP)..."
+	@aws s3 cp $(BACKUP) /tmp/restore-backup.sql.gz && \
+		gunzip -c /tmp/restore-backup.sql.gz | docker exec -i $$(docker ps -q -f "name=germinal.*db") psql -U germinal -d germinal_prod && \
+		rm /tmp/restore-backup.sql.gz && \
+		echo "Database restored successfully"
+
+# ===========================================
+# S3 Storage Commands
+# ===========================================
+
+# List S3 media bucket contents
+s3-list:
+	@echo "Listing S3 media bucket contents..."
+	@if [ -d "$(INFRA_DIR)" ]; then \
+		BUCKET=$$(cd $(INFRA_DIR) && terraform output -raw media_bucket_name 2>/dev/null); \
+		if [ -n "$$BUCKET" ]; then \
+			aws s3 ls s3://$$BUCKET/ --recursive --human-readable | head -50; \
+			echo "... (showing first 50 items)"; \
+		else \
+			echo "Could not determine media bucket name"; \
+		fi \
+	else \
+		echo "Infrastructure directory not found: $(INFRA_DIR)"; \
+	fi
+
+# Sync local media to S3
+s3-sync:
+	@echo "Syncing local media to S3..."
+	@if [ -d "$(INFRA_DIR)" ]; then \
+		BUCKET=$$(cd $(INFRA_DIR) && terraform output -raw media_bucket_name 2>/dev/null); \
+		if [ -n "$$BUCKET" ]; then \
+			aws s3 sync uploads/ s3://$$BUCKET/ --delete; \
+			echo "Sync completed"; \
+		else \
+			echo "Could not determine media bucket name"; \
+		fi \
+	else \
+		echo "Infrastructure directory not found: $(INFRA_DIR)"; \
+	fi
+
+# Show S3 bucket size
+s3-size:
+	@echo "Calculating S3 bucket size..."
+	@if [ -d "$(INFRA_DIR)" ]; then \
+		BUCKET=$$(cd $(INFRA_DIR) && terraform output -raw media_bucket_name 2>/dev/null); \
+		if [ -n "$$BUCKET" ]; then \
+			aws s3 ls s3://$$BUCKET/ --recursive --summarize --human-readable; \
+		else \
+			echo "Could not determine media bucket name"; \
+		fi \
+	else \
+		echo "Infrastructure directory not found: $(INFRA_DIR)"; \
+	fi
+
+# ===========================================
+# DNS Commands
+# ===========================================
+
+# Show DNS configuration
+dns-info:
+	@if [ -d "$(INFRA_DIR)" ]; then \
+		cd $(INFRA_DIR) && make dns-info; \
+	else \
+		echo "Infrastructure directory not found: $(INFRA_DIR)"; \
+	fi
+
+# Verify DNS propagation
+dns-verify:
+	@echo "Verifying DNS propagation..."
+	@if [ -d "$(INFRA_DIR)" ]; then \
+		DOMAIN=$$(cd $(INFRA_DIR) && terraform output -raw domain_name 2>/dev/null); \
+		if [ -n "$$DOMAIN" ]; then \
+			echo "Checking A record for $$DOMAIN..."; \
+			dig +short $$DOMAIN A; \
+			echo "Checking CNAME record for www.$$DOMAIN..."; \
+			dig +short www.$$DOMAIN CNAME; \
+		else \
+			echo "Could not determine domain name"; \
+		fi \
+	else \
+		echo "Infrastructure directory not found: $(INFRA_DIR)"; \
+	fi
