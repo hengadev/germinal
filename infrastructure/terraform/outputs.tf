@@ -167,26 +167,53 @@ output "dns_records" {
 output "email_setup_status" {
   value       = <<-EOT
     ========================================
-    Email DNS Configuration (Google Workspace)
+    Email DNS Configuration
+    (Registrar Mailbox + Amazon SES)
     ========================================
 
     Domain: ${var.domain_name}
 
-    MX Records (configured):
-      1. ASPMX.L.GOOGLE.COM (priority 1)
-      2. ALT1.ASPMX.L.GOOGLE.COM (priority 5)
-      3. ALT2.ASPMX.L.GOOGLE.COM (priority 5)
-      4. ALT3.ASPMX.L.GOOGLE.COM (priority 10)
-      5. ALT4.ASPMX.L.GOOGLE.COM (priority 10)
+    SENDING: Amazon SES
+    ----------------------------------------
+    1. Verify domain in AWS SES Console
+    2. Request production access
+    3. Create SMTP credentials
+    4. Add DKIM records to Cloudflare
 
-    SPF Record: v=spf1 include:_spf.google.com ~all
+    SMTP Configuration (.env):
+      SMTP_HOST=email.{region}.amazonaws.com
+      SMTP_PORT=587
+      SMTP_SECURE=false
+      SMTP_USER=AKIAXXXXXXXXXXXXXXXX
+      SMTP_PASSWORD=XXXXXXXXXXXXXXXXXXXX
+      SMTP_FROM_EMAIL=noreply@${var.domain_name}
+      SMTP_FROM_NAME=Germinal
+
+    RECEIVING: Registrar Mailbox
+    ----------------------------------------
+    MX Records (configured):
+      1. ${var.email_mx_primary} (priority ${var.email_mx_primary_priority})
+      2. ${var.email_mx_secondary} (priority ${var.email_mx_secondary_priority})
+
+    SPF Record: v=spf1 include:amazonses.com ~all
     DMARC Record: v=DMARC1; p=none; rua=mailto:${var.contact_email}
 
-    Next steps:
-      1. Verify domain in Google Workspace Admin Console
-      2. Add users in Google Workspace
-      3. Test email delivery
+    DNS Records to Add Manually:
+      TXT _amazonses → {SES verification token}
+      CNAME token1._domainkey → token1.dkim.amazonses.com
+      CNAME token2._domainkey → token2.dkim.amazonses.com
+      CNAME token3._domainkey → token3.dkim.amazonses.com
 
+    Next steps:
+      1. Enable email at your registrar (get MX servers)
+      2. Verify domain in AWS SES Console
+      3. Request SES production access
+      4. Create SES SMTP credentials
+      5. Add SES DNS records to Cloudflare
+      6. Update .env with SMTP credentials
+      7. Test email sending/receiving
+
+    See: infrastructure/terraform/ses.tf for details
     ========================================
     EOT
   description = "Email configuration status and instructions"
