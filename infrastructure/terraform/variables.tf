@@ -119,6 +119,58 @@ variable "google_site_verification" {
 }
 
 # ============================================
+# Email Configuration Variables
+# ============================================
+
+variable "email_mx_primary" {
+  description = "Primary MX server from your registrar (e.g., mx2.namecheap.com)"
+  type        = string
+  default     = "mx2.namecheap.com"
+}
+
+variable "email_mx_primary_priority" {
+  description = "Priority for primary MX server (lower = higher priority)"
+  type        = number
+  default     = 10
+}
+
+variable "email_mx_secondary" {
+  description = "Secondary MX server from your registrar (e.g., mx1.namecheap.com)"
+  type        = string
+  default     = "mx1.namecheap.com"
+}
+
+variable "email_mx_secondary_priority" {
+  description = "Priority for secondary MX server"
+  type        = number
+  default     = 20
+}
+
+# ============================================
+# Amazon SES DKIM Variables (OPTIONAL)
+# ============================================
+# Add these to terraform.tfvars after setting up SES in AWS Console
+# Get the DKIM tokens from: SES Console → Verified Identities → your domain → DKIM status
+
+variable "ses_dkim_token1" {
+  description = "First DKIM token from AWS SES (e.g., abcdefghijk123456789)"
+  type        = string
+  default     = ""
+}
+
+variable "ses_dkim_token2" {
+  description = "Second DKIM token from AWS SES"
+  type        = string
+  default     = ""
+}
+
+variable "ses_dkim_token3" {
+  description = "Third DKIM token from AWS SES"
+  type        = string
+  default     = ""
+}
+
+# ============================================
 # Backup Configuration Variables
 # ============================================
 
