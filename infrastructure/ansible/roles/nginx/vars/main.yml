@@ -1,0 +1,16 @@
+---
+# Nginx Role - Default Variables
+
+# SSL Configuration
+# For Cloudflare Origin Certificate, upload your cert and key
+nginx_ssl_certificate: ""
+nginx_ssl_certificate_key: ""
+
+# Cloudflare Real IP restoration (recommended when using Cloudflare)
+nginx_cloudflare_real_ip: true
+
+# Client upload size limit
+nginx_client_max_body_size: "100M"
+
+# Media CDN domain (for serving media files)
+nginx_media_cdn: "media.{{ app_domain | default('localhost') }}"
