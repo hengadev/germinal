@@ -70,6 +70,49 @@ contact_email = "admin@example.com"
 google_site_verification = ""
 
 # ============================================
+# Email Configuration (Registrar Mailbox + Amazon SES)
+# ============================================
+# SETUP:
+# 1. SENDING: Use Amazon SES for sending emails
+#    - See infrastructure/terraform/ses.tf for setup instructions
+#    - Create SMTP credentials in AWS SES Console
+#    - Update .env with SMTP_HOST, SMTP_USER, SMTP_PASSWORD
+#
+# 2. RECEIVING: Use your domain registrar's email service
+#    - Enable email forwarding/mailbox in your registrar's control panel
+#    - Find their MX records and update below
+#
+# Common registrar MX records:
+# - Namecheap:  mx2.namecheap.com (priority 10), mx1.namecheap.com (priority 20)
+# - GoDaddy:    smtp.secureserver.net (10), mailstore1.secureserver.net (20)
+# - Porkbun:    mail.porkbun.com (10)
+# - Cloudflare Email Routing: mx1.cloudflare.net (10), mx2.cloudflare.net (20)
+
+# Primary MX server from your registrar
+email_mx_primary = "mx2.namecheap.com"
+email_mx_primary_priority = 10
+
+# Secondary MX server from your registrar
+email_mx_secondary = "mx1.namecheap.com"
+email_mx_secondary_priority = 20
+
+# ============================================
+# Amazon SES DKIM Configuration (OPTIONAL)
+# ============================================
+# After setting up SES in AWS Console:
+# 1. Go to SES → Verified Identities → your domain
+# 2. Find the DKIM tokens (you'll have 3)
+# 3. Uncomment and fill in the values below
+# 4. Uncomment the DKIM DNS records in cloudflare.tf
+#
+# Alternatively, enable the SES Terraform resources in ses.tf
+# and they'll be auto-generated (you still need to apply)
+
+# ses_dkim_token1 = "abcdefghijk123456789"
+# ses_dkim_token2 = "lmnopqrstuv987654321"
+# ses_dkim_token3 = "wxyzabcdef012345678"
+
+# ============================================
 # Database Backup Configuration
 # ============================================
 
