@@ -1,0 +1,114 @@
+---
+# Germinal VPS - Database Backup Setup
+# Usage: ansible-playbook -i inventory/hosts.yml playbooks/backup.yml \
+#       -e "backup_s3_bucket=my-backup-bucket" \
+#       -e "backup_s3_region=eu-central-1"
+
+- name: Germinal VPS - Configure Database Backups
+  hosts: germinal_servers
+  gather_facts: true
+
+  pre_tasks:
+    - name: Validate backup configuration
+      ansible.builtin.assert:
+        that:
+          - backup_s3_bucket | length > 0
+        fail_msg: "backup_s3_bucket must be set. Use: -e 'backup_s3_bucket=your-bucket-name'"
+        quiet: true
+
+    - name: Display backup configuration
+      ansible.builtin.debug:
+        msg:
+          - "S3 Bucket: {{ backup_s3_bucket }}"
+          - "S3 Region: {{ backup_s3_region }}"
+          - "Retention: {{ backup_retention_days }} days"
+
+  tasks:
+    - name: Create backup directory
+      ansible.builtin.file:
+        path: "{{ app_base_dir }}/scripts"
+        state: directory
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_user }}"
+        mode: '0750'
+
+    - name: Install AWS CLI
+      ansible.builtin.apt:
+        name: awscli
+        state: present
+        update_cache: true
+
+    - name: Configure AWS for backup user
+      ansible.builtin.template:
+        src: aws-config.j2
+        dest: "/home/{{ deploy_user }}/.aws/config"
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_user }}"
+        mode: '0600'
+      when: backup_aws_access_key | default('') | length > 0
+
+    - name: Configure AWS credentials for backup
+      ansible.builtin.template:
+        src: aws-credentials.j2
+        dest: "/home/{{ deploy_user }}/.aws/credentials"
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_user }}"
+        mode: '0600'
+      when: backup_aws_access_key | default('') | length > 0
+
+    - name: Deploy backup script
+      ansible.builtin.template:
+        src: backup-db.sh.j2
+        dest: "{{ app_base_dir }}/scripts/backup-db.sh"
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_user }}"
+        mode: '0750'
+
+    - name: Setup backup cron jobs
+      ansible.builtin.cron:
+        name: "Germinal {{ item.name }} backup"
+        user: "{{ deploy_user }}"
+        minute: "{{ item.minute }}"
+        hour: "{{ item.hour }}"
+        weekday: "{{ item.weekday | default(omit) }}"
+        day: "{{ item.day | default(omit) }}"
+        job: "{{ app_base_dir }}/scripts/backup-db.sh {{ item.type }} >> {{ app_logs_dir }}/backup.log 2>&1"
+        state: present
+      loop:
+        - { name: daily, type: daily, minute: '0', hour: '2' }
+        - { name: weekly, type: weekly, minute: '0', hour: '3', weekday: '0' }
+        - { name: monthly, type: monthly, minute: '0', hour: '4', day: '1' }
+
+    - name: Create logrotate config for backup logs
+      ansible.builtin.copy:
+        dest: /etc/logrotate.d/germinal-backup
+        content: |
+          {{ app_logs_dir }}/backup.log {
+            daily
+            rotate 14
+            compress
+            delaycompress
+            missingok
+            notifempty
+            create 0640 {{ deploy_user }} {{ deploy_user }}
+          }
+        mode: '0644'
+
+  post_tasks:
+    - name: Display backup setup completion
+      ansible.builtin.debug:
+        msg:
+          - "==========================================="
+          - "Backup Setup Complete!"
+          - "==========================================="
+          - ""
+          - "S3 Bucket: {{ backup_s3_bucket }}"
+          - "Backup script: {{ app_base_dir }}/scripts/backup-db.sh"
+          - ""
+          - "Manual backup:"
+          - "  sudo -u {{ deploy_user }} {{ app_base_dir }}/scripts/backup-db.sh daily"
+          - ""
+          - "Test backup:"
+          - "  aws s3 ls s3://{{ backup_s3_bucket }}/daily/"
+          - ""
+          - "==========================================="

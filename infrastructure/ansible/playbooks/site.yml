@@ -1,0 +1,71 @@
+---
+# Germinal VPS - Complete Setup
+# Usage: ansible-playbook -i inventory/hosts.yml playbooks/site.yml
+#
+# With custom variables:
+#   ansible-playbook -i inventory/hosts.yml playbooks/site.yml \
+#     -e "ansible_host=1.2.3.4" \
+#     -e "deploy_ssh_public_key=$(cat ~/.ssh/id_ed25519.pub)" \
+#     -e "app_domain=yourdomain.com"
+#
+# Using Terraform outputs:
+#   ansible-playbook -i inventory/hosts.yml playbooks/site.yml \
+#     -e "ansible_host=$(terraform output -raw server_ipv4_address)" \
+#     -e "app_domain=$(terraform output -raw domain_name)"
+
+- name: Germinal VPS - Complete Setup
+  hosts: germinal_servers
+  gather_facts: true
+
+  pre_tasks:
+    - name: Display target host
+      ansible.builtin.debug:
+        msg: "Setting up {{ inventory_hostname }} ({{ ansible_default_ipv4.address }}) for {{ app_name }}"
+
+    - name: Check if running as root
+      ansible.builtin.assert:
+        that:
+          - ansible_user == 'root'
+        fail_msg: "Initial setup must run as root. After first run, use deploy playbook."
+        quiet: true
+
+  roles:
+    - role: system
+      tags: ['system', 'setup']
+
+    - role: user
+      tags: ['user', 'setup']
+
+    - role: ssh
+      tags: ['ssh', 'security']
+
+    - role: firewall
+      tags: ['firewall', 'security']
+
+    - role: docker
+      tags: ['docker', 'setup']
+
+    - role: nginx
+      tags: ['nginx', 'web']
+
+    - role: app
+      tags: ['app', 'deploy']
+
+  post_tasks:
+    - name: Display setup completion message
+      ansible.builtin.debug:
+        msg:
+          - "==========================================="
+          - "Germinal VPS Setup Complete!"
+          - "==========================================="
+          - ""
+          - "Server: {{ ansible_default_ipv4.address }}"
+          - "Domain: {{ app_domain }}"
+          - "Deploy user: {{ deploy_user }}"
+          - ""
+          - "Next steps:"
+          - "  1. Copy your .env file to {{ app_base_dir }}/.env"
+          - "  2. Run: ansible-playbook playbooks/deploy.yml"
+          - "  3. Or manually: ssh {{ deploy_user }}@{{ ansible_default_ipv4.address }}"
+          - ""
+          - "==========================================="

@@ -1,0 +1,45 @@
+---
+# Germinal VPS - Application Deployment
+# Usage: ansible-playbook -i inventory/hosts.yml playbooks/deploy.yml
+#
+# This playbook deploys/updates the application without touching system config.
+# Run after the initial site.yml setup.
+
+- name: Germinal VPS - Deploy Application
+  hosts: germinal_servers
+  gather_facts: true
+  become: true
+  become_user: "{{ deploy_user }}"
+
+  vars:
+    # Git repository for deployment
+    app_repo: "{{ lookup('env', 'APP_REPO') | default('git@github.com:yourusername/germinal.git', true) }}"
+    app_branch: "{{ lookup('env', 'APP_BRANCH') | default('main', true) }}"
+
+  pre_tasks:
+    - name: Display deployment info
+      ansible.builtin.debug:
+        msg: "Deploying {{ app_name }} from {{ app_repo }} ({{ app_branch }})"
+
+  roles:
+    - role: app
+      tags: ['app', 'deploy']
+
+  post_tasks:
+    - name: Restart application services
+      ansible.builtin.command:
+        cmd: docker compose restart
+        chdir: "{{ app_base_dir }}"
+      become: true
+      when: app_deployed | default(false)
+
+    - name: Display deployment completion
+      ansible.builtin.debug:
+        msg:
+          - "==========================================="
+          - "Deployment Complete!"
+          - "==========================================="
+          - "Application: https://{{ app_domain }}"
+          - "Status: sudo -u {{ deploy_user }} docker compose ps"
+          - "Logs: sudo -u {{ deploy_user }} docker compose logs -f"
+          - "==========================================="
