@@ -1,0 +1,107 @@
+---
+# Docker Installation Tasks
+# - Add Docker GPG key and repository
+# - Install Docker and Docker Compose
+# - Configure Docker daemon
+# - Add users to docker group
+
+- name: Ensure old versions of Docker are removed
+  ansible.builtin.apt:
+    name:
+      - docker
+      - docker-engine
+      - docker.io
+      - containerd
+      - runc
+    state: absent
+
+- name: Create directory for Docker GPG key
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: '0755'
+
+- name: Add Docker GPG key
+  ansible.builtin.apt_key:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    keyring: /etc/apt/keyrings/docker.gpg
+    state: present
+
+- name: Add Docker repository
+  ansible.builtin.apt_repository:
+    repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+    filename: docker
+    state: present
+    update_cache: true
+
+- name: Install Docker packages
+  ansible.builtin.apt:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+    state: present
+    update_cache: true
+
+- name: Configure Docker daemon
+  ansible.builtin.template:
+    src: daemon.json.j2
+    dest: /etc/docker/daemon.json
+    mode: '0644'
+  notify: restart docker
+
+- name: Ensure Docker is enabled and started
+  ansible.builtin.service:
+    name: docker
+    state: started
+    enabled: true
+
+- name: Ensure containerd is enabled and started
+  ansible.builtin.service:
+    name: containerd
+    state: started
+    enabled: true
+
+- name: Add users to docker group
+  ansible.builtin.user:
+    name: "{{ item }}"
+    groups: docker
+    append: true
+  loop: "{{ docker_users }}"
+  when: docker_users is defined
+
+- name: Create Docker network for application
+  community.docker.docker_network:
+    name: "{{ app_name }}_network"
+    state: present
+
+- name: Verify Docker installation
+  ansible.builtin.command:
+    cmd: docker version
+  register: docker_version
+  changed_when: false
+
+- name: Verify Docker Compose installation
+  ansible.builtin.command:
+    cmd: docker compose version
+  register: docker_compose_version
+  changed_when: false
+
+- name: Display Docker versions and security info
+  ansible.builtin.debug:
+    msg:
+      - "==========================================="
+      - "Docker Installation Complete"
+      - "==========================================="
+      - "Docker: {{ docker_version.stdout_lines | first }}"
+      - "Docker Compose: {{ docker_compose_version.stdout_lines | first }}"
+      - ""
+      - "SECURITY NOTES:"
+      - "  - Metrics endpoint: {{ docker_daemon_options['metrics-addr'] | default('disabled') }}"
+      - "  - Users in docker group: {{ docker_users | default([]) | join(', ') }}"
+      - ""
+      - "WARNING: Users in the docker group have root-equivalent access!"
+      - "Only add trusted users to the docker group."
+      - "==========================================="

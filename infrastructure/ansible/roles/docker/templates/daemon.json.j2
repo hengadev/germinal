@@ -1,0 +1,10 @@
+{
+  "log-driver": "{{ docker_daemon_options.log_driver }}",
+  "log-opts": {
+    {% for key, value in docker_daemon_options['log-opts'].items() %}
+    "{{ key }}": "{{ value }}"{% if not loop.last %},{% endif %}
+    {% endfor %}
+  }{% if docker_daemon_options['metrics-addr'] is defined %},
+  "metrics-addr": "{{ docker_daemon_options['metrics-addr'] }}"{% endif %}{% if docker_daemon_options['experimental'] is defined %},
+  "experimental": {{ docker_daemon_options['experimental'] | lower }}{% endif %}
+}
