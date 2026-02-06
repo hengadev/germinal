@@ -35,7 +35,7 @@ help:
 	@echo ""
 	@echo "DNS:"
 	@echo "  make dns-info      - Show application URL and DNS records"
-	@echo "  make dns-email     - Show email (Google Workspace) setup"
+	@echo "  make dns-email     - Show email (Registrar + SES) setup"
 	@echo "  make dns-verify    - Show Cloudflare dashboard link"
 	@echo ""
 	@echo "Destruction:"
@@ -204,7 +204,7 @@ dns-info:
 	@echo "Note: DNS is proxied through Cloudflare (orange cloud)"
 	@echo "==========================================="
 
-# Show email configuration (Google Workspace)
+# Show email configuration (Registrar + Amazon SES)
 dns-email:
 	@terraform output -raw email_setup_status
 

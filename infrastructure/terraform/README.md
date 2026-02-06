@@ -17,7 +17,8 @@ Infrastructure as Code for the Germinal project using Terraform.
 
 ### Cloudflare DNS
 - **DNS Records**: A/AAAA records pointing to VPS
-- **Email DNS**: MX, SPF, and DMARC records for Google Workspace
+- **Email DNS**: MX records for registrar mailbox, SPF/DMARC for deliverability
+- **SES DKIM**: Optional DKIM records for Amazon SES email authentication
 - **SSL/TLS**: Automatic HTTPS via Cloudflare's Universal SSL
 - **DDoS Protection**: Cloudflare's proxy and protection services
 
@@ -196,7 +197,7 @@ make output        # Show all outputs
 make credentials   # Show AWS S3 credentials
 make server-info   # Show VPS connection details
 make dns-info      # Show application URL and DNS records
-make dns-email     # Show email (Google Workspace) setup
+make dns-email     # Show email (Registrar + SES) setup
 make dns-verify    # Show Cloudflare dashboard link
 
 # Server
@@ -221,6 +222,7 @@ infrastructure/
     ├── cloudfront.tf              # CloudFront CDN for media delivery
     ├── hetzner.tf                 # Hetzner Cloud server resources
     ├── cloudflare.tf              # Cloudflare DNS records
+    ├── ses.tf                     # Amazon SES configuration (optional, commented out)
     ├── cloud-init.yml.tftpl       # Server initialization template
     ├── variables.tf               # Input variables
     ├── outputs.tf                 # Output values
@@ -368,22 +370,100 @@ Before running Terraform, ensure your domain is set up on Cloudflare:
      - Zone → DNS → Edit
      - Include → Specific zone → Your domain
 
-### Google Workspace Email Setup
+### Email Setup (Registrar Mailbox + Amazon SES)
 
-After Terraform applies the DNS records:
+This project uses a cost-effective email setup:
+- **Sending**: Amazon SES (Simple Email Service)
+- **Receiving**: Your domain registrar's mailbox service
 
-1. **Verify Domain in Google Workspace**
-   - Go to Google Workspace Admin Console
-   - Verify domain ownership (may use TXT records)
+#### Step 1: Configure Registrar Mailbox (Receiving)
 
-2. **Add Users**
-   - Create user accounts in Google Workspace
+1. **Enable Email at Your Registrar**
+   - Go to your domain registrar (Namecheap, GoDaddy, Porkbun, etc.)
+   - Enable email forwarding or mailbox service
+   - Note their MX server addresses
 
-3. **Test Email**
-   - Send test emails to verify MX records are working
-   ```bash
-   make dns-email  # Shows email configuration
+2. **Update `terraform.tfvars`**
+   ```hcl
+   email_mx_primary = "mx2.namecheap.com"    # Your registrar's MX
+   email_mx_primary_priority = 10
+   email_mx_secondary = "mx1.namecheap.com"  # Backup MX
+   email_mx_secondary_priority = 20
    ```
+
+3. **Apply DNS Changes**
+   ```bash
+   terraform apply
+   ```
+
+#### Step 2: Set Up Amazon SES (Sending)
+
+1. **Verify Domain in SES Console**
+   - Go to AWS SES → Verified Identities
+   - Click "Create identity" → Choose "Domain"
+   - Enter your domain (e.g., `example.com`)
+   - Note the verification token for DNS
+
+2. **Add SES Verification Record to Cloudflare**
+   - Type: TXT
+   - Name: `_amazonses`
+   - Value: `{verification token from SES}`
+
+3. **Request Production Access**
+   - In SES Console, request production access
+   - Required to send emails to non-verified addresses
+   - AWS will review your use case (usually 1-2 days)
+
+4. **Create SMTP Credentials**
+   - Go to SES Console → SMTP Settings
+   - Click "Create SMTP Credentials"
+   - Save the credentials (username and password)
+
+5. **Add DKIM Records (Recommended)**
+   - In SES Console, open your verified domain
+   - Enable DKIM signing
+   - You'll get 3 CNAME records to add to Cloudflare
+   - Either add manually via Cloudflare dashboard, or:
+     - Uncomment the DKIM records in `cloudflare.tf`
+     - Add tokens to `terraform.tfvars`:
+       ```hcl
+       ses_dkim_token1 = "abc123xyz789"
+       ses_dkim_token2 = "def456uvw012"
+       ses_dkim_token3 = "ghi789rst345"
+       ```
+     - Run `terraform apply`
+
+#### Step 3: Configure Application
+
+Update your application's `.env` file with SES SMTP credentials:
+
+```bash
+# SMTP Configuration
+SMTP_HOST=email.us-east-1.amazonaws.com  # Your SES region
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=AKIAXXXXXXXXXXXXXXXX           # From SES SMTP credentials
+SMTP_PASSWORD=XXXXXXXXXXXXXXXXXXXX        # From SES SMTP credentials
+SMTP_FROM_EMAIL=noreply@yourdomain.com
+SMTP_FROM_NAME=Germinal
+CONTACT_EMAIL=you@yourdomain.com          # Your registrar mailbox
+```
+
+#### Optional: Terraform SES Resources
+
+For Infrastructure as Code, you can manage SES via Terraform:
+
+1. See `ses.tf` for commented SES resources
+2. Uncomment resources after manual SES setup is complete
+3. Run `terraform apply`
+
+Note: SMTP credentials must still be created manually in AWS Console.
+
+#### Test Email Configuration
+
+```bash
+make dns-email  # Shows email configuration summary
+```
 
 ### DNS Records Created
 
@@ -394,9 +474,16 @@ Terraform automatically creates:
 | A | `@` | VPS IPv4 | Yes |
 | AAAA | `@` | VPS IPv6 | Yes |
 | CNAME | `www` | `@` | Yes |
-| MX | `@` | Google Workspace servers | No |
-| TXT | `@` | SPF record | No |
+| MX | `@` | Registrar MX servers | No |
+| TXT | `@` | SPF (includes amazonses.com) | No |
 | TXT | `_dmarc` | DMARC record | No |
+| CNAME | `*.domainkey` | SES DKIM (optional) | No |
+
+**Note**: After SES setup, you'll also need to add these records manually:
+- TXT `_amazonses` → SES verification token
+- CNAME `token1._domainkey` → `token1.dkim.amazonses.com`
+- CNAME `token2._domainkey` → `token2.dkim.amazonses.com`
+- CNAME `token3._domainkey` → `token3.dkim.amazonses.com`
 
 ### View DNS Information
 
