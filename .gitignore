@@ -25,6 +25,8 @@ vite.config.ts.timestamp-*
 *.md
 !README.md
 !infrastructure/terraform/README.md
+!infrastructure/ansible/README.md
+!infrastructure/ansible/VAULT.md
 
 # Test Coverage
 coverage/
