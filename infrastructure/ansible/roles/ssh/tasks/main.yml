@@ -2,37 +2,7 @@
 # SSH Hardening Tasks
 # - Disable password authentication
 # - Disable root login (use deploy user instead)
-# - Configure fail2ban for SSH brute-force protection
 # - Set up strict key-based authentication
-
-- name: Create fail2ban jail configuration for SSH
-  ansible.builtin.copy:
-    dest: /etc/fail2ban/jail.local
-    content: |
-      [DEFAULT]
-      bantime = {{ fail2ban_bantime }}
-      findtime = {{ fail2ban_findtime }}
-      maxretry = {{ fail2ban_maxretry }}
-      destemail = root@localhost
-      sender = fail2ban@localhost
-
-      [sshd]
-      enabled = {{ 'true' if fail2ban_enabled else 'false' }}
-      port = {{ ssh_port }}
-      filter = sshd
-      logpath = /var/log/auth.log
-      maxretry = {{ fail2ban_maxretry }}
-      bantime = {{ fail2ban_bantime }}
-      findtime = {{ fail2ban_findtime }}
-    mode: '0644'
-  notify: restart fail2ban
-
-- name: Ensure fail2ban is enabled and started
-  ansible.builtin.service:
-    name: fail2ban
-    state: started
-    enabled: true
-  when: fail2ban_enabled
 
 - name: Configure SSH daemon security settings
   ansible.builtin.lineinfile:

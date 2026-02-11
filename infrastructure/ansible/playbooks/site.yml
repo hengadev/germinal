@@ -39,6 +39,9 @@
     - role: ssh
       tags: ['ssh', 'security']
 
+    - role: fail2ban
+      tags: ['fail2ban', 'security']
+
     - role: firewall
       tags: ['firewall', 'security']
 

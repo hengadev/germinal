@@ -1,0 +1,39 @@
+# Fail2ban Jail Configuration
+# Managed by Ansible - DO NOT EDIT MANUALLY
+
+[DEFAULT]
+bantime = {{ fail2ban_bantime }}
+findtime = {{ fail2ban_findtime }}
+maxretry = {{ fail2ban_maxretry }}
+destemail = {{ fail2ban_notify_email }}
+sender = fail2ban@localhost
+action = %(action_mwl)s
+
+[sshd]
+enabled = {{ 'true' if fail2ban_enabled else 'false' }}
+port = {{ ssh_port }}
+filter = sshd
+logpath = /var/log/auth.log
+maxretry = {{ fail2ban_ssh_maxretry }}
+bantime = {{ fail2ban_ssh_bantime }}
+findtime = {{ fail2ban_findtime }}
+
+[sshd-ddos]
+enabled = {{ 'true' if fail2ban_enabled else 'false' }}
+port = {{ ssh_port }}
+filter = sshd[mode=ddos]
+logpath = /var/log/auth.log
+maxretry = {{ fail2ban_ddos_maxretry }}
+bantime = {{ fail2ban_ddos_bantime }}
+findtime = {{ fail2ban_findtime }}
+
+{% if nginx_enabled | default(false) %}
+[nginx-limit-req]
+enabled = true
+port = http,https
+filter = nginx-limit-req
+logpath = /var/log/nginx/error.log
+maxretry = {{ fail2ban_nginx_maxretry }}
+bantime = {{ fail2ban_bantime }}
+findtime = {{ fail2ban_findtime }}
+{% endif %}

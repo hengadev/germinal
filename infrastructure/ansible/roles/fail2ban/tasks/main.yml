@@ -1,0 +1,39 @@
+---
+# Fail2ban Configuration Tasks
+# - Deploy jail configuration for SSH and nginx
+# - Configure email notifications
+# - Enable and start fail2ban service
+
+- name: Deploy fail2ban jail configuration
+  ansible.builtin.template:
+    src: jail.local.j2
+    dest: /etc/fail2ban/jail.d/local.conf
+    mode: '0644'
+  notify: restart fail2ban
+
+- name: Deploy nginx rate-limit filter
+  ansible.builtin.template:
+    src: nginx-limit-req.conf.j2
+    dest: /etc/fail2ban/filter.d/nginx-limit-req.conf
+    mode: '0644'
+  when: nginx_enabled | default(false)
+  notify: restart fail2ban
+
+- name: Ensure fail2ban is enabled and started
+  ansible.builtin.service:
+    name: fail2ban
+    state: started
+    enabled: true
+  when: fail2ban_enabled
+
+- name: Display fail2ban configuration summary
+  ansible.builtin.debug:
+    msg:
+      - "==========================================="
+      - "Fail2ban Configuration Applied"
+      - "==========================================="
+      - "SSH jail: maxretry={{ fail2ban_ssh_maxretry }}, bantime={{ fail2ban_ssh_bantime }}s"
+      - "SSH DDoS jail: maxretry={{ fail2ban_ddos_maxretry }}, bantime={{ fail2ban_ddos_bantime }}s"
+      - "Nginx jail: {{ 'enabled' if nginx_enabled | default(false) else 'disabled' }}"
+      - "Notifications: {{ fail2ban_notify_email }}"
+      - "==========================================="
