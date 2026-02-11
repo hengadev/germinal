@@ -97,4 +97,5 @@ backup_schedule_monthly: "0 4 1 * *"
 # Monitoring (Optional)
 # ============================================
 monitoring_enabled: false
-prometheus_node_exporter_port: 9100
+monitoring_cadvisor_port: 8081
+monitoring_node_exporter_port: 9100

@@ -54,6 +54,10 @@
     - role: app
       tags: ['app', 'deploy']
 
+    - role: monitoring
+      tags: ['monitoring', 'setup']
+      when: monitoring_enabled | default(false)
+
   post_tasks:
     - name: Display setup completion message
       ansible.builtin.debug:
