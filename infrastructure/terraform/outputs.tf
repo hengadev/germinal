@@ -154,12 +154,12 @@ output "dns_records" {
       content = cloudflare_dns_record.main_a.content
       proxied = cloudflare_dns_record.main_a.proxied
     }
-    www = {
-      name    = cloudflare_dns_record.www.name
-      type    = cloudflare_dns_record.www.type
-      content = cloudflare_dns_record.www.content
-      proxied = cloudflare_dns_record.www.proxied
-    }
+    www = var.create_www_dns ? {
+      name    = cloudflare_dns_record.www[0].name
+      type    = cloudflare_dns_record.www[0].type
+      content = cloudflare_dns_record.www[0].content
+      proxied = cloudflare_dns_record.www[0].proxied
+    } : null
   }
   description = "Key DNS records for the application"
 }

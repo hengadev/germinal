@@ -118,6 +118,12 @@ variable "google_site_verification" {
   default     = ""
 }
 
+variable "create_www_dns" {
+  description = "Create WWW DNS record (set to false if already exists)"
+  type        = bool
+  default     = false
+}
+
 # ============================================
 # Email Configuration Variables
 # ============================================

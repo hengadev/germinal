@@ -33,6 +33,9 @@ resource "cloudflare_dns_record" "www" {
   content = var.domain_name
   proxied = true
   ttl     = 1
+
+  # Skip if record already exists (set create_www_dns = false in terraform.tfvars)
+  count = var.create_www_dns ? 1 : 0
 }
 
 # ============================================
