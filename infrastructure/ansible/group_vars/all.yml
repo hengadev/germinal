@@ -28,6 +28,13 @@ system_timezone: Etc/UTC
 # Automatic security updates
 auto_security_updates: true
 auto_updates_reboot: false
+auto_updates_email: "{{ vault_contact_email | default('root@localhost') }}"
+auto_updates_blacklist:
+  - docker-ce
+  - docker-ce-cli
+  - containerd.io
+  - docker-buildx-plugin
+  - docker-compose-plugin
 
 # ============================================
 # Docker Configuration

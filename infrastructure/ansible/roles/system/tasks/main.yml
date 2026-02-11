@@ -57,6 +57,19 @@
   when: auto_security_updates
   notify: restart unattended-upgrades
 
+- name: Install apt-listchanges for update notifications
+  ansible.builtin.apt:
+    name: apt-listchanges
+    state: present
+  when: auto_security_updates
+
+- name: Deploy apt-listchanges configuration
+  ansible.builtin.template:
+    src: apt-listchanges.conf.j2
+    dest: /etc/apt/listchanges.conf
+    mode: '0644'
+  when: auto_security_updates
+
 - name: Enable auto-upgrades
   ansible.builtin.copy:
     dest: /etc/apt/apt.conf.d/20auto-upgrades

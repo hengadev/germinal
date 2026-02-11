@@ -1,0 +1,9 @@
+# apt-listchanges Configuration
+# Managed by Ansible - DO NOT EDIT MANUALLY
+
+[apt]
+frontend=mail
+email_address={{ auto_updates_email }}
+confirm=false
+save_seen=/var/lib/apt/listchanges.db
+which=both
