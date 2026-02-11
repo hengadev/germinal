@@ -59,9 +59,9 @@ resource "aws_s3_bucket_lifecycle_configuration" "backups_lifecycle" {
       prefix = "daily/"
     }
 
-    # Move to cheaper storage after 7 days
+    # Move to cheaper storage after 30 days (minimum for STANDARD_IA)
     transition {
-      days          = 7
+      days          = 30
       storage_class = "STANDARD_IA"
     }
 
