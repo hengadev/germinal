@@ -5,13 +5,13 @@ terraform {
   # S3 backend for state storage
   # Note: The bucket must be created before running terraform init
   # You can create it manually via AWS CLI or console, or use backend.tf
-  backend "s3" {
-    bucket         = "germinal-terraform-state"
-    key            = "terraform.tfstate"
-    region         = "eu-central-1"
-    encrypt        = true
-    dynamodb_table = "germinal-terraform-locks"
-  }
+  # backend "s3" {
+  #   bucket         = "germinal-terraform-state"
+  #   key            = "terraform.tfstate"
+  #   region         = "eu-central-1"
+  #   encrypt        = true
+  #   use_lockfile   = true
+  # }
 
   required_providers {
     aws = {
@@ -24,7 +24,7 @@ terraform {
     }
     cloudflare = {
       source  = "cloudflare/cloudflare"
-      version = "~> 4.0"
+      version = "~> 5.0"
     }
   }
 
