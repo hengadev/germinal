@@ -1,10 +1,10 @@
 ---
-# Germinal VPS - Database Backup Setup
+# Germinal VPS - Backup Setup
 # Usage: ansible-playbook -i inventory/hosts.yml playbooks/backup.yml \
 #       -e "backup_s3_bucket=my-backup-bucket" \
 #       -e "backup_s3_region=eu-central-1"
 
-- name: Germinal VPS - Configure Database Backups
+- name: Germinal VPS - Configure Backups
   hosts: germinal_servers
   gather_facts: true
 
@@ -22,6 +22,8 @@
           - "S3 Bucket: {{ backup_s3_bucket }}"
           - "S3 Region: {{ backup_s3_region }}"
           - "Retention: {{ backup_retention_days }} days"
+          - "Volume backups: {{ backup_volumes_enabled }}"
+          - "Config backups: {{ backup_configs_enabled }}"
 
   tasks:
     - name: Create backup directory
@@ -56,10 +58,26 @@
         mode: '0600'
       when: backup_aws_access_key | default('') | length > 0
 
-    - name: Deploy backup script
+    - name: Deploy database backup script
       ansible.builtin.template:
         src: backup-db.sh.j2
         dest: "{{ app_base_dir }}/scripts/backup-db.sh"
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_user }}"
+        mode: '0750'
+
+    - name: Deploy comprehensive backup script
+      ansible.builtin.template:
+        src: backup.sh.j2
+        dest: "{{ app_base_dir }}/scripts/backup.sh"
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_user }}"
+        mode: '0750'
+
+    - name: Deploy restore script
+      ansible.builtin.template:
+        src: restore.sh.j2
+        dest: "{{ app_base_dir }}/scripts/restore.sh"
         owner: "{{ deploy_user }}"
         group: "{{ deploy_user }}"
         mode: '0750'
@@ -72,7 +90,7 @@
         hour: "{{ item.hour }}"
         weekday: "{{ item.weekday | default(omit) }}"
         day: "{{ item.day | default(omit) }}"
-        job: "{{ app_base_dir }}/scripts/backup-db.sh {{ item.type }} >> {{ app_logs_dir }}/backup.log 2>&1"
+        job: "{{ app_base_dir }}/scripts/backup.sh {{ item.type }} >> {{ app_logs_dir }}/backup.log 2>&1"
         state: present
       loop:
         - { name: daily, type: daily, minute: '0', hour: '2' }
@@ -103,12 +121,16 @@
           - "==========================================="
           - ""
           - "S3 Bucket: {{ backup_s3_bucket }}"
-          - "Backup script: {{ app_base_dir }}/scripts/backup-db.sh"
+          - "Backup script: {{ app_base_dir }}/scripts/backup.sh"
+          - "Restore script: {{ app_base_dir }}/scripts/restore.sh"
           - ""
           - "Manual backup:"
-          - "  sudo -u {{ deploy_user }} {{ app_base_dir }}/scripts/backup-db.sh daily"
+          - "  sudo -u {{ deploy_user }} {{ app_base_dir }}/scripts/backup.sh daily"
           - ""
-          - "Test backup:"
-          - "  aws s3 ls s3://{{ backup_s3_bucket }}/daily/"
+          - "Restore:"
+          - "  sudo -u {{ deploy_user }} {{ app_base_dir }}/scripts/restore.sh db/daily/<filename>"
+          - ""
+          - "List backups:"
+          - "  aws s3 ls s3://{{ backup_s3_bucket }}/ --recursive"
           - ""
           - "==========================================="

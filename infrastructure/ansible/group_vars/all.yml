@@ -92,6 +92,9 @@ backup_enabled: true
 backup_schedule_daily: "0 2 * * *"
 backup_schedule_weekly: "0 3 * * 0"
 backup_schedule_monthly: "0 4 1 * *"
+backup_volumes_enabled: true
+backup_configs_enabled: true
+backup_s3_storage_class: "STANDARD_IA"
 
 # ============================================
 # Monitoring (Optional)
