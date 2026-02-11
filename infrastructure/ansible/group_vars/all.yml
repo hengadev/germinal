@@ -42,6 +42,15 @@ docker_daemon_options:
   metrics-addr: "127.0.0.1:9323"
   experimental: false
 
+# Docker Security Hardening
+# SECURITY: Disable inter-container communication on default bridge
+# User-defined networks (like germinal_network) are unaffected
+docker_daemon_icc: false
+docker_daemon_userland_proxy: false
+docker_daemon_no_new_privileges: true
+docker_daemon_live_restore: true
+docker_daemon_ulimit_nofile: 64000
+
 # ============================================
 # Fail2ban Configuration
 # ============================================
