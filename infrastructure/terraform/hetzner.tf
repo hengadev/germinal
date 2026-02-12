@@ -14,7 +14,7 @@ resource "hcloud_ssh_key" "default" {
 
 # Main VPS server
 resource "hcloud_server" "main" {
-  name        = "${var.environment}-${var.project_name}"
+  name        = var.project_name
   image       = var.server_image
   server_type = var.server_type
   location    = var.server_location
