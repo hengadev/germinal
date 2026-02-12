@@ -97,22 +97,6 @@ email_mx_secondary = "mx1.namecheap.com"
 email_mx_secondary_priority = 20
 
 # ============================================
-# Amazon SES DKIM Configuration (OPTIONAL)
-# ============================================
-# After setting up SES in AWS Console:
-# 1. Go to SES → Verified Identities → your domain
-# 2. Find the DKIM tokens (you'll have 3)
-# 3. Uncomment and fill in the values below
-# 4. Uncomment the DKIM DNS records in cloudflare.tf
-#
-# Alternatively, enable the SES Terraform resources in ses.tf
-# and they'll be auto-generated (you still need to apply)
-
-# ses_dkim_token1 = "abcdefghijk123456789"
-# ses_dkim_token2 = "lmnopqrstuv987654321"
-# ses_dkim_token3 = "wxyzabcdef012345678"
-
-# ============================================
 # Database Backup Configuration
 # ============================================
 

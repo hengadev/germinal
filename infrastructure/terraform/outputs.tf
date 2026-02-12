@@ -167,21 +167,24 @@ output "dns_records" {
 output "email_setup_status" {
   value       = <<-EOT
     ========================================
-    Email DNS Configuration
+    Email Configuration
     (Registrar Mailbox + Amazon SES)
     ========================================
 
     Domain: ${var.domain_name}
 
+    AUTOMATED (Terraform-managed):
+    ----------------------------------------
+    - SES domain identity & verification
+    - DKIM authentication (3 CNAME records)
+    - MAIL FROM domain (MX + SPF records)
+    - SES verification TXT record
+    - IAM sending policy
+
     SENDING: Amazon SES
     ----------------------------------------
-    1. Verify domain in AWS SES Console
-    2. Request production access
-    3. Create SMTP credentials
-    4. Add DKIM records to Cloudflare
-
     SMTP Configuration (.env):
-      SMTP_HOST=email.{region}.amazonaws.com
+      SMTP_HOST=email.${var.aws_region}.amazonaws.com
       SMTP_PORT=587
       SMTP_SECURE=false
       SMTP_USER=AKIAXXXXXXXXXXXXXXXX
@@ -198,20 +201,10 @@ output "email_setup_status" {
     SPF Record: v=spf1 include:amazonses.com ~all
     DMARC Record: v=DMARC1; p=none; rua=mailto:${var.contact_email}
 
-    DNS Records to Add Manually:
-      TXT _amazonses → {SES verification token}
-      CNAME token1._domainkey → token1.dkim.amazonses.com
-      CNAME token2._domainkey → token2.dkim.amazonses.com
-      CNAME token3._domainkey → token3.dkim.amazonses.com
-
-    Next steps:
-      1. Enable email at your registrar (get MX servers)
-      2. Verify domain in AWS SES Console
-      3. Request SES production access
-      4. Create SES SMTP credentials
-      5. Add SES DNS records to Cloudflare
-      6. Update .env with SMTP credentials
-      7. Test email sending/receiving
+    REMAINING MANUAL STEPS:
+      1. Request SES production access in AWS Console
+      2. Create SMTP credentials (SES > SMTP Settings)
+      3. Update .env with SMTP credentials
 
     See: infrastructure/terraform/ses.tf for details
     ========================================
