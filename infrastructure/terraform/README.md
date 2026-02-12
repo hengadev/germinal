@@ -17,8 +17,8 @@ Infrastructure as Code for the Germinal project using Terraform.
 
 ### Cloudflare DNS
 - **DNS Records**: A/AAAA records pointing to VPS
-- **Email DNS**: MX records for registrar mailbox, SPF/DMARC for deliverability
-- **SES DKIM**: Optional DKIM records for Amazon SES email authentication
+- **Email DNS**: MX records for Hostinger mailbox, SPF/DMARC for deliverability
+- **SES DNS**: Domain verification, DKIM, and MAIL FROM records for Amazon SES API
 - **SSL/TLS**: Automatic HTTPS via Cloudflare's Universal SSL
 - **DDoS Protection**: Cloudflare's proxy and protection services
 
@@ -62,6 +62,7 @@ You need AWS credentials with permissions to create:
 - DynamoDB tables
 - CloudFront distributions
 - ACM certificates
+- SES domain identities and configuration
 
 1. Go to [IAM Console](https://console.aws.amazon.com/iam/)
 2. Create a new user with programmatic access
@@ -222,7 +223,7 @@ infrastructure/
     ├── cloudfront.tf              # CloudFront CDN for media delivery
     ├── hetzner.tf                 # Hetzner Cloud server resources
     ├── cloudflare.tf              # Cloudflare DNS records
-    ├── ses.tf                     # Amazon SES configuration (optional, commented out)
+    ├── ses.tf                     # Amazon SES configuration
     ├── cloud-init.yml.tftpl       # Server initialization template
     ├── variables.tf               # Input variables
     ├── outputs.tf                 # Output values
@@ -370,25 +371,27 @@ Before running Terraform, ensure your domain is set up on Cloudflare:
      - Zone → DNS → Edit
      - Include → Specific zone → Your domain
 
-### Email Setup (Registrar Mailbox + Amazon SES)
+### Email Setup (Hostinger Business Email + Amazon SES API)
 
-This project uses a cost-effective email setup:
-- **Sending**: Amazon SES (Simple Email Service)
-- **Receiving**: Your domain registrar's mailbox service
+This project uses a two-provider email setup:
+- **Sending**: Amazon SES API (`noreply@`) — uses existing IAM credentials, no SMTP
+- **Receiving**: Hostinger Business Email (`support@`) — dedicated mailbox
 
-#### Step 1: Configure Registrar Mailbox (Receiving)
+#### Step 1: Configure Hostinger Business Email (Receiving)
 
-1. **Enable Email at Your Registrar**
-   - Go to your domain registrar (Namecheap, GoDaddy, Porkbun, etc.)
-   - Enable email forwarding or mailbox service
-   - Note their MX server addresses
+1. **Create Mailbox in Hostinger**
+   - Go to hPanel → Emails → Set up email
+   - Create `support@yourdomain.com` mailbox
+   - Get DKIM records from hPanel → Emails → Email DNS Records
 
-2. **Update `terraform.tfvars`**
+2. **Update `terraform.tfvars`** with Hostinger DKIM records:
    ```hcl
-   email_mx_primary = "mx2.namecheap.com"    # Your registrar's MX
-   email_mx_primary_priority = 10
-   email_mx_secondary = "mx1.namecheap.com"  # Backup MX
-   email_mx_secondary_priority = 20
+   email_dkim_records = {
+     "default._domainkey" = {
+       type    = "TXT"
+       content = "v=DKIM1; k=rsa; p=MIGfMA0GCS..."  # From hPanel
+     }
+   }
    ```
 
 3. **Apply DNS Changes**
@@ -398,66 +401,31 @@ This project uses a cost-effective email setup:
 
 #### Step 2: Set Up Amazon SES (Sending)
 
-1. **Verify Domain in SES Console**
-   - Go to AWS SES → Verified Identities
-   - Click "Create identity" → Choose "Domain"
-   - Enter your domain (e.g., `example.com`)
-   - Note the verification token for DNS
+Terraform automatically creates the SES domain identity, DKIM authentication,
+configuration set, MAIL FROM domain, and all related DNS records in Cloudflare.
+After running `terraform apply`, one manual step remains:
 
-2. **Add SES Verification Record to Cloudflare**
-   - Type: TXT
-   - Name: `_amazonses`
-   - Value: `{verification token from SES}`
-
-3. **Request Production Access**
-   - In SES Console, request production access
+1. **Request Production Access**
+   - Go to SES Console → Account dashboard
+   - Click "Request production access"
+   - Fill in use case (transactional), sending rate, and a brief description
+   - AWS reviews this (typically 1-2 business days)
    - Required to send emails to non-verified addresses
-   - AWS will review your use case (usually 1-2 days)
-
-4. **Create SMTP Credentials**
-   - Go to SES Console → SMTP Settings
-   - Click "Create SMTP Credentials"
-   - Save the credentials (username and password)
-
-5. **Add DKIM Records (Recommended)**
-   - In SES Console, open your verified domain
-   - Enable DKIM signing
-   - You'll get 3 CNAME records to add to Cloudflare
-   - Either add manually via Cloudflare dashboard, or:
-     - Uncomment the DKIM records in `cloudflare.tf`
-     - Add tokens to `terraform.tfvars`:
-       ```hcl
-       ses_dkim_token1 = "abc123xyz789"
-       ses_dkim_token2 = "def456uvw012"
-       ses_dkim_token3 = "ghi789rst345"
-       ```
-     - Run `terraform apply`
 
 #### Step 3: Configure Application
 
-Update your application's `.env` file with SES SMTP credentials:
+The app sends email via the SES API using the same AWS credentials used for S3.
+No SMTP credentials are needed. Add to your `.env`:
 
 ```bash
-# SMTP Configuration
-SMTP_HOST=email.us-east-1.amazonaws.com  # Your SES region
-SMTP_PORT=587
-SMTP_SECURE=false
-SMTP_USER=AKIAXXXXXXXXXXXXXXXX           # From SES SMTP credentials
-SMTP_PASSWORD=XXXXXXXXXXXXXXXXXXXX        # From SES SMTP credentials
-SMTP_FROM_EMAIL=noreply@yourdomain.com
-SMTP_FROM_NAME=Germinal
-CONTACT_EMAIL=you@yourdomain.com          # Your registrar mailbox
+# SES API Configuration (uses existing AWS credentials)
+AWS_ACCESS_KEY_ID=AKIA...                    # From terraform output
+AWS_SECRET_ACCESS_KEY=...                    # From terraform output
+SES_FROM_EMAIL=noreply@yourdomain.com
+SES_FROM_NAME=Germinal
+SES_REGION=eu-central-1                      # Your AWS region
+CONTACT_EMAIL=support@yourdomain.com         # Hostinger mailbox
 ```
-
-#### Optional: Terraform SES Resources
-
-For Infrastructure as Code, you can manage SES via Terraform:
-
-1. See `ses.tf` for commented SES resources
-2. Uncomment resources after manual SES setup is complete
-3. Run `terraform apply`
-
-Note: SMTP credentials must still be created manually in AWS Console.
 
 #### Test Email Configuration
 
@@ -474,16 +442,14 @@ Terraform automatically creates:
 | A | `@` | VPS IPv4 | Yes |
 | AAAA | `@` | VPS IPv6 | Yes |
 | CNAME | `www` | `@` | Yes |
-| MX | `@` | Registrar MX servers | No |
-| TXT | `@` | SPF (includes amazonses.com) | No |
-| TXT | `_dmarc` | DMARC record | No |
-| CNAME | `*.domainkey` | SES DKIM (optional) | No |
-
-**Note**: After SES setup, you'll also need to add these records manually:
-- TXT `_amazonses` → SES verification token
-- CNAME `token1._domainkey` → `token1.dkim.amazonses.com`
-- CNAME `token2._domainkey` → `token2.dkim.amazonses.com`
-- CNAME `token3._domainkey` → `token3.dkim.amazonses.com`
+| MX | `@` | Hostinger MX servers | No |
+| TXT | `@` | SPF (dynamic from `email_spf_includes`) | No |
+| TXT | `_dmarc` | DMARC (policy from `email_dmarc_policy`) | No |
+| TXT | `_amazonses` | SES verification token | No |
+| CNAME | `*._domainkey` | SES DKIM (3 records) | No |
+| TXT/CNAME | varies | Mailbox provider DKIM (from `email_dkim_records`) | No |
+| MX | `mail` | SES MAIL FROM feedback endpoint | No |
+| TXT | `mail` | SPF for MAIL FROM subdomain | No |
 
 ### View DNS Information
 

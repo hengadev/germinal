@@ -70,31 +70,38 @@ contact_email = "admin@example.com"
 google_site_verification = ""
 
 # ============================================
-# Email Configuration (Registrar Mailbox + Amazon SES)
+# Email Configuration (Hostinger Business Email + Amazon SES API)
 # ============================================
-# SETUP:
-# 1. SENDING: Use Amazon SES for sending emails
-#    - See infrastructure/terraform/ses.tf for setup instructions
-#    - Create SMTP credentials in AWS SES Console
-#    - Update .env with SMTP_HOST, SMTP_USER, SMTP_PASSWORD
+# SENDING: Amazon SES via AWS SDK (uses same IAM credentials as S3)
+#   - No SMTP credentials needed; app calls SES API directly
+#   - Only manual step: request SES production access in AWS Console
 #
-# 2. RECEIVING: Use your domain registrar's email service
-#    - Enable email forwarding/mailbox in your registrar's control panel
-#    - Find their MX records and update below
-#
-# Common registrar MX records:
-# - Namecheap:  mx2.namecheap.com (priority 10), mx1.namecheap.com (priority 20)
-# - GoDaddy:    smtp.secureserver.net (10), mailstore1.secureserver.net (20)
-# - Porkbun:    mail.porkbun.com (10)
-# - Cloudflare Email Routing: mx1.cloudflare.net (10), mx2.cloudflare.net (20)
+# RECEIVING: Hostinger Business Email
+#   - Create mailbox in hPanel (e.g., support@yourdomain.com)
+#   - Get DKIM records from hPanel > Emails > Email DNS Records
 
-# Primary MX server from your registrar
-email_mx_primary = "mx2.namecheap.com"
+# MX servers (Hostinger defaults)
+email_mx_primary          = "mx1.hostinger.com"
 email_mx_primary_priority = 10
 
-# Secondary MX server from your registrar
-email_mx_secondary = "mx1.namecheap.com"
+email_mx_secondary          = "mx2.hostinger.com"
 email_mx_secondary_priority = 20
+
+# SPF includes — add providers that send on your behalf
+# Default includes amazonses.com; add Hostinger if they require it
+email_spf_includes = ["amazonses.com"]
+
+# DMARC policy (none, quarantine, reject)
+email_dmarc_policy = "quarantine"
+
+# Hostinger DKIM records — copy from hPanel > Emails > Email DNS Records
+# Example (replace with your actual values):
+# email_dkim_records = {
+#   "default._domainkey" = {
+#     type    = "TXT"
+#     content = "v=DKIM1; k=rsa; p=MIGfMA0GCS..."
+#   }
+# }
 
 # ============================================
 # Database Backup Configuration
