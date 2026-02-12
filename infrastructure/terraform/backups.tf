@@ -65,15 +65,15 @@ resource "aws_s3_bucket_lifecycle_configuration" "backups_lifecycle" {
       storage_class = "STANDARD_IA"
     }
 
-    # Move to Glacier after 30 days
+    # Move to Glacier after 90 days (must be > STANDARD_IA)
     transition {
-      days          = 30
+      days          = 90
       storage_class = "GLACIER"
     }
 
-    # Delete daily backups after retention period
+    # Delete daily backups after retention period (must be > last transition)
     expiration {
-      days = var.backup_retention_days
+      days = var.backup_retention_days + 1
     }
 
     # Clean up old versions
@@ -91,9 +91,9 @@ resource "aws_s3_bucket_lifecycle_configuration" "backups_lifecycle" {
       prefix = "weekly/"
     }
 
-    # Move to STANDARD_IA after 14 days
+    # Move to STANDARD_IA after 30 days (minimum required by AWS)
     transition {
-      days          = 14
+      days          = 30
       storage_class = "STANDARD_IA"
     }
 
