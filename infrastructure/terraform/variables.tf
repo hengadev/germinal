@@ -125,9 +125,9 @@ variable "create_www_dns" {
 # ============================================
 
 variable "email_mx_primary" {
-  description = "Primary MX server from your registrar (e.g., mx2.namecheap.com)"
+  description = "Primary MX server for your mailbox provider"
   type        = string
-  default     = "mx2.namecheap.com"
+  default     = "mx1.hostinger.com"
 }
 
 variable "email_mx_primary_priority" {
@@ -137,15 +137,38 @@ variable "email_mx_primary_priority" {
 }
 
 variable "email_mx_secondary" {
-  description = "Secondary MX server from your registrar (e.g., mx1.namecheap.com)"
+  description = "Secondary MX server for your mailbox provider"
   type        = string
-  default     = "mx1.namecheap.com"
+  default     = "mx2.hostinger.com"
 }
 
 variable "email_mx_secondary_priority" {
   description = "Priority for secondary MX server"
   type        = number
   default     = 20
+}
+
+variable "email_spf_includes" {
+  description = "Domains to include in SPF record (e.g., amazonses.com, _spf.hostinger.com)"
+  type        = list(string)
+  default     = ["amazonses.com"]
+}
+
+variable "email_dmarc_policy" {
+  description = "DMARC policy for the domain (none, quarantine, reject)"
+  type        = string
+  default     = "quarantine"
+
+  validation {
+    condition     = contains(["none", "quarantine", "reject"], var.email_dmarc_policy)
+    error_message = "DMARC policy must be one of: none, quarantine, reject."
+  }
+}
+
+variable "email_dkim_records" {
+  description = "Mailbox provider DKIM records (from Hostinger hPanel > Emails > Email DNS Records)"
+  type        = map(object({ type = string, content = string }))
+  default     = {}
 }
 
 # ============================================
