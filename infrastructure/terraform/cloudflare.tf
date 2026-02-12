@@ -41,30 +41,22 @@ resource "cloudflare_dns_record" "www" {
 # ============================================
 # Email DNS Records
 # ============================================
-# SETUP: Replace Google Workspace with registrar mailbox + Amazon SES
+# Hostinger Business Email (receiving) + Amazon SES API (sending)
 #
-# SENDING: Amazon SES (via SMTP)
-# RECEIVING: Your domain registrar's email service
+# SENDING: Amazon SES via AWS SDK (uses existing IAM credentials)
+# RECEIVING: Hostinger Business Email (support@ mailbox)
 #
-# MANUAL STEPS:
-# 1. Get MX records from your registrar (e.g., Namecheap, GoDaddy, etc.)
-# 2. Replace the placeholder MX records below with your registrar's values
-# 3. For Amazon SES, see infrastructure/terraform/ses.tf for setup instructions
-#
-# Common registrar MX records (examples - check with your registrar):
-# - Namecheap: mx2.namecheap.com (priority 10), mx1.namecheap.com (priority 20)
-# - GoDaddy: smtp.secureserver.net (priority 10), mailstore1.secureserver.net (priority 20)
-# - Porkbun: mail.porkbun.com (priority 10)
-# - Cloudflare Email Routing: mx1.cloudflare.net (priority 10), mx2.cloudflare.net (priority 20)
+# MX records route inbound mail to Hostinger.
+# SPF authorizes all providers in var.email_spf_includes.
+# SES DKIM is automated; Hostinger DKIM added via var.email_dkim_records.
 # ============================================
 
-# MX records - REPLACE WITH YOUR REGISTRAR'S MX SERVERS
-# Example for Namecheap (replace with your actual registrar's MX):
+# MX records - route inbound email to mailbox provider
 resource "cloudflare_dns_record" "mx1" {
   zone_id  = var.cloudflare_zone_id
   name     = var.domain_name
   type     = "MX"
-  content  = var.email_mx_primary     # Add to terraform.tfvars, e.g., "mx2.namecheap.com"
+  content  = var.email_mx_primary
   priority = var.email_mx_primary_priority
   proxied  = false
   ttl      = 3600
@@ -74,18 +66,18 @@ resource "cloudflare_dns_record" "mx2" {
   zone_id  = var.cloudflare_zone_id
   name     = var.domain_name
   type     = "MX"
-  content  = var.email_mx_secondary   # Add to terraform.tfvars, e.g., "mx1.namecheap.com"
+  content  = var.email_mx_secondary
   priority = var.email_mx_secondary_priority
   proxied  = false
   ttl      = 3600
 }
 
-# SPF record - allows Amazon SES to send email on your behalf
+# SPF record - authorizes sending providers (built from var.email_spf_includes)
 resource "cloudflare_dns_record" "spf" {
   zone_id = var.cloudflare_zone_id
   name    = var.domain_name
   type    = "TXT"
-  content = "\"v=spf1 include:amazonses.com ~all\""
+  content = "\"v=spf1 ${join(" ", [for d in var.email_spf_includes : "include:${d}"])} ~all\""
   proxied = false
   ttl     = 3600
 }
@@ -142,7 +134,19 @@ resource "cloudflare_dns_record" "dmarc" {
   zone_id = var.cloudflare_zone_id
   name    = "_dmarc"
   type    = "TXT"
-  content = "\"v=DMARC1; p=none; rua=mailto:${var.contact_email}\""
+  content = "\"v=DMARC1; p=${var.email_dmarc_policy}; rua=mailto:${var.contact_email}\""
+  proxied = false
+  ttl     = 3600
+}
+
+# Mailbox provider DKIM records (e.g., from Hostinger hPanel)
+resource "cloudflare_dns_record" "mailbox_dkim" {
+  for_each = var.email_dkim_records
+
+  zone_id = var.cloudflare_zone_id
+  name    = each.key
+  type    = each.value.type
+  content = each.value.type == "TXT" ? "\"${each.value.content}\"" : each.value.content
   proxied = false
   ttl     = 3600
 }
