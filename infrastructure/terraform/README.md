@@ -382,14 +382,22 @@ This project uses a two-provider email setup:
 1. **Create Mailbox in Hostinger**
    - Go to hPanel → Emails → Set up email
    - Create `support@yourdomain.com` mailbox
-   - Get DKIM records from hPanel → Emails → Email DNS Records
 
-2. **Update `terraform.tfvars`** with Hostinger DKIM records:
+2. **Add Hostinger DKIM records** to `terraform.tfvars`:
    ```hcl
+   # Standard Hostinger DKIM (3 CNAME records)
    email_dkim_records = {
-     "default._domainkey" = {
-       type    = "TXT"
-       content = "v=DKIM1; k=rsa; p=MIGfMA0GCS..."  # From hPanel
+     "hostingermail-a._domainkey" = {
+       type    = "CNAME"
+       content = "hostingermail-a.dkim.mail.hostinger.com"
+     }
+     "hostingermail-b._domainkey" = {
+       type    = "CNAME"
+       content = "hostingermail-b.dkim.mail.hostinger.com"
+     }
+     "hostingermail-c._domainkey" = {
+       type    = "CNAME"
+       content = "hostingermail-c.dkim.mail.hostinger.com"
      }
    }
    ```

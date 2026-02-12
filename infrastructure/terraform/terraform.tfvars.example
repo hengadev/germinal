@@ -94,14 +94,23 @@ email_spf_includes = ["amazonses.com"]
 # DMARC policy (none, quarantine, reject)
 email_dmarc_policy = "quarantine"
 
-# Hostinger DKIM records — copy from hPanel > Emails > Email DNS Records
-# Example (replace with your actual values):
-# email_dkim_records = {
-#   "default._domainkey" = {
-#     type    = "TXT"
-#     content = "v=DKIM1; k=rsa; p=MIGfMA0GCS..."
-#   }
-# }
+# Hostinger DKIM records (3 standard CNAME records)
+# See: https://www.hostinger.com/support/4456413
+# Or in hPanel: Emails > Manage > Connect Domain > Increase email deliverability
+email_dkim_records = {
+  "hostingermail-a._domainkey" = {
+    type    = "CNAME"
+    content = "hostingermail-a.dkim.mail.hostinger.com"
+  }
+  "hostingermail-b._domainkey" = {
+    type    = "CNAME"
+    content = "hostingermail-b.dkim.mail.hostinger.com"
+  }
+  "hostingermail-c._domainkey" = {
+    type    = "CNAME"
+    content = "hostingermail-c.dkim.mail.hostinger.com"
+  }
+}
 
 # ============================================
 # Database Backup Configuration

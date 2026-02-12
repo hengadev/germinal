@@ -204,9 +204,8 @@ output "email_setup_status" {
 
     REMAINING MANUAL STEPS:
       1. Request SES production access in AWS Console
-      2. Add Hostinger DKIM records to email_dkim_records variable
-         (hPanel > Emails > Email DNS Records)
-      3. Configure Hostinger mailbox (support@${var.domain_name})
+      2. Configure Hostinger mailbox (support@${var.domain_name})
+      3. Add Hostinger DKIM to terraform.tfvars (see terraform.tfvars.example)
 
     See: infrastructure/terraform/ses.tf for details
     ========================================
