@@ -33,11 +33,7 @@ resource "hcloud_server" "main" {
   }
 
   # User data for initial server setup
-  user_data = templatefile("${path.module}/cloud-init.yml.tftpl", {
-    docker_compose_version = "2.24.0"
-    project_name           = var.project_name
-    ssh_public_key         = var.ssh_public_key
-  })
+  user_data = file("${path.module}/cloud-init.yml.tftpl")
 
   # Don't destroy server if it has important data
   lifecycle {
