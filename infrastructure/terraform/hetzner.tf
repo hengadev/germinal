@@ -1,15 +1,9 @@
 # Hetzner Cloud Resources for Germinal
 # This file defines the VPS server and related resources
 
-# SSH Key for server access
-resource "hcloud_ssh_key" "default" {
-  name       = "${var.project_name}-${var.environment}-key"
-  public_key = var.ssh_public_key
-
-  labels = {
-    project     = var.project_name
-    environment = var.environment
-  }
+# Reference existing SSH key from Hetzner console
+data "hcloud_ssh_key" "default" {
+  name = "terraform-germinal"
 }
 
 # Main VPS server
@@ -18,7 +12,7 @@ resource "hcloud_server" "main" {
   image       = var.server_image
   server_type = var.server_type
   location    = var.server_location
-  ssh_keys    = [hcloud_ssh_key.default.id]
+  ssh_keys    = [data.hcloud_ssh_key.default.id]
 
   # Enable automatic backups
   backups = true

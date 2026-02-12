@@ -76,10 +76,6 @@ variable "server_image" {
   default     = "ubuntu-24.04"
 }
 
-variable "ssh_public_key" {
-  description = "SSH public key for server access (content of your id_rsa.pub file)"
-  type        = string
-}
 
 variable "enable_backups" {
   description = "Enable automatic backups for the server (additional cost)"
