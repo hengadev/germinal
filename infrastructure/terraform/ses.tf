@@ -105,3 +105,8 @@ output "ses_mail_from_domain" {
   description = "SES MAIL FROM domain"
   value       = aws_ses_domain_mail_from.main.mail_from_domain
 }
+
+output "ses_configuration_set" {
+  description = "SES configuration set name"
+  value       = aws_ses_configuration_set.main.name
+}
