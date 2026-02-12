@@ -14,17 +14,15 @@ vault_session_secret: "your_random_32_character_string_here"
 # Run: terraform output -raw iam_access_key_id
 vault_aws_access_key_id: "AKIAIOSFODNN7EXAMPLE"
 vault_aws_secret_access_key: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+vault_aws_region: "eu-west-3"
 vault_s3_bucket: "development-germinal-media"
 vault_s3_region: "eu-central-1"
 
 # ============================================
-# Email Configuration (Amazon SES)
+# Email Configuration (Amazon SES API)
 # ============================================
-vault_smtp_host: "email.eu-central-1.amazonaws.com"
-vault_smtp_port: "587"
-vault_smtp_secure: "false"
-vault_smtp_user: "AKIAIOSFODNN7EXAMPLE"
-vault_smtp_password: "BLongPasswordWith+Special/Characters="
+# Email sending uses SES API via AWS credentials above
+# Only sender information is needed here
 vault_smtp_from_email: "noreply@yourdomain.com"
 vault_smtp_from_name: "Germinal"
 
