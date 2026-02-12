@@ -4,7 +4,7 @@
 # ============================================
 # Deploy User Configuration
 # ============================================
-deploy_user: deploy
+deploy_user: germinal
 deploy_user_groups: ["sudo", "docker"]
 
 # SECURITY: Restrict sudo to specific commands (recommended: true)
