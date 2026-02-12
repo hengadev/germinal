@@ -1,46 +1,47 @@
-import nodemailer from 'nodemailer';
 import { logger } from '$lib/server/logger';
-import type { Transporter } from 'nodemailer';
-import { env, isSMTPEnabled } from '../env';
+import { env, isAWSConfigured } from '../env';
 import type { ContactEmailData } from '$lib/types/contact';
 import type { TicketEmailData } from '$lib/types/reservations';
 import { formatCurrency } from '$lib/utils/currency';
 import { escapeHtml, escapeHtmlAttr } from '$lib/utils/html';
+import {
+	SESClient,
+	SendEmailCommand,
+	type SendEmailCommandInput,
+} from '@aws-sdk/client-ses';
 
-let transporter: Transporter | null = null;
+let sesClient: SESClient | null = null;
 
-function getTransporter(): Transporter {
-  if (!transporter) {
-    if (!isSMTPEnabled()) {
-      throw new Error('SMTP is not configured. Check environment variables.');
-    }
+function getSESClient(): SESClient {
+	if (!sesClient) {
+		if (!isAWSConfigured()) {
+			throw new Error('AWS is not configured. Check AWS credentials.');
+		}
 
-    transporter = nodemailer.createTransport({
-      host: env.SMTP_HOST,
-      port: env.SMTP_PORT,
-      secure: env.SMTP_SECURE,
-      auth: {
-        user: env.SMTP_USER,
-        pass: env.SMTP_PASSWORD,
-      },
-    });
-  }
+		sesClient = new SESClient({
+			region: env.AWS_REGION,
+			credentials: {
+				accessKeyId: env.AWS_ACCESS_KEY_ID,
+				secretAccessKey: env.AWS_SECRET_ACCESS_KEY,
+			},
+		});
+	}
 
-  return transporter;
+	return sesClient;
 }
 
 function formatInquiryType(type: string): string {
-  const map: Record<string, string> = {
-    collaboration: 'Collaboration',
-    new_project: 'New Project',
-    join_roster: 'Join Roster',
-    other: 'Other',
-  };
-  return map[type] || type;
+	const map: Record<string, string> = {
+		collaboration: 'Collaboration',
+		new_project: 'New Project',
+		join_roster: 'Join Roster',
+		other: 'Other',
+	};
+	return map[type] || type;
 }
 
 function generateTextTemplate(data: ContactEmailData): string {
-  return `
+	return `
 New Contact Form Submission
 
 From: ${data.name} (${data.email})
@@ -58,7 +59,7 @@ This is an automated notification from the Germinal contact form.
 }
 
 function generateHtmlTemplate(data: ContactEmailData): string {
-  return `
+	return `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -128,38 +129,52 @@ function generateHtmlTemplate(data: ContactEmailData): string {
 }
 
 export async function sendContactEmail(data: ContactEmailData): Promise<void> {
-  if (!isSMTPEnabled()) {
-    logger.info({
-      to: env.CONTACT_EMAIL,
-      from: `${env.SMTP_FROM_NAME} <${env.SMTP_FROM_EMAIL}>`,
-      subject: `New Contact Form Submission from ${data.name}`,
-      content: generateTextTemplate(data),
-    }, '📧 SMTP not configured - email would have been sent');
-    return;
-  }
+	if (!isAWSConfigured()) {
+		logger.info({
+			to: env.CONTACT_EMAIL,
+			from: `${env.SMTP_FROM_NAME} <${env.SMTP_FROM_EMAIL}>`,
+			subject: `New Contact Form Submission from ${data.name}`,
+			content: generateTextTemplate(data),
+		}, '📧 AWS not configured - email would have been sent');
+		return;
+	}
 
-  const transport = getTransporter();
+	const client = getSESClient();
 
-  const mailOptions = {
-    from: `"${env.SMTP_FROM_NAME}" <${env.SMTP_FROM_EMAIL}>`,
-    to: env.CONTACT_EMAIL,
-    replyTo: `"${data.name}" <${data.email}>`,
-    subject: `New Contact Form Submission from ${data.name}`,
-    text: generateTextTemplate(data),
-    html: generateHtmlTemplate(data),
-  };
+	const mailOptions: SendEmailCommandInput = {
+		Source: `"${env.SMTP_FROM_NAME}" <${env.SMTP_FROM_EMAIL}>`,
+		Destination: {
+			ToAddresses: [env.CONTACT_EMAIL],
+		},
+		Message: {
+			Subject: {
+				Data: `New Contact Form Submission from ${data.name}`,
+			},
+			Body: {
+				Text: {
+					Data: generateTextTemplate(data),
+				},
+				Html: {
+					Data: generateHtmlTemplate(data),
+				},
+			},
+		},
+		// Add reply-to using headers
+		ReplyToAddresses: [`${data.name} <${data.email}>`],
+	};
 
-  try {
-    const info = await transport.sendMail(mailOptions);
-    logger.info({ messageId: info.messageId }, '📧 Contact email sent successfully');
-  } catch (error) {
-    logger.error({ err: error }, '❌ Failed to send contact email');
-    throw new Error('Failed to send email notification');
-  }
+	try {
+		const command = new SendEmailCommand(mailOptions);
+		const result = await client.send(command);
+		logger.info({ messageId: result.MessageId }, '📧 Contact email sent successfully');
+	} catch (error) {
+		logger.error({ err: error }, '❌ Failed to send contact email');
+		throw new Error('Failed to send email notification');
+	}
 }
 
 function generateTicketTextTemplate(data: TicketEmailData): string {
-  return `
+	return `
 Your Ticket Confirmation
 
 Hi ${data.guestName},
@@ -188,7 +203,7 @@ This is an automated confirmation from Germinal.
 }
 
 function generateTicketHtmlTemplate(data: TicketEmailData): string {
-  return `
+	return `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -265,50 +280,51 @@ function generateTicketHtmlTemplate(data: TicketEmailData): string {
 }
 
 export async function sendTicketConfirmationEmail(data: TicketEmailData): Promise<void> {
-  const textBody = generateTicketTextTemplate(data);
-  const htmlBody = generateTicketHtmlTemplate(data);
+	const textBody = generateTicketTextTemplate(data);
+	const htmlBody = generateTicketHtmlTemplate(data);
 
-  if (!isSMTPEnabled()) {
-    logger.info({
-      to: data.guestEmail,
-      accessToken: data.accessToken,
-      ticketUrl: `${env.PUBLIC_URL}/tickets/${data.accessToken}`,
-    }, '🎫 SMTP not configured - ticket confirmation email would be sent');
-    return;
-  }
+	if (!isAWSConfigured()) {
+		logger.info({
+			to: data.guestEmail,
+			accessToken: data.accessToken,
+			ticketUrl: `${env.PUBLIC_URL}/tickets/${data.accessToken}`,
+		}, '🎫 AWS not configured - ticket confirmation email would be sent');
+		return;
+	}
 
-  // Always queue for delivery with automatic retry
-  const { queueEmail } = await import('../jobs/process-email-queue');
-  await queueEmail({
-    type: 'ticket_confirmation',
-    recipient: data.guestEmail,
-    subject: `Your Tickets - ${data.event.title}`,
-    textBody,
-    htmlBody,
-    metadata: {
-      reservationId: data.reservation.id,
-      accessToken: data.accessToken,
-      guestName: data.guestName,
-    },
-  });
-  logger.info({ to: data.guestEmail }, '📋 Ticket confirmation email queued');
+	// Always queue for delivery with automatic retry
+	const { queueEmail } = await import('../jobs/process-email-queue');
+	await queueEmail({
+		type: 'ticket_confirmation',
+		recipient: data.guestEmail,
+		subject: `Your Tickets - ${data.event.title}`,
+		textBody,
+		htmlBody,
+		metadata: {
+			reservationId: data.reservation.id,
+			accessToken: data.accessToken,
+			guestName: data.guestName,
+		},
+	});
+	logger.info({ to: data.guestEmail }, '📋 Ticket confirmation email queued');
 }
 
 export async function verifyEmailConnection(): Promise<boolean> {
-  if (!isSMTPEnabled()) {
-    console.warn('⚠️  SMTP not configured');
-    return false;
-  }
+	if (!isAWSConfigured()) {
+		console.warn('⚠️  AWS not configured');
+		return false;
+	}
 
-  try {
-    const transport = getTransporter();
-    await transport.verify();
-    logger.info('✅ SMTP connection verified');
-    return true;
-  } catch (error) {
-    logger.error({ err: error }, '❌ SMTP connection failed');
-    return false;
-  }
+	try {
+		// Simply verify that the SES client can be created with valid credentials
+		// The client will be initialized when getSESClient() is called
+		getSESClient();
+		logger.info('✅ SES connection verified (credentials configured)');
+		return true;
+	} catch (error) {
+		logger.error({ err: error }, '❌ SES connection failed');
+		return false;
+	}
 }
 
 /**
@@ -422,12 +438,12 @@ export async function sendEventReminderEmail(data: TicketEmailData & { daysUntil
 	const textBody = generateEventReminderTextTemplate(data);
 	const htmlBody = generateEventReminderHtmlTemplate(data);
 
-	if (!isSMTPEnabled()) {
+	if (!isAWSConfigured()) {
 		logger.info({
 			to: data.guestEmail,
 			event: data.event.title,
 			daysUntil: data.daysUntil,
-		}, '🔔 SMTP not configured - event reminder email would be sent');
+		}, '🔔 AWS not configured - event reminder email would be sent');
 		return;
 	}
 

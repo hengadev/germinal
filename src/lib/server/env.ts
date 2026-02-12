@@ -21,7 +21,8 @@ const devEnvSchema = z.object({
     MAX_FILE_SIZE: z.string().default('10485760').transform(Number),
     ALLOWED_IMAGE_TYPES: z.string().default('image/jpeg,image/png,image/webp,image/gif').transform(s => s.split(',')),
     ALLOWED_VIDEO_TYPES: z.string().default('video/mp4,video/webm,video/quicktime').transform(s => s.split(',')),
-    // SMTP Configuration - optional in dev, will log to console if not configured
+    // Email Configuration - uses SES API for sending, sender info used for From address
+    // SMTP_* vars are legacy, only SMTP_FROM_* are actively used
     SMTP_HOST: z.string().optional().default(''),
     SMTP_PORT: z.string().optional().default('587').transform(Number),
     SMTP_SECURE: z.string().optional().default('false').transform(v => v === 'true'),
@@ -64,12 +65,12 @@ const prodEnvSchema = z.object({
     MAX_FILE_SIZE: z.string().transform(Number),
     ALLOWED_IMAGE_TYPES: z.string().transform(s => s.split(',')),
     ALLOWED_VIDEO_TYPES: z.string().transform(s => s.split(',')),
-    // SMTP Configuration - required in production
-    SMTP_HOST: z.string().min(1),
-    SMTP_PORT: z.string().transform(Number),
-    SMTP_SECURE: z.string().transform(v => v === 'true'),
-    SMTP_USER: z.string().min(1),
-    SMTP_PASSWORD: z.string().min(1),
+    // Email Configuration - SES API is used for sending, only sender info required
+    SMTP_HOST: z.string().optional().default(''),
+    SMTP_PORT: z.string().optional().default('587').transform(Number),
+    SMTP_SECURE: z.string().optional().default('false').transform(v => v === 'true'),
+    SMTP_USER: z.string().optional().default(''),
+    SMTP_PASSWORD: z.string().optional().default(''),
     SMTP_FROM_EMAIL: z.string().email(),
     SMTP_FROM_NAME: z.string().min(1),
     CONTACT_EMAIL: z.string().email(),
@@ -166,8 +167,14 @@ export const isS3Enabled = () => {
 };
 
 // Helper to check if SMTP is configured
+// DEPRECATED: Use isAWSConfigured for SES API email sending
 export const isSMTPEnabled = () => {
     return !!(env.SMTP_HOST && env.SMTP_USER && env.SMTP_PASSWORD);
+};
+
+// Helper to check if AWS is configured (for SES API email sending)
+export const isAWSConfigured = () => {
+    return !!(env.AWS_ACCESS_KEY_ID && env.AWS_SECRET_ACCESS_KEY && env.AWS_REGION);
 };
 
 // Helper to check if Stripe is configured
@@ -280,8 +287,14 @@ export function validateConfig() {
     }
 
     // Validate SMTP configuration (only if not in dev mode)
-    if (!isDevelopment && !isSMTPEnabled()) {
-        errors.push('SMTP configuration is required in production (SMTP_HOST, SMTP_USER, SMTP_PASSWORD)');
+    // Note: Email sending now uses SES API, but SMTP_FROM_* vars are still used for sender info
+    if (!isDevelopment) {
+        if (!env.SMTP_FROM_EMAIL || !env.SMTP_FROM_NAME) {
+            errors.push('Email sender configuration is required in production (SMTP_FROM_EMAIL, SMTP_FROM_NAME)');
+        }
+        if (!isAWSConfigured()) {
+            errors.push('AWS configuration is required in production for email sending via SES (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION)');
+        }
     }
 
     // Validate Stripe configuration (only if not in dev mode)

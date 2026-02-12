@@ -1,31 +1,32 @@
 import { db } from '../db';
 import { emailQueue } from '../db/schema';
 import { eq } from 'drizzle-orm';
-import { env, isSMTPEnabled } from '../env';
-import nodemailer from 'nodemailer';
-import type { Transporter } from 'nodemailer';
+import { env, isAWSConfigured } from '../env';
 import { emailLogger } from '../logger';
+import {
+	SESClient,
+	SendEmailCommand,
+	type SendEmailCommandInput,
+} from '@aws-sdk/client-ses';
 
-let transporter: Transporter | null = null;
+let sesClient: SESClient | null = null;
 
-function getTransporter(): Transporter {
-	if (!transporter) {
-		if (!isSMTPEnabled()) {
-			throw new Error('SMTP is not configured');
+function getSESClient(): SESClient {
+	if (!sesClient) {
+		if (!isAWSConfigured()) {
+			throw new Error('AWS is not configured');
 		}
 
-		transporter = nodemailer.createTransport({
-			host: env.SMTP_HOST,
-			port: env.SMTP_PORT,
-			secure: env.SMTP_SECURE,
-			auth: {
-				user: env.SMTP_USER,
-				pass: env.SMTP_PASSWORD,
+		sesClient = new SESClient({
+			region: env.AWS_REGION,
+			credentials: {
+				accessKeyId: env.AWS_ACCESS_KEY_ID,
+				secretAccessKey: env.AWS_SECRET_ACCESS_KEY,
 			},
 		});
 	}
 
-	return transporter;
+	return sesClient;
 }
 
 /**
@@ -41,8 +42,8 @@ function calculateRetryTime(attempts: number): Date {
  * Process pending emails in the queue with exponential backoff retry
  */
 export async function processEmailQueue() {
-	if (!isSMTPEnabled()) {
-		emailLogger.debug('[Email Queue] SMTP not configured, skipping queue processing');
+	if (!isAWSConfigured()) {
+		emailLogger.debug('[Email Queue] AWS not configured, skipping queue processing');
 		return { processed: 0, sent: 0, failed: 0 };
 	}
 
@@ -73,17 +74,32 @@ export async function processEmailQueue() {
 	let sentCount = 0;
 	let failedCount = 0;
 
-	const transport = getTransporter();
+	const client = getSESClient();
 
 	for (const email of pendingEmails) {
 		try {
-			await transport.sendMail({
-				from: `"${env.SMTP_FROM_NAME}" <${env.SMTP_FROM_EMAIL}>`,
-				to: email.recipient,
-				subject: email.subject,
-				text: email.textBody,
-				html: email.htmlBody,
-			});
+			const mailOptions: SendEmailCommandInput = {
+				Source: `"${env.SMTP_FROM_NAME}" <${env.SMTP_FROM_EMAIL}>`,
+				Destination: {
+					ToAddresses: [email.recipient],
+				},
+				Message: {
+					Subject: {
+						Data: email.subject,
+					},
+					Body: {
+						Text: {
+							Data: email.textBody,
+						},
+						Html: {
+							Data: email.htmlBody,
+						},
+					},
+				},
+			};
+
+			const command = new SendEmailCommand(mailOptions);
+			await client.send(command);
 
 			// Mark as sent
 			await db.update(emailQueue)
