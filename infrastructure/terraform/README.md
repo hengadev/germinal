@@ -77,7 +77,7 @@ You need AWS credentials with permissions to create:
 3. **SSH Key Pair**: Generate if you don't have one:
    ```bash
    ssh-keygen -t ed25519 -C "your_email@example.com"
-   cat ~/.ssh/id_ed25519.pub
+   cat ~/.ssh/germinal.pub
    ```
 
 ### Cloudflare

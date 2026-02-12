@@ -16,7 +16,7 @@ deploy_sudo_restricted: true
 deploy_sudo_password_fallback: false
 
 # Your public SSH key for the deploy user
-# You can also set this via: ansible-playbook --extra-vars "deploy_ssh_public_key=$(cat ~/.ssh/id_ed25519.pub)"
+# You can also set this via: ansible-playbook --extra-vars "deploy_ssh_public_key=$(cat ~/.ssh/germinal.pub)"
 deploy_ssh_public_key: "{{ lookup('env', 'DEPLOY_SSH_PUBLIC_KEY') | default('', true) }}"
 
 # ============================================

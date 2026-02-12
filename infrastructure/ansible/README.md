@@ -62,7 +62,7 @@ ansible-galaxy collection install community.docker community.general
 
 You need:
 - Root SSH access to your VPS
-- Your public SSH key (`~/.ssh/id_ed25519.pub` or `~/.ssh/id_rsa.pub`)
+- Your public SSH key (`~/.ssh/germinal.pub`)
 
 ### Terraform Outputs
 
@@ -82,7 +82,7 @@ terraform output domain_name
 cd infrastructure/ansible
 
 # Set your SSH public key
-export DEPLOY_SSH_PUBLIC_KEY="$(cat ~/.ssh/id_ed25519.pub)"
+export DEPLOY_SSH_PUBLIC_KEY="$(cat ~/.ssh/germinal.pub)"
 
 # Set your domain
 export APP_DOMAIN="yourdomain.com"
@@ -175,7 +175,7 @@ Run this on a fresh VPS to set up everything:
 ```bash
 ansible-playbook playbooks/site.yml \
   -e "ansible_host=<server-ip>" \
-  -e "deploy_ssh_public_key=$(cat ~/.ssh/id_ed25519.pub)" \
+  -e "deploy_ssh_public_key=$(cat ~/.ssh/germinal.pub)" \
   -e "app_domain=yourdomain.com"
 ```
 
@@ -363,7 +363,7 @@ ssh root@<server-ip>
 
 Check your SSH key is configured:
 ```bash
-cat ~/.ssh/id_ed25519.pub
+cat ~/.ssh/germinal.pub
 ```
 
 ### Playbook Fails

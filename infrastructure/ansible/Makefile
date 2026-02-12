@@ -35,7 +35,7 @@ DOMAIN=$(shell cd ../terraform && terraform output -raw domain_name 2>/dev/null 
 BACKUP_BUCKET=$(shell cd ../terraform && terraform output -raw backup_bucket_name 2>/dev/null || echo "")
 
 # Get SSH public key
-SSH_KEY=$(shell cat ~/.ssh/id_ed25519.pub 2>/dev/null || cat ~/.ssh/id_rsa.pub 2>/dev/null || echo "")
+SSH_KEY=$(shell cat ~/.ssh/germinal.pub 2>/dev/null || cat ~/.ssh/id_rsa.pub 2>/dev/null || echo "")
 
 # ============================================
 # Setup Commands
