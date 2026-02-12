@@ -4,17 +4,11 @@
 # SES resources for sending emails: domain verification, DKIM, IAM policy.
 # DNS records (DKIM, verification, MAIL FROM) are created automatically in cloudflare.tf.
 #
-# REMAINING MANUAL STEPS:
+# The application sends email via the SES API (aws-sdk), using the same IAM
+# credentials already provisioned for S3 (app_user). No SMTP credentials needed.
+#
+# REMAINING MANUAL STEP:
 # 1. Request SES production access in AWS Console (to send to non-verified emails)
-# 2. Create SMTP credentials in AWS Console (SES > SMTP Settings)
-# 3. Update .env with SMTP credentials:
-#    SMTP_HOST=email.{region}.amazonaws.com
-#    SMTP_PORT=587
-#    SMTP_SECURE=false
-#    SMTP_USER=AKIAXXXXXXXXXXXXXXXX
-#    SMTP_PASSWORD=XXXXXXXXXXXXXXXXXX
-#    SMTP_FROM_EMAIL=noreply@yourdomain.com
-#    SMTP_FROM_NAME=Germinal
 # ============================================
 
 # ============================================
@@ -57,18 +51,18 @@ resource "aws_iam_policy" "ses_send" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid      = "SESSendAccess"
-        Effect   = "Allow"
-        Action   = [
+        Sid    = "SESSendAccess"
+        Effect = "Allow"
+        Action = [
           "ses:SendEmail",
           "ses:SendRawEmail"
         ]
         Resource = "*"
       },
       {
-        Sid      = "SESVerifyAccess"
-        Effect   = "Allow"
-        Action   = [
+        Sid    = "SESVerifyAccess"
+        Effect = "Allow"
+        Action = [
           "ses:VerifyEmailIdentity",
           "ses:GetIdentityVerificationAttributes",
           "ses:GetIdentityMailFromDomainAttributes"

@@ -168,7 +168,7 @@ output "email_setup_status" {
   value       = <<-EOT
     ========================================
     Email Configuration
-    (Registrar Mailbox + Amazon SES)
+    (Hostinger Mailbox + Amazon SES API)
     ========================================
 
     Domain: ${var.domain_name}
@@ -176,35 +176,37 @@ output "email_setup_status" {
     AUTOMATED (Terraform-managed):
     ----------------------------------------
     - SES domain identity & verification
-    - DKIM authentication (3 CNAME records)
+    - SES DKIM authentication (3 CNAME records)
     - MAIL FROM domain (MX + SPF records)
     - SES verification TXT record
-    - IAM sending policy
+    - IAM sending policy (app_user)
+    - Mailbox provider DKIM (${length(var.email_dkim_records)} records configured)
 
-    SENDING: Amazon SES
+    SENDING: Amazon SES API
     ----------------------------------------
-    SMTP Configuration (.env):
-      SMTP_HOST=email.${var.aws_region}.amazonaws.com
-      SMTP_PORT=587
-      SMTP_SECURE=false
-      SMTP_USER=AKIAXXXXXXXXXXXXXXXX
-      SMTP_PASSWORD=XXXXXXXXXXXXXXXXXXXX
-      SMTP_FROM_EMAIL=noreply@${var.domain_name}
-      SMTP_FROM_NAME=Germinal
+    Uses existing IAM credentials (no SMTP credentials needed).
+    Application .env:
+      AWS_ACCESS_KEY_ID=<from terraform output>
+      AWS_SECRET_ACCESS_KEY=<from terraform output>
+      SES_FROM_EMAIL=noreply@${var.domain_name}
+      SES_FROM_NAME=Germinal
+      SES_REGION=${var.aws_region}
 
-    RECEIVING: Registrar Mailbox
+    RECEIVING: Hostinger Business Email
     ----------------------------------------
+    Mailbox: support@${var.domain_name}
     MX Records (configured):
       1. ${var.email_mx_primary} (priority ${var.email_mx_primary_priority})
       2. ${var.email_mx_secondary} (priority ${var.email_mx_secondary_priority})
 
-    SPF Record: v=spf1 include:amazonses.com ~all
-    DMARC Record: v=DMARC1; p=none; rua=mailto:${var.contact_email}
+    SPF Record: v=spf1 ${join(" ", [for d in var.email_spf_includes : "include:${d}"])} ~all
+    DMARC Record: v=DMARC1; p=${var.email_dmarc_policy}; rua=mailto:${var.contact_email}
 
     REMAINING MANUAL STEPS:
       1. Request SES production access in AWS Console
-      2. Create SMTP credentials (SES > SMTP Settings)
-      3. Update .env with SMTP credentials
+      2. Add Hostinger DKIM records to email_dkim_records variable
+         (hPanel > Emails > Email DNS Records)
+      3. Configure Hostinger mailbox (support@${var.domain_name})
 
     See: infrastructure/terraform/ses.tf for details
     ========================================
