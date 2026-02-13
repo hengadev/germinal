@@ -63,28 +63,7 @@ setup:
 		-e "ansible_host=$(VPS_IP)" \
 		-e "deploy_ssh_public_key=$(SSH_KEY)" \
 		-e "app_domain=$(DOMAIN)" \
-		-e "system_timezone=Etc/UTC" \
-		-e "auto_security_updates=true" \
-		-e "auto_updates_reboot=false" \
-		-e "auto_updates_email=contact@$(DOMAIN)" \
-		-e "deploy_user=germinal" \
-		-e "deploy_user_groups=['sudo','docker']" \
-		-e "deploy_sudo_restricted=true" \
-		-e "deploy_sudo_password_fallback=false" \
-		-e "fail2ban_enabled=true" \
-		-e "fail2ban_maxretry=5" \
-		-e "fail2ban_bantime=3600" \
-		-e "fail2ban_findtime=600" \
-		-e "monitoring_enabled=false" \
-		-e "app_name=germinal" \
-		-e "app_port=3000" \
-		-e "app_base_dir=/opt/germinal" \
-		-e "nginx_enabled=true" \
-		-e "nginx_client_max_body_size=100M" \
-		-e "ssh_port=22" \
-		-e "ssh_password_authentication=false" \
-		-e "ssh_permit_root_login=no" \
-		-e "docker_daemon_options={'log-driver':'json-file','log-opts':{'max-size':'10m','max-file':'3'},'metrics-addr':'127.0.0.1:9323'}"
+		-e "@group_vars/all.yml"
 
 # Deploy application
 deploy:
