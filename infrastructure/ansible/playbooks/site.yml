@@ -48,8 +48,10 @@
     - role: firewall
       tags: ['firewall', 'security']
 
-    - role: nginx
-      tags: ['nginx', 'web']
+    # - role: nginx
+    #   tags: ['nginx', 'web']
+    # NOTE: Nginx requires SSL certificates - uncomment after uploading Cloudflare Origin Certificate
+    # to /etc/ssl/cloudflare/{{ app_domain }}.pem on the server
 
     - role: app
       tags: ['app', 'deploy']
