@@ -18,6 +18,10 @@ Thumbs.db
 !.env.example
 !.env.test
 
+# Vault
+group_vars/all.vault.yml
+!group_vars/all.vault.example.yml
+
 # Vite
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
