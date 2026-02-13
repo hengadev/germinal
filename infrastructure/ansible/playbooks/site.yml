@@ -33,6 +33,9 @@
     - role: system
       tags: ['system', 'setup']
 
+    - role: docker
+      tags: ['docker', 'setup']
+
     - role: user
       tags: ['user', 'setup']
 
@@ -44,9 +47,6 @@
 
     - role: firewall
       tags: ['firewall', 'security']
-
-    - role: docker
-      tags: ['docker', 'setup']
 
     - role: nginx
       tags: ['nginx', 'web']
