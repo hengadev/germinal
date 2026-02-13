@@ -1,0 +1,7 @@
+---
+# User Role Handlers
+
+- name: test sudo configuration
+  ansible.builtin.debug:
+    msg: "Sudo configuration updated for {{ deploy_user }}"
+  listen: test sudo configuration
