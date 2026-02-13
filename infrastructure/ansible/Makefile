@@ -62,7 +62,16 @@ setup:
 	ansible-playbook -i inventory/hosts.yml playbooks/site.yml \
 		-e "ansible_host=$(VPS_IP)" \
 		-e "deploy_ssh_public_key=$(SSH_KEY)" \
-		-e "app_domain=$(DOMAIN)"
+		-e "app_domain=$(DOMAIN)" \
+		-e "system_timezone=Etc/UTC" \
+		-e "auto_security_updates=true" \
+		-e "auto_updates_reboot=false" \
+		-e "auto_updates_email=contact@$(DOMAIN)" \
+		-e "deploy_user=germinal" \
+		-e "deploy_user_groups=['sudo','docker']" \
+		-e "deploy_sudo_restricted=true" \
+		-e "fail2ban_enabled=true" \
+		-e "monitoring_enabled=false"
 
 # Deploy application
 deploy:
