@@ -111,6 +111,14 @@
     - "{{ app_logs_dir }}"
     - "{{ app_backup_dir }}"
 
+- name: Create scripts directory
+  ansible.builtin.file:
+    path: "{{ app_base_dir }}/scripts"
+    state: directory
+    owner: "{{ deploy_user }}"
+    group: "{{ deploy_user }}"
+    mode: '0755'
+
 - name: Create sudo test script for deploy user
   ansible.builtin.copy:
     dest: "{{ app_base_dir }}/scripts/test-sudo.sh"
