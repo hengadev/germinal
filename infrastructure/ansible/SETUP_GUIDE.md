@@ -43,17 +43,19 @@ Fill in the required values:
 vault_db_password: "your_secure_postgres_password"
 vault_session_secret: "your_random_32_character_string"
 
-# From Terraform outputs
+# From Terraform outputs (terraform output iam_access_key_id)
 vault_aws_access_key_id: "<from terraform>"
 vault_aws_secret_access_key: "<from terraform>"
 vault_aws_region: "eu-west-3"
 vault_s3_bucket: "development-germinal-media"
 vault_s3_region: "eu-west-3"
 
-# Email
+# Email (Amazon SES API - uses AWS credentials above)
 vault_smtp_from_email: "noreply@germinalstudio.co"
 vault_smtp_from_name: "Germinal"
 vault_contact_email: "you@germinalstudio.co"
+
+# Optional: OAuth, Backup AWS credentials
 ```
 
 Encrypt the vault:

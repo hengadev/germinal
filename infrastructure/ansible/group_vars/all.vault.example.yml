@@ -16,7 +16,7 @@ vault_aws_access_key_id: "AKIAIOSFODNN7EXAMPLE"
 vault_aws_secret_access_key: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
 vault_aws_region: "eu-west-3"
 vault_s3_bucket: "development-germinal-media"
-vault_s3_region: "eu-central-1"
+vault_s3_region: "eu-west-3"
 
 # ============================================
 # Email Configuration (Amazon SES API)
