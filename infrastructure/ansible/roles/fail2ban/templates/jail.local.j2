@@ -2,6 +2,7 @@
 # Managed by Ansible - DO NOT EDIT MANUALLY
 
 [DEFAULT]
+ignoreip = {{ fail2ban_ignoreip | default('127.0.0.1/8 ::1') }}
 bantime = {{ fail2ban_bantime }}
 findtime = {{ fail2ban_findtime }}
 maxretry = {{ fail2ban_maxretry }}
