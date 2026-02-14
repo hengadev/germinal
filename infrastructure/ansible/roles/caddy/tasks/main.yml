@@ -1,0 +1,33 @@
+---
+# Caddy Reverse Proxy Tasks
+# - Create Caddy directories
+# - Configure Caddyfile with Cloudflare DNS challenge
+# - Set up reverse proxy to application
+# - Configure security headers
+# - Enable and start Caddy container
+
+- name: Create Caddy directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ deploy_user }}"
+    group: "{{ deploy_user }}"
+    mode: '0750'
+  loop:
+    - "{{ caddy_data_dir }}/data"
+    - "{{ caddy_data_dir }}/config"
+    - "{{ caddy_data_dir }}/logs"
+
+- name: Create Caddyfile from template
+  ansible.builtin.template:
+    src: Caddyfile.j2
+    dest: "{{ caddy_data_dir }}/config/Caddyfile"
+    owner: "{{ deploy_user }}"
+    group: "{{ deploy_user }}"
+    mode: '0640'
+  notify: reload caddy
+  tags: caddy-config
+
+- name: Mark Caddy as configured
+  ansible.builtin.set_fact:
+    caddy_configured: true

@@ -1,0 +1,14 @@
+---
+# Caddy Default Variables
+
+# Caddy data directory (for config, data, and logs)
+caddy_data_dir: "{{ app_base_dir }}/caddy"
+
+# ACME email for Let's Encrypt certificate notifications
+caddy_acme_email: "{{ vault_contact_email | default('admin@' + app_domain) }}"
+
+# Client max body size for uploads
+caddy_client_max_body_size: "100M"
+
+# Cloudflare API token for DNS-01 challenge (sourced from vault)
+caddy_cloudflare_api_token: "{{ vault_caddy_cloudflare_api_token | default('') }}"
