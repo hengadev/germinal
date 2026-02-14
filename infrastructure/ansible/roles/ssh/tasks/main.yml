@@ -29,7 +29,7 @@
     - { key: "ClientAliveCountMax", value: "2" }
     - { key: "LoginGraceTime", value: "60" }
     # SECURITY: Disable unnecessary features
-    - { key: " PermitTunnel", value: "no" }
+    - { key: "PermitTunnel", value: "no" }
     - { key: "AllowTcpForwarding", value: "no" }
     # SECURITY: Disable agent forwarding (prevents key hijacking)
     - { key: "AllowAgentForwarding", value: "no" }
