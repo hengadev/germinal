@@ -1,9 +1,17 @@
 ---
 # Application Deployment Tasks
+# - Create Docker network
 # - Create directory structure
 # - Setup environment file
 # - Create Docker Compose configuration
 # - Start application services
+
+- name: Create Docker network
+  community.docker.docker_network:
+    name: "{{ app_name }}_network"
+    state: present
+  become_user: "{{ deploy_user }}"
+  become: true
 
 - name: Create application subdirectories
   ansible.builtin.file:
@@ -25,7 +33,6 @@
     owner: "{{ deploy_user }}"
     group: "{{ deploy_user }}"
     mode: '0600'
-  when: app_env_vars is defined and app_env_vars | length > 0
 
 - name: Create Docker Compose configuration
   ansible.builtin.template:

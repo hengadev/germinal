@@ -26,9 +26,9 @@
       tags: ['app', 'deploy']
 
   post_tasks:
-    - name: Restart application services
-      ansible.builtin.command:
-        cmd: docker compose restart
+    - name: Pull latest images and restart services
+      ansible.builtin.shell:
+        cmd: docker compose pull && docker compose up -d
         chdir: "{{ app_base_dir }}"
       become: true
       when: app_deployed | default(false)
