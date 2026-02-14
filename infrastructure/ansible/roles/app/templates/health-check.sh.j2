@@ -4,7 +4,6 @@
 
 set -e
 
-APP_URL="{{ app_url | default('http://localhost:' + app_port | string) }}"
 TIMEOUT=10
 
 # Colors
@@ -16,9 +15,9 @@ NC='\033[0m' # No Color
 echo "Checking {{ app_name }} health..."
 echo ""
 
-# Check application
+# Check application via docker exec (port not exposed on host)
 echo -n "Application: "
-if curl -f -s -o /dev/null -w "%{http_code}" --max-time $TIMEOUT "$APP_URL/health" | grep -q "200\|302"; then
+if docker exec {{ app_name }}_app curl -f -s -o /dev/null -w "%{http_code}" --max-time $TIMEOUT "http://localhost:3001/health" | grep -q "200\|302"; then
     echo -e "${GREEN}OK${NC}"
 else
     echo -e "${RED}FAILED${NC}"

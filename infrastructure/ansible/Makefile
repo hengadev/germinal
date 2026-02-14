@@ -158,17 +158,17 @@ ssh-info:
 # Check service status
 status:
 	@echo "Checking service status..."
-	@ssh deploy@$(VPS_IP) "cd /opt/germinal && docker compose ps"
+	@ssh -i ~/.ssh/germinal germinal@$(VPS_IP) "cd /opt/germinal && docker compose ps"
 
 # View application logs
 logs:
 	@echo "Streaming application logs (Ctrl+C to exit)..."
-	@ssh deploy@$(VPS_IP) "cd /opt/germinal && docker compose logs -f"
+	@ssh -i ~/.ssh/germinal germinal@$(VPS_IP) "cd /opt/germinal && docker compose logs -f"
 
 # Run health check
 health-check:
 	@echo "Running health check..."
-	@ssh deploy@$(VPS_IP) "/opt/germinal/scripts/health-check.sh"
+	@ssh -i ~/.ssh/germinal germinal@$(VPS_IP) "/opt/germinal/scripts/health-check.sh"
 
 # ============================================
 # Dependencies
