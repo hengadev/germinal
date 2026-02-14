@@ -89,7 +89,8 @@
         sort -u -o /home/{{ deploy_user }}/.ssh/authorized_keys /home/{{ deploy_user }}/.ssh/authorized_keys.tmp
         mv /home/{{ deploy_user }}/.ssh/authorized_keys.tmp /home/{{ deploy_user }}/.ssh/authorized_keys
       fi
-    changed_when: false
+    register: root_keys_copied
+    changed_when: root_keys_copied.rc != 0
 
 - name: Ensure root SSH access is maintained (for subsequent playbook runs)
   ansible.builtin.lineinfile:
