@@ -28,13 +28,13 @@ maxretry = {{ fail2ban_ddos_maxretry }}
 bantime = {{ fail2ban_ddos_bantime }}
 findtime = {{ fail2ban_findtime }}
 
-{% if nginx_enabled | default(false) %}
-[nginx-limit-req]
+{% if caddy_enabled | default(false) %}
+[caddy-rate-limit]
 enabled = true
 port = http,https
-filter = nginx-limit-req
-logpath = /var/log/nginx/error.log
-maxretry = {{ fail2ban_nginx_maxretry }}
+filter = caddy-rate-limit
+logpath = {{ caddy_data_dir }}/logs/access.log
+maxretry = {{ fail2ban_caddy_maxretry }}
 bantime = {{ fail2ban_bantime }}
 findtime = {{ fail2ban_findtime }}
 {% endif %}

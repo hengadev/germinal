@@ -1,6 +1,6 @@
 ---
 # Fail2ban Configuration Tasks
-# - Deploy jail configuration for SSH and nginx
+# - Deploy jail configuration for SSH and Caddy
 # - Configure email notifications
 # - Enable and start fail2ban service
 
@@ -11,12 +11,12 @@
     mode: '0644'
   notify: restart fail2ban
 
-- name: Deploy nginx rate-limit filter
+- name: Deploy Caddy rate-limit filter
   ansible.builtin.template:
-    src: nginx-limit-req.conf.j2
-    dest: /etc/fail2ban/filter.d/nginx-limit-req.conf
+    src: caddy-rate-limit.conf.j2
+    dest: /etc/fail2ban/filter.d/caddy-rate-limit.conf
     mode: '0644'
-  when: nginx_enabled | default(false)
+  when: caddy_enabled | default(false)
   notify: restart fail2ban
 
 - name: Ensure fail2ban is enabled and started
@@ -34,6 +34,6 @@
       - "==========================================="
       - "SSH jail: maxretry={{ fail2ban_ssh_maxretry }}, bantime={{ fail2ban_ssh_bantime }}s"
       - "SSH DDoS jail: maxretry={{ fail2ban_ddos_maxretry }}, bantime={{ fail2ban_ddos_bantime }}s"
-      - "Nginx jail: {{ 'enabled' if nginx_enabled | default(false) else 'disabled' }}"
+      - "Caddy jail: {{ 'enabled' if caddy_enabled | default(false) else 'disabled' }}"
       - "Notifications: {{ fail2ban_notify_email }}"
       - "==========================================="
