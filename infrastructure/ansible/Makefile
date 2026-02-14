@@ -148,10 +148,10 @@ ssh-info:
 	@echo "Domain: $(DOMAIN)"
 	@echo ""
 	@echo "Connect as root:"
-	@echo "  ssh root@$(VPS_IP)"
+	@echo "  ssh -i ~/.ssh/germinal root@$(VPS_IP)"
 	@echo ""
 	@echo "Connect as deploy user:"
-	@echo "  ssh deploy@$(VPS_IP)"
+	@echo "  ssh -i ~/.ssh/germinal germinal@$(VPS_IP)"
 	@echo ""
 	@echo "==========================================="
 
