@@ -81,14 +81,18 @@
     mode: '0600'
   when: deploy_ssh_public_key | length > 0
 
+- name: Read root SSH authorized_keys
+  ansible.builtin.slurp:
+    src: /root/.ssh/authorized_keys
+  register: root_ssh_keys
+  failed_when: false
+
 - name: Append root SSH keys to deploy user (if root has any keys)
-  ansible.builtin.shell:
-    cmd: |
-      if [ -f /root/.ssh/authorized_keys ] && [ -s /root/.ssh/authorized_keys ]; then
-        cat /root/.ssh/authorized_keys >> /home/{{ deploy_user }}/.ssh/authorized_keys
-        sort -u -o /home/{{ deploy_user }}/.ssh/authorized_keys /home/{{ deploy_user }}/.ssh/authorized_keys.tmp
-        mv /home/{{ deploy_user }}/.ssh/authorized_keys.tmp /home/{{ deploy_user }}/.ssh/authorized_keys
-      fi
+  ansible.builtin.authorized_key:
+    user: "{{ deploy_user }}"
+    key: "{{ root_ssh_keys.content | b64decode }}"
+    state: present
+  when: root_ssh_keys.content is defined and root_ssh_keys.content | b64decode | trim | length > 0
 
 - name: Ensure root SSH access is maintained (for subsequent playbook runs)
   ansible.builtin.lineinfile:
