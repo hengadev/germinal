@@ -48,10 +48,8 @@
     - role: firewall
       tags: ['firewall', 'security']
 
-    # - role: nginx
-    #   tags: ['nginx', 'web']
-    # NOTE: Nginx requires SSL certificates - uncomment after uploading Cloudflare Origin Certificate
-    # to /etc/ssl/cloudflare/{{ app_domain }}.pem on the server
+    - role: caddy
+      tags: ['caddy', 'web']
 
     - role: app
       tags: ['app', 'deploy']
@@ -71,6 +69,7 @@
           - "Server: {{ ansible_default_ipv4.address }}"
           - "Domain: {{ app_domain }}"
           - "Deploy user: {{ deploy_user }}"
+          - "Reverse proxy: {{ 'Caddy' if caddy_enabled | default(false) else 'None' }}"
           - ""
           - "Next steps:"
           - "  1. Copy your .env file to {{ app_base_dir }}/.env"

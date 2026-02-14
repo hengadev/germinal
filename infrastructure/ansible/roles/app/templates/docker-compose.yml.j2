@@ -5,17 +5,17 @@
 services:
   # Application Container
   app:
-    image: {{ app_docker_image | default('ghcr.io/yourusername/germinal:latest') }}
+    image: {{ app_docker_image }}
     container_name: {{ app_name }}_app
     restart: unless-stopped
-    {% if nginx_enabled | default(false) %}
-    # Bind to localhost only - nginx reverse proxy handles external access
-    ports:
-      - "127.0.0.1:{{ app_port }}:3000"
+    {% if caddy_enabled | default(false) %}
+    # No host port binding - Caddy reverse proxy handles external access
+    expose:
+      - "3001"
     {% else %}
     # Bind to all interfaces - no reverse proxy (not recommended for production)
     ports:
-      - "{{ app_port }}:3000"
+      - "{{ app_port }}:3001"
     {% endif %}
     env_file:
       - .env
@@ -29,7 +29,7 @@ services:
     networks:
       - {{ app_name }}_network
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/health"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3001/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -39,6 +39,31 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+
+{% if caddy_enabled | default(false) %}
+  # Caddy Reverse Proxy with Cloudflare DNS challenge
+  caddy:
+    image: serfriz/caddy-cloudflare:latest
+    container_name: {{ app_name }}_caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"  # HTTP/3
+    environment:
+      CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN}
+    volumes:
+      - {{ caddy_data_dir }}/config/Caddyfile:/etc/caddy/Caddyfile:ro
+      - {{ caddy_data_dir }}/data:/data
+      - {{ caddy_data_dir }}/logs:/var/log/caddy
+    networks:
+      - {{ app_name }}_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+{% endif %}
 
   # PostgreSQL Database
   postgres:
