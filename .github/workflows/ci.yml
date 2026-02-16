@@ -9,7 +9,7 @@ on:
       - main
 
 env:
-  DOCKER_IMAGE: hengadev/germinal
+  DOCKER_IMAGE: henga/germinal
   NODE_VERSION: '20'
 
 jobs:
