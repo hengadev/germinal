@@ -78,7 +78,8 @@ deploy:
 	@echo "Deploying to: $(VPS_IP)"
 	@echo ""
 	ansible-playbook -i inventory/hosts.yml playbooks/deploy.yml \
-		-e "ansible_host=$(VPS_IP)"
+		-e "ansible_host=$(VPS_IP)" \
+		-e "@group_vars/all.yml"
 
 # Configure database backups
 backup:
