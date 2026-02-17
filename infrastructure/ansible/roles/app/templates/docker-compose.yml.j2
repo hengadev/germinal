@@ -8,15 +8,15 @@ services:
     image: {{ app_docker_image }}
     container_name: {{ app_name }}_app
     restart: unless-stopped
-    {% if caddy_enabled | default(false) %}
+{% if caddy_enabled | default(false) %}
     # No host port binding - Caddy reverse proxy handles external access
     expose:
       - "3001"
-    {% else %}
+{% else %}
     # Bind to all interfaces - no reverse proxy (not recommended for production)
     ports:
       - "{{ app_port }}:3001"
-    {% endif %}
+{% endif %}
     env_file:
       - .env
     depends_on:
@@ -39,6 +39,7 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+
 
 {% if caddy_enabled | default(false) %}
   # Caddy Reverse Proxy with Cloudflare DNS challenge
