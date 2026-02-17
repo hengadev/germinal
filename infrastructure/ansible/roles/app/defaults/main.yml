@@ -1,0 +1,5 @@
+---
+# App Role Default Variables
+
+# Caddy data directory (shared with caddy role)
+caddy_data_dir: "{{ app_base_dir }}/caddy"
