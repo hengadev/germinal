@@ -38,3 +38,9 @@ coverage/
 .nyc_output/
 playwright-report/
 
+# Terraform
+*.tfstate
+*.tfstate.*
+*.tfvars
+!**/*.tfvars.example
+
