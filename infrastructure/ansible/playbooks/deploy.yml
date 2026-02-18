@@ -22,6 +22,9 @@
         msg: "Deploying {{ app_name }} from {{ app_repo }} ({{ app_branch }})"
 
   roles:
+    - role: caddy
+      tags: ['caddy', 'deploy']
+
     - role: app
       tags: ['app', 'deploy']
 
