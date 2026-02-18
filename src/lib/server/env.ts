@@ -7,11 +7,8 @@ const isDevelopment = process.env.NODE_ENV !== 'production';
 const devEnvSchema = z.object({
     DATABASE_URL: z.string().default('postgresql://postgres:postgres@localhost:5432/germinal'),
     USE_MOCK_DATA: z.string().default('false').transform(v => v === 'true'),
-    MOCK_ADMIN_EMAIL: z.string().refine(
-        v => v && !v.includes('germinal.com'),
-        'Must provide custom admin email'
-    ),
-    MOCK_ADMIN_PASSWORD: z.string().min(8, 'Password must be at least 8 characters'),
+    MOCK_ADMIN_EMAIL: z.string().optional().default(''),
+    MOCK_ADMIN_PASSWORD: z.string().optional().default(''),
     AWS_REGION: z.string().optional().default('us-east-1'),
     AWS_ACCESS_KEY_ID: z.string().optional().default(''),
     AWS_SECRET_ACCESS_KEY: z.string().optional().default(''),
@@ -51,11 +48,8 @@ const devEnvSchema = z.object({
 const prodEnvSchema = z.object({
     DATABASE_URL: z.string().url(),
     USE_MOCK_DATA: z.string().default('false').transform(v => v === 'true'),
-    MOCK_ADMIN_EMAIL: z.string().refine(
-        v => v && !v.includes('germinal.com'),
-        'Must provide custom admin email'
-    ),
-    MOCK_ADMIN_PASSWORD: z.string().min(8, 'Password must be at least 8 characters'),
+    MOCK_ADMIN_EMAIL: z.string().optional().default(''),
+    MOCK_ADMIN_PASSWORD: z.string().optional().default(''),
     AWS_REGION: z.string().min(1),
     AWS_ACCESS_KEY_ID: z.string().min(1),
     AWS_SECRET_ACCESS_KEY: z.string().min(1),
@@ -120,23 +114,6 @@ function validateEnv() {
     if (!parsed.success) {
         bootstrapLog.error('❌ Invalid environment variables:', parsed.error.flatten().fieldErrors);
 
-        // Check if mock admin credentials are missing
-        if (useMockData && parsed.error.flatten().fieldErrors.MOCK_ADMIN_EMAIL) {
-            bootstrapLog.error('');
-            bootstrapLog.error('❌ MOCK_ADMIN_EMAIL and MOCK_ADMIN_PASSWORD are required when USE_MOCK_DATA=true');
-            bootstrapLog.error('');
-            bootstrapLog.error('To set mock admin credentials:');
-            bootstrapLog.error('  1. Add to .env file:');
-            bootstrapLog.error('     MOCK_ADMIN_EMAIL=your@email.com');
-            bootstrapLog.error('     MOCK_ADMIN_PASSWORD=yourpassword');
-            bootstrapLog.error('');
-            bootstrapLog.error('  2. Or run dev.sh with credentials:');
-            bootstrapLog.error('     MOCK_ADMIN_EMAIL=your@email.com MOCK_ADMIN_PASSWORD=yourpassword ./dev.sh');
-            bootstrapLog.error('');
-            bootstrapLog.error('  3. Or enter credentials when prompted by dev.sh');
-            bootstrapLog.error('');
-        }
-
         if (!useRelaxedSchema) {
             throw new Error('Invalid environment variables in production');
         }
@@ -147,6 +124,23 @@ function validateEnv() {
     const data = parsed.success ? parsed.data : schema.parse({});
 
     if (useMockData) {
+        // Validate mock admin credentials when mock data is enabled
+        if (!data.MOCK_ADMIN_EMAIL || data.MOCK_ADMIN_EMAIL.includes('germinal.com')) {
+            bootstrapLog.error('');
+            bootstrapLog.error('❌ MOCK_ADMIN_EMAIL is required when USE_MOCK_DATA=true');
+            bootstrapLog.error('   Must not contain "germinal.com"');
+            bootstrapLog.error('');
+            bootstrapLog.error('To set mock admin credentials:');
+            bootstrapLog.error('  1. Add to .env file:');
+            bootstrapLog.error('     MOCK_ADMIN_EMAIL=your@email.com');
+            bootstrapLog.error('     MOCK_ADMIN_PASSWORD=yourpassword');
+            bootstrapLog.error('');
+            throw new Error('MOCK_ADMIN_EMAIL is required when USE_MOCK_DATA=true');
+        }
+        if (!data.MOCK_ADMIN_PASSWORD || data.MOCK_ADMIN_PASSWORD.length < 8) {
+            bootstrapLog.error('❌ MOCK_ADMIN_PASSWORD must be at least 8 characters when USE_MOCK_DATA=true');
+            throw new Error('MOCK_ADMIN_PASSWORD is required when USE_MOCK_DATA=true');
+        }
         bootstrapLog.info('📦 Mock data mode enabled - no database needed!');
         bootstrapLog.info('   To use real database, set DATABASE_URL in .env');
     } else if (isDevelopment) {
