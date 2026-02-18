@@ -4,10 +4,6 @@
 {
   # ACME configuration
   email {{ caddy_acme_email | default('admin@' + app_domain) }}
-
-  # Use Cloudflare DNS challenge for SSL certificates
-  # Required when Cloudflare proxy (orange cloud) is enabled
-  resolvers 1.1.1.1:53 1.0.0.1:53
 }
 
 # Reverse proxy to application
