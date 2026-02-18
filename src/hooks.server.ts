@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import { validateSession, deleteExpiredSessions } from '$lib/server/session';
 import { isAdminDomain, getCookieDomain } from '$lib/server/hostname';
 import { initJobScheduler, stopJobScheduler } from '$lib/server/jobs/scheduler';
+import { runMigrations } from '$lib/server/db';
 import { initMonitoring, captureException } from '$lib/server/monitoring';
 import { logger } from '$lib/server/logger';
 import { generateToken } from '$lib/server/csrf';
@@ -17,12 +18,13 @@ function generateNonce(): string {
 // Initialize monitoring
 initMonitoring();
 
-// Initialize job scheduler on startup
+// Run migrations then initialize job scheduler on startup
 if (typeof setInterval !== 'undefined') {
-	initJobScheduler().catch((error) => {
-		logger.error({ err: error }, '[Job Scheduler] Failed to initialize');
-		// Continue without job scheduler - system will still work
-	});
+	runMigrations()
+		.then(() => initJobScheduler())
+		.catch((error) => {
+			logger.error({ err: error }, '[Startup] Failed during migrations or job scheduler init');
+		});
 }
 
 // Graceful shutdown handlers

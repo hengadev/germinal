@@ -42,6 +42,7 @@ RUN pnpm install --frozen-lockfile --prod
 # Copy built application from builder
 COPY --from=builder --chown=nodejs:nodejs /app/build ./build
 COPY --from=builder --chown=nodejs:nodejs /app/package.json ./
+COPY --from=builder --chown=nodejs:nodejs /app/drizzle/migrations ./drizzle/migrations
 
 # Switch to non-root user
 USER nodejs

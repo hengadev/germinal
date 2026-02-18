@@ -1,4 +1,6 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
+import { migrate } from 'drizzle-orm/postgres-js/migrator';
+import { resolve } from 'path';
 import postgres from 'postgres';
 import { env } from '../env';
 import { logger } from '../logger';
@@ -111,6 +113,29 @@ export const db = new Proxy({} as any, {
 		return true;
 	},
 });
+
+/**
+ * Run pending database migrations at startup.
+ * Uses a dedicated short-lived connection separate from the main pool.
+ */
+export async function runMigrations() {
+	if (env.USE_MOCK_DATA) {
+		logger.info('[DB] Skipping migrations in mock mode');
+		return;
+	}
+
+	const migrationsFolder = resolve(process.cwd(), 'drizzle/migrations');
+	const migrationClient = postgres(env.DATABASE_URL, { max: 1 }) as any;
+	const migrationDb = drizzle(migrationClient);
+
+	try {
+		logger.info('[DB] Running database migrations...');
+		await migrate(migrationDb, { migrationsFolder });
+		logger.info('✅ Database migrations completed');
+	} finally {
+		await migrationClient.end({ timeout: 5 });
+	}
+}
 
 /**
  * Execute a function with a custom statement timeout
