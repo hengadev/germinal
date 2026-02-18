@@ -1,6 +1,5 @@
-import * as PgBossModule from 'pg-boss';
+import { PgBoss } from 'pg-boss';
 import { logger } from '$lib/server/logger';
-const PgBoss = (PgBossModule as any).default || PgBossModule;
 import { env } from '../env';
 import { cleanupExpiredReservations } from './cleanup-expired-reservations';
 import { processEmailQueue } from './process-email-queue';
@@ -8,7 +7,7 @@ import { deleteExpiredSessions } from '../session';
 import { sendEventReminders } from './send-event-reminders';
 import { cleanupOrphanedMedia } from './cleanup-orphaned-media';
 
-let boss: InstanceType<typeof PgBoss> | null = null;
+let boss: PgBoss | null = null;
 
 /**
  * Initialize the job scheduler using pg-boss
@@ -35,6 +34,18 @@ export async function initJobScheduler() {
 
 	await boss.start();
 	logger.info('✅ Job scheduler started');
+
+	// Create queues explicitly (required in pg-boss v12+)
+	const queues = [
+		'cleanup-expired-reservations',
+		'cleanup-expired-sessions',
+		'process-email-queue',
+		'send-event-reminders',
+		'cleanup-orphaned-media',
+	];
+	for (const queue of queues) {
+		await boss.createQueue(queue);
+	}
 
 	// Register job handlers
 	await boss.work('cleanup-expired-reservations', { teamSize: 1 }, async () => {
@@ -110,6 +121,6 @@ export async function scheduleJob<T>(name: string, data?: T) {
 /**
  * Get the pg-boss instance for advanced usage
  */
-export function getJobScheduler(): InstanceType<typeof PgBoss> | null {
+export function getJobScheduler(): PgBoss | null {
 	return boss;
 }
