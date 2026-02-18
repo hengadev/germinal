@@ -20,11 +20,10 @@
     owner: "{{ deploy_user }}"
     group: "{{ deploy_user }}"
     mode: '0750'
+  become: true
   loop:
     - "{{ app_base_dir }}/scripts"
     - "{{ app_base_dir }}/config"
-    - "{{ app_data_dir }}/postgres"
-    - "{{ app_data_dir }}/redis"
 
 - name: Create .env file from template
   ansible.builtin.template:
