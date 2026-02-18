@@ -1,7 +1,7 @@
 # Germinal Ansible Makefile
 # Usage: make <target>
 
-.PHONY: help setup deploy backup check-clean lint \
+.PHONY: help setup deploy restart backup check-clean lint \
         ssh-info status logs health-check \
         install-deps vars-test
 
@@ -13,6 +13,7 @@ help:
 	@echo "Setup:"
 	@echo "  make setup        - Complete VPS setup (first time only)"
 	@echo "  make deploy       - Deploy/update application"
+	@echo "  make restart      - Pull latest app image and restart (quick)"
 	@echo "  make backup       - Configure database backups"
 	@echo ""
 	@echo "Verification:"
@@ -60,10 +61,12 @@ setup:
 	@echo ""
 	@echo "Running setup playbook..."
 	ansible-playbook -i inventory/hosts.yml playbooks/site.yml \
+		--ask-vault-pass \
 		-e "ansible_host=$(VPS_IP)" \
 		-e "deploy_ssh_public_key=$(SSH_KEY)" \
 		-e "app_domain=$(DOMAIN)" \
-		-e "@group_vars/all.yml"
+		-e "@group_vars/all.yml" \
+		-e "@group_vars/all.vault.yml"
 
 # Deploy application
 deploy:
@@ -78,8 +81,15 @@ deploy:
 	@echo "Deploying to: $(VPS_IP)"
 	@echo ""
 	ansible-playbook -i inventory/hosts.yml playbooks/deploy.yml \
+		--ask-vault-pass \
 		-e "ansible_host=$(VPS_IP)" \
-		-e "@group_vars/all.yml"
+		-e "@group_vars/all.yml" \
+		-e "@group_vars/all.vault.yml"
+
+# Quick restart: pull latest app image and restart only the app container
+restart:
+	@echo "Pulling latest app image and restarting..."
+	@ssh -i ~/.ssh/germinal germinal@$(VPS_IP) "cd /opt/germinal && docker compose pull app && docker compose up -d app"
 
 # Configure database backups
 backup:
