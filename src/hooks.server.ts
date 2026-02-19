@@ -1,3 +1,4 @@
+import { redirect } from '@sveltejs/kit';
 import type { Handle, HandleServerError } from '@sveltejs/kit';
 import crypto from 'crypto';
 import { validateSession, deleteExpiredSessions } from '$lib/server/session';
@@ -47,6 +48,11 @@ export const handle: Handle = async ({ event, resolve }) => {
 	const hostname = event.url.hostname;
 	event.locals.isAdminDomain = isAdminDomain(hostname);
 	const cookieDomain = getCookieDomain(hostname) ?? undefined;
+
+	// On the admin subdomain, redirect bare root to /admin so the auth flow runs
+	if (event.locals.isAdminDomain && event.url.pathname === '/') {
+		throw redirect(302, '/admin');
+	}
 
 	// Generate and store CSRF token for session
 	const csrfToken = generateToken();
