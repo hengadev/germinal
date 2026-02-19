@@ -36,24 +36,14 @@
             icon: LayoutDashboard,
         },
         {
-            href: "/admin/events",
-            label: "Events",
-            icon: Calendar,
-        },
-        {
-            href: "/admin/reservations",
-            label: "Reservations",
-            icon: Ticket,
-        },
-        {
-            href: "/admin/analytics",
-            label: "Analytics",
-            icon: BarChart3,
-        },
-        {
             href: "/admin/categories",
             label: "Event Categories",
             icon: Tag,
+        },
+        {
+            href: "/admin/events",
+            label: "Events",
+            icon: Calendar,
         },
         {
             href: "/admin/talent-categories",
@@ -64,6 +54,16 @@
             href: "/admin/talents",
             label: "Talents",
             icon: User,
+        },
+        {
+            href: "/admin/reservations",
+            label: "Reservations",
+            icon: Ticket,
+        },
+        {
+            href: "/admin/analytics",
+            label: "Analytics",
+            icon: BarChart3,
         },
     ];
 
