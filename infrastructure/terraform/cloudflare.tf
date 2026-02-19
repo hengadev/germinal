@@ -38,6 +38,16 @@ resource "cloudflare_dns_record" "www" {
   count = var.create_www_dns ? 1 : 0
 }
 
+# Admin subdomain - CNAME to main domain
+resource "cloudflare_dns_record" "admin" {
+  zone_id = var.cloudflare_zone_id
+  name    = "admin"
+  type    = "CNAME"
+  content = var.domain_name
+  proxied = true
+  ttl     = 1
+}
+
 # ============================================
 # Email DNS Records
 # ============================================
