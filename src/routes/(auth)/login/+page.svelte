@@ -1,10 +1,12 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { AlertCircle } from 'lucide-svelte';
+	import { AlertCircle, Eye, EyeOff } from 'lucide-svelte';
 	import type { PageData } from './$types';
 	import { t } from 'svelte-i18n';
 
 	let { data, form }: { data: PageData; form: import('./$types').ActionData } = $props();
+
+	let showPassword = $state(false);
 </script>
 
 <svelte:head>
@@ -52,15 +54,29 @@
 					<label for="password" class="block text-sm font-medium text-dark-700 mb-2">
 						{$t('admin.login.password')}
 					</label>
-					<input
-						id="password"
-						name="password"
-						type="password"
-						autocomplete="current-password"
-						required
-						placeholder="••••••••"
-						class="w-full px-4 py-3 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent"
-					/>
+					<div class="relative">
+						<input
+							id="password"
+							name="password"
+							type={showPassword ? 'text' : 'password'}
+							autocomplete="current-password"
+							required
+							placeholder="••••••••"
+							class="w-full px-4 py-3 pr-12 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent"
+						/>
+						<button
+							type="button"
+							onclick={() => (showPassword = !showPassword)}
+							class="absolute right-3 top-1/2 -translate-y-1/2 text-dark-400 hover:text-dark-700 transition-colors"
+							aria-label={showPassword ? 'Hide password' : 'Show password'}
+						>
+							{#if showPassword}
+								<EyeOff size={20} />
+							{:else}
+								<Eye size={20} />
+							{/if}
+						</button>
+					</div>
 				</div>
 			</div>
 
