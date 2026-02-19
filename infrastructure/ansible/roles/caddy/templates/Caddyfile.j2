@@ -6,6 +6,14 @@
   email {{ caddy_acme_email | default('admin@' + app_domain) }}
 }
 
+# Redirect www to non-www
+www.{{ app_domain }} {
+  tls {
+    dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+  }
+  redir https://{{ app_domain }}{uri} permanent
+}
+
 # Reverse proxy to application
 {{ app_domain }} {
   # Use Cloudflare DNS challenge for TLS certificates
