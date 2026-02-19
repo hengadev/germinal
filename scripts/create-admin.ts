@@ -3,8 +3,8 @@ import { users } from '../src/lib/server/db/schema';
 import { hashPassword } from '../src/lib/server/auth';
 import { eq } from 'drizzle-orm';
 
-const ADMIN_EMAIL = 'admin@germinal.com';
-const ADMIN_PASSWORD = 'changeme123'; // CHANGE THIS!
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? 'admin@germinal.com';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? 'changeme123';
 
 async function createAdmin() {
 	console.log('Creating admin user...');
