@@ -1,0 +1,104 @@
+---
+# Deploy Germinal Staging
+#
+# Deploys the staging app container and updates prod's Caddy config.
+# Staging shares postgres, redis, and caddy from the production stack.
+#
+# Usage:
+#   ansible-playbook -i inventory/hosts.yml playbooks/deploy-staging.yml \
+#     --ask-vault-pass \
+#     -e "ansible_host=YOUR_VPS_IP" \
+#     -e "@group_vars/all.yml" \
+#     -e "@group_vars/all.vault.yml" \
+#     -e "@group_vars/germinal_staging.yml" \
+#     -e "@group_vars/germinal_staging.vault.yml"
+
+# ─── Play 1: Deploy staging app container ────────────────────────────────────
+- name: Deploy Germinal Staging Application
+  hosts: germinal_staging_servers
+  become: true
+  become_user: "{{ deploy_user }}"
+
+  pre_tasks:
+    - name: Display staging deployment info
+      ansible.builtin.debug:
+        msg:
+          - "Deploying staging environment"
+          - "App dir: {{ app_base_dir }}"
+          - "Docker image: {{ app_docker_image }}"
+          - "Database: {{ db_name }} on shared postgres"
+          - "Redis DB: {{ redis_db }}"
+
+    - name: Create staging base directories (requires root)
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_user }}"
+        mode: '0750'
+      become: true
+      become_user: root
+      loop:
+        - "{{ app_base_dir }}"
+        - "{{ app_data_dir }}"
+        - "{{ app_logs_dir }}"
+        - "{{ app_data_dir }}/uploads"
+
+    - name: Create Docker network for staging app (joins prod network)
+      community.docker.docker_network:
+        name: "{{ prod_network_name }}"
+        state: present
+      become_user: "{{ deploy_user }}"
+
+  roles:
+    - role: app
+      tags: ['app', 'staging']
+
+  post_tasks:
+    - name: Pull latest staging image
+      ansible.builtin.command:
+        cmd: docker compose pull app
+        chdir: "{{ app_base_dir }}"
+      changed_when: true
+
+    - name: Start/restart staging app
+      ansible.builtin.command:
+        cmd: docker compose up -d
+        chdir: "{{ app_base_dir }}"
+      changed_when: true
+
+    - name: Wait for staging app to become healthy
+      ansible.builtin.command:
+        cmd: >
+          docker inspect --format='{{ "{{" }}.State.Health.Status{{ "}}" }}'
+          {{ app_name }}_app
+      register: health_status
+      until: health_status.stdout == "healthy"
+      retries: 10
+      delay: 10
+      changed_when: false
+
+    - name: Display staging URL
+      ansible.builtin.debug:
+        msg:
+          - "Staging deployed successfully"
+          - "URL: https://staging.{{ app_domain }}"
+          - "Admin: https://admin-staging.{{ app_domain }}"
+
+# ─── Play 2: Update prod Caddy to route staging domains ──────────────────────
+# Must explicitly reset app_base_dir to the prod path because the staging
+# extra vars loaded by the Makefile would otherwise override it for this play.
+- name: Update Caddy configuration for staging domains
+  hosts: germinal_servers
+  become: true
+  become_user: "{{ deploy_user }}"
+
+  vars:
+    staging_enabled: true
+    app_name: germinal
+    app_base_dir: /opt/germinal
+    caddy_data_dir: /opt/germinal/caddy
+
+  roles:
+    - role: caddy
+      tags: ['caddy', 'staging']
