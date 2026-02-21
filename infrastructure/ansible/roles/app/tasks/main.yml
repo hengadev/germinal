@@ -51,7 +51,7 @@
 
 - name: Create logrotate config for application logs
   ansible.builtin.copy:
-    dest: /etc/logrotate.d/germinal
+    dest: /etc/logrotate.d/{{ app_name }}
     content: |
       {{ app_logs_dir }}/*.log {
         daily
@@ -63,6 +63,8 @@
         create 0640 {{ deploy_user }} {{ deploy_user }}
       }
     mode: '0644'
+  become: true
+  become_user: root
 
 - name: Create health check script
   ansible.builtin.template:
