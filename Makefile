@@ -5,11 +5,22 @@
 DOCKER_USER ?= henga
 DOCKER_IMAGE ?= $(DOCKER_USER)/germinal:latest
 
+# VPS connection - resolved from Terraform output, falls back to known IP
+VPS_IP ?= $(shell cd infrastructure/terraform && terraform output -raw server_ipv4_address 2>/dev/null || echo "46.225.25.238")
+VPS_USER ?= germinal
+VPS_SSH = ssh -i ~/.ssh/germinal $(VPS_USER)@$(VPS_IP)
+
+# App directories on the VPS
+PROD_DIR = /opt/germinal
+STAGING_DIR = /opt/germinal-staging
+
 .PHONY: help pull \
-        prod-start prod-stop prod-restart prod-logs prod-shell prod-migrate prod-create-admin \
-        dev-start dev-stop dev-restart dev-logs dev-shell dev-mock \
-        image-build image-push image-pull \
-        status ps clean prune \
+        prod-start prod-stop prod-restart prod-logs prod-logs-app prod-shell prod-migrate prod-create-admin prod-db-shell \
+        staging-start staging-stop staging-restart staging-logs staging-shell staging-migrate staging-create-admin \
+        dev-mock \
+        image-build image-push image-pull image-release \
+        deploy deploy-staging release \
+        status ps clean prune clean-all \
         infra-info infra-apply infra-plan infra-destroy \
         server-info server-ssh server-rebuild \
         db-backup db-backup-now db-restore \
@@ -22,68 +33,72 @@ help:
 	@echo "================================"
 	@echo ""
 	@echo "General:"
-	@echo "  make pull          - Pull latest code (git pull --rebase)"
-	@echo "  make status        - Show status of all containers"
-	@echo "  make ps            - Alias for status"
+	@echo "  make pull               - Pull latest code (git pull --rebase)"
+	@echo "  make status             - Show status of all containers (prod + staging)"
+	@echo "  make ps                 - Alias for status"
 	@echo ""
-	@echo "Docker Image (run on local machine):"
-	@echo "  make image-build   - Build production image locally"
-	@echo "  make image-push    - Push image to Docker Hub"
-	@echo "  make image-pull    - Pull image from Docker Hub (run on VPS)"
+	@echo "Docker Image (local machine):"
+	@echo "  make image-build        - Build production image locally"
+	@echo "  make image-push         - Push image to Docker Hub"
+	@echo "  make image-release      - Build and push in one step"
 	@echo ""
-	@echo "Production (port 4100):"
-	@echo "  make prod-start    - Start production"
-	@echo "  make prod-stop     - Stop production"
-	@echo "  make prod-restart  - Restart production"
-	@echo "  make prod-logs     - Follow production logs"
-	@echo "  make prod-shell    - Open shell in production container"
-	@echo "  make prod-migrate  - Run database migrations"
-	@echo "  make prod-create-admin - Create admin user"
+	@echo "Production (germinalstudio.co):"
+	@echo "  make prod-start         - Start production stack on VPS"
+	@echo "  make prod-stop          - Stop production stack on VPS"
+	@echo "  make prod-restart       - Restart production stack on VPS"
+	@echo "  make prod-logs          - Follow production logs"
+	@echo "  make prod-shell         - Open shell in production app container"
+	@echo "  make prod-migrate       - Run database migrations (prod)"
+	@echo "  make prod-create-admin  - Create admin user (prod)"
 	@echo ""
-	@echo "Development (port 4101, uses mock data):"
-	@echo "  make dev-start     - Start development"
-	@echo "  make dev-stop      - Stop development"
-	@echo "  make dev-restart   - Restart development"
-	@echo "  make dev-logs      - Follow development logs"
-	@echo "  make dev-shell     - Open shell in dev container"
+	@echo "Staging (staging.germinalstudio.co):"
+	@echo "  make staging-start      - Start staging app on VPS"
+	@echo "  make staging-stop       - Stop staging app on VPS"
+	@echo "  make staging-restart    - Restart staging app on VPS"
+	@echo "  make staging-logs       - Follow staging logs"
+	@echo "  make staging-shell      - Open shell in staging app container"
+	@echo "  make staging-migrate    - Run database migrations (staging)"
+	@echo "  make staging-create-admin - Create admin user (staging)"
 	@echo ""
-	@echo "Local Development (run dev.sh with mock data):"
-	@echo "  make dev-mock      - Start local dev with mock data"
-	@echo ""
-	@echo "Maintenance:"
-	@echo "  make clean         - Stop all and remove containers"
-	@echo "  make prune         - Remove unused Docker resources"
+	@echo "Local Development:"
+	@echo "  make dev-mock           - Start local dev server with mock data"
 	@echo ""
 	@echo "Quick workflows:"
-	@echo "  make deploy        - Pull image and restart production"
-	@echo "  make deploy-dev    - Pull image and restart development"
+	@echo "  make release            - Build and push image (then deploy from VPS)"
+	@echo "  make deploy             - Pull image and restart production on VPS"
+	@echo "  make deploy-staging     - Pull image and restart staging on VPS"
+	@echo ""
+	@echo "Maintenance:"
+	@echo "  make clean              - Stop and remove all Germinal containers"
+	@echo "  make prune              - Remove unused Docker resources on VPS"
 	@echo ""
 	@echo "Infrastructure (terraform/):"
-	@echo "  make infra-info    - Show all infrastructure info (server, DNS, credentials)"
-	@echo "  make infra-plan    - Show terraform plan"
-	@echo "  make infra-apply   - Apply terraform changes"
-	@echo "  make infra-destroy - Destroy all terraform resources"
+	@echo "  make infra-info         - Show infrastructure info"
+	@echo "  make infra-plan         - Show terraform plan"
+	@echo "  make infra-apply        - Apply terraform changes"
+	@echo "  make infra-destroy      - Destroy all terraform resources"
 	@echo ""
 	@echo "Server:"
-	@echo "  make server-info   - Show VPS connection details"
-	@echo "  make server-ssh    - SSH into the VPS"
-	@echo "  make server-rebuild - Rebuild VPS via terraform"
+	@echo "  make server-info        - Show VPS connection details"
+	@echo "  make server-ssh         - SSH into the VPS"
+	@echo "  make server-rebuild     - Rebuild VPS via terraform"
 	@echo ""
 	@echo "Database Backups (S3):"
-	@echo "  make db-backup-now - Create immediate database backup"
-	@echo "  make db-restore    - Restore database from S3 backup"
-	@echo "  make db-list       - List available backups in S3"
+	@echo "  make db-backup-now      - Create immediate database backup"
+	@echo "  make db-restore         - Restore database from S3 backup"
+	@echo "  make db-list            - List available backups in S3"
 	@echo ""
 	@echo "S3 Storage:"
-	@echo "  make s3-list       - List S3 media bucket contents"
-	@echo "  make s3-sync       - Sync local media to S3"
-	@echo "  make s3-size       - Show S3 bucket size"
+	@echo "  make s3-list            - List S3 media bucket contents"
+	@echo "  make s3-sync            - Sync local media to S3"
+	@echo "  make s3-size            - Show S3 bucket size"
 	@echo ""
 	@echo "DNS:"
-	@echo "  make dns-info      - Show DNS configuration"
-	@echo "  make dns-verify    - Verify DNS propagation"
+	@echo "  make dns-info           - Show DNS configuration"
+	@echo "  make dns-verify         - Verify DNS propagation"
 	@echo ""
-	@echo "Current image: $(DOCKER_IMAGE)"
+	@echo "VPS: $(VPS_USER)@$(VPS_IP)"
+	@echo "Image: $(DOCKER_IMAGE)"
 
 # ===========================================
 # General Commands
@@ -94,8 +109,8 @@ pull:
 	git pull --rebase
 
 status:
-	@echo "Container status:"
-	@docker ps -a --filter "name=germinal" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+	@echo "Container status on VPS:"
+	$(VPS_SSH) "docker ps -a --filter 'name=germinal' --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'"
 
 ps: status
 
@@ -114,8 +129,8 @@ image-push:
 	@echo "Image pushed: $(DOCKER_IMAGE)"
 
 image-pull:
-	@echo "Pulling image from Docker Hub..."
-	docker pull $(DOCKER_IMAGE)
+	@echo "Pulling image on VPS..."
+	$(VPS_SSH) "docker pull $(DOCKER_IMAGE)"
 	@echo "Image pulled: $(DOCKER_IMAGE)"
 
 # Build and push in one command (run on local machine)
@@ -123,63 +138,73 @@ image-release: image-build image-push
 	@echo "Image built and pushed: $(DOCKER_IMAGE)"
 
 # ===========================================
-# Production Commands
+# Production Commands (VPS)
 # ===========================================
 
 prod-start:
-	@echo "Starting production..."
-	DOCKER_IMAGE=$(DOCKER_IMAGE) docker compose -f docker-compose.prod.yml up -d
+	@echo "Starting production on VPS..."
+	$(VPS_SSH) "cd $(PROD_DIR) && DOCKER_IMAGE=$(DOCKER_IMAGE) docker compose up -d"
 
 prod-stop:
-	@echo "Stopping production..."
-	docker compose -f docker-compose.prod.yml down
+	@echo "Stopping production on VPS..."
+	$(VPS_SSH) "cd $(PROD_DIR) && docker compose down"
 
-prod-restart: prod-stop prod-start
-	@echo "Production restarted."
+prod-restart:
+	@echo "Restarting production on VPS..."
+	$(VPS_SSH) "cd $(PROD_DIR) && docker compose down && DOCKER_IMAGE=$(DOCKER_IMAGE) docker compose up -d"
 
 prod-logs:
-	docker compose -f docker-compose.prod.yml logs -f
+	$(VPS_SSH) "cd $(PROD_DIR) && docker compose logs -f"
 
 prod-logs-app:
-	docker compose -f docker-compose.prod.yml logs -f app
+	$(VPS_SSH) "cd $(PROD_DIR) && docker compose logs -f app"
 
 prod-logs-db:
-	docker compose -f docker-compose.prod.yml logs -f db
+	$(VPS_SSH) "cd $(PROD_DIR) && docker compose logs -f postgres"
 
 prod-shell:
-	docker compose -f docker-compose.prod.yml exec app sh
+	$(VPS_SSH) -t "cd $(PROD_DIR) && docker compose exec app sh"
 
 prod-migrate:
-	@echo "Running production migrations..."
-	docker compose -f docker-compose.prod.yml exec app npx drizzle-kit push
+	@echo "Migrations run automatically on startup via hooks.server.ts."
+	@echo "To force a manual run, restart the container: make prod-restart"
 
 prod-create-admin:
-	@echo "Creating admin user..."
-	docker compose -f docker-compose.prod.yml exec app npx tsx scripts/create-admin.ts
+	@echo "Creating admin user (production)..."
+	$(VPS_SSH) "cd $(PROD_DIR) && docker compose exec app npx tsx scripts/create-admin.ts"
 
 prod-db-shell:
-	docker compose -f docker-compose.prod.yml exec db psql -U germinal -d germinal_prod
+	$(VPS_SSH) -t "cd $(PROD_DIR) && docker compose exec postgres psql -U germinal -d germinal"
 
 # ===========================================
-# Development Commands (VPS with mock data)
+# Staging Commands (VPS)
 # ===========================================
 
-dev-start:
-	@echo "Starting development with mock data..."
-	DOCKER_IMAGE=$(DOCKER_IMAGE) docker compose -f docker-compose.dev.yml up -d
+staging-start:
+	@echo "Starting staging on VPS..."
+	$(VPS_SSH) "cd $(STAGING_DIR) && DOCKER_IMAGE=$(DOCKER_IMAGE) docker compose up -d"
 
-dev-stop:
-	@echo "Stopping development..."
-	docker compose -f docker-compose.dev.yml down
+staging-stop:
+	@echo "Stopping staging on VPS..."
+	$(VPS_SSH) "cd $(STAGING_DIR) && docker compose down"
 
-dev-restart: dev-stop dev-start
-	@echo "Development restarted."
+staging-restart:
+	@echo "Restarting staging on VPS..."
+	$(VPS_SSH) "cd $(STAGING_DIR) && docker compose down && DOCKER_IMAGE=$(DOCKER_IMAGE) docker compose up -d"
 
-dev-logs:
-	docker compose -f docker-compose.dev.yml logs -f
+staging-logs:
+	$(VPS_SSH) "cd $(STAGING_DIR) && docker compose logs -f"
 
-dev-shell:
-	docker compose -f docker-compose.dev.yml exec app sh
+staging-shell:
+	$(VPS_SSH) -t "cd $(STAGING_DIR) && docker compose exec app sh"
+
+staging-migrate:
+	@echo "Migrations run automatically on startup via hooks.server.ts."
+	@echo "To force a manual run, restart the container: make staging-restart"
+
+staging-create-admin:
+	@echo "Creating admin user (staging)..."
+	$(VPS_SSH) "cd $(STAGING_DIR) && docker compose exec app npx tsx scripts/create-admin.ts"
 
 # ===========================================
 # Local Development Commands (run dev.sh directly)
@@ -187,42 +212,47 @@ dev-shell:
 
 dev-mock:
 	@echo "Starting local development with mock data..."
-	MOCK_ADMIN_EMAIL=admin@local.dev MOCK_ADMIN_PASSWORD=password123 ./dev.sh
+	./dev.sh
 
 # ===========================================
 # Quick Workflows
 # ===========================================
 
-# Deploy: pull image and restart (run on VPS)
-deploy: image-pull prod-restart
+# Pull image on VPS and restart production
+deploy:
+	@echo "Deploying production..."
+	$(VPS_SSH) "docker pull $(DOCKER_IMAGE) && cd $(PROD_DIR) && docker compose up -d"
 	@echo "Production deployed."
 
-deploy-dev: image-pull dev-restart
-	@echo "Development deployed."
+# Pull image on VPS and restart staging
+deploy-staging:
+	@echo "Deploying staging..."
+	$(VPS_SSH) "docker pull $(DOCKER_IMAGE) && cd $(STAGING_DIR) && docker compose up -d"
+	@echo "Staging deployed."
 
-# Full release from local machine
+# Build and push image locally (then run make deploy / make deploy-staging on VPS)
 release: image-release
-	@echo "Image released. Run 'make deploy' on VPS to update."
+	@echo "Image released. Run 'make deploy' or 'make deploy-staging' to update."
 
 # ===========================================
 # Maintenance Commands
 # ===========================================
 
 clean:
-	@echo "Stopping and removing all Germinal containers..."
-	-docker compose -f docker-compose.prod.yml down --remove-orphans
-	-docker compose -f docker-compose.dev.yml down --remove-orphans
+	@echo "Stopping and removing all Germinal containers on VPS..."
+	-$(VPS_SSH) "cd $(PROD_DIR) && docker compose down --remove-orphans"
+	-$(VPS_SSH) "cd $(STAGING_DIR) && docker compose down --remove-orphans"
 
 prune:
-	@echo "Removing unused Docker resources..."
-	docker system prune -f
+	@echo "Removing unused Docker resources on VPS..."
+	$(VPS_SSH) "docker system prune -f"
 
 # Remove everything including volumes (DANGEROUS)
 clean-all: clean
 	@echo "WARNING: This will delete all data including databases!"
 	@read -p "Are you sure? [y/N] " confirm && [ "$$confirm" = "y" ] || exit 1
-	docker compose -f docker-compose.prod.yml down -v
-	docker compose -f docker-compose.dev.yml down -v
+	$(VPS_SSH) "cd $(PROD_DIR) && docker compose down -v"
+	$(VPS_SSH) "cd $(STAGING_DIR) && docker compose down -v"
 	@echo "All containers and volumes removed."
 
 # ===========================================
@@ -294,11 +324,7 @@ server-info:
 
 # SSH into the server
 server-ssh:
-	@if [ -d "$(INFRA_DIR)" ]; then \
-		cd $(INFRA_DIR) && make server-ssh; \
-	else \
-		echo "Infrastructure directory not found: $(INFRA_DIR)"; \
-	fi
+	$(VPS_SSH)
 
 # Rebuild server via terraform
 server-rebuild:

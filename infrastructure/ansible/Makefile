@@ -1,8 +1,8 @@
 # Germinal Ansible Makefile
 # Usage: make <target>
 
-.PHONY: help setup deploy restart backup check-clean lint \
-        ssh-info status logs health-check \
+.PHONY: help setup deploy deploy-staging restart restart-staging backup check-clean lint \
+        ssh-info status staging-status logs staging-logs health-check \
         install-deps vars-test
 
 # Default target
@@ -11,10 +11,12 @@ help:
 	@echo "============================"
 	@echo ""
 	@echo "Setup:"
-	@echo "  make setup        - Complete VPS setup (first time only)"
-	@echo "  make deploy       - Deploy/update application"
-	@echo "  make restart      - Pull latest app image and restart (quick)"
-	@echo "  make backup       - Configure database backups"
+	@echo "  make setup           - Complete VPS setup (first time only)"
+	@echo "  make deploy          - Deploy/update production"
+	@echo "  make deploy-staging  - Deploy/update staging (+ update Caddy)"
+	@echo "  make restart         - Pull latest image and restart production (quick)"
+	@echo "  make restart-staging - Pull latest image and restart staging (quick)"
+	@echo "  make backup          - Configure database backups"
 	@echo ""
 	@echo "Verification:"
 	@echo "  make check-clean  - Check for syntax errors"
@@ -22,10 +24,12 @@ help:
 	@echo "  make vars-test    - Display effective variables"
 	@echo ""
 	@echo "Server Operations:"
-	@echo "  make ssh-info     - Display SSH connection details"
-	@echo "  make status       - Check service status on server"
-	@echo "  make logs         - View application logs"
-	@echo "  make health-check - Run health check on server"
+	@echo "  make ssh-info        - Display SSH connection details"
+	@echo "  make status          - Check production service status"
+	@echo "  make staging-status  - Check staging service status"
+	@echo "  make logs            - View production logs"
+	@echo "  make staging-logs    - View staging logs"
+	@echo "  make health-check    - Run health check on server"
 	@echo ""
 	@echo "Dependencies:"
 	@echo "  make install-deps - Install Ansible dependencies"
@@ -68,10 +72,10 @@ setup:
 		-e "@group_vars/all.yml" \
 		-e "@group_vars/all.vault.yml"
 
-# Deploy application
+# Deploy production application
 deploy:
 	@echo "==========================================="
-	@echo "Germinal Deployment"
+	@echo "Germinal Production Deployment"
 	@echo "==========================================="
 	@echo ""
 	@if [ -z "$(VPS_IP)" ]; then \
@@ -86,10 +90,42 @@ deploy:
 		-e "@group_vars/all.yml" \
 		-e "@group_vars/all.vault.yml"
 
+# Deploy staging application (also updates prod Caddy for staging domains)
+deploy-staging:
+	@echo "==========================================="
+	@echo "Germinal Staging Deployment"
+	@echo "==========================================="
+	@echo ""
+	@if [ -z "$(VPS_IP)" ]; then \
+		echo "Error: Could not get VPS IP from Terraform."; \
+		exit 1; \
+	fi
+	@if [ ! -f "group_vars/germinal_staging.vault.yml" ]; then \
+		echo "Error: group_vars/germinal_staging.vault.yml not found."; \
+		echo "Copy group_vars/germinal_staging.vault.example.yml and encrypt it:"; \
+		echo "  cp group_vars/germinal_staging.vault.example.yml group_vars/germinal_staging.vault.yml"; \
+		echo "  ansible-vault encrypt group_vars/germinal_staging.vault.yml"; \
+		exit 1; \
+	fi
+	@echo "Deploying staging to: $(VPS_IP)"
+	@echo ""
+	ansible-playbook -i inventory/hosts.yml playbooks/deploy-staging.yml \
+		--ask-vault-pass \
+		-e "ansible_host=$(VPS_IP)" \
+		-e "@group_vars/all.yml" \
+		-e "@group_vars/all.vault.yml" \
+		-e "@group_vars/germinal_staging.yml" \
+		-e "@group_vars/germinal_staging.vault.yml"
+
 # Quick restart: pull latest app image and restart only the app container
 restart:
-	@echo "Pulling latest app image and restarting..."
+	@echo "Pulling latest prod image and restarting..."
 	@ssh -i ~/.ssh/germinal germinal@$(VPS_IP) "cd /opt/germinal && docker compose pull app && docker compose up -d app"
+
+# Quick restart for staging
+restart-staging:
+	@echo "Pulling latest staging image and restarting..."
+	@ssh -i ~/.ssh/germinal germinal@$(VPS_IP) "cd /opt/germinal-staging && docker compose pull app && docker compose up -d app"
 
 # Configure database backups
 backup:
@@ -126,6 +162,7 @@ check-clean:
 	@echo "Checking playbooks for syntax errors..."
 	@ansible-playbook playbooks/site.yml --syntax-check
 	@ansible-playbook playbooks/deploy.yml --syntax-check
+	@ansible-playbook playbooks/deploy-staging.yml --syntax-check
 	@ansible-playbook playbooks/backup.yml --syntax-check
 	@echo "All playbooks are clean!"
 
@@ -166,15 +203,25 @@ ssh-info:
 	@echo ""
 	@echo "==========================================="
 
-# Check service status
+# Check production service status
 status:
-	@echo "Checking service status..."
+	@echo "Checking production service status..."
 	@ssh -i ~/.ssh/germinal germinal@$(VPS_IP) "cd /opt/germinal && docker compose ps"
 
-# View application logs
+# Check staging service status
+staging-status:
+	@echo "Checking staging service status..."
+	@ssh -i ~/.ssh/germinal germinal@$(VPS_IP) "cd /opt/germinal-staging && docker compose ps"
+
+# View production logs
 logs:
-	@echo "Streaming application logs (Ctrl+C to exit)..."
+	@echo "Streaming production logs (Ctrl+C to exit)..."
 	@ssh -i ~/.ssh/germinal germinal@$(VPS_IP) "cd /opt/germinal && docker compose logs -f"
+
+# View staging logs
+staging-logs:
+	@echo "Streaming staging logs (Ctrl+C to exit)..."
+	@ssh -i ~/.ssh/germinal germinal@$(VPS_IP) "cd /opt/germinal-staging && docker compose logs -f"
 
 # Run health check
 health-check:
