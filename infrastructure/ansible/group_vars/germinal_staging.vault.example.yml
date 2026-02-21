@@ -1,0 +1,24 @@
+---
+# Germinal Staging Vault - Example
+# Copy to germinal_staging.vault.yml and encrypt:
+#   ansible-vault encrypt group_vars/germinal_staging.vault.yml
+#
+# Variables defined here OVERRIDE the same-named variables from all.vault.yml
+# for hosts in the germinal_staging_servers group.
+#
+# Only define vars that need DIFFERENT values from production.
+# Shared secrets (AWS keys, Twilio, etc.) are inherited automatically.
+
+# Session secret - must differ from production
+vault_staging_session_secret: "change-me-staging-session-secret-min-32-characters"
+
+# Stripe - use Stripe TEST mode keys for staging
+vault_staging_stripe_secret_key: "sk_test_..."
+vault_staging_stripe_publishable_key: "pk_test_..."
+vault_staging_stripe_webhook_secret: "whsec_test_..."
+
+# Cron security - staging-specific secret (min 32 chars)
+vault_staging_cron_secret: "change-me-staging-cron-secret-min-32-characters-here"
+
+# Sentry DSN for staging (optional - leave empty to disable)
+vault_staging_sentry_dsn: ""

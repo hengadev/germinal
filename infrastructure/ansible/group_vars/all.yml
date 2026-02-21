@@ -80,6 +80,9 @@ fail2ban_notify_email: "{{ vault_contact_email | default('root@localhost') }}"
 # Cloudflare API token for DNS-01 challenge (stored in vault)
 caddy_cloudflare_api_token: "{{ vault_caddy_cloudflare_api_token | default('') }}"
 
+# Set to true once staging is deployed to include staging site blocks in Caddyfile
+staging_enabled: false
+
 # ============================================
 # Database and Session Configuration
 # ============================================
