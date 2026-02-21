@@ -8,9 +8,8 @@
  * Add new admin domains here when switching to a new domain
  */
 const ADMIN_DOMAINS = [
-	'admin.henga.dev', // Production
-	'dev-admin.henga.dev', // Development
-	'admin.germinalstudio.co' // Future domain
+	'admin.germinalstudio.co', // Production
+	'admin-staging.germinalstudio.co' // Staging
 ];
 
 /**
@@ -39,11 +38,6 @@ export function getCookieDomain(hostname: string): string | null {
 		return null;
 	}
 
-	// henga.dev domains
-	if (hostname.endsWith('.henga.dev')) {
-		return '.henga.dev';
-	}
-
 	// germinalstudio.co domains
 	if (hostname.endsWith('.germinalstudio.co') || hostname === 'germinalstudio.co') {
 		return '.germinalstudio.co';
@@ -62,16 +56,10 @@ export function getAdminUrl(hostname: string): string {
 		return '';
 	}
 
-	// henga.dev dev environment (dev-germinal.henga.dev or dev-admin.henga.dev)
-	if (hostname.startsWith('dev-') && hostname.endsWith('.henga.dev')) {
-		return 'https://dev-admin.henga.dev';
+	// Staging environment
+	if (hostname === 'staging.germinalstudio.co') {
+		return 'https://admin-staging.germinalstudio.co';
 	}
 
-	// henga.dev production environment
-	if (hostname.endsWith('.henga.dev')) {
-		return 'https://admin.henga.dev';
-	}
-
-	// Default to germinalstudio.co
 	return 'https://admin.germinalstudio.co';
 }
