@@ -16,6 +16,17 @@ const config = {
         }),
         alias: {
             "@/*": "./path/to/lib/*",
+        },
+        csp: {
+            mode: 'nonce',
+            directives: {
+                'default-src': ['self'],
+                'script-src': ['self'],
+                'style-src': ['self', 'unsafe-inline'],
+                'img-src': ['self', 'data:', 'https:'],
+                'connect-src': ['self', 'https://api.stripe.com', 'https://js.stripe.com'],
+                'frame-src': ['https://js.stripe.com'],
+            }
         }
     }
 };

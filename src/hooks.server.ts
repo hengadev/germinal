@@ -1,6 +1,5 @@
 import { redirect } from '@sveltejs/kit';
 import type { Handle, HandleServerError } from '@sveltejs/kit';
-import crypto from 'crypto';
 import { validateSession, deleteExpiredSessions } from '$lib/server/session';
 import { isAdminDomain, getCookieDomain } from '$lib/server/hostname';
 import { initJobScheduler, stopJobScheduler } from '$lib/server/jobs/scheduler';
@@ -8,13 +7,6 @@ import { runMigrations } from '$lib/server/db';
 import { initMonitoring, captureException } from '$lib/server/monitoring';
 import { logger } from '$lib/server/logger';
 import { generateToken } from '$lib/server/csrf';
-
-/**
- * Generate a cryptographically secure nonce for CSP
- */
-function generateNonce(): string {
-	return crypto.randomBytes(16).toString('base64');
-}
 
 // Initialize monitoring
 initMonitoring();
@@ -58,9 +50,6 @@ export const handle: Handle = async ({ event, resolve }) => {
 	const csrfToken = generateToken();
 	event.locals.csrfToken = csrfToken;
 
-	// Generate nonce for CSP
-	const nonce = generateNonce();
-
 	// Store CSRF token in httpOnly cookie for API validation
 	event.cookies.set('csrf_token', csrfToken, {
 		httpOnly: true,
@@ -90,22 +79,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 		}
 	}
 
-	// Build Content Security Policy
-	const isDevelopment = process.env.NODE_ENV !== 'production';
-	const csp = isDevelopment
-		? "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:"
-		: `default-src 'self'; script-src 'self' 'nonce-${nonce}'; style-src 'self' 'nonce-${nonce}'; img-src 'self' data: https:; connect-src 'self' https://api.stripe.com https://js.stripe.com; frame-src https://js.stripe.com`;
-
-	// Continue with request, injecting nonce into HTML
-	const response = await resolve(event, {
-		transformPageChunk: ({ html }) => {
-			// Replace %sveltekit.nonce% placeholder with actual nonce
-			return html.replace(/%sveltekit\.nonce%/g, nonce);
-		}
-	});
-
-	// Set Content Security Policy header
-	response.headers.set('Content-Security-Policy', csp);
+	const response = await resolve(event);
 
 	return response;
 };
