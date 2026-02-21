@@ -21,6 +21,8 @@ Thumbs.db
 # Vault
 group_vars/all.vault.yml
 !group_vars/all.vault.example.yml
+infrastructure/ansible/group_vars/*.vault.yml
+!infrastructure/ansible/group_vars/*.vault.example.yml
 
 # Vite
 vite.config.js.timestamp-*
