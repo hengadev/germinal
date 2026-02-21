@@ -6,6 +6,67 @@
   email {{ caddy_acme_email | default('admin@' + app_domain) }}
 }
 
+{% if staging_enabled | default(false) %}
+# ─── Staging environment ─────────────────────────────────────────────────────
+
+admin-staging.{{ app_domain }} {
+  tls {
+    dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+  }
+
+  reverse_proxy germinal_staging_app:3001 {
+    header_up X-Real-IP {remote_host}
+    header_up X-Forwarded-For {remote_host}
+    header_up X-Forwarded-Proto {scheme}
+  }
+
+  header {
+    Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    X-Content-Type-Options "nosniff"
+    X-Frame-Options "DENY"
+    X-XSS-Protection "1; mode=block"
+    Referrer-Policy "strict-origin-when-cross-origin"
+    -Server
+  }
+}
+
+staging.{{ app_domain }} {
+  tls {
+    dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+  }
+
+  reverse_proxy germinal_staging_app:3001 {
+    header_up X-Real-IP {remote_host}
+    header_up X-Forwarded-For {remote_host}
+    header_up X-Forwarded-Proto {scheme}
+  }
+
+  header {
+    Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    X-Content-Type-Options "nosniff"
+    X-Frame-Options "SAMEORIGIN"
+    X-XSS-Protection "1; mode=block"
+    Referrer-Policy "strict-origin-when-cross-origin"
+    -Server
+  }
+
+  request_body {
+    max_size {{ caddy_client_max_body_size | default('100M') }}
+  }
+
+  log {
+    output file /var/log/caddy/staging-access.log {
+      roll_size 100mb
+      roll_keep 5
+      roll_keep_for 720h
+    }
+    format json
+  }
+}
+
+{% endif %}
+# ─── Production environment ───────────────────────────────────────────────────
+
 # Admin subdomain - reverse proxy to application (admin routes protected by the app)
 admin.{{ app_domain }} {
   tls {
