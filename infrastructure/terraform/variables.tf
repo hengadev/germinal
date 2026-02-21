@@ -120,6 +120,12 @@ variable "create_www_dns" {
   default     = false
 }
 
+variable "create_staging_dns" {
+  description = "Create staging and admin-staging DNS records"
+  type        = bool
+  default     = true
+}
+
 # ============================================
 # Email Configuration Variables
 # ============================================

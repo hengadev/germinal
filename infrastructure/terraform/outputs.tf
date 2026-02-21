@@ -146,6 +146,16 @@ output "www_url" {
   description = "WWW URL for the application"
 }
 
+output "staging_url" {
+  value       = var.create_staging_dns ? "https://staging.${var.domain_name}" : null
+  description = "Staging environment URL"
+}
+
+output "staging_admin_url" {
+  value       = var.create_staging_dns ? "https://admin-staging.${var.domain_name}" : null
+  description = "Staging admin URL"
+}
+
 output "dns_records" {
   value = {
     main_a = {

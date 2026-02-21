@@ -48,6 +48,27 @@ resource "cloudflare_dns_record" "admin" {
   ttl     = 1
 }
 
+# Staging subdomains - same VPS, routed by Caddy
+resource "cloudflare_dns_record" "staging" {
+  count   = var.create_staging_dns ? 1 : 0
+  zone_id = var.cloudflare_zone_id
+  name    = "staging"
+  type    = "CNAME"
+  content = var.domain_name
+  proxied = true
+  ttl     = 1
+}
+
+resource "cloudflare_dns_record" "admin_staging" {
+  count   = var.create_staging_dns ? 1 : 0
+  zone_id = var.cloudflare_zone_id
+  name    = "admin-staging"
+  type    = "CNAME"
+  content = var.domain_name
+  proxied = true
+  ttl     = 1
+}
+
 # ============================================
 # Email DNS Records
 # ============================================
