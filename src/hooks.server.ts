@@ -41,8 +41,9 @@ export const handle: Handle = async ({ event, resolve }) => {
 	event.locals.isAdminDomain = isAdminDomain(hostname);
 	const cookieDomain = getCookieDomain(hostname) ?? undefined;
 
-	// On the admin subdomain, redirect bare root to /admin so the auth flow runs
-	if (event.locals.isAdminDomain && event.url.pathname === '/') {
+	// On the admin subdomain (not localhost), redirect bare root to /admin so the auth flow runs
+	const isLocalhost = hostname.startsWith('localhost') || hostname.startsWith('127.0.0.1');
+	if (event.locals.isAdminDomain && !isLocalhost && event.url.pathname === '/') {
 		throw redirect(302, '/admin');
 	}
 
