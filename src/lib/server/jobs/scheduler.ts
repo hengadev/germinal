@@ -19,6 +19,12 @@ export async function initJobScheduler() {
 		return boss;
 	}
 
+	// Skip in mock mode
+	if (env.USE_MOCK_DATA) {
+		logger.info('[Job Scheduler] Skipping initialization in mock mode');
+		return null;
+	}
+
 	boss = new PgBoss({
 		connectionString: env.DATABASE_URL,
 		schema: 'pgboss', // Separate schema for job tables
