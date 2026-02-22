@@ -100,10 +100,10 @@
 
 <div class="bg-white rounded-lg border border-border-card p-6 lg:p-8">
     <form method="POST" use:enhance class="space-y-6">
-        <!-- Cover Photo Section -->
+        <!-- Photo de Couverture Section -->
         <div class="form-section">
             <label class="block text-sm font-medium text-dark-700 mb-2">
-                Cover Photo
+                Photo de Couverture
             </label>
             <p class="text-xs text-dark-400 mb-3">
                 {existingCoverMedia.length > 0 ? 'Replace or remove the current cover photo' : 'Main image shown in event listings'}
@@ -122,7 +122,7 @@
         <!-- Gallery Section -->
         <div class="form-section">
             <label class="block text-sm font-medium text-dark-700 mb-2">
-                Event Gallery
+                Galerie de l'Événement
             </label>
             <p class="text-xs text-dark-400 mb-3">Up to 10 additional photos. Drag to reorder.</p>
             <MediaUpload
@@ -206,7 +206,7 @@
                 />
             </div>
             <p class="mt-1 text-xs text-dark-400">
-                URL-friendly version of the title (lowercase, hyphens only)
+                Version URL du titre (minuscules, tirets uniquement)
             </p>
         </div>
 
@@ -300,7 +300,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
                 <label for="startDate" class="block text-sm font-medium text-dark-700 mb-2">
-                    Start Date <span class="text-red-500">*</span>
+                    Date de Début <span class="text-red-500">*</span>
                 </label>
                 <div class="relative">
                     <Calendar
@@ -320,7 +320,7 @@
 
             <div>
                 <label for="endDate" class="block text-sm font-medium text-dark-700 mb-2">
-                    End Date <span class="text-red-500">*</span>
+                    Date de Fin <span class="text-red-500">*</span>
                 </label>
                 <div class="relative">
                     <Calendar
@@ -339,10 +339,10 @@
             </div>
         </div>
 
-        <!-- Location -->
+        <!-- Lieu -->
         <div>
             <label for="location" class="block text-sm font-medium text-dark-700 mb-2">
-                Location <span class="text-red-500">*</span>
+                Lieu <span class="text-red-500">*</span>
             </label>
             <div class="relative">
                 <MapPin
@@ -363,11 +363,11 @@
 
         <!-- Venue Details -->
         <div class="space-y-4">
-            <h3 class="text-sm font-medium text-dark-700">Venue Details (Optional)</h3>
+            <h3 class="text-sm font-medium text-dark-700">Détails du Lieu (Optionnel)</h3>
 
             <div>
                 <label for="venueName" class="block text-sm font-medium text-dark-600 mb-2">
-                    Venue Name
+                    Nom du Lieu
                 </label>
                 <input
                     id="venueName"
@@ -381,7 +381,7 @@
 
             <div>
                 <label for="streetAddress" class="block text-sm font-medium text-dark-600 mb-2">
-                    Street Address
+                    Adresse Rue
                 </label>
                 <input
                     id="streetAddress"
@@ -453,7 +453,7 @@
         <!-- Collaborators -->
         <div>
             <label class="block text-sm font-medium text-dark-700 mb-2">
-                Collaborators (Optional)
+                Collaborateurs (Optionnel)
             </label>
             <p class="text-xs text-dark-400 mb-3">Add collaborating talents or partners</p>
 
@@ -487,7 +487,7 @@
                     onclick={() => collaborators = [...collaborators, {name: "", role: ""}]}
                     class="text-sm text-dark-600 hover:text-dark-900 font-medium"
                 >
-                    + Add Collaborator
+                    + Ajouter un Collaborateur
                 </button>
             </div>
 
@@ -497,7 +497,7 @@
         <!-- Timings -->
         <div>
             <label class="block text-sm font-medium text-dark-700 mb-2">
-                Event Timings (Optional)
+                Horaires de l'Événement (Optionnel)
             </label>
             <p class="text-xs text-dark-400 mb-3">Add schedule information for different sessions</p>
 
@@ -540,7 +540,7 @@
 
         <!-- Event Details -->
         <div class="space-y-4">
-            <h3 class="text-sm font-medium text-dark-700">Additional Details (Optional)</h3>
+            <h3 class="text-sm font-medium text-dark-700">Détails Supplémentaires (Optionnel)</h3>
 
             <div>
                 <label for="curatorEn" class="block text-sm font-medium text-dark-600 mb-2">
@@ -659,10 +659,10 @@
             />
             <div>
                 <label for="isSpotlight" class="block text-sm font-medium text-amber-900 cursor-pointer">
-                    Mark as Spotlight Event
+                    Marquer comme Événement à la Une
                 </label>
                 <p class="text-xs text-amber-600">
-                    Spotlight events are featured prominently on the site. Only one event can be spotlight at a time.
+                    Les événements à la une sont mis en avant sur le site. Un seul événement peut être à la une à la fois.
                 </p>
             </div>
         </div>
@@ -673,7 +673,7 @@
                 type="submit"
                 class="flex-1 px-6 py-3 bg-dark-900 text-white rounded-lg hover:bg-dark-800 focus:outline-none focus:ring-2 focus:ring-dark-900 focus:ring-offset-2 transition-colors font-medium"
             >
-                Update Event
+                Mettre à jour l'Événement
             </button>
             <a
                 href="/admin/events"

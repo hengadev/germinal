@@ -309,7 +309,7 @@
 {/snippet}
 
 <svelte:head>
-    <title>Talents | Admin Dashboard</title>
+    <title>Talents | Tableau de bord Admin</title>
 </svelte:head>
 
 <div class="container mx-auto px-4 py-8 lg:py-12">
@@ -318,14 +318,14 @@
     >
         <div>
             <h1 class="text-3xl lg:text-4xl font-bold mb-2">Talents</h1>
-            <p class="text-dark-400">Manage your talent collection</p>
+            <p class="text-dark-400">Gérez votre collection de talents</p>
         </div>
         <button
             onclick={openCreateDialog}
             class="inline-flex items-center gap-2 px-4 py-2 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors self-start"
         >
             <Plus size={18} />
-            <span>New Talent</span>
+            <span>Nouveau Talent</span>
         </button>
     </div>
 
@@ -352,17 +352,17 @@
         >
             <User size={48} class="mx-auto mb-4 text-dark-300" />
             <h3 class="text-xl font-semibold text-dark-900 mb-2">
-                No talents yet
+                Aucun talent pour le moment
             </h3>
             <p class="text-dark-400 mb-6">
-                Add your first talent to get started
+                Ajoutez votre premier talent pour commencer
             </p>
             <button
                 onclick={openCreateDialog}
                 class="inline-flex items-center gap-2 px-4 py-2 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors"
             >
                 <Plus size={18} />
-                <span>Add Talent</span>
+                <span>Ajouter un Talent</span>
             </button>
         </div>
     {:else}
@@ -381,7 +381,7 @@
                         <th
                             class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider"
                         >
-                            Role
+                            Rôle
                         </th>
                         <th
                             class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider"
@@ -391,7 +391,7 @@
                         <th
                             class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider"
                         >
-                            Status
+                            Statut
                         </th>
                         <th
                             class="px-6 py-4 text-right text-xs font-semibold text-dark-600 uppercase tracking-wider"
@@ -452,14 +452,14 @@
                                         class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-dark-900 text-white rounded-full"
                                     >
                                         <Eye size={14} />
-                                        Published
+                                        Publié
                                     </span>
                                 {:else}
                                     <span
                                         class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-dark-100 text-dark-600 rounded-full"
                                     >
                                         <EyeOff size={14} />
-                                        Draft
+                                        Brouillon
                                     </span>
                                 {/if}
                             </td>
@@ -470,14 +470,14 @@
                                     <button
                                         onclick={() => openEditDialog(talent)}
                                         class="p-2 text-dark-600 hover:text-dark-900 hover:bg-dark-50 rounded-lg transition-colors"
-                                        title="Edit"
+                                        title="Modifier"
                                     >
                                         <Edit size={18} />
                                     </button>
                                     <button
                                         onclick={() => openDeleteDialog(talent)}
                                         class="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors"
-                                        title="Delete"
+                                        title="Supprimer"
                                     >
                                         <Trash2 size={18} />
                                     </button>
@@ -548,14 +548,14 @@
                             class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-dark-600 hover:text-dark-900 hover:bg-dark-50 rounded-lg transition-colors"
                         >
                             <Edit size={16} />
-                            Edit
+                            Modifier
                         </button>
                         <button
                             onclick={() => openDeleteDialog(talent)}
                             class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors"
                         >
                             <Trash2 size={16} />
-                            Delete
+                            Supprimer
                         </button>
                     </div>
                 </div>
@@ -572,7 +572,7 @@
         >
             <div class="flex items-center justify-between mb-2">
                 <h2 class="text-xl font-semibold tracking-tight">
-                    Add New Talent
+                    Ajouter un Nouveau Talent
                 </h2>
                 <button
                     type="button"
@@ -583,7 +583,7 @@
                 </button>
             </div>
             <p class="text-dark-400 text-sm">
-                Fill in the details to add a new talent
+                Remplissez les détails pour ajouter un nouveau talent
             </p>
         </div>
 
@@ -596,24 +596,24 @@
             <div class="grid grid-cols-1 gap-4 w-full">
                 {@render field(
                     "firstName",
-                    "First Name",
+                    "Prénom",
                     createInput,
                     createFirstName,
                     null,
                 )}
                 {@render field(
                     "lastName",
-                    "Last Name",
+                    "Nom",
                     createInput,
                     createLastName,
                     null,
                 )}
-                {@render field("role", "Role", createInput, createRole, null)}
+                {@render field("role", "Rôle", createInput, createRole, null)}
                 {@render field("bio", "Bio", createInput, createBio, null)}
 
                 <div class="space-y-3 pt-2">
                     <h3 class="text-sm font-medium text-dark-700">
-                        Social Links (Optional)
+                        Liens Sociaux (Optionnel)
                     </h3>
                     {@render field(
                         "instagram",
@@ -658,10 +658,10 @@
                             for="createPublished"
                             class="block text-sm font-medium text-dark-900 cursor-pointer"
                         >
-                            Publish immediately
+                            Publier immédiatement
                         </label>
                         <p class="text-xs text-dark-400">
-                            Uncheck to save as draft
+                            Décochez pour sauvegarder comme brouillon
                         </p>
                     </div>
                 </div>
@@ -672,13 +672,13 @@
                     onclick={() => (createDialogOpen = false)}
                     class="px-4 py-2 border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium text-sm"
                 >
-                    Cancel
+                    Annuler
                 </button>
                 <button
                     type="submit"
                     class="px-4 py-2 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors font-medium text-sm"
                 >
-                    Add Talent
+                    Ajouter le Talent
                 </button>
             </div>
         </form>
@@ -686,8 +686,8 @@
 {:else}
     <Modal
         bind:isOpen={createDialogOpen}
-        title="Add New Talent"
-        description="Fill in the details to add a new talent"
+        title="Ajouter un Nouveau Talent"
+        description="Remplissez les détails pour ajouter un nouveau talent"
     >
         <form
             method="POST"
@@ -698,26 +698,26 @@
             <div class="grid grid-cols-2 gap-4 w-full">
                 {@render field(
                     "firstName",
-                    "First Name",
+                    "Prénom",
                     createInput,
                     createFirstName,
                     null,
                 )}
                 {@render field(
                     "lastName",
-                    "Last Name",
+                    "Nom",
                     createInput,
                     createLastName,
                     null,
                 )}
             </div>
-            {@render field("role", "Role", createInput, createRole, null)}
+            {@render field("role", "Rôle", createInput, createRole, null)}
             {@render field("bio", "Bio", createInput, createBio, null)}
 
             <div class="grid grid-cols-2 gap-4 pt-2">
                 <div class="col-span-2">
                     <h3 class="text-sm font-medium text-dark-700 mb-3">
-                        Social Links (Optional)
+                        Liens Sociaux (Optionnel)
                     </h3>
                 </div>
                 {@render field(
@@ -763,10 +763,10 @@
                         for="createPublished"
                         class="block text-sm font-medium text-dark-900 cursor-pointer"
                     >
-                        Publish immediately
+                        Publier immédiatement
                     </label>
                     <p class="text-xs text-dark-400">
-                        Uncheck to save as draft
+                        Décochez pour sauvegarder comme brouillon
                     </p>
                 </div>
             </div>
@@ -777,13 +777,13 @@
                     onclick={() => (createDialogOpen = false)}
                     class="px-6 py-2.5 border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium"
                 >
-                    Cancel
+                    Annuler
                 </button>
                 <button
                     type="submit"
                     class="px-6 py-2.5 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors font-medium"
                 >
-                    Add Talent
+                    Ajouter le Talent
                 </button>
             </div>
         </form>
@@ -798,7 +798,7 @@
         >
             <div class="flex items-center justify-between mb-2">
                 <h2 class="text-xl font-semibold tracking-tight">
-                    Edit Talent
+                    Modifier le Talent
                 </h2>
                 <button
                     type="button"
@@ -808,7 +808,7 @@
                     <X class="text-dark-900 size-5" />
                 </button>
             </div>
-            <p class="text-dark-400 text-sm">Update the talent details</p>
+            <p class="text-dark-400 text-sm">Mettre à jour les détails du talent</p>
         </div>
 
         <form
@@ -822,24 +822,24 @@
             <div class="grid grid-cols-1 gap-4 w-full">
                 {@render field(
                     "firstName",
-                    "First Name",
+                    "Prénom",
                     editInput,
                     editFirstName,
                     null,
                 )}
                 {@render field(
                     "lastName",
-                    "Last Name",
+                    "Nom",
                     editInput,
                     editLastName,
                     null,
                 )}
-                {@render field("role", "Role", editInput, editRole, null)}
+                {@render field("role", "Rôle", editInput, editRole, null)}
                 {@render field("bio", "Bio", editInput, editBio, null)}
 
                 <div class="space-y-3 pt-2">
                     <h3 class="text-sm font-medium text-dark-700">
-                        Social Links (Optional)
+                        Liens Sociaux (Optionnel)
                     </h3>
                     {@render field(
                         "instagram",
@@ -884,10 +884,10 @@
                             for="editPublished"
                             class="block text-sm font-medium text-dark-900 cursor-pointer"
                         >
-                            Published
+                            Publié
                         </label>
                         <p class="text-xs text-dark-400">
-                            Uncheck to save as draft
+                            Décochez pour sauvegarder comme brouillon
                         </p>
                     </div>
                 </div>
@@ -898,13 +898,13 @@
                     onclick={() => (editDialogOpen = false)}
                     class="px-4 py-2 border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium text-sm"
                 >
-                    Cancel
+                    Annuler
                 </button>
                 <button
                     type="submit"
                     class="px-4 py-2 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors font-medium text-sm"
                 >
-                    Save Changes
+                    Enregistrer les Modifications
                 </button>
             </div>
         </form>
@@ -912,8 +912,8 @@
 {:else}
     <Modal
         bind:isOpen={editDialogOpen}
-        title="Edit Talent"
-        description="Update the talent details"
+        title="Modifier le Talent"
+        description="Mettre à jour les détails du talent"
     >
         <form
             method="POST"
@@ -926,26 +926,26 @@
             <div class="grid grid-cols-2 gap-4 w-full">
                 {@render field(
                     "firstName",
-                    "First Name",
+                    "Prénom",
                     editInput,
                     editFirstName,
                     null,
                 )}
                 {@render field(
                     "lastName",
-                    "Last Name",
+                    "Nom",
                     editInput,
                     editLastName,
                     null,
                 )}
             </div>
-            {@render field("role", "Role", editInput, editRole, null)}
+            {@render field("role", "Rôle", editInput, editRole, null)}
             {@render field("bio", "Bio", editInput, editBio, null)}
 
             <div class="grid grid-cols-2 gap-4 pt-2">
                 <div class="col-span-2">
                     <h3 class="text-sm font-medium text-dark-700 mb-3">
-                        Social Links (Optional)
+                        Liens Sociaux (Optionnel)
                     </h3>
                 </div>
                 {@render field(
@@ -991,10 +991,10 @@
                         for="editPublished"
                         class="block text-sm font-medium text-dark-900 cursor-pointer"
                     >
-                        Published
+                        Publié
                     </label>
                     <p class="text-xs text-dark-400">
-                        Uncheck to save as draft
+                        Décochez pour sauvegarder comme brouillon
                     </p>
                 </div>
             </div>
@@ -1005,13 +1005,13 @@
                     onclick={() => (editDialogOpen = false)}
                     class="px-6 py-2.5 border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium"
                 >
-                    Cancel
+                    Annuler
                 </button>
                 <button
                     type="submit"
                     class="px-6 py-2.5 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors font-medium"
                 >
-                    Save Changes
+                    Enregistrer les Modifications
                 </button>
             </div>
         </form>
@@ -1026,7 +1026,7 @@
         >
             <div class="flex items-center justify-between mb-2">
                 <h2 class="text-xl font-semibold tracking-tight">
-                    Delete Talent
+                    Supprimer le Talent
                 </h2>
                 <button
                     type="button"
@@ -1037,10 +1037,10 @@
                 </button>
             </div>
             <p class="text-dark-400 text-sm">
-                Are you sure you want to delete "<span class="font-medium"
+                Êtes-vous sûr de vouloir supprimer "<span class="font-medium"
                     >{selectedTalent?.firstName}</span
                 >
-                {selectedTalent?.lastName}"? This action cannot be undone.
+                {selectedTalent?.lastName}" ? Cette action ne peut pas être annulée.
             </p>
         </div>
 
@@ -1069,8 +1069,8 @@
 {:else}
     <Modal
         bind:isOpen={deleteDialogOpen}
-        title="Delete Talent"
-        description="Are you sure you want to delete '{selectedTalent?.firstName} {selectedTalent?.lastName}'? This action cannot be undone."
+        title="Supprimer le Talent"
+        description="Êtes-vous sûr de vouloir supprimer '{selectedTalent?.firstName} {selectedTalent?.lastName}' ? Cette action ne peut pas être annulée."
     >
         <form method="POST" action="?/deleteTalent" use:enhance>
             <input type="hidden" name="id" value={selectedTalent?.id} />
@@ -1081,13 +1081,13 @@
                     onclick={() => (deleteDialogOpen = false)}
                     class="px-6 py-2.5 border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium"
                 >
-                    Cancel
+                    Annuler
                 </button>
                 <button
                     type="submit"
                     class="px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
                 >
-                    Delete
+                    Supprimer
                 </button>
             </div>
         </form>

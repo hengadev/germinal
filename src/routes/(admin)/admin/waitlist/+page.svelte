@@ -21,8 +21,8 @@
 	// Get status badge
 	function getNotifiedBadge(notified: boolean) {
 		return notified
-			? { text: 'Notified', class: 'bg-green-50 text-green-700', icon: CheckCircle2 }
-			: { text: 'Pending', class: 'bg-yellow-50 text-yellow-700', icon: Clock };
+			? { text: 'Notifié', class: 'bg-green-50 text-green-700', icon: CheckCircle2 }
+			: { text: 'En attente', class: 'bg-yellow-50 text-yellow-700', icon: Clock };
 	}
 
 	// Build filter URL
@@ -90,13 +90,13 @@
 </script>
 
 <svelte:head>
-	<title>Waitlist | Admin Dashboard</title>
+	<title>Liste d'Attente | Tableau de bord Admin</title>
 </svelte:head>
 
 <div class="container mx-auto px-4 py-8 lg:py-12">
 	<div class="mb-8">
-		<h1 class="text-3xl lg:text-4xl font-bold mb-2">Waitlist Management</h1>
-		<p class="text-dark-400">Manage event waitlist entries and notifications</p>
+		<h1 class="text-3xl lg:text-4xl font-bold mb-2">Gestion de la Liste d'Attente</h1>
+		<p class="text-dark-400">Gérer les entrées de la liste d'attente et les notifications</p>
 	</div>
 
 	<!-- Success/Error Messages -->
@@ -118,13 +118,13 @@
 		<div class="flex flex-col sm:flex-row gap-4">
 			<!-- Session Filter -->
 			<div class="flex-1">
-				<label for="sessionFilter" class="block text-sm font-medium text-dark-700 mb-1">Filter by Session</label>
+				<label for="sessionFilter" class="block text-sm font-medium text-dark-700 mb-1">Filtrer par Session</label>
 				<select
 					id="sessionFilter"
 					bind:value={sessionFilter}
 					class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
 				>
-					<option value="all">All Sessions</option>
+					<option value="all">Toutes les Sessions</option>
 					{#each data.sessions as session}
 						<option value={session.id}>{session.title}</option>
 					{/each}
@@ -133,15 +133,15 @@
 
 			<!-- Notified Filter -->
 			<div class="flex-1">
-				<label for="notifiedFilter" class="block text-sm font-medium text-dark-700 mb-1">Filter by Status</label>
+				<label for="notifiedFilter" class="block text-sm font-medium text-dark-700 mb-1">Filtrer par Statut</label>
 				<select
 					id="notifiedFilter"
 					bind:value={notifiedFilter}
 					class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
 				>
-					<option value="all">All Statuses</option>
-					<option value="pending">Pending Notification</option>
-					<option value="notified">Already Notified</option>
+					<option value="all">Tous les Statuts</option>
+					<option value="pending">En attente de notification</option>
+					<option value="notified">Déjà notifié</option>
 				</select>
 			</div>
 
@@ -152,14 +152,14 @@
 					class="w-full sm:w-auto px-6 py-2.5 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors font-medium text-sm inline-flex items-center justify-center gap-2"
 				>
 					<Filter size={16} />
-					Apply Filters
+					Appliquer les Filtres
 				</button>
 			</div>
 		</div>
 
 		<!-- Results count -->
 		<div class="mt-3 text-sm text-dark-500">
-			Showing {data.waitlistEntries.length} entries
+			Affichage de {data.waitlistEntries.length} entrées
 		</div>
 	</div>
 
@@ -167,13 +167,13 @@
 		<div class="bg-white rounded-lg border border-border-card p-12 text-center">
 			<User size={48} class="mx-auto mb-4 text-dark-300" />
 			<h3 class="text-xl font-semibold text-dark-900 mb-2">
-				No waitlist entries found
+				Aucune entrée de liste d'attente trouvée
 			</h3>
 			<p class="text-dark-400">
 				{#if sessionFilter !== 'all' || notifiedFilter !== 'all'}
-					Try adjusting your filters
+					Essayez d'ajuster vos filtres
 				{:else}
-					No one is on the waitlist yet
+					Personne n'est sur la liste d'attente
 				{/if}
 			</p>
 		</div>
@@ -183,7 +183,7 @@
 			<div class="bg-dark-900 text-white rounded-lg p-4 mb-6">
 				<div class="flex items-center justify-between flex-wrap gap-4">
 					<div>
-						<span class="font-semibold">{selectedEntries.size}</span> entries selected
+						<span class="font-semibold">{selectedEntries.size}</span> entrées sélectionnées
 					</div>
 					<div class="flex items-center gap-3 flex-wrap">
 						<form method="POST" action="?/notify" use:enhance={({ formData, action, cancel }) => {
@@ -197,7 +197,7 @@
 										form = { success: (result.data as { message: string }).message };
 										selectedEntries = new Set();
 									} else if (result.type === 'failure' && result.data) {
-										form = { error: (result.data as { error?: string }).error || 'Action failed' };
+										form = { error: (result.data as { error?: string }).error || 'Action échouée' };
 									}
 									update();
 								};
@@ -207,7 +207,7 @@
 								class="px-4 py-2 bg-white text-dark-900 rounded-lg hover:bg-dark-50 transition-colors font-medium text-sm inline-flex items-center gap-2"
 							>
 								<Send size={16} />
-								Notify Selected
+								Notifier la Sélection
 							</button>
 						</form>
 
@@ -221,7 +221,7 @@
 										form = { success: (result.data as { message: string }).message };
 										selectedEntries = new Set();
 									} else if (result.type === 'failure' && result.data) {
-										form = { error: (result.data as { error?: string }).error || 'Action failed' };
+										form = { error: (result.data as { error?: string }).error || 'Action échouée' };
 									}
 									update();
 								};
@@ -231,12 +231,12 @@
 								class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium text-sm inline-flex items-center gap-2"
 							>
 								<Check size={16} />
-								Mark as Notified
+								Marquer comme Notifié
 							</button>
 						</form>
 
 						<form method="POST" action="?/delete" use:enhance={({ formData, action, cancel }) => {
-								if (!confirm(`Are you sure you want to delete ${selectedEntries.size} entries?`)) {
+								if (!confirm(`Êtes-vous sûr de vouloir supprimer ${selectedEntries.size} entrées ?`)) {
 									cancel();
 								}
 								const ids = getSelectedIds();
@@ -248,7 +248,7 @@
 										form = { success: (result.data as { message: string }).message };
 										selectedEntries = new Set();
 									} else if (result.type === 'failure' && result.data) {
-										form = { error: (result.data as { error?: string }).error || 'Action failed' };
+										form = { error: (result.data as { error?: string }).error || 'Action échouée' };
 									}
 									update();
 								};
@@ -258,7 +258,7 @@
 								class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium text-sm inline-flex items-center gap-2"
 							>
 								<Trash2 size={16} />
-								Delete Selected
+								Supprimer la Sélection
 							</button>
 						</form>
 					</div>
@@ -280,22 +280,22 @@
 							/>
 						</th>
 						<th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">
-							Guest
+							Invité
 						</th>
 						<th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">
-							Event/Session
+							Événement/Session
 						</th>
 						<th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">
-							Quantity
+							Quantité
 						</th>
 						<th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">
-							Status
+							Statut
 						</th>
 						<th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">
-							Expires
+							Expiration
 						</th>
 						<th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">
-							Created
+							Créé
 						</th>
 						<th class="px-6 py-4 text-right text-xs font-semibold text-dark-600 uppercase tracking-wider">
 							Actions
@@ -456,16 +456,16 @@
 	<!-- Cleanup Actions -->
 	{#if data.waitlistEntries.length > 0}
 		<div class="mt-6 bg-white rounded-lg border border-border-card p-4">
-			<h3 class="text-sm font-semibold text-dark-900 mb-3">Cleanup Actions</h3>
+			<h3 class="text-sm font-semibold text-dark-900 mb-3">Actions de Nettoyage</h3>
 			<form method="POST" action="?/deleteExpired" use:enhance={({ formData, action, cancel }) => {
-					if (!confirm('Are you sure you want to delete all expired entries that have already been notified?')) {
+					if (!confirm('Êtes-vous sûr de vouloir supprimer toutes les entrées expirées qui ont déjà été notifiées ?')) {
 						cancel();
 					}
 					return async ({ result, update }) => {
 						if (result.type === 'success' && result.data) {
 							form = { success: (result.data as { message: string }).message };
 						} else if (result.type === 'failure' && result.data) {
-							form = { error: (result.data as { error?: string }).error || 'Action failed' };
+							form = { error: (result.data as { error?: string }).error || 'Action échouée' };
 						}
 						update();
 					};
@@ -475,7 +475,7 @@
 					class="px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition-colors font-medium text-sm inline-flex items-center gap-2"
 				>
 					<Trash2 size={16} />
-					Delete Expired & Notified Entries
+					Supprimer les Entrées Expirées et Notifiées
 				</button>
 			</form>
 		</div>

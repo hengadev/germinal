@@ -44,7 +44,7 @@
 		}
 	}
 
-	function handleRemove(mediaId: string) {
+	function handleSupprimer(mediaId: string) {
 		if (profileMediaId === mediaId) {
 			mediaAction = 'removed';
 			newMediaId = null;
@@ -53,7 +53,7 @@
 </script>
 
 <svelte:head>
-	<title>Edit Talent | Admin Dashboard</title>
+	<title>Modifier le Talent | Tableau de bord Admin</title>
 </svelte:head>
 
 <div class="container mx-auto px-4 py-8 lg:py-12">
@@ -64,9 +64,9 @@
 				class="inline-flex items-center gap-2 text-dark-600 hover:text-dark-900 transition-colors mb-4"
 			>
 				<ArrowLeft size={20} />
-				<span>Back to Talents</span>
+				<span>Retour aux Talents</span>
 			</a>
-			<h1 class="text-3xl lg:text-4xl font-bold mb-2">Edit Talent</h1>
+			<h1 class="text-3xl lg:text-4xl font-bold mb-2">Modifier le Talent</h1>
 			<p class="text-dark-400">
 				Updating "{data.talent.firstName} {data.talent.lastName}"
 			</p>
@@ -86,10 +86,10 @@
 
 		<div class="bg-white rounded-lg border border-border-card p-6 lg:p-8">
 			<form method="POST" use:enhance class="space-y-6">
-				<!-- Profile Photo Section -->
+				<!-- Photo de Profil Section -->
 				<div class="form-section">
 					<label class="block text-sm font-medium text-dark-700 mb-2">
-						Profile Photo
+						Photo de Profil
 					</label>
 					<p class="text-xs text-dark-400 mb-3">
 						{existingProfileMedia.length > 0 ? 'Replace or remove the current profile photo' : 'Upload a profile photo for this talent'}
@@ -100,7 +100,7 @@
 						existingMedia={existingProfileMedia}
 						maxSizeMB={5}
 						onUpload={handleUpload}
-						onRemove={handleRemove}
+						onSupprimer={handleSupprimer}
 					/>
 					<input type="hidden" name="mediaAction" value={mediaAction} />
 					<input type="hidden" name="existingMediaId" value={profileMediaId ?? ''} />
@@ -111,7 +111,7 @@
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 					<div>
 						<label for="firstName" class="block text-sm font-medium text-dark-700 mb-2">
-							First Name <span class="text-red-500">*</span>
+							Prénom <span class="text-red-500">*</span>
 						</label>
 						<div class="relative">
 							<User
@@ -132,7 +132,7 @@
 
 					<div>
 						<label for="lastName" class="block text-sm font-medium text-dark-700 mb-2">
-							Last Name <span class="text-red-500">*</span>
+							Nom <span class="text-red-500">*</span>
 						</label>
 						<div class="relative">
 							<User
@@ -155,7 +155,7 @@
 				<!-- Role (English) -->
 				<div>
 					<label for="roleEn" class="block text-sm font-medium text-dark-700 mb-2">
-						Role (English) <span class="text-red-500">*</span>
+						Rôle (Anglais) <span class="text-red-500">*</span>
 					</label>
 					<div class="relative">
 						<Briefcase
@@ -177,7 +177,7 @@
 				<!-- Role (French) -->
 				<div>
 					<label for="roleFr" class="block text-sm font-medium text-dark-700 mb-2">
-						Role (French) <span class="text-red-500">*</span>
+						Rôle (Français) <span class="text-red-500">*</span>
 					</label>
 					<div class="relative">
 						<Briefcase
@@ -199,7 +199,7 @@
 				<!-- Bio (English) -->
 				<div>
 					<label for="bioEn" class="block text-sm font-medium text-dark-700 mb-2">
-						Bio (English) <span class="text-red-500">*</span>
+						Bio (Anglais) <span class="text-red-500">*</span>
 					</label>
 					<div class="relative">
 						<FileText
@@ -221,7 +221,7 @@
 				<!-- Bio (French) -->
 				<div>
 					<label for="bioFr" class="block text-sm font-medium text-dark-700 mb-2">
-						Bio (French) <span class="text-red-500">*</span>
+						Bio (Français) <span class="text-red-500">*</span>
 					</label>
 					<div class="relative">
 						<FileText
@@ -242,11 +242,11 @@
 
 				<!-- Location -->
 				<div class="space-y-4">
-					<h3 class="text-sm font-medium text-dark-700">Location (Optional)</h3>
+					<h3 class="text-sm font-medium text-dark-700">Emplacement (Optionnel)</h3>
 					<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 						<div>
 							<label for="city" class="block text-sm font-medium text-dark-600 mb-2">
-								City
+								Ville
 							</label>
 							<input
 								id="city"
@@ -259,7 +259,7 @@
 						</div>
 						<div>
 							<label for="country" class="block text-sm font-medium text-dark-600 mb-2">
-								Country
+								Pays
 							</label>
 							<input
 								id="country"
@@ -276,7 +276,7 @@
 				<!-- Quote (English) -->
 				<div>
 					<label for="quoteEn" class="block text-sm font-medium text-dark-700 mb-2">
-						Personal Quote (English) (Optional)
+						Citation Personnelle (Anglais) (Optionnel)
 					</label>
 					<textarea
 						id="quoteEn"
@@ -291,7 +291,7 @@
 				<!-- Quote (French) -->
 				<div>
 					<label for="quoteFr" class="block text-sm font-medium text-dark-700 mb-2">
-						Personal Quote (French) (Optional)
+						Citation Personnelle (Français) (Optionnel)
 					</label>
 					<textarea
 						id="quoteFr"
@@ -306,7 +306,7 @@
 				<!-- Specializations (English) -->
 				<div>
 					<label class="block text-sm font-medium text-dark-700 mb-2">
-						Specializations (English) (Optional)
+						Spécialisations (Anglais) (Optionnel)
 					</label>
 					<p class="text-xs text-dark-400 mb-3">Add up to 5 specializations</p>
 
@@ -324,7 +324,7 @@
 									onclick={() => specializationsEn = specializationsEn.filter((_, idx) => idx !== i)}
 									class="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
 								>
-									Remove
+									Supprimer
 								</button>
 							</div>
 						{/each}
@@ -335,7 +335,7 @@
 								onclick={() => specializationsEn = [...specializationsEn, ""]}
 								class="text-sm text-dark-600 hover:text-dark-900 font-medium"
 							>
-								+ Add Specialization
+								+ Ajouter une Spécialisation
 							</button>
 						{/if}
 					</div>
@@ -346,7 +346,7 @@
 				<!-- Specializations (French) -->
 				<div>
 					<label class="block text-sm font-medium text-dark-700 mb-2">
-						Specializations (French) (Optional)
+						Spécialisations (Français) (Optionnel)
 					</label>
 					<p class="text-xs text-dark-400 mb-3">Ajoutez jusqu'à 5 spécialisations</p>
 
@@ -364,7 +364,7 @@
 									onclick={() => specializationsFr = specializationsFr.filter((_, idx) => idx !== i)}
 									class="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
 								>
-									Remove
+									Supprimer
 								</button>
 							</div>
 						{/each}
@@ -375,7 +375,7 @@
 								onclick={() => specializationsFr = [...specializationsFr, ""]}
 								class="text-sm text-dark-600 hover:text-dark-900 font-medium"
 							>
-								+ Add Specialization
+								+ Ajouter une Spécialisation
 							</button>
 						{/if}
 					</div>
@@ -385,7 +385,7 @@
 
 				<!-- Social Links -->
 				<div class="space-y-4">
-					<h3 class="text-sm font-medium text-dark-700">Social Links (Optional)</h3>
+					<h3 class="text-sm font-medium text-dark-700">Liens Sociaux (Optionnel)</h3>
 
 					<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 						<div>
@@ -470,7 +470,7 @@
 					</div>
 				</div>
 
-				<!-- Published Status -->
+				<!-- Publié Status -->
 				<div class="flex items-center gap-3 p-4 bg-dark-50 rounded-lg">
 					<input
 						id="published"
@@ -482,10 +482,10 @@
 					/>
 					<div>
 						<label for="published" class="block text-sm font-medium text-dark-900 cursor-pointer">
-							Published
+							Publié
 						</label>
 						<p class="text-xs text-dark-400">
-							Uncheck to save as draft
+							Décochez pour sauvegarder comme brouillon
 						</p>
 					</div>
 				</div>
@@ -496,13 +496,13 @@
 						type="submit"
 						class="flex-1 px-6 py-3 bg-dark-900 text-white rounded-lg hover:bg-dark-800 focus:outline-none focus:ring-2 focus:ring-dark-900 focus:ring-offset-2 transition-colors font-medium"
 					>
-						Update Talent
+						Mettre à jour le Talent
 					</button>
 					<a
 						href="/admin/talents"
 						class="flex-1 px-6 py-3 bg-white border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 focus:outline-none focus:ring-2 focus:ring-dark-900 focus:ring-offset-2 transition-colors font-medium text-center"
 					>
-						Cancel
+						Annuler
 					</a>
 				</div>
 			</form>

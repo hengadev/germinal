@@ -20,13 +20,13 @@
 	function getStatusBadge(status: string) {
 		switch (status) {
 			case 'confirmed':
-				return { text: 'Confirmed', class: 'bg-green-50 text-green-700', icon: CheckCircle2 };
+				return { text: 'Confirmée', class: 'bg-green-50 text-green-700', icon: CheckCircle2 };
 			case 'pending':
-				return { text: 'Pending', class: 'bg-yellow-50 text-yellow-700', icon: Clock };
+				return { text: 'En attente', class: 'bg-yellow-50 text-yellow-700', icon: Clock };
 			case 'cancelled':
-				return { text: 'Cancelled', class: 'bg-red-50 text-red-700', icon: XCircle };
+				return { text: 'Annulée', class: 'bg-red-50 text-red-700', icon: XCircle };
 			case 'expired':
-				return { text: 'Expired', class: 'bg-dark-100 text-dark-600', icon: AlertCircle };
+				return { text: 'Expirée', class: 'bg-dark-100 text-dark-600', icon: AlertCircle };
 			default:
 				return { text: status, class: 'bg-dark-100 text-dark-600', icon: null };
 		}
@@ -36,15 +36,15 @@
 	function getPaymentStatusBadge(status: string) {
 		switch (status) {
 			case 'succeeded':
-				return { text: 'Paid', class: 'bg-green-50 text-green-700' };
+				return { text: 'Payé', class: 'bg-green-50 text-green-700' };
 			case 'pending':
-				return { text: 'Pending', class: 'bg-yellow-50 text-yellow-700' };
+				return { text: 'En attente', class: 'bg-yellow-50 text-yellow-700' };
 			case 'failed':
-				return { text: 'Failed', class: 'bg-red-50 text-red-700' };
+				return { text: 'Échoué', class: 'bg-red-50 text-red-700' };
 			case 'refunded':
-				return { text: 'Refunded', class: 'bg-dark-100 text-dark-600' };
+				return { text: 'Remboursé', class: 'bg-dark-100 text-dark-600' };
 			default:
-				return { text: 'None', class: 'bg-dark-100 text-dark-600' };
+				return { text: 'Aucun', class: 'bg-dark-100 text-dark-600' };
 		}
 	}
 
@@ -92,14 +92,14 @@
 </script>
 
 <svelte:head>
-	<title>Reservations | Admin Dashboard</title>
+	<title>Réservations | Tableau de bord Admin</title>
 </svelte:head>
 
 <div class="container mx-auto px-4 py-8 lg:py-12">
 	<div class="mb-8 flex items-center justify-between">
 		<div>
-			<h1 class="text-3xl lg:text-4xl font-bold mb-2">Reservations</h1>
-			<p class="text-dark-400">Manage all event reservations</p>
+			<h1 class="text-3xl lg:text-4xl font-bold mb-2">Réservations</h1>
+			<p class="text-dark-400">Gérer toutes les réservations d'événements</p>
 		</div>
 		<a
 			href={exportUrl}
@@ -108,7 +108,7 @@
 			class="inline-flex items-center gap-2 px-4 py-2 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors font-medium text-sm"
 		>
 			<Download size={16} />
-			Export CSV
+			Exporter CSV
 		</a>
 	</div>
 
@@ -117,30 +117,30 @@
 		<div class="flex flex-col sm:flex-row gap-4">
 			<!-- Status Filter -->
 			<div class="flex-1">
-				<label for="statusFilter" class="block text-sm font-medium text-dark-700 mb-1">Filter by Status</label>
+				<label for="statusFilter" class="block text-sm font-medium text-dark-700 mb-1">Filtrer par Statut</label>
 				<select
 					id="statusFilter"
 					bind:value={statusFilter}
 					class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
 				>
-					<option value="all">All Statuses</option>
-					<option value="confirmed">Confirmed</option>
-					<option value="pending">Pending</option>
-					<option value="cancelled">Cancelled</option>
-					<option value="expired">Expired</option>
+					<option value="all">Tous les Statuts</option>
+					<option value="confirmed">Confirmée</option>
+					<option value="pending">En attente</option>
+					<option value="cancelled">Annulée</option>
+					<option value="expired">Expirée</option>
 				</select>
 			</div>
 
 			<!-- Search -->
 			<div class="flex-1">
-				<label for="search" class="block text-sm font-medium text-dark-700 mb-1">Search</label>
+				<label for="search" class="block text-sm font-medium text-dark-700 mb-1">Rechercher</label>
 				<div class="relative">
 					<Search size={18} class="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400" />
 					<input
 						id="search"
 						type="text"
 						bind:value={searchQuery}
-						placeholder="Search by name, email, or event..."
+						placeholder="Rechercher par nom, email ou événement..."
 						class="w-full pl-10 pr-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
 					/>
 				</div>
@@ -149,7 +149,7 @@
 
 		<!-- Results count -->
 		<div class="mt-3 text-sm text-dark-500">
-			Showing {filteredReservations().length} of {data.reservations.length} reservations
+			Affichage de {filteredReservations().length} sur {data.reservations.length} réservations
 		</div>
 	</div>
 
@@ -157,13 +157,13 @@
 		<div class="bg-white rounded-lg border border-border-card p-12 text-center">
 			<Ticket size={48} class="mx-auto mb-4 text-dark-300" />
 			<h3 class="text-xl font-semibold text-dark-900 mb-2">
-				No reservations found
+				Aucune réservation trouvée
 			</h3>
 			<p class="text-dark-400">
 				{#if searchQuery || statusFilter !== 'all'}
-					Try adjusting your filters or search query
+					Essayez d'ajuster vos filtres ou votre recherche
 				{:else}
-					No reservations have been made yet
+					Aucune réservation n'a encore été faite
 				{/if}
 			</p>
 		</div>
@@ -174,19 +174,19 @@
 				<thead class="bg-dark-50 border-b border-border-card">
 					<tr>
 						<th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">
-							Guest
+							Invité
 						</th>
 						<th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">
-							Event
+							Événement
 						</th>
 						<th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">
-							Quantity & Total
+							Quantité & Total
 						</th>
 						<th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">
-							Status
+							Statut
 						</th>
 						<th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">
-							Payment
+							Paiement
 						</th>
 						<th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">
 							Date

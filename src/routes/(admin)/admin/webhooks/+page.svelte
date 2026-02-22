@@ -16,11 +16,11 @@
 	function getStatusBadge(status: string) {
 		switch (status) {
 			case 'succeeded':
-				return { text: 'Paid', class: 'bg-green-50 text-green-700', icon: CheckCircle2 };
+				return { text: 'Payé', class: 'bg-green-50 text-green-700', icon: CheckCircle2 };
 			case 'pending':
-				return { text: 'Pending', class: 'bg-yellow-50 text-yellow-700', icon: Clock };
+				return { text: 'En attente', class: 'bg-yellow-50 text-yellow-700', icon: Clock };
 			case 'failed':
-				return { text: 'Failed', class: 'bg-red-50 text-red-700', icon: XCircle };
+				return { text: 'Échoué', class: 'bg-red-50 text-red-700', icon: XCircle };
 			default:
 				return { text: status, class: 'bg-dark-100 text-dark-600', icon: null };
 		}
@@ -49,13 +49,13 @@
 </script>
 
 <svelte:head>
-	<title>Webhook Monitoring | Admin Dashboard</title>
+	<title>Surveillance des Webhooks | Tableau de bord Admin</title>
 </svelte:head>
 
 <div class="container mx-auto px-4 py-8 lg:py-12">
 	<div class="mb-8">
-		<h1 class="text-3xl lg:text-4xl font-bold mb-2">Webhook Monitoring</h1>
-		<p class="text-dark-400">Monitor payments with unprocessed webhooks</p>
+		<h1 class="text-3xl lg:text-4xl font-bold mb-2">Surveillance des Webhooks</h1>
+		<p class="text-dark-400">Surveiller les paiements avec des webhooks non traités</p>
 	</div>
 
 	<!-- Success/Error Messages -->
@@ -76,10 +76,10 @@
 		<div class="bg-white rounded-lg border border-border-card p-12 text-center">
 			<CheckCircle2 size={48} class="mx-auto mb-4 text-green-300" />
 			<h3 class="text-xl font-semibold text-dark-900 mb-2">
-				All webhooks processed
+				Tous les webhooks ont été traités
 			</h3>
 			<p class="text-dark-400">
-				No payments with unprocessed webhooks found. Everything is up to date!
+				Aucun paiement avec des webhooks non traités n'a été trouvé. Tout est à jour !
 			</p>
 		</div>
 	{:else}
@@ -87,17 +87,17 @@
 		<div class="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg mb-6 flex items-start gap-3">
 			<AlertTriangle size={20} class="flex-shrink-0 mt-0.5" />
 			<div>
-				<p class="font-medium mb-1">Payments with unprocessed webhooks</p>
+				<p class="font-medium mb-1">Paiements avec des webhooks non traités</p>
 				<p class="text-sm">
-					These payments haven't had their Stripe webhooks processed yet. This could be due to webhook delivery failures or timing issues.
-					Use the retry action to manually process the webhook.
+					Ces paiements n'ont pas encore eu leurs webhooks Stripe traités. Cela peut être dû à des échecs de livraison de webhooks ou à des problèmes de synchronisation.
+					Utilisez l'action de réessai pour traiter manuellement le webhook.
 				</p>
 			</div>
 		</div>
 
 		<!-- Results count -->
 		<div class="mb-6 text-sm text-dark-500">
-			Showing {data.payments.length} payments with unprocessed webhooks
+			Affichage de {data.payments.length} paiements avec des webhooks non traités
 		</div>
 
 		<!-- Table view for desktop -->
@@ -106,22 +106,22 @@
 				<thead class="bg-dark-50 border-b border-border-card">
 					<tr>
 						<th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">
-							Payment
+							Paiement
 						</th>
 						<th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">
-							Reservation
+							Réservation
 						</th>
 						<th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">
-							Amount
+							Montant
 						</th>
 						<th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">
-							Status
+							Statut
 						</th>
 						<th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">
-							Created
+							Créé
 						</th>
 						<th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">
-							Error
+							Erreur
 						</th>
 						<th class="px-6 py-4 text-right text-xs font-semibold text-dark-600 uppercase tracking-wider">
 							Actions

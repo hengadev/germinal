@@ -83,7 +83,7 @@
 </script>
 
 <svelte:head>
-	<title>New Event | Admin Dashboard</title>
+	<title>Nouvel Événement | Tableau de bord Admin</title>
 </svelte:head>
 
 <div class="container mx-auto px-4 py-8 lg:py-12">
@@ -94,11 +94,11 @@
 				class="inline-flex items-center gap-2 text-dark-600 hover:text-dark-900 transition-colors mb-4"
 			>
 				<ArrowLeft size={20} />
-				<span>Back to Events</span>
+				<span>Retour aux Événements</span>
 			</a>
-			<h1 class="text-3xl lg:text-4xl font-bold mb-2">Create New Event</h1>
+			<h1 class="text-3xl lg:text-4xl font-bold mb-2">Créer un Nouvel Événement</h1>
 			<p class="text-dark-400">
-				Fill in the details to create a new event
+				Remplissez les détails pour créer un nouvel événement
 			</p>
 		</div>
 
@@ -119,9 +119,9 @@
 				<!-- Cover Photo Section -->
 				<div class="form-section">
 					<label class="block text-sm font-medium text-dark-700 mb-2">
-						Cover Photo
+						Photo de Couverture
 					</label>
-					<p class="text-xs text-dark-400 mb-3">Main image shown in event listings</p>
+					<p class="text-xs text-dark-400 mb-3">Image principale affichée dans les listes d'événements</p>
 					<MediaUpload
 						mode="single"
 						entityType="event"
@@ -135,9 +135,9 @@
 				<!-- Gallery Section -->
 				<div class="form-section">
 					<label class="block text-sm font-medium text-dark-700 mb-2">
-						Event Gallery
+						Galerie de l'Événement
 					</label>
-					<p class="text-xs text-dark-400 mb-3">Up to 10 additional photos. Drag to reorder. First image will become cover if no explicit cover is set.</p>
+					<p class="text-xs text-dark-400 mb-3">Jusqu'à 10 photos supplémentaires. Glissez pour réorganiser. La première image deviendra la couverture si aucune couverture explicite n'est définie.</p>
 					<MediaUpload
 						mode="multiple"
 						maxFiles={10}
@@ -153,7 +153,7 @@
 				<!-- Title (English) -->
 				<div>
 					<label for="titleEn" class="block text-sm font-medium text-dark-700 mb-2">
-						Title (English) <span class="text-red-500">*</span>
+						Titre (Anglais) <span class="text-red-500">*</span>
 					</label>
 					<div class="relative">
 						<Type
@@ -175,7 +175,7 @@
 				<!-- Title (French) -->
 				<div>
 					<label for="titleFr" class="block text-sm font-medium text-dark-700 mb-2">
-						Title (French) <span class="text-red-500">*</span>
+						Titre (Français) <span class="text-red-500">*</span>
 					</label>
 					<div class="relative">
 						<Type
@@ -223,7 +223,7 @@
 				<!-- Description (English) -->
 				<div>
 					<label for="descriptionEn" class="block text-sm font-medium text-dark-700 mb-2">
-						Description (English) <span class="text-red-500">*</span>
+						Description (Anglais) <span class="text-red-500">*</span>
 					</label>
 					<div class="relative">
 						<FileText
@@ -245,7 +245,7 @@
 				<!-- Description (French) -->
 				<div>
 					<label for="descriptionFr" class="block text-sm font-medium text-dark-700 mb-2">
-						Description (French) <span class="text-red-500">*</span>
+						Description (Français) <span class="text-red-500">*</span>
 					</label>
 					<div class="relative">
 						<FileText
@@ -267,7 +267,7 @@
 				<!-- Subtitle (English) -->
 				<div>
 					<label for="subtitleEn" class="block text-sm font-medium text-dark-700 mb-2">
-						Subtitle (English) (Optional)
+						Sous-titre (Anglais) (Optionnel)
 					</label>
 					<div class="relative">
 						<FileText
@@ -288,7 +288,7 @@
 				<!-- Subtitle (French) -->
 				<div>
 					<label for="subtitleFr" class="block text-sm font-medium text-dark-700 mb-2">
-						Subtitle (French) (Optional)
+						Sous-titre (Français) (Optionnel)
 					</label>
 					<div class="relative">
 						<FileText
@@ -310,7 +310,7 @@
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 					<div>
 						<label for="startDate" class="block text-sm font-medium text-dark-700 mb-2">
-							Start Date <span class="text-red-500">*</span>
+							Date de Début <span class="text-red-500">*</span>
 						</label>
 						<div class="relative">
 							<Calendar
@@ -330,7 +330,7 @@
 
 					<div>
 						<label for="endDate" class="block text-sm font-medium text-dark-700 mb-2">
-							End Date <span class="text-red-500">*</span>
+							Date de Fin <span class="text-red-500">*</span>
 						</label>
 						<div class="relative">
 							<Calendar
@@ -352,7 +352,7 @@
 				<!-- Location -->
 				<div>
 					<label for="location" class="block text-sm font-medium text-dark-700 mb-2">
-						Location <span class="text-red-500">*</span>
+						Lieu <span class="text-red-500">*</span>
 					</label>
 					<div class="relative">
 						<MapPin
@@ -373,11 +373,11 @@
 
 				<!-- Venue Details -->
 				<div class="space-y-4">
-					<h3 class="text-sm font-medium text-dark-700">Venue Details (Optional)</h3>
+					<h3 class="text-sm font-medium text-dark-700">Détails du Lieu (Optionnel)</h3>
 
 					<div>
 						<label for="venueName" class="block text-sm font-medium text-dark-600 mb-2">
-							Venue Name
+							Nom du Lieu
 						</label>
 						<input
 							id="venueName"
@@ -391,7 +391,7 @@
 
 					<div>
 						<label for="streetAddress" class="block text-sm font-medium text-dark-600 mb-2">
-							Street Address
+							Adresse Rue
 						</label>
 						<input
 							id="streetAddress"
@@ -406,7 +406,7 @@
 					<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
 						<div>
 							<label for="district" class="block text-sm font-medium text-dark-600 mb-2">
-								District
+								Quartier
 							</label>
 							<input
 								id="district"
@@ -419,7 +419,7 @@
 						</div>
 						<div>
 							<label for="city" class="block text-sm font-medium text-dark-600 mb-2">
-								City
+								Ville
 							</label>
 							<input
 								id="city"
@@ -432,7 +432,7 @@
 						</div>
 						<div>
 							<label for="postalCode" class="block text-sm font-medium text-dark-600 mb-2">
-								Postal Code
+								Code Postal
 							</label>
 							<input
 								id="postalCode"
@@ -447,7 +447,7 @@
 
 					<div>
 						<label for="country" class="block text-sm font-medium text-dark-600 mb-2">
-							Country
+							Pays
 						</label>
 						<input
 							id="country"
@@ -463,9 +463,9 @@
 				<!-- Collaborators -->
 				<div>
 					<label class="block text-sm font-medium text-dark-700 mb-2">
-						Collaborators (Optional)
+						Collaborateurs (Optionnel)
 					</label>
-					<p class="text-xs text-dark-400 mb-3">Add collaborating talents or partners</p>
+					<p class="text-xs text-dark-400 mb-3">Ajoutez des talents ou partenaires collaborateurs</p>
 
 					<div class="space-y-2">
 						{#each collaborators as collab, i}
@@ -473,13 +473,13 @@
 								<input
 									type="text"
 									bind:value={collaborators[i].name}
-									placeholder="Name"
+									placeholder="Nom"
 									class="flex-1 px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
 								/>
 								<input
 									type="text"
 									bind:value={collaborators[i].role}
-									placeholder="Role"
+									placeholder="Rôle"
 									class="flex-1 px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
 								/>
 								<button
@@ -487,7 +487,7 @@
 									onclick={() => collaborators = collaborators.filter((_, idx) => idx !== i)}
 									class="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
 								>
-									Remove
+									Supprimer
 								</button>
 							</div>
 						{/each}
@@ -497,7 +497,7 @@
 							onclick={() => collaborators = [...collaborators, {name: "", role: ""}]}
 							class="text-sm text-dark-600 hover:text-dark-900 font-medium"
 						>
-							+ Add Collaborator
+							+ Ajouter un Collaborateur
 						</button>
 					</div>
 
@@ -507,9 +507,9 @@
 				<!-- Timings -->
 				<div>
 					<label class="block text-sm font-medium text-dark-700 mb-2">
-						Event Timings (Optional)
+						Horaires de l'Événement (Optionnel)
 					</label>
-					<p class="text-xs text-dark-400 mb-3">Add schedule information for different sessions</p>
+					<p class="text-xs text-dark-400 mb-3">Ajoutez des informations de programmation pour différentes sessions</p>
 
 					<div class="space-y-2">
 						{#each timings as timing, i}
@@ -531,7 +531,7 @@
 									onclick={() => timings = timings.filter((_, idx) => idx !== i)}
 									class="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
 								>
-									Remove
+									Supprimer
 								</button>
 							</div>
 						{/each}
@@ -541,7 +541,7 @@
 							onclick={() => timings = [...timings, {label: "", time: ""}]}
 							class="text-sm text-dark-600 hover:text-dark-900 font-medium"
 						>
-							+ Add Timing
+							+ Ajouter un Horaire
 						</button>
 					</div>
 
@@ -550,11 +550,11 @@
 
 				<!-- Event Details -->
 				<div class="space-y-4">
-					<h3 class="text-sm font-medium text-dark-700">Additional Details (Optional)</h3>
+					<h3 class="text-sm font-medium text-dark-700">Détails Supplémentaires (Optionnel)</h3>
 
 					<div>
 						<label for="curatorEn" class="block text-sm font-medium text-dark-600 mb-2">
-							Curator (English)
+							Commissaire (Anglais)
 						</label>
 						<input
 							id="curatorEn"
@@ -568,7 +568,7 @@
 
 					<div>
 						<label for="curatorFr" class="block text-sm font-medium text-dark-600 mb-2">
-							Curator (French)
+							Commissaire (Français)
 						</label>
 						<input
 							id="curatorFr"
@@ -582,7 +582,7 @@
 
 					<div>
 						<label for="materialsEn" class="block text-sm font-medium text-dark-600 mb-2">
-							Materials (English)
+							Matériaux (Anglais)
 						</label>
 						<input
 							id="materialsEn"
@@ -596,7 +596,7 @@
 
 					<div>
 						<label for="materialsFr" class="block text-sm font-medium text-dark-600 mb-2">
-							Materials (French)
+							Matériaux (Français)
 						</label>
 						<input
 							id="materialsFr"
@@ -610,7 +610,7 @@
 
 					<div>
 						<label for="admissionInfoEn" class="block text-sm font-medium text-dark-600 mb-2">
-							Admission Info (English)
+							Informations d'Admission (Anglais)
 						</label>
 						<input
 							id="admissionInfoEn"
@@ -624,7 +624,7 @@
 
 					<div>
 						<label for="admissionInfoFr" class="block text-sm font-medium text-dark-600 mb-2">
-							Admission Info (French)
+							Informations d'Admission (Français)
 						</label>
 						<input
 							id="admissionInfoFr"
@@ -648,10 +648,10 @@
 					/>
 					<div>
 						<label for="published" class="block text-sm font-medium text-dark-900 cursor-pointer">
-							Publish immediately
+							Publier immédiatement
 						</label>
 						<p class="text-xs text-dark-400">
-							Uncheck to save as draft
+							Décochez pour sauvegarder comme brouillon
 						</p>
 					</div>
 				</div>
@@ -667,10 +667,10 @@
 					/>
 					<div>
 						<label for="isSpotlight" class="block text-sm font-medium text-amber-900 cursor-pointer">
-							Mark as Spotlight Event
+							Marquer comme Événement à la Une
 						</label>
 						<p class="text-xs text-amber-600">
-							Spotlight events are featured prominently on the site. Only one event can be spotlight at a time.
+							Les événements à la une sont mis en vedette sur le site. Un seul événement peut être à la une à la fois.
 						</p>
 					</div>
 				</div>
@@ -683,13 +683,13 @@
 						value="create"
 						class="flex-1 px-6 py-3 bg-dark-900 text-white rounded-lg hover:bg-dark-800 focus:outline-none focus:ring-2 focus:ring-dark-900 focus:ring-offset-2 transition-colors font-medium"
 					>
-						Create Event
+						Créer l'Événement
 					</button>
 					<a
 						href="/admin/events"
 						class="flex-1 px-6 py-3 bg-white border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 focus:outline-none focus:ring-2 focus:ring-dark-900 focus:ring-offset-2 transition-colors font-medium text-center"
 					>
-						Cancel
+						Annuler
 					</a>
 				</div>
 			</form>

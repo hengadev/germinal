@@ -35,13 +35,13 @@
 	function getStatusBadge(status: string) {
 		switch (status) {
 			case 'confirmed':
-				return { text: 'Confirmed', class: 'bg-green-50 text-green-700', icon: CheckCircle2 };
+				return { text: 'Confirmée', class: 'bg-green-50 text-green-700', icon: CheckCircle2 };
 			case 'pending':
-				return { text: 'Pending', class: 'bg-yellow-50 text-yellow-700', icon: Clock };
+				return { text: 'En attente', class: 'bg-yellow-50 text-yellow-700', icon: Clock };
 			case 'cancelled':
-				return { text: 'Cancelled', class: 'bg-red-50 text-red-700', icon: null };
+				return { text: 'Annulée', class: 'bg-red-50 text-red-700', icon: null };
 			case 'expired':
-				return { text: 'Expired', class: 'bg-dark-100 text-dark-600', icon: null };
+				return { text: 'Expirée', class: 'bg-dark-100 text-dark-600', icon: null };
 			default:
 				return { text: status, class: 'bg-dark-100 text-dark-600', icon: null };
 		}
@@ -120,7 +120,7 @@ END:VCALENDAR`;
 </script>
 
 <svelte:head>
-	<title>Reservation {data.reservation.id.substring(0, 8).toUpperCase()} | Admin Dashboard</title>
+	<title>Réservation {data.reservation.id.substring(0, 8).toUpperCase()} | Tableau de bord Admin</title>
 </svelte:head>
 
 <div class="container mx-auto px-4 py-8 lg:py-12">
@@ -144,16 +144,16 @@ END:VCALENDAR`;
 		class="inline-flex items-center gap-2 text-dark-600 hover:text-dark-900 mb-6"
 	>
 		<ArrowLeft size={18} />
-		<span>Back to Reservations</span>
+		<span>Retour aux Réservations</span>
 	</a>
 
 	<!-- Header -->
 	<div class="mb-8">
 		<div class="flex items-start justify-between mb-2">
 			<div>
-				<h1 class="text-3xl lg:text-4xl font-bold mb-2">Reservation Details</h1>
+				<h1 class="text-3xl lg:text-4xl font-bold mb-2">Détails de la Réservation</h1>
 				<p class="text-dark-400">
-					Confirmation ID: {data.reservation.id.substring(0, 8).toUpperCase()}
+					ID de Confirmation : {data.reservation.id.substring(0, 8).toUpperCase()}
 				</p>
 			</div>
 			<span class={`inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium ${statusBadge.class} rounded-full`}>
@@ -170,14 +170,14 @@ END:VCALENDAR`;
 		<div class="lg:col-span-2 space-y-6">
 			<!-- Guest Information -->
 			<div class="bg-white rounded-lg border border-border-card p-6">
-				<h2 class="text-lg font-semibold text-dark-900 mb-4">Guest Information</h2>
+				<h2 class="text-lg font-semibold text-dark-900 mb-4">Informations de l'Invité</h2>
 				<div class="grid gap-4">
 					<div class="flex items-center gap-3">
 						<div class="w-10 h-10 bg-dark-100 rounded-full flex items-center justify-center">
 							<User size={18} class="text-dark-500" />
 						</div>
 						<div>
-							<div class="text-sm text-dark-400">Name</div>
+							<div class="text-sm text-dark-400">Nom</div>
 							<div class="font-medium text-dark-900">{data.reservation.guestName}</div>
 						</div>
 					</div>
@@ -196,7 +196,7 @@ END:VCALENDAR`;
 								<Phone size={18} class="text-dark-500" />
 							</div>
 							<div>
-								<div class="text-sm text-dark-400">Phone</div>
+								<div class="text-sm text-dark-400">Téléphone</div>
 								<div class="font-medium text-dark-900">{data.reservation.guestPhone}</div>
 							</div>
 						</div>
@@ -206,8 +206,8 @@ END:VCALENDAR`;
 							<Ticket size={18} class="text-dark-500" />
 						</div>
 						<div>
-							<div class="text-sm text-dark-400">Tickets</div>
-							<div class="font-medium text-dark-900">{data.reservation.quantity} ticket{data.reservation.quantity > 1 ? 's' : ''}</div>
+							<div class="text-sm text-dark-400">Billets</div>
+							<div class="font-medium text-dark-900">{data.reservation.quantity} billet{data.reservation.quantity > 1 ? 's' : ''}</div>
 						</div>
 					</div>
 				</div>
@@ -215,10 +215,10 @@ END:VCALENDAR`;
 
 			<!-- Event Information -->
 			<div class="bg-white rounded-lg border border-border-card p-6">
-				<h2 class="text-lg font-semibold text-dark-900 mb-4">Event Information</h2>
+				<h2 class="text-lg font-semibold text-dark-900 mb-4">Informations sur l'Événement</h2>
 				<div class="space-y-4">
 					<div>
-						<div class="text-sm text-dark-400 mb-1">Event</div>
+						<div class="text-sm text-dark-400 mb-1">Événement</div>
 						<div class="font-semibold text-dark-900 text-lg">{data.reservation.session.event.title}</div>
 						<div class="text-dark-600">{data.reservation.session.title}</div>
 					</div>
@@ -233,7 +233,7 @@ END:VCALENDAR`;
 						<div class="flex items-center gap-3">
 							<Clock size={18} class="text-dark-400" />
 							<div>
-								<div class="text-sm text-dark-400">Time</div>
+								<div class="text-sm text-dark-400">Heure</div>
 								<div class="font-medium text-dark-900">
 									{formatTime(data.reservation.session.startTime)} - {formatTime(data.reservation.session.endTime)}
 								</div>
@@ -243,7 +243,7 @@ END:VCALENDAR`;
 					<div class="flex items-center gap-3">
 						<MapPin size={18} class="text-dark-400" />
 						<div>
-							<div class="text-sm text-dark-400">Location</div>
+							<div class="text-sm text-dark-400">Lieu</div>
 							<div class="font-medium text-dark-900">{data.reservation.session.event.location}</div>
 						</div>
 					</div>
@@ -252,22 +252,22 @@ END:VCALENDAR`;
 
 			<!-- Payment Information -->
 			<div class="bg-white rounded-lg border border-border-card p-6">
-				<h2 class="text-lg font-semibold text-dark-900 mb-4">Payment Information</h2>
+				<h2 class="text-lg font-semibold text-dark-900 mb-4">Informations de Paiement</h2>
 				{#if data.reservation.payment}
 					<div class="space-y-3">
 						<div class="flex items-center justify-between">
-							<span class="text-dark-600">Status</span>
+							<span class="text-dark-600">Statut</span>
 							<span class="font-medium text-dark-900 capitalize">{data.reservation.payment.status}</span>
 						</div>
 						<div class="flex items-center justify-between">
-							<span class="text-dark-600">Amount Paid</span>
+							<span class="text-dark-600">Montant Payé</span>
 							<span class="font-semibold text-dark-900">
 								{formatCurrency(data.reservation.totalAmount, data.reservation.currency)}
 							</span>
 						</div>
 						{#if data.reservation.payment.refundedAmount > 0}
 							<div class="flex items-center justify-between">
-								<span class="text-dark-600">Refunded Amount</span>
+								<span class="text-dark-600">Montant Remboursé</span>
 								<span class="font-medium text-red-600">
 									-{formatCurrency(data.reservation.payment.refundedAmount, data.reservation.currency)}
 								</span>
@@ -285,23 +285,23 @@ END:VCALENDAR`;
 								class="inline-flex items-center gap-2 text-dark-600 hover:text-dark-900 transition-colors"
 							>
 								<ExternalLink size={16} />
-								View Stripe Receipt
+								Voir le Reçu Stripe
 							</a>
 						{/if}
 					</div>
 				{:else}
-					<div class="text-dark-400">No payment information available</div>
+					<div class="text-dark-400">Aucune information de paiement disponible</div>
 				{/if}
 			</div>
 
 			<!-- Timeline -->
 			<div class="bg-white rounded-lg border border-border-card p-6">
-				<h2 class="text-lg font-semibold text-dark-900 mb-4">Timeline</h2>
+				<h2 class="text-lg font-semibold text-dark-900 mb-4">Chronologie</h2>
 				<div class="space-y-3">
 					<div class="flex items-start gap-3">
 						<div class="w-2 h-2 bg-dark-900 rounded-full mt-2"></div>
 						<div>
-							<div class="text-sm text-dark-400">Created</div>
+							<div class="text-sm text-dark-400">Créé</div>
 							<div class="font-medium text-dark-900">{formatDateTime(data.reservation.createdAt)}</div>
 						</div>
 					</div>
@@ -309,7 +309,7 @@ END:VCALENDAR`;
 						<div class="flex items-start gap-3">
 							<div class="w-2 h-2 bg-green-600 rounded-full mt-2"></div>
 							<div>
-								<div class="text-sm text-dark-400">Confirmed</div>
+								<div class="text-sm text-dark-400">Confirmée</div>
 								<div class="font-medium text-dark-900">{formatDateTime(data.reservation.confirmedAt)}</div>
 							</div>
 						</div>
@@ -318,7 +318,7 @@ END:VCALENDAR`;
 						<div class="flex items-start gap-3">
 							<div class="w-2 h-2 bg-red-600 rounded-full mt-2"></div>
 							<div>
-								<div class="text-sm text-dark-400">Cancelled</div>
+								<div class="text-sm text-dark-400">Annulée</div>
 								<div class="font-medium text-dark-900">{formatDateTime(data.reservation.cancelledAt)}</div>
 							</div>
 						</div>
@@ -331,7 +331,7 @@ END:VCALENDAR`;
 		<div class="space-y-6">
 			<!-- QR Code -->
 			<div class="bg-white rounded-lg border border-border-card p-6">
-				<h2 class="text-lg font-semibold text-dark-900 mb-4">Ticket QR Code</h2>
+				<h2 class="text-lg font-semibold text-dark-900 mb-4">QR Code du Billet</h2>
 				{#if qrCodeUrl}
 					<div class="bg-dark-50 rounded-lg p-4 mb-4">
 						<img
@@ -342,7 +342,7 @@ END:VCALENDAR`;
 					</div>
 				{:else}
 					<div class="bg-dark-50 rounded-lg p-8 text-center">
-						<div class="animate-pulse text-dark-400">Loading...</div>
+						<div class="animate-pulse text-dark-400">Chargement...</div>
 					</div>
 				{/if}
 				<a
@@ -352,7 +352,7 @@ END:VCALENDAR`;
 					class="block w-full text-center px-4 py-2.5 border border-dark-300 text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium text-sm"
 				>
 					<ExternalLink size={16} class="inline mr-2" />
-					View Public Ticket
+					Voir le Billet Public
 				</a>
 			</div>
 
@@ -379,7 +379,7 @@ END:VCALENDAR`;
 								class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
 							>
 								<MailCheck size={18} />
-								Send Reminder
+								Envoyer un Rappel
 							</button>
 						</form>
 
@@ -390,7 +390,7 @@ END:VCALENDAR`;
 								if (result.type === 'success' && result.data) {
 									form = { success: (result.data as { message: string }).message };
 								} else if (result.type === 'failure' && result.data) {
-									form = { error: (result.data as { error?: string }).error || 'Action failed' };
+									form = { error: (result.data as { error?: string }).error || 'Action échouée' };
 								}
 							};
 						}}>
@@ -400,7 +400,7 @@ END:VCALENDAR`;
 								class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
 							>
 								<XCircle size={18} />
-								Cancel Reservation
+								Annuler la Réservation
 							</button>
 						</form>
 
@@ -412,7 +412,7 @@ END:VCALENDAR`;
 									if (result.type === 'success' && result.data) {
 										form = { success: (result.data as { message: string }).message };
 									} else if (result.type === 'failure' && result.data) {
-										form = { error: (result.data as { error?: string }).error || 'Action failed' };
+										form = { error: (result.data as { error?: string }).error || 'Action échouée' };
 									}
 								};
 							}}>
@@ -422,7 +422,7 @@ END:VCALENDAR`;
 									class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
 								>
 									<RotateCcw size={18} />
-									Process Refund
+									Traiter le Remboursement
 								</button>
 							</form>
 						{/if}
@@ -436,24 +436,24 @@ END:VCALENDAR`;
 						class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium text-sm"
 					>
 						<Download size={18} />
-						Add to Calendar
+						Ajouter au Calendrier
 					</button>
 					<button
 						onclick={printTicket}
 						class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors font-medium text-sm"
 					>
 						<Printer size={18} />
-						Print Ticket
+						Imprimer le Billet
 					</button>
 				</div>
 			</div>
 
 			<!-- Quick Stats -->
 			<div class="bg-dark-900 text-white rounded-lg p-6">
-				<h3 class="text-lg font-semibold mb-4">Quick Stats</h3>
+				<h3 class="text-lg font-semibold mb-4">Statistiques Rapides</h3>
 				<div class="space-y-3">
 					<div class="flex items-center justify-between">
-						<span class="text-dark-200">Tickets</span>
+						<span class="text-dark-200">Billets</span>
 						<span class="font-semibold">{data.reservation.quantity}</span>
 					</div>
 					<div class="flex items-center justify-between">
@@ -461,7 +461,7 @@ END:VCALENDAR`;
 						<span class="font-semibold">{formatCurrency(data.reservation.totalAmount, data.reservation.currency)}</span>
 					</div>
 					<div class="flex items-center justify-between">
-						<span class="text-dark-200">Status</span>
+						<span class="text-dark-200">Statut</span>
 						<span class="font-semibold capitalize">{data.reservation.status}</span>
 					</div>
 				</div>

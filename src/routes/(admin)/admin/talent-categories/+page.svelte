@@ -125,7 +125,7 @@
         editDialogOpen = true;
     }
 
-    function openDeleteDialog(category: Category) {
+    function openSupprimerDialog(category: Category) {
         selectedCategory = category;
         deleteDialogOpen = true;
     }
@@ -330,7 +330,7 @@
 {/snippet}
 
 <svelte:head>
-    <title>Talent Categories | Admin Dashboard</title>
+    <title>Catégories de Talents | Tableau de bord Admin</title>
 </svelte:head>
 
 <div class="container mx-auto px-4 py-8 lg:py-12">
@@ -338,15 +338,15 @@
         class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8"
     >
         <div>
-            <h1 class="text-3xl lg:text-4xl font-bold mb-2">Talent Categories</h1>
-            <p class="text-dark-400">Manage talent categories for filtering</p>
+            <h1 class="text-3xl lg:text-4xl font-bold mb-2">Catégories de Talents</h1>
+            <p class="text-dark-400">Gérez les catégories de talents pour le filtrage</p>
         </div>
         <button
             onclick={openCreateDialog}
             class="inline-flex items-center gap-2 px-4 py-2 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors self-start"
         >
             <Plus size={18} />
-            <span>New Category</span>
+            <span>Nouvelle Catégorie</span>
         </button>
     </div>
 
@@ -373,17 +373,17 @@
         >
             <Tag size={48} class="mx-auto mb-4 text-dark-300" />
             <h3 class="text-xl font-semibold text-dark-900 mb-2">
-                No categories yet
+                Aucune catégorie pour le moment
             </h3>
             <p class="text-dark-400 mb-6">
-                Create your first category to organize your talents
+                Créez votre première catégorie pour organiser vos talents
             </p>
             <button
                 onclick={openCreateDialog}
                 class="inline-flex items-center gap-2 px-4 py-2 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors"
             >
                 <Plus size={18} />
-                <span>Create Category</span>
+                <span>Créer la Catégorie</span>
             </button>
         </div>
     {:else}
@@ -487,9 +487,9 @@
                                         <Edit size={18} />
                                     </button>
                                     <button
-                                        onclick={() => openDeleteDialog(category)}
+                                        onclick={() => openSupprimerDialog(category)}
                                         class="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors"
-                                        title="Delete"
+                                        title="Supprimer"
                                     >
                                         <Trash2 size={18} />
                                     </button>
@@ -503,7 +503,7 @@
     {/if}
 </div>
 
-<!-- Create Category Dialog/Drawer -->
+<!-- Créer la Catégorie Dialog/Drawer -->
 {#if isMobile}
     <Drawer bind:isOpen={createDialogOpen}>
         <div
@@ -511,7 +511,7 @@
         >
             <div class="flex items-center justify-between mb-2">
                 <h2 class="text-xl font-semibold tracking-tight">
-                    Create New Category
+                    Créer une Nouvelle Catégorie
                 </h2>
                 <button
                     type="button"
@@ -522,7 +522,7 @@
                 </button>
             </div>
             <p class="text-dark-400 text-sm">
-                Create a new talent category
+                Créer une nouvelle catégorie de talent
             </p>
         </div>
 
@@ -569,13 +569,13 @@
                     onclick={() => (createDialogOpen = false)}
                     class="px-4 py-2 border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium text-sm"
                 >
-                    Cancel
+                    Annuler
                 </button>
                 <button
                     type="submit"
                     class="px-4 py-2 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors font-medium text-sm"
                 >
-                    Create Category
+                    Créer la Catégorie
                 </button>
             </div>
         </form>
@@ -583,8 +583,8 @@
 {:else}
     <Modal
         bind:isOpen={createDialogOpen}
-        title="Create New Category"
-        description="Create a new talent category"
+        title="Create Nouvelle Catégorie"
+        description="Créer une nouvelle catégorie de talent"
     >
         <form
             method="POST"
@@ -644,27 +644,27 @@
                     onclick={() => (createDialogOpen = false)}
                     class="px-6 py-2.5 border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium"
                 >
-                    Cancel
+                    Annuler
                 </button>
                 <button
                     type="submit"
                     class="px-6 py-2.5 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors font-medium"
                 >
-                    Create Category
+                    Créer la Catégorie
                 </button>
             </div>
         </form>
     </Modal>
 {/if}
 
-<!-- Edit Category Dialog/Drawer -->
+<!-- Modifier la Catégorie Dialog/Drawer -->
 {#if isMobile}
     <Drawer bind:isOpen={editDialogOpen}>
         <div
             class="sticky top-0 bg-white pb-4 border-b border-border-card -mx-4 px-4 -mt-4 pt-4 z-10"
         >
             <div class="flex items-center justify-between mb-2">
-                <h2 class="text-xl font-semibold tracking-tight">Edit Category</h2>
+                <h2 class="text-xl font-semibold tracking-tight">Modifier la Catégorie</h2>
                 <button
                     type="button"
                     onclick={() => (editDialogOpen = false)}
@@ -673,7 +673,7 @@
                     <X class="text-dark-900 size-5" />
                 </button>
             </div>
-            <p class="text-dark-400 text-sm">Update the category details</p>
+            <p class="text-dark-400 text-sm">Mettre à jour les détails de la catégorie</p>
         </div>
 
         <form
@@ -721,13 +721,13 @@
                     onclick={() => (editDialogOpen = false)}
                     class="px-4 py-2 border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium text-sm"
                 >
-                    Cancel
+                    Annuler
                 </button>
                 <button
                     type="submit"
                     class="px-4 py-2 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors font-medium text-sm"
                 >
-                    Save Changes
+                    Enregistrer les Modifications
                 </button>
             </div>
         </form>
@@ -735,8 +735,8 @@
 {:else}
     <Modal
         bind:isOpen={editDialogOpen}
-        title="Edit Category"
-        description="Update the category details"
+        title="Modifier la Catégorie"
+        description="Mettre à jour les détails de la catégorie"
     >
         <form
             method="POST"
@@ -798,20 +798,20 @@
                     onclick={() => (editDialogOpen = false)}
                     class="px-6 py-2.5 border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium"
                 >
-                    Cancel
+                    Annuler
                 </button>
                 <button
                     type="submit"
                     class="px-6 py-2.5 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors font-medium"
                 >
-                    Save Changes
+                    Enregistrer les Modifications
                 </button>
             </div>
         </form>
     </Modal>
 {/if}
 
-<!-- Delete Category Dialog/Drawer -->
+<!-- Supprimer Category Dialog/Drawer -->
 {#if isMobile}
     <Drawer bind:isOpen={deleteDialogOpen}>
         <div
@@ -819,7 +819,7 @@
         >
             <div class="flex items-center justify-between mb-2">
                 <h2 class="text-xl font-semibold tracking-tight">
-                    Delete Category
+                    Supprimer Category
                 </h2>
                 <button
                     type="button"
@@ -845,13 +845,13 @@
                         onclick={() => (deleteDialogOpen = false)}
                         class="px-4 py-2 border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium text-sm"
                     >
-                        Cancel
+                        Annuler
                     </button>
                     <button
                         type="submit"
                         class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium text-sm"
                     >
-                        Delete
+                        Supprimer
                     </button>
                 </div>
             </form>
@@ -860,7 +860,7 @@
 {:else}
     <Modal
         bind:isOpen={deleteDialogOpen}
-        title="Delete Category"
+        title="Supprimer Category"
         description="Are you sure you want to delete '{selectedCategory?.displayNameEn}'? This action cannot be undone."
     >
         <form method="POST" action="?/deleteCategory" use:enhance class="mt-6">
@@ -872,13 +872,13 @@
                     onclick={() => (deleteDialogOpen = false)}
                     class="px-6 py-2.5 border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium"
                 >
-                    Cancel
+                    Annuler
                 </button>
                 <button
                     type="submit"
                     class="px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
                 >
-                    Delete
+                    Supprimer
                 </button>
             </div>
         </form>

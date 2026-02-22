@@ -301,7 +301,7 @@ import { goto } from "$app/navigation";
 {/snippet}
 
 <svelte:head>
-    <title>Events | Admin Dashboard</title>
+    <title>Événements | Tableau de bord Admin</title>
 </svelte:head>
 
 <div class="container mx-auto px-4 py-8 lg:py-12">
@@ -309,15 +309,15 @@ import { goto } from "$app/navigation";
         class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8"
     >
         <div>
-            <h1 class="text-3xl lg:text-4xl font-bold mb-2">Events</h1>
-            <p class="text-dark-400">Manage your events and exhibitions</p>
+            <h1 class="text-3xl lg:text-4xl font-bold mb-2">Événements</h1>
+            <p class="text-dark-400">Gérez vos événements et expositions</p>
         </div>
         <button
             onclick={openCreateDialog}
             class="inline-flex items-center gap-2 px-4 py-2 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors self-start"
         >
             <Plus size={18} />
-            <span>New Event</span>
+            <span>Nouvel Événement</span>
         </button>
     </div>
 
@@ -344,17 +344,17 @@ import { goto } from "$app/navigation";
         >
             <Calendar size={48} class="mx-auto mb-4 text-dark-300" />
             <h3 class="text-xl font-semibold text-dark-900 mb-2">
-                No events yet
+                Aucun événement pour le moment
             </h3>
             <p class="text-dark-400 mb-6">
-                Create your first event to get started
+                Créez votre premier événement pour commencer
             </p>
             <button
                 onclick={openCreateDialog}
                 class="inline-flex items-center gap-2 px-4 py-2 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors"
             >
                 <Plus size={18} />
-                <span>Create Event</span>
+                <span>Créer un Événement</span>
             </button>
         </div>
     {:else}
@@ -368,7 +368,7 @@ import { goto } from "$app/navigation";
                         <th
                             class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider"
                         >
-                            Event
+                            Événement
                         </th>
                         <th
                             class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider"
@@ -378,12 +378,12 @@ import { goto } from "$app/navigation";
                         <th
                             class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider"
                         >
-                            Location
+                            Lieu
                         </th>
                         <th
                             class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider"
                         >
-                            Status
+                            Statut
                         </th>
                         <th
                             class="px-6 py-4 text-right text-xs font-semibold text-dark-600 uppercase tracking-wider"
@@ -456,14 +456,14 @@ import { goto } from "$app/navigation";
                                         class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-dark-900 text-white rounded-full"
                                     >
                                         <Eye size={14} />
-                                        Published
+                                        Publié
                                     </span>
                                 {:else}
                                     <span
                                         class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-dark-100 text-dark-600 rounded-full"
                                     >
                                         <EyeOff size={14} />
-                                        Draft
+                                        Brouillon
                                     </span>
                                 {/if}
                             </td>
@@ -476,7 +476,7 @@ import { goto } from "$app/navigation";
                                         onclick={() =>
                                             openEditDialog(event)}
                                         class="p-2 text-dark-600 hover:text-dark-900 hover:bg-dark-50 rounded-lg transition-colors"
-                                        title="Edit"
+                                        title="Modifier"
                                     >
                                         <Edit size={18} />
                                     </button>
@@ -484,7 +484,7 @@ import { goto } from "$app/navigation";
                                         onclick={() =>
                                             openDeleteDialog(event)}
                                         class="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors"
-                                        title="Delete"
+                                        title="Supprimer"
                                     >
                                         <Trash2 size={18} />
                                     </button>
@@ -560,14 +560,14 @@ import { goto } from "$app/navigation";
                             class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-dark-600 hover:text-dark-900 hover:bg-dark-50 rounded-lg transition-colors"
                         >
                             <Edit size={16} />
-                            Edit
+                            Modifier
                         </button>
                         <button
                             onclick={() => openDeleteDialog(event)}
                             class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors"
                         >
                             <Trash2 size={16} />
-                            Delete
+                            Supprimer
                         </button>
                     </div>
                 </div>
@@ -584,7 +584,7 @@ import { goto } from "$app/navigation";
         >
             <div class="flex items-center justify-between mb-2">
                 <h2 class="text-xl font-semibold tracking-tight">
-                    Create New Event
+                    Créer un Nouvel Événement
                 </h2>
                 <button
                     type="button"
@@ -595,7 +595,7 @@ import { goto } from "$app/navigation";
                 </button>
             </div>
             <p class="text-dark-400 text-sm">
-                Fill in the details to create a new event
+                Remplissez les détails pour créer un nouvel événement
             </p>
         </div>
 
@@ -608,7 +608,7 @@ import { goto } from "$app/navigation";
             <div class="grid grid-cols-1 gap-4 w-full">
                 {@render field(
                     "title",
-                    "Title",
+                    "Titre",
                     createInput,
                     createTitle,
                     null,
@@ -623,21 +623,21 @@ import { goto } from "$app/navigation";
                 )}
                 {@render field(
                     "startDate",
-                    "Start Date",
+                    "Date de Début",
                     createInput,
                     createStartDate,
                     null,
                 )}
                 {@render field(
                     "endDate",
-                    "End Date",
+                    "Date de Fin",
                     createInput,
                     createEndDate,
                     null,
                 )}
                 {@render field(
                     "location",
-                    "Location",
+                    "Lieu",
                     createInput,
                     createLocation,
                     null,
@@ -656,10 +656,10 @@ import { goto } from "$app/navigation";
                             for="createPublished"
                             class="block text-sm font-medium text-dark-900 cursor-pointer"
                         >
-                            Publish immediately
+                            Publier immédiatement
                         </label>
                         <p class="text-xs text-dark-400">
-                            Uncheck to save as draft
+                            Décochez pour sauvegarder comme brouillon
                         </p>
                     </div>
                 </div>
@@ -670,13 +670,13 @@ import { goto } from "$app/navigation";
                     onclick={() => (createDialogOpen = false)}
                     class="px-4 py-2 border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium text-sm"
                 >
-                    Cancel
+                    Annuler
                 </button>
                 <button
                     type="submit"
                     class="px-4 py-2 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors font-medium text-sm"
                 >
-                    Create Event
+                    Créer l'Événement
                 </button>
             </div>
         </form>
@@ -684,8 +684,8 @@ import { goto } from "$app/navigation";
 {:else}
     <Modal
         bind:isOpen={createDialogOpen}
-        title="Create New Event"
-        description="Fill in the details to create a new event"
+        title="Créer un Nouvel Événement"
+        description="Remplissez les détails pour créer un nouvel événement"
     >
         <form
             method="POST"
@@ -697,7 +697,7 @@ import { goto } from "$app/navigation";
                 <div class="col-span-2">
                     {@render field(
                         "title",
-                        "Title",
+                        "Titre",
                         createInput,
                         createTitle,
                         null,
@@ -723,14 +723,14 @@ import { goto } from "$app/navigation";
                 </div>
                 {@render field(
                     "startDate",
-                    "Start Date",
+                    "Date de Début",
                     createInput,
                     createStartDate,
                     null,
                 )}
                 {@render field(
                     "endDate",
-                    "End Date",
+                    "Date de Fin",
                     createInput,
                     createEndDate,
                     null,
@@ -738,7 +738,7 @@ import { goto } from "$app/navigation";
                 <div class="col-span-2">
                     {@render field(
                         "location",
-                        "Location",
+                        "Lieu",
                         createInput,
                         createLocation,
                         null,
@@ -759,10 +759,10 @@ import { goto } from "$app/navigation";
                         for="createPublished"
                         class="block text-sm font-medium text-dark-900 cursor-pointer"
                     >
-                        Publish immediately
+                        Publier immédiatement
                     </label>
                     <p class="text-xs text-dark-400">
-                        Uncheck to save as draft
+                        Décochez pour sauvegarder comme brouillon
                     </p>
                 </div>
             </div>
@@ -773,13 +773,13 @@ import { goto } from "$app/navigation";
                     onclick={() => (createDialogOpen = false)}
                     class="px-6 py-2.5 border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium"
                 >
-                    Cancel
+                    Annuler
                 </button>
                 <button
                     type="submit"
                     class="px-6 py-2.5 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors font-medium"
                 >
-                    Create Event
+                    Créer l'Événement
                 </button>
             </div>
         </form>
@@ -793,7 +793,7 @@ import { goto } from "$app/navigation";
             class="sticky top-0 bg-white pb-4 border-b border-border-card -mx-4 px-4 -mt-4 pt-4 z-10"
         >
             <div class="flex items-center justify-between mb-2">
-                <h2 class="text-xl font-semibold tracking-tight">Edit Event</h2>
+                <h2 class="text-xl font-semibold tracking-tight">Modifier l'Événement</h2>
                 <button
                     type="button"
                     onclick={() => (editDialogOpen = false)}
@@ -802,7 +802,7 @@ import { goto } from "$app/navigation";
                     <X class="text-dark-900 size-5" />
                 </button>
             </div>
-            <p class="text-dark-400 text-sm">Update the event details</p>
+            <p class="text-dark-400 text-sm">Mettre à jour les détails de l'événement</p>
         </div>
 
         <form
@@ -814,7 +814,7 @@ import { goto } from "$app/navigation";
             <input type="hidden" name="id" value={selectedEvent?.id} />
 
             <div class="grid grid-cols-1 gap-4 w-full">
-                {@render field("title", "Title", editInput, editTitle, null)}
+                {@render field("title", "Titre", editInput, editTitle, null)}
                 {@render field("slug", "Slug", editInput, editSlug, null)}
                 {@render field(
                     "description",
@@ -825,21 +825,21 @@ import { goto } from "$app/navigation";
                 )}
                 {@render field(
                     "startDate",
-                    "Start Date",
+                    "Date de Début",
                     editInput,
                     editStartDate,
                     null,
                 )}
                 {@render field(
                     "endDate",
-                    "End Date",
+                    "Date de Fin",
                     editInput,
                     editEndDate,
                     null,
                 )}
                 {@render field(
                     "location",
-                    "Location",
+                    "Lieu",
                     editInput,
                     editLocation,
                     null,
@@ -858,10 +858,10 @@ import { goto } from "$app/navigation";
                             for="editPublished"
                             class="block text-sm font-medium text-dark-900 cursor-pointer"
                         >
-                            Published
+                            Publié
                         </label>
                         <p class="text-xs text-dark-400">
-                            Uncheck to save as draft
+                            Décochez pour sauvegarder comme brouillon
                         </p>
                     </div>
                 </div>
@@ -872,13 +872,13 @@ import { goto } from "$app/navigation";
                     onclick={() => (editDialogOpen = false)}
                     class="px-4 py-2 border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium text-sm"
                 >
-                    Cancel
+                    Annuler
                 </button>
                 <button
                     type="submit"
                     class="px-4 py-2 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors font-medium text-sm"
                 >
-                    Save Changes
+                    Enregistrer les Modifications
                 </button>
             </div>
         </form>
@@ -886,8 +886,8 @@ import { goto } from "$app/navigation";
 {:else}
     <Modal
         bind:isOpen={editDialogOpen}
-        title="Edit Event"
-        description="Update the event details"
+        title="Modifier l'Événement"
+        description="Mettre à jour les détails de l'événement"
     >
         <form
             method="POST"
@@ -901,7 +901,7 @@ import { goto } from "$app/navigation";
                 <div class="col-span-2">
                     {@render field(
                         "title",
-                        "Title",
+                        "Titre",
                         editInput,
                         editTitle,
                         null,
@@ -921,14 +921,14 @@ import { goto } from "$app/navigation";
                 </div>
                 {@render field(
                     "startDate",
-                    "Start Date",
+                    "Date de Début",
                     editInput,
                     editStartDate,
                     null,
                 )}
                 {@render field(
                     "endDate",
-                    "End Date",
+                    "Date de Fin",
                     editInput,
                     editEndDate,
                     null,
@@ -936,7 +936,7 @@ import { goto } from "$app/navigation";
                 <div class="col-span-2">
                     {@render field(
                         "location",
-                        "Location",
+                        "Lieu",
                         editInput,
                         editLocation,
                         null,
@@ -957,10 +957,10 @@ import { goto } from "$app/navigation";
                         for="editPublished"
                         class="block text-sm font-medium text-dark-900 cursor-pointer"
                     >
-                        Published
+                        Publié
                     </label>
                     <p class="text-xs text-dark-400">
-                        Uncheck to save as draft
+                        Décochez pour sauvegarder comme brouillon
                     </p>
                 </div>
             </div>
@@ -971,13 +971,13 @@ import { goto } from "$app/navigation";
                     onclick={() => (editDialogOpen = false)}
                     class="px-6 py-2.5 border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium"
                 >
-                    Cancel
+                    Annuler
                 </button>
                 <button
                     type="submit"
                     class="px-6 py-2.5 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors font-medium"
                 >
-                    Save Changes
+                    Enregistrer les Modifications
                 </button>
             </div>
         </form>
@@ -992,7 +992,7 @@ import { goto } from "$app/navigation";
         >
             <div class="flex items-center justify-between mb-2">
                 <h2 class="text-xl font-semibold tracking-tight">
-                    Delete Event
+                    Supprimer l'Événement
                 </h2>
                 <button
                     type="button"
@@ -1003,8 +1003,8 @@ import { goto } from "$app/navigation";
                 </button>
             </div>
             <p class="text-dark-400 text-sm">
-                Are you sure you want to delete "{selectedEvent?.titleEn}"? This
-                action cannot be undone.
+                Êtes-vous sûr de vouloir supprimer "{selectedEvent?.titleEn}" ? Cette
+                action ne peut pas être annulée.
             </p>
         </div>
 
@@ -1033,8 +1033,8 @@ import { goto } from "$app/navigation";
 {:else}
     <Modal
         bind:isOpen={deleteDialogOpen}
-        title="Delete Event"
-        description="Are you sure you want to delete '{selectedEvent?.titleEn}'? This action cannot be undone."
+        title="Supprimer l'Événement"
+        description="Êtes-vous sûr de vouloir supprimer '{selectedEvent?.titleEn}' ? Cette action ne peut pas être annulée."
     >
         <form method="POST" action="?/deleteEvent" use:enhance class="mt-6">
             <input type="hidden" name="id" value={selectedEvent?.id} />
@@ -1045,13 +1045,13 @@ import { goto } from "$app/navigation";
                     onclick={() => (deleteDialogOpen = false)}
                     class="px-6 py-2.5 border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium"
                 >
-                    Cancel
+                    Annuler
                 </button>
                 <button
                     type="submit"
                     class="px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
                 >
-                    Delete
+                    Supprimer
                 </button>
             </div>
         </form>

@@ -346,7 +346,7 @@
 		class="inline-flex items-center gap-2 px-4 py-2 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors self-start"
 	>
 		<Plus size={18} />
-		<span>New Session</span>
+		<span>Nouvelle Séance</span>
 	</button>
 </div>
 
@@ -354,17 +354,17 @@
 	<div class="bg-white rounded-lg border border-border-card p-12 text-center">
 		<Calendar size={48} class="mx-auto mb-4 text-dark-300" />
 		<h3 class="text-xl font-semibold text-dark-900 mb-2">
-			No sessions yet
+			Aucune séance pour le moment
 		</h3>
 		<p class="text-dark-400 mb-6">
-			Create sessions for this event to start selling tickets
+			Créez des séances pour cet événement pour commencer à vendre des billets
 		</p>
 		<button
 			onclick={openCreateDialog}
 			class="inline-flex items-center gap-2 px-4 py-2 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors"
 		>
 			<Plus size={18} />
-			<span>Create Session</span>
+			<span>Créer une Séance</span>
 		</button>
 	</div>
 {:else}
@@ -377,7 +377,7 @@
 						Session
 					</th>
 					<th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">
-						Date & Time
+						Date et Heure
 					</th>
 					<th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">
 						Price
@@ -526,13 +526,13 @@
 	</div>
 {/if}
 
-<!-- Create Session Dialog/Drawer -->
+<!-- Créer une Séance Dialog/Drawer -->
 {#if isMobile}
 	<Drawer bind:isOpen={createDialogOpen}>
 		<div class="sticky top-0 bg-white pb-4 border-b border-border-card -mx-4 px-4 -mt-4 pt-4 z-10">
 			<div class="flex items-center justify-between mb-2">
 				<h2 class="text-xl font-semibold tracking-tight">
-					Create New Session
+					Create Nouvelle Séance
 				</h2>
 				<button
 					type="button"
@@ -543,7 +543,7 @@
 				</button>
 			</div>
 			<p class="text-dark-400 text-sm">
-				Fill in the session details
+				Remplissez les détails de la séance
 			</p>
 		</div>
 
@@ -556,7 +556,7 @@
 			<div class="grid grid-cols-1 gap-4 w-full">
 				{@render field("title", "Title", createInput, createTitle, null)}
 				{@render field("description", "Description", createInput, createDescription, null)}
-				{@render field("startTime", "Start Time", createInput, createStartTime, null)}
+				{@render field("startTime", "Heure de Début", createInput, createStartTime, null)}
 				{@render field("endTime", "End Time", createInput, createEndTime, null)}
 				{@render field("totalCapacity", "Total Capacity", createInput, createTotalCapacity, null)}
 				{@render field("priceAmount", "Price", createInput, createPriceDecimal, null)}
@@ -617,7 +617,7 @@
 					type="submit"
 					class="px-4 py-2 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors font-medium text-sm"
 				>
-					Create Session
+					Créer une Séance
 				</button>
 			</div>
 		</form>
@@ -625,8 +625,8 @@
 {:else}
 	<Modal
 		bind:isOpen={createDialogOpen}
-		title="Create New Session"
-		description="Fill in the session details"
+		title="Create Nouvelle Séance"
+		description="Remplissez les détails de la séance"
 	>
 		<form
 			method="POST"
@@ -641,7 +641,7 @@
 				<div class="col-span-2">
 					{@render field("description", "Description", createInput, createDescription, null)}
 				</div>
-				{@render field("startTime", "Start Time", createInput, createStartTime, null)}
+				{@render field("startTime", "Heure de Début", createInput, createStartTime, null)}
 				{@render field("endTime", "End Time", createInput, createEndTime, null)}
 				{@render field("totalCapacity", "Total Capacity", createInput, createTotalCapacity, null)}
 				{@render field("priceAmount", "Price", createInput, createPriceDecimal, null)}
@@ -703,7 +703,7 @@
 					type="submit"
 					class="px-6 py-2.5 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors font-medium"
 				>
-					Create Session
+					Créer une Séance
 				</button>
 			</div>
 		</form>
@@ -738,7 +738,7 @@
 			<div class="grid grid-cols-1 gap-4 w-full">
 				{@render field("title", "Title", editInput, editTitle, null)}
 				{@render field("description", "Description", editInput, editDescription, null)}
-				{@render field("startTime", "Start Time", editInput, editStartTime, null)}
+				{@render field("startTime", "Heure de Début", editInput, editStartTime, null)}
 				{@render field("endTime", "End Time", editInput, editEndTime, null)}
 				{@render field("totalCapacity", "Total Capacity", editInput, editTotalCapacity, null)}
 				{@render field("priceAmount", "Price", editInput, editPriceDecimal, null)}
@@ -825,7 +825,7 @@
 				<div class="col-span-2">
 					{@render field("description", "Description", editInput, editDescription, null)}
 				</div>
-				{@render field("startTime", "Start Time", editInput, editStartTime, null)}
+				{@render field("startTime", "Heure de Début", editInput, editStartTime, null)}
 				{@render field("endTime", "End Time", editInput, editEndTime, null)}
 				{@render field("totalCapacity", "Total Capacity", editInput, editTotalCapacity, null)}
 				{@render field("priceAmount", "Price", editInput, editPriceDecimal, null)}

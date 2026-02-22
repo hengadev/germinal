@@ -13,7 +13,7 @@
 </script>
 
 <svelte:head>
-	<title>Change Password | Admin Dashboard</title>
+	<title>Changer le Mot de Passe | Tableau de bord Admin</title>
 </svelte:head>
 
 <div class="min-h-screen bg-dark-50">
@@ -25,7 +25,7 @@
 					class="flex items-center gap-2 text-dark-600 hover:text-dark-900 transition-colors"
 				>
 					<ArrowLeft size={20} />
-					<span>Back to Dashboard</span>
+					<span>Retour au Tableau de Bord</span>
 				</a>
 			</div>
 		</div>
@@ -34,7 +34,7 @@
 	<main class="container mx-auto px-4 py-12">
 		<div class="max-w-md mx-auto">
 			<div class="bg-white rounded-lg border border-border-card p-8">
-				<h1 class="text-2xl font-bold mb-6">Change Password</h1>
+				<h1 class="text-2xl font-bold mb-6">Changer le Mot de Passe</h1>
 
 				{#if success}
 					<div class="mb-6 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg flex items-start gap-3">
@@ -49,14 +49,14 @@
 
 				<div class="mb-6 p-4 bg-dark-50 rounded-lg">
 					<p class="text-sm text-dark-700">
-						<strong>Email:</strong> {data.user.email}
+						<strong>Email :</strong> {data.user.email}
 					</p>
 				</div>
 
 				<form method="POST" use:enhance class="space-y-6">
 					<div>
 						<label for="currentPassword" class="block text-sm font-medium text-dark-700 mb-2">
-							Current Password
+							Mot de Passe Actuel
 						</label>
 						<div class="relative">
 							<input
@@ -85,7 +85,7 @@
 
 					<div>
 						<label for="newPassword" class="block text-sm font-medium text-dark-700 mb-2">
-							New Password
+							Nouveau Mot de Passe
 						</label>
 						<div class="relative">
 							<input
@@ -111,12 +111,12 @@
 								{/if}
 							</button>
 						</div>
-						<p class="mt-1 text-sm text-dark-400">Must be at least 8 characters long</p>
+						<p class="mt-1 text-sm text-dark-400">Doit contenir au moins 8 caractères</p>
 					</div>
 
 					<div>
 						<label for="confirmPassword" class="block text-sm font-medium text-dark-700 mb-2">
-							Confirm New Password
+							Confirmer le Nouveau Mot de Passe
 						</label>
 						<div class="relative">
 							<input
@@ -148,7 +148,7 @@
 						type="submit"
 						class="w-full bg-dark-900 text-white py-3 px-4 rounded-lg hover:bg-dark-800 focus:outline-none focus:ring-2 focus:ring-dark-900 focus:ring-offset-2 transition-colors"
 					>
-						Update Password
+						Mettre à jour le Mot de Passe
 					</button>
 				</form>
 			</div>

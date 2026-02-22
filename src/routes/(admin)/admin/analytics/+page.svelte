@@ -48,17 +48,17 @@
 	function getStatusBadge(status: string) {
 		switch (status) {
 			case 'succeeded':
-				return { text: 'Succeeded', class: 'bg-green-50 text-green-700', bg: 'bg-green-500' };
+				return { text: 'Réussi', class: 'bg-green-50 text-green-700', bg: 'bg-green-500' };
 			case 'failed':
-				return { text: 'Failed', class: 'bg-red-50 text-red-700', bg: 'bg-red-500' };
+				return { text: 'Échoué', class: 'bg-red-50 text-red-700', bg: 'bg-red-500' };
 			case 'refunded':
-				return { text: 'Refunded', class: 'bg-dark-100 text-dark-600', bg: 'bg-dark-500' };
+				return { text: 'Remboursé', class: 'bg-dark-100 text-dark-600', bg: 'bg-dark-500' };
 			case 'partially_refunded':
-				return { text: 'Partially Refunded', class: 'bg-orange-50 text-orange-700', bg: 'bg-orange-500' };
+				return { text: 'Remboursé partiellement', class: 'bg-orange-50 text-orange-700', bg: 'bg-orange-500' };
 			case 'pending':
-				return { text: 'Pending', class: 'bg-yellow-50 text-yellow-700', bg: 'bg-yellow-500' };
+				return { text: 'En attente', class: 'bg-yellow-50 text-yellow-700', bg: 'bg-yellow-500' };
 			case 'processing':
-				return { text: 'Processing', class: 'bg-blue-50 text-blue-700', bg: 'bg-blue-500' };
+				return { text: 'En traitement', class: 'bg-blue-50 text-blue-700', bg: 'bg-blue-500' };
 			default:
 				return { text: status, class: 'bg-dark-100 text-dark-600', bg: 'bg-dark-500' };
 		}
@@ -88,56 +88,56 @@
 	// Metric card data
 	const metrics = [
 		{
-			label: 'Total Revenue',
+			label: 'Revenu Total',
 			value: formatCurrency(data.metrics.totalRevenue),
 			icon: DollarSign,
 			color: 'bg-green-500',
 			trend: null
 		},
 		{
-			label: 'Successful Payments',
+			label: 'Paiements Réussis',
 			value: data.metrics.successfulPayments.toString(),
 			icon: CheckCircle,
 			color: 'bg-green-500',
 			trend: null
 		},
 		{
-			label: 'Success Rate',
+			label: 'Taux de Réussite',
 			value: `${data.metrics.successRate.toFixed(1)}%`,
 			icon: TrendingUp,
 			color: 'bg-blue-500',
 			trend: null
 		},
 		{
-			label: 'Avg Order Value',
+			label: 'Panier Moyen',
 			value: formatCurrency(data.metrics.averageOrderValue),
 			icon: CreditCard,
 			color: 'bg-purple-500',
 			trend: null
 		},
 		{
-			label: 'Total Tickets Sold',
+			label: 'Billets Vendus',
 			value: data.metrics.totalTicketsSold.toString(),
 			icon: Ticket,
 			color: 'bg-orange-500',
 			trend: null
 		},
 		{
-			label: 'Pending Payments',
+			label: 'Paiements en Attente',
 			value: data.metrics.pendingPayments.toString(),
 			icon: RefreshCw,
 			color: 'bg-yellow-500',
 			trend: null
 		},
 		{
-			label: 'Failed Payments',
+			label: 'Paiements Échoués',
 			value: data.metrics.failedPayments.toString(),
 			icon: XCircle,
 			color: 'bg-red-500',
 			trend: null
 		},
 		{
-			label: 'Refunded',
+			label: 'Remboursés',
 			value: data.metrics.refundedPayments.toString(),
 			icon: AlertCircle,
 			color: 'bg-dark-500',
@@ -147,15 +147,15 @@
 </script>
 
 <svelte:head>
-	<title>Payment Analytics | Admin Dashboard</title>
+	<title>Analytiques des Paiements | Tableau de bord Admin</title>
 </svelte:head>
 
 <div class="container mx-auto px-4 py-8 lg:py-12">
 	<div class="mb-8">
 		<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-2">
 			<div>
-				<h1 class="text-3xl lg:text-4xl font-bold mb-2">Payment Analytics</h1>
-				<p class="text-dark-400">Track revenue, payments, and performance metrics</p>
+				<h1 class="text-3xl lg:text-4xl font-bold mb-2">Analytiques des Paiements</h1>
+				<p class="text-dark-400">Suivre les revenus, les paiements et les métriques de performance</p>
 			</div>
 			<div class="flex items-center gap-3">
 				<!-- Date Range Selector -->
@@ -167,7 +167,7 @@
 							? 'bg-dark-900 text-white'
 							: 'text-dark-600 hover:bg-dark-50'}"
 					>
-						{range === 'all' ? 'All time' : range === '7d' ? '7 days' : range === '30d' ? '30 days' : '90 days'}
+						{range === 'all' ? 'Toutes périodes' : range === '7d' ? '7 jours' : range === '30d' ? '30 jours' : '90 jours'}
 					</button>
 				{/each}
 			</div>
@@ -179,7 +179,7 @@
 					class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium text-sm whitespace-nowrap"
 				>
 					<Download size={16} />
-					Export CSV
+					Exporter CSV
 				</a>
 			</div>
 		</div>
@@ -219,8 +219,8 @@
 		<div class="bg-white rounded-lg border border-border-card p-6">
 			<div class="flex items-center justify-between mb-6">
 				<div>
-					<h2 class="text-lg font-semibold text-dark-900">Revenue Over Time</h2>
-					<p class="text-sm text-dark-400">Daily revenue from successful payments</p>
+					<h2 class="text-lg font-semibold text-dark-900">Revenus au Fil du Temps</h2>
+					<p class="text-sm text-dark-400">Revenus quotidiens des paiements réussis</p>
 				</div>
 				<BarChart3 size={20} class="text-dark-400" />
 			</div>
@@ -229,7 +229,7 @@
 				<div class="flex items-center justify-center h-64 text-dark-400">
 					<div class="text-center">
 						<BarChart3 size={48} class="mx-auto mb-4 text-dark-300" />
-						<p>No revenue data available for this period</p>
+						<p>Pas de données de revenus pour cette période</p>
 					</div>
 				</div>
 			{:else}
@@ -306,8 +306,8 @@
 		<div class="bg-white rounded-lg border border-border-card p-6">
 			<div class="flex items-center justify-between mb-6">
 				<div>
-					<h2 class="text-lg font-semibold text-dark-900">Payment Status</h2>
-					<p class="text-sm text-dark-400">Distribution of payment statuses</p>
+					<h2 class="text-lg font-semibold text-dark-900">Statut des Paiements</h2>
+					<p class="text-sm text-dark-400">Répartition des statuts de paiement</p>
 				</div>
 				<CreditCard size={20} class="text-dark-400" />
 			</div>
@@ -316,7 +316,7 @@
 				<div class="flex items-center justify-center h-64 text-dark-400">
 					<div class="text-center">
 						<CreditCard size={48} class="mx-auto mb-4 text-dark-300" />
-						<p>No payment data available</p>
+						<p>Pas de données de paiement disponibles</p>
 					</div>
 				</div>
 			{:else}
@@ -331,7 +331,7 @@
 								</div>
 								<div class="flex items-center gap-4">
 									<span class="text-sm text-dark-400">
-										{status.count} payments
+										{status.count} paiements
 									</span>
 									<span class="text-sm font-semibold text-dark-900">
 										{formatCurrency(status.amount)}
@@ -355,8 +355,8 @@
 	<div class="bg-white rounded-lg border border-border-card p-6">
 		<div class="flex items-center justify-between mb-6">
 			<div>
-				<h2 class="text-lg font-semibold text-dark-900">Top Events by Revenue</h2>
-				<p class="text-sm text-dark-400">Best performing events in this period</p>
+				<h2 class="text-lg font-semibold text-dark-900">Meilleurs Événements par Revenus</h2>
+				<p class="text-sm text-dark-400">Événements les plus performants de cette période</p>
 			</div>
 			<Calendar size={20} class="text-dark-400" />
 		</div>
@@ -365,7 +365,7 @@
 			<div class="flex items-center justify-center h-64 text-dark-400">
 				<div class="text-center">
 					<Calendar size={48} class="mx-auto mb-4 text-dark-300" />
-					<p>No event revenue data available for this period</p>
+					<p>Pas de données de revenus d'événements pour cette période</p>
 				</div>
 			</div>
 		{:else}
@@ -375,16 +375,16 @@
 					<thead class="bg-dark-50 border-b border-border-card">
 						<tr>
 							<th class="px-4 py-3 text-left text-xs font-semibold text-dark-600 uppercase">
-								Event
+								Événement
 							</th>
 							<th class="px-4 py-3 text-right text-xs font-semibold text-dark-600 uppercase">
-								Revenue
+								Revenus
 							</th>
 							<th class="px-4 py-3 text-right text-xs font-semibold text-dark-600 uppercase">
-								Tickets Sold
+								Billets Vendus
 							</th>
 							<th class="px-4 py-3 text-right text-xs font-semibold text-dark-600 uppercase">
-								Payments
+								Paiements
 							</th>
 							<th class="px-4 py-3 text-right text-xs font-semibold text-dark-600 uppercase">
 								%

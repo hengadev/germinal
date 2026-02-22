@@ -6,14 +6,14 @@
 </script>
 
 <svelte:head>
-	<title>Admin Dashboard | Germinal</title>
+	<title>Tableau de bord Admin | Germinal</title>
 </svelte:head>
 
 <div class="container mx-auto px-4 py-8 lg:py-12">
 	<div class="mb-8">
-		<h1 class="text-3xl lg:text-4xl font-bold mb-2">Dashboard</h1>
+		<h1 class="text-3xl lg:text-4xl font-bold mb-2">Tableau de bord</h1>
 		<p class="text-dark-400">
-			Welcome back! Here's an overview of your Germinal content.
+			Bonjour ! Voici un aperçu de votre contenu Germinal.
 		</p>
 	</div>
 
@@ -27,11 +27,11 @@
 				<div class="p-3 bg-dark-100 rounded-lg">
 					<Calendar size={24} class="text-dark-700" />
 				</div>
-				<h3 class="text-lg font-semibold">New Event</h3>
+				<h3 class="text-lg font-semibold">Nouvel Événement</h3>
 			</div>
-			<p class="text-dark-400 text-sm mb-4">Create a new event or exhibition</p>
+			<p class="text-dark-400 text-sm mb-4">Créer un nouvel événement ou une exposition</p>
 			<div class="flex items-center gap-2 text-dark-600 text-sm font-medium group-hover:text-dark-900">
-				<span>Create Event</span>
+				<span>Créer un Événement</span>
 				<ArrowRight size={16} class="group-hover:translate-x-1 transition-transform" />
 			</div>
 		</a>
@@ -44,11 +44,11 @@
 				<div class="p-3 bg-dark-100 rounded-lg">
 					<Users size={24} class="text-dark-700" />
 				</div>
-				<h3 class="text-lg font-semibold">New Talent</h3>
+				<h3 class="text-lg font-semibold">Nouveau Talent</h3>
 			</div>
-			<p class="text-dark-400 text-sm mb-4">Add a new talent to the collection</p>
+			<p class="text-dark-400 text-sm mb-4">Ajouter un nouveau talent à la collection</p>
 			<div class="flex items-center gap-2 text-dark-600 text-sm font-medium group-hover:text-dark-900">
-				<span>Add Talent</span>
+				<span>Ajouter un Talent</span>
 				<ArrowRight size={16} class="group-hover:translate-x-1 transition-transform" />
 			</div>
 		</a>
@@ -61,11 +61,11 @@
 				<div class="p-3 bg-dark-100 rounded-lg">
 					<BarChart3 size={24} class="text-dark-700" />
 				</div>
-				<h3 class="text-lg font-semibold">Analytics</h3>
+				<h3 class="text-lg font-semibold">Analytiques</h3>
 			</div>
-			<p class="text-dark-400 text-sm mb-4">View payment and revenue analytics</p>
+			<p class="text-dark-400 text-sm mb-4">Voir les paiements et les revenus</p>
 			<div class="flex items-center gap-2 text-dark-600 text-sm font-medium group-hover:text-dark-900">
-				<span>View Analytics</span>
+				<span>Voir les Analytiques</span>
 				<ArrowRight size={16} class="group-hover:translate-x-1 transition-transform" />
 			</div>
 		</a>
@@ -94,11 +94,11 @@
 						<circle cx="12" cy="11" r="3"></circle>
 					</svg>
 				</div>
-				<h3 class="text-lg font-semibold">Settings</h3>
+				<h3 class="text-lg font-semibold">Paramètres</h3>
 			</div>
-			<p class="text-dark-400 text-sm mb-4">Manage your account settings</p>
+			<p class="text-dark-400 text-sm mb-4">Gérer les paramètres de votre compte</p>
 			<div class="flex items-center gap-2 text-dark-600 text-sm font-medium group-hover:text-dark-900">
-				<span>Change Password</span>
+				<span>Changer le Mot de Passe</span>
 				<ArrowRight size={16} class="group-hover:translate-x-1 transition-transform" />
 			</div>
 		</a>
@@ -107,7 +107,7 @@
 	<!-- Account Info -->
 	<div class="max-w-4xl">
 		<div class="bg-white rounded-lg border border-border-card p-8">
-			<h2 class="text-2xl font-bold mb-6">Account Information</h2>
+			<h2 class="text-2xl font-bold mb-6">Informations du Compte</h2>
 
 			<div class="space-y-4">
 				<div class="flex items-center justify-between py-3 border-b border-border-card">
@@ -116,12 +116,12 @@
 				</div>
 
 				<div class="flex items-center justify-between py-3 border-b border-border-card">
-					<span class="text-dark-600">Role</span>
+					<span class="text-dark-600">Rôle</span>
 					<span class="font-medium text-dark-900 capitalize">{data.user.role}</span>
 				</div>
 
 				<div class="flex items-center justify-between py-3">
-					<span class="text-dark-600">Member since</span>
+					<span class="text-dark-600">Membre depuis</span>
 					<span class="font-medium text-dark-900">{new Date(data.user.createdAt).toLocaleDateString()}</span>
 				</div>
 			</div>

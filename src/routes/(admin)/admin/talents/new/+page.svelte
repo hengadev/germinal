@@ -40,7 +40,7 @@
         }
     }
 
-    function handleProfileRemove(mediaId: string) {
+    function handleProfileSupprimer(mediaId: string) {
         if (profileMediaId === mediaId) {
             profileMediaId = null;
         }
@@ -48,7 +48,7 @@
 </script>
 
 <svelte:head>
-    <title>New Talent | Admin Dashboard</title>
+    <title>Nouveau Talent | Tableau de bord Admin</title>
 </svelte:head>
 
 <div class="container mx-auto px-4 py-8 lg:py-12">
@@ -83,10 +83,10 @@
 
         <div class="bg-white rounded-lg border border-border-card p-6 lg:p-8">
             <form method="POST" use:enhance class="space-y-6">
-                <!-- Profile Photo Section -->
+                <!-- Photo de Profil Section -->
                 <div class="form-section">
                     <label class="block text-sm font-medium text-dark-700 mb-2">
-                        Profile Photo
+                        Photo de Profil
                     </label>
                     <p class="text-xs text-dark-400 mb-3">Upload a profile photo for this talent</p>
                     <MediaUpload
@@ -94,7 +94,7 @@
                         entityType="talent"
                         maxSizeMB={5}
                         onUpload={handleProfileUpload}
-                        onRemove={handleProfileRemove}
+                        onSupprimer={handleProfileSupprimer}
                     />
                     <input type="hidden" name="profileMediaId" value={profileMediaId ?? ''} />
                 </div>
@@ -106,7 +106,7 @@
                             for="firstName"
                             class="block text-sm font-medium text-dark-700 mb-2"
                         >
-                            First Name <span class="text-red-500">*</span>
+                            Prénom <span class="text-red-500">*</span>
                         </label>
                         <div class="relative">
                             <User
@@ -130,7 +130,7 @@
                             for="lastName"
                             class="block text-sm font-medium text-dark-700 mb-2"
                         >
-                            Last Name <span class="text-red-500">*</span>
+                            Nom <span class="text-red-500">*</span>
                         </label>
                         <div class="relative">
                             <User
@@ -156,7 +156,7 @@
                         for="roleEn"
                         class="block text-sm font-medium text-dark-700 mb-2"
                     >
-                        Role (English) <span class="text-red-500">*</span>
+                        Rôle (Anglais) <span class="text-red-500">*</span>
                     </label>
                     <div class="relative">
                         <Briefcase
@@ -181,7 +181,7 @@
                         for="roleFr"
                         class="block text-sm font-medium text-dark-700 mb-2"
                     >
-                        Role (French) <span class="text-red-500">*</span>
+                        Rôle (Français) <span class="text-red-500">*</span>
                     </label>
                     <div class="relative">
                         <Briefcase
@@ -206,7 +206,7 @@
                         for="bioEn"
                         class="block text-sm font-medium text-dark-700 mb-2"
                     >
-                        Bio (English) <span class="text-red-500">*</span>
+                        Bio (Anglais) <span class="text-red-500">*</span>
                     </label>
                     <div class="relative">
                         <FileText
@@ -231,7 +231,7 @@
                         for="bioFr"
                         class="block text-sm font-medium text-dark-700 mb-2"
                     >
-                        Bio (French) <span class="text-red-500">*</span>
+                        Bio (Français) <span class="text-red-500">*</span>
                     </label>
                     <div class="relative">
                         <FileText
@@ -252,14 +252,14 @@
 
                 <!-- Location -->
                 <div class="space-y-4">
-                    <h3 class="text-sm font-medium text-dark-700">Location (Optional)</h3>
+                    <h3 class="text-sm font-medium text-dark-700">Emplacement (Optionnel)</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label
                                 for="city"
                                 class="block text-sm font-medium text-dark-600 mb-2"
                             >
-                                City
+                                Ville
                             </label>
                             <input
                                 id="city"
@@ -275,7 +275,7 @@
                                 for="country"
                                 class="block text-sm font-medium text-dark-600 mb-2"
                             >
-                                Country
+                                Pays
                             </label>
                             <input
                                 id="country"
@@ -295,7 +295,7 @@
                         for="quoteEn"
                         class="block text-sm font-medium text-dark-700 mb-2"
                     >
-                        Personal Quote (English) (Optional)
+                        Citation Personnelle (Anglais) (Optionnel)
                     </label>
                     <textarea
                         id="quoteEn"
@@ -313,7 +313,7 @@
                         for="quoteFr"
                         class="block text-sm font-medium text-dark-700 mb-2"
                     >
-                        Personal Quote (French) (Optional)
+                        Citation Personnelle (Français) (Optionnel)
                     </label>
                     <textarea
                         id="quoteFr"
@@ -328,7 +328,7 @@
                 <!-- Specializations (English) -->
                 <div>
                     <label class="block text-sm font-medium text-dark-700 mb-2">
-                        Specializations (English) (Optional)
+                        Spécialisations (Anglais) (Optionnel)
                     </label>
                     <p class="text-xs text-dark-400 mb-3">Add up to 5 specializations</p>
 
@@ -346,7 +346,7 @@
                                     onclick={() => specializationsEn = specializationsEn.filter((_, idx) => idx !== i)}
                                     class="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                                 >
-                                    Remove
+                                    Supprimer
                                 </button>
                             </div>
                         {/each}
@@ -357,7 +357,7 @@
                                 onclick={() => specializationsEn = [...specializationsEn, ""]}
                                 class="text-sm text-dark-600 hover:text-dark-900 font-medium"
                             >
-                                + Add Specialization
+                                + Ajouter une Spécialisation
                             </button>
                         {/if}
                     </div>
@@ -368,7 +368,7 @@
                 <!-- Specializations (French) -->
                 <div>
                     <label class="block text-sm font-medium text-dark-700 mb-2">
-                        Specializations (French) (Optional)
+                        Spécialisations (Français) (Optionnel)
                     </label>
                     <p class="text-xs text-dark-400 mb-3">Ajoutez jusqu'à 5 spécialisations</p>
 
@@ -386,7 +386,7 @@
                                     onclick={() => specializationsFr = specializationsFr.filter((_, idx) => idx !== i)}
                                     class="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                                 >
-                                    Remove
+                                    Supprimer
                                 </button>
                             </div>
                         {/each}
@@ -397,7 +397,7 @@
                                 onclick={() => specializationsFr = [...specializationsFr, ""]}
                                 class="text-sm text-dark-600 hover:text-dark-900 font-medium"
                             >
-                                + Add Specialization
+                                + Ajouter une Spécialisation
                             </button>
                         {/if}
                     </div>
@@ -408,7 +408,7 @@
                 <!-- Social Links -->
                 <div class="space-y-4">
                     <h3 class="text-sm font-medium text-dark-700">
-                        Social Links (Optional)
+                        Liens Sociaux (Optionnel)
                     </h3>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -520,10 +520,10 @@
                             for="published"
                             class="block text-sm font-medium text-dark-900 cursor-pointer"
                         >
-                            Publish immediately
+                            Publier immédiatement
                         </label>
                         <p class="text-xs text-dark-400">
-                            Uncheck to save as draft
+                            Décochez pour sauvegarder comme brouillon
                         </p>
                     </div>
                 </div>
@@ -538,13 +538,13 @@
                         value="create"
                         class="flex-1 px-6 py-3 bg-dark-900 text-white rounded-lg hover:bg-dark-800 focus:outline-none focus:ring-2 focus:ring-dark-900 focus:ring-offset-2 transition-colors font-medium"
                     >
-                        Add Talent
+                        Ajouter le Talent
                     </button>
                     <a
                         href="/admin/talents"
                         class="flex-1 px-6 py-3 bg-white border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 focus:outline-none focus:ring-2 focus:ring-dark-900 focus:ring-offset-2 transition-colors font-medium text-center"
                     >
-                        Cancel
+                        Annuler
                     </a>
                 </div>
             </form>

@@ -22,11 +22,11 @@
 	function getStatusBadge(status: string) {
 		switch (status) {
 			case 'sent':
-				return { text: 'Sent', class: 'bg-green-50 text-green-700', icon: CheckCircle2 };
+				return { text: 'Envoyé', class: 'bg-green-50 text-green-700', icon: CheckCircle2 };
 			case 'pending':
-				return { text: 'Pending', class: 'bg-yellow-50 text-yellow-700', icon: Clock };
+				return { text: 'En attente', class: 'bg-yellow-50 text-yellow-700', icon: Clock };
 			case 'failed':
-				return { text: 'Failed', class: 'bg-red-50 text-red-700', icon: XCircle };
+				return { text: 'Échoué', class: 'bg-red-50 text-red-700', icon: XCircle };
 			default:
 				return { text: status, class: 'bg-dark-100 text-dark-600', icon: null };
 		}
@@ -36,11 +36,11 @@
 	function getTypeBadge(type: string) {
 		switch (type) {
 			case 'ticket_confirmation':
-				return { text: 'Ticket Confirmation', class: 'bg-blue-50 text-blue-700', icon: Mail };
+				return { text: 'Confirmation de Billet', class: 'bg-blue-50 text-blue-700', icon: Mail };
 			case 'contact_notification':
-				return { text: 'Contact Notification', class: 'bg-purple-50 text-purple-700', icon: Send };
+				return { text: 'Notification de Contact', class: 'bg-purple-50 text-purple-700', icon: Send };
 			case 'event_reminder':
-				return { text: 'Event Reminder', class: 'bg-orange-50 text-orange-700', icon: Calendar };
+				return { text: 'Rappel d\'Événement', class: 'bg-orange-50 text-orange-700', icon: Calendar };
 			default:
 				return { text: type, class: 'bg-dark-100 text-dark-600', icon: Mail };
 		}
@@ -92,13 +92,13 @@
 </script>
 
 <svelte:head>
-	<title>Email Queue | Admin Dashboard</title>
+	<title>File d'Attente Email | Tableau de bord Admin</title>
 </svelte:head>
 
 <div class="container mx-auto px-4 py-8 lg:py-12">
 	<div class="mb-8">
-		<h1 class="text-3xl lg:text-4xl font-bold mb-2">Email Queue</h1>
-		<p class="text-dark-400">Monitor and manage email delivery</p>
+		<h1 class="text-3xl lg:text-4xl font-bold mb-2">File d'Attente Email</h1>
+		<p class="text-dark-400">Surveiller et gérer l'envoi des emails</p>
 	</div>
 
 	<!-- Success/Error Messages -->
@@ -120,31 +120,31 @@
 		<div class="flex flex-col sm:flex-row gap-4">
 			<!-- Status Filter -->
 			<div class="flex-1">
-				<label for="statusFilter" class="block text-sm font-medium text-dark-700 mb-1">Filter by Status</label>
+				<label for="statusFilter" class="block text-sm font-medium text-dark-700 mb-1">Filtrer par Statut</label>
 				<select
 					id="statusFilter"
 					bind:value={statusFilter}
 					class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
 				>
-					<option value="all">All Statuses</option>
-					<option value="pending">Pending</option>
-					<option value="sent">Sent</option>
-					<option value="failed">Failed</option>
+					<option value="all">Tous les Statuts</option>
+					<option value="pending">En attente</option>
+					<option value="sent">Envoyé</option>
+					<option value="failed">Échoué</option>
 				</select>
 			</div>
 
 			<!-- Type Filter -->
 			<div class="flex-1">
-				<label for="typeFilter" class="block text-sm font-medium text-dark-700 mb-1">Filter by Type</label>
+				<label for="typeFilter" class="block text-sm font-medium text-dark-700 mb-1">Filtrer par Type</label>
 				<select
 					id="typeFilter"
 					bind:value={typeFilter}
 					class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
 				>
-					<option value="all">All Types</option>
-					<option value="ticket_confirmation">Ticket Confirmation</option>
-					<option value="contact_notification">Contact Notification</option>
-					<option value="event_reminder">Event Reminder</option>
+					<option value="all">Tous les Types</option>
+					<option value="ticket_confirmation">Confirmation de Billet</option>
+					<option value="contact_notification">Notification de Contact</option>
+					<option value="event_reminder">Rappel d'Événement</option>
 				</select>
 			</div>
 
@@ -155,14 +155,14 @@
 					class="w-full sm:w-auto px-6 py-2.5 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors font-medium text-sm inline-flex items-center justify-center gap-2"
 				>
 					<Filter size={16} />
-					Apply Filters
+					Appliquer les Filtres
 				</button>
 			</div>
 		</div>
 
 		<!-- Results count -->
 		<div class="mt-3 text-sm text-dark-500">
-			Showing {data.emails.length} emails
+			Affichage de {data.emails.length} emails
 		</div>
 	</div>
 
@@ -170,13 +170,13 @@
 		<div class="bg-white rounded-lg border border-border-card p-12 text-center">
 			<Mail size={48} class="mx-auto mb-4 text-dark-300" />
 			<h3 class="text-xl font-semibold text-dark-900 mb-2">
-				No emails found
+				Aucun email trouvé
 			</h3>
 			<p class="text-dark-400">
 				{#if statusFilter !== 'all' || typeFilter !== 'all'}
-					Try adjusting your filters
+					Essayez d'ajuster vos filtres
 				{:else}
-					No emails in the queue
+					Aucun email dans la file d'attente
 				{/if}
 			</p>
 		</div>
@@ -190,22 +190,22 @@
 							Type
 						</th>
 						<th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">
-							Recipient
+							Destinataire
 						</th>
 						<th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">
-							Subject
+							Sujet
 						</th>
 						<th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">
-							Status
+							Statut
 						</th>
 						<th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">
-							Attempts
+							Tentatives
 						</th>
 						<th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">
-							Created
+							Créé
 						</th>
 						<th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">
-							Sent
+							Envoyé
 						</th>
 						<th class="px-6 py-4 text-right text-xs font-semibold text-dark-600 uppercase tracking-wider">
 							Actions
@@ -340,20 +340,20 @@
 
 					<div class="space-y-2 mb-3">
 						<div>
-							<div class="text-xs text-dark-400">Recipient</div>
+							<div class="text-xs text-dark-400">Destinataire</div>
 							<div class="text-sm font-medium text-dark-900">{email.recipient}</div>
 						</div>
 						<div>
-							<div class="text-xs text-dark-400">Subject</div>
+							<div class="text-xs text-dark-400">Sujet</div>
 							<div class="text-sm text-dark-900 truncate">{email.subject}</div>
 						</div>
 						<div>
-							<div class="text-xs text-dark-400">Attempts</div>
+							<div class="text-xs text-dark-400">Tentatives</div>
 							<div class="text-sm text-dark-900">{email.attempts} / {email.maxAttempts}</div>
 						</div>
 						{#if email.lastError}
 							<div>
-								<div class="text-xs text-dark-400">Error</div>
+								<div class="text-xs text-dark-400">Erreur</div>
 								<div class="text-sm text-red-600 truncate">{email.lastError}</div>
 							</div>
 						{/if}
@@ -424,16 +424,16 @@
 	<!-- Bulk Actions -->
 	{#if data.emails.length > 0}
 		<div class="mt-6 bg-white rounded-lg border border-border-card p-4">
-			<h3 class="text-sm font-semibold text-dark-900 mb-3">Bulk Actions</h3>
+			<h3 class="text-sm font-semibold text-dark-900 mb-3">Actions Groupées</h3>
 			<form method="POST" action="?/deleteOld" use:enhance={({ formData, action, cancel }) => {
-					if (!confirm('Are you sure you want to delete all sent emails older than 30 days?')) {
+					if (!confirm('Êtes-vous sûr de vouloir supprimer tous les emails envoyés de plus de 30 jours ?')) {
 						cancel();
 					}
 					return async ({ result, update }) => {
 						if (result.type === 'success' && result.data) {
 							form = { success: (result.data as { message: string }).message };
 						} else if (result.type === 'failure' && result.data) {
-							form = { error: (result.data as { error?: string }).error || 'Action failed' };
+							form = { error: (result.data as { error?: string }).error || 'Action échouée' };
 						}
 						update();
 					};
@@ -443,7 +443,7 @@
 					class="px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition-colors font-medium text-sm inline-flex items-center gap-2"
 				>
 					<Trash2 size={16} />
-					Delete Old Sent Emails (30+ days)
+					Supprimer les Anciens Emails Envoyés (30+ jours)
 				</button>
 			</form>
 		</div>
@@ -455,7 +455,7 @@
 	<div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50" onclick={closeModal}>
 		<div class="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-hidden" onclick={(e) => e.stopPropagation()}>
 			<div class="flex items-center justify-between p-6 border-b border-border-card">
-				<h2 class="text-xl font-semibold text-dark-900">Email Content</h2>
+				<h2 class="text-xl font-semibold text-dark-900">Contenu de l'Email</h2>
 				<button
 					onclick={closeModal}
 					class="p-2 text-dark-600 hover:text-dark-900 hover:bg-dark-50 rounded-lg transition-colors"
@@ -470,31 +470,31 @@
 						<div class="text-dark-900">{viewingEmail.type}</div>
 					</div>
 					<div>
-						<div class="text-sm font-medium text-dark-700">Recipient</div>
+						<div class="text-sm font-medium text-dark-700">Destinataire</div>
 						<div class="text-dark-900">{viewingEmail.recipient}</div>
 					</div>
 					<div>
-						<div class="text-sm font-medium text-dark-700">Subject</div>
+						<div class="text-sm font-medium text-dark-700">Sujet</div>
 						<div class="text-dark-900">{viewingEmail.subject}</div>
 					</div>
 					<div>
-						<div class="text-sm font-medium text-dark-700">Status</div>
+						<div class="text-sm font-medium text-dark-700">Statut</div>
 						<div class="text-dark-900 capitalize">{viewingEmail.status}</div>
 					</div>
 					{#if viewingEmail.lastError}
 						<div>
-							<div class="text-sm font-medium text-dark-700">Last Error</div>
+							<div class="text-sm font-medium text-dark-700">Dernière Erreur</div>
 							<div class="text-red-600">{viewingEmail.lastError}</div>
 						</div>
 					{/if}
 					<div>
-						<div class="text-sm font-medium text-dark-700 mb-2">HTML Preview</div>
+						<div class="text-sm font-medium text-dark-700 mb-2">Aperçu HTML</div>
 						<div class="bg-dark-50 rounded-lg p-4 border border-border-card">
 							<iframe class="w-full h-64 border-0" srcdoc={viewingEmail.htmlBody}></iframe>
 						</div>
 					</div>
 					<div>
-						<div class="text-sm font-medium text-dark-700 mb-2">Text Content</div>
+						<div class="text-sm font-medium text-dark-700 mb-2">Contenu Texte</div>
 						<pre class="bg-dark-900 text-dark-100 rounded-lg p-4 overflow-x-auto text-sm">{viewingEmail.textBody}</pre>
 					</div>
 				</div>
