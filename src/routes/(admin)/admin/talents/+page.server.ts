@@ -7,10 +7,14 @@ import { MOCK_TALENTS } from '$lib/mock-data';
 import type { TalentWithMedia } from '$lib/types/talents';
 
 export const load: PageServerLoad = async () => {
+	const { getAllTalentCategories } = await import('$lib/server/services/talent-categories');
+	const categories = await getAllTalentCategories({ publishedOnly: true });
+
 	if (env.USE_MOCK_DATA) {
 		// Mock mode - return all talents (published and unpublished)
 		return {
-			talents: MOCK_TALENTS as unknown as TalentWithMedia[]
+			talents: MOCK_TALENTS as unknown as TalentWithMedia[],
+			categories
 		};
 	}
 
@@ -19,7 +23,8 @@ export const load: PageServerLoad = async () => {
 	const result = await getAllTalents({ publishedOnly: false });
 
 	return {
-		talents: result.data as TalentWithMedia[]
+		talents: result.data as TalentWithMedia[],
+		categories
 	};
 };
 
@@ -35,6 +40,7 @@ export const actions: Actions = {
 		const roleFr = formData.get('roleFr');
 		const bioEn = formData.get('bioEn');
 		const bioFr = formData.get('bioFr');
+		const categoryId = formData.get('categoryId');
 		const instagram = formData.get('instagram');
 		const linkedin = formData.get('linkedin');
 		const twitter = formData.get('twitter');
@@ -131,7 +137,7 @@ export const actions: Actions = {
 				specializationsFr: null,
 				socialLinks: JSON.stringify(socialLinks),
 				profileMediaId: null,
-				categoryId: null,
+				categoryId: categoryId?.toString() || null,
 				published
 			});
 
@@ -154,6 +160,7 @@ export const actions: Actions = {
 		const roleFr = formData.get('roleFr');
 		const bioEn = formData.get('bioEn');
 		const bioFr = formData.get('bioFr');
+		const categoryId = formData.get('categoryId');
 		const instagram = formData.get('instagram');
 		const linkedin = formData.get('linkedin');
 		const twitter = formData.get('twitter');
@@ -241,6 +248,7 @@ export const actions: Actions = {
 				bioEn,
 				bioFr,
 				socialLinks: JSON.stringify(socialLinks),
+				categoryId: categoryId?.toString() || null,
 				published
 			});
 

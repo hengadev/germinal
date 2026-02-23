@@ -11,6 +11,7 @@
         X,
         FileText,
         Link as LinkIcon,
+        Tag,
     } from "lucide-svelte";
     import type { PageData, ActionData } from "./$types";
     import type { Snippet } from "svelte";
@@ -53,6 +54,7 @@
     let createLinkedin = $state("");
     let createTwitter = $state("");
     let createWebsite = $state("");
+    let createCategoryId = $state("");
     let createPublished = $state(false);
 
     // Form state for edit
@@ -64,6 +66,7 @@
     let editLinkedin = $state("");
     let editTwitter = $state("");
     let editWebsite = $state("");
+    let editCategoryId = $state("");
     let editPublished = $state(false);
 
     // Reset form after successful action
@@ -85,6 +88,7 @@
         createLinkedin = "";
         createTwitter = "";
         createWebsite = "";
+        createCategoryId = "";
         createPublished = false;
     }
 
@@ -99,6 +103,7 @@
         editLastName = talent.lastName;
         editRole = talent.roleEn;
         editBio = talent.bioEn;
+        editCategoryId = talent.categoryId || "";
         editPublished = talent.published;
 
         // Parse social links
@@ -207,6 +212,21 @@
             placeholder="https://example.com"
             class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
         />
+    {:else if fieldName === "categoryId"}
+        <div class="relative">
+            <Tag size={16} class="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400" />
+            <select
+                id="createCategoryId"
+                name="categoryId"
+                bind:value={createCategoryId}
+                class="w-full pl-9 pr-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm appearance-none bg-white"
+            >
+                <option value="">Aucune catégorie</option>
+                {#each (data.categories || []) as category}
+                    <option value={category.id}>{category.displayNameFr} ({category.displayNameEn})</option>
+                {/each}
+            </select>
+        </div>
     {/if}
 {/snippet}
 
@@ -287,6 +307,21 @@
             placeholder="https://example.com"
             class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
         />
+    {:else if fieldName === "categoryId"}
+        <div class="relative">
+            <Tag size={16} class="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400" />
+            <select
+                id="editCategoryId"
+                name="categoryId"
+                bind:value={editCategoryId}
+                class="w-full pl-9 pr-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm appearance-none bg-white"
+            >
+                <option value="">Aucune catégorie</option>
+                {#each (data.categories || []) as category}
+                    <option value={category.id}>{category.displayNameFr} ({category.displayNameEn})</option>
+                {/each}
+            </select>
+        </div>
     {/if}
 {/snippet}
 
@@ -610,6 +645,13 @@
                 )}
                 {@render field("role", "Rôle", createInput, createRole, null)}
                 {@render field("bio", "Bio", createInput, createBio, null)}
+                {@render field(
+                    "categoryId",
+                    "Catégorie",
+                    createInput,
+                    createCategoryId,
+                    null,
+                )}
 
                 <div class="space-y-3 pt-2">
                     <h3 class="text-sm font-medium text-dark-700">
@@ -713,6 +755,13 @@
             </div>
             {@render field("role", "Rôle", createInput, createRole, null)}
             {@render field("bio", "Bio", createInput, createBio, null)}
+            {@render field(
+                "categoryId",
+                "Catégorie",
+                createInput,
+                createCategoryId,
+                null,
+            )}
 
             <div class="grid grid-cols-2 gap-4 pt-2">
                 <div class="col-span-2">
@@ -836,6 +885,13 @@
                 )}
                 {@render field("role", "Rôle", editInput, editRole, null)}
                 {@render field("bio", "Bio", editInput, editBio, null)}
+                {@render field(
+                    "categoryId",
+                    "Catégorie",
+                    editInput,
+                    editCategoryId,
+                    null,
+                )}
 
                 <div class="space-y-3 pt-2">
                     <h3 class="text-sm font-medium text-dark-700">
@@ -941,6 +997,13 @@
             </div>
             {@render field("role", "Rôle", editInput, editRole, null)}
             {@render field("bio", "Bio", editInput, editBio, null)}
+            {@render field(
+                "categoryId",
+                "Catégorie",
+                editInput,
+                editCategoryId,
+                null,
+            )}
 
             <div class="grid grid-cols-2 gap-4 pt-2">
                 <div class="col-span-2">
