@@ -18,6 +18,7 @@ import { goto } from "$app/navigation";
     import { browser } from "$app/environment";
     import Drawer from "$lib/components/ui/Drawer.svelte";
     import Modal from "$lib/components/ui/Modal.svelte";
+    import EventCategoriesTab from "./EventCategoriesTab.svelte";
 
     let {
         data,
@@ -33,6 +34,10 @@ import { goto } from "$app/navigation";
             isMobile = window.innerWidth < 768;
         });
     }
+
+    // Tab state
+    let activeTab = $state<'events' | 'categories'>('events');
+    let catCreateDialogOpen = $state(false);
 
     // Event type
     type Event = (typeof data.events)[number];
@@ -341,19 +346,29 @@ import { goto } from "$app/navigation";
 
 <div class="container mx-auto px-4 py-8 lg:py-12">
     <div
-        class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8"
+        class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6"
     >
         <div>
             <h1 class="text-3xl lg:text-4xl font-bold mb-2">Événements</h1>
-            <p class="text-dark-400">Gérez vos événements et expositions</p>
+            <p class="text-dark-400">Gérez vos événements, expositions et catégories</p>
         </div>
-        <button
-            onclick={openCreateDialog}
-            class="inline-flex items-center gap-2 px-4 py-2 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors self-start"
-        >
-            <Plus size={18} />
-            <span>Nouvel Événement</span>
-        </button>
+        {#if activeTab === 'events'}
+            <button
+                onclick={openCreateDialog}
+                class="inline-flex items-center gap-2 px-4 py-2 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors self-start"
+            >
+                <Plus size={18} />
+                <span>Nouvel Événement</span>
+            </button>
+        {:else}
+            <button
+                onclick={() => (catCreateDialogOpen = true)}
+                class="inline-flex items-center gap-2 px-4 py-2 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors self-start"
+            >
+                <Plus size={18} />
+                <span>Nouvelle Catégorie</span>
+            </button>
+        {/if}
     </div>
 
     <!-- Success/Error messages -->
@@ -373,6 +388,23 @@ import { goto } from "$app/navigation";
         </div>
     {/if}
 
+    <!-- Tab navigation -->
+    <div class="flex border-b border-border-card mb-8">
+        <button
+            onclick={() => (activeTab = 'categories')}
+            class="px-4 py-3 text-sm font-medium border-b-2 transition-colors -mb-px {activeTab === 'categories' ? 'border-dark-900 text-dark-900' : 'border-transparent text-dark-400 hover:text-dark-600'}"
+        >
+            Catégories
+        </button>
+        <button
+            onclick={() => (activeTab = 'events')}
+            class="px-4 py-3 text-sm font-medium border-b-2 transition-colors -mb-px {activeTab === 'events' ? 'border-dark-900 text-dark-900' : 'border-transparent text-dark-400 hover:text-dark-600'}"
+        >
+            Événements
+        </button>
+    </div>
+
+    {#if activeTab === 'events'}
     {#if data.events.length === 0}
         <div
             class="bg-white rounded-lg border border-border-card p-12 text-center"
@@ -608,6 +640,14 @@ import { goto } from "$app/navigation";
                 </div>
             {/each}
         </div>
+    {/if}
+    {:else}
+        <EventCategoriesTab
+            categories={data.categories}
+            {form}
+            {isMobile}
+            bind:createDialogOpen={catCreateDialogOpen}
+        />
     {/if}
 </div>
 
