@@ -1,9 +1,12 @@
 import { fail, redirect, type Actions } from '@sveltejs/kit';
 import { env } from '$lib/server/env';
-import { MOCK_EVENTS } from '$lib/mock-data';
+import { MOCK_EVENTS, MOCK_CATEGORIES } from '$lib/mock-data';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async () => {
+	if (env.USE_MOCK_DATA) {
+		return { categories: MOCK_CATEGORIES };
+	}
 	const { getAllCategories } = await import('$lib/server/services/categories');
 	const categories = await getAllCategories({ publishedOnly: true });
 	return { categories };

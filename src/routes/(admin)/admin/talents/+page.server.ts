@@ -3,24 +3,25 @@ import { logger } from '$lib/server/logger';
 import type { Actions } from '@sveltejs/kit';
 import { fail } from '@sveltejs/kit';
 import { env } from '$lib/server/env';
-import { MOCK_TALENTS } from '$lib/mock-data';
+import { MOCK_TALENTS, MOCK_TALENT_CATEGORIES } from '$lib/mock-data';
 import type { TalentWithMedia } from '$lib/types/talents';
 
 export const load: PageServerLoad = async () => {
-	const { getAllTalentCategories } = await import('$lib/server/services/talent-categories');
-	const categories = await getAllTalentCategories({ publishedOnly: true });
-
 	if (env.USE_MOCK_DATA) {
 		// Mock mode - return all talents (published and unpublished)
 		return {
 			talents: MOCK_TALENTS as unknown as TalentWithMedia[],
-			categories
+			categories: MOCK_TALENT_CATEGORIES
 		};
 	}
 
 	// Database mode - import and use actual database functions
 	const { getAllTalents } = await import('$lib/server/services/talents');
-	const result = await getAllTalents({ publishedOnly: false });
+	const { getAllTalentCategories } = await import('$lib/server/services/talent-categories');
+	const [result, categories] = await Promise.all([
+		getAllTalents({ publishedOnly: false }),
+		getAllTalentCategories({ publishedOnly: true })
+	]);
 
 	return {
 		talents: result.data as TalentWithMedia[],

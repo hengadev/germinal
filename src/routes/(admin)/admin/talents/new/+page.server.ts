@@ -1,10 +1,13 @@
 import { fail, type Actions } from '@sveltejs/kit';
 import { logger } from '$lib/server/logger';
 import { env } from '$lib/server/env';
-import { MOCK_TALENTS } from '$lib/mock-data';
+import { MOCK_TALENTS, MOCK_TALENT_CATEGORIES } from '$lib/mock-data';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async () => {
+	if (env.USE_MOCK_DATA) {
+		return { categories: MOCK_TALENT_CATEGORIES };
+	}
 	const { getAllTalentCategories } = await import('$lib/server/services/talent-categories');
 	const categories = await getAllTalentCategories({ publishedOnly: true });
 	return { categories };

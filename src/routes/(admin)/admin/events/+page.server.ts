@@ -3,24 +3,25 @@ import { logger } from '$lib/server/logger';
 import type { Actions } from '@sveltejs/kit';
 import { fail } from '@sveltejs/kit';
 import { env } from '$lib/server/env';
-import { MOCK_EVENTS } from '$lib/mock-data';
+import { MOCK_EVENTS, MOCK_CATEGORIES } from '$lib/mock-data';
 import type { EventWithMedia } from '$lib/types/events';
 
 export const load: PageServerLoad = async () => {
-    const { getAllCategories } = await import('$lib/server/services/categories');
-    const categories = await getAllCategories({ publishedOnly: true });
-
     if (env.USE_MOCK_DATA) {
         // Mock mode - return all events (published and unpublished)
         return {
             events: MOCK_EVENTS as unknown as EventWithMedia[],
-            categories
+            categories: MOCK_CATEGORIES
         };
     }
 
     // Database mode - import and use actual database functions
     const { getAllEvents } = await import('$lib/server/services/events');
-    const result = await getAllEvents({ publishedOnly: false });
+    const { getAllCategories } = await import('$lib/server/services/categories');
+    const [result, categories] = await Promise.all([
+        getAllEvents({ publishedOnly: false }),
+        getAllCategories({ publishedOnly: true })
+    ]);
 
     return {
         events: result.data as EventWithMedia[],
