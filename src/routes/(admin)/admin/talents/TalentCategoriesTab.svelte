@@ -140,7 +140,7 @@
     {:else if fieldName === "color"}
         <div class="flex items-center gap-3">
             <input id="createTCatColor" type="color" bind:value={createColor} class="w-12 h-10 border border-border-dark rounded-lg cursor-pointer" />
-            <input name="color" type="text" bind:value={createColor} pattern="^#[0-9A-Fa-f]{6}$" placeholder="#000000"
+            <input name="color" type="text" bind:value={createColor} placeholder="#000000"
                 class="flex-1 px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm" />
         </div>
     {:else if fieldName === "sortOrder"}
@@ -171,7 +171,7 @@
     {:else if fieldName === "color"}
         <div class="flex items-center gap-3">
             <input id="editTCatColor" type="color" bind:value={editColor} class="w-12 h-10 border border-border-dark rounded-lg cursor-pointer" />
-            <input name="color" type="text" bind:value={editColor} pattern="^#[0-9A-Fa-f]{6}$" placeholder="#000000"
+            <input name="color" type="text" bind:value={editColor} placeholder="#000000"
                 class="flex-1 px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm" />
         </div>
     {:else if fieldName === "sortOrder"}
