@@ -395,7 +395,7 @@
                         <th
                             class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider"
                         >
-                            Category
+                            Catégorie
                         </th>
                         <th
                             class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider"
@@ -405,12 +405,12 @@
                         <th
                             class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider"
                         >
-                            Order
+                            Ordre
                         </th>
                         <th
                             class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider"
                         >
-                            Status
+                            Statut
                         </th>
                         <th
                             class="px-6 py-4 text-right text-xs font-semibold text-dark-600 uppercase tracking-wider"
@@ -464,14 +464,14 @@
                                         class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-green-50 text-green-700 rounded-full"
                                     >
                                         <Eye size={14} />
-                                        Published
+                                        Publié
                                     </span>
                                 {:else}
                                     <span
                                         class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-dark-100 text-dark-600 rounded-full"
                                     >
                                         <EyeOff size={14} />
-                                        Hidden
+                                        Masqué
                                     </span>
                                 {/if}
                             </td>
@@ -482,7 +482,7 @@
                                     <button
                                         onclick={() => openEditDialog(category)}
                                         class="p-2 text-dark-600 hover:text-dark-900 hover:bg-dark-50 rounded-lg transition-colors"
-                                        title="Edit"
+                                        title="Modifier"
                                     >
                                         <Edit size={18} />
                                     </button>
@@ -533,14 +533,14 @@
             class="grid gap-4 pt-4"
         >
             <div class="grid grid-cols-1 gap-4 w-full">
-                {@render field("name", "Name", createInput, null)}
-                {@render field("displayNameEn", "Display Name (English)", createInput, null)}
-                {@render field("displayNameFr", "Display Name (French)", createInput, null)}
+                {@render field("name", "Nom", createInput, null)}
+                {@render field("displayNameEn", "Nom d'affichage (Anglais)", createInput, null)}
+                {@render field("displayNameFr", "Nom d'affichage (Français)", createInput, null)}
                 {@render field("slug", "Slug", createInput, null)}
-                {@render field("description", "Description (optional)", createInput, null)}
-                {@render field("icon", "Icon (Lucide name, optional)", createInput, null)}
-                {@render field("color", "Color (optional)", createInput, null)}
-                {@render field("sortOrder", "Sort Order", createInput, null)}
+                {@render field("description", "Description (facultatif)", createInput, null)}
+                {@render field("icon", "Icône (nom Lucide, facultatif)", createInput, null)}
+                {@render field("color", "Couleur (facultatif)", createInput, null)}
+                {@render field("sortOrder", "Ordre de tri", createInput, null)}
 
                 <div class="flex items-center gap-3 p-3 bg-dark-50 rounded-lg">
                     <input
@@ -555,10 +555,10 @@
                             for="createPublished"
                             class="block text-sm font-medium text-dark-900 cursor-pointer"
                         >
-                            Published
+                            Publié
                         </label>
                         <p class="text-xs text-dark-400">
-                            Show this category on the website
+                            Afficher cette catégorie sur le site web
                         </p>
                     </div>
                 </div>
@@ -583,7 +583,7 @@
 {:else}
     <Modal
         bind:isOpen={createDialogOpen}
-        title="Create Nouvelle Catégorie"
+        title="Créer une Nouvelle Catégorie"
         description="Créer une nouvelle catégorie de talent"
     >
         <form
@@ -594,26 +594,26 @@
         >
             <div class="grid grid-cols-2 gap-4 w-full">
                 <div class="col-span-2">
-                    {@render field("name", "Name", createInput, null)}
+                    {@render field("name", "Nom", createInput, null)}
                 </div>
                 <div class="col-span-2">
-                    {@render field("displayNameEn", "Display Name (English)", createInput, null)}
-                {@render field("displayNameFr", "Display Name (French)", createInput, null)}
+                    {@render field("displayNameEn", "Nom d'affichage (Anglais)", createInput, null)}
+                {@render field("displayNameFr", "Nom d'affichage (Français)", createInput, null)}
                 </div>
                 <div class="col-span-2">
                     {@render field("slug", "Slug", createInput, null)}
                 </div>
                 <div class="col-span-2">
-                    {@render field("description", "Description (optional)", createInput, null)}
+                    {@render field("description", "Description (facultatif)", createInput, null)}
                 </div>
                 <div>
                     {@render field("icon", "Icon (optional)", createInput, null)}
                 </div>
                 <div>
-                    {@render field("color", "Color (optional)", createInput, null)}
+                    {@render field("color", "Couleur (facultatif)", createInput, null)}
                 </div>
                 <div>
-                    {@render field("sortOrder", "Sort Order", createInput, null)}
+                    {@render field("sortOrder", "Ordre de tri", createInput, null)}
                 </div>
             </div>
 
@@ -685,13 +685,13 @@
             <input type="hidden" name="id" value={selectedCategory?.id} />
 
             <div class="grid grid-cols-1 gap-4 w-full">
-                {@render field("name", "Name", editInput, null)}
-                {@render field("displayNameEn", "Display Name (English)", editInput, null)}
-                {@render field("displayNameFr", "Display Name (French)", editInput, null)}
+                {@render field("name", "Nom", editInput, null)}
+                {@render field("displayNameEn", "Nom d'affichage (Anglais)", editInput, null)}
+                {@render field("displayNameFr", "Nom d'affichage (Français)", editInput, null)}
                 {@render field("slug", "Slug", editInput, null)}
-                {@render field("description", "Description (optional)", editInput, null)}
-                {@render field("icon", "Icon (optional)", editInput, null)}
-                {@render field("color", "Color (optional)", editInput, null)}
+                {@render field("description", "Description (facultatif)", editInput, null)}
+                {@render field("icon", "Icône (facultatif)", editInput, null)}
+                {@render field("color", "Couleur (facultatif)", editInput, null)}
                 {@render field("sortOrder", "Sort Order", editInput, null)}
 
                 <div class="flex items-center gap-3 p-3 bg-dark-50 rounded-lg">
@@ -707,10 +707,10 @@
                             for="editPublished"
                             class="block text-sm font-medium text-dark-900 cursor-pointer"
                         >
-                            Published
+                            Publié
                         </label>
                         <p class="text-xs text-dark-400">
-                            Show this category on the website
+                            Afficher cette catégorie sur le site web
                         </p>
                     </div>
                 </div>
@@ -748,23 +748,23 @@
 
             <div class="grid grid-cols-2 gap-4 w-full">
                 <div class="col-span-2">
-                    {@render field("name", "Name", editInput, null)}
+                    {@render field("name", "Nom", editInput, null)}
                 </div>
                 <div class="col-span-2">
-                    {@render field("displayNameEn", "Display Name (English)", editInput, null)}
-                {@render field("displayNameFr", "Display Name (French)", editInput, null)}
+                    {@render field("displayNameEn", "Nom d'affichage (Anglais)", editInput, null)}
+                {@render field("displayNameFr", "Nom d'affichage (Français)", editInput, null)}
                 </div>
                 <div class="col-span-2">
                     {@render field("slug", "Slug", editInput, null)}
                 </div>
                 <div class="col-span-2">
-                    {@render field("description", "Description (optional)", editInput, null)}
+                    {@render field("description", "Description (facultatif)", editInput, null)}
                 </div>
                 <div>
-                    {@render field("icon", "Icon (optional)", editInput, null)}
+                    {@render field("icon", "Icône (facultatif)", editInput, null)}
                 </div>
                 <div>
-                    {@render field("color", "Color (optional)", editInput, null)}
+                    {@render field("color", "Couleur (facultatif)", editInput, null)}
                 </div>
                 <div>
                     {@render field("sortOrder", "Sort Order", editInput, null)}
@@ -819,7 +819,7 @@
         >
             <div class="flex items-center justify-between mb-2">
                 <h2 class="text-xl font-semibold tracking-tight">
-                    Supprimer Category
+                    Supprimer la Catégorie
                 </h2>
                 <button
                     type="button"
@@ -830,8 +830,8 @@
                 </button>
             </div>
             <p class="text-dark-400 text-sm">
-                Are you sure you want to delete "{selectedCategory?.displayNameEn}"? This
-                action cannot be undone.
+                Êtes-vous sûr de vouloir supprimer "{selectedCategory?.displayNameEn}" ? Cette
+                action ne peut pas être annulée.
             </p>
         </div>
 
@@ -861,7 +861,7 @@
     <Modal
         bind:isOpen={deleteDialogOpen}
         title="Supprimer Category"
-        description="Are you sure you want to delete '{selectedCategory?.displayNameEn}'? This action cannot be undone."
+        description="Êtes-vous sûr de vouloir supprimer '{selectedCategory?.displayNameEn}' ? Cette action ne peut pas être annulée."
     >
         <form method="POST" action="?/deleteCategory" use:enhance class="mt-6">
             <input type="hidden" name="id" value={selectedCategory?.id} />

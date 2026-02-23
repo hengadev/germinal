@@ -533,14 +533,14 @@
             class="grid gap-4 pt-4"
         >
             <div class="grid grid-cols-1 gap-4 w-full">
-                {@render field("name", "Name", createInput, null)}
-                {@render field("displayNameEn", "Display Name (English)", createInput, null)}
-                {@render field("displayNameFr", "Display Name (French)", createInput, null)}
+                {@render field("name", "Nom", createInput, null)}
+                {@render field("displayNameEn", "Nom d'affichage (Anglais)", createInput, null)}
+                {@render field("displayNameFr", "Nom d'affichage (Français)", createInput, null)}
                 {@render field("slug", "Slug", createInput, null)}
-                {@render field("description", "Description (optional)", createInput, null)}
-                {@render field("icon", "Icon (Lucide name, optional)", createInput, null)}
-                {@render field("color", "Color (optional)", createInput, null)}
-                {@render field("sortOrder", "Sort Order", createInput, null)}
+                {@render field("description", "Description (facultatif)", createInput, null)}
+                {@render field("icon", "Icône (nom Lucide, facultatif)", createInput, null)}
+                {@render field("color", "Couleur (facultatif)", createInput, null)}
+                {@render field("sortOrder", "Ordre de tri", createInput, null)}
 
                 <div class="flex items-center gap-3 p-3 bg-dark-50 rounded-lg">
                     <input
@@ -594,28 +594,28 @@
         >
             <div class="grid grid-cols-2 gap-4 w-full">
                 <div class="col-span-2">
-                    {@render field("name", "Name", createInput, null)}
+                    {@render field("name", "Nom", createInput, null)}
                 </div>
                 <div class="col-span-2">
-                    {@render field("displayNameEn", "Display Name (English)", createInput, null)}
+                    {@render field("displayNameEn", "Nom d'affichage (Anglais)", createInput, null)}
                 </div>
                 <div class="col-span-2">
-                    {@render field("displayNameFr", "Display Name (French)", createInput, null)}
+                    {@render field("displayNameFr", "Nom d'affichage (Français)", createInput, null)}
                 </div>
                 <div class="col-span-2">
                     {@render field("slug", "Slug", createInput, null)}
                 </div>
                 <div class="col-span-2">
-                    {@render field("description", "Description (optional)", createInput, null)}
+                    {@render field("description", "Description (facultatif)", createInput, null)}
                 </div>
                 <div>
                     {@render field("icon", "Icon (optional)", createInput, null)}
                 </div>
                 <div>
-                    {@render field("color", "Color (optional)", createInput, null)}
+                    {@render field("color", "Couleur (facultatif)", createInput, null)}
                 </div>
                 <div>
-                    {@render field("sortOrder", "Sort Order", createInput, null)}
+                    {@render field("sortOrder", "Ordre de tri", createInput, null)}
                 </div>
             </div>
 
@@ -687,13 +687,13 @@
             <input type="hidden" name="id" value={selectedCategory?.id} />
 
             <div class="grid grid-cols-1 gap-4 w-full">
-                {@render field("name", "Name", editInput, null)}
-                {@render field("displayNameEn", "Display Name (English)", editInput, null)}
-                {@render field("displayNameFr", "Display Name (French)", editInput, null)}
+                {@render field("name", "Nom", editInput, null)}
+                {@render field("displayNameEn", "Nom d'affichage (Anglais)", editInput, null)}
+                {@render field("displayNameFr", "Nom d'affichage (Français)", editInput, null)}
                 {@render field("slug", "Slug", editInput, null)}
-                {@render field("description", "Description (optional)", editInput, null)}
-                {@render field("icon", "Icon (optional)", editInput, null)}
-                {@render field("color", "Color (optional)", editInput, null)}
+                {@render field("description", "Description (facultatif)", editInput, null)}
+                {@render field("icon", "Icône (facultatif)", editInput, null)}
+                {@render field("color", "Couleur (facultatif)", editInput, null)}
                 {@render field("sortOrder", "Sort Order", editInput, null)}
 
                 <div class="flex items-center gap-3 p-3 bg-dark-50 rounded-lg">
@@ -750,25 +750,25 @@
 
             <div class="grid grid-cols-2 gap-4 w-full">
                 <div class="col-span-2">
-                    {@render field("name", "Name", editInput, null)}
+                    {@render field("name", "Nom", editInput, null)}
                 </div>
                 <div class="col-span-2">
-                    {@render field("displayNameEn", "Display Name (English)", editInput, null)}
+                    {@render field("displayNameEn", "Nom d'affichage (Anglais)", editInput, null)}
                 </div>
                 <div class="col-span-2">
-                    {@render field("displayNameFr", "Display Name (French)", editInput, null)}
+                    {@render field("displayNameFr", "Nom d'affichage (Français)", editInput, null)}
                 </div>
                 <div class="col-span-2">
                     {@render field("slug", "Slug", editInput, null)}
                 </div>
                 <div class="col-span-2">
-                    {@render field("description", "Description (optional)", editInput, null)}
+                    {@render field("description", "Description (facultatif)", editInput, null)}
                 </div>
                 <div>
-                    {@render field("icon", "Icon (optional)", editInput, null)}
+                    {@render field("icon", "Icône (facultatif)", editInput, null)}
                 </div>
                 <div>
-                    {@render field("color", "Color (optional)", editInput, null)}
+                    {@render field("color", "Couleur (facultatif)", editInput, null)}
                 </div>
                 <div>
                     {@render field("sortOrder", "Sort Order", editInput, null)}

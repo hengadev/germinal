@@ -32,22 +32,22 @@
     const desktopNavigation: NavItem[] = [
         {
             href: "/admin",
-            label: "Dashboard",
+            label: "Tableau de bord",
             icon: LayoutDashboard,
         },
         {
             href: "/admin/categories",
-            label: "Event Categories",
+            label: "Catégories d'Événements",
             icon: Tag,
         },
         {
             href: "/admin/events",
-            label: "Events",
+            label: "Événements",
             icon: Calendar,
         },
         {
             href: "/admin/talent-categories",
-            label: "Talent Categories",
+            label: "Catégories de Talents",
             icon: Tag,
         },
         {
@@ -57,12 +57,12 @@
         },
         {
             href: "/admin/reservations",
-            label: "Reservations",
+            label: "Réservations",
             icon: Ticket,
         },
         {
             href: "/admin/analytics",
-            label: "Analytics",
+            label: "Analytiques",
             icon: BarChart3,
         },
     ];
@@ -86,8 +86,8 @@
     <button
         onclick={toggleSidebar}
         class="absolute -right-4 bottom-24 z-10 w-8 h-8 rounded-full bg-white flex items-center justify-center text-dark-700 hover:text-dark-900 hover:bg-dark-50 transition-all duration-200 border border-border-card shadow-sm"
-        aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-        title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+        aria-label={isCollapsed ? "Agrandir la barre latérale" : "Réduire la barre latérale"}
+        title={isCollapsed ? "Agrandir la barre latérale" : "Réduire la barre latérale"}
     >
         {#if isCollapsed}
             <svg
@@ -133,7 +133,7 @@
                 >
                     Germinal
                 </h1>
-                <p class="text-xs text-dark-400">Admin Panel</p>
+                <p class="text-xs text-dark-400">Panneau d'Administration</p>
             </div>
         {:else}
             <div class="mx-auto">
@@ -213,7 +213,7 @@
                         ></path>
                         <circle cx="12" cy="11" r="3"></circle>
                     </svg>
-                    <span>Password</span>
+                    <span>Mot de passe</span>
                 </a>
                 <form method="POST" action="/logout" class="flex-1">
                     <button
@@ -236,7 +236,7 @@
                             <polyline points="16 17 21 12 16 7"></polyline>
                             <line x1="21" x2="9" y1="12" y2="12"></line>
                         </svg>
-                        <span>Logout</span>
+                        <span>Déconnexion</span>
                     </button>
                 </form>
             </div>
