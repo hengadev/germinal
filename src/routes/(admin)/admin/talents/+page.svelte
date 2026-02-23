@@ -18,6 +18,7 @@
     import { browser } from "$app/environment";
     import Drawer from "$lib/components/ui/Drawer.svelte";
     import Modal from "$lib/components/ui/Modal.svelte";
+    import TalentCategoriesTab from "./TalentCategoriesTab.svelte";
 
     let {
         data,
@@ -33,6 +34,10 @@
             isMobile = window.innerWidth < 768;
         });
     }
+
+    // Tab state
+    let activeTab = $state<'talents' | 'categories'>('talents');
+    let catCreateDialogOpen = $state(false);
 
     // Talent type
     type Talent = (typeof data.talents)[number];
@@ -349,19 +354,29 @@
 
 <div class="container mx-auto px-4 py-8 lg:py-12">
     <div
-        class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8"
+        class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6"
     >
         <div>
             <h1 class="text-3xl lg:text-4xl font-bold mb-2">Talents</h1>
-            <p class="text-dark-400">Gérez votre collection de talents</p>
+            <p class="text-dark-400">Gérez votre collection de talents et catégories</p>
         </div>
-        <button
-            onclick={openCreateDialog}
-            class="inline-flex items-center gap-2 px-4 py-2 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors self-start"
-        >
-            <Plus size={18} />
-            <span>Nouveau Talent</span>
-        </button>
+        {#if activeTab === 'talents'}
+            <button
+                onclick={openCreateDialog}
+                class="inline-flex items-center gap-2 px-4 py-2 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors self-start"
+            >
+                <Plus size={18} />
+                <span>Nouveau Talent</span>
+            </button>
+        {:else}
+            <button
+                onclick={() => (catCreateDialogOpen = true)}
+                class="inline-flex items-center gap-2 px-4 py-2 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors self-start"
+            >
+                <Plus size={18} />
+                <span>Nouvelle Catégorie</span>
+            </button>
+        {/if}
     </div>
 
     <!-- Success/Error messages -->
@@ -381,6 +396,23 @@
         </div>
     {/if}
 
+    <!-- Tab navigation -->
+    <div class="flex border-b border-border-card mb-8">
+        <button
+            onclick={() => (activeTab = 'categories')}
+            class="px-4 py-3 text-sm font-medium border-b-2 transition-colors -mb-px {activeTab === 'categories' ? 'border-dark-900 text-dark-900' : 'border-transparent text-dark-400 hover:text-dark-600'}"
+        >
+            Catégories
+        </button>
+        <button
+            onclick={() => (activeTab = 'talents')}
+            class="px-4 py-3 text-sm font-medium border-b-2 transition-colors -mb-px {activeTab === 'talents' ? 'border-dark-900 text-dark-900' : 'border-transparent text-dark-400 hover:text-dark-600'}"
+        >
+            Talents
+        </button>
+    </div>
+
+    {#if activeTab === 'talents'}
     {#if data.talents.length === 0}
         <div
             class="bg-white rounded-lg border border-border-card p-12 text-center"
@@ -596,6 +628,14 @@
                 </div>
             {/each}
         </div>
+    {/if}
+    {:else}
+        <TalentCategoriesTab
+            categories={data.categories}
+            {form}
+            {isMobile}
+            bind:createDialogOpen={catCreateDialogOpen}
+        />
     {/if}
 </div>
 
