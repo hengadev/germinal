@@ -203,7 +203,7 @@
                         ></path>
                         <circle cx="12" cy="11" r="3"></circle>
                     </svg>
-                    <span>Mot de passe</span>
+                    <span>Password</span>
                 </a>
                 <form method="POST" action="/logout" class="flex-1">
                     <button
