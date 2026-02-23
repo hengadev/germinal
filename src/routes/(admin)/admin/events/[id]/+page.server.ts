@@ -168,46 +168,8 @@ export const actions: Actions = {
 		const materialsFr = formData.get('materialsFr');
 		const admissionInfoEn = formData.get('admissionInfoEn');
 		const admissionInfoFr = formData.get('admissionInfoFr');
-		const coverMediaId = formData.get('coverMediaId') as string | null;
-		const galleryMediaIds = formData.get('galleryMediaIds') as string | null;
-		const removedIds = formData.get('removedIds') as string | null;
-		const addedIds = formData.get('addedIds') as string | null;
 		const published = formData.get('published') === 'true';
 		const isSpotlight = formData.get('isSpotlight') === 'true';
-
-		// Parse gallery media IDs
-		let galleryIds: string[] = [];
-		if (galleryMediaIds) {
-			try {
-				galleryIds = JSON.parse(galleryMediaIds);
-			} catch {
-				galleryIds = [];
-			}
-		}
-
-		// Parse removed and added media IDs
-		let removed: string[] = [];
-		if (removedIds) {
-			try {
-				removed = JSON.parse(removedIds);
-			} catch {
-				removed = [];
-			}
-		}
-
-		let added: string[] = [];
-		if (addedIds) {
-			try {
-				added = JSON.parse(addedIds);
-			} catch {
-				added = [];
-			}
-		}
-
-		// Combine cover and gallery media - cover is first if exists
-		const allMediaIds = coverMediaId
-			? [coverMediaId, ...galleryIds.filter(id => id !== coverMediaId)]
-			: galleryIds;
 
 		// Validation
 		if (!titleEn || typeof titleEn !== 'string') {
@@ -298,7 +260,6 @@ export const actions: Actions = {
 				materialsFr: materialsFr?.toString() || null,
 				admissionInfoEn: admissionInfoEn?.toString() || null,
 				admissionInfoFr: admissionInfoFr?.toString() || null,
-				coverMediaId: coverMediaId || null,
 				published,
 				isSpotlight,
 				updatedAt: new Date()
@@ -309,13 +270,8 @@ export const actions: Actions = {
 
 		// Database mode - use actual database functions
 		const { updateEvent } = await import('$lib/server/services/events');
-		const { db } = await import('$lib/server/db');
-		const { media } = await import('$lib/server/db/schema');
-		const { eq, and } = await import('drizzle-orm');
-		const { deleteMedia } = await import('$lib/server/services/media');
 
 		try {
-			// Update event fields
 			await updateEvent(id, {
 				titleEn,
 				titleFr,
@@ -341,38 +297,80 @@ export const actions: Actions = {
 				materialsFr: materialsFr?.toString() || null,
 				admissionInfoEn: admissionInfoEn?.toString() || null,
 				admissionInfoFr: admissionInfoFr?.toString() || null,
-				coverMediaId: coverMediaId || null,
 				published,
 				isSpotlight
 			});
 
+			return { success: `Événement "${titleEn}" mis à jour` };
+		} catch (error) {
+			logger.error({ err: error }, 'Error updating event');
+			return fail(500, { error: 'Failed to update event. The slug may already be in use.' });
+		}
+	},
+
+	// Update media action (Photos tab)
+	updateMedia: async ({ request, params }) => {
+		const { id } = params;
+		if (!id) return fail(400, { error: 'Event ID is required' });
+
+		const formData = await request.formData();
+		const coverMediaId = formData.get('coverMediaId')?.toString() || null;
+		const galleryMediaIdsRaw = formData.get('galleryMediaIds')?.toString() || null;
+		const removedIdsRaw = formData.get('removedIds')?.toString() || null;
+
+		let galleryIds: string[] = [];
+		try { galleryIds = galleryMediaIdsRaw ? JSON.parse(galleryMediaIdsRaw) : []; } catch { /* ignore */ }
+
+		let removed: string[] = [];
+		try { removed = removedIdsRaw ? JSON.parse(removedIdsRaw) : []; } catch { /* ignore */ }
+
+		if (env.USE_MOCK_DATA) {
+			const eventIndex = MOCK_EVENTS.findIndex((e) => e.id === id);
+			if (eventIndex === -1) return fail(404, { error: 'Event not found' });
+			MOCK_EVENTS[eventIndex] = {
+				...MOCK_EVENTS[eventIndex],
+				coverMediaId: coverMediaId || null,
+				updatedAt: new Date()
+			} as typeof MOCK_EVENTS[number];
+			return { success: 'Photos mises à jour' };
+		}
+
+		try {
+			const { updateEvent } = await import('$lib/server/services/events');
+			const { db } = await import('$lib/server/db');
+			const { media } = await import('$lib/server/db/schema');
+			const { eq } = await import('drizzle-orm');
+			const { deleteMedia } = await import('$lib/server/services/media');
+
+			// Update coverMediaId on the event
+			await updateEvent(id, { coverMediaId: coverMediaId || null });
+
 			// Delete removed media
 			for (const mediaId of removed) {
-				try {
-					await deleteMedia(mediaId);
-				} catch (err) {
+				try { await deleteMedia(mediaId); } catch (err) {
 					logger.error({ err, mediaId }, 'Failed to delete media');
 				}
 			}
 
-			// Reset all cover flags for this event
-			await db.update(media)
-				.set({ isCover: false })
-				.where(eq(media.eventId, id));
+			// Build ordered list: cover first, then gallery
+			const allMediaIds = coverMediaId
+				? [coverMediaId, ...galleryIds.filter((mid) => mid !== coverMediaId)]
+				: galleryIds;
 
-			// Link new media to event and set cover flag
+			// Reset all cover flags for this event
+			await db.update(media).set({ isCover: false }).where(eq(media.eventId, id));
+
+			// Link all media to event and mark cover
 			for (let i = 0; i < allMediaIds.length; i++) {
-				const mediaId = allMediaIds[i];
-				const isCover = i === 0; // First image is cover
 				await db.update(media)
-					.set({ eventId: id, isCover })
-					.where(eq(media.id, mediaId));
+					.set({ eventId: id, isCover: i === 0 })
+					.where(eq(media.id, allMediaIds[i]));
 			}
 
-			return { success: `Event "${titleEn}" updated successfully` };
+			return { success: 'Photos mises à jour' };
 		} catch (error) {
-			logger.error({ err: error }, 'Error updating event');
-			return fail(500, { error: 'Failed to update event. The slug may already be in use.' });
+			logger.error({ err: error }, 'Error updating media');
+			return fail(500, { error: 'Échec de la mise à jour des photos' });
 		}
 	},
 

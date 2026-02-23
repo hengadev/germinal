@@ -13,6 +13,7 @@
     import Overview from "./Overview.svelte";
     import Sessions from "./Sessions.svelte";
     import Reservations from "./Reservations.svelte";
+    import Photos from "./Photos.svelte";
 
     interface Trigger {
         value: string;
@@ -20,15 +21,16 @@
     }
 
     let triggers: Trigger[] = [
-        { value: "overview", name: "Overview" },
+        { value: "overview", name: "Vue d'ensemble" },
+        { value: "photos", name: "Photos" },
         { value: "sessions", name: "Sessions" },
-        { value: "reservations", name: "Reservations" },
+        { value: "reservations", name: "Réservations" },
         { value: "communication", name: "Communication" },
     ];
 </script>
 
 <svelte:head>
-    <title>Edit Dashboard | Admin Dashboard</title>
+    <title>{data.event.titleEn} | Admin</title>
 </svelte:head>
 
 <Tabs value="overview" class="container mx-auto px-4 py-8 lg:py-12">
@@ -38,12 +40,10 @@
             class="inline-flex items-center gap-2 text-dark-600 hover:text-dark-900 transition-colors mb-4"
         >
             <ArrowLeft size={20} />
-            <span>Retour aux evenements</span>
+            <span>Retour aux événements</span>
         </a>
-        <h1 class="text-3xl lg:text-4xl font-bold mb-2">Edit Dashboard</h1>
-        <p class="text-dark-400">
-            Gerer le "{data.event.title}" event
-        </p>
+        <h1 class="text-3xl lg:text-4xl font-bold mb-2">{data.event.titleEn}</h1>
+        <p class="text-dark-400">Gérer cet événement</p>
     </div>
 
     {#if form?.error}
@@ -79,6 +79,9 @@
     <div class="flex-1 overflow-y-auto">
         <TabsContent value="overview" class="h-full p-6">
             <Overview {data} {form} />
+        </TabsContent>
+        <TabsContent value="photos" class="h-full p-6">
+            <Photos {data} {form} />
         </TabsContent>
         <TabsContent value="sessions" class="h-full p-6">
             <Sessions {data} {form} />
