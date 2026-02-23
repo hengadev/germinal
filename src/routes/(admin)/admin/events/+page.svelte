@@ -36,7 +36,7 @@ import { goto } from "$app/navigation";
     }
 
     // Tab state
-    let activeTab = $state<'events' | 'categories'>('events');
+    let activeTab = $state<'events' | 'categories'>('categories');
     let catCreateDialogOpen = $state(false);
 
     // Event type

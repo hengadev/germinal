@@ -36,7 +36,7 @@
     }
 
     // Tab state
-    let activeTab = $state<'talents' | 'categories'>('talents');
+    let activeTab = $state<'talents' | 'categories'>('categories');
     let catCreateDialogOpen = $state(false);
 
     // Talent type
