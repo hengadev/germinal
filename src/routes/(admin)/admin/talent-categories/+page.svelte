@@ -198,12 +198,12 @@
         <div class="flex items-center gap-3">
             <input
                 id="createColor"
-                name="color"
                 type="color"
                 bind:value={createColor}
                 class="w-12 h-10 border border-border-dark rounded-lg cursor-pointer"
             />
             <input
+                name="color"
                 type="text"
                 bind:value={createColor}
                 pattern="^#[0-9A-Fa-f]{6}$"
@@ -287,12 +287,12 @@
         <div class="flex items-center gap-3">
             <input
                 id="editColor"
-                name="color"
                 type="color"
                 bind:value={editColor}
                 class="w-12 h-10 border border-border-dark rounded-lg cursor-pointer"
             />
             <input
+                name="color"
                 type="text"
                 bind:value={editColor}
                 pattern="^#[0-9A-Fa-f]{6}$"
