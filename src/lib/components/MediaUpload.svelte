@@ -17,7 +17,7 @@
 	let {
 		mode,
 		accept = 'image/*',
-		maxFiles = 10,
+		maxFiles,
 		maxSizeMB = 10,
 		existingMedia = [],
 		entityType,
@@ -67,11 +67,11 @@
 			return `File too large: ${(file.size / 1024 / 1024).toFixed(1)}MB. Max: ${maxSizeMB}MB`;
 		}
 
-		// Check file count for multiple mode
-		if (mode === 'multiple') {
+		// Check file count for multiple mode (only when a limit is set)
+		if (mode === 'multiple' && maxFiles !== undefined) {
 			const currentTotal = uploadedMedia.length + uploadingFiles.length;
 			if (currentTotal >= maxFiles) {
-				return `Maximum ${maxFiles} files allowed`;
+				return `Maximum ${maxFiles} fichiers autorisés`;
 			}
 		}
 
@@ -262,6 +262,17 @@
 </script>
 
 <div class="media-upload">
+	<!-- Hidden file input — always in the DOM so fileInput binding is never undefined -->
+	<input
+		bind:this={fileInput}
+		type="file"
+		{accept}
+		multiple={mode === 'multiple'}
+		onchange={handleInputChange}
+		class="hidden-input"
+		aria-hidden="true"
+	/>
+
 	<!-- Upload Zone -->
 	{#if mode === 'single' && uploadedMedia.length > 0}
 		<!-- Single mode with existing upload - show replace button -->
@@ -277,7 +288,7 @@
 					>
 						<X size={16} />
 					</button>
-					<div class="media-badge">Cover</div>
+					<div class="media-badge">Couverture</div>
 				</div>
 			{/each}
 		</div>
@@ -289,13 +300,13 @@
 		>
 			{#if uploadingFiles.length > 0}
 				<RefreshCw size={16} class="animate-spin" />
-				Uploading...
+				Envoi en cours...
 			{:else}
 				<Upload size={16} />
-				Replace Photo
+				Remplacer la photo
 			{/if}
 		</button>
-	{:else if mode === 'single' || uploadedMedia.length < maxFiles}
+	{:else if mode === 'single' || maxFiles === undefined || uploadedMedia.length < maxFiles}
 		<div
 			class="upload-zone"
 			class:drag-over={isDragOver}
@@ -307,20 +318,11 @@
 			tabindex="0"
 			onkeydown={(e) => e.key === 'Enter' && handleClick()}
 		>
-			<input
-				bind:this={fileInput}
-				type="file"
-				{accept}
-				multiple={mode === 'multiple'}
-				onchange={handleInputChange}
-				class="hidden-input"
-				aria-hidden="true"
-			/>
 			<Upload size={32} class="upload-icon" />
 			<p class="upload-text">
-				{mode === 'single' ? 'Click or drag photo to upload' : `Click or drag files to upload (max ${maxFiles})`}
+				{mode === 'single' ? 'Cliquer ou glisser une photo' : maxFiles !== undefined ? `Cliquer ou glisser des fichiers (max ${maxFiles})` : 'Cliquer ou glisser des fichiers'}
 			</p>
-			<p class="upload-hint">Max {maxSizeMB}MB per file</p>
+			<p class="upload-hint">Max {maxSizeMB}Mo par fichier</p>
 		</div>
 	{/if}
 
@@ -345,7 +347,7 @@
 							</p>
 							<button type="button" class="retry-btn" onclick={() => handleRetry(progress)}>
 								<RefreshCw size={14} />
-								Retry
+								Réessayer
 							</button>
 						{:else}
 							<div class="progress-bar-container">
@@ -380,7 +382,7 @@
 						<X size={16} />
 					</button>
 					{#if index === 0}
-						<div class="media-badge cover-badge">Cover</div>
+						<div class="media-badge cover-badge">Couverture</div>
 					{:else}
 						<div class="media-badge">{index + 1}</div>
 					{/if}
