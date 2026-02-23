@@ -4,7 +4,9 @@ import { MOCK_EVENTS } from '$lib/mock-data';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async () => {
-	return {};
+	const { getAllCategories } = await import('$lib/server/services/categories');
+	const categories = await getAllCategories({ publishedOnly: true });
+	return { categories };
 };
 
 export const actions: Actions = {
@@ -36,6 +38,7 @@ export const actions: Actions = {
 		const admissionInfoFr = formData.get('admissionInfoFr');
 		const coverMediaId = formData.get('coverMediaId') as string | null;
 		const galleryMediaIds = formData.get('galleryMediaIds') as string | null;
+		const categoryId = formData.get('categoryId') as string | null;
 		const published = formData.get('published') === 'true';
 		const isSpotlight = formData.get('isSpotlight') === 'true';
 
@@ -198,7 +201,7 @@ export const actions: Actions = {
 				admissionInfoEn: admissionInfoEn?.toString() || null,
 				admissionInfoFr: admissionInfoFr?.toString() || null,
 				coverMediaId: coverMediaId || null,
-				categoryId: null,
+				categoryId: categoryId || null,
 				published,
 				isSpotlight
 			});
