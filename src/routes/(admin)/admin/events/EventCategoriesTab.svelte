@@ -294,7 +294,7 @@
                 {@render field("color", "Couleur (facultatif)", createInput, null)}
                 {@render field("sortOrder", "Ordre de tri", createInput, null)}
                 <div class="flex items-center gap-3 p-3 bg-dark-50 rounded-lg">
-                    <input id="createCatPublishedM" name="published" type="checkbox" bind:checked={createPublished}
+                    <input id="createCatPublishedM" name="published" type="checkbox" value="true" bind:checked={createPublished}
                         class="w-4 h-4 text-dark-900 border-border-dark rounded focus:ring-dark-900" />
                     <div>
                         <label for="createCatPublishedM" class="block text-sm font-medium text-dark-900 cursor-pointer">Publié</label>
@@ -324,7 +324,7 @@
                 <div>{@render field("sortOrder", "Ordre de tri", createInput, null)}</div>
             </div>
             <div class="flex items-center gap-3 p-4 bg-dark-50 rounded-lg">
-                <input id="createCatPublishedD" name="published" type="checkbox" bind:checked={createPublished}
+                <input id="createCatPublishedD" name="published" type="checkbox" value="true" bind:checked={createPublished}
                     class="w-5 h-5 text-dark-900 border-border-dark rounded focus:ring-dark-900" />
                 <div>
                     <label for="createCatPublishedD" class="block text-sm font-medium text-dark-900 cursor-pointer">Publié</label>
@@ -365,7 +365,7 @@
                 {@render field("color", "Couleur (facultatif)", editInput, null)}
                 {@render field("sortOrder", "Ordre de tri", editInput, null)}
                 <div class="flex items-center gap-3 p-3 bg-dark-50 rounded-lg">
-                    <input id="editCatPublishedM" name="published" type="checkbox" bind:checked={editPublished}
+                    <input id="editCatPublishedM" name="published" type="checkbox" value="true" bind:checked={editPublished}
                         class="w-4 h-4 text-dark-900 border-border-dark rounded focus:ring-dark-900" />
                     <div>
                         <label for="editCatPublishedM" class="block text-sm font-medium text-dark-900 cursor-pointer">Publié</label>
@@ -396,7 +396,7 @@
                 <div>{@render field("sortOrder", "Ordre de tri", editInput, null)}</div>
             </div>
             <div class="flex items-center gap-3 p-4 bg-dark-50 rounded-lg">
-                <input id="editCatPublishedD" name="published" type="checkbox" bind:checked={editPublished}
+                <input id="editCatPublishedD" name="published" type="checkbox" value="true" bind:checked={editPublished}
                     class="w-5 h-5 text-dark-900 border-border-dark rounded focus:ring-dark-900" />
                 <div>
                     <label for="editCatPublishedD" class="block text-sm font-medium text-dark-900 cursor-pointer">Publié</label>

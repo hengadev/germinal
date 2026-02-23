@@ -732,6 +732,7 @@
                         id="createPublished"
                         name="published"
                         type="checkbox"
+                        value="true"
                         bind:checked={createPublished}
                         class="w-4 h-4 text-dark-900 border-border-dark rounded focus:ring-dark-900"
                     />
@@ -844,6 +845,7 @@
                     id="createPublished"
                     name="published"
                     type="checkbox"
+                    value="true"
                     bind:checked={createPublished}
                     class="w-5 h-5 text-dark-900 border-border-dark rounded focus:ring-dark-900"
                 />
@@ -972,6 +974,7 @@
                         id="editPublished"
                         name="published"
                         type="checkbox"
+                        value="true"
                         bind:checked={editPublished}
                         class="w-4 h-4 text-dark-900 border-border-dark rounded focus:ring-dark-900"
                     />
@@ -1086,6 +1089,7 @@
                     id="editPublished"
                     name="published"
                     type="checkbox"
+                    value="true"
                     bind:checked={editPublished}
                     class="w-5 h-5 text-dark-900 border-border-dark rounded focus:ring-dark-900"
                 />
