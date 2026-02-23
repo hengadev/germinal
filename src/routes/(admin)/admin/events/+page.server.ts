@@ -7,10 +7,14 @@ import { MOCK_EVENTS } from '$lib/mock-data';
 import type { EventWithMedia } from '$lib/types/events';
 
 export const load: PageServerLoad = async () => {
+    const { getAllCategories } = await import('$lib/server/services/categories');
+    const categories = await getAllCategories({ publishedOnly: true });
+
     if (env.USE_MOCK_DATA) {
         // Mock mode - return all events (published and unpublished)
         return {
-            events: MOCK_EVENTS as unknown as EventWithMedia[]
+            events: MOCK_EVENTS as unknown as EventWithMedia[],
+            categories
         };
     }
 
@@ -19,7 +23,8 @@ export const load: PageServerLoad = async () => {
     const result = await getAllEvents({ publishedOnly: false });
 
     return {
-        events: result.data as EventWithMedia[]
+        events: result.data as EventWithMedia[],
+        categories
     };
 };
 
@@ -37,6 +42,7 @@ export const actions: Actions = {
         const startDate = formData.get('startDate');
         const endDate = formData.get('endDate');
         const location = formData.get('location');
+        const categoryId = formData.get('categoryId');
         const published = formData.get('published') === 'true';
 
         // Validation
@@ -163,7 +169,7 @@ export const actions: Actions = {
                 admissionInfoEn: null,
                 admissionInfoFr: null,
                 coverMediaId: null,
-                categoryId: null,
+                categoryId: categoryId?.toString() || null,
                 published,
                 isSpotlight: false
             });
@@ -189,6 +195,7 @@ export const actions: Actions = {
         const startDate = formData.get('startDate');
         const endDate = formData.get('endDate');
         const location = formData.get('location');
+        const categoryId = formData.get('categoryId');
         const published = formData.get('published') === 'true';
 
         // Validate id
@@ -284,6 +291,7 @@ export const actions: Actions = {
                 startDate: start,
                 endDate: end,
                 location,
+                categoryId: categoryId?.toString() || null,
                 published
             });
 

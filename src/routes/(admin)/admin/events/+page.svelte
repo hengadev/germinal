@@ -11,6 +11,7 @@ import { goto } from "$app/navigation";
         Trash2,
         X,
         FileText,
+        Tag,
     } from "lucide-svelte";
     import type { PageData, ActionData } from "./$types";
     import type { Snippet } from "svelte";
@@ -51,6 +52,7 @@ import { goto } from "$app/navigation";
     let createStartDate = $state("");
     let createEndDate = $state("");
     let createLocation = $state("");
+    let createCategoryId = $state("");
     let createPublished = $state(false);
 
     // Auto-generate slug from title
@@ -70,6 +72,7 @@ import { goto } from "$app/navigation";
     let editStartDate = $state("");
     let editEndDate = $state("");
     let editLocation = $state("");
+    let editCategoryId = $state("");
     let editPublished = $state(false);
 
     // Auto-generate slug from title for edit
@@ -99,6 +102,7 @@ import { goto } from "$app/navigation";
         createStartDate = "";
         createEndDate = "";
         createLocation = "";
+        createCategoryId = "";
         createPublished = false;
     }
 
@@ -125,6 +129,7 @@ import { goto } from "$app/navigation";
         editStartDate = formatDateForInput(event.startDate);
         editEndDate = formatDateForInput(event.endDate);
         editLocation = event.location;
+        editCategoryId = event.categoryId || "";
         editPublished = event.published;
         editDialogOpen = true;
     }
@@ -216,6 +221,21 @@ import { goto } from "$app/navigation";
             placeholder="123 Main St, City, Country"
             class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
         />
+    {:else if fieldName === "categoryId"}
+        <div class="relative">
+            <Tag size={16} class="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400" />
+            <select
+                id="createCategoryId"
+                name="categoryId"
+                bind:value={createCategoryId}
+                class="w-full pl-9 pr-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm appearance-none bg-white"
+            >
+                <option value="">Aucune catégorie</option>
+                {#each (data.categories || []) as category}
+                    <option value={category.id}>{category.displayNameFr} ({category.displayNameEn})</option>
+                {/each}
+            </select>
+        </div>
     {/if}
 {/snippet}
 
@@ -279,6 +299,21 @@ import { goto } from "$app/navigation";
             placeholder="123 Main St, City, Country"
             class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
         />
+    {:else if fieldName === "categoryId"}
+        <div class="relative">
+            <Tag size={16} class="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400" />
+            <select
+                id="editCategoryId"
+                name="categoryId"
+                bind:value={editCategoryId}
+                class="w-full pl-9 pr-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm appearance-none bg-white"
+            >
+                <option value="">Aucune catégorie</option>
+                {#each (data.categories || []) as category}
+                    <option value={category.id}>{category.displayNameFr} ({category.displayNameEn})</option>
+                {/each}
+            </select>
+        </div>
     {/if}
 {/snippet}
 
@@ -642,6 +677,13 @@ import { goto } from "$app/navigation";
                     createLocation,
                     null,
                 )}
+                {@render field(
+                    "categoryId",
+                    "Catégorie",
+                    createInput,
+                    createCategoryId,
+                    null,
+                )}
 
                 <div class="flex items-center gap-3 p-3 bg-dark-50 rounded-lg">
                     <input
@@ -741,6 +783,15 @@ import { goto } from "$app/navigation";
                         "Lieu",
                         createInput,
                         createLocation,
+                        null,
+                    )}
+                </div>
+                <div class="col-span-2">
+                    {@render field(
+                        "categoryId",
+                        "Catégorie",
+                        createInput,
+                        createCategoryId,
                         null,
                     )}
                 </div>
@@ -844,6 +895,13 @@ import { goto } from "$app/navigation";
                     editLocation,
                     null,
                 )}
+                {@render field(
+                    "categoryId",
+                    "Catégorie",
+                    editInput,
+                    editCategoryId,
+                    null,
+                )}
 
                 <div class="flex items-center gap-3 p-3 bg-dark-50 rounded-lg">
                     <input
@@ -939,6 +997,15 @@ import { goto } from "$app/navigation";
                         "Lieu",
                         editInput,
                         editLocation,
+                        null,
+                    )}
+                </div>
+                <div class="col-span-2">
+                    {@render field(
+                        "categoryId",
+                        "Catégorie",
+                        editInput,
+                        editCategoryId,
                         null,
                     )}
                 </div>
