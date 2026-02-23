@@ -27,6 +27,7 @@ export async function getAllEvents(options: { publishedOnly?: boolean; page?: nu
 		with: {
 			coverMedia: true,
 			category: true,
+			media: true,
 		},
 	});
 

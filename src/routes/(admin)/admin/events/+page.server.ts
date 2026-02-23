@@ -35,16 +35,24 @@ export const actions: Actions = {
      */
     createEvent: async ({ request }) => {
         const formData = await request.formData();
-        const titleEn = formData.get('titleEn');
-        const titleFr = formData.get('titleFr');
+        // Accept 'titleEn' or legacy 'title' from quick-create modal
+        const titleEnRaw = formData.get('titleEn') ?? formData.get('title');
+        const titleEn = typeof titleEnRaw === 'string' ? titleEnRaw : null;
+        // titleFr is optional — falls back to titleEn for the quick-create modal
+        const titleFrRaw = formData.get('titleFr') ?? titleEn;
+        const titleFr = typeof titleFrRaw === 'string' ? titleFrRaw : null;
         const slug = formData.get('slug');
-        const descriptionEn = formData.get('descriptionEn');
-        const descriptionFr = formData.get('descriptionFr');
+        const descriptionEnRaw = formData.get('descriptionEn') ?? formData.get('description');
+        const descriptionEn = typeof descriptionEnRaw === 'string' ? descriptionEnRaw : null;
+        const descriptionFrRaw = formData.get('descriptionFr') ?? descriptionEn;
+        const descriptionFr = typeof descriptionFrRaw === 'string' ? descriptionFrRaw : null;
         const startDate = formData.get('startDate');
         const endDate = formData.get('endDate');
         const location = formData.get('location');
         const categoryId = formData.get('categoryId');
         const published = formData.get('published') === 'true';
+        const coverMediaId = formData.get('coverMediaId')?.toString() || null;
+        const galleryMediaIdsRaw = formData.get('galleryMediaIds')?.toString() || null;
 
         // Validation
         if (!titleEn || typeof titleEn !== 'string') {
@@ -52,7 +60,7 @@ export const actions: Actions = {
         }
 
         if (!titleFr || typeof titleFr !== 'string') {
-            return fail(400, { error: 'Title (French) is required' });
+            return fail(400, { error: 'Title is required' });
         }
 
         if (!slug || typeof slug !== 'string') {
@@ -64,7 +72,7 @@ export const actions: Actions = {
         }
 
         if (!descriptionFr || typeof descriptionFr !== 'string') {
-            return fail(400, { error: 'Description (French) is required' });
+            return fail(400, { error: 'Description is required' });
         }
 
         if (!startDate || typeof startDate !== 'string') {
@@ -144,7 +152,7 @@ export const actions: Actions = {
         const { createEvent } = await import('$lib/server/services/events');
 
         try {
-            await createEvent({
+            const event = await createEvent({
                 titleEn,
                 titleFr,
                 slug,
@@ -169,11 +177,31 @@ export const actions: Actions = {
                 materialsFr: null,
                 admissionInfoEn: null,
                 admissionInfoFr: null,
-                coverMediaId: null,
+                coverMediaId: coverMediaId || null,
                 categoryId: categoryId?.toString() || null,
                 published,
                 isSpotlight: false
             });
+
+            // Link uploaded media records to the new event
+            let galleryIds: string[] = [];
+            if (galleryMediaIdsRaw) {
+                try { galleryIds = JSON.parse(galleryMediaIdsRaw); } catch { /* ignore */ }
+            }
+            const allMediaIds = coverMediaId
+                ? [coverMediaId, ...galleryIds.filter(id => id !== coverMediaId)]
+                : galleryIds;
+
+            if (allMediaIds.length > 0) {
+                const { db } = await import('$lib/server/db');
+                const { media: mediaTable } = await import('$lib/server/db/schema');
+                const { eq } = await import('drizzle-orm');
+                for (let i = 0; i < allMediaIds.length; i++) {
+                    await db.update(mediaTable)
+                        .set({ eventId: event.id, isCover: i === 0 })
+                        .where(eq(mediaTable.id, allMediaIds[i]));
+                }
+            }
 
             return { success: `Event "${titleEn}" created successfully` };
         } catch (error) {
@@ -188,16 +216,21 @@ export const actions: Actions = {
     updateEvent: async ({ request }) => {
         const formData = await request.formData();
         const id = formData.get('id');
-        const titleEn = formData.get('titleEn');
-        const titleFr = formData.get('titleFr');
+        const titleEnRaw = formData.get('titleEn') ?? formData.get('title');
+        const titleEn = typeof titleEnRaw === 'string' ? titleEnRaw : null;
+        const titleFrRaw = formData.get('titleFr') ?? titleEn;
+        const titleFr = typeof titleFrRaw === 'string' ? titleFrRaw : null;
         const slug = formData.get('slug');
-        const descriptionEn = formData.get('descriptionEn');
-        const descriptionFr = formData.get('descriptionFr');
+        const descriptionEnRaw = formData.get('descriptionEn') ?? formData.get('description');
+        const descriptionEn = typeof descriptionEnRaw === 'string' ? descriptionEnRaw : null;
+        const descriptionFrRaw = formData.get('descriptionFr') ?? descriptionEn;
+        const descriptionFr = typeof descriptionFrRaw === 'string' ? descriptionFrRaw : null;
         const startDate = formData.get('startDate');
         const endDate = formData.get('endDate');
         const location = formData.get('location');
         const categoryId = formData.get('categoryId');
         const published = formData.get('published') === 'true';
+        const coverMediaId = formData.get('coverMediaId')?.toString() || null;
 
         // Validate id
         if (!id || typeof id !== 'string') {
@@ -206,11 +239,11 @@ export const actions: Actions = {
 
         // Validation
         if (!titleEn || typeof titleEn !== 'string') {
-            return fail(400, { error: 'Title (English) is required' });
+            return fail(400, { error: 'Title is required' });
         }
 
         if (!titleFr || typeof titleFr !== 'string') {
-            return fail(400, { error: 'Title (French) is required' });
+            return fail(400, { error: 'Title is required' });
         }
 
         if (!slug || typeof slug !== 'string') {
@@ -218,11 +251,11 @@ export const actions: Actions = {
         }
 
         if (!descriptionEn || typeof descriptionEn !== 'string') {
-            return fail(400, { error: 'Description (English) is required' });
+            return fail(400, { error: 'Description is required' });
         }
 
         if (!descriptionFr || typeof descriptionFr !== 'string') {
-            return fail(400, { error: 'Description (French) is required' });
+            return fail(400, { error: 'Description is required' });
         }
 
         if (!startDate || typeof startDate !== 'string') {
@@ -272,6 +305,7 @@ export const actions: Actions = {
                 startDate: start,
                 endDate: end,
                 location,
+                coverMediaId: coverMediaId || MOCK_EVENTS[eventIndex].coverMediaId,
                 published,
                 updatedAt: new Date()
             } as typeof MOCK_EVENTS[number];
@@ -293,8 +327,22 @@ export const actions: Actions = {
                 endDate: end,
                 location,
                 categoryId: categoryId?.toString() || null,
+                coverMediaId: coverMediaId || null,
                 published
             });
+
+            // Link the cover media record to this event
+            if (coverMediaId) {
+                const { db } = await import('$lib/server/db');
+                const { media: mediaTable } = await import('$lib/server/db/schema');
+                const { eq } = await import('drizzle-orm');
+                await db.update(mediaTable)
+                    .set({ isCover: false })
+                    .where(eq(mediaTable.eventId, id));
+                await db.update(mediaTable)
+                    .set({ eventId: id, isCover: true })
+                    .where(eq(mediaTable.id, coverMediaId));
+            }
 
             return { success: `Event "${titleEn}" updated successfully` };
         } catch (error) {

@@ -12,6 +12,7 @@ import { goto } from "$app/navigation";
         X,
         FileText,
         Tag,
+        Images,
     } from "lucide-svelte";
     import type { PageData, ActionData } from "./$types";
     import type { Snippet } from "svelte";
@@ -19,6 +20,8 @@ import { goto } from "$app/navigation";
     import Drawer from "$lib/components/ui/Drawer.svelte";
     import Modal from "$lib/components/ui/Modal.svelte";
     import EventCategoriesTab from "./EventCategoriesTab.svelte";
+    import MediaUpload from "$lib/components/MediaUpload.svelte";
+    import type { Media } from "$lib/types/media";
 
     let {
         data,
@@ -80,6 +83,27 @@ import { goto } from "$app/navigation";
     let editCategoryId = $state("");
     let editPublished = $state(false);
 
+    // Media state for create form
+    let createCoverMediaId = $state<string | null>(null);
+    let createGalleryMediaIds = $state<string[]>([]);
+
+    function handleCreateCoverUpload(uploaded: Media[]) {
+        if (uploaded.length > 0) createCoverMediaId = uploaded[0].id;
+    }
+    function handleCreateCoverRemove(_: string) {
+        createCoverMediaId = null;
+    }
+    function handleCreateGalleryUpload(uploaded: Media[]) {
+        createGalleryMediaIds = [...createGalleryMediaIds, ...uploaded.map((m) => m.id)];
+    }
+    function handleCreateGalleryRemove(mediaId: string) {
+        createGalleryMediaIds = createGalleryMediaIds.filter((id) => id !== mediaId);
+    }
+    function handleCreateGalleryReorder(mediaIds: string[]) {
+        createGalleryMediaIds = mediaIds;
+    }
+
+
     // Auto-generate slug from title for edit
     $effect(() => {
         if (editTitle) {
@@ -109,6 +133,8 @@ import { goto } from "$app/navigation";
         createLocation = "";
         createCategoryId = "";
         createPublished = false;
+        createCoverMediaId = null;
+        createGalleryMediaIds = [];
     }
 
     function formatDateForInput(date: Date | string): string {
@@ -170,7 +196,7 @@ import { goto } from "$app/navigation";
     {#if fieldName === "title"}
         <input
             id="createTitle"
-            name="title"
+            name="titleEn"
             type="text"
             bind:value={createTitle}
             required
@@ -191,7 +217,7 @@ import { goto } from "$app/navigation";
     {:else if fieldName === "description"}
         <textarea
             id="createDescription"
-            name="description"
+            name="descriptionEn"
             bind:value={createDescription}
             required
             rows="4"
@@ -248,7 +274,7 @@ import { goto } from "$app/navigation";
     {#if fieldName === "title"}
         <input
             id="editTitle"
-            name="title"
+            name="titleEn"
             type="text"
             bind:value={editTitle}
             required
@@ -269,7 +295,7 @@ import { goto } from "$app/navigation";
     {:else if fieldName === "description"}
         <textarea
             id="editDescription"
-            name="description"
+            name="descriptionEn"
             bind:value={editDescription}
             required
             rows="4"
@@ -467,22 +493,30 @@ import { goto } from "$app/navigation";
                         >
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-4">
-                                    {#if event.coverMedia?.url}
-                                        <img
-                                            src={event.coverMedia.url}
-                                            alt={event.titleEn}
-                                            class="w-16 h-16 object-cover rounded-lg"
-                                        />
-                                    {:else}
-                                        <div
-                                            class="w-16 h-16 bg-dark-100 rounded-lg flex items-center justify-center"
-                                        >
-                                            <Calendar
-                                                size={24}
-                                                class="text-dark-300"
+                                    <div class="flex flex-col items-center flex-shrink-0">
+                                        {#if event.coverMedia?.url}
+                                            <img
+                                                src={event.coverMedia.url}
+                                                alt={event.titleEn}
+                                                class="w-16 h-16 object-cover rounded-lg"
                                             />
-                                        </div>
-                                    {/if}
+                                        {:else}
+                                            <div
+                                                class="w-16 h-16 bg-dark-100 rounded-lg flex items-center justify-center"
+                                            >
+                                                <Calendar
+                                                    size={24}
+                                                    class="text-dark-300"
+                                                />
+                                            </div>
+                                        {/if}
+                                        {#if (event.media?.length ?? 0) > 0}
+                                            <span class="inline-flex items-center gap-1 mt-1 text-xs text-dark-400">
+                                                <Images size={11} />
+                                                {event.media?.length}
+                                            </span>
+                                        {/if}
+                                    </div>
                                     <div>
                                         <div
                                             class="font-medium text-dark-900"
@@ -571,19 +605,27 @@ import { goto } from "$app/navigation";
                     onclick={() => goto(`/admin/events/${event.id}`)}
                 >
                     <div class="flex gap-4 mb-4">
-                        {#if event.coverMedia?.url}
-                            <img
-                                src={event.coverMedia.url}
-                                alt={event.titleEn}
-                                class="w-20 h-20 object-cover rounded-lg flex-shrink-0"
-                            />
-                        {:else}
-                            <div
-                                class="w-20 h-20 bg-dark-100 rounded-lg flex items-center justify-center flex-shrink-0"
-                            >
-                                <Calendar size={24} class="text-dark-300" />
-                            </div>
-                        {/if}
+                        <div class="flex flex-col items-center flex-shrink-0">
+                            {#if event.coverMedia?.url}
+                                <img
+                                    src={event.coverMedia.url}
+                                    alt={event.titleEn}
+                                    class="w-20 h-20 object-cover rounded-lg"
+                                />
+                            {:else}
+                                <div
+                                    class="w-20 h-20 bg-dark-100 rounded-lg flex items-center justify-center"
+                                >
+                                    <Calendar size={24} class="text-dark-300" />
+                                </div>
+                            {/if}
+                            {#if (event.media?.length ?? 0) > 0}
+                                <span class="inline-flex items-center gap-1 mt-1 text-xs text-dark-400">
+                                    <Images size={11} />
+                                    {event.media?.length}
+                                </span>
+                            {/if}
+                        </div>
                         <div class="flex-1 min-w-0">
                             <div
                                 class="flex items-start justify-between gap-2 mb-1"
@@ -725,6 +767,44 @@ import { goto } from "$app/navigation";
                     null,
                 )}
 
+                <!-- Cover Photo -->
+                <div>
+                    <label class="block text-sm font-medium text-dark-700 mb-1">
+                        Photo de Couverture
+                    </label>
+                    <p class="text-xs text-dark-400 mb-2">Photo principale de l'événement</p>
+                    {#key createDialogOpen}
+                    <MediaUpload
+                        mode="single"
+                        entityType="event"
+                        maxSizeMB={10}
+                        onUpload={handleCreateCoverUpload}
+                        onRemove={handleCreateCoverRemove}
+                    />
+                    {/key}
+                    <input type="hidden" name="coverMediaId" value={createCoverMediaId ?? ''} />
+                </div>
+
+                <!-- Gallery -->
+                <div>
+                    <label class="block text-sm font-medium text-dark-700 mb-1">
+                        Galerie de Photos
+                    </label>
+                    <p class="text-xs text-dark-400 mb-2">Photos supplémentaires. Glissez pour réorganiser.</p>
+                    {#key createDialogOpen}
+                    <MediaUpload
+                        mode="multiple"
+
+                        entityType="event"
+                        maxSizeMB={10}
+                        onUpload={handleCreateGalleryUpload}
+                        onRemove={handleCreateGalleryRemove}
+                        onReorder={handleCreateGalleryReorder}
+                    />
+                    {/key}
+                    <input type="hidden" name="galleryMediaIds" value={JSON.stringify(createGalleryMediaIds)} />
+                </div>
+
                 <div class="flex items-center gap-3 p-3 bg-dark-50 rounded-lg">
                     <input
                         id="createPublished"
@@ -836,6 +916,44 @@ import { goto } from "$app/navigation";
                         null,
                     )}
                 </div>
+
+                <!-- Cover Photo -->
+                <div class="col-span-2">
+                    <label class="block text-sm font-medium text-dark-700 mb-1">
+                        Photo de Couverture
+                    </label>
+                    <p class="text-xs text-dark-400 mb-2">Photo principale affichée dans les listes</p>
+                    {#key createDialogOpen}
+                    <MediaUpload
+                        mode="single"
+                        entityType="event"
+                        maxSizeMB={10}
+                        onUpload={handleCreateCoverUpload}
+                        onRemove={handleCreateCoverRemove}
+                    />
+                    {/key}
+                    <input type="hidden" name="coverMediaId" value={createCoverMediaId ?? ''} />
+                </div>
+
+                <!-- Gallery -->
+                <div class="col-span-2">
+                    <label class="block text-sm font-medium text-dark-700 mb-1">
+                        Galerie de Photos
+                    </label>
+                    <p class="text-xs text-dark-400 mb-2">Jusqu'à 5 photos supplémentaires. Glissez pour réorganiser.</p>
+                    {#key createDialogOpen}
+                    <MediaUpload
+                        mode="multiple"
+
+                        entityType="event"
+                        maxSizeMB={10}
+                        onUpload={handleCreateGalleryUpload}
+                        onRemove={handleCreateGalleryRemove}
+                        onReorder={handleCreateGalleryReorder}
+                    />
+                    {/key}
+                    <input type="hidden" name="galleryMediaIds" value={JSON.stringify(createGalleryMediaIds)} />
+                </div>
             </div>
 
             <div class="flex items-center gap-3 p-4 bg-dark-50 rounded-lg">
@@ -945,6 +1063,24 @@ import { goto } from "$app/navigation";
                     null,
                 )}
 
+                {#if selectedEvent?.id}
+                <div class="flex items-center gap-3 p-3 bg-dark-50 rounded-lg">
+                    {#if selectedEvent.coverMedia?.url}
+                        <img src={selectedEvent.coverMedia.url} alt="" class="w-10 h-10 object-cover rounded-md flex-shrink-0" />
+                    {/if}
+                    <div class="min-w-0">
+                        <p class="text-sm font-medium text-dark-700">Photos</p>
+                        <a
+                            href="/admin/events/{selectedEvent.id}#photos"
+                            onclick={() => (editDialogOpen = false)}
+                            class="text-xs text-dark-400 underline"
+                        >
+                            Gérer dans l'éditeur →
+                        </a>
+                    </div>
+                </div>
+                {/if}
+
                 <div class="flex items-center gap-3 p-3 bg-dark-50 rounded-lg">
                     <input
                         id="editPublished"
@@ -1052,6 +1188,24 @@ import { goto } from "$app/navigation";
                         null,
                     )}
                 </div>
+
+                {#if selectedEvent?.id}
+                <div class="col-span-2 flex items-center gap-3 p-3 bg-dark-50 rounded-lg">
+                    {#if selectedEvent.coverMedia?.url}
+                        <img src={selectedEvent.coverMedia.url} alt="" class="w-12 h-12 object-cover rounded-md flex-shrink-0" />
+                    {/if}
+                    <div class="min-w-0">
+                        <p class="text-sm font-medium text-dark-700">Photos</p>
+                        <a
+                            href="/admin/events/{selectedEvent.id}#photos"
+                            onclick={() => (editDialogOpen = false)}
+                            class="text-xs text-dark-400 underline hover:text-dark-600"
+                        >
+                            Gérer les photos dans l'éditeur →
+                        </a>
+                    </div>
+                </div>
+                {/if}
             </div>
 
             <div class="flex items-center gap-3 p-4 bg-dark-50 rounded-lg">
