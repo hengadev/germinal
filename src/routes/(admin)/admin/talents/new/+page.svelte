@@ -6,12 +6,14 @@
         Briefcase,
         FileText,
         Link as LinkIcon,
+        Tag,
     } from "lucide-svelte";
     import MediaUpload from "$lib/components/MediaUpload.svelte";
     import type { ActionData } from "./$types";
+    import type { PageData } from "./$types";
     import type { Media } from "$lib/types/media";
 
-    let { form }: { form: ActionData } = $props();
+    let { data, form }: { data: PageData; form: ActionData } = $props();
 
     let firstName = $state("");
     let lastName = $state("");
@@ -29,6 +31,7 @@
     let linkedin = $state("");
     let twitter = $state("");
     let website = $state("");
+    let categoryId = $state("");
     let published = $state(false);
 
     // Media upload state
@@ -248,6 +251,36 @@
                             class="w-full pl-10 pr-4 py-3 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent resize-none"
                         ></textarea>
                     </div>
+                </div>
+
+                <!-- Category Selection -->
+                <div>
+                    <label
+                        for="categoryId"
+                        class="block text-sm font-medium text-dark-700 mb-2"
+                    >
+                        Catégorie (Optionnel)
+                    </label>
+                    <div class="relative">
+                        <Tag
+                            size={18}
+                            class="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400"
+                        />
+                        <select
+                            id="categoryId"
+                            name="categoryId"
+                            bind:value={categoryId}
+                            class="w-full pl-10 pr-4 py-3 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent appearance-none bg-white"
+                        >
+                            <option value="">Aucune catégorie</option>
+                            {#each (data.categories || []) as category}
+                                <option value={category.id}>{category.displayNameFr} ({category.displayNameEn})</option>
+                            {/each}
+                        </select>
+                    </div>
+                    <p class="mt-1 text-xs text-dark-400">
+                        Lier ce talent à une catégorie existante
+                    </p>
                 </div>
 
                 <!-- Location -->

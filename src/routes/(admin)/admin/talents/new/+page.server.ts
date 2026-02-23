@@ -5,7 +5,9 @@ import { MOCK_TALENTS } from '$lib/mock-data';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async () => {
-	return {};
+	const { getAllTalentCategories } = await import('$lib/server/services/talent-categories');
+	const categories = await getAllTalentCategories({ publishedOnly: true });
+	return { categories };
 };
 
 export const actions: Actions = {
@@ -28,6 +30,7 @@ export const actions: Actions = {
 		const twitter = formData.get('twitter');
 		const website = formData.get('website');
 		const profileMediaId = formData.get('profileMediaId') as string | null;
+		const categoryId = formData.get('categoryId') as string | null;
 		const published = formData.get('published') === 'true';
 
 		// Validation
@@ -136,7 +139,7 @@ export const actions: Actions = {
 				specializationsFr: specializationsFr?.toString() || null,
 				socialLinks: JSON.stringify(socialLinks),
 				profileMediaId: profileMediaId || null,
-				categoryId: null,
+				categoryId: categoryId || null,
 				published
 			});
 
