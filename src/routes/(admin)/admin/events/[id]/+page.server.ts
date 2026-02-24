@@ -75,26 +75,28 @@ export const load: PageServerLoad = async ({ params }) => {
 		const sessionIds = sessionsData.map((s: typeof sessionsData[number]) => s.id);
 
 		// Get all reservations for this event (through sessions)
-		const reservationsData = await db.query.reservations.findMany({
-			where: sessionIds.length > 0 ? inArray(reservations.eventSessionId, sessionIds) : eq(reservations.id, 'never-match'),
-			orderBy: [desc(reservations.createdAt)],
-			with: {
-				eventSession: {
-					columns: {
-						id: true,
-						title: true,
-						startTime: true
-					}
-				},
-				payment: {
-					columns: {
-						status: true,
-						amount: true,
-						currency: true
+		const reservationsData = sessionIds.length > 0
+			? await db.query.reservations.findMany({
+				where: inArray(reservations.eventSessionId, sessionIds),
+				orderBy: [desc(reservations.createdAt)],
+				with: {
+					eventSession: {
+						columns: {
+							id: true,
+							title: true,
+							startTime: true
+						}
+					},
+					payment: {
+						columns: {
+							status: true,
+							amount: true,
+							currency: true
+						}
 					}
 				}
-			}
-		});
+			})
+			: [];
 
 		return {
 			event,
@@ -129,7 +131,10 @@ export const load: PageServerLoad = async ({ params }) => {
 			}))
 		};
 	} catch (err) {
-		throw error(404, 'Event not found');
+		if (err instanceof Error && err.message === 'Event not found') {
+			throw error(404, 'Event not found');
+		}
+		throw err;
 	}
 };
 
