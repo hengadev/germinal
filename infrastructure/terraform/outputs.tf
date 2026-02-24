@@ -54,10 +54,12 @@ output "iam_policy_arn" {
 # Copy this directly to your .env file
 output "env_variables" {
   value = {
-    S3_BUCKET             = aws_s3_bucket.media.bucket
-    S3_REGION             = aws_s3_bucket.media.region
-    AWS_ACCESS_KEY_ID     = aws_iam_access_key.app_user.id
-    AWS_SECRET_ACCESS_KEY = aws_iam_access_key.app_user.secret
+    S3_BUCKET                  = aws_s3_bucket.media.bucket
+    S3_REGION                  = aws_s3_bucket.media.region
+    S3_PUBLIC_URL              = "https://media.${var.domain_name}"
+    CLOUDFRONT_DISTRIBUTION_ID = aws_cloudfront_distribution.media.id
+    AWS_ACCESS_KEY_ID          = aws_iam_access_key.app_user.id
+    AWS_SECRET_ACCESS_KEY      = aws_iam_access_key.app_user.secret
   }
   description = "Environment variables to add to .env file"
   sensitive   = true
