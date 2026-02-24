@@ -409,6 +409,7 @@ export const reservations = pgTable('reservations', {
     cancelledAt: timestamp('cancelled_at', { withTimezone: true }),
     reminderSent1Week: boolean('reminder_sent_1_week').default(false).notNull(),
     reminderSent1Day: boolean('reminder_sent_1_day').default(false).notNull(),
+    paymentId: uuid('payment_id').references(() => payments.id, { onDelete: 'set null' }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => ({
@@ -485,8 +486,8 @@ export const reservationsRelations = relations(reservations, ({ one }) => ({
         references: [users.id],
     }),
     payment: one(payments, {
-        fields: [reservations.id],
-        references: [payments.reservationId],
+        fields: [reservations.paymentId],
+        references: [payments.id],
     }),
 }));
 
