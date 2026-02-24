@@ -76,11 +76,15 @@
                 <div></div>
             {:else}
                 <div>
-                    <img
-                        src={data.events[0].coverMedia.url}
-                        alt={getEventField(data.events[0], 'title')}
-                        class="w-full max-h-[25rem] md:max-h-[30rem] object-cover grayscale"
-                    />
+                    {#if data.events[0].coverMedia}
+                        <img
+                            src={data.events[0].coverMedia.url}
+                            alt={getEventField(data.events[0], 'title')}
+                            class="w-full max-h-[25rem] md:max-h-[30rem] object-cover grayscale"
+                        />
+                    {:else}
+                        <div class="w-full max-h-[25rem] md:max-h-[30rem] aspect-video bg-gray-200"></div>
+                    {/if}
                 </div>
                 <div class="flex flex-col justify-between gap-6 md:gap-4">
                     <div class="grid gap-2">
