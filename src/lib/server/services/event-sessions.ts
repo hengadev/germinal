@@ -106,7 +106,7 @@ export async function getAllSessionsByEventId(eventId: string) {
 		ORDER BY es.start_time
 	`);
 
-	return result.rows.map((row: SessionWithEventAndSoldCount) => {
+	return (result as unknown as SessionWithEventAndSoldCount[]).map((row) => {
 		const soldCount = parseInt(row.sold_count, 10);
 
 		return {
