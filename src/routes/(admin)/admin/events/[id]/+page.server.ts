@@ -1,4 +1,4 @@
-import { fail, redirect, type Actions, type ServerLoad } from '@sveltejs/kit';
+import { fail, redirect, error, type Actions, type ServerLoad } from '@sveltejs/kit';
 import { logger } from '$lib/server/logger';
 import { env } from '$lib/server/env';
 import { MOCK_EVENTS, MOCK_SESSIONS, MOCK_RESERVATIONS } from '$lib/mock-data';
@@ -12,7 +12,7 @@ export const load: PageServerLoad = async ({ params }) => {
 		const event = MOCK_EVENTS.find((e) => e.id === id);
 
 		if (!event) {
-			throw fail(404, { error: 'Event not found' });
+			throw error(404, 'Event not found');
 		}
 
 		// Mock sessions - return sessions for this event with consistent structure
@@ -128,8 +128,8 @@ export const load: PageServerLoad = async ({ params }) => {
 				paymentStatus: r.payment?.status || 'none'
 			}))
 		};
-	} catch (error) {
-		throw fail(404, { error: 'Event not found' });
+	} catch (err) {
+		throw error(404, 'Event not found');
 	}
 };
 

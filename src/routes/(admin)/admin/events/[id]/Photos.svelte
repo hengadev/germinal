@@ -8,7 +8,7 @@
 
 	const existingCoverMedia = data.event.coverMedia ? [data.event.coverMedia] : [];
 	const existingGalleryMedia = (data.event.media || []).filter(
-		(m: Media) => m.id !== data.event.coverMediaId
+		(m: Media) => m && m.id !== data.event.coverMediaId
 	);
 
 	let coverMediaId = $state(data.event.coverMediaId ?? null);
