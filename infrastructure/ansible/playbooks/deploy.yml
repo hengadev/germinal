@@ -31,7 +31,7 @@
   post_tasks:
     - name: Pull latest images and restart services
       ansible.builtin.shell:
-        cmd: docker compose pull && docker compose up -d
+        cmd: docker compose pull && docker compose up -d --force-recreate
         chdir: "{{ app_base_dir }}"
       become: true
       when: app_deployed | default(false)

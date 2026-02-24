@@ -63,7 +63,7 @@
 
     - name: Start/restart staging app
       ansible.builtin.command:
-        cmd: docker compose up -d
+        cmd: docker compose up -d --force-recreate
         chdir: "{{ app_base_dir }}"
       changed_when: true
 
