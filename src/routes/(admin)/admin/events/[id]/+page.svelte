@@ -7,8 +7,24 @@
     import TabsList from "$lib/components/ui/bits-components/TabsList.svelte";
     import TabsTrigger from "$lib/components/ui/bits-components/TabsTrigger.svelte";
     import TabsContent from "$lib/components/ui/bits-components/TabsContent.svelte";
+    import { getToastContext } from "$lib/components/toast/state.svelte";
 
     let { data, form }: { data: PageData; form: ActionData } = $props();
+
+    const toast = getToastContext();
+
+    // Show toast on form changes
+    $effect(() => {
+        if (form?.success) {
+            toast.success("Succès", form.success || "Modifications enregistrées");
+        }
+    });
+
+    $effect(() => {
+        if (form?.error) {
+            toast.error("Erreur", form.error);
+        }
+    });
 
     import Overview from "./Overview.svelte";
     import Sessions from "./Sessions.svelte";

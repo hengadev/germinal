@@ -20,8 +20,11 @@
 	import Drawer from '$lib/components/ui/Drawer.svelte';
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import { formatCurrency } from '$lib/utils/currency';
+	import { getToastContext } from '$lib/components/toast/state.svelte';
 
 	let { data, form }: { data: PageData; form: ActionData & { success?: string } } = $props();
+
+	const toast = getToastContext();
 
 	// Detect if we're on mobile
 	let isMobile = $state(false);
@@ -85,6 +88,14 @@
 			editDialogOpen = false;
 			deleteDialogOpen = false;
 			resetCreateForm();
+			toast.success("Succès", form.success);
+		}
+	});
+
+	// Show toast on error
+	$effect(() => {
+		if (form?.error) {
+			toast.error("Erreur", form.error);
 		}
 	});
 
@@ -352,19 +363,6 @@
 			<span>New Session</span>
 		</button>
 	</div>
-
-	<!-- Success/Error messages -->
-	{#if form?.success}
-		<div class="mb-6 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg">
-			<p class="text-sm font-medium">{form.success}</p>
-		</div>
-	{/if}
-
-	{#if form?.error}
-		<div class="mb-6 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg">
-			<p class="text-sm font-medium">{form.error}</p>
-		</div>
-	{/if}
 
 	{#if data.sessions.length === 0}
 		<div class="bg-white rounded-lg border border-border-card p-12 text-center">

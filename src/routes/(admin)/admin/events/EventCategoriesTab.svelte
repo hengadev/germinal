@@ -4,6 +4,9 @@
     import type { Snippet } from "svelte";
     import Drawer from "$lib/components/ui/Drawer.svelte";
     import Modal from "$lib/components/ui/Modal.svelte";
+    import { getToastContext } from "$lib/components/toast/state.svelte";
+
+    const toast = getToastContext();
 
     interface Category {
         id: string;
@@ -81,6 +84,13 @@
             editDialogOpen = false;
             deleteDialogOpen = false;
             resetCreateForm();
+            toast.success("Succès", form.success);
+        }
+    });
+
+    $effect(() => {
+        if (form?.error) {
+            toast.error("Erreur", form.error);
         }
     });
 

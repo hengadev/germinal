@@ -19,6 +19,7 @@
 	import Drawer from '$lib/components/ui/Drawer.svelte';
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import { formatCurrency } from '$lib/utils/currency';
+	import { getToastContext } from '$lib/components/toast/state.svelte';
 
 	interface Props {
 		data: {
@@ -29,6 +30,8 @@
 	}
 
 	let { data, form }: Props = $props();
+
+	const toast = getToastContext();
 
 	// Detect if we're on mobile
 	let isMobile = $state(false);
@@ -92,6 +95,14 @@
 			editDialogOpen = false;
 			deleteDialogOpen = false;
 			resetCreateForm();
+			toast.success("Succès", form.success);
+		}
+	});
+
+	// Show toast on error
+	$effect(() => {
+		if (form?.error) {
+			toast.error("Erreur", form.error);
 		}
 	});
 

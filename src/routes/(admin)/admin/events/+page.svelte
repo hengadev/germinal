@@ -22,11 +22,14 @@ import { goto } from "$app/navigation";
     import EventCategoriesTab from "./EventCategoriesTab.svelte";
     import MediaUpload from "$lib/components/MediaUpload.svelte";
     import type { Media } from "$lib/types/media";
+    import { getToastContext } from "$lib/components/toast/state.svelte";
 
     let {
         data,
         form,
     }: { data: PageData; form: ActionData & { success?: string } } = $props();
+
+    const toast = getToastContext();
 
     // Detect if we're on mobile
     let isMobile = $state(false);
@@ -121,6 +124,14 @@ import { goto } from "$app/navigation";
             editDialogOpen = false;
             deleteDialogOpen = false;
             resetCreateForm();
+            toast.success("Succès", form.success);
+        }
+    });
+
+    // Show toast on error
+    $effect(() => {
+        if (form?.error) {
+            toast.error("Erreur", form.error);
         }
     });
 
@@ -396,23 +407,6 @@ import { goto } from "$app/navigation";
             </button>
         {/if}
     </div>
-
-    <!-- Success/Error messages -->
-    {#if form?.success}
-        <div
-            class="mb-6 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg"
-        >
-            <p class="text-sm font-medium">{form.success}</p>
-        </div>
-    {/if}
-
-    {#if form?.error}
-        <div
-            class="mb-6 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg"
-        >
-            <p class="text-sm font-medium">{form.error}</p>
-        </div>
-    {/if}
 
     <!-- Tab navigation -->
     <div class="flex border-b border-border-card mb-8">
