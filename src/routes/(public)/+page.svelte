@@ -5,7 +5,10 @@
     import { ArrowRight, ArrowUpRight } from "lucide-svelte";
     import { t, locale } from "svelte-i18n";
     import { reveal } from "$lib/actions/reveal";
+    import { page } from "$app/state";
     let { data }: { data: PageData } = $props();
+
+    const hasSpotlightEvent = $derived(page.data.hasSpotlightEvent ?? false);
 
     function getEventField(event: typeof data.events[0], field: 'title' | 'description' | 'subtitle'): string {
         const enField = (field + 'En') as 'titleEn' | 'descriptionEn' | 'subtitleEn';
@@ -55,10 +58,10 @@
                 </p>
             </div>
             <a
-                href="/upcoming"
+                href={hasSpotlightEvent ? "/spotlight" : "/events"}
                 class="mx-auto text-dark-900 font-medium px-6 py-3 bg-white flex items-center gap-2 rounded-full cursor-pointer"
             >
-                <p>{$t("home.viewUpcoming")}</p>
+                <p>{hasSpotlightEvent ? $t("home.viewUpcoming") : $t("home.viewEvents")}</p>
                 <ArrowUpRight size={20} />
             </a>
         </div>
