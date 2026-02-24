@@ -107,33 +107,43 @@ import { goto } from "$app/navigation";
     }
 
 
-    // Auto-generate slug from title for edit
-    $effect(() => {
-        if (editTitle) {
-            editSlug = editTitle
-                .toLowerCase()
-                .replace(/[^a-z0-9]+/g, "-")
-                .replace(/^-+|-+$/g, "");
-        }
-    });
+    // use:enhance handlers replace $effect-based form handling (more reliable in Svelte 5)
+    function createEventEnhance() {
+        return async ({ result, update }: { result: import('@sveltejs/kit').ActionResult; update: (opts?: { reset?: boolean }) => Promise<void> }) => {
+            if (result.type === 'success') {
+                createDialogOpen = false;
+                resetCreateForm();
+                toast.success("Succès", (result.data as { success?: string })?.success ?? 'Événement créé');
+            } else if (result.type === 'failure') {
+                toast.error("Erreur", (result.data as { error?: string })?.error ?? 'Une erreur est survenue');
+            }
+            await update({ reset: false });
+        };
+    }
 
-    // Reset form after successful action
-    $effect(() => {
-        if (form?.success) {
-            createDialogOpen = false;
-            editDialogOpen = false;
-            deleteDialogOpen = false;
-            resetCreateForm();
-            toast.success("Succès", form.success);
-        }
-    });
+    function updateEventEnhance() {
+        return async ({ result, update }: { result: import('@sveltejs/kit').ActionResult; update: (opts?: { reset?: boolean }) => Promise<void> }) => {
+            if (result.type === 'success') {
+                editDialogOpen = false;
+                toast.success("Succès", (result.data as { success?: string })?.success ?? 'Événement mis à jour');
+            } else if (result.type === 'failure') {
+                toast.error("Erreur", (result.data as { error?: string })?.error ?? 'Une erreur est survenue');
+            }
+            await update({ reset: false });
+        };
+    }
 
-    // Show toast on error
-    $effect(() => {
-        if (form?.error) {
-            toast.error("Erreur", form.error);
-        }
-    });
+    function deleteEventEnhance() {
+        return async ({ result, update }: { result: import('@sveltejs/kit').ActionResult; update: (opts?: { reset?: boolean }) => Promise<void> }) => {
+            if (result.type === 'success') {
+                deleteDialogOpen = false;
+                toast.success("Succès", (result.data as { success?: string })?.success ?? 'Événement supprimé');
+            } else if (result.type === 'failure') {
+                toast.error("Erreur", (result.data as { error?: string })?.error ?? 'Une erreur est survenue');
+            }
+            await update({ reset: false });
+        };
+    }
 
     function resetCreateForm() {
         createTitle = "";
@@ -680,7 +690,6 @@ import { goto } from "$app/navigation";
     {:else}
         <EventCategoriesTab
             categories={data.categories}
-            {form}
             {isMobile}
             bind:createDialogOpen={catCreateDialogOpen}
         />
@@ -713,7 +722,7 @@ import { goto } from "$app/navigation";
         <form
             method="POST"
             action="?/createEvent"
-            use:enhance
+            use:enhance={createEventEnhance}
             class="grid gap-4 pt-4"
         >
             <div class="grid grid-cols-1 gap-4 w-full">
@@ -847,7 +856,7 @@ import { goto } from "$app/navigation";
         <form
             method="POST"
             action="?/createEvent"
-            use:enhance
+            use:enhance={createEventEnhance}
             class="grid gap-4"
         >
             <div class="grid grid-cols-2 gap-4 w-full">
@@ -1013,7 +1022,7 @@ import { goto } from "$app/navigation";
         <form
             method="POST"
             action="?/updateEvent"
-            use:enhance
+            use:enhance={updateEventEnhance}
             class="grid gap-4 pt-4"
         >
             <input type="hidden" name="id" value={selectedEvent?.id} />
@@ -1123,7 +1132,7 @@ import { goto } from "$app/navigation";
         <form
             method="POST"
             action="?/updateEvent"
-            use:enhance
+            use:enhance={updateEventEnhance}
             class="grid gap-4"
         >
             <input type="hidden" name="id" value={selectedEvent?.id} />
@@ -1268,7 +1277,7 @@ import { goto } from "$app/navigation";
         </div>
 
         <div class="pt-4">
-            <form method="POST" action="?/deleteEvent" use:enhance>
+            <form method="POST" action="?/deleteEvent" use:enhance={deleteEventEnhance}>
                 <input type="hidden" name="id" value={selectedEvent?.id} />
 
                 <div class="flex w-full justify-end gap-3">
@@ -1295,7 +1304,7 @@ import { goto } from "$app/navigation";
         title="Supprimer l'Événement"
         description="Êtes-vous sûr de vouloir supprimer '{selectedEvent?.titleEn}' ? Cette action ne peut pas être annulée."
     >
-        <form method="POST" action="?/deleteEvent" use:enhance class="mt-6">
+        <form method="POST" action="?/deleteEvent" use:enhance={deleteEventEnhance} class="mt-6">
             <input type="hidden" name="id" value={selectedEvent?.id} />
 
             <div class="flex w-full justify-end gap-3">

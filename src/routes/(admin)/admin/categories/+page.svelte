@@ -77,33 +77,42 @@
     let editSortOrder = $state("0");
     let editPublié = $state(true);
 
-    // Auto-generate slug from name for edit
-    $effect(() => {
-        if (editName) {
-            editSlug = editName
-                .toLowerCase()
-                .replace(/[^a-z0-9]+/g, "-")
-                .replace(/^-+|-+$/g, "");
-        }
-    });
+    function createCategoryEnhance() {
+        return async ({ result, update }: { result: import('@sveltejs/kit').ActionResult; update: (opts?: { reset?: boolean }) => Promise<void> }) => {
+            if (result.type === 'success') {
+                createDialogOpen = false;
+                resetCreateForm();
+                toast.success("Succès", (result.data as { success?: string })?.success ?? 'Catégorie créée');
+            } else if (result.type === 'failure') {
+                toast.error("Erreur", (result.data as { error?: string })?.error ?? 'Une erreur est survenue');
+            }
+            await update({ reset: false });
+        };
+    }
 
-    // Reset form after successful action
-    $effect(() => {
-        if (form?.success) {
-            createDialogOpen = false;
-            editDialogOpen = false;
-            deleteDialogOpen = false;
-            resetCreateForm();
-            toast.success("Succès", form.success);
-        }
-    });
+    function updateCategoryEnhance() {
+        return async ({ result, update }: { result: import('@sveltejs/kit').ActionResult; update: (opts?: { reset?: boolean }) => Promise<void> }) => {
+            if (result.type === 'success') {
+                editDialogOpen = false;
+                toast.success("Succès", (result.data as { success?: string })?.success ?? 'Catégorie mise à jour');
+            } else if (result.type === 'failure') {
+                toast.error("Erreur", (result.data as { error?: string })?.error ?? 'Une erreur est survenue');
+            }
+            await update({ reset: false });
+        };
+    }
 
-    // Show toast on error
-    $effect(() => {
-        if (form?.error) {
-            toast.error("Erreur", form.error);
-        }
-    });
+    function deleteCategoryEnhance() {
+        return async ({ result, update }: { result: import('@sveltejs/kit').ActionResult; update: (opts?: { reset?: boolean }) => Promise<void> }) => {
+            if (result.type === 'success') {
+                deleteDialogOpen = false;
+                toast.success("Succès", (result.data as { success?: string })?.success ?? 'Catégorie supprimée');
+            } else if (result.type === 'failure') {
+                toast.error("Erreur", (result.data as { error?: string })?.error ?? 'Une erreur est survenue');
+            }
+            await update({ reset: false });
+        };
+    }
 
     function resetCreateForm() {
         createName = "";
@@ -523,7 +532,7 @@
         <form
             method="POST"
             action="?/createCategory"
-            use:enhance
+            use:enhance={createCategoryEnhance}
             class="grid gap-4 pt-4"
         >
             <div class="grid grid-cols-1 gap-4 w-full">
@@ -583,7 +592,7 @@
         <form
             method="POST"
             action="?/createCategory"
-            use:enhance
+            use:enhance={createCategoryEnhance}
             class="grid gap-4"
         >
             <div class="grid grid-cols-2 gap-4 w-full">
@@ -675,7 +684,7 @@
         <form
             method="POST"
             action="?/updateCategory"
-            use:enhance
+            use:enhance={updateCategoryEnhance}
             class="grid gap-4 pt-4"
         >
             <input type="hidden" name="id" value={selectedCategory?.id} />
@@ -737,7 +746,7 @@
         <form
             method="POST"
             action="?/updateCategory"
-            use:enhance
+            use:enhance={updateCategoryEnhance}
             class="grid gap-4"
         >
             <input type="hidden" name="id" value={selectedCategory?.id} />
@@ -834,7 +843,7 @@
         </div>
 
         <div class="pt-4">
-            <form method="POST" action="?/deleteCategory" use:enhance>
+            <form method="POST" action="?/deleteCategory" use:enhance={deleteCategoryEnhance}>
                 <input type="hidden" name="id" value={selectedCategory?.id} />
 
                 <div class="flex w-full justify-end gap-3">
@@ -861,7 +870,7 @@
         title="Supprimer la Catégorie"
         description="Êtes-vous sûr de vouloir supprimer '{selectedCategory?.displayNameEn}' ? Cette action ne peut pas être annulée."
     >
-        <form method="POST" action="?/deleteCategory" use:enhance class="mt-6">
+        <form method="POST" action="?/deleteCategory" use:enhance={deleteCategoryEnhance} class="mt-6">
             <input type="hidden" name="id" value={selectedCategory?.id} />
 
             <div class="flex w-full justify-end gap-3">

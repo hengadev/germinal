@@ -77,23 +77,42 @@
     let editCategoryId = $state("");
     let editPublished = $state(false);
 
-    // Reset form after successful action
-    $effect(() => {
-        if (form?.success) {
-            createDialogOpen = false;
-            editDialogOpen = false;
-            deleteDialogOpen = false;
-            resetCreateForm();
-            toast.success("Succès", form.success);
-        }
-    });
+    function createTalentEnhance() {
+        return async ({ result, update }: { result: import('@sveltejs/kit').ActionResult; update: (opts?: { reset?: boolean }) => Promise<void> }) => {
+            if (result.type === 'success') {
+                createDialogOpen = false;
+                resetCreateForm();
+                toast.success("Succès", (result.data as { success?: string })?.success ?? 'Talent créé');
+            } else if (result.type === 'failure') {
+                toast.error("Erreur", (result.data as { error?: string })?.error ?? 'Une erreur est survenue');
+            }
+            await update({ reset: false });
+        };
+    }
 
-    // Show toast on error
-    $effect(() => {
-        if (form?.error) {
-            toast.error("Erreur", form.error);
-        }
-    });
+    function updateTalentEnhance() {
+        return async ({ result, update }: { result: import('@sveltejs/kit').ActionResult; update: (opts?: { reset?: boolean }) => Promise<void> }) => {
+            if (result.type === 'success') {
+                editDialogOpen = false;
+                toast.success("Succès", (result.data as { success?: string })?.success ?? 'Talent mis à jour');
+            } else if (result.type === 'failure') {
+                toast.error("Erreur", (result.data as { error?: string })?.error ?? 'Une erreur est survenue');
+            }
+            await update({ reset: false });
+        };
+    }
+
+    function deleteTalentEnhance() {
+        return async ({ result, update }: { result: import('@sveltejs/kit').ActionResult; update: (opts?: { reset?: boolean }) => Promise<void> }) => {
+            if (result.type === 'success') {
+                deleteDialogOpen = false;
+                toast.success("Succès", (result.data as { success?: string })?.success ?? 'Talent supprimé');
+            } else if (result.type === 'failure') {
+                toast.error("Erreur", (result.data as { error?: string })?.error ?? 'Une erreur est survenue');
+            }
+            await update({ reset: false });
+        };
+    }
 
     function resetCreateForm() {
         createFirstName = "";
@@ -626,7 +645,6 @@
     {:else}
         <TalentCategoriesTab
             categories={data.categories}
-            {form}
             {isMobile}
             bind:createDialogOpen={catCreateDialogOpen}
         />
@@ -659,7 +677,7 @@
         <form
             method="POST"
             action="?/createTalent"
-            use:enhance
+            use:enhance={createTalentEnhance}
             class="grid gap-4 pt-4"
         >
             <div class="grid grid-cols-1 gap-4 w-full">
@@ -769,7 +787,7 @@
         <form
             method="POST"
             action="?/createTalent"
-            use:enhance
+            use:enhance={createTalentEnhance}
             class="grid gap-4"
         >
             <div class="grid grid-cols-2 gap-4 w-full">
@@ -899,7 +917,7 @@
         <form
             method="POST"
             action="?/updateTalent"
-            use:enhance
+            use:enhance={updateTalentEnhance}
             class="grid gap-4 pt-4"
         >
             <input type="hidden" name="id" value={selectedTalent?.id} />
@@ -1011,7 +1029,7 @@
         <form
             method="POST"
             action="?/updateTalent"
-            use:enhance
+            use:enhance={updateTalentEnhance}
             class="grid gap-4"
         >
             <input type="hidden" name="id" value={selectedTalent?.id} />
@@ -1146,7 +1164,7 @@
         </div>
 
         <div class="pt-4">
-            <form method="POST" action="?/deleteTalent" use:enhance>
+            <form method="POST" action="?/deleteTalent" use:enhance={deleteTalentEnhance}>
                 <input type="hidden" name="id" value={selectedTalent?.id} />
 
                 <div class="flex w-full justify-end gap-3">
@@ -1173,7 +1191,7 @@
         title="Supprimer le Talent"
         description="Êtes-vous sûr de vouloir supprimer '{selectedTalent?.firstName} {selectedTalent?.lastName}' ? Cette action ne peut pas être annulée."
     >
-        <form method="POST" action="?/deleteTalent" use:enhance>
+        <form method="POST" action="?/deleteTalent" use:enhance={deleteTalentEnhance}>
             <input type="hidden" name="id" value={selectedTalent?.id} />
 
             <div class="flex w-full justify-end gap-3 mt-6">

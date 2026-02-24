@@ -24,12 +24,10 @@
 
     let {
         categories,
-        form,
         isMobile,
         createDialogOpen = $bindable(false),
     }: {
         categories: Category[];
-        form: { success?: string; error?: string } | null;
         isMobile: boolean;
         createDialogOpen?: boolean;
     } = $props();
@@ -78,21 +76,42 @@
         }
     });
 
-    $effect(() => {
-        if (form?.success) {
-            createDialogOpen = false;
-            editDialogOpen = false;
-            deleteDialogOpen = false;
-            resetCreateForm();
-            toast.success("Succès", form.success);
-        }
-    });
+    function createCatEnhance() {
+        return async ({ result, update }: { result: import('@sveltejs/kit').ActionResult; update: (opts?: { reset?: boolean }) => Promise<void> }) => {
+            if (result.type === 'success') {
+                createDialogOpen = false;
+                resetCreateForm();
+                toast.success("Succès", (result.data as { success?: string })?.success ?? 'Catégorie créée');
+            } else if (result.type === 'failure') {
+                toast.error("Erreur", (result.data as { error?: string })?.error ?? 'Une erreur est survenue');
+            }
+            await update({ reset: false });
+        };
+    }
 
-    $effect(() => {
-        if (form?.error) {
-            toast.error("Erreur", form.error);
-        }
-    });
+    function editCatEnhance() {
+        return async ({ result, update }: { result: import('@sveltejs/kit').ActionResult; update: (opts?: { reset?: boolean }) => Promise<void> }) => {
+            if (result.type === 'success') {
+                editDialogOpen = false;
+                toast.success("Succès", (result.data as { success?: string })?.success ?? 'Catégorie mise à jour');
+            } else if (result.type === 'failure') {
+                toast.error("Erreur", (result.data as { error?: string })?.error ?? 'Une erreur est survenue');
+            }
+            await update({ reset: false });
+        };
+    }
+
+    function deleteCatEnhance() {
+        return async ({ result, update }: { result: import('@sveltejs/kit').ActionResult; update: (opts?: { reset?: boolean }) => Promise<void> }) => {
+            if (result.type === 'success') {
+                deleteDialogOpen = false;
+                toast.success("Succès", (result.data as { success?: string })?.success ?? 'Catégorie supprimée');
+            } else if (result.type === 'failure') {
+                toast.error("Erreur", (result.data as { error?: string })?.error ?? 'Une erreur est survenue');
+            }
+            await update({ reset: false });
+        };
+    }
 
     function resetCreateForm() {
         createName = "";
@@ -293,7 +312,7 @@
             </div>
             <p class="text-dark-400 text-sm">Créer une nouvelle catégorie d'événement</p>
         </div>
-        <form method="POST" action="?/createCategory" use:enhance class="grid gap-4 pt-4">
+        <form method="POST" action="?/createCategory" use:enhance={createCatEnhance} class="grid gap-4 pt-4">
             <div class="grid grid-cols-1 gap-4 w-full">
                 {@render field("name", "Nom", createInput, null)}
                 {@render field("displayNameEn", "Nom d'affichage (Anglais)", createInput, null)}
@@ -322,7 +341,7 @@
     </Drawer>
 {:else}
     <Modal bind:isOpen={createDialogOpen} title="Créer une Nouvelle Catégorie" description="Créer une nouvelle catégorie d'événement">
-        <form method="POST" action="?/createCategory" use:enhance class="grid gap-4">
+        <form method="POST" action="?/createCategory" use:enhance={createCatEnhance} class="grid gap-4">
             <div class="grid grid-cols-2 gap-4 w-full">
                 <div class="col-span-2">{@render field("name", "Nom", createInput, null)}</div>
                 <div class="col-span-2">{@render field("displayNameEn", "Nom d'affichage (Anglais)", createInput, null)}</div>
@@ -363,7 +382,7 @@
             </div>
             <p class="text-dark-400 text-sm">Mettre à jour les détails de la catégorie</p>
         </div>
-        <form method="POST" action="?/updateCategory" use:enhance class="grid gap-4 pt-4">
+        <form method="POST" action="?/updateCategory" use:enhance={editCatEnhance} class="grid gap-4 pt-4">
             <input type="hidden" name="id" value={selectedCategory?.id} />
             <div class="grid grid-cols-1 gap-4 w-full">
                 {@render field("name", "Nom", editInput, null)}
@@ -393,7 +412,7 @@
     </Drawer>
 {:else}
     <Modal bind:isOpen={editDialogOpen} title="Modifier la Catégorie" description="Mettre à jour les détails de la catégorie">
-        <form method="POST" action="?/updateCategory" use:enhance class="grid gap-4">
+        <form method="POST" action="?/updateCategory" use:enhance={editCatEnhance} class="grid gap-4">
             <input type="hidden" name="id" value={selectedCategory?.id} />
             <div class="grid grid-cols-2 gap-4 w-full">
                 <div class="col-span-2">{@render field("name", "Nom", editInput, null)}</div>
@@ -438,7 +457,7 @@
             </p>
         </div>
         <div class="pt-4">
-            <form method="POST" action="?/deleteCategory" use:enhance>
+            <form method="POST" action="?/deleteCategory" use:enhance={deleteCatEnhance}>
                 <input type="hidden" name="id" value={selectedCategory?.id} />
                 <div class="flex w-full justify-end gap-3">
                     <button type="button" onclick={() => (deleteDialogOpen = false)}
@@ -452,7 +471,7 @@
 {:else}
     <Modal bind:isOpen={deleteDialogOpen} title="Supprimer la Catégorie"
         description="Êtes-vous sûr de vouloir supprimer '{selectedCategory?.displayNameEn}' ? Cette action ne peut pas être annulée.">
-        <form method="POST" action="?/deleteCategory" use:enhance class="mt-6">
+        <form method="POST" action="?/deleteCategory" use:enhance={deleteCatEnhance} class="mt-6">
             <input type="hidden" name="id" value={selectedCategory?.id} />
             <div class="flex w-full justify-end gap-3">
                 <button type="button" onclick={() => (deleteDialogOpen = false)}
