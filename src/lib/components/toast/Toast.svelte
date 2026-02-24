@@ -3,10 +3,7 @@
 	import { quintOut } from "svelte/easing";
 	import type { Toast } from "./types";
 	import { getToastContext } from "./state.svelte";
-	import Check from "lucide-svelte/icons/circle-check.svelte";
-	import XCircle from "lucide-svelte/icons/circle-x.svelte";
-	import AlertTriangle from "lucide-svelte/icons/triangle-alert.svelte";
-	import InfoIcon from "lucide-svelte/icons/info.svelte";
+	import { CircleCheck as Check, CircleX as XCircle, TriangleAlert as AlertTriangle, Info as InfoIcon } from "lucide-svelte";
 
 	type Props = { toast: Toast };
 
