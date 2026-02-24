@@ -174,8 +174,8 @@ terraform output
 
 Add these to your project's `.env` file:
 ```bash
-S3_BUCKET=development-germinal-media
-S3_REGION=eu-central-1
+S3_BUCKET=staging-germinal-media
+S3_REGION=eu-west-3
 AWS_ACCESS_KEY_ID=AKIA...
 AWS_SECRET_ACCESS_KEY=...
 ```
@@ -536,3 +536,41 @@ For separate environments (development, staging, production):
    ```
 
 3. Update `terraform.tfvars` for each environment
+
+### Germinal Environment Architecture
+
+| Environment | Purpose | URL | AWS Resources | Server |
+|-------------|---------|-----|---------------|--------|
+| **Development** | Local coding only | `localhost:5173` | None (uses `USE_MOCK_DATA=true`) | Local machine |
+| **Staging** | Test before production | `staging.germinalstudio.co` | `staging-germinal-*` | `46.225.25.238` |
+| **Production** | Live site | `germinalstudio.co` | `production-germinal-*` | TBD |
+
+**Key Points:**
+- Development runs locally with mock data - no AWS resources needed
+- Staging uses `environment = "staging"` in terraform.tfvars
+- Production requires a separate workspace/tfvars with `environment = "production"`
+- Each environment has completely separate S3 buckets, IAM users, and credentials
+
+### Setting Up Production
+
+When ready to deploy production:
+
+```bash
+cd infrastructure/terraform
+
+# Option 1: Using workspaces (recommended)
+terraform workspace new production
+# Update terraform.tfvars with environment=production
+terraform apply
+
+# Option 2: Using separate tfvars file
+cp terraform.tfvars terraform.tfvars.staging
+cp terraform.tfvars terraform.tfvars.production
+# Edit terraform.tfvars.production with environment=production
+terraform apply -var-file=terraform.tfvars.production
+```
+
+After production deployment:
+1. Get production credentials: `terraform output -json iam_access_key_secret`
+2. Update production server `/opt/germinal/.env`
+3. Restart production containers: `docker compose up -d --force-recreate app`
