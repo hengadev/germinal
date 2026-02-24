@@ -55,7 +55,8 @@ export async function getSessionById(id: string) {
 			event: {
 				columns: {
 					id: true,
-					title: true,
+					titleEn: true,
+					titleFr: true,
 					slug: true,
 					location: true,
 					startDate: true,
@@ -92,9 +93,9 @@ export async function getAllSessionsByEventId(eventId: string) {
 		SELECT
 			es.*,
 			e.id as events_id,
-			e.title as events_title,
+			e.title_en as events_title,
 			e.slug as events_slug,
-			e.description as events_description,
+			e.description_en as events_description,
 			COUNT(r.id) as sold_count
 		FROM event_sessions es
 		LEFT JOIN events e ON e.id = es.event_id

@@ -154,9 +154,6 @@ export async function updateEvent(id: string, input: UpdateEventInput) {
     const [updated] = await tx.update(events)
       .set({
         ...input,
-        // Handle both old field names (for backward compatibility) and new ones
-        title: (input as any).title || input.titleEn,
-        description: (input as any).description || input.descriptionEn,
         updatedAt: new Date()
       })
       .where(eq(events.id, id))
