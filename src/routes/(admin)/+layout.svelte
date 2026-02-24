@@ -2,12 +2,17 @@
     import { page } from "$app/state";
     import { slide } from "svelte/transition";
     import AdminSidebar from "./AdminSidebar.svelte";
+    import Toaster from "$lib/components/toast/Toaster.svelte";
+    import { setToastContext } from "$lib/components/toast/state.svelte";
     import type { LayoutData } from "./$types";
 
     let {
         data,
         children,
     }: { data: LayoutData; children: import("svelte").Snippet } = $props();
+
+    // Set up toast context for all admin pages
+    setToastContext();
 </script>
 
 <div class="min-h-screen bg-dark-50/25 flex flex-col lg:flex-row">
@@ -252,6 +257,9 @@
             </a>
         </div>
     </nav>
+
+    <!-- Toast notifications -->
+    <Toaster />
 </div>
 
 <style>
