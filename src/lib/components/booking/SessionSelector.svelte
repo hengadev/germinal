@@ -16,6 +16,7 @@
 		totalCapacity: number;
 		allowWaitlist: boolean;
 		soldOut: boolean;
+		isPast: boolean;
 	}
 
 	let { sessions, eventTitle, eventSlug }: {
@@ -112,19 +113,25 @@
 
 				<!-- Capacity & Action -->
 				<div class="flex items-center justify-between gap-4">
-					<div class="flex items-center gap-2">
-						<Users size={18} class="text-dark-400" />
-						<span class="text-sm text-dark-600">
-							{#if session.soldOut}
-								<span class="text-red-600 font-medium">Sold Out</span>
-							{:else}
-								<span class="font-medium">{session.availableCapacity}</span>
-								<span class="text-dark-400">/ {session.totalCapacity} tickets available</span>
-							{/if}
-						</span>
-					</div>
+					{#if !session.isPast}
+						<div class="flex items-center gap-2">
+							<Users size={18} class="text-dark-400" />
+							<span class="text-sm text-dark-600">
+								{#if session.soldOut}
+									<span class="text-red-600 font-medium">Sold Out</span>
+								{:else}
+									<span class="font-medium">{session.availableCapacity}</span>
+									<span class="text-dark-400">/ {session.totalCapacity} tickets available</span>
+								{/if}
+							</span>
+						</div>
+					{/if}
 
-					{#if session.soldOut}
+					{#if session.isPast}
+						<div class="px-6 py-3 text-dark-400 font-medium">
+							Session ended
+						</div>
+					{:else if session.soldOut}
 						{#if session.allowWaitlist}
 							<button
 								onclick={() => openWaitlist(session)}
