@@ -31,7 +31,8 @@ export const load: PageServerLoad = async ({ params }) => {
         availableCapacity: s.availableCapacity,
         totalCapacity: s.totalCapacity,
         allowWaitlist: s.allowWaitlist,
-        soldOut: s.availableCapacity === 0
+        soldOut: s.availableCapacity === 0,
+        isPast: s.startTime < new Date()
       }))
     };
   } catch {
