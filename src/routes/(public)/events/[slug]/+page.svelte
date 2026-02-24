@@ -17,6 +17,8 @@
         data.event.timings ? JSON.parse(data.event.timings) : [],
     );
 
+    let hasUpcomingSessions = $derived(data.sessions.some(s => !s.isPast));
+
     function getEventField(field: 'title' | 'description' | 'subtitle' | 'curator' | 'materials' | 'admissionInfo'): string {
         const enField = (field + 'En') as 'titleEn' | 'descriptionEn' | 'subtitleEn' | 'curatorEn' | 'materialsEn' | 'admissionInfoEn';
         const frField = (field + 'Fr') as 'titleFr' | 'descriptionFr' | 'subtitleFr' | 'curatorFr' | 'materialsFr' | 'admissionInfoFr';
@@ -160,7 +162,7 @@
             </section>
         {/if}
 
-        {#if data.sessions && data.sessions.length > 0}
+        {#if hasUpcomingSessions}
             <section class="mt-16" use:reveal={{ preset: "fade-up", delay: 250 }}>
                 <h2 class="text-3xl font-bold mb-8">{$t("events.bookTickets")}</h2>
                 <SessionSelector
@@ -168,13 +170,6 @@
                     eventTitle={getEventField('title')}
                     eventSlug={data.event.slug}
                 />
-            </section>
-        {:else}
-            <section class="mt-16" use:reveal={{ preset: "fade-up", delay: 250 }}>
-                <h2 class="text-3xl font-bold mb-8">{$t("events.bookTickets")}</h2>
-                <div class="bg-dark-50 rounded-lg border border-border-card p-8 text-center">
-                    <p class="text-dark-500">No sessions available at this time. Please check back later.</p>
-                </div>
             </section>
         {/if}
     </article>
