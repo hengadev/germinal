@@ -4,8 +4,24 @@
 	import MediaUpload from '$lib/components/MediaUpload.svelte';
 	import type { ActionData, PageData } from './$types';
 	import type { Media } from '$lib/types/media';
+	import { getToastContext } from '$lib/components/toast/state.svelte';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
+
+	const toast = getToastContext();
+
+	// Show toast on form changes
+	$effect(() => {
+		if (form?.success) {
+			toast.success("Succès", form.success || "Modifications enregistrées");
+		}
+	});
+
+	$effect(() => {
+		if (form?.error) {
+			toast.error("Erreur", form.error);
+		}
+	});
 
 	let firstName = $state(data.talent.firstName);
 	let lastName = $state(data.talent.lastName);
