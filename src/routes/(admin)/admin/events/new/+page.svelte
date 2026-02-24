@@ -672,6 +672,7 @@
 						id="published"
 						name="published"
 						type="checkbox"
+						value="true"
 						bind:checked={published}
 						class="w-5 h-5 text-dark-900 border-border-dark rounded focus:ring-dark-900"
 					/>
@@ -691,6 +692,7 @@
 						id="isSpotlight"
 						name="isSpotlight"
 						type="checkbox"
+						value="true"
 						bind:checked={isSpotlight}
 						class="w-5 h-5 text-amber-900 border-amber-300 rounded focus:ring-amber-900"
 					/>
