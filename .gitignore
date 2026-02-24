@@ -44,5 +44,6 @@ playwright-report/
 *.tfstate
 *.tfstate.*
 *.tfvars
+*.tfvars.*
 !**/*.tfvars.example
 
