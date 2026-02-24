@@ -1,11 +1,26 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { ArrowLeft, CheckCircle, Eye, EyeOff } from 'lucide-svelte';
+	import { ArrowLeft, Eye, EyeOff } from 'lucide-svelte';
 	import type { ActionData } from './$types';
+	import { getToastContext } from '$lib/components/toast/state.svelte';
 
 	let { data, form } = $props();
 
-	const success = form?.success ?? false;
+	const toast = getToastContext();
+
+	// Show toast on success
+	$effect(() => {
+		if (form?.success) {
+			toast.success("Succès", form.message || "Mot de passe mis à jour");
+		}
+	});
+
+	// Show toast on error
+	$effect(() => {
+		if (form?.error) {
+			toast.error("Erreur", form.error);
+		}
+	});
 
 	let showCurrent = $state(false);
 	let showNew = $state(false);
@@ -35,17 +50,6 @@
 		<div class="max-w-md mx-auto">
 			<div class="bg-white rounded-lg border border-border-card p-8">
 				<h1 class="text-2xl font-bold mb-6">Changer le Mot de Passe</h1>
-
-				{#if success}
-					<div class="mb-6 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg flex items-start gap-3">
-						<CheckCircle size={20} class="shrink-0 mt-0.5" />
-						<p class="text-sm">{form?.message}</p>
-					</div>
-				{:else if form?.error}
-					<div class="mb-6 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg flex items-start gap-3">
-						<p class="text-sm">{form?.error}</p>
-					</div>
-				{/if}
 
 				<div class="mb-6 p-4 bg-dark-50 rounded-lg">
 					<p class="text-sm text-dark-700">

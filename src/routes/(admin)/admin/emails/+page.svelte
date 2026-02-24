@@ -2,8 +2,11 @@
 	import { Mail, CheckCircle2, Clock, XCircle, AlertCircle, Search, RotateCcw, Trash2, Eye, Filter, Calendar, Send } from 'lucide-svelte';
 	import type { PageData } from './$types';
 	import { enhance } from '$app/forms';
+	import { getToastContext } from '$lib/components/toast/state.svelte';
 
 	let { data }: { data: PageData } = $props();
+
+	const toast = getToastContext();
 
 	// Filter state
 	let statusFilter = $state(data.filters.status);
@@ -17,6 +20,21 @@
 		success?: string;
 		error?: string;
 	} | undefined>();
+
+	// Show toast on form changes
+	$effect(() => {
+		if (form?.success) {
+			toast.success("Succès", form.success);
+			form = undefined;
+		}
+	});
+
+	$effect(() => {
+		if (form?.error) {
+			toast.error("Erreur", form.error);
+			form = undefined;
+		}
+	});
 
 	// Get status badge
 	function getStatusBadge(status: string) {
@@ -100,20 +118,6 @@
 		<h1 class="text-3xl lg:text-4xl font-bold mb-2">File d'Attente Email</h1>
 		<p class="text-dark-400">Surveiller et gérer l'envoi des emails</p>
 	</div>
-
-	<!-- Success/Error Messages -->
-	{#if form?.success}
-		<div class="mb-6 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg flex items-center gap-3">
-			<CheckCircle2 size={20} />
-			<span>{form.success}</span>
-		</div>
-	{/if}
-	{#if form?.error}
-		<div class="mb-6 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg flex items-center gap-3">
-			<AlertCircle size={20} />
-			<span>{form.error}</span>
-		</div>
-	{/if}
 
 	<!-- Filters -->
 	<div class="bg-white rounded-lg border border-border-card p-4 mb-6">

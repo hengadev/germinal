@@ -3,6 +3,7 @@
 	import type { PageData } from './$types';
 	import { formatCurrency } from '$lib/utils/currency';
 	import { enhance } from '$app/forms';
+	import { getToastContext } from '$lib/components/toast/state.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -11,6 +12,23 @@
 		success?: string;
 		error?: string;
 	} | undefined>();
+
+	const toast = getToastContext();
+
+	// Show toast on form changes
+	$effect(() => {
+		if (form?.success) {
+			toast.success("Succès", form.success);
+			form = undefined;
+		}
+	});
+
+	$effect(() => {
+		if (form?.error) {
+			toast.error("Erreur", form.error);
+			form = undefined;
+		}
+	});
 
 	// Get status badge
 	function getStatusBadge(status: string) {
@@ -57,20 +75,6 @@
 		<h1 class="text-3xl lg:text-4xl font-bold mb-2">Surveillance des Webhooks</h1>
 		<p class="text-dark-400">Surveiller les paiements avec des webhooks non traités</p>
 	</div>
-
-	<!-- Success/Error Messages -->
-	{#if form?.success}
-		<div class="mb-6 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg flex items-center gap-3">
-			<CheckCircle2 size={20} />
-			<span>{form.success}</span>
-		</div>
-	{/if}
-	{#if form?.error}
-		<div class="mb-6 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg flex items-center gap-3">
-			<AlertTriangle size={20} />
-			<span>{form.error}</span>
-		</div>
-	{/if}
 
 	{#if data.payments.length === 0}
 		<div class="bg-white rounded-lg border border-border-card p-12 text-center">

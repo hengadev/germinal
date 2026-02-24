@@ -4,6 +4,7 @@
 	import { formatCurrency } from '$lib/utils/currency';
 	import QRCode from 'qrcode';
 	import { enhance } from '$app/forms';
+	import { getToastContext } from '$lib/components/toast/state.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -11,6 +12,24 @@
 		success?: string;
 		error?: string;
 	} | undefined>();
+
+	const toast = getToastContext();
+
+	// Show toast on form changes
+	$effect(() => {
+		if (form?.success) {
+			toast.success("Succès", form.success);
+			form = undefined;
+		}
+	});
+
+	$effect(() => {
+		if (form?.error) {
+			toast.error("Erreur", form.error);
+			form = undefined;
+		}
+	});
+
 	let isSubmitting = $state(false);
 
 	let qrCodeUrl = $state<string | null>(null);
@@ -124,20 +143,6 @@ END:VCALENDAR`;
 </svelte:head>
 
 <div class="container mx-auto px-4 py-8 lg:py-12">
-	<!-- Success/Error Messages -->
-	{#if form?.success}
-		<div class="mb-6 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg flex items-center gap-3">
-			<CheckCircle2 size={20} />
-			<span>{form.success}</span>
-		</div>
-	{/if}
-	{#if form?.error}
-		<div class="mb-6 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg flex items-center gap-3">
-			<AlertCircle size={20} />
-			<span>{form.error}</span>
-		</div>
-	{/if}
-
 	<!-- Back Button -->
 	<a
 		href="/admin/reservations"
