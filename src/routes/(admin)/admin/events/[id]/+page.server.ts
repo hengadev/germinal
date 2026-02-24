@@ -226,6 +226,22 @@ export const actions: Actions = {
 			return fail(400, { error: 'End date must be after start date' });
 		}
 
+		// Validate: published events must have at least one session
+		if (published) {
+			if (env.USE_MOCK_DATA) {
+				const hasSessions = MOCK_SESSIONS.some(s => s.eventId === id);
+				if (!hasSessions) {
+					return fail(400, { error: 'Cannot publish event without at least one session. Please add a session first.' });
+				}
+			} else {
+				const { getAllSessionsByEventId } = await import('$lib/server/services/event-sessions');
+				const sessions = await getAllSessionsByEventId(id);
+				if (!sessions || sessions.length === 0) {
+					return fail(400, { error: 'Cannot publish event without at least one session. Please add a session first.' });
+				}
+			}
+		}
+
 		if (env.USE_MOCK_DATA) {
 			// Mock mode - update in mock data array (not persisted)
 			const eventIndex = MOCK_EVENTS.findIndex((e) => e.id === id);
