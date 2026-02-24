@@ -16,6 +16,12 @@
 		spotlightEvent?.timings ? JSON.parse(spotlightEvent.timings) : []
 	);
 
+	let futureSessions = $derived(
+		spotlightEvent?.eventSessions?.filter(
+			(s: { startTime: string }) => new Date(s.startTime) > new Date()
+		) ?? []
+	);
+
 	function getEventField(field: 'title' | 'description' | 'subtitle' | 'admissionInfo'): string {
 		if (!spotlightEvent) return '';
 		const enField = (field + 'En') as 'titleEn' | 'descriptionEn' | 'subtitleEn' | 'admissionInfoEn';
@@ -191,11 +197,11 @@
 				</section>
 			{/if}
 
-			{#if spotlightEvent.eventSessions && spotlightEvent.eventSessions.length > 0}
+			{#if futureSessions.length > 0}
 				<section class="mt-16" use:reveal={{ preset: 'fade-up', delay: 250 }}>
 					<h2 class="text-3xl font-bold mb-8">Book Tickets</h2>
 					<div class="grid gap-4">
-						{#each spotlightEvent.eventSessions as session}
+						{#each futureSessions as session}
 							<a
 								href="/events/{spotlightEvent.slug}/book/{session.id}"
 								class="block p-6 bg-white border border-border-card rounded-lg hover:border-dark-900 transition-colors"
