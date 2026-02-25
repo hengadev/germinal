@@ -65,6 +65,7 @@ import { goto } from "$app/navigation";
     let createLocation = $state("");
     let createCategoryId = $state("");
     let createPublished = $state(false);
+    let createIsSpotlight = $state(false);
 
     // Auto-generate slug from title
     $effect(() => {
@@ -85,6 +86,7 @@ import { goto } from "$app/navigation";
     let editLocation = $state("");
     let editCategoryId = $state("");
     let editPublished = $state(false);
+    let editIsSpotlight = $state(false);
 
     // Media state for create form
     let createCoverMediaId = $state<string | null>(null);
@@ -154,6 +156,7 @@ import { goto } from "$app/navigation";
         createLocation = "";
         createCategoryId = "";
         createPublished = false;
+        createIsSpotlight = false;
         createCoverMediaId = null;
         createGalleryMediaIds = [];
     }
@@ -183,6 +186,7 @@ import { goto } from "$app/navigation";
         editLocation = event.location;
         editCategoryId = event.categoryId || "";
         editPublished = event.published;
+        editIsSpotlight = event.isSpotlight ?? false;
         editDialogOpen = true;
     }
 
@@ -829,6 +833,28 @@ import { goto } from "$app/navigation";
                         </p>
                     </div>
                 </div>
+
+                <div class="flex items-center gap-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                    <input
+                        id="createIsSpotlight"
+                        name="isSpotlight"
+                        type="checkbox"
+                        value="true"
+                        bind:checked={createIsSpotlight}
+                        class="w-4 h-4 text-amber-900 border-amber-300 rounded focus:ring-amber-900"
+                    />
+                    <div>
+                        <label
+                            for="createIsSpotlight"
+                            class="block text-sm font-medium text-amber-900 cursor-pointer"
+                        >
+                            Prochain événement (Upcoming)
+                        </label>
+                        <p class="text-xs text-amber-600">
+                            Un seul événement peut être mis en avant à la fois
+                        </p>
+                    </div>
+                </div>
             </div>
             <div class="flex w-full justify-end gap-3 pt-2">
                 <button
@@ -981,6 +1007,28 @@ import { goto } from "$app/navigation";
                 </div>
             </div>
 
+            <div class="flex items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                <input
+                    id="createIsSpotlightDesktop"
+                    name="isSpotlight"
+                    type="checkbox"
+                    value="true"
+                    bind:checked={createIsSpotlight}
+                    class="w-5 h-5 text-amber-900 border-amber-300 rounded focus:ring-amber-900"
+                />
+                <div>
+                    <label
+                        for="createIsSpotlightDesktop"
+                        class="block text-sm font-medium text-amber-900 cursor-pointer"
+                    >
+                        Prochain événement (Upcoming)
+                    </label>
+                    <p class="text-xs text-amber-600">
+                        Un seul événement peut être mis en avant à la fois
+                    </p>
+                </div>
+            </div>
+
             <div class="flex w-full justify-end gap-3 pt-2">
                 <button
                     type="button"
@@ -1102,6 +1150,28 @@ import { goto } from "$app/navigation";
                         </label>
                         <p class="text-xs text-dark-400">
                             Décochez pour sauvegarder comme brouillon
+                        </p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                    <input
+                        id="editIsSpotlight"
+                        name="isSpotlight"
+                        type="checkbox"
+                        value="true"
+                        bind:checked={editIsSpotlight}
+                        class="w-4 h-4 text-amber-900 border-amber-300 rounded focus:ring-amber-900"
+                    />
+                    <div>
+                        <label
+                            for="editIsSpotlight"
+                            class="block text-sm font-medium text-amber-900 cursor-pointer"
+                        >
+                            Prochain événement (Upcoming)
+                        </label>
+                        <p class="text-xs text-amber-600">
+                            Un seul événement peut être mis en avant à la fois
                         </p>
                     </div>
                 </div>
@@ -1229,6 +1299,28 @@ import { goto } from "$app/navigation";
                     </label>
                     <p class="text-xs text-dark-400">
                         Décochez pour sauvegarder comme brouillon
+                    </p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                <input
+                    id="editIsSpotlightDesktop"
+                    name="isSpotlight"
+                    type="checkbox"
+                    value="true"
+                    bind:checked={editIsSpotlight}
+                    class="w-5 h-5 text-amber-900 border-amber-300 rounded focus:ring-amber-900"
+                />
+                <div>
+                    <label
+                        for="editIsSpotlightDesktop"
+                        class="block text-sm font-medium text-amber-900 cursor-pointer"
+                    >
+                        Prochain événement (Upcoming)
+                    </label>
+                    <p class="text-xs text-amber-600">
+                        Un seul événement peut être mis en avant à la fois
                     </p>
                 </div>
             </div>

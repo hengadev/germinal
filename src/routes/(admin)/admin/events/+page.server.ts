@@ -51,6 +51,7 @@ export const actions: Actions = {
         const location = formData.get('location');
         const categoryId = formData.get('categoryId');
         const published = formData.get('published') === 'true';
+        const isSpotlight = formData.get('isSpotlight') === 'true';
         const coverMediaId = formData.get('coverMediaId')?.toString() || null;
         const galleryMediaIdsRaw = formData.get('galleryMediaIds')?.toString() || null;
 
@@ -133,7 +134,7 @@ export const actions: Actions = {
                 admissionInfoEn: null,
                 admissionInfoFr: null,
                 published,
-                isSpotlight: false,
+                isSpotlight,
                 categoryId: null,
                 category: null,
                 createdAt: new Date(),
@@ -180,7 +181,7 @@ export const actions: Actions = {
                 coverMediaId: coverMediaId || null,
                 categoryId: categoryId?.toString() || null,
                 published,
-                isSpotlight: false
+                isSpotlight
             });
 
             // Link uploaded media records to the new event
@@ -231,6 +232,7 @@ export const actions: Actions = {
         const categoryId = formData.get('categoryId');
         const published = formData.get('published') === 'true';
         const coverMediaId = formData.get('coverMediaId')?.toString() || null;
+        const isSpotlight = formData.get('isSpotlight') === 'true';
 
         // Validate id
         if (!id || typeof id !== 'string') {
@@ -307,6 +309,7 @@ export const actions: Actions = {
                 location,
                 coverMediaId: coverMediaId || MOCK_EVENTS[eventIndex].coverMediaId,
                 published,
+                isSpotlight,
                 updatedAt: new Date()
             } as typeof MOCK_EVENTS[number];
 
@@ -328,7 +331,8 @@ export const actions: Actions = {
                 location,
                 categoryId: categoryId?.toString() || null,
                 coverMediaId: coverMediaId || null,
-                published
+                published,
+                isSpotlight
             });
 
             // Link the cover media record to this event
