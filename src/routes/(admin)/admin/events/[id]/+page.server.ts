@@ -140,7 +140,7 @@ export const load: PageServerLoad = async ({ params }) => {
 
 export const actions: Actions = {
 	// Update event action
-	default: async ({ request, params }) => {
+	updateEvent: async ({ request, params }) => {
 		const { id } = params;
 
 		// Validate id
