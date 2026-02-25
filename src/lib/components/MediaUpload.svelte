@@ -13,6 +13,7 @@
 		onUpload: (media: Media[]) => void;
 		onRemove: (mediaId: string) => void;
 		onReorder?: (mediaIds: string[]) => void;
+		onBeforeRemove?: (mediaId: string) => Promise<boolean>;
 	}
 
 	let {
@@ -25,7 +26,8 @@
 		entityId,
 		onUpload,
 		onRemove,
-		onReorder
+		onReorder,
+		onBeforeRemove
 	}: Props = $props();
 
 	// Track current uploaded media (new uploads + existing)
@@ -233,7 +235,11 @@
 		}
 	}
 
-	function handleRemove(mediaId: string) {
+	async function handleRemove(mediaId: string) {
+		if (onBeforeRemove) {
+			const confirmed = await onBeforeRemove(mediaId);
+			if (!confirmed) return;
+		}
 		uploadedMedia = uploadedMedia.filter((m) => m.id !== mediaId);
 		onRemove(mediaId);
 	}
