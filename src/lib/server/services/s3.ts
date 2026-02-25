@@ -1,4 +1,5 @@
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { Readable } from 'node:stream';
 import { randomUUID } from 'node:crypto';
 import { env, isS3Enabled, getMediaBaseUrl } from '../env';
 
@@ -54,10 +55,14 @@ export async function uploadStreamToS3(
 ): Promise<UploadStreamResult> {
   const client = getS3Client();
 
+  // Convert WHATWG ReadableStream to Node.js Readable — recent AWS SDK v3 versions
+  // fail to calculate checksums on WHATWG streams ("flowing readable stream" error).
+  const body = Readable.fromWeb(stream as import('stream/web').ReadableStream);
+
   const command = new PutObjectCommand({
     Bucket: env.S3_BUCKET_NAME,
     Key: key,
-    Body: stream,
+    Body: body,
     ContentType: contentType,
     ContentLength: fileSize,
   });
