@@ -65,6 +65,7 @@
 			<MediaUpload
 				mode="single"
 				entityType="event"
+				entityId={data.event.id}
 				existingMedia={existingCoverMedia}
 				maxSizeMB={10}
 				onUpload={handleCoverUpload}
@@ -82,6 +83,7 @@
 			<MediaUpload
 				mode="multiple"
 				entityType="event"
+				entityId={data.event.id}
 				existingMedia={existingGalleryMedia}
 				maxSizeMB={10}
 				onUpload={handleGalleryUpload}

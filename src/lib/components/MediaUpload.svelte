@@ -9,6 +9,7 @@
 		maxSizeMB?: number;
 		existingMedia?: Media[];
 		entityType: 'talent' | 'event';
+		entityId?: string;
 		onUpload: (media: Media[]) => void;
 		onRemove: (mediaId: string) => void;
 		onReorder?: (mediaIds: string[]) => void;
@@ -21,6 +22,7 @@
 		maxSizeMB = 10,
 		existingMedia = [],
 		entityType,
+		entityId,
 		onUpload,
 		onRemove,
 		onReorder
@@ -33,6 +35,7 @@
 
 	// Track files currently being uploaded
 	interface UploadProgress {
+		id: string;
 		file: File;
 		progress: number;
 		error?: string;
@@ -78,14 +81,17 @@
 		return null; // Valid
 	}
 
-	async function uploadFile(file: File, progress: UploadProgress): Promise<Media> {
+	async function uploadFile(file: File, onProgress: (pct: number) => void): Promise<Media> {
 		// Check for mock data mode
 		const useMockData = import.meta.env.VITE_USE_MOCK_DATA === 'true';
 
 		if (useMockData) {
-			// Simulate upload delay
-			await new Promise((resolve) => setTimeout(resolve, 500 + Math.random() * 1000));
-			progress.progress = 100;
+			// Simulate upload with animated progress steps
+			for (let pct = 0; pct <= 100; pct += 20) {
+				await new Promise((resolve) => setTimeout(resolve, 150 + Math.random() * 200));
+				onProgress(pct);
+			}
+			onProgress(100);
 
 			// Return mock media
 			return {
@@ -108,11 +114,11 @@
 			const formData = new FormData();
 			formData.append('file', file);
 			formData.append('entityType', entityType);
-			// Don't set entityId - will be set when form is submitted
+			if (entityId) formData.append('entityId', entityId);
 
 			xhr.upload.onprogress = (e) => {
 				if (e.lengthComputable) {
-					progress.progress = Math.round((e.loaded / e.total) * 100);
+					onProgress(Math.round((e.loaded / e.total) * 100));
 				}
 			};
 
@@ -151,28 +157,32 @@
 		const filesArray = Array.from(files);
 
 		for (const file of filesArray) {
+			const progressId = crypto.randomUUID();
+
 			// Validate file
 			const error = validateFile(file);
 			if (error) {
 				uploadingFiles = [
 					...uploadingFiles,
-					{ file, progress: 0, error, preview: createPreview(file) }
+					{ id: progressId, file, progress: 0, error, preview: createPreview(file) }
 				];
 				continue;
 			}
 
-			// Create progress tracker
-			const progress: UploadProgress = {
-				file,
-				progress: 0,
-				preview: createPreview(file)
-			};
-			uploadingFiles = [...uploadingFiles, progress];
+			uploadingFiles = [
+				...uploadingFiles,
+				{ id: progressId, file, progress: 0, preview: createPreview(file) }
+			];
 
-			// Upload file
+			// Upload file — update progress through the reactive array to trigger re-renders
 			try {
-				const media = await uploadFile(file, progress);
-				progress.media = media;
+				const media = await uploadFile(file, (pct) => {
+					const idx = uploadingFiles.findIndex((p) => p.id === progressId);
+					if (idx >= 0) uploadingFiles[idx].progress = pct;
+				});
+
+				const idx = uploadingFiles.findIndex((p) => p.id === progressId);
+				if (idx >= 0) uploadingFiles[idx].media = media;
 
 				// Add to uploaded media
 				const newMedia = { ...media, isNew: true };
@@ -181,10 +191,13 @@
 
 				// Remove from uploading list after a short delay
 				setTimeout(() => {
-					uploadingFiles = uploadingFiles.filter((p) => p !== progress);
+					uploadingFiles = uploadingFiles.filter((p) => p.id !== progressId);
 				}, 500);
 			} catch (err) {
-				progress.error = err instanceof Error ? err.message : 'Upload failed';
+				const idx = uploadingFiles.findIndex((p) => p.id === progressId);
+				if (idx >= 0)
+					uploadingFiles[idx].error =
+						err instanceof Error ? err.message : 'Upload failed';
 			}
 		}
 	}
@@ -225,10 +238,11 @@
 		onRemove(mediaId);
 	}
 
-	function handleRetry(progress: UploadProgress) {
-		// Remove error and retry upload
-		uploadingFiles = uploadingFiles.filter((p) => p !== progress);
-		handleFiles([progress.file]);
+	function handleRetry(progressId: string) {
+		const item = uploadingFiles.find((p) => p.id === progressId);
+		if (!item) return;
+		uploadingFiles = uploadingFiles.filter((p) => p.id !== progressId);
+		handleFiles([item.file]);
 	}
 
 	function handleDragStart(e: DragEvent, index: number) {
@@ -329,7 +343,7 @@
 	<!-- Upload Progress -->
 	{#if uploadingFiles.length > 0}
 		<div class="upload-progress-list">
-			{#each uploadingFiles as progress (progress.file.name)}
+			{#each uploadingFiles as progress (progress.id)}
 				<div class="upload-progress-item" class:error={!!progress.error}>
 					{#if progress.preview}
 						<img src={progress.preview} alt="" class="progress-preview" />
@@ -345,7 +359,7 @@
 								<AlertCircle size={14} />
 								{progress.error}
 							</p>
-							<button type="button" class="retry-btn" onclick={() => handleRetry(progress)}>
+							<button type="button" class="retry-btn" onclick={() => handleRetry(progress.id)}>
 								<RefreshCw size={14} />
 								Réessayer
 							</button>
