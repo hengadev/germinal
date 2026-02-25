@@ -15,6 +15,13 @@
       "when": 1771936238639,
       "tag": "0001_glossy_wasp",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1772021000000,
+      "tag": "0002_relax_media_constraint",
+      "breakpoints": true
     }
   ]
 }

@@ -176,8 +176,8 @@ export const media = pgTable('media', {
     eventIdIdx: index('media_event_id_idx').on(table.eventId),
     talentIdIdx: index('media_talent_id_idx').on(table.talentId),
     coverIdx: index('media_is_cover_idx').on(table.isCover),
-    checkEventOrTalent: check('media_event_or_talent_check',
-        sql`(event_id IS NOT NULL AND talent_id IS NULL) OR (event_id IS NULL AND talent_id IS NOT NULL)`
+    checkEntityMutualExclusion: check('media_entity_mutual_exclusion_check',
+        sql`NOT (event_id IS NOT NULL AND talent_id IS NOT NULL)`
     ),
 }));
 
