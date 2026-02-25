@@ -10,6 +10,8 @@ import type { RequestHandler } from './$types';
 export const POST: RequestHandler = async (event) => {
   requireAdmin(event);
 
+  logger.info('Upload request received');
+
   const formData = await event.request.formData();
 
   // Support both 'files' (legacy) and 'file' (single file upload)
@@ -17,12 +19,16 @@ export const POST: RequestHandler = async (event) => {
   const file = formData.get('file') as File | null;
   const filesToUpload = file && !files.length ? [file] : files;
 
+  logger.info({ fileCount: filesToUpload.length }, 'Files to upload');
+
   if (!filesToUpload.length) {
     return error(400, 'No files provided');
   }
 
   const entityType = formData.get('entityType') as 'event' | 'talent' | null;
   const entityId = formData.get('entityId') as string | null;
+
+  logger.info({ entityType, entityId }, 'Upload entity info');
 
   if (!entityType) {
     return error(400, 'Entity type required');
@@ -32,11 +38,15 @@ export const POST: RequestHandler = async (event) => {
 
   // Upload files using streaming (no memory issues with large files)
   for (const file of filesToUpload) {
+    logger.info({ name: file.name, size: file.size, type: file.type }, 'Processing file');
+
     if (file.size === 0 || typeof file.size !== 'number') {
+      logger.warn({ name: file.name }, 'Skipping empty/invalid file');
       continue; // Skip empty or invalid files
     }
 
     if (file.size > env.MAX_FILE_SIZE) {
+      logger.warn({ size: file.size, max: env.MAX_FILE_SIZE }, 'File too large');
       return error(400, `File ${file.name} exceeds max size of ${env.MAX_FILE_SIZE} bytes`);
     }
 
@@ -46,14 +56,16 @@ export const POST: RequestHandler = async (event) => {
       : [...env.ALLOWED_IMAGE_TYPES];
 
     if (!allowedTypes.includes(file.type)) {
+      logger.warn({ type: file.type, allowed: allowedTypes }, 'File type not allowed');
       return error(400, `File type ${file.type} not allowed`);
     }
 
     try {
-      // Use streaming upload to avoid loading entire file into memory
       const folder = entityType === 'event' ? 'events' : 'talents';
       const key = `${folder}/${randomUUID()}${getExtensionFromMimeType(file.type)}`;
       const fileSize = file.size;
+
+      logger.info({ key, bucket: env.S3_BUCKET_NAME, region: env.AWS_REGION }, 'Starting S3 upload');
 
       const uploadResult = await uploadStreamToS3(
         key,
@@ -61,6 +73,8 @@ export const POST: RequestHandler = async (event) => {
         file.type,
         fileSize
       );
+
+      logger.info({ url: uploadResult.url }, 'S3 upload complete');
 
       const mediaType = file.type.startsWith('image/') ? 'image' : 'video';
 
@@ -76,6 +90,8 @@ export const POST: RequestHandler = async (event) => {
         isCover: false,
       });
 
+      logger.info({ mediaId: mediaRecord.id }, 'Media record created');
+
       uploadedMedia.push({
         id: mediaRecord.id,
         url: mediaRecord.url,
@@ -86,7 +102,7 @@ export const POST: RequestHandler = async (event) => {
       });
 
     } catch (err) {
-      logger.error({ err }, 'File upload error');
+      logger.error({ err, name: file.name, bucket: env.S3_BUCKET_NAME, region: env.AWS_REGION }, 'File upload error');
       return error(500, `Failed to upload file ${file.name}`);
     }
   }
