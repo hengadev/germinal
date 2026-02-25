@@ -1,8 +1,11 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import MediaUpload from '$lib/components/MediaUpload.svelte';
+	import { getToastContext } from '$lib/components/toast/state.svelte';
 	import type { ActionData, PageData } from './$types';
 	import type { Media } from '$lib/types/media';
+
+	const toast = getToastContext();
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -54,7 +57,17 @@
 </script>
 
 <div class="bg-white rounded-lg border border-border-card p-6 lg:p-8">
-	<form method="POST" action="?/updateMedia" use:enhance class="space-y-8">
+	<form method="POST" action="?/updateMedia" use:enhance={() => {
+		return async ({ result, update }) => {
+			await update({ reset: false });
+			if (result.type === 'success') {
+				toast.success('Succès', 'Photos mises à jour');
+			} else if (result.type === 'failure') {
+				const data = result.data as { error?: string } | undefined;
+				toast.error('Erreur', data?.error ?? 'Échec de la mise à jour des photos');
+			}
+		};
+	}} class="space-y-8">
 
 		<!-- Cover Photo -->
 		<div>
