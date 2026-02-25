@@ -12,6 +12,16 @@
 # Session secret - must differ from production
 vault_staging_session_secret: "change-me-staging-session-secret-min-32-characters"
 
+# AWS credentials - staging IAM user (from: terraform output -json env_variables)
+vault_staging_aws_access_key_id: "AKIASMN3R66CEGCZ7RWV"
+vault_staging_aws_secret_access_key: "replace-with-staging-secret"
+
+# S3 - dedicated staging bucket (from: terraform output media_bucket_name)
+vault_staging_s3_bucket: "staging-germinal-media"
+vault_staging_s3_region: "eu-west-3"
+vault_staging_s3_public_url: "https://staging-germinal-media.s3.eu-west-3.amazonaws.com"
+vault_staging_media_url: "https://media.germinalstudio.co"
+
 # Stripe - use Stripe TEST mode keys for staging
 vault_staging_stripe_secret_key: "sk_test_..."
 vault_staging_stripe_publishable_key: "pk_test_..."
