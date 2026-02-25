@@ -23,7 +23,7 @@ const config = {
                 'default-src': ['self'],
                 'script-src': ['self'],
                 'style-src': ['self', 'unsafe-inline'],
-                'img-src': ['self', 'data:', 'https:'],
+                'img-src': ['self', 'data:', 'blob:', 'https:'],
                 'connect-src': ['self', 'https://api.stripe.com', 'https://js.stripe.com'],
                 'frame-src': ['https://js.stripe.com'],
             }
