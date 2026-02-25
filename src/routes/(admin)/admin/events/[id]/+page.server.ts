@@ -337,13 +337,9 @@ export const actions: Actions = {
 		const formData = await request.formData();
 		const coverMediaId = formData.get('coverMediaId')?.toString() || null;
 		const galleryMediaIdsRaw = formData.get('galleryMediaIds')?.toString() || null;
-		const removedIdsRaw = formData.get('removedIds')?.toString() || null;
 
 		let galleryIds: string[] = [];
 		try { galleryIds = galleryMediaIdsRaw ? JSON.parse(galleryMediaIdsRaw) : []; } catch { /* ignore */ }
-
-		let removed: string[] = [];
-		try { removed = removedIdsRaw ? JSON.parse(removedIdsRaw) : []; } catch { /* ignore */ }
 
 		if (env.USE_MOCK_DATA) {
 			const eventIndex = MOCK_EVENTS.findIndex((e) => e.id === id);
@@ -361,17 +357,9 @@ export const actions: Actions = {
 			const { db } = await import('$lib/server/db');
 			const { media } = await import('$lib/server/db/schema');
 			const { eq } = await import('drizzle-orm');
-			const { deleteMedia } = await import('$lib/server/services/media');
 
 			// Update coverMediaId on the event
 			await updateEvent(id, { coverMediaId: coverMediaId || null });
-
-			// Delete removed media
-			for (const mediaId of removed) {
-				try { await deleteMedia(mediaId); } catch (err) {
-					logger.error({ err, mediaId }, 'Failed to delete media');
-				}
-			}
 
 			// Build ordered list: cover first, then gallery
 			const allMediaIds = coverMediaId
@@ -392,6 +380,38 @@ export const actions: Actions = {
 		} catch (error) {
 			logger.error({ err: error }, 'Error updating media');
 			return fail(500, { error: 'Échec de la mise à jour des photos' });
+		}
+	},
+
+	// Delete a single photo immediately
+	deletePhoto: async ({ request, params }) => {
+		const { id } = params;
+		if (!id) return fail(400, { error: 'Event ID is required' });
+
+		const formData = await request.formData();
+		const mediaId = formData.get('mediaId')?.toString();
+		if (!mediaId) return fail(400, { error: 'Media ID is required' });
+
+		if (env.USE_MOCK_DATA) {
+			return { success: 'Photo supprimée' };
+		}
+
+		try {
+			const { db } = await import('$lib/server/db');
+			const { media } = await import('$lib/server/db/schema');
+			const { eq, and } = await import('drizzle-orm');
+			const { deleteMedia } = await import('$lib/server/services/media');
+
+			// Security: verify media belongs to this event
+			const [item] = await db.select().from(media)
+				.where(and(eq(media.id, mediaId), eq(media.eventId, id)));
+			if (!item) return fail(404, { error: 'Photo non trouvée' });
+
+			await deleteMedia(mediaId);
+			return { success: 'Photo supprimée' };
+		} catch (error) {
+			logger.error({ err: error, mediaId }, 'Error deleting photo');
+			return fail(500, { error: 'Échec de la suppression de la photo' });
 		}
 	},
 
