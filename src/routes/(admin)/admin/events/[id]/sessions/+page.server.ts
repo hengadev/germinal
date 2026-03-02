@@ -48,7 +48,7 @@ export const actions: Actions = {
 				allowWaitlist: formData.get('allowWaitlist') === 'on'
 			});
 
-			return { success: `Session "${session.title}" created successfully` };
+			return { success: `Séance "${session.title}" créée avec succès` };
 		} catch (err) {
 			logger.error({ err }, 'Create session error');
 			return fail(500, { error: err instanceof Error ? err.message : 'Failed to create session' });
@@ -72,7 +72,7 @@ export const actions: Actions = {
 				allowWaitlist: formData.get('allowWaitlist') === 'on'
 			});
 
-			return { success: 'Session updated successfully' };
+			return { success: 'Séance mise à jour avec succès' };
 		} catch (err) {
 			logger.error({ err }, 'Update session error');
 			return fail(500, { error: err instanceof Error ? err.message : 'Failed to update session' });
@@ -85,7 +85,7 @@ export const actions: Actions = {
 
 		try {
 			await deleteEventSession(id);
-			return { success: 'Session deleted successfully' };
+			return { success: 'Séance supprimée avec succès' };
 		} catch (err) {
 			logger.error({ err }, 'Delete session error');
 			return fail(500, { error: err instanceof Error ? err.message : 'Failed to delete session' });

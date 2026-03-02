@@ -174,7 +174,7 @@
 	}
 
 	function formatDateTime(date: Date | string): string {
-		return new Date(date).toLocaleString('en-US', {
+		return new Date(date).toLocaleString('fr-FR', {
 			month: 'short',
 			day: 'numeric',
 			year: 'numeric',
@@ -184,7 +184,7 @@
 	}
 
 	function formatTime(date: Date | string): string {
-		return new Date(date).toLocaleTimeString('en-US', {
+		return new Date(date).toLocaleTimeString('fr-FR', {
 			hour: '2-digit',
 			minute: '2-digit'
 		});
@@ -245,16 +245,14 @@
 	{:else if fieldName === "priceAmount"}
 		<input
 			id="createPriceAmount"
-			name="priceAmount"
 			type="number"
 			step="0.01"
 			min="0"
 			bind:value={createPriceDecimal}
-			placeholder="25.00"
-			required
+			placeholder="25,00"
 			class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
 		/>
-		<p class="text-xs text-dark-500 mt-1">Enter price in {createCurrency} (e.g., 25.00)</p>
+		<p class="text-xs text-dark-500 mt-1">Entrez le prix en {createCurrency} (ex. : 25,00)</p>
 	{:else if fieldName === "currency"}
 		<select
 			id="createCurrency"
@@ -321,16 +319,14 @@
 	{:else if fieldName === "priceAmount"}
 		<input
 			id="editPriceAmount"
-			name="priceAmount"
 			type="number"
 			step="0.01"
 			min="0"
 			bind:value={editPriceDecimal}
-			placeholder="25.00"
-			required
+			placeholder="25,00"
 			class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
 		/>
-		<p class="text-xs text-dark-500 mt-1">Enter price in {editCurrency} (e.g., 25.00)</p>
+		<p class="text-xs text-dark-500 mt-1">Entrez le prix en {editCurrency} (ex. : 25,00)</p>
 	{:else if fieldName === "currency"}
 		<select
 			id="editCurrency"
@@ -365,14 +361,14 @@
 {/snippet}
 
 <svelte:head>
-	<title>Sessions | Admin Dashboard</title>
+	<title>Séances | Administration</title>
 </svelte:head>
 
 <div class="container mx-auto px-4 py-8 lg:py-12">
 	<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
 		<div>
-			<a href="/admin/events" class="text-dark-600 hover:text-dark-900 text-sm mb-2 inline-block">&larr; Back to Events</a>
-			<h1 class="text-3xl lg:text-4xl font-bold mb-2">Sessions</h1>
+			<a href="/admin/events" class="text-dark-600 hover:text-dark-900 text-sm mb-2 inline-block">&larr; Retour aux événements</a>
+			<h1 class="text-3xl lg:text-4xl font-bold mb-2">Séances</h1>
 			<p class="text-dark-400">{data.event.titleEn}</p>
 		</div>
 		<button
@@ -380,7 +376,7 @@
 			class="inline-flex items-center gap-2 px-4 py-2 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors self-start"
 		>
 			<Plus size={18} />
-			<span>New Session</span>
+			<span>Nouvelle Séance</span>
 		</button>
 	</div>
 
@@ -388,17 +384,17 @@
 		<div class="bg-white rounded-lg border border-border-card p-12 text-center">
 			<Calendar size={48} class="mx-auto mb-4 text-dark-300" />
 			<h3 class="text-xl font-semibold text-dark-900 mb-2">
-				No sessions yet
+				Aucune séance pour le moment
 			</h3>
 			<p class="text-dark-400 mb-6">
-				Create sessions for this event to start selling tickets
+				Créez des séances pour cet événement pour commencer à vendre des billets
 			</p>
 			<button
 				onclick={openCreateDialog}
 				class="inline-flex items-center gap-2 px-4 py-2 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors"
 			>
 				<Plus size={18} />
-				<span>Create Session</span>
+				<span>Créer une Séance</span>
 			</button>
 		</div>
 	{:else}
@@ -408,19 +404,19 @@
 				<thead class="bg-dark-50 border-b border-border-card">
 					<tr>
 						<th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">
-							Session
+							Séance
 						</th>
 						<th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">
-							Date & Time
+							Date et Heure
 						</th>
 						<th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">
-							Price
+							Prix
 						</th>
 						<th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">
-							Capacity
+							Capacité
 						</th>
 						<th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">
-							Status
+							Statut
 						</th>
 						<th class="px-6 py-4 text-right text-xs font-semibold text-dark-600 uppercase tracking-wider">
 							Actions
@@ -436,7 +432,7 @@
 								</div>
 								{#if session.reservationCount > 0}
 									<div class="text-sm text-dark-400">
-										{session.reservationCount} reservation{session.reservationCount > 1 ? 's' : ''}
+										{session.reservationCount} réservation{session.reservationCount > 1 ? 's' : ''}
 									</div>
 								{/if}
 							</td>
@@ -466,12 +462,12 @@
 								{#if session.published}
 									<span class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-green-50 text-green-700 rounded-full">
 										<Eye size={14} />
-										Published
+										Publié
 									</span>
 								{:else}
 									<span class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-dark-100 text-dark-600 rounded-full">
 										<EyeOff size={14} />
-										Draft
+										Brouillon
 									</span>
 								{/if}
 							</td>
@@ -480,14 +476,14 @@
 									<button
 										onclick={() => openEditDialog(session)}
 										class="p-2 text-dark-600 hover:text-dark-900 hover:bg-dark-50 rounded-lg transition-colors"
-										title="Edit"
+										title="Modifier"
 									>
 										<Edit size={18} />
 									</button>
 									<button
 										onclick={() => openDeleteDialog(session)}
 										class="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors"
-										title="Delete"
+										title="Supprimer"
 									>
 										<Trash2 size={18} />
 									</button>
@@ -525,13 +521,13 @@
 
 					<div class="grid grid-cols-2 gap-3 mb-3">
 						<div>
-							<div class="text-xs text-dark-400">Price</div>
+							<div class="text-xs text-dark-400">Prix</div>
 							<div class="font-medium text-dark-900">
 								{formatCurrency(session.priceAmount, session.currency)}
 							</div>
 						</div>
 						<div>
-							<div class="text-xs text-dark-400">Capacity</div>
+							<div class="text-xs text-dark-400">Capacité</div>
 							<div class="flex items-center gap-1 font-medium text-dark-900">
 								<Users size={14} class="text-dark-400" />
 								{session.availableCapacity} / {session.totalCapacity}
@@ -545,14 +541,14 @@
 							class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-dark-600 hover:text-dark-900 hover:bg-dark-50 rounded-lg transition-colors"
 						>
 							<Edit size={16} />
-							Edit
+							Modifier
 						</button>
 						<button
 							onclick={() => openDeleteDialog(session)}
 							class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors"
 						>
 							<Trash2 size={16} />
-							Delete
+							Supprimer
 						</button>
 					</div>
 				</div>
@@ -561,13 +557,13 @@
 	{/if}
 </div>
 
-<!-- Create Session Dialog/Drawer -->
+<!-- Créer une Séance Dialog/Drawer -->
 {#if isMobile}
 	<Drawer bind:isOpen={createDialogOpen}>
 		<div class="sticky top-0 bg-white pb-4 border-b border-border-card -mx-4 px-4 -mt-4 pt-4 z-10">
 			<div class="flex items-center justify-between mb-2">
 				<h2 class="text-xl font-semibold tracking-tight">
-					Create New Session
+					Créer une Nouvelle Séance
 				</h2>
 				<button
 					type="button"
@@ -578,7 +574,7 @@
 				</button>
 			</div>
 			<p class="text-dark-400 text-sm">
-				Fill in the session details
+				Remplissez les détails de la séance
 			</p>
 		</div>
 
@@ -589,14 +585,14 @@
 			class="grid gap-4 pt-4"
 		>
 			<div class="grid grid-cols-1 gap-4 w-full">
-				{@render field("title", "Title", createInput, createTitle, null)}
+				{@render field("title", "Titre", createInput, createTitle, null)}
 				{@render field("description", "Description", createInput, createDescription, null)}
-				{@render field("startTime", "Start Time", createInput, createStartTime, null)}
-				{@render field("endTime", "End Time", createInput, createEndTime, null)}
-				{@render field("totalCapacity", "Total Capacity", createInput, createTotalCapacity, null)}
-				{@render field("priceAmount", "Price", createInput, createPriceDecimal, null)}
+				{@render field("startTime", "Heure de Début", createInput, createStartTime, null)}
+				{@render field("endTime", "Heure de Fin", createInput, createEndTime, null)}
+				{@render field("totalCapacity", "Capacité Totale", createInput, createTotalCapacity, null)}
+				{@render field("priceAmount", "Prix", createInput, createPriceDecimal, null)}
 				<input type="hidden" name="priceAmount" value={decimalToCents(createPriceDecimal)} />
-				{@render field("currency", "Currency", createInput, createCurrency, null)}
+				{@render field("currency", "Devise", createInput, createCurrency, null)}
 
 				<div class="flex items-center gap-3 p-3 bg-dark-50 rounded-lg">
 					<input
@@ -611,10 +607,10 @@
 							for="createPublished"
 							class="block text-sm font-medium text-dark-900 cursor-pointer"
 						>
-							Published
+							Publié
 						</label>
 						<p class="text-xs text-dark-400">
-							Visible to users
+							Visible aux utilisateurs
 						</p>
 					</div>
 				</div>
@@ -632,10 +628,10 @@
 							for="createAllowWaitlist"
 							class="block text-sm font-medium text-dark-900 cursor-pointer"
 						>
-							Allow Waitlist
+							Liste d'attente
 						</label>
 						<p class="text-xs text-dark-400">
-							Users can join waitlist when sold out
+							Les utilisateurs peuvent rejoindre la liste d'attente
 						</p>
 					</div>
 				</div>
@@ -646,13 +642,13 @@
 					onclick={() => (createDialogOpen = false)}
 					class="px-4 py-2 border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium text-sm"
 				>
-					Cancel
+					Annuler
 				</button>
 				<button
 					type="submit"
 					class="px-4 py-2 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors font-medium text-sm"
 				>
-					Create Session
+					Créer une Séance
 				</button>
 			</div>
 		</form>
@@ -660,8 +656,8 @@
 {:else}
 	<Modal
 		bind:isOpen={createDialogOpen}
-		title="Create New Session"
-		description="Fill in the session details"
+		title="Créer une Nouvelle Séance"
+		description="Remplissez les détails de la séance"
 	>
 		<form
 			method="POST"
@@ -671,17 +667,17 @@
 		>
 			<div class="grid grid-cols-2 gap-4 w-full">
 				<div class="col-span-2">
-					{@render field("title", "Title", createInput, createTitle, null)}
+					{@render field("title", "Titre", createInput, createTitle, null)}
 				</div>
 				<div class="col-span-2">
 					{@render field("description", "Description", createInput, createDescription, null)}
 				</div>
-				{@render field("startTime", "Start Time", createInput, createStartTime, null)}
-				{@render field("endTime", "End Time", createInput, createEndTime, null)}
-				{@render field("totalCapacity", "Total Capacity", createInput, createTotalCapacity, null)}
-				{@render field("priceAmount", "Price", createInput, createPriceDecimal, null)}
+				{@render field("startTime", "Heure de Début", createInput, createStartTime, null)}
+				{@render field("endTime", "Heure de Fin", createInput, createEndTime, null)}
+				{@render field("totalCapacity", "Capacité Totale", createInput, createTotalCapacity, null)}
+				{@render field("priceAmount", "Prix", createInput, createPriceDecimal, null)}
 				<input type="hidden" name="priceAmount" value={decimalToCents(createPriceDecimal)} />
-				{@render field("currency", "Currency", createInput, createCurrency, null)}
+				{@render field("currency", "Devise", createInput, createCurrency, null)}
 			</div>
 
 			<div class="flex items-center gap-3 p-4 bg-dark-50 rounded-lg">
@@ -697,10 +693,10 @@
 						for="createPublished"
 						class="block text-sm font-medium text-dark-900 cursor-pointer"
 					>
-						Published
+						Publié
 					</label>
 					<p class="text-xs text-dark-400">
-						Visible to users
+						Visible aux utilisateurs
 					</p>
 				</div>
 			</div>
@@ -718,10 +714,10 @@
 						for="createAllowWaitlist"
 						class="block text-sm font-medium text-dark-900 cursor-pointer"
 					>
-						Allow Waitlist
+						Liste d'attente
 					</label>
 					<p class="text-xs text-dark-400">
-						Users can join waitlist when sold out
+						Les utilisateurs peuvent rejoindre la liste d'attente
 					</p>
 				</div>
 			</div>
@@ -732,25 +728,25 @@
 					onclick={() => (createDialogOpen = false)}
 					class="px-6 py-2.5 border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium"
 				>
-					Cancel
+					Annuler
 				</button>
 				<button
 					type="submit"
 					class="px-6 py-2.5 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors font-medium"
 				>
-					Create Session
+					Créer une Séance
 				</button>
 			</div>
 		</form>
 	</Modal>
 {/if}
 
-<!-- Edit Session Dialog/Drawer -->
+<!-- Modifier la Séance Dialog/Drawer -->
 {#if isMobile}
 	<Drawer bind:isOpen={editDialogOpen}>
 		<div class="sticky top-0 bg-white pb-4 border-b border-border-card -mx-4 px-4 -mt-4 pt-4 z-10">
 			<div class="flex items-center justify-between mb-2">
-				<h2 class="text-xl font-semibold tracking-tight">Edit Session</h2>
+				<h2 class="text-xl font-semibold tracking-tight">Modifier la Séance</h2>
 				<button
 					type="button"
 					onclick={() => (editDialogOpen = false)}
@@ -759,7 +755,7 @@
 					<X class="text-dark-900 size-5" />
 				</button>
 			</div>
-			<p class="text-dark-400 text-sm">Update the session details</p>
+			<p class="text-dark-400 text-sm">Modifiez les détails de la séance</p>
 		</div>
 
 		<form
@@ -771,14 +767,14 @@
 			<input type="hidden" name="id" value={selectedSession?.id} />
 
 			<div class="grid grid-cols-1 gap-4 w-full">
-				{@render field("title", "Title", editInput, editTitle, null)}
+				{@render field("title", "Titre", editInput, editTitle, null)}
 				{@render field("description", "Description", editInput, editDescription, null)}
-				{@render field("startTime", "Start Time", editInput, editStartTime, null)}
-				{@render field("endTime", "End Time", editInput, editEndTime, null)}
-				{@render field("totalCapacity", "Total Capacity", editInput, editTotalCapacity, null)}
-				{@render field("priceAmount", "Price", editInput, editPriceDecimal, null)}
+				{@render field("startTime", "Heure de Début", editInput, editStartTime, null)}
+				{@render field("endTime", "Heure de Fin", editInput, editEndTime, null)}
+				{@render field("totalCapacity", "Capacité Totale", editInput, editTotalCapacity, null)}
+				{@render field("priceAmount", "Prix", editInput, editPriceDecimal, null)}
 				<input type="hidden" name="priceAmount" value={decimalToCents(editPriceDecimal)} />
-				{@render field("currency", "Currency", editInput, editCurrency, null)}
+				{@render field("currency", "Devise", editInput, editCurrency, null)}
 
 				<div class="flex items-center gap-3 p-3 bg-dark-50 rounded-lg">
 					<input
@@ -793,10 +789,10 @@
 							for="editPublished"
 							class="block text-sm font-medium text-dark-900 cursor-pointer"
 						>
-							Published
+							Publié
 						</label>
 						<p class="text-xs text-dark-400">
-							Visible to users
+							Visible aux utilisateurs
 						</p>
 					</div>
 				</div>
@@ -814,10 +810,10 @@
 							for="editAllowWaitlist"
 							class="block text-sm font-medium text-dark-900 cursor-pointer"
 						>
-							Allow Waitlist
+							Liste d'attente
 						</label>
 						<p class="text-xs text-dark-400">
-							Users can join waitlist when sold out
+							Les utilisateurs peuvent rejoindre la liste d'attente
 						</p>
 					</div>
 				</div>
@@ -828,13 +824,13 @@
 					onclick={() => (editDialogOpen = false)}
 					class="px-4 py-2 border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium text-sm"
 				>
-					Cancel
+					Annuler
 				</button>
 				<button
 					type="submit"
 					class="px-4 py-2 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors font-medium text-sm"
 				>
-					Save Changes
+					Enregistrer les modifications
 				</button>
 			</div>
 		</form>
@@ -842,8 +838,8 @@
 {:else}
 	<Modal
 		bind:isOpen={editDialogOpen}
-		title="Edit Session"
-		description="Update the session details"
+		title="Modifier la Séance"
+		description="Modifiez les détails de la séance"
 	>
 		<form
 			method="POST"
@@ -855,17 +851,17 @@
 
 			<div class="grid grid-cols-2 gap-4 w-full">
 				<div class="col-span-2">
-					{@render field("title", "Title", editInput, editTitle, null)}
+					{@render field("title", "Titre", editInput, editTitle, null)}
 				</div>
 				<div class="col-span-2">
 					{@render field("description", "Description", editInput, editDescription, null)}
 				</div>
-				{@render field("startTime", "Start Time", editInput, editStartTime, null)}
-				{@render field("endTime", "End Time", editInput, editEndTime, null)}
-				{@render field("totalCapacity", "Total Capacity", editInput, editTotalCapacity, null)}
-				{@render field("priceAmount", "Price", editInput, editPriceDecimal, null)}
+				{@render field("startTime", "Heure de Début", editInput, editStartTime, null)}
+				{@render field("endTime", "Heure de Fin", editInput, editEndTime, null)}
+				{@render field("totalCapacity", "Capacité Totale", editInput, editTotalCapacity, null)}
+				{@render field("priceAmount", "Prix", editInput, editPriceDecimal, null)}
 				<input type="hidden" name="priceAmount" value={decimalToCents(editPriceDecimal)} />
-				{@render field("currency", "Currency", editInput, editCurrency, null)}
+				{@render field("currency", "Devise", editInput, editCurrency, null)}
 			</div>
 
 			<div class="flex items-center gap-3 p-4 bg-dark-50 rounded-lg">
@@ -881,10 +877,10 @@
 						for="editPublished"
 						class="block text-sm font-medium text-dark-900 cursor-pointer"
 					>
-						Published
+						Publié
 					</label>
 					<p class="text-xs text-dark-400">
-						Visible to users
+						Visible aux utilisateurs
 					</p>
 				</div>
 			</div>
@@ -902,10 +898,10 @@
 						for="editAllowWaitlist"
 						class="block text-sm font-medium text-dark-900 cursor-pointer"
 					>
-						Allow Waitlist
+						Liste d'attente
 					</label>
 					<p class="text-xs text-dark-400">
-						Users can join waitlist when sold out
+						Les utilisateurs peuvent rejoindre la liste d'attente
 					</p>
 				</div>
 			</div>
@@ -916,26 +912,26 @@
 					onclick={() => (editDialogOpen = false)}
 					class="px-6 py-2.5 border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium"
 				>
-					Cancel
+					Annuler
 				</button>
 				<button
 					type="submit"
 					class="px-6 py-2.5 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors font-medium"
 				>
-					Save Changes
+					Enregistrer les modifications
 				</button>
 			</div>
 		</form>
 	</Modal>
 {/if}
 
-<!-- Delete Session Dialog/Drawer -->
+<!-- Supprimer la Séance Dialog/Drawer -->
 {#if isMobile}
 	<Drawer bind:isOpen={deleteDialogOpen}>
 		<div class="sticky top-0 bg-white pb-4 border-b border-border-card -mx-4 px-4 -mt-4 pt-4 z-10">
 			<div class="flex items-center justify-between mb-2">
 				<h2 class="text-xl font-semibold tracking-tight">
-					Delete Session
+					Supprimer la Séance
 				</h2>
 				<button
 					type="button"
@@ -946,7 +942,7 @@
 				</button>
 			</div>
 			<p class="text-dark-400 text-sm">
-				Are you sure you want to delete "{selectedSession?.title}"?
+				Êtes-vous sûr de vouloir supprimer "{selectedSession?.title}" ?
 			</p>
 		</div>
 
@@ -955,9 +951,9 @@
 				<div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4 flex items-start gap-3">
 					<AlertCircle size={20} class="text-yellow-600 flex-shrink-0 mt-0.5" />
 					<div class="text-sm text-yellow-900">
-						<p class="font-medium mb-1">Warning</p>
+						<p class="font-medium mb-1">Avertissement</p>
 						<p class="text-yellow-700">
-							This session has {selectedSession.reservationCount} reservation{selectedSession.reservationCount > 1 ? 's' : ''}. You cannot delete sessions with existing reservations.
+							Cette séance a {selectedSession.reservationCount} réservation{selectedSession.reservationCount > 1 ? 's' : ''}. Vous ne pouvez pas supprimer des séances avec des réservations existantes.
 						</p>
 					</div>
 				</div>
@@ -972,14 +968,14 @@
 						onclick={() => (deleteDialogOpen = false)}
 						class="px-4 py-2 border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium text-sm"
 					>
-						Cancel
+						Annuler
 					</button>
 					<button
 						type="submit"
 						disabled={selectedSession?.reservationCount > 0}
 						class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium text-sm disabled:bg-dark-300 disabled:cursor-not-allowed"
 					>
-						Delete
+						Supprimer
 					</button>
 				</div>
 			</form>
@@ -988,22 +984,22 @@
 {:else}
 	<Modal
 		bind:isOpen={deleteDialogOpen}
-		title="Delete Session"
+		title="Supprimer la Séance"
 	>
 		{#if selectedSession?.reservationCount > 0}
 			<div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4 flex items-start gap-3">
 				<AlertCircle size={20} class="text-yellow-600 flex-shrink-0 mt-0.5" />
 				<div class="text-sm text-yellow-900">
-					<p class="font-medium mb-1">Warning</p>
+					<p class="font-medium mb-1">Avertissement</p>
 					<p class="text-yellow-700">
-						This session has {selectedSession.reservationCount} reservation{selectedSession.reservationCount > 1 ? 's' : ''}. You cannot delete sessions with existing reservations.
+						Cette séance a {selectedSession.reservationCount} réservation{selectedSession.reservationCount > 1 ? 's' : ''}. Vous ne pouvez pas supprimer des séances avec des réservations existantes.
 					</p>
 				</div>
 			</div>
 		{/if}
 
 		<p class="text-dark-600 mb-6">
-			Are you sure you want to delete <strong>"{selectedSession?.title}"</strong>? This action cannot be undone.
+			Êtes-vous sûr de vouloir supprimer <strong>"{selectedSession?.title}"</strong> ? Cette action est irréversible.
 		</p>
 
 		<form method="POST" action="?/deleteSession" use:enhance={deleteSessionEnhance()}>
@@ -1015,14 +1011,14 @@
 					onclick={() => (deleteDialogOpen = false)}
 					class="px-6 py-2.5 border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium"
 				>
-					Cancel
+					Annuler
 				</button>
 				<button
 					type="submit"
 					disabled={selectedSession?.reservationCount > 0}
 					class="px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium disabled:bg-dark-300 disabled:cursor-not-allowed"
 				>
-					Delete
+					Supprimer
 				</button>
 			</div>
 		</form>
