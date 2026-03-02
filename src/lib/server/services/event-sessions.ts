@@ -31,6 +31,19 @@ interface SessionWithEventAndSoldCount {
 }
 
 export async function createEventSession(input: CreateEventSessionInput) {
+	const event = await db.query.events.findFirst({
+		where: eq(events.id, input.eventId),
+		columns: { startDate: true, endDate: true },
+	});
+
+	if (!event) {
+		throw new Error('Event not found');
+	}
+
+	if (input.startTime < event.startDate || input.endTime > event.endDate) {
+		throw new Error('Session times must fall within the event dates');
+	}
+
 	const [session] = await db.insert(eventSessions).values({
 		eventId: input.eventId,
 		title: input.title,
@@ -139,6 +152,14 @@ export async function getAllSessionsByEventId(eventId: string) {
 export async function updateEventSession(id: string, input: UpdateEventSessionInput) {
 	const session = await getSessionById(id);
 	const soldCount = session.reservations.length;
+
+	if (input.startTime !== undefined || input.endTime !== undefined) {
+		const effectiveStartTime = input.startTime ?? session.startTime;
+		const effectiveEndTime = input.endTime ?? session.endTime;
+		if (effectiveStartTime < session.event.startDate || effectiveEndTime > session.event.endDate) {
+			throw new Error('Session times must fall within the event dates');
+		}
+	}
 
 	if (input.totalCapacity !== undefined) {
 		if (input.totalCapacity < soldCount) {
