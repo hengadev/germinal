@@ -22,7 +22,7 @@ export const load: PageServerLoad = async ({ params }) => {
 			currency: s.currency,
 			published: s.published,
 			allowWaitlist: s.allowWaitlist,
-			reservationCount: s._count?.reservations || 0
+			reservationCount: s.reservationCount
 		}))
 	};
 };
