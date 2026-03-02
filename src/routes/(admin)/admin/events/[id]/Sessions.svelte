@@ -88,23 +88,43 @@
 	let editPublished = $state(false);
 	let editAllowWaitlist = $state(false);
 
-	// Reset form after successful action
-	$effect(() => {
-		if (form?.success) {
-			createDialogOpen = false;
-			editDialogOpen = false;
-			deleteDialogOpen = false;
-			resetCreateForm();
-			toast.success("Succès", form.success);
-		}
-	});
+	// use:enhance handlers replace $effect-based form handling (more reliable in Svelte 5)
+	function createSessionEnhance() {
+		return async ({ result, update }: { result: import('@sveltejs/kit').ActionResult; update: (opts?: { reset?: boolean }) => Promise<void> }) => {
+			if (result.type === 'success') {
+				createDialogOpen = false;
+				resetCreateForm();
+				toast.success("Succès", (result.data as { success?: string })?.success ?? 'Séance créée');
+			} else if (result.type === 'failure') {
+				toast.error("Erreur", (result.data as { error?: string })?.error ?? 'Une erreur est survenue');
+			}
+			await update({ reset: false });
+		};
+	}
 
-	// Show toast on error
-	$effect(() => {
-		if (form?.error) {
-			toast.error("Erreur", form.error);
-		}
-	});
+	function updateSessionEnhance() {
+		return async ({ result, update }: { result: import('@sveltejs/kit').ActionResult; update: (opts?: { reset?: boolean }) => Promise<void> }) => {
+			if (result.type === 'success') {
+				editDialogOpen = false;
+				toast.success("Succès", (result.data as { success?: string })?.success ?? 'Séance mise à jour');
+			} else if (result.type === 'failure') {
+				toast.error("Erreur", (result.data as { error?: string })?.error ?? 'Une erreur est survenue');
+			}
+			await update({ reset: false });
+		};
+	}
+
+	function deleteSessionEnhance() {
+		return async ({ result, update }: { result: import('@sveltejs/kit').ActionResult; update: (opts?: { reset?: boolean }) => Promise<void> }) => {
+			if (result.type === 'success') {
+				deleteDialogOpen = false;
+				toast.success("Succès", (result.data as { success?: string })?.success ?? 'Séance supprimée');
+			} else if (result.type === 'failure') {
+				toast.error("Erreur", (result.data as { error?: string })?.error ?? 'Une erreur est survenue');
+			}
+			await update({ reset: false });
+		};
+	}
 
 	function resetCreateForm() {
 		createTitle = '';
@@ -561,7 +581,7 @@
 		<form
 			method="POST"
 			action="?/createSession"
-			use:enhance
+			use:enhance={createSessionEnhance()}
 			class="grid gap-4 pt-4"
 		>
 			<div class="grid grid-cols-1 gap-4 w-full">
@@ -642,7 +662,7 @@
 		<form
 			method="POST"
 			action="?/createSession"
-			use:enhance
+			use:enhance={createSessionEnhance()}
 			class="grid gap-4"
 		>
 			<div class="grid grid-cols-2 gap-4 w-full">
@@ -741,7 +761,7 @@
 		<form
 			method="POST"
 			action="?/updateSession"
-			use:enhance
+			use:enhance={updateSessionEnhance()}
 			class="grid gap-4 pt-4"
 		>
 			<input type="hidden" name="id" value={selectedSession?.id} />
@@ -824,7 +844,7 @@
 		<form
 			method="POST"
 			action="?/updateSession"
-			use:enhance
+			use:enhance={updateSessionEnhance()}
 			class="grid gap-4"
 		>
 			<input type="hidden" name="id" value={selectedSession?.id} />
@@ -939,7 +959,7 @@
 				</div>
 			{/if}
 
-			<form method="POST" action="?/deleteSession" use:enhance>
+			<form method="POST" action="?/deleteSession" use:enhance={deleteSessionEnhance()}>
 				<input type="hidden" name="id" value={selectedSession?.id} />
 
 				<div class="flex w-full justify-end gap-3">
@@ -982,7 +1002,7 @@
 			Are you sure you want to delete <strong>"{selectedSession?.title}"</strong>? This action cannot be undone.
 		</p>
 
-		<form method="POST" action="?/deleteSession" use:enhance>
+		<form method="POST" action="?/deleteSession" use:enhance={deleteSessionEnhance()}>
 			<input type="hidden" name="id" value={selectedSession?.id} />
 
 			<div class="flex w-full justify-end gap-3">
