@@ -83,7 +83,7 @@
 
 	// use:enhance handlers replace $effect-based form handling (more reliable in Svelte 5)
 	function createSessionEnhance() {
-		return async ({ result, update }: { result: import('@sveltejs/kit').ActionResult; update: (opts?: { reset?: boolean }) => Promise<void> }) => {
+		return () => async ({ result, update }: { result: import('@sveltejs/kit').ActionResult; update: (opts?: { reset?: boolean }) => Promise<void> }) => {
 			if (result.type === 'success') {
 				createDialogOpen = false;
 				resetCreateForm();
@@ -96,7 +96,7 @@
 	}
 
 	function updateSessionEnhance() {
-		return async ({ result, update }: { result: import('@sveltejs/kit').ActionResult; update: (opts?: { reset?: boolean }) => Promise<void> }) => {
+		return () => async ({ result, update }: { result: import('@sveltejs/kit').ActionResult; update: (opts?: { reset?: boolean }) => Promise<void> }) => {
 			if (result.type === 'success') {
 				editDialogOpen = false;
 				toast.success("Succès", (result.data as { success?: string })?.success ?? 'Séance mise à jour');
@@ -108,7 +108,7 @@
 	}
 
 	function deleteSessionEnhance() {
-		return async ({ result, update }: { result: import('@sveltejs/kit').ActionResult; update: (opts?: { reset?: boolean }) => Promise<void> }) => {
+		return () => async ({ result, update }: { result: import('@sveltejs/kit').ActionResult; update: (opts?: { reset?: boolean }) => Promise<void> }) => {
 			if (result.type === 'success') {
 				deleteDialogOpen = false;
 				toast.success("Succès", (result.data as { success?: string })?.success ?? 'Séance supprimée');
