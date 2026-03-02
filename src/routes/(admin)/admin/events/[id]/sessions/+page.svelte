@@ -373,7 +373,7 @@
 		<div>
 			<a href="/admin/events" class="text-dark-600 hover:text-dark-900 text-sm mb-2 inline-block">&larr; Back to Events</a>
 			<h1 class="text-3xl lg:text-4xl font-bold mb-2">Sessions</h1>
-			<p class="text-dark-400">{data.event.title}</p>
+			<p class="text-dark-400">{data.event.titleEn}</p>
 		</div>
 		<button
 			onclick={openCreateDialog}
@@ -989,7 +989,6 @@
 	<Modal
 		bind:isOpen={deleteDialogOpen}
 		title="Delete Session"
-	}
 	>
 		{#if selectedSession?.reservationCount > 0}
 			<div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4 flex items-start gap-3">
