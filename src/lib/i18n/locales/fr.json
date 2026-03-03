@@ -91,6 +91,35 @@
 	"upcoming": {
 		"title": "Le prochain événement"
 	},
+	"booking": {
+		"title": "Réserver des billets",
+		"description": "Complétez vos informations de réservation",
+		"errorTitle": "Réservation échouée",
+		"fullName": "Nom complet",
+		"email": "Email",
+		"emailHint": "La confirmation du billet sera envoyée ici",
+		"phone": "Numéro de téléphone",
+		"optional": "(optionnel)",
+		"notificationsLabel": "Comment souhaitez-vous recevoir les notifications ?",
+		"notifEmail": "Email",
+		"notifSms": "SMS",
+		"notifBoth": "Les deux",
+		"notifHint": "Recevez les confirmations de réservation et les rappels d'événements",
+		"numberOfTickets": "Nombre de billets",
+		"maxTickets": "Maximum {max} billets par commande",
+		"tickets": "Billets ({qty}×)",
+		"total": "Total",
+		"cancel": "Annuler",
+		"continueToPay": "Continuer vers le paiement",
+		"processing": "Traitement en cours...",
+		"perTicket": "par billet",
+		"ticketsAvailable": "billets disponibles",
+		"soldOut": "Épuisé",
+		"sessionEnded": "Session terminée",
+		"notAvailable": "Non disponible",
+		"joinWaitlist": "Rejoindre la liste d'attente",
+		"bookNow": "Réserver"
+	},
 	"admin": {
 		"login": {
 			"pageTitle": "Connexion | Germinal",

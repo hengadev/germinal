@@ -91,6 +91,35 @@
 	"upcoming": {
 		"title": "The next event"
 	},
+	"booking": {
+		"title": "Book Tickets",
+		"description": "Complete your booking details",
+		"errorTitle": "Booking Failed",
+		"fullName": "Full Name",
+		"email": "Email",
+		"emailHint": "Ticket confirmation will be sent here",
+		"phone": "Phone Number",
+		"optional": "(optional)",
+		"notificationsLabel": "How would you like to receive notifications?",
+		"notifEmail": "Email",
+		"notifSms": "SMS",
+		"notifBoth": "Both",
+		"notifHint": "Receive booking confirmations and event reminders",
+		"numberOfTickets": "Number of Tickets",
+		"maxTickets": "Maximum {max} tickets per order",
+		"tickets": "Tickets ({qty}×)",
+		"total": "Total",
+		"cancel": "Cancel",
+		"continueToPay": "Continue to Payment",
+		"processing": "Processing...",
+		"perTicket": "per ticket",
+		"ticketsAvailable": "tickets available",
+		"soldOut": "Sold Out",
+		"sessionEnded": "Session ended",
+		"notAvailable": "Not Available",
+		"joinWaitlist": "Join Waitlist",
+		"bookNow": "Book Now"
+	},
 	"admin": {
 		"login": {
 			"pageTitle": "Login | Germinal",

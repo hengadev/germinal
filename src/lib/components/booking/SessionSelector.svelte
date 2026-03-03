@@ -3,6 +3,7 @@
 	import BookingModal from './BookingModal.svelte';
 	import WaitlistForm from './WaitlistForm.svelte';
 	import { formatCurrency } from '$lib/utils/currency';
+	import { t, locale } from 'svelte-i18n';
 
 	interface Session {
 		id: string;
@@ -39,20 +40,9 @@
 		waitlistModalOpen = true;
 	}
 
-	function formatDateTime(dateString: string): string {
+	function formatDate(dateString: string, loc: string | null | undefined): string {
 		const date = new Date(dateString);
-		return date.toLocaleString(undefined, {  // undefined = user's browser locale
-			weekday: 'short',
-			month: 'short',
-			day: 'numeric',
-			hour: '2-digit',
-			minute: '2-digit'
-		});
-	}
-
-	function formatDate(dateString: string): string {
-		const date = new Date(dateString);
-		return date.toLocaleDateString(undefined, {  // undefined = user's browser locale
+		return date.toLocaleDateString(loc ?? undefined, {
 			weekday: 'long',
 			month: 'long',
 			day: 'numeric',
@@ -60,9 +50,9 @@
 		});
 	}
 
-	function formatTime(dateString: string): string {
+	function formatTime(dateString: string, loc: string | null | undefined): string {
 		const date = new Date(dateString);
-		return date.toLocaleTimeString(undefined, {  // undefined = user's browser locale
+		return date.toLocaleTimeString(loc ?? undefined, {
 			hour: '2-digit',
 			minute: '2-digit'
 		});
@@ -89,7 +79,7 @@
 						<div class="text-2xl font-bold text-dark-900">
 							{formatCurrency(session.priceAmount, session.currency)}
 						</div>
-						<div class="text-xs text-dark-400">per ticket</div>
+						<div class="text-xs text-dark-400">{$t('booking.perTicket')}</div>
 					</div>
 				</div>
 
@@ -98,14 +88,14 @@
 					<div class="flex items-center gap-2 text-dark-600">
 						<Calendar size={18} class="text-dark-400" />
 						<div class="text-sm">
-							<div class="font-medium">{formatDate(session.startTime)}</div>
+							<div class="font-medium">{formatDate(session.startTime, $locale)}</div>
 						</div>
 					</div>
 					<div class="flex items-center gap-2 text-dark-600">
 						<Clock size={18} class="text-dark-400" />
 						<div class="text-sm">
 							<div class="font-medium">
-								{formatTime(session.startTime)} - {formatTime(session.endTime)}
+								{formatTime(session.startTime, $locale)} - {formatTime(session.endTime, $locale)}
 							</div>
 						</div>
 					</div>
@@ -118,10 +108,10 @@
 							<Users size={18} class="text-dark-400" />
 							<span class="text-sm text-dark-600">
 								{#if session.soldOut}
-									<span class="text-red-600 font-medium">Sold Out</span>
+									<span class="text-red-600 font-medium">{$t('booking.soldOut')}</span>
 								{:else}
 									<span class="font-medium">{session.availableCapacity}</span>
-									<span class="text-dark-400">/ {session.totalCapacity} tickets available</span>
+									<span class="text-dark-400">/ {session.totalCapacity} {$t('booking.ticketsAvailable')}</span>
 								{/if}
 							</span>
 						</div>
@@ -129,7 +119,7 @@
 
 					{#if session.isPast}
 						<div class="px-6 py-3 text-dark-400 font-medium">
-							Session ended
+							{$t('booking.sessionEnded')}
 						</div>
 					{:else if session.soldOut}
 						{#if session.allowWaitlist}
@@ -138,11 +128,11 @@
 								class="inline-flex items-center gap-2 px-6 py-3 border border-dark-300 text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium"
 							>
 								<Ticket size={18} />
-								Join Waitlist
+								{$t('booking.joinWaitlist')}
 							</button>
 						{:else}
 							<div class="px-6 py-3 bg-dark-100 text-dark-400 rounded-lg font-medium">
-								Not Available
+								{$t('booking.notAvailable')}
 							</div>
 						{/if}
 					{:else}
@@ -151,7 +141,7 @@
 							class="inline-flex items-center gap-2 px-6 py-3 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors font-medium"
 						>
 							<Ticket size={18} />
-							Book Now
+							{$t('booking.bookNow')}
 						</button>
 					{/if}
 				</div>

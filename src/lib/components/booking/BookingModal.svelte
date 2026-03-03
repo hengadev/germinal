@@ -6,6 +6,7 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { formatCurrency } from '$lib/utils/currency';
+	import { t, locale } from 'svelte-i18n';
 
 	type NotificationPreference = 'email' | 'sms' | 'both';
 
@@ -144,7 +145,7 @@
 			<div class="text-sm text-dark-600 mb-1">{eventTitle}</div>
 			<div class="font-semibold text-dark-900">{session.title}</div>
 			<div class="text-sm text-dark-500 mt-1">
-				{new Date(session.startTime).toLocaleString(undefined, {  // undefined = user's browser locale
+				{new Date(session.startTime).toLocaleString($locale ?? undefined, {
 					weekday: 'short',
 					month: 'short',
 					day: 'numeric',
@@ -159,7 +160,7 @@
 			<div class="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
 				<AlertCircle size={20} class="text-red-600 flex-shrink-0 mt-0.5" />
 				<div>
-					<div class="font-medium text-red-900 text-sm">Booking Failed</div>
+					<div class="font-medium text-red-900 text-sm">{$t('booking.errorTitle')}</div>
 					<div class="text-red-700 text-sm mt-1">{error}</div>
 				</div>
 			</div>
@@ -168,7 +169,7 @@
 		<!-- Name Field -->
 		<div>
 			<label for="name" class="block text-sm font-medium text-dark-700 mb-2">
-				Full Name <span class="text-red-500">*</span>
+				{$t('booking.fullName')} <span class="text-red-500">*</span>
 			</label>
 			<div class="relative">
 				<User size={18} class="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400" />
@@ -177,7 +178,7 @@
 					type="text"
 					bind:value={name}
 					required
-					placeholder="John Doe"
+					placeholder="Jean Dupont"
 					disabled={isSubmitting}
 					class="w-full pl-10 pr-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm disabled:bg-dark-50 disabled:cursor-not-allowed"
 				/>
@@ -187,7 +188,7 @@
 		<!-- Email Field -->
 		<div>
 			<label for="email" class="block text-sm font-medium text-dark-700 mb-2">
-				Email <span class="text-red-500">*</span>
+				{$t('booking.email')} <span class="text-red-500">*</span>
 			</label>
 			<div class="relative">
 				<Mail size={18} class="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400" />
@@ -196,18 +197,18 @@
 					type="email"
 					bind:value={email}
 					required
-					placeholder="john@example.com"
+					placeholder="jean@exemple.com"
 					disabled={isSubmitting}
 					class="w-full pl-10 pr-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm disabled:bg-dark-50 disabled:cursor-not-allowed"
 				/>
 			</div>
-			<p class="text-xs text-dark-500 mt-1">Ticket confirmation will be sent here</p>
+			<p class="text-xs text-dark-500 mt-1">{$t('booking.emailHint')}</p>
 		</div>
 
 		<!-- Phone Field (Optional) -->
 		<div>
 			<label for="phone" class="block text-sm font-medium text-dark-700 mb-2">
-				Phone Number <span class="text-dark-400 text-xs">(optional)</span>
+				{$t('booking.phone')} <span class="text-dark-400 text-xs">{$t('booking.optional')}</span>
 			</label>
 			<div class="relative">
 				<Phone size={18} class="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400" />
@@ -215,7 +216,7 @@
 					id="phone"
 					type="tel"
 					bind:value={phone}
-					placeholder="+1 234 567 8900"
+					placeholder="+33 6 12 34 56 78"
 					disabled={isSubmitting}
 					class="w-full pl-10 pr-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm disabled:bg-dark-50 disabled:cursor-not-allowed"
 				/>
@@ -225,7 +226,7 @@
 		<!-- Notification Preference -->
 		<div>
 			<label class="block text-sm font-medium text-dark-700 mb-2">
-				How would you like to receive notifications?
+				{$t('booking.notificationsLabel')}
 			</label>
 			<div class="grid grid-cols-3 gap-2">
 				<button
@@ -238,7 +239,7 @@
 					}"
 					disabled={isSubmitting}
 				>
-					Email
+					{$t('booking.notifEmail')}
 				</button>
 				<button
 					type="button"
@@ -250,7 +251,7 @@
 					}"
 					disabled={isSubmitting}
 				>
-					SMS
+					{$t('booking.notifSms')}
 				</button>
 				<button
 					type="button"
@@ -262,16 +263,16 @@
 					}"
 					disabled={isSubmitting}
 				>
-					Both
+					{$t('booking.notifBoth')}
 				</button>
 			</div>
-			<p class="text-xs text-dark-500 mt-1">Receive booking confirmations and event reminders</p>
+			<p class="text-xs text-dark-500 mt-1">{$t('booking.notifHint')}</p>
 		</div>
 
 		<!-- Quantity Field -->
 		<div>
 			<label for="quantity" class="block text-sm font-medium text-dark-700 mb-2">
-				Number of Tickets <span class="text-red-500">*</span>
+				{$t('booking.numberOfTickets')} <span class="text-red-500">*</span>
 			</label>
 			<div class="relative">
 				<Ticket size={18} class="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400" />
@@ -287,18 +288,18 @@
 				/>
 			</div>
 			<p class="text-xs text-dark-500 mt-1">
-				Maximum {Math.min(session.availableCapacity, 10)} tickets per order
+				{$t('booking.maxTickets', { values: { max: Math.min(session.availableCapacity, 10) } })}
 			</p>
 		</div>
 
 		<!-- Total -->
 		<div class="bg-dark-50 rounded-lg p-4">
 			<div class="flex items-center justify-between mb-2">
-				<span class="text-dark-600">Tickets ({quantity}x)</span>
+				<span class="text-dark-600">{$t('booking.tickets', { values: { qty: quantity } })}</span>
 				<span class="text-dark-900">{formatCurrency(totalAmount, session.currency)}</span>
 			</div>
 			<div class="border-t border-border-card pt-2 mt-2 flex items-center justify-between">
-				<span class="font-semibold text-dark-900">Total</span>
+				<span class="font-semibold text-dark-900">{$t('booking.total')}</span>
 				<span class="font-bold text-xl text-dark-900">
 					{formatCurrency(totalAmount, session.currency)}
 				</span>
@@ -313,7 +314,7 @@
 				disabled={isSubmitting}
 				class="px-6 py-2.5 border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
 			>
-				Cancel
+				{$t('booking.cancel')}
 			</button>
 			<button
 				type="submit"
@@ -322,9 +323,9 @@
 			>
 				{#if isSubmitting}
 					<Loader2 size={18} class="animate-spin" />
-					Processing...
+					{$t('booking.processing')}
 				{:else}
-					Continue to Payment
+					{$t('booking.continueToPay')}
 				{/if}
 			</button>
 		</div>
@@ -335,7 +336,7 @@
 	<Drawer bind:isOpen>
 		<div class="sticky top-0 bg-white pb-4 border-b border-border-card -mx-4 px-4 -mt-4 pt-4 z-10">
 			<div class="flex items-center justify-between mb-2">
-				<h2 class="text-xl font-semibold">Book Tickets</h2>
+				<h2 class="text-xl font-semibold">{$t('booking.title')}</h2>
 				<button
 					type="button"
 					onclick={close}
@@ -345,7 +346,7 @@
 					<X size={20} />
 				</button>
 			</div>
-			<p class="text-dark-400 text-sm">Complete your booking details</p>
+			<p class="text-dark-400 text-sm">{$t('booking.description')}</p>
 		</div>
 		<div class="pt-4">
 			{@render formContent()}
@@ -354,8 +355,8 @@
 {:else}
 	<Modal
 		bind:isOpen
-		title="Book Tickets"
-		description="Complete your booking details"
+		title={$t('booking.title')}
+		description={$t('booking.description')}
 	>
 		{@render formContent()}
 	</Modal>
