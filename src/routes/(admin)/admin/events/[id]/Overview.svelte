@@ -1,9 +1,24 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { invalidateAll } from '$app/navigation';
 	import { Calendar, MapPin, Type, FileText } from 'lucide-svelte';
 	import type { ActionData, PageData } from './$types';
+	import { getToastContext } from '$lib/components/toast/state.svelte';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
+
+	const toast = getToastContext();
+
+	function updateEventEnhance() {
+		return async ({ result }: { result: import('@sveltejs/kit').ActionResult }) => {
+			if (result.type === 'success') {
+				toast.success('Succès', (result.data as { success?: string })?.success ?? 'Événement mis à jour');
+				await invalidateAll();
+			} else if (result.type === 'failure') {
+				toast.error('Erreur', (result.data as { error?: string })?.error ?? 'Une erreur est survenue');
+			}
+		};
+	}
 
 	let titleEn = $state(data.event.titleEn || "");
 	let titleFr = $state(data.event.titleFr || "");
@@ -42,7 +57,7 @@
 </script>
 
 <div class="bg-white rounded-lg border border-border-card p-6 lg:p-8">
-    <form method="POST" action="?/updateEvent" use:enhance class="space-y-6">
+    <form method="POST" action="?/updateEvent" use:enhance={updateEventEnhance()} class="space-y-6">
         <!-- Title (English) -->
         <div>
             <label for="titleEn" class="block text-sm font-medium text-dark-700 mb-2">
