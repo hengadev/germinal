@@ -42,14 +42,11 @@
 	let error = $state<string | null>(null);
 
 	// Detect mobile
-	let isMobile = $state(false);
+	let isMobile = $state(browser && window.innerWidth < 768);
 
 	// Setup resize listener with proper cleanup
 	$effect(() => {
 		if (!browser) return;
-
-		// Set initial value
-		isMobile = window.innerWidth < 768;
 
 		const handleResize = () => {
 			isMobile = window.innerWidth < 768;
@@ -57,7 +54,6 @@
 
 		window.addEventListener('resize', handleResize);
 
-		// Cleanup function - automatically called when effect is destroyed
 		return () => {
 			window.removeEventListener('resize', handleResize);
 		};

@@ -58,12 +58,8 @@
 	<div
 		transition:fade={{ duration: 300 }}
 		class="overlay"
-		onclick={() => (isOpen = false)}
-		onkeydown={handleKeydown}
 		class:visible={isOpen}
-		tabindex="0"
-		role="button"
-		aria-label="Close drawer"
+		onclick={() => (isOpen = false)}
 	></div>
 	<div
 		transition:slide={{ duration: 300 }}
@@ -72,6 +68,8 @@
 		use:closeSwipeAction.action
 		role="dialog"
 		aria-modal="true"
+		tabindex="-1"
+		onkeydown={handleKeydown}
 	>
 		{@render children?.()}
 	</div>
@@ -108,6 +106,7 @@
 		border-top-right-radius: var(--border-top-radius);
 		z-index: 9999;
 		background: white;
+		outline: none;
 	}
 	.drawer.visible {
 		bottom: 0;
