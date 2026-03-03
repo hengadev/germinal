@@ -5,8 +5,21 @@
 	import type { ActionData } from './$types';
 	import type { Media } from '$lib/types/media';
 	import type { PageData } from './$types';
+	import { getToastContext } from '$lib/components/toast/state.svelte';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
+
+	const toast = getToastContext();
+
+	function createEventEnhance() {
+		return async ({ result }: { result: import('@sveltejs/kit').ActionResult }) => {
+			if (result.type === 'success') {
+				toast.success('Succès', (result.data as { success?: string })?.success ?? 'Événement créé');
+			} else if (result.type === 'failure') {
+				toast.error('Erreur', (result.data as { error?: string })?.error ?? 'Une erreur est survenue');
+			}
+		};
+	}
 
 	let titleEn = $state('');
 	let titleFr = $state('');
@@ -104,20 +117,8 @@
 			</p>
 		</div>
 
-		{#if form?.error}
-			<div class="mb-6 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg">
-				<p class="text-sm font-medium">{form.error}</p>
-			</div>
-		{/if}
-
-		{#if form?.success}
-			<div class="mb-6 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg">
-				<p class="text-sm font-medium">{form.success}</p>
-			</div>
-		{/if}
-
 		<div class="bg-white rounded-lg border border-border-card p-6 lg:p-8">
-			<form method="POST" use:enhance class="space-y-6">
+			<form method="POST" use:enhance={createEventEnhance()} class="space-y-6">
 				<!-- Cover Photo Section -->
 				<div class="form-section">
 					<label class="block text-sm font-medium text-dark-700 mb-2">
