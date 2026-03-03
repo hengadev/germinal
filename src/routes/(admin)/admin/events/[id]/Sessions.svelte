@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { invalidateAll } from '$app/navigation';
 	import {
 		Plus,
 		Calendar,
@@ -90,39 +91,39 @@
 
 	// use:enhance handlers replace $effect-based form handling (more reliable in Svelte 5)
 	function createSessionEnhance() {
-		return () => async ({ result, update }: { result: import('@sveltejs/kit').ActionResult; update: (opts?: { reset?: boolean }) => Promise<void> }) => {
+		return () => async ({ result }: { result: import('@sveltejs/kit').ActionResult }) => {
 			if (result.type === 'success') {
 				createDialogOpen = false;
 				resetCreateForm();
 				toast.success("Succès", (result.data as { success?: string })?.success ?? 'Séance créée');
+				await invalidateAll();
 			} else if (result.type === 'failure') {
 				toast.error("Erreur", (result.data as { error?: string })?.error ?? 'Une erreur est survenue');
 			}
-			await update({ reset: false });
 		};
 	}
 
 	function updateSessionEnhance() {
-		return () => async ({ result, update }: { result: import('@sveltejs/kit').ActionResult; update: (opts?: { reset?: boolean }) => Promise<void> }) => {
+		return () => async ({ result }: { result: import('@sveltejs/kit').ActionResult }) => {
 			if (result.type === 'success') {
 				editDialogOpen = false;
 				toast.success("Succès", (result.data as { success?: string })?.success ?? 'Séance mise à jour');
+				await invalidateAll();
 			} else if (result.type === 'failure') {
 				toast.error("Erreur", (result.data as { error?: string })?.error ?? 'Une erreur est survenue');
 			}
-			await update({ reset: false });
 		};
 	}
 
 	function deleteSessionEnhance() {
-		return () => async ({ result, update }: { result: import('@sveltejs/kit').ActionResult; update: (opts?: { reset?: boolean }) => Promise<void> }) => {
+		return () => async ({ result }: { result: import('@sveltejs/kit').ActionResult }) => {
 			if (result.type === 'success') {
 				deleteDialogOpen = false;
 				toast.success("Succès", (result.data as { success?: string })?.success ?? 'Séance supprimée');
+				await invalidateAll();
 			} else if (result.type === 'failure') {
 				toast.error("Erreur", (result.data as { error?: string })?.error ?? 'Une erreur est survenue');
 			}
-			await update({ reset: false });
 		};
 	}
 
