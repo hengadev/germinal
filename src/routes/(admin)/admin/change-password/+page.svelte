@@ -8,19 +8,17 @@
 
 	const toast = getToastContext();
 
-	// Show toast on success
-	$effect(() => {
-		if (form?.success) {
-			toast.success("Succès", form.message || "Mot de passe mis à jour");
-		}
-	});
-
-	// Show toast on error
-	$effect(() => {
-		if (form?.error) {
-			toast.error("Erreur", form.error);
-		}
-	});
+	function changePasswordEnhance() {
+		return ({ formElement }: { formElement: HTMLFormElement }) =>
+			async ({ result }: { result: import('@sveltejs/kit').ActionResult }) => {
+				if (result.type === 'success') {
+					toast.success('Succès', (result.data as { message?: string })?.message ?? 'Mot de passe mis à jour');
+					formElement.reset();
+				} else if (result.type === 'failure') {
+					toast.error('Erreur', (result.data as { error?: string })?.error ?? 'Une erreur est survenue');
+				}
+			};
+	}
 
 	let showCurrent = $state(false);
 	let showNew = $state(false);
@@ -57,7 +55,7 @@
 					</p>
 				</div>
 
-				<form method="POST" use:enhance class="space-y-6">
+				<form method="POST" use:enhance={changePasswordEnhance()} class="space-y-6">
 					<div>
 						<label for="currentPassword" class="block text-sm font-medium text-dark-700 mb-2">
 							Mot de Passe Actuel
