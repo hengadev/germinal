@@ -1,6 +1,6 @@
 import { getEventBySlug } from '$lib/server/services/events';
 import { getPublishedSessionsByEventId } from '$lib/server/services/event-sessions';
-import { MOCK_EVENTS, USE_MOCK_DATA } from '$lib/mock-data';
+import { MOCK_EVENTS, MOCK_SESSIONS, USE_MOCK_DATA } from '$lib/mock-data';
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 
@@ -11,7 +11,23 @@ export const load: PageServerLoad = async ({ params }) => {
     if (!event) {
       throw error(404, 'Event not found');
     }
-    return { event, sessions: [] };
+    const sessions = MOCK_SESSIONS
+      .filter((s) => s.eventId === event.id && s.published)
+      .map((s) => ({
+        id: s.id,
+        title: s.title,
+        description: s.description,
+        startTime: s.startTime.toISOString(),
+        endTime: s.endTime.toISOString(),
+        priceAmount: s.priceAmount,
+        currency: s.currency,
+        availableCapacity: s.availableCapacity,
+        totalCapacity: s.totalCapacity,
+        allowWaitlist: s.allowWaitlist,
+        soldOut: s.availableCapacity === 0,
+        isPast: s.startTime < new Date()
+      }));
+    return { event, sessions };
   }
 
   try {
