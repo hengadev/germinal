@@ -9,6 +9,13 @@ echo ""
 # Set environment variable to use mock data
 export USE_MOCK_DATA=true
 
+# Load .env file if it exists
+if [ -f ".env" ]; then
+  set -a
+  source .env
+  set +a
+fi
+
 # Check if mock admin credentials are set
 if [ -z "$MOCK_ADMIN_EMAIL" ] || [ -z "$MOCK_ADMIN_PASSWORD" ]; then
   echo "⚠️  Mock admin credentials not set"
