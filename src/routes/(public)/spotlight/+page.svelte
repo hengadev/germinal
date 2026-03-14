@@ -1,5 +1,7 @@
 <script lang="ts">
-	import { ArrowLeft, MapPin, Calendar, Star } from 'lucide-svelte';
+	import EventGallery from '$lib/components/EventGallery.svelte';
+	import SessionSelector from '$lib/components/booking/SessionSelector.svelte';
+	import { ArrowLeft, MapPin, Clock, Info, Star } from 'lucide-svelte';
 	import type { Icon } from 'lucide-svelte';
 	import type { PageData } from './$types';
 	import { reveal } from '$lib/actions/reveal';
@@ -106,35 +108,7 @@
 					use:reveal={{ preset: 'fade-up', delay: 150 }}
 				>
 					<div class="grid gap-4">
-						<div class="flex items-center gap-2">
-							<Calendar size={16} />
-							<p class="capitalize text-dark-900">Dates</p>
-						</div>
-						<div class="text-dark-500">
-							<p>
-								{new Date(spotlightEvent.startDate).toLocaleDateString('en-US', {
-									weekday: 'long',
-									year: 'numeric',
-									month: 'long',
-									day: 'numeric'
-								})}
-							</p>
-							{#if new Date(spotlightEvent.startDate).toDateString() !== new Date(spotlightEvent.endDate).toDateString()}
-								<p>to {new Date(spotlightEvent.endDate).toLocaleDateString('en-US', {
-									weekday: 'long',
-									year: 'numeric',
-									month: 'long',
-									day: 'numeric'
-								})}</p>
-							{/if}
-						</div>
-					</div>
-
-					<div class="grid gap-4">
-						<div class="flex items-center gap-2">
-							<MapPin size={16} />
-							<p class="capitalize text-dark-900">{$t('events.location')}</p>
-						</div>
+						{@render asideTitle($t('events.location'), MapPin)}
 						<div class="text-dark-500">
 							{#if spotlightEvent.venueName}
 								<p>{spotlightEvent.venueName}</p>
@@ -157,26 +131,33 @@
 						</div>
 					</div>
 
-					{#if timings.length > 0}
-						<div class="grid gap-4">
-							<div class="flex items-center gap-2">
-								<Calendar size={16} />
-								<p class="capitalize text-dark-900">{$t('events.timings')}</p>
-							</div>
-							<div class="text-dark-500">
+					<div class="grid gap-4">
+						{@render asideTitle($t('events.timings'), Clock)}
+						<div class="text-dark-500">
+							{#if timings.length > 0}
 								{#each timings as timing}
 									<p>{timing.label}: {timing.time}</p>
 								{/each}
-							</div>
+							{:else}
+								<p>{$t('events.seeEventDates')}</p>
+							{/if}
 						</div>
-					{/if}
+					</div>
 
-					{#if getEventField('admissionInfo')}
-						<div class="grid gap-4">
-							<p class="capitalize text-dark-900">Admission</p>
-							<p class="text-dark-500">{getEventField('admissionInfo')}</p>
+					<div class="grid gap-4">
+						{@render asideTitle($t('events.details'), Info)}
+						<div class="grid gap-2">
+							{#if getEventField('curator')}
+								{@render asideLastPart($t('events.curator'), getEventField('curator'))}
+							{/if}
+							{#if getEventField('materials')}
+								{@render asideLastPart($t('events.materials'), getEventField('materials'))}
+							{/if}
+							{#if getEventField('admissionInfo')}
+								{@render asideLastPart($t('events.admission'), getEventField('admissionInfo'))}
+							{/if}
 						</div>
-					{/if}
+					</div>
 				</div>
 			</section>
 
@@ -186,62 +167,18 @@
 					use:reveal={{ preset: 'fade-up', delay: 200 }}
 				>
 					<h2 class="text-3xl font-bold mb-6">{$t('events.gallery')}</h2>
-					<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-						{#each spotlightEvent.media as mediaItem}
-							<div class="aspect-video rounded-lg overflow-hidden bg-dark-100">
-								<img
-									src={mediaItem.url}
-									alt={getEventField('title')}
-									class="w-full h-full object-cover"
-								/>
-							</div>
-						{/each}
-					</div>
+					<EventGallery media={spotlightEvent.media} />
 				</section>
 			{/if}
 
 			{#if sessions.some((s) => !s.isPast)}
 				<section class="mt-16" use:reveal={{ preset: 'fade-up', delay: 250 }}>
 					<h2 class="text-3xl font-bold mb-8">{$t('events.bookTickets')}</h2>
-					<div class="grid gap-4">
-						{#each sessions.filter(s => !s.isPast) as session}
-							<a
-								href="/events/{spotlightEvent.slug}/book/{session.id}"
-								class="block p-6 bg-white border border-border-card rounded-lg hover:border-dark-900 transition-colors"
-							>
-								<div class="flex justify-between items-start">
-									<div>
-										<h3 class="font-bold text-lg">{session.title}</h3>
-										{#if session.description}
-											<p class="text-dark-500 text-sm mt-1">{session.description}</p>
-										{/if}
-										<p class="text-dark-500 text-sm mt-2">
-											{new Date(session.startTime).toLocaleString('en-US', {
-												weekday: 'short',
-												month: 'short',
-												day: 'numeric',
-												hour: '2-digit',
-												minute: '2-digit'
-											})}
-											-
-											{new Date(session.endTime).toLocaleTimeString('en-US', {
-												hour: '2-digit',
-												minute: '2-digit'
-											})}
-										</p>
-									</div>
-									<div class="text-right">
-										<p class="font-bold text-lg">
-											{(session.priceAmount / 100).toFixed(2)} {session.currency}
-										</p>
-										<p class="text-dark-500 text-sm">
-											{session.availableCapacity} spots left
-										</p>
-									</div>
-								</div>
-							</a>
-						{/each}
-					</div>
+					<SessionSelector
+						sessions={sessions}
+						eventTitle={getEventField('title')}
+						eventSlug={spotlightEvent.slug}
+					/>
 				</section>
 			{/if}
 		</article>
@@ -261,3 +198,20 @@
 		</div>
 	{/if}
 </div>
+
+{#snippet asideTitle(title: string, AsideIcon: typeof Icon)}
+	<div class="flex items-center gap-2">
+		<AsideIcon size={16} />
+		<p class="capitalize text-dark-900">{title}</p>
+	</div>
+{/snippet}
+
+{#snippet asideLastPart(title: string, value: string)}
+	<div class="grid gap-2">
+		<div class="flex items-center justify-between">
+			<p class="text-dark-500 capitalize">{title}</p>
+			<p class="text-dark-700">{value}</p>
+		</div>
+		<div class="border border-dark-50 w-full"></div>
+	</div>
+{/snippet}
