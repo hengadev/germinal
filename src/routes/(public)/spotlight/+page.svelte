@@ -3,7 +3,7 @@
 	import type { Icon } from 'lucide-svelte';
 	import type { PageData } from './$types';
 	import { reveal } from '$lib/actions/reveal';
-	import { locale } from 'svelte-i18n';
+	import { t, locale } from 'svelte-i18n';
 
 	let { data }: { data: PageData } = $props();
 
@@ -45,7 +45,7 @@
 		use:reveal={{ preset: 'fade-in' }}
 	>
 		<ArrowLeft />
-		<p class="text-700">Back to All Events</p>
+		<p class="text-700">{$t('events.backToAll')}</p>
 	</a>
 
 	{#if spotlightEvent}
@@ -82,7 +82,7 @@
 							use:reveal={{ preset: 'fade-up', delay: 150 }}
 						>
 							<p class="text-md text-dark-300 text-bold leading-relaxed uppercase">
-								In Collaboration With
+								{$t('events.inCollaborationWith')}
 							</p>
 							<div class="flex gap-12 items-center flex-wrap">
 								{#each collaborators as collab}
@@ -133,7 +133,7 @@
 					<div class="grid gap-4">
 						<div class="flex items-center gap-2">
 							<MapPin size={16} />
-							<p class="capitalize text-dark-900">Location</p>
+							<p class="capitalize text-dark-900">{$t('events.location')}</p>
 						</div>
 						<div class="text-dark-500">
 							{#if spotlightEvent.venueName}
@@ -161,7 +161,7 @@
 						<div class="grid gap-4">
 							<div class="flex items-center gap-2">
 								<Calendar size={16} />
-								<p class="capitalize text-dark-900">Timings</p>
+								<p class="capitalize text-dark-900">{$t('events.timings')}</p>
 							</div>
 							<div class="text-dark-500">
 								{#each timings as timing}
@@ -185,7 +185,7 @@
 					class="mt-12"
 					use:reveal={{ preset: 'fade-up', delay: 200 }}
 				>
-					<h2 class="text-3xl font-bold mb-6">Gallery</h2>
+					<h2 class="text-3xl font-bold mb-6">{$t('events.gallery')}</h2>
 					<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 						{#each spotlightEvent.media as mediaItem}
 							<div class="aspect-video rounded-lg overflow-hidden bg-dark-100">
@@ -202,7 +202,7 @@
 
 			{#if sessions.some((s) => !s.isPast)}
 				<section class="mt-16" use:reveal={{ preset: 'fade-up', delay: 250 }}>
-					<h2 class="text-3xl font-bold mb-8">Book Tickets</h2>
+					<h2 class="text-3xl font-bold mb-8">{$t('events.bookTickets')}</h2>
 					<div class="grid gap-4">
 						{#each sessions.filter(s => !s.isPast) as session}
 							<a
