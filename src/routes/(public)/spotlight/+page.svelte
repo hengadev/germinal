@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { ArrowLeft, MapPin, Calendar, Star } from 'lucide-svelte';
+	import type { Icon } from 'lucide-svelte';
 	import type { PageData } from './$types';
 	import { reveal } from '$lib/actions/reveal';
 	import { locale } from 'svelte-i18n';
@@ -16,16 +17,18 @@
 		spotlightEvent?.timings ? JSON.parse(spotlightEvent.timings) : []
 	);
 
-	let futureSessions = $derived(
-		spotlightEvent?.eventSessions?.filter(
-			(s: { startTime: string }) => new Date(s.startTime) > new Date()
-		) ?? []
+	let sessions = $derived(
+		spotlightEvent?.eventSessions?.map((s) => ({
+			...s,
+			soldOut: s.availableCapacity === 0,
+			isPast: new Date(s.endTime) < new Date()
+		})) ?? []
 	);
 
-	function getEventField(field: 'title' | 'description' | 'subtitle' | 'admissionInfo'): string {
+	function getEventField(field: 'title' | 'description' | 'subtitle' | 'curator' | 'materials' | 'admissionInfo'): string {
 		if (!spotlightEvent) return '';
-		const enField = (field + 'En') as 'titleEn' | 'descriptionEn' | 'subtitleEn' | 'admissionInfoEn';
-		const frField = (field + 'Fr') as 'titleFr' | 'descriptionFr' | 'subtitleFr' | 'admissionInfoFr';
+		const enField = (field + 'En') as 'titleEn' | 'descriptionEn' | 'subtitleEn' | 'curatorEn' | 'materialsEn' | 'admissionInfoEn';
+		const frField = (field + 'Fr') as 'titleFr' | 'descriptionFr' | 'subtitleFr' | 'curatorFr' | 'materialsFr' | 'admissionInfoFr';
 		return $locale === 'en' ? (spotlightEvent[enField] || '') : (spotlightEvent[frField] || '');
 	}
 </script>
@@ -197,11 +200,11 @@
 				</section>
 			{/if}
 
-			{#if futureSessions.length > 0}
+			{#if sessions.some((s) => !s.isPast)}
 				<section class="mt-16" use:reveal={{ preset: 'fade-up', delay: 250 }}>
 					<h2 class="text-3xl font-bold mb-8">Book Tickets</h2>
 					<div class="grid gap-4">
-						{#each futureSessions as session}
+						{#each sessions.filter(s => !s.isPast) as session}
 							<a
 								href="/events/{spotlightEvent.slug}/book/{session.id}"
 								class="block p-6 bg-white border border-border-card rounded-lg hover:border-dark-900 transition-colors"
