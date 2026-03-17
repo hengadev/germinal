@@ -8,12 +8,10 @@
     import SideDrawer from './SideDrawer.svelte';
 
     type Props = {
-        user?: { role: string } | null;
-        isAdminDomain?: boolean;
         hasSpotlightEvent?: boolean;
     };
 
-    let { user = null, isAdminDomain = false, hasSpotlightEvent = true }: Props = $props();
+    let { hasSpotlightEvent = true }: Props = $props();
 
     let scrolled = $state(false);
     let isMobileMenuOpen = $state(false);
@@ -35,10 +33,6 @@
         { href: "/talents", label: $t('nav.talents') },
         { href: "/contact", label: $t('nav.contact') },
     ]);
-
-    const showAdminIndicator = $derived(
-        user && user.role === "admin" && !isAdminDomain,
-    );
 
     function isActive(href: string): boolean {
         if (href === "/") {
@@ -129,16 +123,6 @@
 
     <div class="flex justify-end gap-4 items-center hidden xl:flex">
         <LanguageSwitcher scrolled={showScrolledState} />
-        {#if showAdminIndicator}
-            <a
-                href="https://admin.germinalstudio.co/admin"
-                class="text-sm px-4 py-2 border rounded-md transition-colors {showScrolledState
-                    ? `border-dark-300 text-dark-600 hover:text-dark-900 hover:border-dark-600`
-                    : `border-white/30 text-white/80 hover:text-white hover:border-white`}"
-            >
-                {$t('nav.adminPanel')}
-            </a>
-        {/if}
             <!-- NOTE: that will be implemented later when we have the payment part set -->
             <!-- <div class="flex justify-end"> -->
             <!--     <a -->
@@ -189,15 +173,6 @@
 
         <div class="flex flex-col gap-3">
             <LanguageSwitcher scrolled={true} />
-            {#if showAdminIndicator}
-                <a
-                    href="https://admin.germinalstudio.co/admin"
-                    onclick={() => (isMobileMenuOpen = false)}
-                    class="w-full inline-flex justify-center items-center px-8 py-3.5 bg-dark-900 hover:bg-dark-800 text-white text-sm sm:text-base font-medium transition-all duration-200 shadow-sm hover:shadow-md"
-                >
-                    {$t('nav.adminPanel')}
-                </a>
-            {/if}
         </div>
     </div>
 </SideDrawer>
