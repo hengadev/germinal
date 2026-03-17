@@ -7,8 +7,12 @@
 
 	interface Session {
 		id: string;
-		title: string;
-		description: string | null;
+		title?: string;
+		titleEn?: string;
+		titleFr?: string;
+		description?: string | null;
+		descriptionEn?: string | null;
+		descriptionFr?: string | null;
 		startTime: string;
 		endTime: string;
 		priceAmount: number;
@@ -40,6 +44,20 @@
 		waitlistModalOpen = true;
 	}
 
+	function getSessionTitle(session: Session): string {
+		if ($locale === 'en') {
+			return session.titleEn || session.title || '';
+		}
+		return session.titleFr || session.title || '';
+	}
+
+	function getSessionDescription(session: Session): string | null {
+		if ($locale === 'en') {
+			return session.descriptionEn ?? session.description ?? null;
+		}
+		return session.descriptionFr ?? session.description ?? null;
+	}
+
 	function formatDate(dateString: string, loc: string | null | undefined): string {
 		const date = new Date(dateString);
 		return date.toLocaleDateString(loc ?? undefined, {
@@ -67,11 +85,11 @@
 				<div class="flex items-start justify-between gap-4">
 					<div class="flex-1">
 						<h3 class="text-xl font-bold text-dark-900 mb-1">
-							{session.title}
+							{getSessionTitle(session)}
 						</h3>
-						{#if session.description}
+						{#if getSessionDescription(session)}
 							<p class="text-dark-500 text-sm">
-								{session.description}
+								{getSessionDescription(session)}
 							</p>
 						{/if}
 					</div>

@@ -4,12 +4,15 @@
 	import Drawer from '$lib/components/ui/Drawer.svelte';
 	import { browser } from '$app/environment';
 	import { page } from '$app/stores';
+	import { locale } from 'svelte-i18n';
 
 	type NotificationPreference = 'email' | 'sms' | 'both';
 
 	interface Session {
 		id: string;
-		title: string;
+		title?: string;
+		titleEn?: string;
+		titleFr?: string;
 		startTime: string;
 	}
 
@@ -22,6 +25,14 @@
 		session: Session;
 		eventTitle: string;
 	} = $props();
+
+	// Helper to get localized session title
+	function getSessionTitle(session: Session): string {
+		if ($locale === 'en') {
+			return session.titleEn || session.title || '';
+		}
+		return session.titleFr || session.title || '';
+	}
 
 	// Form state
 	let name = $state('');
@@ -139,7 +150,7 @@
 			<!-- Session Info -->
 			<div class="bg-dark-50 rounded-lg p-4">
 				<div class="text-sm text-dark-600 mb-1">{eventTitle}</div>
-				<div class="font-semibold text-dark-900">{session.title}</div>
+				<div class="font-semibold text-dark-900">{getSessionTitle(session)}</div>
 				<div class="text-sm text-red-600 mt-1 font-medium">Currently Sold Out</div>
 			</div>
 

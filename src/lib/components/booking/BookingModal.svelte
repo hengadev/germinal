@@ -12,7 +12,9 @@
 
 	interface Session {
 		id: string;
-		title: string;
+		title?: string;
+		titleEn?: string;
+		titleFr?: string;
 		priceAmount: number;
 		currency: string;
 		availableCapacity: number;
@@ -31,6 +33,14 @@
 		eventTitle: string;
 		eventSlug: string;
 	} = $props();
+
+	// Helper to get localized session title
+	function getSessionTitle(session: Session): string {
+		if ($locale === 'en') {
+			return session.titleEn || session.title || '';
+		}
+		return session.titleFr || session.title || '';
+	}
 
 	// Form state
 	let name = $state('');
@@ -109,7 +119,7 @@
 					clientSecret: data.clientSecret,
 					expiresAt: data.expiresAt,
 					accessToken: data.accessToken,
-					sessionTitle: session.title,
+					sessionTitle: getSessionTitle(session),
 					eventTitle,
 					quantity,
 					totalAmount,
@@ -139,7 +149,7 @@
 		<!-- Session Info -->
 		<div class="bg-dark-50 rounded-lg p-4">
 			<div class="text-sm text-dark-600 mb-1">{eventTitle}</div>
-			<div class="font-semibold text-dark-900">{session.title}</div>
+			<div class="font-semibold text-dark-900">{getSessionTitle(session)}</div>
 			<div class="text-sm text-dark-500 mt-1">
 				{new Date(session.startTime).toLocaleString($locale ?? undefined, {
 					weekday: 'short',
