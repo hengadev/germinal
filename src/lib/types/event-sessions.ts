@@ -5,7 +5,11 @@ export type EventSession = typeof eventSessions.$inferSelect;
 export type CreateEventSessionInput = {
 	eventId: string;
 	title: string;
+	titleEn?: string;
+	titleFr?: string;
 	description?: string | null;
+	descriptionEn?: string | null;
+	descriptionFr?: string | null;
 	startTime: Date;
 	endTime: Date;
 	totalCapacity: number;
