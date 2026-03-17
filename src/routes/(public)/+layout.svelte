@@ -3,8 +3,29 @@
     import type { LayoutData } from "./$types";
     import { Instagram } from "lucide-svelte";
     import { t } from 'svelte-i18n';
+    import { onMount } from 'svelte';
+    import { browser } from '$app/environment';
+    import { invalidateAll } from '$app/navigation';
 
     let { data, children }: { data: LayoutData; children: any } = $props();
+
+    // Handle bfcache (back-forward cache) to ensure fresh data when returning from admin subdomain
+    onMount(() => {
+        if (!browser) return;
+
+        const handlePageShow = (event: PageTransitionEvent) => {
+            // If page is being restored from bfcache, invalidate all data to ensure fresh state
+            if (event.persisted) {
+                invalidateAll();
+            }
+        };
+
+        window.addEventListener('pageshow', handlePageShow);
+
+        return () => {
+            window.removeEventListener('pageshow', handlePageShow);
+        };
+    });
 </script>
 
 <div class="min-h-screen flex flex-col">
