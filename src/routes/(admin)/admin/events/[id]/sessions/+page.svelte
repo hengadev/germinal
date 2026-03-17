@@ -61,23 +61,27 @@
 	let selectedSession: Session | null = $state(null);
 
 	// Form state for create
-	let createTitle = $state('');
-	let createDescription = $state('');
+	let createTitleEn = $state('');
+	let createTitleFr = $state('');
+	let createDescriptionEn = $state('');
+	let createDescriptionFr = $state('');
 	let createStartTime = $state('');
 	let createEndTime = $state('');
 	let createTotalCapacity = $state(1);
-	let createPriceDecimal = $state(0);  // Changed: now accepts decimal (e.g., 25.00)
+	let createPriceDecimal = $state(0);
 	let createCurrency = $state('EUR');
 	let createPublished = $state(false);
 	let createAllowWaitlist = $state(false);
 
 	// Form state for edit
-	let editTitle = $state('');
-	let editDescription = $state('');
+	let editTitleEn = $state('');
+	let editTitleFr = $state('');
+	let editDescriptionEn = $state('');
+	let editDescriptionFr = $state('');
 	let editStartTime = $state('');
 	let editEndTime = $state('');
 	let editTotalCapacity = $state(1);
-	let editPriceDecimal = $state(0);  // Changed: now accepts decimal (e.g., 25.00)
+	let editPriceDecimal = $state(0);
 	let editCurrency = $state('EUR');
 	let editPublished = $state(false);
 	let editAllowWaitlist = $state(false);
@@ -121,12 +125,14 @@
 	}
 
 	function resetCreateForm() {
-		createTitle = '';
-		createDescription = '';
+		createTitleEn = '';
+		createTitleFr = '';
+		createDescriptionEn = '';
+		createDescriptionFr = '';
 		createStartTime = '';
 		createEndTime = '';
 		createTotalCapacity = 1;
-		createPriceDecimal = 0;  // Changed variable name
+		createPriceDecimal = 0;
 		createCurrency = 'EUR';
 		createPublished = false;
 		createAllowWaitlist = false;
@@ -157,8 +163,10 @@
 
 	function openEditDialog(session: Session) {
 		selectedSession = session;
-		editTitle = session.title;
-		editDescription = session.description || '';
+		editTitleEn = session.titleEn || session.title || '';
+		editTitleFr = session.titleFr || '';
+		editDescriptionEn = session.descriptionEn || session.description || '';
+		editDescriptionFr = session.descriptionFr || '';
 		editStartTime = formatDateForInput(session.startTime);
 		editEndTime = formatDateForInput(session.endTime);
 		editTotalCapacity = session.totalCapacity;
@@ -196,23 +204,42 @@
 </script>
 
 {#snippet createInput(fieldName: string)}
-	{#if fieldName === "title"}
+	{#if fieldName === "titleEn"}
 		<input
-			id="createTitle"
-			name="title"
+			id="createTitleEn"
+			name="titleEn"
 			type="text"
-			bind:value={createTitle}
+			bind:value={createTitleEn}
 			required
-			placeholder="Opening Night"
+			placeholder="General Admission"
 			class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
 		/>
-	{:else if fieldName === "description"}
+	{:else if fieldName === "titleFr"}
+		<input
+			id="createTitleFr"
+			name="titleFr"
+			type="text"
+			bind:value={createTitleFr}
+			required
+			placeholder="Entrée générale"
+			class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+		/>
+	{:else if fieldName === "descriptionEn"}
 		<textarea
-			id="createDescription"
-			name="description"
-			bind:value={createDescription}
-			rows="3"
-			placeholder="Optional description"
+			id="createDescriptionEn"
+			name="descriptionEn"
+			bind:value={createDescriptionEn}
+			rows="2"
+			placeholder="Standard entry to the event"
+			class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm resize-none"
+		></textarea>
+	{:else if fieldName === "descriptionFr"}
+		<textarea
+			id="createDescriptionFr"
+			name="descriptionFr"
+			bind:value={createDescriptionFr}
+			rows="2"
+			placeholder="Entrée standard à l'événement"
 			class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm resize-none"
 		></textarea>
 	{:else if fieldName === "startTime"}
@@ -270,23 +297,42 @@
 {/snippet}
 
 {#snippet editInput(fieldName: string)}
-	{#if fieldName === "title"}
+	{#if fieldName === "titleEn"}
 		<input
-			id="editTitle"
-			name="title"
+			id="editTitleEn"
+			name="titleEn"
 			type="text"
-			bind:value={editTitle}
+			bind:value={editTitleEn}
 			required
-			placeholder="Opening Night"
+			placeholder="General Admission"
 			class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
 		/>
-	{:else if fieldName === "description"}
+	{:else if fieldName === "titleFr"}
+		<input
+			id="editTitleFr"
+			name="titleFr"
+			type="text"
+			bind:value={editTitleFr}
+			required
+			placeholder="Entrée générale"
+			class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+		/>
+	{:else if fieldName === "descriptionEn"}
 		<textarea
-			id="editDescription"
-			name="description"
-			bind:value={editDescription}
-			rows="3"
-			placeholder="Optional description"
+			id="editDescriptionEn"
+			name="descriptionEn"
+			bind:value={editDescriptionEn}
+			rows="2"
+			placeholder="Standard entry to the event"
+			class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm resize-none"
+		></textarea>
+	{:else if fieldName === "descriptionFr"}
+		<textarea
+			id="editDescriptionFr"
+			name="descriptionFr"
+			bind:value={editDescriptionFr}
+			rows="2"
+			placeholder="Entrée standard à l'événement"
 			class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm resize-none"
 		></textarea>
 	{:else if fieldName === "startTime"}
@@ -429,7 +475,10 @@
 						<tr class="hover:bg-dark-50 transition-colors">
 							<td class="px-6 py-4">
 								<div class="font-medium text-dark-900">
-									{session.title}
+									{session.titleEn || session.title}
+									{#if session.titleFr && session.titleFr !== (session.titleEn || session.title)}
+										<span class="text-dark-400 font-normal"> / {session.titleFr}</span>
+									{/if}
 								</div>
 								{#if session.reservationCount > 0}
 									<div class="text-sm text-dark-400">
@@ -503,9 +552,12 @@
 					<div class="flex items-start justify-between mb-3">
 						<div class="flex-1">
 							<h3 class="font-semibold text-dark-900">
-								{session.title}
+								{session.titleEn || session.title}
 							</h3>
-							<p class="text-sm text-dark-400">
+							{#if session.titleFr && session.titleFr !== (session.titleEn || session.title)}
+								<p class="text-sm text-dark-400">{session.titleFr}</p>
+							{/if}
+							<p class="text-sm text-dark-400 mt-1">
 								{formatDateTime(session.startTime)}
 							</p>
 						</div>
@@ -585,9 +637,13 @@
 			use:enhance={createSessionEnhance()}
 			class="grid gap-4 pt-4"
 		>
+			<input type="hidden" name="title" value={createTitleEn} />
+			<input type="hidden" name="description" value={createDescriptionEn} />
 			<div class="grid grid-cols-1 gap-4 w-full">
-				{@render field("title", "Titre", createInput, createTitle, null)}
-				{@render field("description", "Description", createInput, createDescription, null)}
+				{@render field("titleEn", "Titre (EN)", createInput, createTitleEn, null)}
+				{@render field("titleFr", "Titre (FR)", createInput, createTitleFr, null)}
+				{@render field("descriptionEn", "Description (EN)", createInput, createDescriptionEn, null)}
+				{@render field("descriptionFr", "Description (FR)", createInput, createDescriptionFr, null)}
 				{@render field("startTime", "Heure de Début", createInput, createStartTime, null)}
 				{@render field("endTime", "Heure de Fin", createInput, createEndTime, null)}
 				{@render field("totalCapacity", "Capacité Totale", createInput, createTotalCapacity, null)}
@@ -666,12 +722,20 @@
 			use:enhance={createSessionEnhance()}
 			class="grid gap-4"
 		>
+			<input type="hidden" name="title" value={createTitleEn} />
+			<input type="hidden" name="description" value={createDescriptionEn} />
 			<div class="grid grid-cols-2 gap-4 w-full">
 				<div class="col-span-2">
-					{@render field("title", "Titre", createInput, createTitle, null)}
+					{@render field("titleEn", "Titre (EN)", createInput, createTitleEn, null)}
 				</div>
 				<div class="col-span-2">
-					{@render field("description", "Description", createInput, createDescription, null)}
+					{@render field("titleFr", "Titre (FR)", createInput, createTitleFr, null)}
+				</div>
+				<div class="col-span-2">
+					{@render field("descriptionEn", "Description (EN)", createInput, createDescriptionEn, null)}
+				</div>
+				<div class="col-span-2">
+					{@render field("descriptionFr", "Description (FR)", createInput, createDescriptionFr, null)}
 				</div>
 				{@render field("startTime", "Heure de Début", createInput, createStartTime, null)}
 				{@render field("endTime", "Heure de Fin", createInput, createEndTime, null)}
@@ -766,10 +830,14 @@
 			class="grid gap-4 pt-4"
 		>
 			<input type="hidden" name="id" value={selectedSession?.id} />
+			<input type="hidden" name="title" value={editTitleEn} />
+			<input type="hidden" name="description" value={editDescriptionEn} />
 
 			<div class="grid grid-cols-1 gap-4 w-full">
-				{@render field("title", "Titre", editInput, editTitle, null)}
-				{@render field("description", "Description", editInput, editDescription, null)}
+				{@render field("titleEn", "Titre (EN)", editInput, editTitleEn, null)}
+				{@render field("titleFr", "Titre (FR)", editInput, editTitleFr, null)}
+				{@render field("descriptionEn", "Description (EN)", editInput, editDescriptionEn, null)}
+				{@render field("descriptionFr", "Description (FR)", editInput, editDescriptionFr, null)}
 				{@render field("startTime", "Heure de Début", editInput, editStartTime, null)}
 				{@render field("endTime", "Heure de Fin", editInput, editEndTime, null)}
 				{@render field("totalCapacity", "Capacité Totale", editInput, editTotalCapacity, null)}
@@ -849,13 +917,21 @@
 			class="grid gap-4"
 		>
 			<input type="hidden" name="id" value={selectedSession?.id} />
+			<input type="hidden" name="title" value={editTitleEn} />
+			<input type="hidden" name="description" value={editDescriptionEn} />
 
 			<div class="grid grid-cols-2 gap-4 w-full">
 				<div class="col-span-2">
-					{@render field("title", "Titre", editInput, editTitle, null)}
+					{@render field("titleEn", "Titre (EN)", editInput, editTitleEn, null)}
 				</div>
 				<div class="col-span-2">
-					{@render field("description", "Description", editInput, editDescription, null)}
+					{@render field("titleFr", "Titre (FR)", editInput, editTitleFr, null)}
+				</div>
+				<div class="col-span-2">
+					{@render field("descriptionEn", "Description (EN)", editInput, editDescriptionEn, null)}
+				</div>
+				<div class="col-span-2">
+					{@render field("descriptionFr", "Description (FR)", editInput, editDescriptionFr, null)}
 				</div>
 				{@render field("startTime", "Heure de Début", editInput, editStartTime, null)}
 				{@render field("endTime", "Heure de Fin", editInput, editEndTime, null)}

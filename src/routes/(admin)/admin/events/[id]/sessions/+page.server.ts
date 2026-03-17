@@ -13,7 +13,11 @@ export const load: PageServerLoad = async ({ params }) => {
 		sessions: sessions.map((s: typeof sessions[number]) => ({
 			id: s.id,
 			title: s.title,
+			titleEn: (s as any).titleEn,
+			titleFr: (s as any).titleFr,
 			description: s.description,
+			descriptionEn: (s as any).descriptionEn,
+			descriptionFr: (s as any).descriptionFr,
 			startTime: s.startTime.toISOString(),
 			endTime: s.endTime.toISOString(),
 			totalCapacity: s.totalCapacity,
@@ -33,12 +37,20 @@ export const actions: Actions = {
 			return fail(400, { error: 'Event ID is required' });
 		}
 		const formData = await request.formData();
+		const titleEn = formData.get('titleEn') as string;
+		const titleFr = formData.get('titleFr') as string;
+		const descriptionEn = formData.get('descriptionEn') as string || null;
+		const descriptionFr = formData.get('descriptionFr') as string || null;
 
 		try {
 			const session = await createEventSession({
 				eventId: params.id,
-				title: formData.get('title') as string,
-				description: formData.get('description') as string || null,
+				title: titleEn,
+				titleEn,
+				titleFr,
+				description: descriptionEn,
+				descriptionEn,
+				descriptionFr,
 				startTime: new Date(formData.get('startTime') as string),
 				endTime: new Date(formData.get('endTime') as string),
 				totalCapacity: parseInt(formData.get('totalCapacity') as string),
@@ -48,7 +60,7 @@ export const actions: Actions = {
 				allowWaitlist: formData.get('allowWaitlist') === 'on'
 			});
 
-			return { success: `Séance "${session.title}" créée avec succès` };
+			return { success: `Séance "${session.titleEn || session.title}" créée avec succès` };
 		} catch (err) {
 			logger.error({ err }, 'Create session error');
 			return fail(500, { error: err instanceof Error ? err.message : 'Failed to create session' });
@@ -58,11 +70,19 @@ export const actions: Actions = {
 	updateSession: async ({ request }) => {
 		const formData = await request.formData();
 		const id = formData.get('id') as string;
+		const titleEn = formData.get('titleEn') as string;
+		const titleFr = formData.get('titleFr') as string;
+		const descriptionEn = formData.get('descriptionEn') as string || null;
+		const descriptionFr = formData.get('descriptionFr') as string || null;
 
 		try {
 			await updateEventSession(id, {
-				title: formData.get('title') as string,
-				description: formData.get('description') as string || null,
+				title: titleEn,
+				titleEn,
+				titleFr,
+				description: descriptionEn,
+				descriptionEn,
+				descriptionFr,
 				startTime: new Date(formData.get('startTime') as string),
 				endTime: new Date(formData.get('endTime') as string),
 				totalCapacity: parseInt(formData.get('totalCapacity') as string),
