@@ -369,7 +369,7 @@
             <p class="text-dark-400 text-sm">Créer une nouvelle catégorie de talent</p>
         </div>
         <form method="POST" action="?/createCategory" use:enhance={createCatEnhance} class="grid gap-4 pt-4">
-            <div class="grid grid-cols-1 gap-4 w-full">
+            <div class="grid grid-cols-1 gap-4 w-full pt-6">
                 {@render field("name", "Nom", createInput, null)}
                 {@render field("displayNameEn", "Nom d'affichage (Anglais)", createInput, null)}
                 {@render field("displayNameFr", "Nom d'affichage (Français)", createInput, null)}
@@ -397,8 +397,8 @@
     </Drawer>
 {:else}
     <Modal bind:isOpen={createDialogOpen} title="Créer une Nouvelle Catégorie" description="Créer une nouvelle catégorie de talent">
-        <form method="POST" action="?/createCategory" use:enhance={createCatEnhance} class="grid gap-4">
-            <div class="grid grid-cols-2 gap-4 w-full">
+        <form method="POST" action="?/createCategory" use:enhance={createCatEnhance}>
+            <div class="grid grid-cols-2 gap-4 w-full pt-6">
                 <div class="col-span-2">{@render field("name", "Nom", createInput, null)}</div>
                 <div class="col-span-2">{@render field("displayNameEn", "Nom d'affichage (Anglais)", createInput, null)}</div>
                 <div class="col-span-2">{@render field("displayNameFr", "Nom d'affichage (Français)", createInput, null)}</div>
@@ -440,7 +440,7 @@
         </div>
         <form method="POST" action="?/updateCategory" use:enhance={editCatEnhance} class="grid gap-4 pt-4">
             <input type="hidden" name="id" value={selectedCategory?.id} />
-            <div class="grid grid-cols-1 gap-4 w-full">
+            <div class="grid grid-cols-1 gap-4 w-full pt-6">
                 {@render field("name", "Nom", editInput, null)}
                 {@render field("displayNameEn", "Nom d'affichage (Anglais)", editInput, null)}
                 {@render field("displayNameFr", "Nom d'affichage (Français)", editInput, null)}
@@ -468,9 +468,9 @@
     </Drawer>
 {:else}
     <Modal bind:isOpen={editDialogOpen} title="Modifier la Catégorie" description="Mettre à jour les détails de la catégorie">
-        <form method="POST" action="?/updateCategory" use:enhance={editCatEnhance} class="grid gap-4">
+        <form method="POST" action="?/updateCategory" use:enhance={editCatEnhance}>
             <input type="hidden" name="id" value={selectedCategory?.id} />
-            <div class="grid grid-cols-2 gap-4 w-full">
+            <div class="grid grid-cols-2 gap-4 w-full pt-6">
                 <div class="col-span-2">{@render field("name", "Nom", editInput, null)}</div>
                 <div class="col-span-2">{@render field("displayNameEn", "Nom d'affichage (Anglais)", editInput, null)}</div>
                 <div class="col-span-2">{@render field("displayNameFr", "Nom d'affichage (Français)", editInput, null)}</div>
