@@ -77,7 +77,7 @@
 	}
 </script>
 
-<div class="grid gap-6">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 	{#each sessions as session}
 		<div class="bg-white rounded-lg border border-border-card p-6 hover:border-dark-300 transition-colors">
 			<div class="grid gap-4">
