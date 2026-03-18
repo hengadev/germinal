@@ -101,8 +101,7 @@
 	<title>Nouvel Événement | Tableau de bord Admin</title>
 </svelte:head>
 
-<div class="container mx-auto px-4 py-8 lg:py-12">
-	<div class="max-w-3xl mx-auto">
+<div class="px-4 py-8 lg:py-12">
 		<div class="mb-8">
 			<a
 				href="/admin/events"
@@ -726,5 +725,4 @@
 				</div>
 			</form>
 		</div>
-	</div>
 </div>
