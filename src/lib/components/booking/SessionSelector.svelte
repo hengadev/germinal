@@ -102,20 +102,20 @@
 				</div>
 
 				<!-- Session Details -->
-				<div class="grid grid-cols-2 gap-4 py-4 border-y border-border-card/50">
+				<div class="flex justify-between items-start py-4 border-y border-border-card/50 gap-4">
 					<div class="flex items-center gap-2 text-dark-600">
-						<Calendar size={18} class="text-dark-400" />
+						<Calendar size={18} class="text-dark-400 flex-shrink-0" />
 						<div class="text-sm">
 							<div class="font-medium">{formatDate(session.startTime, $locale)}</div>
 						</div>
 					</div>
 					<div class="flex items-center gap-2 text-dark-600">
-						<Clock size={18} class="text-dark-400" />
-						<div class="text-sm">
+						<div class="text-sm text-right">
 							<div class="font-medium">
 								{formatTime(session.startTime, $locale)} - {formatTime(session.endTime, $locale)}
 							</div>
 						</div>
+						<Clock size={18} class="text-dark-400 flex-shrink-0" />
 					</div>
 				</div>
 
