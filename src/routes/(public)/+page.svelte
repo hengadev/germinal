@@ -102,18 +102,47 @@
                         </p>
                     </div>
                     <div class="w-full border border-dark-50/80"></div>
-                    <div class="grid grid-cols-2 grid-rows-2 gap-y-8">
-                        {#each Array(4) as _, index}
+                    {#if data.events[0]}
+                        {@const event = data.events[0]}
+                        {@const start = new Date(event.startDate)}
+                        {@const end = new Date(event.endDate)}
+                        {@const isSameDay = start.toDateString() === end.toDateString()}
+                        {@const admissionInfo = $locale === 'en' ? event.admissionInfoEn : event.admissionInfoFr}
+
+                        <div class="grid grid-cols-2 grid-rows-2 gap-y-8">
+                            <!-- Date range -->
                             <div class="grid gap-0.5">
-                                <p class="uppercase text-xs text-dark-300">
-                                    Date
-                                </p>
+                                <p class="uppercase text-xs text-dark-300">{$t("home.date")}</p>
                                 <p class="text-dark-900 text-sm font-medium">
-                                    October 24, 2024
+                                    {isSameDay
+                                        ? start.toLocaleDateString($locale === 'en' ? 'en-US' : 'fr-FR', { month: 'short', day: 'numeric', year: 'numeric' })
+                                        : `${start.toLocaleDateString($locale === 'en' ? 'en-US' : 'fr-FR', { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString($locale === 'en' ? 'en-US' : 'fr-FR', { month: 'short', day: 'numeric', year: 'numeric' })}`}
                                 </p>
                             </div>
-                        {/each}
-                    </div>
+
+                            <!-- Time -->
+                            <div class="grid gap-0.5">
+                                <p class="uppercase text-xs text-dark-300">{$t("home.time")}</p>
+                                <p class="text-dark-900 text-sm font-medium">
+                                    {start.toLocaleTimeString($locale === 'en' ? 'en-US' : 'fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                                </p>
+                            </div>
+
+                            <!-- Location -->
+                            <div class="grid gap-0.5">
+                                <p class="uppercase text-xs text-dark-300">{$t("home.location")}</p>
+                                <p class="text-dark-900 text-sm font-medium">{event.location}</p>
+                            </div>
+
+                            <!-- Admission info -->
+                            {#if admissionInfo}
+                                <div class="grid gap-0.5">
+                                    <p class="uppercase text-xs text-dark-300">{$t("home.admission")}</p>
+                                    <p class="text-dark-900 text-sm font-medium">{admissionInfo}</p>
+                                </div>
+                            {/if}
+                        </div>
+                    {/if}
                     <div class="w-full border border-dark-50/80"></div>
                     <button
                         class="inline-flex w-fit items-center gap-2 px-6 py-3 rounded-lg bg-dark-900 hover:bg-dark-700 text-white"

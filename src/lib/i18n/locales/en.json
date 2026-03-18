@@ -20,7 +20,11 @@
 		"heroDescription": "An exploration of taste without sound. A sensory deprivation dining experience designed to heighten the palate and focus the mind. Four courses, zero words.",
 		"reserveSeat": "Reserve your seat",
 		"viewEvents": "View Events",
-		"viewTalents": "View Talents"
+		"viewTalents": "View Talents",
+		"date": "Date",
+		"time": "Time",
+		"location": "Location",
+		"admission": "Admission"
 	},
 	"events": {
 		"pageTitle": "Events | Germinal",

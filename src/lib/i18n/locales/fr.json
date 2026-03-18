@@ -20,7 +20,11 @@
 		"heroDescription": "Une exploration du goût sans le son. Une expérience culinaire de privation sensorielle conçue pour affiner le palais et concentrer l'esprit. Quatre plats, zéro mot.",
 		"reserveSeat": "Réservez votre place",
 		"viewEvents": "Voir les événements",
-		"viewTalents": "Voir les talents"
+		"viewTalents": "Voir les talents",
+		"date": "Date",
+		"time": "Heure",
+		"location": "Lieu",
+		"admission": "Admission"
 	},
 	"events": {
 		"pageTitle": "Événements | Germinal",
