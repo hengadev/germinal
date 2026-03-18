@@ -1,51 +1,57 @@
 import { fail, type Actions } from '@sveltejs/kit';
 import { logger } from '$lib/server/logger';
 import { env } from '$lib/server/env';
-import { MOCK_TALENTS } from '$lib/mock-data';
+import { MOCK_TALENTS, MOCK_TALENT_CATEGORIES } from '$lib/mock-data';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params }) => {
 	const { id } = params;
 
+	let talent;
+	let categories;
+
 	if (env.USE_MOCK_DATA) {
 		// Mock mode - find talent in mock data
-		const talent = MOCK_TALENTS.find((t) => t.id === id);
+		const foundTalent = MOCK_TALENTS.find((t) => t.id === id);
 
-		if (!talent) {
+		if (!foundTalent) {
 			throw fail(404, { error: 'Talent not found' });
 		}
 
 		// Parse social links
-		const socialLinks = talent.socialLinks
-			? JSON.parse(talent.socialLinks)
+		const socialLinks = foundTalent.socialLinks
+			? JSON.parse(foundTalent.socialLinks)
 			: {};
 
-		return {
-			talent: {
-				...talent,
-				socialLinks
-			}
+		talent = {
+			...foundTalent,
+			socialLinks
 		};
+		categories = MOCK_TALENT_CATEGORIES;
+	} else {
+		// Database mode - fetch from database
+		const { getTalentById } = await import('$lib/server/services/talents');
+		const { getAllTalentCategories } = await import('$lib/server/services/talent-categories');
+
+		try {
+			const talentData = await getTalentById(id);
+			const socialLinks = talentData.socialLinks
+				? JSON.parse(talentData.socialLinks)
+				: {};
+
+			talent = {
+				...talentData,
+				socialLinks
+			};
+		} catch (error) {
+			throw fail(404, { error: 'Talent not found' });
+		}
+
+		const categoriesData = await getAllTalentCategories({ publishedOnly: false });
+		categories = categoriesData;
 	}
 
-	// Database mode - fetch from database
-	const { getTalentById } = await import('$lib/server/services/talents');
-
-	try {
-		const talent = await getTalentById(id);
-		const socialLinks = talent.socialLinks
-			? JSON.parse(talent.socialLinks)
-			: {};
-
-		return {
-			talent: {
-				...talent,
-				socialLinks
-			}
-		};
-	} catch (error) {
-		throw fail(404, { error: 'Talent not found' });
-	}
+	return { talent, categories };
 };
 
 export const actions: Actions = {
@@ -70,6 +76,7 @@ export const actions: Actions = {
 		const quoteFr = formData.get('quoteFr');
 		const specializationsEn = formData.get('specializationsEn');
 		const specializationsFr = formData.get('specializationsFr');
+		const categoryId = formData.get('categoryId');
 		const instagram = formData.get('instagram');
 		const linkedin = formData.get('linkedin');
 		const twitter = formData.get('twitter');
@@ -141,6 +148,7 @@ export const actions: Actions = {
 				quoteFr: quoteFr?.toString() || null,
 				specializationsEn: specializationsEn?.toString() || null,
 				specializationsFr: specializationsFr?.toString() || null,
+				categoryId: categoryId?.toString() || null,
 				socialLinks: JSON.stringify(socialLinks),
 				profileMediaId: mediaAction === 'replaced' && newMediaId ? newMediaId :
 				               mediaAction === 'removed' ? null :
@@ -174,6 +182,7 @@ export const actions: Actions = {
 				quoteFr: quoteFr?.toString() || null,
 				specializationsEn: specializationsEn?.toString() || null,
 				specializationsFr: specializationsFr?.toString() || null,
+				categoryId: categoryId?.toString() || null,
 				socialLinks: JSON.stringify(socialLinks),
 				profileMediaId: mediaAction === 'replaced' && newMediaId ? newMediaId :
 				               mediaAction === 'removed' ? null :
