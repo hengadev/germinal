@@ -1,6 +1,5 @@
 <script lang="ts">
     import { enhance } from "$app/forms";
-import { goto } from "$app/navigation";
     import {
         Plus,
         Calendar,
@@ -12,7 +11,6 @@ import { goto } from "$app/navigation";
         X,
         FileText,
         Tag,
-        Images,
     } from "lucide-svelte";
     import type { PageData, ActionData } from "./$types";
     import type { Snippet } from "svelte";
@@ -20,8 +18,6 @@ import { goto } from "$app/navigation";
     import Drawer from "$lib/components/ui/Drawer.svelte";
     import Modal from "$lib/components/ui/Modal.svelte";
     import EventCategoriesTab from "./EventCategoriesTab.svelte";
-    import MediaUpload from "$lib/components/MediaUpload.svelte";
-    import type { Media } from "$lib/types/media";
     import { getToastContext } from "$lib/components/toast/state.svelte";
 
     let {
@@ -49,33 +45,11 @@ import { goto } from "$app/navigation";
     type Event = (typeof data.events)[number];
 
     // Dialog states
-    let createDialogOpen = $state(false);
     let editDialogOpen = $state(false);
     let deleteDialogOpen = $state(false);
 
     // Currently selected event for edit/delete
     let selectedEvent: Event | null = $state(null);
-
-    // Form state for create
-    let createTitle = $state("");
-    let createSlug = $state("");
-    let createDescription = $state("");
-    let createStartDate = $state("");
-    let createEndDate = $state("");
-    let createLocation = $state("");
-    let createCategoryId = $state("");
-    let createPublished = $state(false);
-    let createIsSpotlight = $state(false);
-
-    // Auto-generate slug from title
-    $effect(() => {
-        if (createTitle) {
-            createSlug = createTitle
-                .toLowerCase()
-                .replace(/[^a-z0-9]+/g, "-")
-                .replace(/^-+|-+$/g, "");
-        }
-    });
 
     // Form state for edit
     let editTitle = $state("");
@@ -88,41 +62,7 @@ import { goto } from "$app/navigation";
     let editPublished = $state(false);
     let editIsSpotlight = $state(false);
 
-    // Media state for create form
-    let createCoverMediaId = $state<string | null>(null);
-    let createGalleryMediaIds = $state<string[]>([]);
-
-    function handleCreateCoverUpload(uploaded: Media[]) {
-        if (uploaded.length > 0) createCoverMediaId = uploaded[0].id;
-    }
-    function handleCreateCoverRemove(_: string) {
-        createCoverMediaId = null;
-    }
-    function handleCreateGalleryUpload(uploaded: Media[]) {
-        createGalleryMediaIds = [...createGalleryMediaIds, ...uploaded.map((m) => m.id)];
-    }
-    function handleCreateGalleryRemove(mediaId: string) {
-        createGalleryMediaIds = createGalleryMediaIds.filter((id) => id !== mediaId);
-    }
-    function handleCreateGalleryReorder(mediaIds: string[]) {
-        createGalleryMediaIds = mediaIds;
-    }
-
-
     // use:enhance handlers replace $effect-based form handling (more reliable in Svelte 5)
-    function createEventEnhance() {
-        return async ({ result, update }: { result: import('@sveltejs/kit').ActionResult; update: (opts?: { reset?: boolean }) => Promise<void> }) => {
-            if (result.type === 'success') {
-                createDialogOpen = false;
-                resetCreateForm();
-                toast.success("Succès", (result.data as { success?: string })?.success ?? 'Événement créé');
-            } else if (result.type === 'failure') {
-                toast.error("Erreur", (result.data as { error?: string })?.error ?? 'Une erreur est survenue');
-            }
-            await update({ reset: false });
-        };
-    }
-
     function updateEventEnhance() {
         return async ({ result, update }: { result: import('@sveltejs/kit').ActionResult; update: (opts?: { reset?: boolean }) => Promise<void> }) => {
             if (result.type === 'success') {
@@ -147,20 +87,6 @@ import { goto } from "$app/navigation";
         };
     }
 
-    function resetCreateForm() {
-        createTitle = "";
-        createSlug = "";
-        createDescription = "";
-        createStartDate = "";
-        createEndDate = "";
-        createLocation = "";
-        createCategoryId = "";
-        createPublished = false;
-        createIsSpotlight = false;
-        createCoverMediaId = null;
-        createGalleryMediaIds = [];
-    }
-
     function formatDateForInput(date: Date | string): string {
         const d = new Date(date);
         const year = d.getFullYear();
@@ -169,11 +95,6 @@ import { goto } from "$app/navigation";
         const hours = String(d.getHours()).padStart(2, "0");
         const minutes = String(d.getMinutes()).padStart(2, "0");
         return `${year}-${month}-${day}T${hours}:${minutes}`;
-    }
-
-    function openCreateDialog() {
-        resetCreateForm();
-        createDialogOpen = true;
     }
 
     function openEditDialog(event: Event) {
@@ -216,84 +137,6 @@ import { goto } from "$app/navigation";
     // Snippet for form fields
     type InputSnippet = Snippet<[fieldName: string]>;
 </script>
-
-{#snippet createInput(fieldName: string)}
-    {#if fieldName === "title"}
-        <input
-            id="createTitle"
-            name="titleEn"
-            type="text"
-            bind:value={createTitle}
-            required
-            placeholder="Summer Music Festival"
-            class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
-        />
-    {:else if fieldName === "slug"}
-        <input
-            id="createSlug"
-            name="slug"
-            type="text"
-            bind:value={createSlug}
-            required
-            pattern="^[a-z0-9-]+$"
-            placeholder="summer-music-festival"
-            class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
-        />
-    {:else if fieldName === "description"}
-        <textarea
-            id="createDescription"
-            name="descriptionEn"
-            bind:value={createDescription}
-            required
-            rows="4"
-            placeholder="Describe your event..."
-            class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm resize-none"
-        ></textarea>
-    {:else if fieldName === "startDate"}
-        <input
-            id="createStartDate"
-            name="startDate"
-            type="datetime-local"
-            bind:value={createStartDate}
-            required
-            class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
-        />
-    {:else if fieldName === "endDate"}
-        <input
-            id="createEndDate"
-            name="endDate"
-            type="datetime-local"
-            bind:value={createEndDate}
-            required
-            class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
-        />
-    {:else if fieldName === "location"}
-        <input
-            id="createLocation"
-            name="location"
-            type="text"
-            bind:value={createLocation}
-            required
-            placeholder="123 Main St, City, Country"
-            class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
-        />
-    {:else if fieldName === "categoryId"}
-        <div class="relative">
-            <Tag size={16} class="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400" />
-            <select
-                id="createCategoryId"
-                name="categoryId"
-                bind:value={createCategoryId}
-                class="w-full pl-9 pr-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm appearance-none bg-white"
-            >
-                <option value="">Aucune catégorie</option>
-                {#each (data.categories || []) as category}
-                    <option value={category.id}>{category.displayNameFr} ({category.displayNameEn})</option>
-                {/each}
-            </select>
-        </div>
-    {/if}
-{/snippet}
 
 {#snippet editInput(fieldName: string)}
     {#if fieldName === "title"}
@@ -404,13 +247,13 @@ import { goto } from "$app/navigation";
             <p class="text-dark-400">Gérez vos événements, expositions et catégories</p>
         </div>
         {#if activeTab === 'events'}
-            <button
-                onclick={openCreateDialog}
+            <a
+                href="/admin/events/new"
                 class="inline-flex items-center gap-2 px-4 py-2 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors self-start"
             >
                 <Plus size={18} />
                 <span>Nouvel Événement</span>
-            </button>
+            </a>
         {:else}
             <button
                 onclick={() => (catCreateDialogOpen = true)}
@@ -450,13 +293,13 @@ import { goto } from "$app/navigation";
             <p class="text-dark-400 mb-6">
                 Créez votre premier événement pour commencer
             </p>
-            <button
-                onclick={openCreateDialog}
+            <a
+                href="/admin/events/new"
                 class="inline-flex items-center gap-2 px-4 py-2 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors"
             >
                 <Plus size={18} />
                 <span>Créer un Événement</span>
-            </button>
+            </a>
         </div>
     {:else}
         <!-- Table view for desktop -->
@@ -494,105 +337,93 @@ import { goto } from "$app/navigation";
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-border-card">
-                    {#each data.events as event}
-                        <tr
-                            class="hover:bg-dark-50 transition-colors cursor-pointer"
-                            onclick={() => goto(`/admin/events/${event.id}`)}
-                        >
+                    {#each data.events as event (event.id)}
+                        <tr class="hover:bg-dark-50 transition-colors">
                             <td class="px-6 py-4">
-                                <div class="flex items-center gap-4">
-                                    <div class="flex flex-col items-center flex-shrink-0">
-                                        {#if event.coverMedia?.url}
-                                            <img
-                                                src={event.coverMedia.url}
-                                                alt={event.titleEn}
-                                                class="w-16 h-16 object-cover rounded-lg"
-                                            />
-                                        {:else}
-                                            <div
-                                                class="w-16 h-16 bg-dark-100 rounded-lg flex items-center justify-center"
-                                            >
-                                                <Calendar
-                                                    size={24}
-                                                    class="text-dark-300"
-                                                />
-                                            </div>
-                                        {/if}
-                                        {#if (event.media?.length ?? 0) > 0}
-                                            <span class="inline-flex items-center gap-1 mt-1 text-xs text-dark-400">
-                                                <Images size={11} />
-                                                {event.media?.length}
-                                            </span>
-                                        {/if}
-                                    </div>
-                                    <div>
-                                        <div
-                                            class="font-medium text-dark-900"
-                                        >
+                                <div class="flex items-start gap-3">
+                                    {#if event.coverMedia?.url}
+                                        <img
+                                            src={event.coverMedia.url}
+                                            alt=""
+                                            class="w-12 h-12 object-cover rounded-lg flex-shrink-0"
+                                        />
+                                    {:else}
+                                        <div class="w-12 h-12 bg-dark-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                            <Calendar size={20} class="text-dark-400" />
+                                        </div>
+                                    {/if}
+                                    <div class="min-w-0">
+                                        <p class="font-medium text-dark-900 truncate">
                                             {event.titleEn}
-                                        </div>
-                                        <div class="text-sm text-dark-400">
+                                        </p>
+                                        <p class="text-sm text-dark-400 truncate">
                                             {event.slug}
-                                        </div>
+                                        </p>
                                     </div>
                                 </div>
                             </td>
                             <td class="px-6 py-4">
                                 <div class="text-sm">
-                                    <div class="font-medium text-dark-900">
+                                    <p class="font-medium text-dark-900">
                                         {formatDate(event.startDate)}
-                                    </div>
-                                    <div class="text-dark-400">
-                                        {formatDateTime(event.startDate)} - {formatDateTime(
-                                            event.endDate,
-                                        )}
-                                    </div>
+                                    </p>
+                                    <p class="text-dark-400">
+                                        {formatDate(event.endDate)}
+                                    </p>
                                 </div>
                             </td>
                             <td class="px-6 py-4">
-                                <div
-                                    class="flex items-center gap-2 text-sm text-dark-600"
-                                >
-                                    <MapPin size={16} />
-                                    <span class="truncate max-w-[200px]"
-                                        >{event.location}</span
-                                    >
+                                <div class="flex items-center gap-1 text-sm text-dark-600">
+                                    <MapPin size={16} class="flex-shrink-0" />
+                                    <span class="truncate">{event.location}</span>
                                 </div>
                             </td>
                             <td class="px-6 py-4">
-                                {#if event.published}
-                                    <span
-                                        class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-dark-900 text-white rounded-full"
-                                    >
-                                        <Eye size={14} />
-                                        Publié
-                                    </span>
-                                {:else}
-                                    <span
-                                        class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-dark-100 text-dark-600 rounded-full"
-                                    >
-                                        <EyeOff size={14} />
-                                        Brouillon
-                                    </span>
-                                {/if}
+                                <div class="flex items-center gap-2">
+                                    {#if event.published}
+                                        <span
+                                            class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-green-50 text-green-700"
+                                        >
+                                            <Eye size={12} />
+                                            Publié
+                                        </span>
+                                    {:else}
+                                        <span
+                                            class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-dark-50 text-dark-600"
+                                        >
+                                            <EyeOff size={12} />
+                                            Brouillon
+                                        </span>
+                                    {/if}
+                                    {#if event.isSpotlight}
+                                        <span
+                                            class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-amber-50 text-amber-700"
+                                        >
+                                            <Tag size={12} />
+                                            À la une
+                                        </span>
+                                    {/if}
+                                </div>
                             </td>
                             <td class="px-6 py-4">
-                                <div
-                                    class="flex items-center justify-end gap-2"
-                                    onclick={(e) => e.stopPropagation()}
-                                >
+                                <div class="flex items-center justify-end gap-2">
+                                    <a
+                                        href="/admin/events/{event.id}"
+                                        class="p-2 text-dark-400 hover:text-dark-900 hover:bg-dark-100 rounded-lg transition-colors"
+                                        title="Voir les détails"
+                                    >
+                                        <FileText size={18} />
+                                    </a>
                                     <button
-                                        onclick={() =>
-                                            openEditDialog(event)}
-                                        class="p-2 text-dark-600 hover:text-dark-900 hover:bg-dark-50 rounded-lg transition-colors"
+                                        onclick={() => openEditDialog(event)}
+                                        class="p-2 text-dark-400 hover:text-dark-900 hover:bg-dark-100 rounded-lg transition-colors"
                                         title="Modifier"
                                     >
                                         <Edit size={18} />
                                     </button>
                                     <button
-                                        onclick={() =>
-                                            openDeleteDialog(event)}
-                                        class="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors"
+                                        onclick={() => openDeleteDialog(event)}
+                                        class="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                                         title="Supprimer"
                                     >
                                         <Trash2 size={18} />
@@ -607,85 +438,90 @@ import { goto } from "$app/navigation";
 
         <!-- Card view for mobile -->
         <div class="lg:hidden space-y-4">
-            {#each data.events as event}
-                <div
-                    class="bg-white rounded-lg border border-border-card p-4 cursor-pointer hover:shadow-md transition-shadow"
-                    onclick={() => goto(`/admin/events/${event.id}`)}
-                >
-                    <div class="flex gap-4 mb-4">
-                        <div class="flex flex-col items-center flex-shrink-0">
+            {#each data.events as event (event.id)}
+                <div class="bg-white rounded-lg border border-border-card overflow-hidden">
+                    <div class="p-4">
+                        <div class="flex gap-3 mb-3">
                             {#if event.coverMedia?.url}
                                 <img
                                     src={event.coverMedia.url}
-                                    alt={event.titleEn}
-                                    class="w-20 h-20 object-cover rounded-lg"
+                                    alt=""
+                                    class="w-16 h-16 object-cover rounded-lg flex-shrink-0"
                                 />
                             {:else}
-                                <div
-                                    class="w-20 h-20 bg-dark-100 rounded-lg flex items-center justify-center"
-                                >
-                                    <Calendar size={24} class="text-dark-300" />
+                                <div class="w-16 h-16 bg-dark-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                    <Calendar size={24} class="text-dark-400" />
                                 </div>
                             {/if}
-                            {#if (event.media?.length ?? 0) > 0}
-                                <span class="inline-flex items-center gap-1 mt-1 text-xs text-dark-400">
-                                    <Images size={11} />
-                                    {event.media?.length}
-                                </span>
-                            {/if}
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <div
-                                class="flex items-start justify-between gap-2 mb-1"
-                            >
-                                <h3
-                                    class="font-semibold text-dark-900 truncate"
-                                >
+                            <div class="min-w-0 flex-1">
+                                <h3 class="font-semibold text-dark-900 truncate">
                                     {event.titleEn}
                                 </h3>
-                                {#if event.published}
-                                    <span
-                                        class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-dark-900 text-white rounded-full flex-shrink-0"
-                                    >
-                                        <Eye size={12} />
-                                    </span>
-                                {:else}
-                                    <span
-                                        class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-dark-100 text-dark-600 rounded-full flex-shrink-0"
-                                    >
-                                        <EyeOff size={12} />
-                                    </span>
-                                {/if}
-                            </div>
-                            <div class="text-sm text-dark-400 mb-1">
-                                {formatDate(event.startDate)}
-                            </div>
-                            <div
-                                class="flex items-center gap-1 text-sm text-dark-600"
-                            >
-                                <MapPin size={14} />
-                                <span class="truncate">{event.location}</span>
+                                <p class="text-sm text-dark-400 truncate">
+                                    {event.slug}
+                                </p>
+                                <div class="flex items-center gap-1 text-sm text-dark-600 mt-1">
+                                    <MapPin size={14} class="flex-shrink-0" />
+                                    <span class="truncate">{event.location}</span>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <div
-                        class="flex items-center justify-end gap-2 pt-3 border-t border-border-card"
-                        onclick={(e) => e.stopPropagation()}
-                    >
-                        <button
-                            onclick={() => openEditDialog(event)}
-                            class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-dark-600 hover:text-dark-900 hover:bg-dark-50 rounded-lg transition-colors"
-                        >
-                            <Edit size={16} />
-                            Modifier
-                        </button>
-                        <button
-                            onclick={() => openDeleteDialog(event)}
-                            class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors"
-                        >
-                            <Trash2 size={16} />
-                            Supprimer
-                        </button>
+
+                        <div class="flex flex-wrap items-center gap-2 mb-3">
+                            {#if event.published}
+                                <span
+                                    class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-green-50 text-green-700"
+                                >
+                                    <Eye size={12} />
+                                    Publié
+                                </span>
+                            {:else}
+                                <span
+                                    class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-dark-50 text-dark-600"
+                                >
+                                    <EyeOff size={12} />
+                                    Brouillon
+                                </span>
+                            {/if}
+                            {#if event.isSpotlight}
+                                <span
+                                    class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-amber-50 text-amber-700"
+                                >
+                                    <Tag size={12} />
+                                    À la une
+                                </span>
+                            {/if}
+                            <span
+                                class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-dark-50 text-dark-600"
+                            >
+                                <Calendar size={12} />
+                                {formatDate(event.startDate)}
+                            </span>
+                        </div>
+
+                        <div class="flex items-center justify-between gap-2 pt-3 border-t border-border-card">
+                            <a
+                                href="/admin/events/{event.id}"
+                                class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-dark-600 hover:text-dark-900 hover:bg-dark-50 rounded-lg transition-colors"
+                            >
+                                <FileText size={16} />
+                                Détails
+                            </a>
+                            <button
+                                onclick={() => openEditDialog(event)}
+                                class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-dark-600 hover:text-dark-900 hover:bg-dark-50 rounded-lg transition-colors"
+                            >
+                                <Edit size={16} />
+                                Modifier
+                            </button>
+                            <button
+                                onclick={() => openDeleteDialog(event)}
+                                class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors"
+                            >
+                                <Trash2 size={16} />
+                                Supprimer
+                            </button>
+                        </div>
                     </div>
                 </div>
             {/each}
@@ -699,354 +535,6 @@ import { goto } from "$app/navigation";
         />
     {/if}
 </div>
-
-<!-- Create Event Dialog/Drawer -->
-{#if isMobile}
-    <Drawer bind:isOpen={createDialogOpen}>
-        <div
-            class="sticky top-0 bg-white pb-4 border-b border-border-card -mx-4 px-4 -mt-4 pt-4 z-10"
-        >
-            <div class="flex items-center justify-between mb-2">
-                <h2 class="text-xl font-semibold tracking-tight">
-                    Créer un Nouvel Événement
-                </h2>
-                <button
-                    type="button"
-                    onclick={() => (createDialogOpen = false)}
-                    class="p-2 hover:bg-dark-100 rounded-md transition-colors"
-                >
-                    <X class="text-dark-900 size-5" />
-                </button>
-            </div>
-            <p class="text-dark-400 text-sm">
-                Remplissez les détails pour créer un nouvel événement
-            </p>
-        </div>
-
-        <form
-            method="POST"
-            action="?/createEvent"
-            use:enhance={createEventEnhance}
-            class="grid gap-4 pt-4"
-        >
-            <div class="grid grid-cols-1 gap-4 w-full">
-                {@render field(
-                    "title",
-                    "Titre",
-                    createInput,
-                    createTitle,
-                    null,
-                )}
-                {@render field("slug", "Slug", createInput, createSlug, null)}
-                {@render field(
-                    "description",
-                    "Description",
-                    createInput,
-                    createDescription,
-                    null,
-                )}
-                {@render field(
-                    "startDate",
-                    "Date de Début",
-                    createInput,
-                    createStartDate,
-                    null,
-                )}
-                {@render field(
-                    "endDate",
-                    "Date de Fin",
-                    createInput,
-                    createEndDate,
-                    null,
-                )}
-                {@render field(
-                    "location",
-                    "Lieu",
-                    createInput,
-                    createLocation,
-                    null,
-                )}
-                {@render field(
-                    "categoryId",
-                    "Catégorie",
-                    createInput,
-                    createCategoryId,
-                    null,
-                )}
-
-                <!-- Cover Photo -->
-                <div>
-                    <label class="block text-sm font-medium text-dark-700 mb-1">
-                        Photo de Couverture
-                    </label>
-                    <p class="text-xs text-dark-400 mb-2">Photo principale de l'événement</p>
-                    {#key createDialogOpen}
-                    <MediaUpload
-                        mode="single"
-                        entityType="event"
-                        maxSizeMB={10}
-                        onUpload={handleCreateCoverUpload}
-                        onRemove={handleCreateCoverRemove}
-                    />
-                    {/key}
-                    <input type="hidden" name="coverMediaId" value={createCoverMediaId ?? ''} />
-                </div>
-
-                <!-- Gallery -->
-                <div>
-                    <label class="block text-sm font-medium text-dark-700 mb-1">
-                        Galerie de Photos
-                    </label>
-                    <p class="text-xs text-dark-400 mb-2">Photos supplémentaires. Glissez pour réorganiser.</p>
-                    {#key createDialogOpen}
-                    <MediaUpload
-                        mode="multiple"
-
-                        entityType="event"
-                        maxSizeMB={10}
-                        onUpload={handleCreateGalleryUpload}
-                        onRemove={handleCreateGalleryRemove}
-                        onReorder={handleCreateGalleryReorder}
-                    />
-                    {/key}
-                    <input type="hidden" name="galleryMediaIds" value={JSON.stringify(createGalleryMediaIds)} />
-                </div>
-
-                <div class="flex items-center gap-3 p-3 bg-dark-50 rounded-lg">
-                    <input
-                        id="createPublished"
-                        name="published"
-                        type="checkbox"
-                        value="true"
-                        bind:checked={createPublished}
-                        class="w-4 h-4 text-dark-900 border-border-dark rounded focus:ring-dark-900"
-                    />
-                    <div>
-                        <label
-                            for="createPublished"
-                            class="block text-sm font-medium text-dark-900 cursor-pointer"
-                        >
-                            Publier immédiatement
-                        </label>
-                        <p class="text-xs text-dark-400">
-                            Décochez pour sauvegarder comme brouillon
-                        </p>
-                    </div>
-                </div>
-
-                <div class="flex items-center gap-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                    <input
-                        id="createIsSpotlight"
-                        name="isSpotlight"
-                        type="checkbox"
-                        value="true"
-                        bind:checked={createIsSpotlight}
-                        class="w-4 h-4 text-amber-900 border-amber-300 rounded focus:ring-amber-900"
-                    />
-                    <div>
-                        <label
-                            for="createIsSpotlight"
-                            class="block text-sm font-medium text-amber-900 cursor-pointer"
-                        >
-                            Prochain événement (Upcoming)
-                        </label>
-                        <p class="text-xs text-amber-600">
-                            Un seul événement peut être mis en avant à la fois
-                        </p>
-                    </div>
-                </div>
-            </div>
-            <div class="flex w-full justify-end gap-3 pt-2">
-                <button
-                    type="button"
-                    onclick={() => (createDialogOpen = false)}
-                    class="px-4 py-2 border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium text-sm"
-                >
-                    Annuler
-                </button>
-                <button
-                    type="submit"
-                    class="px-4 py-2 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors font-medium text-sm"
-                >
-                    Créer l'Événement
-                </button>
-            </div>
-        </form>
-    </Drawer>
-{:else}
-    <Modal
-        bind:isOpen={createDialogOpen}
-        title="Créer un Nouvel Événement"
-        description="Remplissez les détails pour créer un nouvel événement"
-    >
-        <form
-            method="POST"
-            action="?/createEvent"
-            use:enhance={createEventEnhance}
-            class="grid gap-4"
-        >
-            <div class="grid grid-cols-2 gap-4 w-full">
-                <div class="col-span-2">
-                    {@render field(
-                        "title",
-                        "Titre",
-                        createInput,
-                        createTitle,
-                        null,
-                    )}
-                </div>
-                <div class="col-span-2">
-                    {@render field(
-                        "slug",
-                        "Slug",
-                        createInput,
-                        createSlug,
-                        null,
-                    )}
-                </div>
-                <div class="col-span-2">
-                    {@render field(
-                        "description",
-                        "Description",
-                        createInput,
-                        createDescription,
-                        null,
-                    )}
-                </div>
-                {@render field(
-                    "startDate",
-                    "Date de Début",
-                    createInput,
-                    createStartDate,
-                    null,
-                )}
-                {@render field(
-                    "endDate",
-                    "Date de Fin",
-                    createInput,
-                    createEndDate,
-                    null,
-                )}
-                <div class="col-span-2">
-                    {@render field(
-                        "location",
-                        "Lieu",
-                        createInput,
-                        createLocation,
-                        null,
-                    )}
-                </div>
-                <div class="col-span-2">
-                    {@render field(
-                        "categoryId",
-                        "Catégorie",
-                        createInput,
-                        createCategoryId,
-                        null,
-                    )}
-                </div>
-
-                <!-- Cover Photo -->
-                <div class="col-span-2">
-                    <label class="block text-sm font-medium text-dark-700 mb-1">
-                        Photo de Couverture
-                    </label>
-                    <p class="text-xs text-dark-400 mb-2">Photo principale affichée dans les listes</p>
-                    {#key createDialogOpen}
-                    <MediaUpload
-                        mode="single"
-                        entityType="event"
-                        maxSizeMB={10}
-                        onUpload={handleCreateCoverUpload}
-                        onRemove={handleCreateCoverRemove}
-                    />
-                    {/key}
-                    <input type="hidden" name="coverMediaId" value={createCoverMediaId ?? ''} />
-                </div>
-
-                <!-- Gallery -->
-                <div class="col-span-2">
-                    <label class="block text-sm font-medium text-dark-700 mb-1">
-                        Galerie de Photos
-                    </label>
-                    <p class="text-xs text-dark-400 mb-2">Jusqu'à 5 photos supplémentaires. Glissez pour réorganiser.</p>
-                    {#key createDialogOpen}
-                    <MediaUpload
-                        mode="multiple"
-
-                        entityType="event"
-                        maxSizeMB={10}
-                        onUpload={handleCreateGalleryUpload}
-                        onRemove={handleCreateGalleryRemove}
-                        onReorder={handleCreateGalleryReorder}
-                    />
-                    {/key}
-                    <input type="hidden" name="galleryMediaIds" value={JSON.stringify(createGalleryMediaIds)} />
-                </div>
-            </div>
-
-            <div class="flex items-center gap-3 p-4 bg-dark-50 rounded-lg">
-                <input
-                    id="createPublished"
-                    name="published"
-                    type="checkbox"
-                    value="true"
-                    bind:checked={createPublished}
-                    class="w-5 h-5 text-dark-900 border-border-dark rounded focus:ring-dark-900"
-                />
-                <div>
-                    <label
-                        for="createPublished"
-                        class="block text-sm font-medium text-dark-900 cursor-pointer"
-                    >
-                        Publier immédiatement
-                    </label>
-                    <p class="text-xs text-dark-400">
-                        Décochez pour sauvegarder comme brouillon
-                    </p>
-                </div>
-            </div>
-
-            <div class="flex items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                <input
-                    id="createIsSpotlightDesktop"
-                    name="isSpotlight"
-                    type="checkbox"
-                    value="true"
-                    bind:checked={createIsSpotlight}
-                    class="w-5 h-5 text-amber-900 border-amber-300 rounded focus:ring-amber-900"
-                />
-                <div>
-                    <label
-                        for="createIsSpotlightDesktop"
-                        class="block text-sm font-medium text-amber-900 cursor-pointer"
-                    >
-                        Prochain événement (Upcoming)
-                    </label>
-                    <p class="text-xs text-amber-600">
-                        Un seul événement peut être mis en avant à la fois
-                    </p>
-                </div>
-            </div>
-
-            <div class="flex w-full justify-end gap-3 pt-2">
-                <button
-                    type="button"
-                    onclick={() => (createDialogOpen = false)}
-                    class="px-6 py-2.5 border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium"
-                >
-                    Annuler
-                </button>
-                <button
-                    type="submit"
-                    class="px-6 py-2.5 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors font-medium"
-                >
-                    Créer l'Événement
-                </button>
-            </div>
-        </form>
-    </Modal>
-{/if}
 
 <!-- Edit Event Dialog/Drawer -->
 {#if isMobile}
@@ -1209,13 +697,7 @@ import { goto } from "$app/navigation";
 
             <div class="grid grid-cols-2 gap-4 w-full">
                 <div class="col-span-2">
-                    {@render field(
-                        "title",
-                        "Titre",
-                        editInput,
-                        editTitle,
-                        null,
-                    )}
+                    {@render field("title", "Titre", editInput, editTitle, null)}
                 </div>
                 <div class="col-span-2">
                     {@render field("slug", "Slug", editInput, editSlug, null)}
@@ -1229,20 +711,24 @@ import { goto } from "$app/navigation";
                         null,
                     )}
                 </div>
-                {@render field(
-                    "startDate",
-                    "Date de Début",
-                    editInput,
-                    editStartDate,
-                    null,
-                )}
-                {@render field(
-                    "endDate",
-                    "Date de Fin",
-                    editInput,
-                    editEndDate,
-                    null,
-                )}
+                <div>
+                    {@render field(
+                        "startDate",
+                        "Date de Début",
+                        editInput,
+                        editStartDate,
+                        null,
+                    )}
+                </div>
+                <div>
+                    {@render field(
+                        "endDate",
+                        "Date de Fin",
+                        editInput,
+                        editEndDate,
+                        null,
+                    )}
+                </div>
                 <div class="col-span-2">
                     {@render field(
                         "location",
