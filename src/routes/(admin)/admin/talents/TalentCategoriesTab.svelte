@@ -217,7 +217,8 @@
         <p class="text-dark-400 mb-6">Créez votre première catégorie pour organiser vos talents</p>
     </div>
 {:else}
-    <div class="bg-white rounded-lg border border-border-card overflow-hidden">
+    <!-- Table view for desktop -->
+    <div class="bg-white rounded-lg border border-border-card overflow-hidden hidden lg:block">
         <table class="w-full">
             <thead class="bg-dark-50 border-b border-border-card">
                 <tr>
@@ -288,6 +289,70 @@
                 {/each}
             </tbody>
         </table>
+    </div>
+
+    <!-- Card view for mobile -->
+    <div class="lg:hidden space-y-4">
+        {#each categories as category}
+            <div class="bg-white rounded-lg border border-border-card overflow-hidden">
+                <div class="p-4">
+                    <div class="flex gap-3 mb-3">
+                        {#if category.color}
+                            <div class="w-12 h-12 rounded-lg flex items-center justify-center text-white text-lg font-medium flex-shrink-0"
+                                style="background-color: {category.color}">
+                                {category.displayNameEn.charAt(0).toUpperCase()}
+                            </div>
+                        {:else}
+                            <div class="w-12 h-12 bg-dark-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <Tag size={24} class="text-dark-400" />
+                            </div>
+                        {/if}
+                        <div class="min-w-0 flex-1">
+                            <h3 class="font-semibold text-dark-900 truncate">
+                                {category.displayNameEn}
+                            </h3>
+                            <p class="text-sm text-dark-400 truncate">
+                                {category.displayNameFr}
+                            </p>
+                            <p class="text-sm text-dark-400 truncate">
+                                {category.slug}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2 mb-3">
+                        {#if category.published}
+                            <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-green-50 text-green-700 rounded-full">
+                                <Eye size={12} /> Publié
+                            </span>
+                        {:else}
+                            <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-dark-100 text-dark-600 rounded-full">
+                                <EyeOff size={12} /> Masqué
+                            </span>
+                        {/if}
+                        <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-dark-100 text-dark-600 rounded-full">
+                            <Hash size={12} /> {category.talentCount ?? 0}
+                        </span>
+                        <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-dark-100 text-dark-600 rounded-full">
+                            Ordre: {category.sortOrder}
+                        </span>
+                    </div>
+
+                    <div class="flex items-center justify-between gap-2 pt-3 border-t border-border-card">
+                        <button onclick={() => openEditDialog(category)}
+                            class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-dark-600 hover:text-dark-900 hover:bg-dark-50 rounded-lg transition-colors">
+                            <Edit size={16} />
+                            Modifier
+                        </button>
+                        <button onclick={() => openDeleteDialog(category)}
+                            class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors">
+                            <Trash2 size={16} />
+                            Supprimer
+                        </button>
+                    </div>
+                </div>
+            </div>
+        {/each}
     </div>
 {/if}
 
