@@ -45,9 +45,9 @@ import type {Component} from "svelte"
 
 <article class="container mx-auto px-4 py-32 max-w-8xl">
     <div class="flex flex-col md:flex-row gap-12 mb-8">
-        <div class="flex flex-col gap-6" use:reveal={{ preset: 'fade-in-scale' }}>
+        <div class="flex flex-col items-center md:items-start gap-6" use:reveal={{ preset: 'fade-in-scale' }}>
             {#if data.talent.profileMedia}
-                <div class="w-96 aspect-3/4 flex-shrink-0">
+                <div class="w-full md:w-96 aspect-3/4 flex-shrink-0">
                     <img
                         src={data.talent.profileMedia.url}
                         alt="{data.talent.firstName} {data.talent.lastName}"
@@ -56,7 +56,7 @@ import type {Component} from "svelte"
                 </div>
             {:else}
                 <div
-                    class="w-96 aspect-3/4 flex-shrink-0 bg-dark-200 rounded-lg flex items-center justify-center"
+                    class="w-full md:w-96 aspect-3/4 flex-shrink-0 bg-dark-200 rounded-lg flex items-center justify-center"
                 >
                     <span class="text-dark-400 text-6xl">👤</span>
                 </div>
@@ -100,22 +100,33 @@ import type {Component} from "svelte"
                 {/if}
             </div>
             <div class="my-8 border border-dark-50/60 w-full"></div>
-            <div class="grid gap-4">
+            <div class="grid gap-6">
                 {#if getTalentField('quote')}
                     <p class="text-lg text-dark-900 leading-relaxed font-medium">"{getTalentField('quote')}"</p>
                 {/if}
                 <p class="text-normal text-dark-500 leading-relaxed">
                     {getTalentField('bio')}
                 </p>
-                {#if specializations().length > 0}
+                {#if data.talent.category || specializations().length > 0}
                     <div class="my-8 border border-dark-50/60 w-full"></div>
-                    <div class="grid grid-cols-3 gap-4">
-                        {#each specializations() as spec}
-                            <div class="grid gap-2">
-                                <p class="text-dark-400 uppercase text-sm">{$t('talents.specialization')}</p>
-                                <p class="text-dark-900 text-sm font-medium">{spec}</p>
+                    <div class="grid gap-4">
+                        {#if data.talent.category}
+                            <div class="flex flex-wrap items-center gap-2">
+                                <span class="text-dark-400 uppercase text-sm">{$t('talents.category')}:</span>
+                                <span class="text-dark-900 text-sm font-medium">
+                                    {$locale === 'en' ? data.talent.category.displayNameEn : data.talent.category.displayNameFr}
+                                </span>
                             </div>
-                        {/each}
+                        {/if}
+                        {#if specializations().length > 0}
+                            <div class="flex flex-wrap gap-2">
+                                {#each specializations() as spec}
+                                    <span class="px-3 py-1 bg-dark-100 text-dark-800 rounded-full text-sm">
+                                        {spec}
+                                    </span>
+                                {/each}
+                            </div>
+                        {/if}
                     </div>
                 {/if}
             </div>
