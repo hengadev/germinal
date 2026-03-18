@@ -9,10 +9,8 @@
         Edit,
         Trash2,
         X,
-        FileText,
     } from "lucide-svelte";
     import type { PageData, ActionData } from "./$types";
-    import type { Snippet } from "svelte";
     import { browser } from "$app/environment";
     import Drawer from "$lib/components/ui/Drawer.svelte";
     import Modal from "$lib/components/ui/Modal.svelte";
@@ -43,36 +41,11 @@
     // Talent type
     type Talent = (typeof data.talents)[number];
 
-    // Dialog states
-    let editDialogOpen = $state(false);
+    // Dialog state
     let deleteDialogOpen = $state(false);
 
-    // Currently selected talent for edit/delete
+    // Currently selected talent for delete
     let selectedTalent: Talent | null = $state(null);
-
-    // Form state for edit
-    let editFirstName = $state("");
-    let editLastName = $state("");
-    let editRole = $state("");
-    let editBio = $state("");
-    let editInstagram = $state("");
-    let editLinkedin = $state("");
-    let editTwitter = $state("");
-    let editWebsite = $state("");
-    let editCategoryId = $state("");
-    let editPublished = $state(false);
-
-    function updateTalentEnhance() {
-        return async ({ result, update }: { result: import('@sveltejs/kit').ActionResult; update: (opts?: { reset?: boolean }) => Promise<void> }) => {
-            if (result.type === 'success') {
-                editDialogOpen = false;
-                toast.success("Succès", (result.data as { success?: string })?.success ?? 'Talent mis à jour');
-            } else if (result.type === 'failure') {
-                toast.error("Erreur", (result.data as { error?: string })?.error ?? 'Une erreur est survenue');
-            }
-            await update({ reset: false });
-        };
-    }
 
     function deleteTalentEnhance() {
         return async ({ result, update }: { result: import('@sveltejs/kit').ActionResult; update: (opts?: { reset?: boolean }) => Promise<void> }) => {
@@ -84,27 +57,6 @@
             }
             await update({ reset: false });
         };
-    }
-
-    function openEditDialog(talent: Talent) {
-        selectedTalent = talent;
-        editFirstName = talent.firstName;
-        editLastName = talent.lastName;
-        editRole = talent.roleEn;
-        editBio = talent.bioEn;
-        editCategoryId = talent.categoryId || "";
-        editPublished = talent.published;
-
-        // Parse social links
-        const socialLinks = talent.socialLinks
-            ? JSON.parse(talent.socialLinks)
-            : {};
-        editInstagram = socialLinks.instagram || "";
-        editLinkedin = socialLinks.linkedin || "";
-        editTwitter = socialLinks.twitter || "";
-        editWebsite = socialLinks.website || "";
-
-        editDialogOpen = true;
     }
 
     function openDeleteDialog(talent: Talent) {
@@ -119,120 +71,7 @@
             day: "numeric",
         });
     }
-
-    // Snippet for form fields
-    type InputSnippet = Snippet<[fieldName: string]>;
 </script>
-
-{#snippet editInput(fieldName: string)}
-    {#if fieldName === "firstName"}
-        <input
-            id="editFirstName"
-            name="firstName"
-            type="text"
-            bind:value={editFirstName}
-            required
-            placeholder="Sarah"
-            class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
-        />
-    {:else if fieldName === "lastName"}
-        <input
-            id="editLastName"
-            name="lastName"
-            type="text"
-            bind:value={editLastName}
-            required
-            placeholder="Johnson"
-            class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
-        />
-    {:else if fieldName === "role"}
-        <input
-            id="editRole"
-            name="roleEn"
-            type="text"
-            bind:value={editRole}
-            required
-            placeholder="Lead Vocalist"
-            class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
-        />
-    {:else if fieldName === "bio"}
-        <textarea
-            id="editBio"
-            name="bioEn"
-            bind:value={editBio}
-            required
-            rows="4"
-            placeholder="Brief bio..."
-            class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm resize-none"
-        ></textarea>
-    {:else if fieldName === "categoryId"}
-        <select
-            id="editCategoryId"
-            name="categoryId"
-            bind:value={editCategoryId}
-            class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm appearance-none bg-white"
-        >
-            <option value="">Aucune catégorie</option>
-            {#each (data.categories || []) as category}
-                <option value={category.id}>{category.displayNameFr} ({category.displayNameEn})</option>
-            {/each}
-        </select>
-    {:else if fieldName === "instagram"}
-        <input
-            id="editInstagram"
-            name="instagram"
-            type="url"
-            bind:value={editInstagram}
-            placeholder="https://instagram.com/username"
-            class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
-        />
-    {:else if fieldName === "linkedin"}
-        <input
-            id="editLinkedin"
-            name="linkedin"
-            type="url"
-            bind:value={editLinkedin}
-            placeholder="https://linkedin.com/in/username"
-            class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
-        />
-    {:else if fieldName === "twitter"}
-        <input
-            id="editTwitter"
-            name="twitter"
-            type="url"
-            bind:value={editTwitter}
-            placeholder="https://twitter.com/username"
-            class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
-        />
-    {:else if fieldName === "website"}
-        <input
-            id="editWebsite"
-            name="website"
-            type="url"
-            bind:value={editWebsite}
-            placeholder="https://example.com"
-            class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
-        />
-    {/if}
-{/snippet}
-
-{#snippet field(
-    name: string,
-    label: string,
-    inputSnippet: InputSnippet,
-    value: string,
-    error: string | null,
-)}
-    <label for={name} class="block text-sm font-medium text-dark-700 mb-1">
-        {label}
-    </label>
-    <div class="relative w-full">
-        {@render inputSnippet(name)}
-        {#if error}
-            <p class="text-xs text-red-600 mt-1">{error}</p>
-        {/if}
-    </div>
-{/snippet}
 
 <svelte:head>
     <title>Talents | Tableau de bord Admin</title>
@@ -403,13 +242,13 @@
                                 <div
                                     class="flex items-center justify-end gap-2"
                                 >
-                                    <button
-                                        onclick={() => openEditDialog(talent)}
+                                    <a
+                                        href="/admin/talents/{talent.id}"
                                         class="p-2 text-dark-600 hover:text-dark-900 hover:bg-dark-50 rounded-lg transition-colors"
                                         title="Modifier"
                                     >
                                         <Edit size={18} />
-                                    </button>
+                                    </a>
                                     <button
                                         onclick={() => openDeleteDialog(talent)}
                                         class="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors"
@@ -476,13 +315,13 @@
                             {/if}
                         </div>
                         <div class="flex items-center gap-2">
-                            <button
-                                onclick={() => openEditDialog(talent)}
+                            <a
+                                href="/admin/talents/{talent.id}"
                                 class="p-2 text-dark-600 hover:text-dark-900 hover:bg-dark-50 rounded-lg transition-colors"
                                 title="Modifier"
                             >
                                 <Edit size={18} />
-                            </button>
+                            </a>
                             <button
                                 onclick={() => openDeleteDialog(talent)}
                                 class="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors"
@@ -504,238 +343,6 @@
         />
     {/if}
 </div>
-
-<!-- Edit Talent Dialog/Drawer -->
-{#if isMobile}
-    <Drawer bind:isOpen={editDialogOpen}>
-        <div
-            class="sticky top-0 bg-white pb-4 border-b border-border-card -mx-4 px-4 -mt-4 pt-4 z-10"
-        >
-            <div class="flex items-center justify-between mb-2">
-                <h2 class="text-xl font-semibold tracking-tight">Modifier le Talent</h2>
-                <button
-                    type="button"
-                    onclick={() => (editDialogOpen = false)}
-                    class="p-2 hover:bg-dark-100 rounded-md transition-colors"
-                >
-                    <X class="text-dark-900 size-5" />
-                </button>
-            </div>
-            <p class="text-dark-400 text-sm">Mettre à jour les détails du talent</p>
-        </div>
-
-        <form
-            method="POST"
-            action="?/updateTalent"
-            use:enhance={updateTalentEnhance}
-            class="grid gap-4 pt-4"
-        >
-            <input type="hidden" name="id" value={selectedTalent?.id} />
-
-            <div class="grid grid-cols-1 gap-4 w-full">
-                {@render field("firstName", "Prénom", editInput, editFirstName, null)}
-                {@render field("lastName", "Nom", editInput, editLastName, null)}
-                {@render field("role", "Rôle", editInput, editRole, null)}
-                {@render field("bio", "Bio", editInput, editBio, null)}
-                {@render field(
-                    "categoryId",
-                    "Catégorie",
-                    editInput,
-                    editCategoryId,
-                    null,
-                )}
-
-                <div class="space-y-3">
-                    <h3 class="text-sm font-medium text-dark-700">Réseaux Sociaux</h3>
-                    {@render field(
-                        "instagram",
-                        "Instagram",
-                        editInput,
-                        editInstagram,
-                        null,
-                    )}
-                    {@render field(
-                        "linkedin",
-                        "LinkedIn",
-                        editInput,
-                        editLinkedin,
-                        null,
-                    )}
-                    {@render field(
-                        "twitter",
-                        "Twitter",
-                        editInput,
-                        editTwitter,
-                        null,
-                    )}
-                    {@render field(
-                        "website",
-                        "Website",
-                        editInput,
-                        editWebsite,
-                        null,
-                    )}
-                </div>
-
-                <div class="flex items-center gap-3 p-3 bg-dark-50 rounded-lg">
-                    <input
-                        id="editPublished"
-                        name="published"
-                        type="checkbox"
-                        value="true"
-                        bind:checked={editPublished}
-                        class="w-4 h-4 text-dark-900 border-border-dark rounded focus:ring-dark-900"
-                    />
-                    <div>
-                        <label
-                            for="editPublished"
-                            class="block text-sm font-medium text-dark-900 cursor-pointer"
-                        >
-                            Publié
-                        </label>
-                        <p class="text-xs text-dark-400">
-                            Décochez pour sauvegarder comme brouillon
-                        </p>
-                    </div>
-                </div>
-            </div>
-            <div class="flex w-full justify-end gap-3 pt-2">
-                <button
-                    type="button"
-                    onclick={() => (editDialogOpen = false)}
-                    class="px-4 py-2 border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium text-sm"
-                >
-                    Annuler
-                </button>
-                <button
-                    type="submit"
-                    class="px-4 py-2 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors font-medium text-sm"
-                >
-                    Enregistrer
-                </button>
-            </div>
-        </form>
-    </Drawer>
-{:else}
-    <Modal
-        bind:isOpen={editDialogOpen}
-        title="Modifier le Talent"
-        description="Mettre à jour les détails du talent"
-    >
-        <form
-            method="POST"
-            action="?/updateTalent"
-            use:enhance={updateTalentEnhance}
-            class="grid gap-4"
-        >
-            <input type="hidden" name="id" value={selectedTalent?.id} />
-
-            <div class="grid grid-cols-2 gap-4 w-full">
-                <div>
-                    {@render field("firstName", "Prénom", editInput, editFirstName, null)}
-                </div>
-                <div>
-                    {@render field("lastName", "Nom", editInput, editLastName, null)}
-                </div>
-                <div class="col-span-2">
-                    {@render field("role", "Rôle", editInput, editRole, null)}
-                </div>
-                <div class="col-span-2">
-                    {@render field("bio", "Bio", editInput, editBio, null)}
-                </div>
-                <div class="col-span-2">
-                    {@render field(
-                        "categoryId",
-                        "Catégorie",
-                        editInput,
-                        editCategoryId,
-                        null,
-                    )}
-                </div>
-
-                <div class="col-span-2 space-y-3">
-                    <h3 class="text-sm font-medium text-dark-700">Réseaux Sociaux</h3>
-                    <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            {@render field(
-                                "instagram",
-                                "Instagram",
-                                editInput,
-                                editInstagram,
-                                null,
-                            )}
-                        </div>
-                        <div>
-                            {@render field(
-                                "linkedin",
-                                "LinkedIn",
-                                editInput,
-                                editLinkedin,
-                                null,
-                            )}
-                        </div>
-                        <div>
-                            {@render field(
-                                "twitter",
-                                "Twitter",
-                                editInput,
-                                editTwitter,
-                                null,
-                            )}
-                        </div>
-                        <div>
-                            {@render field(
-                                "website",
-                                "Website",
-                                editInput,
-                                editWebsite,
-                                null,
-                            )}
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="flex items-center gap-3 p-4 bg-dark-50 rounded-lg">
-                <input
-                    id="editPublished"
-                    name="published"
-                    type="checkbox"
-                    value="true"
-                    bind:checked={editPublished}
-                    class="w-5 h-5 text-dark-900 border-border-dark rounded focus:ring-dark-900"
-                />
-                <div>
-                    <label
-                        for="editPublished"
-                        class="block text-sm font-medium text-dark-900 cursor-pointer"
-                    >
-                        Publié
-                    </label>
-                    <p class="text-xs text-dark-400">
-                        Décochez pour sauvegarder comme brouillon
-                    </p>
-                </div>
-            </div>
-
-            <div class="flex w-full justify-end gap-3 pt-2">
-                <button
-                    type="button"
-                    onclick={() => (editDialogOpen = false)}
-                    class="px-6 py-2.5 border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium"
-                >
-                    Annuler
-                </button>
-                <button
-                    type="submit"
-                    class="px-6 py-2.5 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors font-medium"
-                >
-                    Enregistrer
-                </button>
-            </div>
-        </form>
-    </Modal>
-{/if}
 
 <!-- Delete Talent Dialog/Drawer -->
 {#if isMobile}
