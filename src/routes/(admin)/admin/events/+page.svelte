@@ -13,7 +13,6 @@
         Tag,
     } from "lucide-svelte";
     import type { PageData, ActionData } from "./$types";
-    import type { Snippet } from "svelte";
     import { browser } from "$app/environment";
     import Drawer from "$lib/components/ui/Drawer.svelte";
     import Modal from "$lib/components/ui/Modal.svelte";
@@ -44,36 +43,11 @@
     // Event type
     type Event = (typeof data.events)[number];
 
-    // Dialog states
-    let editDialogOpen = $state(false);
+    // Dialog state
     let deleteDialogOpen = $state(false);
 
-    // Currently selected event for edit/delete
+    // Currently selected event for delete
     let selectedEvent: Event | null = $state(null);
-
-    // Form state for edit
-    let editTitle = $state("");
-    let editSlug = $state("");
-    let editDescription = $state("");
-    let editStartDate = $state("");
-    let editEndDate = $state("");
-    let editLocation = $state("");
-    let editCategoryId = $state("");
-    let editPublished = $state(false);
-    let editIsSpotlight = $state(false);
-
-    // use:enhance handlers replace $effect-based form handling (more reliable in Svelte 5)
-    function updateEventEnhance() {
-        return async ({ result, update }: { result: import('@sveltejs/kit').ActionResult; update: (opts?: { reset?: boolean }) => Promise<void> }) => {
-            if (result.type === 'success') {
-                editDialogOpen = false;
-                toast.success("Succès", (result.data as { success?: string })?.success ?? 'Événement mis à jour');
-            } else if (result.type === 'failure') {
-                toast.error("Erreur", (result.data as { error?: string })?.error ?? 'Une erreur est survenue');
-            }
-            await update({ reset: false });
-        };
-    }
 
     function deleteEventEnhance() {
         return async ({ result, update }: { result: import('@sveltejs/kit').ActionResult; update: (opts?: { reset?: boolean }) => Promise<void> }) => {
@@ -85,30 +59,6 @@
             }
             await update({ reset: false });
         };
-    }
-
-    function formatDateForInput(date: Date | string): string {
-        const d = new Date(date);
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, "0");
-        const day = String(d.getDate()).padStart(2, "0");
-        const hours = String(d.getHours()).padStart(2, "0");
-        const minutes = String(d.getMinutes()).padStart(2, "0");
-        return `${year}-${month}-${day}T${hours}:${minutes}`;
-    }
-
-    function openEditDialog(event: Event) {
-        selectedEvent = event;
-        editTitle = event.titleEn;
-        editSlug = event.slug;
-        editDescription = event.descriptionEn;
-        editStartDate = formatDateForInput(event.startDate);
-        editEndDate = formatDateForInput(event.endDate);
-        editLocation = event.location;
-        editCategoryId = event.categoryId || "";
-        editPublished = event.published;
-        editIsSpotlight = event.isSpotlight ?? false;
-        editDialogOpen = true;
     }
 
     function openDeleteDialog(event: Event) {
@@ -133,106 +83,7 @@
             minute: "2-digit",
         });
     }
-
-    // Snippet for form fields
-    type InputSnippet = Snippet<[fieldName: string]>;
 </script>
-
-{#snippet editInput(fieldName: string)}
-    {#if fieldName === "title"}
-        <input
-            id="editTitle"
-            name="titleEn"
-            type="text"
-            bind:value={editTitle}
-            required
-            placeholder="Summer Music Festival"
-            class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
-        />
-    {:else if fieldName === "slug"}
-        <input
-            id="editSlug"
-            name="slug"
-            type="text"
-            bind:value={editSlug}
-            required
-            pattern="^[a-z0-9-]+$"
-            placeholder="summer-music-festival"
-            class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
-        />
-    {:else if fieldName === "description"}
-        <textarea
-            id="editDescription"
-            name="descriptionEn"
-            bind:value={editDescription}
-            required
-            rows="4"
-            placeholder="Describe your event..."
-            class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm resize-none"
-        ></textarea>
-    {:else if fieldName === "startDate"}
-        <input
-            id="editStartDate"
-            name="startDate"
-            type="datetime-local"
-            bind:value={editStartDate}
-            required
-            class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
-        />
-    {:else if fieldName === "endDate"}
-        <input
-            id="editEndDate"
-            name="endDate"
-            type="datetime-local"
-            bind:value={editEndDate}
-            required
-            class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
-        />
-    {:else if fieldName === "location"}
-        <input
-            id="editLocation"
-            name="location"
-            type="text"
-            bind:value={editLocation}
-            required
-            placeholder="123 Main St, City, Country"
-            class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
-        />
-    {:else if fieldName === "categoryId"}
-        <div class="relative">
-            <Tag size={16} class="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400" />
-            <select
-                id="editCategoryId"
-                name="categoryId"
-                bind:value={editCategoryId}
-                class="w-full pl-9 pr-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm appearance-none bg-white"
-            >
-                <option value="">Aucune catégorie</option>
-                {#each (data.categories || []) as category}
-                    <option value={category.id}>{category.displayNameFr} ({category.displayNameEn})</option>
-                {/each}
-            </select>
-        </div>
-    {/if}
-{/snippet}
-
-{#snippet field(
-    name: string,
-    label: string,
-    inputSnippet: InputSnippet,
-    value: string,
-    error: string | null,
-)}
-    <label for={name} class="block text-sm font-medium text-dark-700 mb-1">
-        {label}
-    </label>
-    <div class="relative w-full">
-        {@render inputSnippet(name)}
-        {#if error}
-            <p class="text-xs text-red-600 mt-1">{error}</p>
-        {/if}
-    </div>
-{/snippet}
 
 <svelte:head>
     <title>Événements | Tableau de bord Admin</title>
@@ -414,13 +265,13 @@
                                     >
                                         <FileText size={18} />
                                     </a>
-                                    <button
-                                        onclick={() => openEditDialog(event)}
+                                    <a
+                                        href="/admin/events/{event.id}"
                                         class="p-2 text-dark-400 hover:text-dark-900 hover:bg-dark-100 rounded-lg transition-colors"
                                         title="Modifier"
                                     >
                                         <Edit size={18} />
-                                    </button>
+                                    </a>
                                     <button
                                         onclick={() => openDeleteDialog(event)}
                                         class="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
@@ -507,13 +358,13 @@
                                 <FileText size={16} />
                                 Détails
                             </a>
-                            <button
-                                onclick={() => openEditDialog(event)}
+                            <a
+                                href="/admin/events/{event.id}"
                                 class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-dark-600 hover:text-dark-900 hover:bg-dark-50 rounded-lg transition-colors"
                             >
                                 <Edit size={16} />
                                 Modifier
-                            </button>
+                            </a>
                             <button
                                 onclick={() => openDeleteDialog(event)}
                                 class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors"
@@ -535,300 +386,6 @@
         />
     {/if}
 </div>
-
-<!-- Edit Event Dialog/Drawer -->
-{#if isMobile}
-    <Drawer bind:isOpen={editDialogOpen}>
-        <div
-            class="sticky top-0 bg-white pb-4 border-b border-border-card -mx-4 px-4 -mt-4 pt-4 z-10"
-        >
-            <div class="flex items-center justify-between mb-2">
-                <h2 class="text-xl font-semibold tracking-tight">Modifier l'Événement</h2>
-                <button
-                    type="button"
-                    onclick={() => (editDialogOpen = false)}
-                    class="p-2 hover:bg-dark-100 rounded-md transition-colors"
-                >
-                    <X class="text-dark-900 size-5" />
-                </button>
-            </div>
-            <p class="text-dark-400 text-sm">Mettre à jour les détails de l'événement</p>
-        </div>
-
-        <form
-            method="POST"
-            action="?/updateEvent"
-            use:enhance={updateEventEnhance}
-            class="grid gap-4 pt-4"
-        >
-            <input type="hidden" name="id" value={selectedEvent?.id} />
-
-            <div class="grid grid-cols-1 gap-4 w-full">
-                {@render field("title", "Titre", editInput, editTitle, null)}
-                {@render field("slug", "Slug", editInput, editSlug, null)}
-                {@render field(
-                    "description",
-                    "Description",
-                    editInput,
-                    editDescription,
-                    null,
-                )}
-                {@render field(
-                    "startDate",
-                    "Date de Début",
-                    editInput,
-                    editStartDate,
-                    null,
-                )}
-                {@render field(
-                    "endDate",
-                    "Date de Fin",
-                    editInput,
-                    editEndDate,
-                    null,
-                )}
-                {@render field(
-                    "location",
-                    "Lieu",
-                    editInput,
-                    editLocation,
-                    null,
-                )}
-                {@render field(
-                    "categoryId",
-                    "Catégorie",
-                    editInput,
-                    editCategoryId,
-                    null,
-                )}
-
-                {#if selectedEvent?.id}
-                <div class="flex items-center gap-3 p-3 bg-dark-50 rounded-lg">
-                    {#if selectedEvent.coverMedia?.url}
-                        <img src={selectedEvent.coverMedia.url} alt="" class="w-10 h-10 object-cover rounded-md flex-shrink-0" />
-                    {/if}
-                    <div class="min-w-0">
-                        <p class="text-sm font-medium text-dark-700">Photos</p>
-                        <a
-                            href="/admin/events/{selectedEvent.id}#photos"
-                            onclick={() => (editDialogOpen = false)}
-                            class="text-xs text-dark-400 underline"
-                        >
-                            Gérer dans l'éditeur →
-                        </a>
-                    </div>
-                </div>
-                {/if}
-
-                <div class="flex items-center gap-3 p-3 bg-dark-50 rounded-lg">
-                    <input
-                        id="editPublished"
-                        name="published"
-                        type="checkbox"
-                        value="true"
-                        bind:checked={editPublished}
-                        class="w-4 h-4 text-dark-900 border-border-dark rounded focus:ring-dark-900"
-                    />
-                    <div>
-                        <label
-                            for="editPublished"
-                            class="block text-sm font-medium text-dark-900 cursor-pointer"
-                        >
-                            Publié
-                        </label>
-                        <p class="text-xs text-dark-400">
-                            Décochez pour sauvegarder comme brouillon
-                        </p>
-                    </div>
-                </div>
-
-                <div class="flex items-center gap-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                    <input
-                        id="editIsSpotlight"
-                        name="isSpotlight"
-                        type="checkbox"
-                        value="true"
-                        bind:checked={editIsSpotlight}
-                        class="w-4 h-4 text-amber-900 border-amber-300 rounded focus:ring-amber-900"
-                    />
-                    <div>
-                        <label
-                            for="editIsSpotlight"
-                            class="block text-sm font-medium text-amber-900 cursor-pointer"
-                        >
-                            Prochain événement (Upcoming)
-                        </label>
-                        <p class="text-xs text-amber-600">
-                            Un seul événement peut être mis en avant à la fois
-                        </p>
-                    </div>
-                </div>
-            </div>
-            <div class="flex w-full justify-end gap-3 pt-2">
-                <button
-                    type="button"
-                    onclick={() => (editDialogOpen = false)}
-                    class="px-4 py-2 border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium text-sm"
-                >
-                    Annuler
-                </button>
-                <button
-                    type="submit"
-                    class="px-4 py-2 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors font-medium text-sm"
-                >
-                    Enregistrer les Modifications
-                </button>
-            </div>
-        </form>
-    </Drawer>
-{:else}
-    <Modal
-        bind:isOpen={editDialogOpen}
-        title="Modifier l'Événement"
-        description="Mettre à jour les détails de l'événement"
-    >
-        <form
-            method="POST"
-            action="?/updateEvent"
-            use:enhance={updateEventEnhance}
-            class="grid gap-4"
-        >
-            <input type="hidden" name="id" value={selectedEvent?.id} />
-
-            <div class="grid grid-cols-2 gap-4 w-full">
-                <div class="col-span-2">
-                    {@render field("title", "Titre", editInput, editTitle, null)}
-                </div>
-                <div class="col-span-2">
-                    {@render field("slug", "Slug", editInput, editSlug, null)}
-                </div>
-                <div class="col-span-2">
-                    {@render field(
-                        "description",
-                        "Description",
-                        editInput,
-                        editDescription,
-                        null,
-                    )}
-                </div>
-                <div>
-                    {@render field(
-                        "startDate",
-                        "Date de Début",
-                        editInput,
-                        editStartDate,
-                        null,
-                    )}
-                </div>
-                <div>
-                    {@render field(
-                        "endDate",
-                        "Date de Fin",
-                        editInput,
-                        editEndDate,
-                        null,
-                    )}
-                </div>
-                <div class="col-span-2">
-                    {@render field(
-                        "location",
-                        "Lieu",
-                        editInput,
-                        editLocation,
-                        null,
-                    )}
-                </div>
-                <div class="col-span-2">
-                    {@render field(
-                        "categoryId",
-                        "Catégorie",
-                        editInput,
-                        editCategoryId,
-                        null,
-                    )}
-                </div>
-
-                {#if selectedEvent?.id}
-                <div class="col-span-2 flex items-center gap-3 p-3 bg-dark-50 rounded-lg">
-                    {#if selectedEvent.coverMedia?.url}
-                        <img src={selectedEvent.coverMedia.url} alt="" class="w-12 h-12 object-cover rounded-md flex-shrink-0" />
-                    {/if}
-                    <div class="min-w-0">
-                        <p class="text-sm font-medium text-dark-700">Photos</p>
-                        <a
-                            href="/admin/events/{selectedEvent.id}#photos"
-                            onclick={() => (editDialogOpen = false)}
-                            class="text-xs text-dark-400 underline hover:text-dark-600"
-                        >
-                            Gérer les photos dans l'éditeur →
-                        </a>
-                    </div>
-                </div>
-                {/if}
-            </div>
-
-            <div class="flex items-center gap-3 p-4 bg-dark-50 rounded-lg">
-                <input
-                    id="editPublished"
-                    name="published"
-                    type="checkbox"
-                    value="true"
-                    bind:checked={editPublished}
-                    class="w-5 h-5 text-dark-900 border-border-dark rounded focus:ring-dark-900"
-                />
-                <div>
-                    <label
-                        for="editPublished"
-                        class="block text-sm font-medium text-dark-900 cursor-pointer"
-                    >
-                        Publié
-                    </label>
-                    <p class="text-xs text-dark-400">
-                        Décochez pour sauvegarder comme brouillon
-                    </p>
-                </div>
-            </div>
-
-            <div class="flex items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                <input
-                    id="editIsSpotlightDesktop"
-                    name="isSpotlight"
-                    type="checkbox"
-                    value="true"
-                    bind:checked={editIsSpotlight}
-                    class="w-5 h-5 text-amber-900 border-amber-300 rounded focus:ring-amber-900"
-                />
-                <div>
-                    <label
-                        for="editIsSpotlightDesktop"
-                        class="block text-sm font-medium text-amber-900 cursor-pointer"
-                    >
-                        Prochain événement (Upcoming)
-                    </label>
-                    <p class="text-xs text-amber-600">
-                        Un seul événement peut être mis en avant à la fois
-                    </p>
-                </div>
-            </div>
-
-            <div class="flex w-full justify-end gap-3 pt-2">
-                <button
-                    type="button"
-                    onclick={() => (editDialogOpen = false)}
-                    class="px-6 py-2.5 border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium"
-                >
-                    Annuler
-                </button>
-                <button
-                    type="submit"
-                    class="px-6 py-2.5 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors font-medium"
-                >
-                    Enregistrer les Modifications
-                </button>
-            </div>
-        </form>
-    </Modal>
-{/if}
 
 <!-- Delete Event Dialog/Drawer -->
 {#if isMobile}
