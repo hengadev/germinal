@@ -30,6 +30,7 @@ export const load: PageServerLoad = async ({ params }) => {
 				currency: s.currency,
 				published: s.published,
 				allowWaitlist: s.allowWaitlist,
+				badgeType: (s as any).badgeType || 'none',
 				reservationCount: MOCK_RESERVATIONS.filter(r => r.eventSessionId === s.id).length
 			}));
 
@@ -112,6 +113,7 @@ export const load: PageServerLoad = async ({ params }) => {
 				currency: s.currency,
 				published: s.published,
 				allowWaitlist: s.allowWaitlist,
+				badgeType: s.badgeType,
 				reservationCount: s.reservationCount
 			})),
 			reservations: reservationsData.map((r: typeof reservationsData[number]) => ({
