@@ -4,6 +4,7 @@
 # Docker image configuration - set your Docker Hub username here
 DOCKER_USER ?= henga
 DOCKER_IMAGE ?= $(DOCKER_USER)/germinal:latest
+DOCKER_IMAGE_STAGING ?= $(DOCKER_USER)/germinal:staging
 
 # VPS connection - resolved from Terraform output, falls back to known IP
 VPS_IP ?= $(shell cd infrastructure/terraform && terraform output -raw server_ipv4_address 2>/dev/null || echo "46.225.25.238")
@@ -19,6 +20,7 @@ STAGING_DIR = /opt/germinal-staging
         staging-start staging-stop staging-restart staging-logs staging-shell staging-migrate staging-create-admin \
         dev-mock \
         image-build image-push image-pull image-release \
+        image-build-staging image-push-staging image-release-staging \
         deploy deploy-staging release \
         status ps clean prune clean-all \
         infra-info infra-apply infra-plan infra-destroy \
@@ -38,9 +40,12 @@ help:
 	@echo "  make ps                 - Alias for status"
 	@echo ""
 	@echo "Docker Image (local machine):"
-	@echo "  make image-build        - Build production image locally"
-	@echo "  make image-push         - Push image to Docker Hub"
-	@echo "  make image-release      - Build and push in one step"
+	@echo "  make image-build        - Build production image locally (:latest)"
+	@echo "  make image-push         - Push production image to Docker Hub"
+	@echo "  make image-release      - Build and push production image in one step"
+	@echo "  make image-build-staging   - Build staging image locally (:staging)"
+	@echo "  make image-push-staging    - Push staging image to Docker Hub"
+	@echo "  make image-release-staging - Build and push staging image in one step"
 	@echo ""
 	@echo "Production (germinalstudio.co):"
 	@echo "  make prod-start         - Start production stack on VPS"
@@ -64,9 +69,9 @@ help:
 	@echo "  make dev-mock           - Start local dev server with mock data"
 	@echo ""
 	@echo "Quick workflows:"
-	@echo "  make release            - Build and push image (then deploy from VPS)"
-	@echo "  make deploy             - Pull image and restart production on VPS"
-	@echo "  make deploy-staging     - Pull image and restart staging on VPS"
+	@echo "  make release            - Build and push production image (then deploy from VPS)"
+	@echo "  make deploy             - Pull :latest and restart production on VPS"
+	@echo "  make deploy-staging     - Pull :staging and restart staging on VPS"
 	@echo ""
 	@echo "Maintenance:"
 	@echo "  make clean              - Stop and remove all Germinal containers"
@@ -98,7 +103,8 @@ help:
 	@echo "  make dns-verify         - Verify DNS propagation"
 	@echo ""
 	@echo "VPS: $(VPS_USER)@$(VPS_IP)"
-	@echo "Image: $(DOCKER_IMAGE)"
+	@echo "Production image: $(DOCKER_IMAGE)"
+	@echo "Staging image:    $(DOCKER_IMAGE_STAGING)"
 
 # ===========================================
 # General Commands
@@ -136,6 +142,20 @@ image-pull:
 # Build and push in one command (run on local machine)
 image-release: image-build image-push
 	@echo "Image built and pushed: $(DOCKER_IMAGE)"
+
+image-build-staging:
+	@echo "Building staging image..."
+	docker build -t $(DOCKER_IMAGE_STAGING) -f Dockerfile .
+	@echo "Image built: $(DOCKER_IMAGE_STAGING)"
+
+image-push-staging:
+	@echo "Pushing staging image to Docker Hub..."
+	docker push $(DOCKER_IMAGE_STAGING)
+	@echo "Image pushed: $(DOCKER_IMAGE_STAGING)"
+
+# Build and push staging in one command (run on local machine)
+image-release-staging: image-build-staging image-push-staging
+	@echo "Staging image built and pushed: $(DOCKER_IMAGE_STAGING)"
 
 # ===========================================
 # Production Commands (VPS)
@@ -182,7 +202,7 @@ prod-db-shell:
 
 staging-start:
 	@echo "Starting staging on VPS..."
-	$(VPS_SSH) "cd $(STAGING_DIR) && DOCKER_IMAGE=$(DOCKER_IMAGE) docker compose up -d"
+	$(VPS_SSH) "cd $(STAGING_DIR) && DOCKER_IMAGE=$(DOCKER_IMAGE_STAGING) docker compose up -d"
 
 staging-stop:
 	@echo "Stopping staging on VPS..."
@@ -190,7 +210,7 @@ staging-stop:
 
 staging-restart:
 	@echo "Restarting staging on VPS..."
-	$(VPS_SSH) "cd $(STAGING_DIR) && docker compose down && DOCKER_IMAGE=$(DOCKER_IMAGE) docker compose up -d"
+	$(VPS_SSH) "cd $(STAGING_DIR) && docker compose down && DOCKER_IMAGE=$(DOCKER_IMAGE_STAGING) docker compose up -d"
 
 staging-logs:
 	$(VPS_SSH) "cd $(STAGING_DIR) && docker compose logs -f"
@@ -224,10 +244,10 @@ deploy:
 	$(VPS_SSH) "docker pull $(DOCKER_IMAGE) && cd $(PROD_DIR) && docker compose up -d"
 	@echo "Production deployed."
 
-# Pull image on VPS and restart staging
+# Pull staging image on VPS and restart staging
 deploy-staging:
 	@echo "Deploying staging..."
-	$(VPS_SSH) "docker pull $(DOCKER_IMAGE) && cd $(STAGING_DIR) && docker compose up -d"
+	$(VPS_SSH) "docker pull $(DOCKER_IMAGE_STAGING) && cd $(STAGING_DIR) && DOCKER_IMAGE=$(DOCKER_IMAGE_STAGING) docker compose up -d"
 	@echo "Staging deployed."
 
 # Build and push image locally (then run make deploy / make deploy-staging on VPS)
