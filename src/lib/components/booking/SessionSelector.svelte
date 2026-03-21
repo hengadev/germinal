@@ -131,13 +131,13 @@
 	{#each sortedSessions as session}
 		<div class="bg-white rounded-lg border {getCardBorderClass(session)} p-6 hover:border-dark-300 transition-colors relative">
 			{#if session.badgeType && session.badgeType !== 'none'}
+				{@const BadgeIcon = getBadgeIcon(session)}
 				<!-- Badge -->
 				<div class="absolute top-4 right-4">
 					<span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-full border {getBadgeColor(session)}">
-						{@const BadgeIcon = getBadgeIcon(session)}
-					{#if BadgeIcon}
-						<BadgeIcon size={12} />
-					{/if}
+						{#if BadgeIcon}
+							<BadgeIcon size={12} />
+						{/if}
 						{getBadgeLabel(session)}
 					</span>
 				</div>
