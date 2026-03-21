@@ -22,6 +22,13 @@
       "when": 1772021000000,
       "tag": "0002_relax_media_constraint",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1774072058427,
+      "tag": "0003_optimal_warlock",
+      "breakpoints": true
     }
   ]
 }

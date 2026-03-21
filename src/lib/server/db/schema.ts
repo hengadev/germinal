@@ -39,6 +39,15 @@ export const notificationPreferenceEnum = pgEnum('notification_preference', [
     'both'
 ]);
 
+export const badgeTypeEnum = pgEnum('badge_type', [
+    'none',
+    'featured',
+    'vip',
+    'popular',
+    'best_value',
+    'limited'
+] as const);
+
 // ============================================
 // EVENT CATEGORIES
 // ============================================
@@ -367,6 +376,7 @@ export const eventSessions = pgTable('event_sessions', {
     currency: varchar('currency', { length: 3 }).notNull().default('EUR'),
     published: boolean('published').default(false).notNull(),
     allowWaitlist: boolean('allow_waitlist').default(false).notNull(),
+    badgeType: badgeTypeEnum('badge_type').notNull().default('none'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => ({

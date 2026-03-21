@@ -17,6 +17,7 @@ export type CreateEventSessionInput = {
 	currency?: string;
 	published?: boolean;
 	allowWaitlist?: boolean;
+	badgeType?: 'none' | 'featured' | 'vip' | 'popular' | 'best_value' | 'limited';
 };
 
 export type UpdateEventSessionInput = Partial<Omit<CreateEventSessionInput, 'eventId'>>;
