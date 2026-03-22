@@ -61,6 +61,12 @@
         chdir: "{{ app_base_dir }}"
       changed_when: true
 
+    - name: Run database migrations
+      ansible.builtin.command:
+        cmd: docker compose run --rm --no-deps app node scripts/migrate.js
+        chdir: "{{ app_base_dir }}"
+      changed_when: true
+
     - name: Start/restart staging app
       ansible.builtin.command:
         cmd: docker compose up -d --force-recreate

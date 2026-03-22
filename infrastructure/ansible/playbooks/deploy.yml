@@ -29,9 +29,23 @@
       tags: ['app', 'deploy']
 
   post_tasks:
-    - name: Pull latest images and restart services
-      ansible.builtin.shell:
-        cmd: docker compose pull && docker compose up -d --force-recreate
+    - name: Pull latest images
+      ansible.builtin.command:
+        cmd: docker compose pull
+        chdir: "{{ app_base_dir }}"
+      become: true
+      when: app_deployed | default(false)
+
+    - name: Run database migrations
+      ansible.builtin.command:
+        cmd: docker compose run --rm --no-deps app node scripts/migrate.js
+        chdir: "{{ app_base_dir }}"
+      become: true
+      when: app_deployed | default(false)
+
+    - name: Restart services
+      ansible.builtin.command:
+        cmd: docker compose up -d --force-recreate
         chdir: "{{ app_base_dir }}"
       become: true
       when: app_deployed | default(false)
