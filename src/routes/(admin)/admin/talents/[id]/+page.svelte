@@ -88,7 +88,7 @@
 		</div>
 
 		<div class="bg-white rounded-lg border border-border-card p-6 lg:p-8">
-			<form method="POST" use:enhance={updateTalentEnhance()} class="space-y-6">
+			<form method="POST" use:enhance={updateTalentEnhance} class="space-y-6">
 				<!-- Photo de Profil Section -->
 				<div class="form-section">
 					<label class="block text-sm font-medium text-dark-700 mb-2">

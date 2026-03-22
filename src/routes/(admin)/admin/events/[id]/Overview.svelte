@@ -57,7 +57,7 @@
 </script>
 
 <div class="bg-white rounded-lg border border-border-card p-6 lg:p-8">
-    <form method="POST" action="?/updateEvent" use:enhance={updateEventEnhance()} class="space-y-6">
+    <form method="POST" action="?/updateEvent" use:enhance={updateEventEnhance} class="space-y-6">
         <!-- Title (English) -->
         <div>
             <label for="titleEn" class="block text-sm font-medium text-dark-700 mb-2">
