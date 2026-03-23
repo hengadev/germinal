@@ -3,6 +3,11 @@
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<script>
+			if (localStorage.getItem('admin-dark-mode') === 'true') {
+				document.documentElement.classList.add('dark');
+			}
+		</script>
 		<link rel="icon" href="/favicon.ico" />
 		<meta name="description" content="Event ticketing and reservation management platform" />
 		<meta name="theme-color" content="#ffffff" />
