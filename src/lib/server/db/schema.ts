@@ -48,6 +48,8 @@ export const badgeTypeEnum = pgEnum('badge_type', [
     'limited'
 ] as const);
 
+export const discountTypeEnum = pgEnum('discount_type', ['percent', 'amount'] as const);
+
 // ============================================
 // EVENT CATEGORIES
 // ============================================
@@ -205,6 +207,7 @@ export const eventsRelations = relations(events, ({ many, one }) => ({
         references: [eventCategories.id],
     }),
     eventSessions: many(eventSessions),
+    coupons: many(coupons),
 }));
 
 export const eventCategoriesRelations = relations(eventCategories, ({ many }) => ({
@@ -358,6 +361,54 @@ export const waitlist = pgTable('waitlist', {
 }));
 
 // ============================================
+// COUPON AND PROMOTION CODE TABLES
+// ============================================
+
+export const coupons = pgTable('coupons', {
+    id: uuid('id').defaultRandom().primaryKey(),
+    eventId: uuid('event_id')
+        .notNull()
+        .references(() => events.id, { onDelete: 'cascade' }),
+    name: varchar('name', { length: 255 }).notNull(),
+    discountType: discountTypeEnum('discount_type').notNull(),
+    discountValue: integer('discount_value').notNull(),
+    currency: varchar('currency', { length: 3 }),
+    maxRedemptions: integer('max_redemptions'),
+    redemptionCount: integer('redemption_count').default(0).notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }),
+    active: boolean('active').default(true).notNull(),
+    stripeCouponId: varchar('stripe_coupon_id', { length: 255 }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+    eventIdIdx: index('coupons_event_id_idx').on(table.eventId),
+    activeIdx: index('coupons_active_idx').on(table.active),
+    discountValueCheck: check('coupons_discount_value_check', sql`discount_value > 0`),
+    percentRangeCheck: check('coupons_percent_range_check',
+        sql`discount_type != 'percent' OR discount_value <= 100`
+    ),
+}));
+
+export const promotionCodes = pgTable('promotion_codes', {
+    id: uuid('id').defaultRandom().primaryKey(),
+    couponId: uuid('coupon_id')
+        .notNull()
+        .references(() => coupons.id, { onDelete: 'cascade' }),
+    code: varchar('code', { length: 50 }).notNull(),
+    maxRedemptions: integer('max_redemptions'),
+    redemptionCount: integer('redemption_count').default(0).notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }),
+    active: boolean('active').default(true).notNull(),
+    stripePromotionCodeId: varchar('stripe_promotion_code_id', { length: 255 }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+    couponIdIdx: index('promotion_codes_coupon_id_idx').on(table.couponId),
+    activeIdx: index('promotion_codes_active_idx').on(table.active),
+    codeUniqueIdx: unique('promotion_codes_code_unique').on(table.code),
+}));
+
+// ============================================
 // RESERVATION AND TICKETING TABLES
 // ============================================
 
@@ -420,6 +471,8 @@ export const reservations = pgTable('reservations', {
     reminderSent1Week: boolean('reminder_sent_1_week').default(false).notNull(),
     reminderSent1Day: boolean('reminder_sent_1_day').default(false).notNull(),
     paymentId: uuid('payment_id').references(() => payments.id, { onDelete: 'set null' }),
+    promotionCodeId: uuid('promotion_code_id').references(() => promotionCodes.id, { onDelete: 'set null' }),
+    discountAmount: integer('discount_amount').default(0).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => ({
@@ -437,6 +490,7 @@ export const reservations = pgTable('reservations', {
         .on(table.status, table.createdAt),
     quantityCheck: check('reservations_quantity_check', sql`quantity > 0`),
     amountCheck: check('reservations_amount_check', sql`total_amount >= 0`),
+    discountCheck: check('reservations_discount_check', sql`discount_amount >= 0`),
 }));
 
 export const payments = pgTable('payments', {
@@ -499,6 +553,10 @@ export const reservationsRelations = relations(reservations, ({ one }) => ({
         fields: [reservations.paymentId],
         references: [payments.id],
     }),
+    promotionCode: one(promotionCodes, {
+        fields: [reservations.promotionCodeId],
+        references: [promotionCodes.id],
+    }),
 }));
 
 export const paymentsRelations = relations(payments, ({ one }) => ({
@@ -518,4 +576,20 @@ export const waitlistRelations = relations(waitlist, ({ one }) => ({
 export const emailQueueRelations = relations(emailQueue, () => ({
     // Email queue is a standalone table with no direct relations
     // Metadata field contains JSON with references to other entities
+}));
+
+export const couponsRelations = relations(coupons, ({ one, many }) => ({
+    event: one(events, {
+        fields: [coupons.eventId],
+        references: [events.id],
+    }),
+    promotionCodes: many(promotionCodes),
+}));
+
+export const promotionCodesRelations = relations(promotionCodes, ({ one, many }) => ({
+    coupon: one(coupons, {
+        fields: [promotionCodes.couponId],
+        references: [coupons.id],
+    }),
+    reservations: many(reservations),
 }));
