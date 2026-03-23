@@ -186,8 +186,8 @@ prod-shell:
 	$(VPS_SSH) -t "cd $(PROD_DIR) && docker compose exec app sh"
 
 prod-migrate:
-	@echo "Migrations run automatically on startup via hooks.server.ts."
-	@echo "To force a manual run, restart the container: make prod-restart"
+	@echo "Running database migrations (production)..."
+	$(VPS_SSH) "cd $(PROD_DIR) && docker compose run --rm --no-deps app node scripts/migrate.js"
 
 prod-create-admin:
 	@echo "Creating admin user (production)..."
@@ -219,8 +219,8 @@ staging-shell:
 	$(VPS_SSH) -t "cd $(STAGING_DIR) && docker compose exec app sh"
 
 staging-migrate:
-	@echo "Migrations run automatically on startup via hooks.server.ts."
-	@echo "To force a manual run, restart the container: make staging-restart"
+	@echo "Running database migrations (staging)..."
+	$(VPS_SSH) "cd $(STAGING_DIR) && docker compose run --rm --no-deps app node scripts/migrate.js"
 
 staging-create-admin:
 	@echo "Creating admin user (staging)..."
@@ -238,16 +238,20 @@ dev-mock:
 # Quick Workflows
 # ===========================================
 
-# Pull image on VPS and restart production
+# Pull image on VPS, run migrations, restart production
 deploy:
 	@echo "Deploying production..."
-	$(VPS_SSH) "docker pull $(DOCKER_IMAGE) && cd $(PROD_DIR) && docker compose up -d"
+	$(VPS_SSH) "docker pull $(DOCKER_IMAGE)"
+	$(VPS_SSH) "cd $(PROD_DIR) && docker compose run --rm --no-deps app node scripts/migrate.js"
+	$(VPS_SSH) "cd $(PROD_DIR) && docker compose up -d"
 	@echo "Production deployed."
 
-# Pull staging image on VPS and restart staging
+# Pull staging image on VPS, run migrations, restart staging
 deploy-staging:
 	@echo "Deploying staging..."
-	$(VPS_SSH) "docker pull $(DOCKER_IMAGE_STAGING) && cd $(STAGING_DIR) && DOCKER_IMAGE=$(DOCKER_IMAGE_STAGING) docker compose up -d"
+	$(VPS_SSH) "docker pull $(DOCKER_IMAGE_STAGING)"
+	$(VPS_SSH) "cd $(STAGING_DIR) && docker compose run --rm --no-deps app node scripts/migrate.js"
+	$(VPS_SSH) "cd $(STAGING_DIR) && DOCKER_IMAGE=$(DOCKER_IMAGE_STAGING) docker compose up -d"
 	@echo "Staging deployed."
 
 # Build and push image locally (then run make deploy / make deploy-staging on VPS)
