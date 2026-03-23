@@ -9,7 +9,6 @@
         Edit,
         Trash2,
         X,
-        FileText,
         Tag,
     } from "lucide-svelte";
     import type { PageData, ActionData } from "./$types";
@@ -261,13 +260,6 @@
                                     <a
                                         href="/admin/events/{event.id}"
                                         class="p-2 text-dark-400 hover:text-dark-900 hover:bg-dark-100 rounded-lg transition-colors"
-                                        title="Voir les détails"
-                                    >
-                                        <FileText size={18} />
-                                    </a>
-                                    <a
-                                        href="/admin/events/{event.id}"
-                                        class="p-2 text-dark-400 hover:text-dark-900 hover:bg-dark-100 rounded-lg transition-colors"
                                         title="Modifier"
                                     >
                                         <Edit size={18} />
@@ -351,13 +343,6 @@
                         </div>
 
                         <div class="flex items-center justify-between gap-2 pt-3 border-t border-border-card">
-                            <a
-                                href="/admin/events/{event.id}"
-                                class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-dark-600 hover:text-dark-900 hover:bg-dark-50 rounded-lg transition-colors"
-                            >
-                                <FileText size={16} />
-                                Détails
-                            </a>
                             <a
                                 href="/admin/events/{event.id}"
                                 class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-dark-600 hover:text-dark-900 hover:bg-dark-50 rounded-lg transition-colors"
