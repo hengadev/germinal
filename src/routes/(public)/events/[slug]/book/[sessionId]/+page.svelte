@@ -7,7 +7,9 @@
 		Ticket,
 		AlertCircle,
 		Loader2,
-		CheckCircle2
+		CheckCircle2,
+		Tag,
+		X
 	} from 'lucide-svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
@@ -32,7 +34,73 @@
 	let error = $state<string | null>(null);
 	let success = $state(false);
 
-	let totalAmount = $derived(data.session.priceAmount * quantity);
+	// Promo code state
+	let promoCodeInput = $state('');
+	let promoCodeApplying = $state(false);
+	let promoCodeError = $state<string | null>(null);
+	let appliedPromoCode = $state<{
+		code: string;
+		discountType: 'percent' | 'amount';
+		discountValue: number;
+	} | null>(null);
+
+	function calculateDiscount(type: 'percent' | 'amount', value: number, total: number): number {
+		if (type === 'percent') return Math.round((total * value) / 100);
+		return Math.min(value, total);
+	}
+
+	let baseAmount = $derived(data.session.priceAmount * quantity);
+	let discountAmount = $derived(
+		appliedPromoCode
+			? calculateDiscount(appliedPromoCode.discountType, appliedPromoCode.discountValue, baseAmount)
+			: 0
+	);
+	let totalAmount = $derived(baseAmount - discountAmount);
+
+	// Clear promo code when quantity changes (discount might need recalculating)
+	$effect(() => {
+		quantity; // track quantity
+		if (appliedPromoCode) {
+			appliedPromoCode = null;
+			promoCodeError = null;
+		}
+	});
+
+	async function applyPromoCode() {
+		const code = promoCodeInput.trim().toUpperCase();
+		if (!code) return;
+
+		promoCodeApplying = true;
+		promoCodeError = null;
+		appliedPromoCode = null;
+
+		try {
+			const res = await fetch(
+				`/api/promo-codes/validate?code=${encodeURIComponent(code)}&sessionId=${encodeURIComponent(data.session.id)}`
+			);
+			const result = await res.json();
+
+			if (result.valid) {
+				appliedPromoCode = {
+					code,
+					discountType: result.discountType,
+					discountValue: result.discountValue,
+				};
+			} else {
+				promoCodeError = result.error ?? 'Invalid promotion code';
+			}
+		} catch {
+			promoCodeError = 'Unable to validate code. Please try again.';
+		} finally {
+			promoCodeApplying = false;
+		}
+	}
+
+	function removePromoCode() {
+		appliedPromoCode = null;
+		promoCodeInput = '';
+		promoCodeError = null;
+	}
 
 	let isFormValid = $derived(
 		name.trim().length > 0 &&
@@ -69,6 +137,7 @@
 					phone: phone.trim() || undefined,
 					quantity,
 					notificationPreference,
+					promoCode: appliedPromoCode?.code ?? undefined,
 					honeypot: ''
 				})
 			});
@@ -89,8 +158,11 @@
 					sessionTitle: data.session.title,
 					eventTitle,
 					quantity,
+					originalAmount: baseAmount,
+					discountAmount,
 					totalAmount,
-					currency: data.session.currency
+					currency: data.session.currency,
+					promoCode: appliedPromoCode?.code ?? null,
 				})
 			);
 
@@ -281,14 +353,82 @@
 				</p>
 			</div>
 
+			<!-- Promo code -->
+			<div>
+				<label class="block text-sm font-medium text-dark-700 mb-2">
+					Code promotionnel
+					<span class="text-dark-400 text-xs">(optionnel)</span>
+				</label>
+
+				{#if appliedPromoCode}
+					<div class="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+						<div class="flex items-center gap-2 text-green-700 text-sm font-medium">
+							<Tag size={15} />
+							<span class="font-mono">{appliedPromoCode.code}</span>
+							<span class="font-normal text-green-600">
+								— {appliedPromoCode.discountType === 'percent'
+									? `${appliedPromoCode.discountValue}% off`
+									: '−' + formatCurrency(appliedPromoCode.discountValue, data.session.currency)}
+							</span>
+						</div>
+						<button
+							type="button"
+							onclick={removePromoCode}
+							class="text-green-500 hover:text-green-700 transition-colors ml-2"
+							aria-label="Remove promo code"
+						>
+							<X size={16} />
+						</button>
+					</div>
+				{:else}
+					<div class="flex gap-2">
+						<div class="relative flex-1">
+							<Tag size={16} class="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400" />
+							<input
+								type="text"
+								bind:value={promoCodeInput}
+								placeholder="Ex: SUMMER20"
+								disabled={isSubmitting}
+								class="w-full pl-9 pr-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm font-mono uppercase disabled:bg-dark-50 disabled:cursor-not-allowed {promoCodeError ? 'border-red-300' : 'border-border-dark'}"
+								oninput={(e) => { promoCodeInput = (e.target as HTMLInputElement).value.toUpperCase(); promoCodeError = null; }}
+								onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); applyPromoCode(); } }}
+							/>
+						</div>
+						<button
+							type="button"
+							onclick={applyPromoCode}
+							disabled={!promoCodeInput.trim() || promoCodeApplying || isSubmitting}
+							class="px-4 py-2.5 border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap inline-flex items-center gap-1.5"
+						>
+							{#if promoCodeApplying}
+								<Loader2 size={15} class="animate-spin" />
+							{/if}
+							Appliquer
+						</button>
+					</div>
+					{#if promoCodeError}
+						<p class="text-xs text-red-600 mt-1">{promoCodeError}</p>
+					{/if}
+				{/if}
+			</div>
+
 			<!-- Total -->
 			<div class="bg-dark-50 rounded-lg p-4">
 				<div class="flex items-center justify-between mb-2">
 					<span class="text-dark-600"
 						>{$t('booking.tickets', { values: { qty: quantity } })}</span
 					>
-					<span class="text-dark-900">{formatCurrency(totalAmount, data.session.currency)}</span>
+					<span class="text-dark-900">{formatCurrency(baseAmount, data.session.currency)}</span>
 				</div>
+				{#if discountAmount > 0}
+					<div class="flex items-center justify-between mb-2 text-green-600 text-sm">
+						<span class="flex items-center gap-1">
+							<Tag size={13} />
+							Code {appliedPromoCode?.code}
+						</span>
+						<span>−{formatCurrency(discountAmount, data.session.currency)}</span>
+					</div>
+				{/if}
 				<div class="border-t border-border-card pt-2 mt-2 flex items-center justify-between">
 					<span class="font-semibold text-dark-900">{$t('booking.total')}</span>
 					<span class="font-bold text-xl text-dark-900">

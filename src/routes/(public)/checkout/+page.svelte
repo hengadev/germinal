@@ -4,7 +4,7 @@
 	import { page } from '$app/stores';
 	import { browser } from '$app/environment';
 	import { loadStripe, type Stripe, type StripeElements } from '@stripe/stripe-js';
-	import { Lock, Clock, AlertCircle, CheckCircle2, Loader2 } from 'lucide-svelte';
+	import { Lock, Clock, AlertCircle, CheckCircle2, Loader2, Tag } from 'lucide-svelte';
 	import { formatCurrency } from '$lib/utils/currency';
 
 	// Stripe publishable key - MUST be set in .env as PUBLIC_STRIPE_PUBLISHABLE_KEY
@@ -210,9 +210,22 @@
 						<div class="flex items-center justify-between mb-2">
 							<span class="text-dark-600">Tickets ({reservationData.quantity}x)</span>
 							<span class="text-dark-900">
-								{formatCurrency(reservationData.totalAmount, reservationData.currency)}
+								{formatCurrency(
+									reservationData.originalAmount ?? reservationData.totalAmount,
+									reservationData.currency
+								)}
 							</span>
 						</div>
+
+						{#if reservationData.discountAmount > 0}
+							<div class="flex items-center justify-between mb-2 text-green-600 text-sm">
+								<span class="flex items-center gap-1">
+									<Tag size={14} />
+									Code {reservationData.promoCode}
+								</span>
+								<span>−{formatCurrency(reservationData.discountAmount, reservationData.currency)}</span>
+							</div>
+						{/if}
 
 						<div class="flex items-center justify-between font-semibold text-lg pt-2 border-t border-border-card">
 							<span class="text-dark-900">Total</span>
@@ -266,7 +279,7 @@
 						{:else if timeRemaining === 'Expired'}
 							Reservation Expired
 						{:else}
-							Pay {formatCurrency(reservationData.totalAmount, reservationData.currency)}
+							Pay {formatCurrency(reservationData.totalAmount ?? 0, reservationData.currency)}
 						{/if}
 					</button>
 				</form>
