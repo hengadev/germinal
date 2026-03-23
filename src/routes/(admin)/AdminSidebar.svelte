@@ -126,9 +126,11 @@
                 </h1>
                 <p class="text-xs text-dark-400">Panneau d'Administration</p>
             </div>
+            <ThemeToggle />
         {:else}
-            <div class="mx-auto">
-                <span class="text-lg font-bold text-dark-900">G</span>
+            <div class="mx-auto flex flex-col items-center gap-2">
+                <span class="text-lg font-bold text-dark-900 dark:text-dark-50">G</span>
+                <ThemeToggle />
             </div>
         {/if}
     </div>
@@ -182,10 +184,6 @@
                         {data.user.role}
                     </p>
                 </div>
-            </div>
-            <!-- Theme Toggle -->
-            <div class="mt-3">
-                <ThemeToggle />
             </div>
             <div class="mt-3 flex gap-2">
                 <a

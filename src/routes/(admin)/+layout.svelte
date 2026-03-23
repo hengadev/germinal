@@ -383,11 +383,6 @@
         </div>
 
         <!-- Menu Items -->
-        <!-- Theme Toggle -->
-        <div class="px-4">
-            <ThemeToggle />
-        </div>
-
         <a
             href="/admin/change-password"
             onclick={() => (mobileMenuOpen = false)}
