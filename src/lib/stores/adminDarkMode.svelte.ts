@@ -26,6 +26,9 @@ export const adminDarkMode = {
 		}
 	},
 	toggle() {
-		this.set(!this.get());
+		value = !value;
+		if (browser) {
+			localStorage.setItem(STORAGE_KEY, String(value));
+		}
 	}
 };
