@@ -22,6 +22,8 @@ export const createReservationSchema = z.object({
 		.max(config.reservations.maxTicketsPerReservation,
 			`Maximum ${config.reservations.maxTicketsPerReservation} tickets per reservation`),
 	notificationPreference: z.enum(['email', 'sms', 'both']).default('both'),
+	// Optional promotion code
+	promoCode: z.string().max(50).optional().transform(v => v?.trim().toUpperCase() || undefined),
 	// Honeypot for spam protection
 	honeypot: z.string().optional(),
 }).refine(data => !data.honeypot || data.honeypot.trim() === '', {

@@ -6,6 +6,7 @@ import { generateAccessToken } from '$lib/utils/tokens';
 import { createPaymentIntent } from './stripe';
 import { env } from '../env';
 import type { CreateReservationInput, ReservationWithDetails } from '$lib/types/reservations';
+import { validatePromoCode, calculateDiscountAmount, incrementRedemption } from './promo-codes';
 
 /**
  * Create a reservation with atomic capacity locking
@@ -64,7 +65,29 @@ export async function createReservation(input: CreateReservationInput) {
 		}
 
 		// Step 4: Calculate total amount (snapshot price at booking time)
-		const totalAmount = session.priceAmount * input.quantity;
+		const baseAmount = session.priceAmount * input.quantity;
+
+		// Step 4a: Validate and apply promo code if provided
+		let discountAmount = 0;
+		let promotionCodeId: string | null = null;
+
+		if (input.promoCode) {
+			const promoResult = await validatePromoCode(input.promoCode, input.sessionId);
+			if (!promoResult.valid) {
+				throw new Error(`Invalid promotion code: ${promoResult.error}`);
+			}
+			discountAmount = calculateDiscountAmount(
+				promoResult.discountType,
+				promoResult.discountValue,
+				baseAmount
+			);
+			promotionCodeId = promoResult.promotionCodeId;
+
+			// Atomically claim the promo code slot
+			await incrementRedemption(promotionCodeId, tx);
+		}
+
+		const totalAmount = baseAmount - discountAmount;
 
 		// Step 5: Generate secure access token
 		const accessToken = generateAccessToken();
@@ -88,6 +111,8 @@ export async function createReservation(input: CreateReservationInput) {
 			expiresAt,
 			ipAddress: input.ipAddress ?? null,
 			userAgent: input.userAgent ?? null,
+			promotionCodeId,
+			discountAmount,
 		}).returning();
 
 		// Step 8: Create Stripe PaymentIntent
@@ -132,8 +157,6 @@ export async function createReservation(input: CreateReservationInput) {
 				logger.info(`[Reservation Cleanup] Cleaned up orphaned PaymentIntent ${paymentIntentId} after transaction failure`);
 			} catch (cancelError) {
 				logger.error({ err: cancelError, paymentIntentId }, '[Reservation Cleanup] Failed to cancel orphaned PaymentIntent');
-				// Log to monitoring system for manual cleanup - this PaymentIntent will need manual attention
-				// Consider setting up an alert in your monitoring system
 			}
 		}
 		throw error;
