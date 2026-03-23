@@ -1,4 +1,6 @@
-CREATE TYPE "public"."badge_type" AS ENUM('none', 'featured', 'vip', 'popular', 'best_value', 'limited');--> statement-breakpoint
-ALTER TABLE "media" DROP CONSTRAINT "media_event_or_talent_check";--> statement-breakpoint
-ALTER TABLE "event_sessions" ADD COLUMN "badge_type" "badge_type" DEFAULT 'none' NOT NULL;--> statement-breakpoint
-ALTER TABLE "media" ADD CONSTRAINT "media_entity_mutual_exclusion_check" CHECK (NOT (event_id IS NOT NULL AND talent_id IS NOT NULL));
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'badge_type') THEN
+    CREATE TYPE "public"."badge_type" AS ENUM('none', 'featured', 'vip', 'popular', 'best_value', 'limited');
+  END IF;
+END $$;--> statement-breakpoint
+ALTER TABLE "event_sessions" ADD COLUMN IF NOT EXISTS "badge_type" "badge_type" DEFAULT 'none' NOT NULL;
