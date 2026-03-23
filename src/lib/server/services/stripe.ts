@@ -85,6 +85,56 @@ export async function createRefund(paymentIntentId: string, amount?: number) {
 }
 
 /**
+ * Create a Stripe Coupon object
+ */
+export async function createStripeCoupon(params: {
+	name: string;
+	discountType: 'percent' | 'amount';
+	discountValue: number;
+	currency?: string;
+	maxRedemptions?: number;
+	expiresAt?: Date;
+}) {
+	const stripe = getStripeClient();
+
+	return await stripe.coupons.create({
+		name: params.name,
+		...(params.discountType === 'percent'
+			? { percent_off: params.discountValue }
+			: { amount_off: params.discountValue, currency: params.currency ?? 'eur' }),
+		max_redemptions: params.maxRedemptions ?? undefined,
+		redeem_by: params.expiresAt ? Math.floor(params.expiresAt.getTime() / 1000) : undefined,
+	});
+}
+
+/**
+ * Create a Stripe PromotionCode attached to a coupon
+ */
+export async function createStripePromotionCode(params: {
+	stripeCouponId: string;
+	code: string;
+	maxRedemptions?: number;
+	expiresAt?: Date;
+}) {
+	const stripe = getStripeClient();
+
+	return await stripe.promotionCodes.create({
+		promotion: { type: 'coupon', coupon: params.stripeCouponId },
+		code: params.code,
+		max_redemptions: params.maxRedemptions ?? undefined,
+		expires_at: params.expiresAt ? Math.floor(params.expiresAt.getTime() / 1000) : undefined,
+	});
+}
+
+/**
+ * Deactivate a Stripe PromotionCode
+ */
+export async function deactivateStripePromotionCode(stripePromotionCodeId: string): Promise<void> {
+	const stripe = getStripeClient();
+	await stripe.promotionCodes.update(stripePromotionCodeId, { active: false });
+}
+
+/**
  * Verify webhook signature
  */
 export function verifyWebhookSignature(
