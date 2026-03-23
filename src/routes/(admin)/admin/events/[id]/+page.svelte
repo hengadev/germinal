@@ -30,6 +30,7 @@
     import Sessions from "./Sessions.svelte";
     import Reservations from "./Reservations.svelte";
     import Photos from "./Photos.svelte";
+    import PromoCodes from "./PromoCodes.svelte";
 
     interface Trigger {
         value: string;
@@ -41,6 +42,7 @@
         { value: "photos", name: "Photos" },
         { value: "sessions", name: "Sessions" },
         { value: "reservations", name: "Réservations" },
+        { value: "promotions", name: "Promotions" },
         { value: "communication", name: "Communication" },
     ];
 </script>
@@ -104,6 +106,9 @@
         </TabsContent>
         <TabsContent value="reservations" class="h-full p-6">
             <Reservations {data} />
+        </TabsContent>
+        <TabsContent value="promotions" class="h-full p-6">
+            <PromoCodes {data} {form} />
         </TabsContent>
         <TabsContent value="communication" class="h-full p-6">
             <p class="text-dark-400">Communication features coming soon...</p>

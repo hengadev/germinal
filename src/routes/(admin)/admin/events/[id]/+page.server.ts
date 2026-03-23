@@ -9,7 +9,7 @@ export const load: PageServerLoad = async ({ params }) => {
 
 	if (env.USE_MOCK_DATA) {
 		// Mock mode - find event in mock data
-		const event = MOCK_EVENTS.find((e) => e.id === id);
+		const event = MOCK_EVENTS.find((e: typeof MOCK_EVENTS[number]) => e.id === id);
 
 		if (!event) {
 			throw error(404, 'Event not found');
@@ -58,12 +58,13 @@ export const load: PageServerLoad = async ({ params }) => {
 				};
 			});
 
-		return { event, sessions, reservations };
+		return { event, sessions, reservations, promoCodes: [] };
 	}
 
 	// Database mode - fetch from database
 	const { getEventById } = await import('$lib/server/services/events');
 	const { getAllSessionsByEventId } = await import('$lib/server/services/event-sessions');
+	const { getPromoCodesForEvent } = await import('$lib/server/services/promo-codes');
 	const { db } = await import('$lib/server/db');
 	const { reservations } = await import('$lib/server/db/schema');
 	const { desc, eq, inArray } = await import('drizzle-orm');
@@ -71,6 +72,7 @@ export const load: PageServerLoad = async ({ params }) => {
 	try {
 		const event = await getEventById(id);
 		const sessionsData = await getAllSessionsByEventId(id);
+		const promoCodes = await getPromoCodesForEvent(id);
 
 		// Get session IDs for reservation filtering
 		const sessionIds = sessionsData.map((s: typeof sessionsData[number]) => s.id);
@@ -101,6 +103,7 @@ export const load: PageServerLoad = async ({ params }) => {
 
 		return {
 			event,
+			promoCodes,
 			sessions: sessionsData.map((s: typeof sessionsData[number]) => ({
 				id: s.id,
 				title: s.title,
@@ -487,6 +490,80 @@ export const actions: Actions = {
 		} catch (err) {
 			logger.error({ err }, 'Delete session error');
 			return fail(500, { error: err instanceof Error ? err.message : 'Failed to delete session' });
+		}
+	},
+
+	// Create promotion code action
+	createPromoCode: async ({ request, params }) => {
+		const { id: eventId } = params;
+		if (!eventId) return fail(400, { error: 'Event ID is required' });
+
+		if (env.USE_MOCK_DATA) {
+			return { success: 'Code promo créé (mode démo — non persisté)' };
+		}
+
+		const formData = await request.formData();
+		const name = formData.get('name')?.toString().trim();
+		const code = formData.get('code')?.toString().trim();
+		const discountType = formData.get('discountType')?.toString();
+		const discountValueRaw = formData.get('discountValue')?.toString();
+		const currency = formData.get('currency')?.toString().trim() || 'EUR';
+		const maxRedemptionsRaw = formData.get('maxRedemptions')?.toString().trim();
+		const expiresAtRaw = formData.get('expiresAt')?.toString().trim();
+
+		if (!name) return fail(400, { error: 'Name is required' });
+		if (!code) return fail(400, { error: 'Code is required' });
+		if (!/^[A-Z0-9_-]+$/i.test(code)) return fail(400, { error: 'Code must contain only letters, numbers, hyphens, or underscores' });
+		if (discountType !== 'percent' && discountType !== 'amount') return fail(400, { error: 'Invalid discount type' });
+
+		const discountValue = parseInt(discountValueRaw ?? '');
+		if (isNaN(discountValue) || discountValue <= 0) return fail(400, { error: 'Discount value must be a positive number' });
+		if (discountType === 'percent' && discountValue > 100) return fail(400, { error: 'Percent discount cannot exceed 100' });
+
+		const maxRedemptions = maxRedemptionsRaw ? parseInt(maxRedemptionsRaw) : undefined;
+		if (maxRedemptionsRaw && (isNaN(maxRedemptions!) || maxRedemptions! <= 0)) {
+			return fail(400, { error: 'Max redemptions must be a positive number' });
+		}
+
+		const expiresAt = expiresAtRaw ? new Date(expiresAtRaw) : undefined;
+		if (expiresAtRaw && isNaN(expiresAt!.getTime())) return fail(400, { error: 'Invalid expiry date' });
+
+		try {
+			const { createPromoCode } = await import('$lib/server/services/promo-codes');
+			await createPromoCode({
+				eventId,
+				name,
+				code: code.toUpperCase(),
+				discountType: discountType as 'percent' | 'amount',
+				discountValue: discountType === 'amount' ? Math.round(discountValue * 100) : discountValue,
+				currency: discountType === 'amount' ? currency : undefined,
+				maxRedemptions,
+				expiresAt,
+			});
+			return { success: `Code promo "${code.toUpperCase()}" créé avec succès` };
+		} catch (err) {
+			logger.error({ err }, 'Create promo code error');
+			return fail(400, { error: err instanceof Error ? err.message : 'Failed to create promotion code' });
+		}
+	},
+
+	// Deactivate promotion code action
+	deactivatePromoCode: async ({ request }) => {
+		if (env.USE_MOCK_DATA) {
+			return { success: 'Code promo désactivé (mode démo — non persisté)' };
+		}
+
+		const formData = await request.formData();
+		const promoCodeId = formData.get('promoCodeId')?.toString();
+		if (!promoCodeId) return fail(400, { error: 'Promotion code ID is required' });
+
+		try {
+			const { deactivatePromoCode } = await import('$lib/server/services/promo-codes');
+			await deactivatePromoCode(promoCodeId);
+			return { success: 'Code promo désactivé' };
+		} catch (err) {
+			logger.error({ err }, 'Deactivate promo code error');
+			return fail(500, { error: err instanceof Error ? err.message : 'Failed to deactivate promotion code' });
 		}
 	}
 };
