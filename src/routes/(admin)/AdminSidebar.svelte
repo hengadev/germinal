@@ -2,6 +2,7 @@
     import { page } from "$app/state";
 
     import { LayoutDashboard, Calendar, User, Ticket, BarChart3 } from "lucide-svelte";
+    import ThemeToggle from "$lib/components/admin/ThemeToggle.svelte";
 
     interface SidebarProps {
         data: {
@@ -67,7 +68,7 @@
 
 <!-- Desktop Sidebar Navigation -->
 <aside
-    class="hidden lg:flex lg:flex-col lg:border-r lg:border-border-card bg-white sticky top-0 h-screen transition-all duration-300 {isCollapsed
+    class="hidden lg:flex lg:flex-col lg:border-r lg:border-border-card bg-white dark:bg-dark-900 sticky top-0 h-screen transition-all duration-300 {isCollapsed
         ? 'lg:w-20'
         : 'lg:w-64'}"
     aria-label="Sidebar navigation"
@@ -119,7 +120,7 @@
         {#if !isCollapsed}
             <div>
                 <h1
-                    class="text-sm font-semibold tracking-tight text-dark-900 uppercase"
+                    class="text-sm font-semibold tracking-tight text-dark-900 dark:text-dark-50 uppercase"
                 >
                     Germinal
                 </h1>
@@ -143,8 +144,8 @@
                         class="flex items-center text-sm font-medium transition-all duration-200 rounded-lg {isCollapsed
                             ? 'justify-center px-3 py-3'
                             : 'gap-3 px-3 py-2.5'} {active
-                            ? 'text-dark-900 bg-dark-50'
-                            : 'text-dark-600 hover:text-dark-900 hover:bg-dark-50'}"
+                            ? 'text-dark-900 dark:text-dark-50 bg-dark-50 dark:bg-dark-800'
+                            : 'text-dark-600 hover:text-dark-900 dark:text-dark-400 dark:hover:text-dark-100 hover:bg-dark-50 dark:hover:bg-dark-800'}"
                         aria-current={active ? "page" : undefined}
                         title={isCollapsed ? item.label : undefined}
                     >
@@ -181,6 +182,10 @@
                         {data.user.role}
                     </p>
                 </div>
+            </div>
+            <!-- Theme Toggle -->
+            <div class="mt-3">
+                <ThemeToggle />
             </div>
             <div class="mt-3 flex gap-2">
                 <a

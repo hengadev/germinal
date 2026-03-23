@@ -1,10 +1,13 @@
 <script lang="ts">
     import { page } from "$app/state";
     import { slide } from "svelte/transition";
+    import { browser } from "$app/environment";
     import AdminSidebar from "./AdminSidebar.svelte";
     import Toaster from "$lib/components/toast/Toaster.svelte";
     import { setToastContext } from "$lib/components/toast/state.svelte";
     import Drawer from "$lib/components/ui/Drawer.svelte";
+    import { adminDarkMode } from "$lib/stores/adminDarkMode.svelte";
+    import ThemeToggle from "$lib/components/admin/ThemeToggle.svelte";
     import type { LayoutData } from "./$types";
 
     let {
@@ -17,37 +20,60 @@
 
     // Mobile menu drawer state
     let mobileMenuOpen = $state(false);
+
+    // Apply dark mode class to html element only when in admin routes
+    $effect(() => {
+        if (browser) {
+            if (adminDarkMode.get()) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        }
+    });
+
+    // Clean up: remove dark class when leaving admin routes
+    $effect(() => {
+        return () => {
+            if (browser) {
+                document.documentElement.classList.remove('dark');
+            }
+        };
+    });
 </script>
 
 <!-- Mobile Layout -->
 <div class="lg:hidden h-screen h-[100dvh] flex flex-col overflow-hidden bg-dark-50/25">
     <!-- Mobile Header - fixed at top -->
-    <header class="flex-shrink-0 bg-white border-b border-border-card z-40">
+    <header class="flex-shrink-0 bg-white dark:bg-dark-900 border-b border-border-card z-40">
         <div class="flex items-center justify-between px-4 py-3">
             <div class="flex items-center gap-3">
-                <h1 class="text-lg font-semibold text-dark-900">Admin</h1>
+                <h1 class="text-lg font-semibold text-dark-900 dark:text-dark-50">Admin</h1>
             </div>
-            <button
-                onclick={() => (mobileMenuOpen = true)}
-                class="p-2 text-dark-600 hover:text-dark-900 rounded-lg hover:bg-dark-50 transition-colors"
-                aria-label="Menu"
-            >
-                <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
+            <div class="flex items-center gap-2">
+                <ThemeToggle />
+                <button
+                    onclick={() => (mobileMenuOpen = true)}
+                    class="p-2 text-dark-600 hover:text-dark-900 dark:text-dark-400 dark:hover:text-dark-100 rounded-lg hover:bg-dark-50 dark:hover:bg-dark-800 transition-colors"
+                    aria-label="Menu"
                 >
-                    <line x1="3" x2="21" y1="6" y2="6"></line>
-                    <line x1="3" x2="21" y1="12" y2="12"></line>
-                    <line x1="3" x2="21" y1="18" y2="18"></line>
-                </svg>
-            </button>
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <line x1="3" x2="21" y1="6" y2="6"></line>
+                        <line x1="3" x2="21" y1="12" y2="12"></line>
+                        <line x1="3" x2="21" y1="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
         </div>
     </header>
 
@@ -58,14 +84,14 @@
 
     <!-- Mobile Bottom Navigation - fixed at bottom -->
     <nav
-        class="flex-shrink-0 bg-white border-t border-border-card z-50"
+        class="flex-shrink-0 bg-white dark:bg-dark-900 border-t border-border-card z-50"
         aria-label="Mobile navigation"
     >
         <div class="flex items-stretch">
             {#if ["/", "/admin"].includes(page.url.pathname)}
                 <a
                     href="/admin"
-                    class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-dark-900"
+                    class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-dark-900 dark:text-dark-50"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -88,7 +114,7 @@
             {:else}
                 <a
                     href="/admin"
-                    class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-dark-500 hover:text-dark-700"
+                    class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-dark-500 hover:text-dark-700 dark:text-dark-400 dark:hover:text-dark-200"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -113,7 +139,7 @@
             {#if page.url.pathname.startsWith("/admin/events")}
                 <a
                     href="/admin/events"
-                    class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-dark-900"
+                    class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-dark-900 dark:text-dark-50"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -137,7 +163,7 @@
             {:else}
                 <a
                     href="/admin/events"
-                    class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-dark-500 hover:text-dark-700"
+                    class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-dark-500 hover:text-dark-700 dark:text-dark-400 dark:hover:text-dark-200"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -163,7 +189,7 @@
             {#if page.url.pathname.startsWith("/admin/talents")}
                 <a
                     href="/admin/talents"
-                    class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-dark-900"
+                    class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-dark-900 dark:text-dark-50"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -187,7 +213,7 @@
             {:else}
                 <a
                     href="/admin/talents"
-                    class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-dark-500 hover:text-dark-700"
+                    class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-dark-500 hover:text-dark-700 dark:text-dark-400 dark:hover:text-dark-200"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -213,7 +239,7 @@
             {#if page.url.pathname.startsWith("/admin/reservations")}
                 <a
                     href="/admin/reservations"
-                    class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-dark-900"
+                    class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-dark-900 dark:text-dark-50"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -237,7 +263,7 @@
             {:else}
                 <a
                     href="/admin/reservations"
-                    class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-dark-500 hover:text-dark-700"
+                    class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-dark-500 hover:text-dark-700 dark:text-dark-400 dark:hover:text-dark-200"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -263,7 +289,7 @@
             {#if page.url.pathname.startsWith("/admin/analytics")}
                 <a
                     href="/admin/analytics"
-                    class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-dark-900"
+                    class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-dark-900 dark:text-dark-50"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -286,7 +312,7 @@
             {:else}
                 <a
                     href="/admin/analytics"
-                    class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-dark-500 hover:text-dark-700"
+                    class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-dark-500 hover:text-dark-700 dark:text-dark-400 dark:hover:text-dark-200"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -321,12 +347,12 @@
 </div>
 
 <!-- Desktop Layout -->
-<div class="hidden lg:flex min-h-screen bg-dark-50/25">
+<div class="hidden lg:flex min-h-screen bg-dark-50/25 dark:bg-dark-900/50">
     <!-- Desktop Sidebar -->
     <AdminSidebar {data} />
 
     <!-- Main Content Area -->
-    <main class="flex-1">
+    <main class="flex-1 bg-white dark:bg-dark-900">
         {@render children()}
     </main>
 
@@ -357,6 +383,11 @@
         </div>
 
         <!-- Menu Items -->
+        <!-- Theme Toggle -->
+        <div class="px-4">
+            <ThemeToggle />
+        </div>
+
         <a
             href="/admin/change-password"
             onclick={() => (mobileMenuOpen = false)}
