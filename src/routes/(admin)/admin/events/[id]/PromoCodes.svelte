@@ -210,7 +210,7 @@
 </div>
 
 <!-- Create promo code modal -->
-<Modal bind:open={createDialogOpen} title="Créer un code promotionnel">
+<Modal bind:isOpen={createDialogOpen} title="Créer un code promotionnel">
 	<form
 		method="POST"
 		action="?/createPromoCode"
