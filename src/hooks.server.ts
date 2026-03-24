@@ -47,18 +47,23 @@ export const handle: Handle = async ({ event, resolve }) => {
 		throw redirect(302, '/admin');
 	}
 
-	// Generate and store CSRF token for session
-	const csrfToken = generateToken();
+	// Reuse the existing CSRF token from the cookie if present; otherwise generate a new one.
+	// Regenerating on every request breaks validation because API calls arrive with the token
+	// from the page load, not the newly-generated one for that request.
+	const existingCsrfToken = event.cookies.get('csrf_token');
+	const csrfToken = existingCsrfToken || generateToken();
 	event.locals.csrfToken = csrfToken;
 
 	// Store CSRF token in httpOnly cookie for API validation
-	event.cookies.set('csrf_token', csrfToken, {
-		httpOnly: true,
-		secure: process.env.NODE_ENV === 'production',
-		sameSite: 'strict',
-		path: '/',
-		domain: cookieDomain
-	});
+	if (!existingCsrfToken) {
+		event.cookies.set('csrf_token', csrfToken, {
+			httpOnly: true,
+			secure: process.env.NODE_ENV === 'production',
+			sameSite: 'strict',
+			path: '/',
+			domain: cookieDomain
+		});
+	}
 
 	// Read session cookie
 	const sessionId = event.cookies.get('session');
