@@ -680,12 +680,14 @@ export const MOCK_SESSIONS = [
         currency: 'USD',
         published: true,
         allowWaitlist: true,
+        badgeType: 'none' as const,
         createdAt: new Date(),
         updatedAt: new Date()
     },
     {
         id: '660e8400-e29b-41d4-a716-446655440002',
         eventId: '1',
+        title: 'VIP Access',
         titleEn: 'VIP Access',
         titleFr: 'Accès VIP',
         descriptionEn: 'Premium experience with backstage access and exclusive amenities',
@@ -698,12 +700,14 @@ export const MOCK_SESSIONS = [
         currency: 'USD',
         published: true,
         allowWaitlist: true,
+        badgeType: 'vip' as const,
         createdAt: new Date(),
         updatedAt: new Date()
     },
     {
         id: '770e8400-e29b-41d4-a716-446655440003',
         eventId: '1',
+        title: 'Early Bird Special',
         titleEn: 'Early Bird Special',
         titleFr: 'Tarif early bird',
         descriptionEn: 'Discounted rate for early bookers - limited time offer',
@@ -716,12 +720,14 @@ export const MOCK_SESSIONS = [
         currency: 'USD',
         published: true,
         allowWaitlist: true,
+        badgeType: 'limited' as const,
         createdAt: new Date(),
         updatedAt: new Date()
     },
     {
         id: '880e8400-e29b-41d4-a716-446655440004',
         eventId: '1',
+        title: 'Student Discount',
         titleEn: 'Student Discount',
         titleFr: 'Tarif étudiant',
         descriptionEn: 'Special pricing for students with valid ID',
@@ -733,13 +739,15 @@ export const MOCK_SESSIONS = [
         priceAmount: 3000,
         currency: 'USD',
         published: true,
-        allowWaitlist: true,
+        allowWaitlist: false,
+        badgeType: 'none' as const,
         createdAt: new Date(),
         updatedAt: new Date()
     },
     {
         id: '990e8400-e29b-41d4-a716-446655440005',
         eventId: '1',
+        title: 'Two-Day Festival Pass',
         titleEn: 'Two-Day Festival Pass',
         titleFr: 'Pass festival 2 jours',
         descriptionEn: 'Access to both festival days with exclusive merchandise',
@@ -752,12 +760,14 @@ export const MOCK_SESSIONS = [
         currency: 'USD',
         published: true,
         allowWaitlist: true,
+        badgeType: 'best_value' as const,
         createdAt: new Date(),
         updatedAt: new Date()
     },
     {
         id: 'aa0e8400-e29b-41d4-a716-446655440006',
         eventId: '1',
+        title: 'Group Package (5+)',
         titleEn: 'Group Package (5+)',
         titleFr: 'Forfait groupe (5+)',
         descriptionEn: 'Special group rate for parties of 5 or more',
@@ -770,12 +780,14 @@ export const MOCK_SESSIONS = [
         currency: 'USD',
         published: true,
         allowWaitlist: true,
+        badgeType: 'popular' as const,
         createdAt: new Date(),
         updatedAt: new Date()
     },
     {
         id: 'bb0e8400-e29b-41d4-a716-446655440007',
         eventId: '1',
+        title: 'Premium Backstage Experience',
         titleEn: 'Premium Backstage Experience',
         titleFr: 'Expérience backstage premium',
         descriptionEn: 'All-access backstage pass with meet & greet opportunities',
@@ -787,13 +799,15 @@ export const MOCK_SESSIONS = [
         priceAmount: 15000,
         currency: 'USD',
         published: true,
-        allowWaitlist: true,
+        allowWaitlist: false,
+        badgeType: 'featured' as const,
         createdAt: new Date(),
         updatedAt: new Date()
     },
     {
         id: 'cc0e8400-e29b-41d4-a716-446655440008',
         eventId: '1',
+        title: 'Family Package',
         titleEn: 'Family Package',
         titleFr: 'Forfait famille',
         descriptionEn: 'Discounted rate for families (2 adults + 2 children under 12)',
@@ -806,12 +820,14 @@ export const MOCK_SESSIONS = [
         currency: 'USD',
         published: true,
         allowWaitlist: true,
+        badgeType: 'none' as const,
         createdAt: new Date(),
         updatedAt: new Date()
     },
     {
         id: 'dd0e8400-e29b-41d4-a716-446655440009',
         eventId: '2',
+        title: 'Professional Pass',
         titleEn: 'Professional Pass',
         titleFr: 'Pass professionnel',
         descriptionEn: 'Full access to all keynotes, sessions, and networking events',
@@ -824,12 +840,14 @@ export const MOCK_SESSIONS = [
         currency: 'USD',
         published: true,
         allowWaitlist: true,
+        badgeType: 'featured' as const,
         createdAt: new Date(),
         updatedAt: new Date()
     },
     {
         id: 'ee0e8400-e29b-41d4-a716-446655440010',
         eventId: '2',
+        title: 'All Access Pass',
         titleEn: 'All Access Pass',
         titleFr: 'Pass tout accès',
         descriptionEn: 'Ultimate experience with VIP sessions, private meetings, and exclusive workshops',
@@ -841,13 +859,15 @@ export const MOCK_SESSIONS = [
         priceAmount: 89900,
         currency: 'USD',
         published: true,
-        allowWaitlist: true,
+        allowWaitlist: false,
+        badgeType: 'vip' as const,
         createdAt: new Date(),
         updatedAt: new Date()
     },
     {
         id: 'ff0e8400-e29b-41d4-a716-446655440011',
         eventId: '3',
+        title: 'Full Day Pass',
         titleEn: 'Full Day Pass',
         titleFr: 'Pass journée complète',
         descriptionEn: 'Experience all culinary delights and wine tastings throughout the day',
@@ -860,12 +880,14 @@ export const MOCK_SESSIONS = [
         currency: 'USD',
         published: true,
         allowWaitlist: true,
+        badgeType: 'none' as const,
         createdAt: new Date(),
         updatedAt: new Date()
     },
     {
         id: '001e8400-e29b-41d4-a716-446655440012',
         eventId: '5',
+        title: 'General Admission',
         titleEn: 'General Admission',
         titleFr: 'Entrée générale',
         descriptionEn: 'Access to the contemporary art and design exhibition',
@@ -878,12 +900,14 @@ export const MOCK_SESSIONS = [
         currency: 'USD',
         published: true,
         allowWaitlist: true,
+        badgeType: 'none' as const,
         createdAt: new Date(),
         updatedAt: new Date()
     },
     {
         id: '112e8400-e29b-41d4-a716-446655440013',
         eventId: '6',
+        title: 'Registration',
         titleEn: 'Registration',
         titleFr: 'Inscription',
         descriptionEn: 'Official registration for the charity marathon',
@@ -896,6 +920,7 @@ export const MOCK_SESSIONS = [
         currency: 'USD',
         published: true,
         allowWaitlist: true,
+        badgeType: 'none' as const,
         createdAt: new Date(),
         updatedAt: new Date()
     }
