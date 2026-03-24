@@ -46,6 +46,13 @@ export function reveal(
 							element.style.opacity = '1';
 							element.style.transform = data.animate.transform || 'none';
 							element.style.willChange = 'auto';
+
+							// Clear transform after animation ends to avoid creating a stacking context,
+							// which would break position:fixed descendants (e.g. modals).
+							setTimeout(() => {
+								element.style.transform = '';
+								element.style.transition = '';
+							}, data.duration);
 						}, data.delay || 0);
 
 						// Unobserve after animation
