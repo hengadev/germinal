@@ -72,6 +72,7 @@
 	let createCurrency = $state('EUR');
 	let createPublished = $state(false);
 	let createAllowWaitlist = $state(false);
+	let createBadgeType = $state('none');
 
 	// Form state for edit
 	let editTitleEn = $state('');
@@ -85,6 +86,7 @@
 	let editCurrency = $state('EUR');
 	let editPublished = $state(false);
 	let editAllowWaitlist = $state(false);
+	let editBadgeType = $state('none');
 
 	// use:enhance handlers replace $effect-based form handling (more reliable in Svelte 5)
 	function createSessionEnhance() {
@@ -136,6 +138,7 @@
 		createCurrency = 'EUR';
 		createPublished = false;
 		createAllowWaitlist = false;
+		createBadgeType = 'none';
 	}
 
 	function centsToDecimal(cents: number): number {
@@ -174,6 +177,7 @@
 		editCurrency = session.currency;
 		editPublished = session.published;
 		editAllowWaitlist = session.allowWaitlist;
+		editBadgeType = session.badgeType || 'none';
 		editDialogOpen = true;
 	}
 
@@ -293,6 +297,20 @@
 			<option value="GBP">GBP</option>
 			<option value="CHF">CHF</option>
 		</select>
+	{:else if fieldName === "badgeType"}
+		<select
+			id="createBadgeType"
+			name="badgeType"
+			bind:value={createBadgeType}
+			class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
+		>
+			<option value="none">Aucun</option>
+			<option value="featured">Mis en avant</option>
+			<option value="vip">VIP</option>
+			<option value="popular">Populaire</option>
+			<option value="best_value">Meilleur rapport qualité/prix</option>
+			<option value="limited">Limité</option>
+		</select>
 	{/if}
 {/snippet}
 
@@ -385,6 +403,20 @@
 			<option value="USD">USD</option>
 			<option value="GBP">GBP</option>
 			<option value="CHF">CHF</option>
+		</select>
+	{:else if fieldName === "badgeType"}
+		<select
+			id="editBadgeType"
+			name="badgeType"
+			bind:value={editBadgeType}
+			class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
+		>
+			<option value="none">Aucun</option>
+			<option value="featured">Mis en avant</option>
+			<option value="vip">VIP</option>
+			<option value="popular">Populaire</option>
+			<option value="best_value">Meilleur rapport qualité/prix</option>
+			<option value="limited">Limité</option>
 		</select>
 	{/if}
 {/snippet}
@@ -650,6 +682,7 @@
 				{@render field("priceAmount", "Prix", createInput, createPriceDecimal, null)}
 				<input type="hidden" name="priceAmount" value={decimalToCents(createPriceDecimal)} />
 				{@render field("currency", "Devise", createInput, createCurrency, null)}
+				{@render field("badgeType", "Badge", createInput, createBadgeType, null)}
 
 				<div class="flex items-center gap-3 p-3 bg-muted rounded-lg">
 					<input
@@ -743,6 +776,7 @@
 				{@render field("priceAmount", "Prix", createInput, createPriceDecimal, null)}
 				<input type="hidden" name="priceAmount" value={decimalToCents(createPriceDecimal)} />
 				{@render field("currency", "Devise", createInput, createCurrency, null)}
+				{@render field("badgeType", "Badge", createInput, createBadgeType, null)}
 			</div>
 
 			<div class="flex items-center gap-3 p-4 bg-muted rounded-lg">
@@ -844,6 +878,7 @@
 				{@render field("priceAmount", "Prix", editInput, editPriceDecimal, null)}
 				<input type="hidden" name="priceAmount" value={decimalToCents(editPriceDecimal)} />
 				{@render field("currency", "Devise", editInput, editCurrency, null)}
+				{@render field("badgeType", "Badge", editInput, editBadgeType, null)}
 
 				<div class="flex items-center gap-3 p-3 bg-muted rounded-lg">
 					<input
@@ -939,6 +974,7 @@
 				{@render field("priceAmount", "Prix", editInput, editPriceDecimal, null)}
 				<input type="hidden" name="priceAmount" value={decimalToCents(editPriceDecimal)} />
 				{@render field("currency", "Devise", editInput, editCurrency, null)}
+				{@render field("badgeType", "Badge", editInput, editBadgeType, null)}
 			</div>
 
 			<div class="flex items-center gap-3 p-4 bg-muted rounded-lg">
