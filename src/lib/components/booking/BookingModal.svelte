@@ -108,7 +108,16 @@
 			const data = await response.json();
 
 			if (!response.ok) {
-				throw new Error(data.error || 'Failed to create reservation');
+				const userMessage = (() => {
+					switch (data.code) {
+						case 'SOLD_OUT': return $t('booking.errors.soldOut');
+						case 'SESSION_STARTED': return $t('booking.errors.sessionStarted');
+						case 'NOT_FOUND': return $t('booking.errors.sessionNotFound');
+						case 'RATE_LIMIT_EXCEEDED': return $t('booking.errors.rateLimit');
+						default: return $t('booking.errors.generic');
+					}
+				})();
+				throw new Error(userMessage);
 			}
 
 			// Reservation created successfully, now process payment
@@ -132,7 +141,7 @@
 
 		} catch (err) {
 			console.error('Booking error:', err);
-			error = err instanceof Error ? err.message : 'Failed to create reservation';
+			error = err instanceof Error ? err.message : $t('booking.errors.generic');
 			isSubmitting = false;
 		}
 	}

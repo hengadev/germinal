@@ -122,7 +122,14 @@
 		"sessionEnded": "Session ended",
 		"notAvailable": "Not Available",
 		"joinWaitlist": "Join Waitlist",
-		"bookNow": "Book Now"
+		"bookNow": "Book Now",
+		"errors": {
+			"soldOut": "This session is sold out.",
+			"sessionStarted": "This session has already started.",
+			"sessionNotFound": "This session is no longer available.",
+			"rateLimit": "Too many attempts. Please wait a few minutes and try again.",
+			"generic": "Something went wrong. Please try again or contact us if the problem persists."
+		}
 	},
 	"admin": {
 		"login": {

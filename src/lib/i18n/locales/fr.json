@@ -122,7 +122,14 @@
 		"sessionEnded": "Session terminée",
 		"notAvailable": "Non disponible",
 		"joinWaitlist": "Rejoindre la liste d'attente",
-		"bookNow": "Réserver"
+		"bookNow": "Réserver",
+		"errors": {
+			"soldOut": "Cette session est complète.",
+			"sessionStarted": "Cette session a déjà commencé.",
+			"sessionNotFound": "Cette session n'est plus disponible.",
+			"rateLimit": "Trop de tentatives. Veuillez patienter quelques minutes avant de réessayer.",
+			"generic": "Une erreur est survenue. Veuillez réessayer ou nous contacter si le problème persiste."
+		}
 	},
 	"admin": {
 		"login": {
