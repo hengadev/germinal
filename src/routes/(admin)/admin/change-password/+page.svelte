@@ -29,13 +29,13 @@
 	<title>Changer le Mot de Passe | Tableau de bord Admin</title>
 </svelte:head>
 
-<div class="min-h-screen bg-dark-50">
-	<nav class="bg-white border-b border-border-card">
+<div class="min-h-screen bg-muted">
+	<nav class="bg-background border-b border-border-card">
 		<div class="container mx-auto px-4">
 			<div class="flex items-center h-16">
 				<a
 					href="/admin"
-					class="flex items-center gap-2 text-dark-600 hover:text-dark-900 transition-colors"
+					class="flex items-center gap-2 text-foreground-alt hover:text-foreground transition-colors"
 				>
 					<ArrowLeft size={20} />
 					<span>Retour au Tableau de Bord</span>
@@ -46,18 +46,18 @@
 
 	<main class="container mx-auto px-4 py-12">
 		<div class="max-w-md mx-auto">
-			<div class="bg-white rounded-lg border border-border-card p-8">
+			<div class="bg-background rounded-lg border border-border-card p-8">
 				<h1 class="text-2xl font-bold mb-6">Changer le Mot de Passe</h1>
 
-				<div class="mb-6 p-4 bg-dark-50 rounded-lg">
-					<p class="text-sm text-dark-700">
+				<div class="mb-6 p-4 bg-muted rounded-lg">
+					<p class="text-sm text-foreground-alt">
 						<strong>Email :</strong> {data.user.email}
 					</p>
 				</div>
 
 				<form method="POST" use:enhance={changePasswordEnhance()} class="space-y-6">
 					<div>
-						<label for="currentPassword" class="block text-sm font-medium text-dark-700 mb-2">
+						<label for="currentPassword" class="block text-sm font-medium text-foreground-alt mb-2">
 							Mot de Passe Actuel
 						</label>
 						<div class="relative">
@@ -68,12 +68,12 @@
 								autocomplete="current-password"
 								required
 								placeholder="••••••••"
-								class="w-full px-4 py-3 pr-12 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent"
+								class="w-full px-4 py-3 pr-12 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent"
 							/>
 							<button
 								type="button"
 								onclick={() => (showCurrent = !showCurrent)}
-								class="absolute right-3 top-1/2 -translate-y-1/2 text-dark-400 hover:text-dark-700 transition-colors"
+								class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground-alt transition-colors"
 								aria-label={showCurrent ? 'Hide password' : 'Show password'}
 							>
 								{#if showCurrent}
@@ -86,7 +86,7 @@
 					</div>
 
 					<div>
-						<label for="newPassword" class="block text-sm font-medium text-dark-700 mb-2">
+						<label for="newPassword" class="block text-sm font-medium text-foreground-alt mb-2">
 							Nouveau Mot de Passe
 						</label>
 						<div class="relative">
@@ -98,12 +98,12 @@
 								required
 								minlength="8"
 								placeholder="••••••••"
-								class="w-full px-4 py-3 pr-12 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent"
+								class="w-full px-4 py-3 pr-12 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent"
 							/>
 							<button
 								type="button"
 								onclick={() => (showNew = !showNew)}
-								class="absolute right-3 top-1/2 -translate-y-1/2 text-dark-400 hover:text-dark-700 transition-colors"
+								class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground-alt transition-colors"
 								aria-label={showNew ? 'Hide password' : 'Show password'}
 							>
 								{#if showNew}
@@ -113,11 +113,11 @@
 								{/if}
 							</button>
 						</div>
-						<p class="mt-1 text-sm text-dark-400">Doit contenir au moins 8 caractères</p>
+						<p class="mt-1 text-sm text-muted-foreground">Doit contenir au moins 8 caractères</p>
 					</div>
 
 					<div>
-						<label for="confirmPassword" class="block text-sm font-medium text-dark-700 mb-2">
+						<label for="confirmPassword" class="block text-sm font-medium text-foreground-alt mb-2">
 							Confirmer le Nouveau Mot de Passe
 						</label>
 						<div class="relative">
@@ -129,12 +129,12 @@
 								required
 								minlength="8"
 								placeholder="••••••••"
-								class="w-full px-4 py-3 pr-12 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent"
+								class="w-full px-4 py-3 pr-12 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent"
 							/>
 							<button
 								type="button"
 								onclick={() => (showConfirm = !showConfirm)}
-								class="absolute right-3 top-1/2 -translate-y-1/2 text-dark-400 hover:text-dark-700 transition-colors"
+								class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground-alt transition-colors"
 								aria-label={showConfirm ? 'Hide password' : 'Show password'}
 							>
 								{#if showConfirm}
@@ -148,7 +148,7 @@
 
 					<button
 						type="submit"
-						class="w-full bg-dark-900 text-white py-3 px-4 rounded-lg hover:bg-dark-800 focus:outline-none focus:ring-2 focus:ring-dark-900 focus:ring-offset-2 transition-colors"
+						class="w-full bg-foreground text-background py-3 px-4 rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-foreground focus:ring-offset-2 transition-colors"
 					>
 						Mettre à jour le Mot de Passe
 					</button>

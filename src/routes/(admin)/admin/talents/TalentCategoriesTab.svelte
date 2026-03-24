@@ -99,439 +99,439 @@
                 toast.success("Succès", (result.data as { success?: string })?.success ?? 'Catégorie supprimée');
             } else if (result.type === 'failure') {
                 toast.error("Erreur", (result.data as { error?: string })?.error ?? 'Une erreur est survenue');
-            }
-            await update({ reset: false });
-        };
-    }
+ }
+ await update({ reset: false });
+ };
+ }
 
-    function resetCreateForm() {
-        createName = "";
-        createDisplayNameEn = "";
-        createDisplayNameFr = "";
-        createSlug = "";
-        createDescription = "";
-        createIcon = "";
-        createColor = "#000000";
-        createSortOrder = "0";
-        createPublished = true;
-    }
+ function resetCreateForm() {
+ createName = "";
+ createDisplayNameEn = "";
+ createDisplayNameFr = "";
+ createSlug = "";
+ createDescription = "";
+ createIcon = "";
+ createColor = "#000000";
+ createSortOrder = "0";
+ createPublished = true;
+ }
 
-    function openEditDialog(category: Category) {
-        selectedCategory = category;
-        editName = category.name;
-        editDisplayNameEn = category.displayNameEn;
-        editDisplayNameFr = category.displayNameFr;
-        editSlug = category.slug;
-        editDescription = category.description ?? "";
-        editIcon = category.icon ?? "";
-        editColor = category.color ?? "#000000";
-        editSortOrder = String(category.sortOrder);
-        editPublished = category.published;
-        editDialogOpen = true;
-    }
+ function openEditDialog(category: Category) {
+ selectedCategory = category;
+ editName = category.name;
+ editDisplayNameEn = category.displayNameEn;
+ editDisplayNameFr = category.displayNameFr;
+ editSlug = category.slug;
+ editDescription = category.description ?? "";
+ editIcon = category.icon ?? "";
+ editColor = category.color ?? "#000000";
+ editSortOrder = String(category.sortOrder);
+ editPublished = category.published;
+ editDialogOpen = true;
+ }
 
-    function openDeleteDialog(category: Category) {
-        selectedCategory = category;
-        deleteDialogOpen = true;
-    }
+ function openDeleteDialog(category: Category) {
+ selectedCategory = category;
+ deleteDialogOpen = true;
+ }
 
-    type InputSnippet = Snippet<[fieldName: string]>;
+ type InputSnippet = Snippet<[fieldName: string]>;
 </script>
 
 {#snippet createInput(fieldName: string)}
-    {#if fieldName === "name"}
-        <input id="createTCatName" name="name" type="text" bind:value={createName} required placeholder="visual-arts"
-            class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm" />
-    {:else if fieldName === "displayNameEn"}
-        <input id="createTCatDisplayNameEn" name="displayNameEn" type="text" bind:value={createDisplayNameEn} required placeholder="Visual Arts"
-            class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm" />
-    {:else if fieldName === "displayNameFr"}
-        <input id="createTCatDisplayNameFr" name="displayNameFr" type="text" bind:value={createDisplayNameFr} required placeholder="Arts visuels"
-            class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm" />
-    {:else if fieldName === "slug"}
-        <input id="createTCatSlug" name="slug" type="text" bind:value={createSlug} required pattern="^[a-z0-9-]+$" placeholder="visual-arts"
-            class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm" />
-    {:else if fieldName === "description"}
-        <textarea id="createTCatDescription" name="description" bind:value={createDescription} rows="3" placeholder="Description facultative..."
-            class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm resize-none"></textarea>
-    {:else if fieldName === "icon"}
-        <input id="createTCatIcon" name="icon" type="text" bind:value={createIcon} placeholder="palette (nom d'icône Lucide)"
-            class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm" />
+ {#if fieldName === "name"}
+ <input id="createTCatName" name="name" type="text" bind:value={createName} required placeholder="visual-arts"
+ class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm" />
+ {:else if fieldName === "displayNameEn"}
+ <input id="createTCatDisplayNameEn" name="displayNameEn" type="text" bind:value={createDisplayNameEn} required placeholder="Visual Arts"
+ class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm" />
+ {:else if fieldName === "displayNameFr"}
+ <input id="createTCatDisplayNameFr" name="displayNameFr" type="text" bind:value={createDisplayNameFr} required placeholder="Arts visuels"
+ class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm" />
+ {:else if fieldName === "slug"}
+ <input id="createTCatSlug" name="slug" type="text" bind:value={createSlug} required pattern="^[a-z0-9-]+$" placeholder="visual-arts"
+ class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm" />
+ {:else if fieldName === "description"}
+ <textarea id="createTCatDescription" name="description" bind:value={createDescription} rows="3" placeholder="Description facultative..."
+ class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm resize-none"></textarea>
+ {:else if fieldName === "icon"}
+ <input id="createTCatIcon" name="icon" type="text" bind:value={createIcon} placeholder="palette (nom d'icône Lucide)"
+            class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm" />
     {:else if fieldName === "color"}
         <div class="flex items-center gap-3">
-            <input id="createTCatColor" type="color" bind:value={createColor} class="w-12 h-10 border border-border-dark rounded-lg cursor-pointer" />
+            <input id="createTCatColor" type="color" bind:value={createColor} class="w-12 h-10 border border-border-input rounded-lg cursor-pointer" />
             <input name="color" type="text" bind:value={createColor} placeholder="#000000"
-                class="flex-1 px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm" />
+                class="flex-1 px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm" />
         </div>
     {:else if fieldName === "sortOrder"}
         <input id="createTCatSortOrder" name="sortOrder" type="number" bind:value={createSortOrder} min="0"
-            class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm" />
+            class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm" />
     {/if}
 {/snippet}
 
 {#snippet editInput(fieldName: string)}
     {#if fieldName === "name"}
         <input id="editTCatName" name="name" type="text" bind:value={editName} required placeholder="visual-arts"
-            class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm" />
+            class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm" />
     {:else if fieldName === "displayNameEn"}
         <input id="editTCatDisplayNameEn" name="displayNameEn" type="text" bind:value={editDisplayNameEn} required placeholder="Visual Arts"
-            class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm" />
+            class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm" />
     {:else if fieldName === "displayNameFr"}
         <input id="editTCatDisplayNameFr" name="displayNameFr" type="text" bind:value={editDisplayNameFr} required placeholder="Arts visuels"
-            class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm" />
+            class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm" />
     {:else if fieldName === "slug"}
         <input id="editTCatSlug" name="slug" type="text" bind:value={editSlug} required pattern="^[a-z0-9-]+$" placeholder="visual-arts"
-            class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm" />
+            class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm" />
     {:else if fieldName === "description"}
         <textarea id="editTCatDescription" name="description" bind:value={editDescription} rows="3" placeholder="Description facultative..."
-            class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm resize-none"></textarea>
+            class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm resize-none"></textarea>
     {:else if fieldName === "icon"}
         <input id="editTCatIcon" name="icon" type="text" bind:value={editIcon} placeholder="palette (nom d'icône Lucide)"
-            class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm" />
-    {:else if fieldName === "color"}
-        <div class="flex items-center gap-3">
-            <input id="editTCatColor" type="color" bind:value={editColor} class="w-12 h-10 border border-border-dark rounded-lg cursor-pointer" />
-            <input name="color" type="text" bind:value={editColor} placeholder="#000000"
-                class="flex-1 px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm" />
-        </div>
-    {:else if fieldName === "sortOrder"}
-        <input id="editTCatSortOrder" name="sortOrder" type="number" bind:value={editSortOrder} min="0"
-            class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm" />
-    {/if}
+ class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm" />
+ {:else if fieldName === "color"}
+ <div class="flex items-center gap-3">
+ <input id="editTCatColor" type="color" bind:value={editColor} class="w-12 h-10 border border-border-input rounded-lg cursor-pointer" />
+ <input name="color" type="text" bind:value={editColor} placeholder="#000000"
+ class="flex-1 px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm" />
+ </div>
+ {:else if fieldName === "sortOrder"}
+ <input id="editTCatSortOrder" name="sortOrder" type="number" bind:value={editSortOrder} min="0"
+ class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm" />
+ {/if}
 {/snippet}
 
 {#snippet field(name: string, label: string, inputSnippet: InputSnippet, error: string | null)}
-    <label for={name} class="block text-sm font-medium text-dark-700 mb-1">{label}</label>
-    <div class="relative w-full">
-        {@render inputSnippet(name)}
-        {#if error}
-            <p class="text-xs text-red-600 mt-1">{error}</p>
-        {/if}
-    </div>
+ <label for={name} class="block text-sm font-medium text-foreground-alt mb-1">{label}</label>
+ <div class="relative w-full">
+ {@render inputSnippet(name)}
+ {#if error}
+ <p class="text-xs text-red-600 mt-1">{error}</p>
+ {/if}
+ </div>
 {/snippet}
 
 {#if categories.length === 0}
-    <div class="bg-white rounded-lg border border-border-card p-12 text-center">
-        <Tag size={48} class="mx-auto mb-4 text-dark-300" />
-        <h3 class="text-xl font-semibold text-dark-900 mb-2">Aucune catégorie pour le moment</h3>
-        <p class="text-dark-400 mb-6">Créez votre première catégorie pour organiser vos talents</p>
-    </div>
+ <div class="bg-background rounded-lg border border-border-card p-12 text-center">
+ <Tag size={48} class="mx-auto mb-4 text-muted-foreground" />
+ <h3 class="text-xl font-semibold text-foreground mb-2">Aucune catégorie pour le moment</h3>
+ <p class="text-muted-foreground mb-6">Créez votre première catégorie pour organiser vos talents</p>
+ </div>
 {:else}
-    <!-- Table view for desktop -->
-    <div class="bg-white rounded-lg border border-border-card overflow-hidden hidden lg:block">
-        <table class="w-full">
-            <thead class="bg-dark-50 border-b border-border-card">
-                <tr>
-                    <th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">Catégorie</th>
-                    <th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">Talents</th>
-                    <th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">Ordre</th>
-                    <th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">Statut</th>
-                    <th class="px-6 py-4 text-right text-xs font-semibold text-dark-600 uppercase tracking-wider">Actions</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-border-card">
-                {#each categories as category}
-                    <tr class="hover:bg-dark-50 transition-colors">
-                        <td class="px-6 py-4">
-                            <div class="flex items-center gap-3">
-                                {#if category.color}
-                                    <div class="w-10 h-10 rounded-lg flex items-center justify-center text-white text-sm font-medium"
-                                        style="background-color: {category.color}">
-                                        {category.displayNameEn.charAt(0).toUpperCase()}
-                                    </div>
-                                {:else}
-                                    <div class="w-10 h-10 bg-dark-100 rounded-lg flex items-center justify-center">
-                                        <Tag size={20} class="text-dark-400" />
-                                    </div>
-                                {/if}
-                                <div>
-                                    <div class="font-medium text-dark-900">
-                                        {category.displayNameEn}
-                                        <span class="text-dark-400 font-normal"> / {category.displayNameFr}</span>
-                                    </div>
-                                    <div class="text-sm text-dark-400">{category.slug}</div>
-                                </div>
-                            </div>
-                        </td>
-                        <td class="px-6 py-4">
-                            <div class="flex items-center gap-2 text-sm text-dark-600">
-                                <Hash size={16} />
-                                <span>{category.talentCount ?? 0}</span>
-                            </div>
-                        </td>
-                        <td class="px-6 py-4">
-                            <span class="text-sm text-dark-600">{category.sortOrder}</span>
-                        </td>
-                        <td class="px-6 py-4">
-                            {#if category.published}
-                                <span class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-green-50 text-green-700 rounded-full">
-                                    <Eye size={14} /> Publié
-                                </span>
-                            {:else}
-                                <span class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-dark-100 text-dark-600 rounded-full">
-                                    <EyeOff size={14} /> Masqué
-                                </span>
-                            {/if}
-                        </td>
-                        <td class="px-6 py-4">
-                            <div class="flex items-center justify-end gap-2">
-                                <button onclick={() => openEditDialog(category)}
-                                    class="p-2 text-dark-600 hover:text-dark-900 hover:bg-dark-50 rounded-lg transition-colors" title="Modifier">
-                                    <Edit size={18} />
-                                </button>
-                                <button onclick={() => openDeleteDialog(category)}
-                                    class="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors" title="Supprimer">
-                                    <Trash2 size={18} />
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                {/each}
-            </tbody>
-        </table>
-    </div>
+ <!-- Table view for desktop -->
+ <div class="bg-background rounded-lg border border-border-card overflow-hidden hidden lg:block">
+ <table class="w-full">
+ <thead class="bg-muted border-b border-border-card">
+ <tr>
+ <th class="px-6 py-4 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">Catégorie</th>
+ <th class="px-6 py-4 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">Talents</th>
+ <th class="px-6 py-4 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">Ordre</th>
+ <th class="px-6 py-4 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">Statut</th>
+ <th class="px-6 py-4 text-right text-xs font-semibold text-foreground-alt uppercase tracking-wider">Actions</th>
+ </tr>
+ </thead>
+ <tbody class="divide-y divide-border-card">
+ {#each categories as category}
+ <tr class="hover:bg-muted transition-colors">
+ <td class="px-6 py-4">
+ <div class="flex items-center gap-3">
+ {#if category.color}
+ <div class="w-10 h-10 rounded-lg flex items-center justify-center text-white text-sm font-medium"
+ style="background-color: {category.color}">
+ {category.displayNameEn.charAt(0).toUpperCase()}
+ </div>
+ {:else}
+ <div class="w-10 h-10 bg-muted rounded-lg flex items-center justify-center">
+ <Tag size={20} class="text-muted-foreground" />
+ </div>
+ {/if}
+ <div>
+ <div class="font-medium text-foreground">
+ {category.displayNameEn}
+ <span class="text-muted-foreground font-normal"> / {category.displayNameFr}</span>
+ </div>
+ <div class="text-sm text-muted-foreground">{category.slug}</div>
+ </div>
+ </div>
+ </td>
+ <td class="px-6 py-4">
+ <div class="flex items-center gap-2 text-sm text-foreground-alt">
+ <Hash size={16} />
+ <span>{category.talentCount ?? 0}</span>
+ </div>
+ </td>
+ <td class="px-6 py-4">
+ <span class="text-sm text-foreground-alt">{category.sortOrder}</span>
+ </td>
+ <td class="px-6 py-4">
+ {#if category.published}
+ <span class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-green-50 text-green-700 rounded-full">
+ <Eye size={14} /> Publié
+ </span>
+ {:else}
+ <span class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-muted text-foreground-alt rounded-full">
+ <EyeOff size={14} /> Masqué
+ </span>
+ {/if}
+ </td>
+ <td class="px-6 py-4">
+ <div class="flex items-center justify-end gap-2">
+ <button onclick={() => openEditDialog(category)}
+ class="p-2 text-foreground-alt hover:text-foreground hover:bg-muted rounded-lg transition-colors" title="Modifier">
+ <Edit size={18} />
+ </button>
+ <button onclick={() => openDeleteDialog(category)}
+ class="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors" title="Supprimer">
+ <Trash2 size={18} />
+ </button>
+ </div>
+ </td>
+ </tr>
+ {/each}
+ </tbody>
+ </table>
+ </div>
 
-    <!-- Card view for mobile -->
-    <div class="lg:hidden space-y-4">
-        {#each categories as category}
-            <div class="bg-white rounded-lg border border-border-card overflow-hidden">
-                <div class="p-4">
-                    <div class="flex gap-3 mb-3">
-                        {#if category.color}
-                            <div class="w-12 h-12 rounded-lg flex items-center justify-center text-white text-lg font-medium flex-shrink-0"
-                                style="background-color: {category.color}">
-                                {category.displayNameEn.charAt(0).toUpperCase()}
-                            </div>
-                        {:else}
-                            <div class="w-12 h-12 bg-dark-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                                <Tag size={24} class="text-dark-400" />
-                            </div>
-                        {/if}
-                        <div class="min-w-0 flex-1">
-                            <h3 class="font-semibold text-dark-900 truncate">
-                                {category.displayNameEn}
-                            </h3>
-                            <p class="text-sm text-dark-400 truncate">
-                                {category.displayNameFr}
-                            </p>
-                            <p class="text-sm text-dark-400 truncate">
-                                {category.slug}
-                            </p>
-                        </div>
-                    </div>
+ <!-- Card view for mobile -->
+ <div class="lg:hidden space-y-4">
+ {#each categories as category}
+ <div class="bg-background rounded-lg border border-border-card overflow-hidden">
+ <div class="p-4">
+ <div class="flex gap-3 mb-3">
+ {#if category.color}
+ <div class="w-12 h-12 rounded-lg flex items-center justify-center text-white text-lg font-medium flex-shrink-0"
+ style="background-color: {category.color}">
+ {category.displayNameEn.charAt(0).toUpperCase()}
+ </div>
+ {:else}
+ <div class="w-12 h-12 bg-muted rounded-lg flex items-center justify-center flex-shrink-0">
+ <Tag size={24} class="text-muted-foreground" />
+ </div>
+ {/if}
+ <div class="min-w-0 flex-1">
+ <h3 class="font-semibold text-foreground truncate">
+ {category.displayNameEn}
+ </h3>
+ <p class="text-sm text-muted-foreground truncate">
+ {category.displayNameFr}
+ </p>
+ <p class="text-sm text-muted-foreground truncate">
+ {category.slug}
+ </p>
+ </div>
+ </div>
 
-                    <div class="flex flex-wrap items-center gap-2 mb-3">
-                        {#if category.published}
-                            <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-green-50 text-green-700 rounded-full">
-                                <Eye size={12} /> Publié
-                            </span>
-                        {:else}
-                            <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-dark-100 text-dark-600 rounded-full">
-                                <EyeOff size={12} /> Masqué
-                            </span>
-                        {/if}
-                        <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-dark-100 text-dark-600 rounded-full">
-                            <Hash size={12} /> {category.talentCount ?? 0}
-                        </span>
-                        <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-dark-100 text-dark-600 rounded-full">
-                            Ordre: {category.sortOrder}
-                        </span>
-                    </div>
+ <div class="flex flex-wrap items-center gap-2 mb-3">
+ {#if category.published}
+ <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-green-50 text-green-700 rounded-full">
+ <Eye size={12} /> Publié
+ </span>
+ {:else}
+ <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-muted text-foreground-alt rounded-full">
+ <EyeOff size={12} /> Masqué
+ </span>
+ {/if}
+ <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-muted text-foreground-alt rounded-full">
+ <Hash size={12} /> {category.talentCount ?? 0}
+ </span>
+ <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-muted text-foreground-alt rounded-full">
+ Ordre: {category.sortOrder}
+ </span>
+ </div>
 
-                    <div class="flex items-center justify-between gap-2 pt-3 border-t border-border-card">
-                        <button onclick={() => openEditDialog(category)}
-                            class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-dark-600 hover:text-dark-900 hover:bg-dark-50 rounded-lg transition-colors">
-                            <Edit size={16} />
-                            Modifier
-                        </button>
-                        <button onclick={() => openDeleteDialog(category)}
-                            class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors">
-                            <Trash2 size={16} />
-                            Supprimer
-                        </button>
-                    </div>
-                </div>
-            </div>
-        {/each}
-    </div>
+ <div class="flex items-center justify-between gap-2 pt-3 border-t border-border-card">
+ <button onclick={() => openEditDialog(category)}
+ class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-foreground-alt hover:text-foreground hover:bg-muted rounded-lg transition-colors">
+ <Edit size={16} />
+ Modifier
+ </button>
+ <button onclick={() => openDeleteDialog(category)}
+ class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors">
+ <Trash2 size={16} />
+ Supprimer
+ </button>
+ </div>
+ </div>
+ </div>
+ {/each}
+ </div>
 {/if}
 
 <!-- Create Category Dialog/Drawer -->
 {#if isMobile}
-    <Drawer bind:isOpen={createDialogOpen}>
-        <div class="sticky top-0 bg-white pb-4 border-b border-border-card -mx-4 px-4 -mt-4 pt-4 z-10">
-            <div class="flex items-center justify-between mb-2">
-                <h2 class="text-xl font-semibold tracking-tight">Créer une Nouvelle Catégorie</h2>
-                <button type="button" onclick={() => (createDialogOpen = false)} class="p-2 hover:bg-dark-100 rounded-md transition-colors">
-                    <X class="text-dark-900 size-5" />
-                </button>
-            </div>
-            <p class="text-dark-400 text-sm">Créer une nouvelle catégorie de talent</p>
-        </div>
-        <form method="POST" action="?/createCategory" use:enhance={createCatEnhance} class="grid gap-4 pt-4">
-            <div class="grid grid-cols-1 gap-4 w-full pt-6">
-                {@render field("name", "Nom", createInput, null)}
-                {@render field("displayNameEn", "Nom d'affichage (Anglais)", createInput, null)}
+ <Drawer bind:isOpen={createDialogOpen}>
+ <div class="sticky top-0 bg-background pb-4 border-b border-border-card -mx-4 px-4 -mt-4 pt-4 z-10">
+ <div class="flex items-center justify-between mb-2">
+ <h2 class="text-xl font-semibold tracking-tight">Créer une Nouvelle Catégorie</h2>
+ <button type="button" onclick={() => (createDialogOpen = false)} class="p-2 hover:bg-muted rounded-md transition-colors">
+ <X class="text-foreground size-5" />
+ </button>
+ </div>
+ <p class="text-muted-foreground text-sm">Créer une nouvelle catégorie de talent</p>
+ </div>
+ <form method="POST" action="?/createCategory" use:enhance={createCatEnhance} class="grid gap-4 pt-4">
+ <div class="grid grid-cols-1 gap-4 w-full pt-6">
+ {@render field("name", "Nom", createInput, null)}
+ {@render field("displayNameEn", "Nom d'affichage (Anglais)", createInput, null)}
                 {@render field("displayNameFr", "Nom d'affichage (Français)", createInput, null)}
-                {@render field("slug", "Slug", createInput, null)}
-                {@render field("description", "Description (facultatif)", createInput, null)}
-                {@render field("icon", "Icône (nom Lucide, facultatif)", createInput, null)}
-                {@render field("color", "Couleur (facultatif)", createInput, null)}
-                {@render field("sortOrder", "Ordre de tri", createInput, null)}
-                <div class="flex items-center gap-3 p-3 bg-dark-50 rounded-lg">
-                    <input id="createTCatPublishedM" name="published" type="checkbox" value="true" bind:checked={createPublished}
-                        class="w-4 h-4 text-dark-900 border-border-dark rounded focus:ring-dark-900" />
-                    <div>
-                        <label for="createTCatPublishedM" class="block text-sm font-medium text-dark-900 cursor-pointer">Publié</label>
-                        <p class="text-xs text-dark-400">Afficher cette catégorie sur le site web</p>
-                    </div>
-                </div>
-            </div>
-            <div class="flex w-full justify-end gap-3 pt-2">
-                <button type="button" onclick={() => (createDialogOpen = false)}
-                    class="px-4 py-2 border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium text-sm">Annuler</button>
-                <button type="submit"
-                    class="px-4 py-2 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors font-medium text-sm">Créer la Catégorie</button>
-            </div>
-        </form>
-    </Drawer>
+ {@render field("slug", "Slug", createInput, null)}
+ {@render field("description", "Description (facultatif)", createInput, null)}
+ {@render field("icon", "Icône (nom Lucide, facultatif)", createInput, null)}
+ {@render field("color", "Couleur (facultatif)", createInput, null)}
+ {@render field("sortOrder", "Ordre de tri", createInput, null)}
+ <div class="flex items-center gap-3 p-3 bg-muted rounded-lg">
+ <input id="createTCatPublishedM" name="published" type="checkbox" value="true" bind:checked={createPublished}
+ class="w-4 h-4 text-foreground border-border-input rounded focus:ring-foreground" />
+ <div>
+ <label for="createTCatPublishedM" class="block text-sm font-medium text-foreground cursor-pointer">Publié</label>
+ <p class="text-xs text-muted-foreground">Afficher cette catégorie sur le site web</p>
+ </div>
+ </div>
+ </div>
+ <div class="flex w-full justify-end gap-3 pt-2">
+ <button type="button" onclick={() => (createDialogOpen = false)}
+ class="px-4 py-2 border border-border-input text-foreground-alt rounded-lg hover:bg-muted transition-colors font-medium text-sm">Annuler</button>
+ <button type="submit"
+ class="px-4 py-2 bg-foreground text-background rounded-lg hover:opacity-90 transition-colors font-medium text-sm">Créer la Catégorie</button>
+ </div>
+ </form>
+ </Drawer>
 {:else}
-    <Modal bind:isOpen={createDialogOpen} title="Créer une Nouvelle Catégorie" description="Créer une nouvelle catégorie de talent">
-        <form method="POST" action="?/createCategory" use:enhance={createCatEnhance}>
-            <div class="grid grid-cols-2 gap-4 w-full pt-6">
-                <div class="col-span-2">{@render field("name", "Nom", createInput, null)}</div>
-                <div class="col-span-2">{@render field("displayNameEn", "Nom d'affichage (Anglais)", createInput, null)}</div>
+ <Modal bind:isOpen={createDialogOpen} title="Créer une Nouvelle Catégorie" description="Créer une nouvelle catégorie de talent">
+ <form method="POST" action="?/createCategory" use:enhance={createCatEnhance}>
+ <div class="grid grid-cols-2 gap-4 w-full pt-6">
+ <div class="col-span-2">{@render field("name", "Nom", createInput, null)}</div>
+ <div class="col-span-2">{@render field("displayNameEn", "Nom d'affichage (Anglais)", createInput, null)}</div>
                 <div class="col-span-2">{@render field("displayNameFr", "Nom d'affichage (Français)", createInput, null)}</div>
-                <div class="col-span-2">{@render field("slug", "Slug", createInput, null)}</div>
-                <div class="col-span-2">{@render field("description", "Description (facultatif)", createInput, null)}</div>
-                <div>{@render field("icon", "Icône (facultatif)", createInput, null)}</div>
-                <div>{@render field("color", "Couleur (facultatif)", createInput, null)}</div>
-                <div>{@render field("sortOrder", "Ordre de tri", createInput, null)}</div>
-            </div>
-            <div class="flex items-center gap-3 p-4 bg-dark-50 rounded-lg">
-                <input id="createTCatPublishedD" name="published" type="checkbox" value="true" bind:checked={createPublished}
-                    class="w-5 h-5 text-dark-900 border-border-dark rounded focus:ring-dark-900" />
-                <div>
-                    <label for="createTCatPublishedD" class="block text-sm font-medium text-dark-900 cursor-pointer">Publié</label>
-                    <p class="text-xs text-dark-400">Afficher cette catégorie sur le site web</p>
-                </div>
-            </div>
-            <div class="flex w-full justify-end gap-3 pt-2">
-                <button type="button" onclick={() => (createDialogOpen = false)}
-                    class="px-6 py-2.5 border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium">Annuler</button>
-                <button type="submit"
-                    class="px-6 py-2.5 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors font-medium">Créer la Catégorie</button>
-            </div>
-        </form>
-    </Modal>
+ <div class="col-span-2">{@render field("slug", "Slug", createInput, null)}</div>
+ <div class="col-span-2">{@render field("description", "Description (facultatif)", createInput, null)}</div>
+ <div>{@render field("icon", "Icône (facultatif)", createInput, null)}</div>
+ <div>{@render field("color", "Couleur (facultatif)", createInput, null)}</div>
+ <div>{@render field("sortOrder", "Ordre de tri", createInput, null)}</div>
+ </div>
+ <div class="flex items-center gap-3 p-4 bg-muted rounded-lg">
+ <input id="createTCatPublishedD" name="published" type="checkbox" value="true" bind:checked={createPublished}
+ class="w-5 h-5 text-foreground border-border-input rounded focus:ring-foreground" />
+ <div>
+ <label for="createTCatPublishedD" class="block text-sm font-medium text-foreground cursor-pointer">Publié</label>
+ <p class="text-xs text-muted-foreground">Afficher cette catégorie sur le site web</p>
+ </div>
+ </div>
+ <div class="flex w-full justify-end gap-3 pt-2">
+ <button type="button" onclick={() => (createDialogOpen = false)}
+ class="px-6 py-2.5 border border-border-input text-foreground-alt rounded-lg hover:bg-muted transition-colors font-medium">Annuler</button>
+ <button type="submit"
+ class="px-6 py-2.5 bg-foreground text-background rounded-lg hover:opacity-90 transition-colors font-medium">Créer la Catégorie</button>
+ </div>
+ </form>
+ </Modal>
 {/if}
 
 <!-- Edit Category Dialog/Drawer -->
 {#if isMobile}
-    <Drawer bind:isOpen={editDialogOpen}>
-        <div class="sticky top-0 bg-white pb-4 border-b border-border-card -mx-4 px-4 -mt-4 pt-4 z-10">
-            <div class="flex items-center justify-between mb-2">
-                <h2 class="text-xl font-semibold tracking-tight">Modifier la Catégorie</h2>
-                <button type="button" onclick={() => (editDialogOpen = false)} class="p-2 hover:bg-dark-100 rounded-md transition-colors">
-                    <X class="text-dark-900 size-5" />
-                </button>
-            </div>
-            <p class="text-dark-400 text-sm">Mettre à jour les détails de la catégorie</p>
-        </div>
-        <form method="POST" action="?/updateCategory" use:enhance={editCatEnhance} class="grid gap-4 pt-4">
-            <input type="hidden" name="id" value={selectedCategory?.id} />
-            <div class="grid grid-cols-1 gap-4 w-full pt-6">
-                {@render field("name", "Nom", editInput, null)}
-                {@render field("displayNameEn", "Nom d'affichage (Anglais)", editInput, null)}
+ <Drawer bind:isOpen={editDialogOpen}>
+ <div class="sticky top-0 bg-background pb-4 border-b border-border-card -mx-4 px-4 -mt-4 pt-4 z-10">
+ <div class="flex items-center justify-between mb-2">
+ <h2 class="text-xl font-semibold tracking-tight">Modifier la Catégorie</h2>
+ <button type="button" onclick={() => (editDialogOpen = false)} class="p-2 hover:bg-muted rounded-md transition-colors">
+ <X class="text-foreground size-5" />
+ </button>
+ </div>
+ <p class="text-muted-foreground text-sm">Mettre à jour les détails de la catégorie</p>
+ </div>
+ <form method="POST" action="?/updateCategory" use:enhance={editCatEnhance} class="grid gap-4 pt-4">
+ <input type="hidden" name="id" value={selectedCategory?.id} />
+ <div class="grid grid-cols-1 gap-4 w-full pt-6">
+ {@render field("name", "Nom", editInput, null)}
+ {@render field("displayNameEn", "Nom d'affichage (Anglais)", editInput, null)}
                 {@render field("displayNameFr", "Nom d'affichage (Français)", editInput, null)}
-                {@render field("slug", "Slug", editInput, null)}
-                {@render field("description", "Description (facultatif)", editInput, null)}
-                {@render field("icon", "Icône (facultatif)", editInput, null)}
-                {@render field("color", "Couleur (facultatif)", editInput, null)}
-                {@render field("sortOrder", "Ordre de tri", editInput, null)}
-                <div class="flex items-center gap-3 p-3 bg-dark-50 rounded-lg">
-                    <input id="editTCatPublishedM" name="published" type="checkbox" value="true" bind:checked={editPublished}
-                        class="w-4 h-4 text-dark-900 border-border-dark rounded focus:ring-dark-900" />
-                    <div>
-                        <label for="editTCatPublishedM" class="block text-sm font-medium text-dark-900 cursor-pointer">Publié</label>
-                        <p class="text-xs text-dark-400">Afficher cette catégorie sur le site web</p>
-                    </div>
-                </div>
-            </div>
-            <div class="flex w-full justify-end gap-3 pt-2">
-                <button type="button" onclick={() => (editDialogOpen = false)}
-                    class="px-4 py-2 border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium text-sm">Annuler</button>
-                <button type="submit"
-                    class="px-4 py-2 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors font-medium text-sm">Enregistrer les Modifications</button>
-            </div>
-        </form>
-    </Drawer>
+ {@render field("slug", "Slug", editInput, null)}
+ {@render field("description", "Description (facultatif)", editInput, null)}
+ {@render field("icon", "Icône (facultatif)", editInput, null)}
+ {@render field("color", "Couleur (facultatif)", editInput, null)}
+ {@render field("sortOrder", "Ordre de tri", editInput, null)}
+ <div class="flex items-center gap-3 p-3 bg-muted rounded-lg">
+ <input id="editTCatPublishedM" name="published" type="checkbox" value="true" bind:checked={editPublished}
+ class="w-4 h-4 text-foreground border-border-input rounded focus:ring-foreground" />
+ <div>
+ <label for="editTCatPublishedM" class="block text-sm font-medium text-foreground cursor-pointer">Publié</label>
+ <p class="text-xs text-muted-foreground">Afficher cette catégorie sur le site web</p>
+ </div>
+ </div>
+ </div>
+ <div class="flex w-full justify-end gap-3 pt-2">
+ <button type="button" onclick={() => (editDialogOpen = false)}
+ class="px-4 py-2 border border-border-input text-foreground-alt rounded-lg hover:bg-muted transition-colors font-medium text-sm">Annuler</button>
+ <button type="submit"
+ class="px-4 py-2 bg-foreground text-background rounded-lg hover:opacity-90 transition-colors font-medium text-sm">Enregistrer les Modifications</button>
+ </div>
+ </form>
+ </Drawer>
 {:else}
-    <Modal bind:isOpen={editDialogOpen} title="Modifier la Catégorie" description="Mettre à jour les détails de la catégorie">
-        <form method="POST" action="?/updateCategory" use:enhance={editCatEnhance}>
-            <input type="hidden" name="id" value={selectedCategory?.id} />
-            <div class="grid grid-cols-2 gap-4 w-full pt-6">
-                <div class="col-span-2">{@render field("name", "Nom", editInput, null)}</div>
-                <div class="col-span-2">{@render field("displayNameEn", "Nom d'affichage (Anglais)", editInput, null)}</div>
+ <Modal bind:isOpen={editDialogOpen} title="Modifier la Catégorie" description="Mettre à jour les détails de la catégorie">
+ <form method="POST" action="?/updateCategory" use:enhance={editCatEnhance}>
+ <input type="hidden" name="id" value={selectedCategory?.id} />
+ <div class="grid grid-cols-2 gap-4 w-full pt-6">
+ <div class="col-span-2">{@render field("name", "Nom", editInput, null)}</div>
+ <div class="col-span-2">{@render field("displayNameEn", "Nom d'affichage (Anglais)", editInput, null)}</div>
                 <div class="col-span-2">{@render field("displayNameFr", "Nom d'affichage (Français)", editInput, null)}</div>
-                <div class="col-span-2">{@render field("slug", "Slug", editInput, null)}</div>
-                <div class="col-span-2">{@render field("description", "Description (facultatif)", editInput, null)}</div>
-                <div>{@render field("icon", "Icône (facultatif)", editInput, null)}</div>
-                <div>{@render field("color", "Couleur (facultatif)", editInput, null)}</div>
-                <div>{@render field("sortOrder", "Ordre de tri", editInput, null)}</div>
-            </div>
-            <div class="flex items-center gap-3 p-4 bg-dark-50 rounded-lg">
-                <input id="editTCatPublishedD" name="published" type="checkbox" value="true" bind:checked={editPublished}
-                    class="w-5 h-5 text-dark-900 border-border-dark rounded focus:ring-dark-900" />
-                <div>
-                    <label for="editTCatPublishedD" class="block text-sm font-medium text-dark-900 cursor-pointer">Publié</label>
-                    <p class="text-xs text-dark-400">Afficher cette catégorie sur le site web</p>
-                </div>
-            </div>
-            <div class="flex w-full justify-end gap-3 pt-2">
-                <button type="button" onclick={() => (editDialogOpen = false)}
-                    class="px-6 py-2.5 border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium">Annuler</button>
-                <button type="submit"
-                    class="px-6 py-2.5 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors font-medium">Enregistrer les Modifications</button>
-            </div>
-        </form>
-    </Modal>
+ <div class="col-span-2">{@render field("slug", "Slug", editInput, null)}</div>
+ <div class="col-span-2">{@render field("description", "Description (facultatif)", editInput, null)}</div>
+ <div>{@render field("icon", "Icône (facultatif)", editInput, null)}</div>
+ <div>{@render field("color", "Couleur (facultatif)", editInput, null)}</div>
+ <div>{@render field("sortOrder", "Ordre de tri", editInput, null)}</div>
+ </div>
+ <div class="flex items-center gap-3 p-4 bg-muted rounded-lg">
+ <input id="editTCatPublishedD" name="published" type="checkbox" value="true" bind:checked={editPublished}
+ class="w-5 h-5 text-foreground border-border-input rounded focus:ring-foreground" />
+ <div>
+ <label for="editTCatPublishedD" class="block text-sm font-medium text-foreground cursor-pointer">Publié</label>
+ <p class="text-xs text-muted-foreground">Afficher cette catégorie sur le site web</p>
+ </div>
+ </div>
+ <div class="flex w-full justify-end gap-3 pt-2">
+ <button type="button" onclick={() => (editDialogOpen = false)}
+ class="px-6 py-2.5 border border-border-input text-foreground-alt rounded-lg hover:bg-muted transition-colors font-medium">Annuler</button>
+ <button type="submit"
+ class="px-6 py-2.5 bg-foreground text-background rounded-lg hover:opacity-90 transition-colors font-medium">Enregistrer les Modifications</button>
+ </div>
+ </form>
+ </Modal>
 {/if}
 
 <!-- Delete Category Dialog/Drawer -->
 {#if isMobile}
-    <Drawer bind:isOpen={deleteDialogOpen}>
-        <div class="sticky top-0 bg-white pb-4 border-b border-border-card -mx-4 px-4 -mt-4 pt-4 z-10">
-            <div class="flex items-center justify-between mb-2">
-                <h2 class="text-xl font-semibold tracking-tight">Supprimer la Catégorie</h2>
-                <button type="button" onclick={() => (deleteDialogOpen = false)} class="p-2 hover:bg-dark-100 rounded-md transition-colors">
-                    <X class="text-dark-900 size-5" />
-                </button>
-            </div>
-            <p class="text-dark-400 text-sm">
-                Êtes-vous sûr de vouloir supprimer "{selectedCategory?.displayNameEn}" ? Cette action ne peut pas être annulée.
-            </p>
-        </div>
-        <div class="pt-4">
-            <form method="POST" action="?/deleteCategory" use:enhance={deleteCatEnhance}>
-                <input type="hidden" name="id" value={selectedCategory?.id} />
-                <div class="flex w-full justify-end gap-3">
-                    <button type="button" onclick={() => (deleteDialogOpen = false)}
-                        class="px-4 py-2 border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium text-sm">Annuler</button>
-                    <button type="submit"
-                        class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium text-sm">Supprimer</button>
-                </div>
-            </form>
-        </div>
-    </Drawer>
+ <Drawer bind:isOpen={deleteDialogOpen}>
+ <div class="sticky top-0 bg-background pb-4 border-b border-border-card -mx-4 px-4 -mt-4 pt-4 z-10">
+ <div class="flex items-center justify-between mb-2">
+ <h2 class="text-xl font-semibold tracking-tight">Supprimer la Catégorie</h2>
+ <button type="button" onclick={() => (deleteDialogOpen = false)} class="p-2 hover:bg-muted rounded-md transition-colors">
+ <X class="text-foreground size-5" />
+ </button>
+ </div>
+ <p class="text-muted-foreground text-sm">
+ Êtes-vous sûr de vouloir supprimer "{selectedCategory?.displayNameEn}" ? Cette action ne peut pas être annulée.
+ </p>
+ </div>
+ <div class="pt-4">
+ <form method="POST" action="?/deleteCategory" use:enhance={deleteCatEnhance}>
+ <input type="hidden" name="id" value={selectedCategory?.id} />
+ <div class="flex w-full justify-end gap-3">
+ <button type="button" onclick={() => (deleteDialogOpen = false)}
+ class="px-4 py-2 border border-border-input text-foreground-alt rounded-lg hover:bg-muted transition-colors font-medium text-sm">Annuler</button>
+ <button type="submit"
+ class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium text-sm">Supprimer</button>
+ </div>
+ </form>
+ </div>
+ </Drawer>
 {:else}
-    <Modal bind:isOpen={deleteDialogOpen} title="Supprimer la Catégorie"
-        description="Êtes-vous sûr de vouloir supprimer '{selectedCategory?.displayNameEn}' ? Cette action ne peut pas être annulée.">
+ <Modal bind:isOpen={deleteDialogOpen} title="Supprimer la Catégorie"
+ description="Êtes-vous sûr de vouloir supprimer '{selectedCategory?.displayNameEn}' ? Cette action ne peut pas être annulée.">
         <form method="POST" action="?/deleteCategory" use:enhance={deleteCatEnhance} class="mt-6">
             <input type="hidden" name="id" value={selectedCategory?.id} />
             <div class="flex w-full justify-end gap-3">
                 <button type="button" onclick={() => (deleteDialogOpen = false)}
-                    class="px-6 py-2.5 border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium">Annuler</button>
+                    class="px-6 py-2.5 border border-border-input text-foreground-alt rounded-lg hover:bg-muted transition-colors font-medium">Annuler</button>
                 <button type="submit"
                     class="px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium">Supprimer</button>
             </div>

@@ -114,19 +114,19 @@
 <div class="container mx-auto px-4 py-8 lg:py-12">
 	<div class="mb-8">
 		<h1 class="text-3xl lg:text-4xl font-bold mb-2">Gestion de la Liste d'Attente</h1>
-		<p class="text-dark-400">Gérer les entrées de la liste d'attente et les notifications</p>
+		<p class="text-muted-foreground">Gérer les entrées de la liste d'attente et les notifications</p>
 	</div>
 
 	<!-- Filters -->
-	<div class="bg-white rounded-lg border border-border-card p-4 mb-6">
+	<div class="bg-background rounded-lg border border-border-card p-4 mb-6">
 		<div class="flex flex-col sm:flex-row gap-4">
 			<!-- Session Filter -->
 			<div class="flex-1">
-				<label for="sessionFilter" class="block text-sm font-medium text-dark-700 mb-1">Filtrer par Session</label>
+				<label for="sessionFilter" class="block text-sm font-medium text-foreground-alt mb-1">Filtrer par Session</label>
 				<select
 					id="sessionFilter"
 					bind:value={sessionFilter}
-					class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+					class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
 				>
 					<option value="all">Toutes les Sessions</option>
 					{#each data.sessions as session}
@@ -137,11 +137,11 @@
 
 			<!-- Notified Filter -->
 			<div class="flex-1">
-				<label for="notifiedFilter" class="block text-sm font-medium text-dark-700 mb-1">Filtrer par Statut</label>
+				<label for="notifiedFilter" class="block text-sm font-medium text-foreground-alt mb-1">Filtrer par Statut</label>
 				<select
 					id="notifiedFilter"
 					bind:value={notifiedFilter}
-					class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+					class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
 				>
 					<option value="all">Tous les Statuts</option>
 					<option value="pending">En attente de notification</option>
@@ -153,7 +153,7 @@
 			<div class="flex items-end">
 				<button
 					onclick={applyFilters}
-					class="w-full sm:w-auto px-6 py-2.5 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors font-medium text-sm inline-flex items-center justify-center gap-2"
+					class="w-full sm:w-auto px-6 py-2.5 bg-foreground text-background rounded-lg hover:opacity-90 transition-colors font-medium text-sm inline-flex items-center justify-center gap-2"
 				>
 					<Filter size={16} />
 					Appliquer les Filtres
@@ -162,18 +162,18 @@
 		</div>
 
 		<!-- Results count -->
-		<div class="mt-3 text-sm text-dark-500">
+		<div class="mt-3 text-sm text-muted-foreground">
 			Affichage de {data.waitlistEntries.length} entrées
 		</div>
 	</div>
 
 	{#if data.waitlistEntries.length === 0}
-		<div class="bg-white rounded-lg border border-border-card p-12 text-center">
-			<User size={48} class="mx-auto mb-4 text-dark-300" />
-			<h3 class="text-xl font-semibold text-dark-900 mb-2">
+		<div class="bg-background rounded-lg border border-border-card p-12 text-center">
+			<User size={48} class="mx-auto mb-4 text-muted-foreground" />
+			<h3 class="text-xl font-semibold text-foreground mb-2">
 				Aucune entrée de liste d'attente trouvée
 			</h3>
-			<p class="text-dark-400">
+			<p class="text-muted-foreground">
 				{#if sessionFilter !== 'all' || notifiedFilter !== 'all'}
 					Essayez d'ajuster vos filtres
 				{:else}
@@ -184,7 +184,7 @@
 	{:else}
 		<!-- Bulk Actions -->
 		{#if selectedEntries.size > 0}
-			<div class="bg-dark-900 text-white rounded-lg p-4 mb-6">
+			<div class="bg-foreground text-background rounded-lg p-4 mb-6">
 				<div class="flex items-center justify-between flex-wrap gap-4">
 					<div>
 						<span class="font-semibold">{selectedEntries.size}</span> entrées sélectionnées
@@ -208,7 +208,7 @@
 							}}>
 							<button
 								type="submit"
-								class="px-4 py-2 bg-white text-dark-900 rounded-lg hover:bg-dark-50 transition-colors font-medium text-sm inline-flex items-center gap-2"
+								class="px-4 py-2 bg-background text-foreground rounded-lg hover:bg-muted transition-colors font-medium text-sm inline-flex items-center gap-2"
 							>
 								<Send size={16} />
 								Notifier la Sélection
@@ -271,37 +271,37 @@
 		{/if}
 
 		<!-- Table view for desktop -->
-		<div class="bg-white rounded-lg border border-border-card overflow-hidden hidden lg:block">
+		<div class="bg-background rounded-lg border border-border-card overflow-hidden hidden lg:block">
 			<table class="w-full">
-				<thead class="bg-dark-50 border-b border-border-card">
+				<thead class="bg-muted border-b border-border-card">
 					<tr>
 						<th class="px-4 py-4 text-left w-12">
 							<input
 								type="checkbox"
 								checked={selectedEntries.size === data.waitlistEntries.length}
 								onchange={toggleAll}
-								class="w-4 h-4 rounded border-border-dark"
+								class="w-4 h-4 rounded border-border-input"
 							/>
 						</th>
-						<th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">
+						<th class="px-6 py-4 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">
 							Invité
 						</th>
-						<th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">
+						<th class="px-6 py-4 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">
 							Événement/Session
 						</th>
-						<th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">
+						<th class="px-6 py-4 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">
 							Quantité
 						</th>
-						<th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">
+						<th class="px-6 py-4 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">
 							Statut
 						</th>
-						<th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">
+						<th class="px-6 py-4 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">
 							Expiration
 						</th>
-						<th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">
+						<th class="px-6 py-4 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">
 							Créé
 						</th>
-						<th class="px-6 py-4 text-right text-xs font-semibold text-dark-600 uppercase tracking-wider">
+						<th class="px-6 py-4 text-right text-xs font-semibold text-foreground-alt uppercase tracking-wider">
 							Actions
 						</th>
 					</tr>
@@ -310,28 +310,28 @@
 					{#each data.waitlistEntries as entry}
 						{@const notifiedBadge = getNotifiedBadge(entry.notified)}
 						{@const expired = isExpired(entry.expiresAt)}
-						<tr class="hover:bg-dark-50 transition-colors {expired ? 'bg-red-50' : ''}">
+						<tr class="hover:bg-muted transition-colors {expired ? 'bg-red-50' : ''}">
 							<td class="px-4 py-4">
 								<input
 									type="checkbox"
 									checked={selectedEntries.has(entry.id)}
 									onchange={() => toggleSelection(entry.id)}
-									class="w-4 h-4 rounded border-border-dark"
+									class="w-4 h-4 rounded border-border-input"
 								/>
 							</td>
 							<td class="px-6 py-4">
 								<div class="flex items-center gap-3">
-									<div class="w-10 h-10 bg-dark-100 rounded-full flex items-center justify-center">
-										<User size={18} class="text-dark-500" />
+									<div class="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
+										<User size={18} class="text-muted-foreground" />
 									</div>
 									<div>
-										<div class="font-medium text-dark-900">{entry.name}</div>
-										<div class="text-sm text-dark-400 flex items-center gap-1">
+										<div class="font-medium text-foreground">{entry.name}</div>
+										<div class="text-sm text-muted-foreground flex items-center gap-1">
 											<Mail size={12} />
 											{entry.email}
 										</div>
 										{#if entry.phone}
-											<div class="text-sm text-dark-400 flex items-center gap-1">
+											<div class="text-sm text-muted-foreground flex items-center gap-1">
 												<Phone size={12} />
 												{entry.phone}
 											</div>
@@ -341,15 +341,15 @@
 							</td>
 							<td class="px-6 py-4">
 								<div class="text-sm">
-									<div class="font-medium text-dark-900">{entry.session.eventTitle}</div>
-									<div class="text-dark-400">{entry.session.title}</div>
-									<div class="text-dark-400 text-xs mt-1">
+									<div class="font-medium text-foreground">{entry.session.eventTitle}</div>
+									<div class="text-muted-foreground">{entry.session.title}</div>
+									<div class="text-muted-foreground text-xs mt-1">
 										{formatDate(entry.session.startTime)}
 									</div>
 								</div>
 							</td>
 							<td class="px-6 py-4">
-								<div class="flex items-center gap-2 text-dark-900">
+								<div class="flex items-center gap-2 text-foreground">
 									<Ticket size={14} />
 									<span class="font-medium">{entry.quantity}</span>
 								</div>
@@ -366,19 +366,19 @@
 								{/if}
 							</td>
 							<td class="px-6 py-4">
-								<div class="text-sm text-dark-600">
+								<div class="text-sm text-foreground-alt">
 									{formatDateTime(entry.expiresAt)}
 								</div>
 							</td>
 							<td class="px-6 py-4">
-								<div class="text-sm text-dark-600">
+								<div class="text-sm text-foreground-alt">
 									{formatDateTime(entry.createdAt)}
 								</div>
 							</td>
 							<td class="px-6 py-4">
 								<div class="flex items-center justify-end gap-2">
 									{#if entry.notified && entry.notifiedAt}
-										<div class="text-xs text-dark-500" title="Notified at">
+										<div class="text-xs text-muted-foreground" title="Notified at">
 											{formatDateTime(entry.notifiedAt)}
 										</div>
 									{/if}
@@ -395,17 +395,17 @@
 			{#each data.waitlistEntries as entry}
 				{@const notifiedBadge = getNotifiedBadge(entry.notified)}
 				{@const expired = isExpired(entry.expiresAt)}
-				<div class="bg-white rounded-lg border border-border-card p-4 {expired ? 'border-red-200' : ''}">
+				<div class="bg-background rounded-lg border border-border-card p-4 {expired ? 'border-red-200' : ''}">
 					<div class="flex items-start gap-3 mb-3">
 						<input
 							type="checkbox"
 							checked={selectedEntries.has(entry.id)}
 							onchange={() => toggleSelection(entry.id)}
-							class="w-4 h-4 mt-1 rounded border-border-dark flex-shrink-0"
+							class="w-4 h-4 mt-1 rounded border-border-input flex-shrink-0"
 						/>
 						<div class="flex-1 min-w-0">
 							<div class="flex items-start justify-between gap-2 mb-1">
-								<h3 class="font-semibold text-dark-900 truncate">
+								<h3 class="font-semibold text-foreground truncate">
 									{entry.name}
 								</h3>
 								<span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium {notifiedBadge.class} rounded-full flex-shrink-0">
@@ -415,9 +415,9 @@
 									{notifiedBadge.text}
 								</span>
 							</div>
-							<p class="text-sm text-dark-400 truncate">{entry.email}</p>
+							<p class="text-sm text-muted-foreground truncate">{entry.email}</p>
 							{#if entry.phone}
-								<p class="text-sm text-dark-400 flex items-center gap-1">
+								<p class="text-sm text-muted-foreground flex items-center gap-1">
 									<Phone size={12} />
 									{entry.phone}
 								</p>
@@ -430,25 +430,25 @@
 
 					<div class="grid grid-cols-2 gap-3 mb-3">
 						<div>
-							<div class="text-xs text-dark-400">Event</div>
-							<div class="text-sm font-medium text-dark-900 truncate">{entry.session.eventTitle}</div>
+							<div class="text-xs text-muted-foreground">Event</div>
+							<div class="text-sm font-medium text-foreground truncate">{entry.session.eventTitle}</div>
 						</div>
 						<div>
-							<div class="text-xs text-dark-400">Tickets</div>
-							<div class="text-sm font-medium text-dark-900">{entry.quantity}</div>
+							<div class="text-xs text-muted-foreground">Tickets</div>
+							<div class="text-sm font-medium text-foreground">{entry.quantity}</div>
 						</div>
 						<div>
-							<div class="text-xs text-dark-400">Expires</div>
-							<div class="text-sm text-dark-900">{formatDate(entry.expiresAt)}</div>
+							<div class="text-xs text-muted-foreground">Expires</div>
+							<div class="text-sm text-foreground">{formatDate(entry.expiresAt)}</div>
 						</div>
 						<div>
-							<div class="text-xs text-dark-400">Created</div>
-							<div class="text-sm text-dark-900">{formatDate(entry.createdAt)}</div>
+							<div class="text-xs text-muted-foreground">Created</div>
+							<div class="text-sm text-foreground">{formatDate(entry.createdAt)}</div>
 						</div>
 					</div>
 
 					{#if entry.notified && entry.notifiedAt}
-						<div class="text-xs text-dark-500 mb-3">
+						<div class="text-xs text-muted-foreground mb-3">
 							Notified: {formatDateTime(entry.notifiedAt)}
 						</div>
 					{/if}
@@ -459,8 +459,8 @@
 
 	<!-- Cleanup Actions -->
 	{#if data.waitlistEntries.length > 0}
-		<div class="mt-6 bg-white rounded-lg border border-border-card p-4">
-			<h3 class="text-sm font-semibold text-dark-900 mb-3">Actions de Nettoyage</h3>
+		<div class="mt-6 bg-background rounded-lg border border-border-card p-4">
+			<h3 class="text-sm font-semibold text-foreground mb-3">Actions de Nettoyage</h3>
 			<form method="POST" action="?/deleteExpired" use:enhance={({ formData, action, cancel }) => {
 					if (!confirm('Êtes-vous sûr de vouloir supprimer toutes les entrées expirées qui ont déjà été notifiées ?')) {
 						cancel();

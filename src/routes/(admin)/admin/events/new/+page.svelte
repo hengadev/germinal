@@ -105,25 +105,25 @@
 		<div class="mb-8">
 			<a
 				href="/admin/events"
-				class="inline-flex items-center gap-2 text-dark-600 hover:text-dark-900 transition-colors mb-4"
+				class="inline-flex items-center gap-2 text-foreground-alt hover:text-foreground transition-colors mb-4"
 			>
 				<ArrowLeft size={20} />
 				<span>Retour aux Événements</span>
 			</a>
 			<h1 class="text-3xl lg:text-4xl font-bold mb-2">Créer un Nouvel Événement</h1>
-			<p class="text-dark-400">
+			<p class="text-muted-foreground">
 				Remplissez les détails pour créer un nouvel événement
 			</p>
 		</div>
 
-		<div class="bg-white rounded-lg border border-border-card p-6 lg:p-8">
+		<div class="bg-background rounded-lg border border-border-card p-6 lg:p-8">
 			<form method="POST" use:enhance={createEventEnhance} class="space-y-6">
 				<!-- Cover Photo Section -->
 				<div class="form-section">
-					<label class="block text-sm font-medium text-dark-700 mb-2">
+					<label class="block text-sm font-medium text-foreground-alt mb-2">
 						Photo de Couverture
 					</label>
-					<p class="text-xs text-dark-400 mb-3">Image principale affichée dans les listes d'événements</p>
+					<p class="text-xs text-muted-foreground mb-3">Image principale affichée dans les listes d'événements</p>
 					<MediaUpload
 						mode="single"
 						entityType="event"
@@ -136,10 +136,10 @@
 
 				<!-- Gallery Section -->
 				<div class="form-section">
-					<label class="block text-sm font-medium text-dark-700 mb-2">
+					<label class="block text-sm font-medium text-foreground-alt mb-2">
 						Galerie de l'Événement
 					</label>
-					<p class="text-xs text-dark-400 mb-3">Jusqu'à 10 photos supplémentaires. Glissez pour réorganiser. La première image deviendra la couverture si aucune couverture explicite n'est définie.</p>
+					<p class="text-xs text-muted-foreground mb-3">Jusqu'à 10 photos supplémentaires. Glissez pour réorganiser. La première image deviendra la couverture si aucune couverture explicite n'est définie.</p>
 					<MediaUpload
 						mode="multiple"
 						maxFiles={10}
@@ -154,13 +154,13 @@
 
 				<!-- Title (English) -->
 				<div>
-					<label for="titleEn" class="block text-sm font-medium text-dark-700 mb-2">
+					<label for="titleEn" class="block text-sm font-medium text-foreground-alt mb-2">
 						Titre (Anglais) <span class="text-red-500">*</span>
 					</label>
 					<div class="relative">
 						<Type
 							size={18}
-							class="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400"
+							class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
 						/>
 						<input
 							id="titleEn"
@@ -169,20 +169,20 @@
 							bind:value={titleEn}
 							required
 							placeholder="Summer Music Festival 2026"
-							class="w-full pl-10 pr-4 py-3 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent"
+							class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent"
 						/>
 					</div>
 				</div>
 
 				<!-- Title (French) -->
 				<div>
-					<label for="titleFr" class="block text-sm font-medium text-dark-700 mb-2">
+					<label for="titleFr" class="block text-sm font-medium text-foreground-alt mb-2">
 						Titre (Français) <span class="text-red-500">*</span>
 					</label>
 					<div class="relative">
 						<Type
 							size={18}
-							class="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400"
+							class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
 						/>
 						<input
 							id="titleFr"
@@ -191,20 +191,20 @@
 							bind:value={titleFr}
 							required
 							placeholder="Festival de musique d'été 2026"
-							class="w-full pl-10 pr-4 py-3 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent"
+							class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent"
 						/>
 					</div>
 				</div>
 
 				<!-- Slug -->
 				<div>
-					<label for="slug" class="block text-sm font-medium text-dark-700 mb-2">
+					<label for="slug" class="block text-sm font-medium text-foreground-alt mb-2">
 						Slug <span class="text-red-500">*</span>
 					</label>
 					<div class="relative">
 						<Type
 							size={18}
-							class="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400"
+							class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
 						/>
 						<input
 							id="slug"
@@ -214,23 +214,23 @@
 							required
 							pattern="[a-z0-9-]+"
 							placeholder="summer-music-festival-2026"
-							class="w-full pl-10 pr-4 py-3 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent font-mono text-sm"
+							class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent font-mono text-sm"
 						/>
 					</div>
-					<p class="mt-1 text-xs text-dark-400">
+					<p class="mt-1 text-xs text-muted-foreground">
 						URL-friendly version of the title (lowercase, hyphens only)
 					</p>
 				</div>
 
 				<!-- Description (English) -->
 				<div>
-					<label for="descriptionEn" class="block text-sm font-medium text-dark-700 mb-2">
+					<label for="descriptionEn" class="block text-sm font-medium text-foreground-alt mb-2">
 						Description (Anglais) <span class="text-red-500">*</span>
 					</label>
 					<div class="relative">
 						<FileText
 							size={18}
-							class="absolute left-3 top-3 text-dark-400"
+							class="absolute left-3 top-3 text-muted-foreground"
 						/>
 						<textarea
 							id="descriptionEn"
@@ -239,20 +239,20 @@
 							required
 							rows="5"
 							placeholder="Describe your event..."
-							class="w-full pl-10 pr-4 py-3 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent resize-none"
+							class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent resize-none"
 						></textarea>
 					</div>
 				</div>
 
 				<!-- Description (French) -->
 				<div>
-					<label for="descriptionFr" class="block text-sm font-medium text-dark-700 mb-2">
+					<label for="descriptionFr" class="block text-sm font-medium text-foreground-alt mb-2">
 						Description (Français) <span class="text-red-500">*</span>
 					</label>
 					<div class="relative">
 						<FileText
 							size={18}
-							class="absolute left-3 top-3 text-dark-400"
+							class="absolute left-3 top-3 text-muted-foreground"
 						/>
 						<textarea
 							id="descriptionFr"
@@ -261,26 +261,26 @@
 							required
 							rows="5"
 							placeholder="Décrivez votre événement..."
-							class="w-full pl-10 pr-4 py-3 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent resize-none"
+							class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent resize-none"
 						></textarea>
 					</div>
 				</div>
 
 				<!-- Category Selection -->
 				<div>
-					<label for="categoryId" class="block text-sm font-medium text-dark-700 mb-2">
+					<label for="categoryId" class="block text-sm font-medium text-foreground-alt mb-2">
 						Catégorie (Optionnel)
 					</label>
 					<div class="relative">
 						<Tag
 							size={18}
-							class="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400"
+							class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
 						/>
 						<select
 							id="categoryId"
 							name="categoryId"
 							bind:value={categoryId}
-							class="w-full pl-10 pr-4 py-3 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent appearance-none bg-white"
+							class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent appearance-none bg-background"
 						>
 							<option value="">Aucune catégorie</option>
 							{#each (data.categories || []) as category}
@@ -288,20 +288,20 @@
 							{/each}
 						</select>
 					</div>
-					<p class="mt-1 text-xs text-dark-400">
+					<p class="mt-1 text-xs text-muted-foreground">
 						Lier cet événement à une catégorie existante
 					</p>
 				</div>
 
 				<!-- Subtitle (English) -->
 				<div>
-					<label for="subtitleEn" class="block text-sm font-medium text-dark-700 mb-2">
+					<label for="subtitleEn" class="block text-sm font-medium text-foreground-alt mb-2">
 						Sous-titre (Anglais) (Optionnel)
 					</label>
 					<div class="relative">
 						<FileText
 							size={18}
-							class="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400"
+							class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
 						/>
 						<input
 							id="subtitleEn"
@@ -309,20 +309,20 @@
 							type="text"
 							bind:value={subtitleEn}
 							placeholder="A short tagline for the event..."
-							class="w-full pl-10 pr-4 py-3 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent"
+							class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent"
 						/>
 					</div>
 				</div>
 
 				<!-- Subtitle (French) -->
 				<div>
-					<label for="subtitleFr" class="block text-sm font-medium text-dark-700 mb-2">
+					<label for="subtitleFr" class="block text-sm font-medium text-foreground-alt mb-2">
 						Sous-titre (Français) (Optionnel)
 					</label>
 					<div class="relative">
 						<FileText
 							size={18}
-							class="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400"
+							class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
 						/>
 						<input
 							id="subtitleFr"
@@ -330,7 +330,7 @@
 							type="text"
 							bind:value={subtitleFr}
 							placeholder="Une courte phrase accrocheuse pour l'événement..."
-							class="w-full pl-10 pr-4 py-3 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent"
+							class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent"
 						/>
 					</div>
 				</div>
@@ -338,13 +338,13 @@
 				<!-- Dates -->
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 					<div>
-						<label for="startDate" class="block text-sm font-medium text-dark-700 mb-2">
+						<label for="startDate" class="block text-sm font-medium text-foreground-alt mb-2">
 							Date de Début <span class="text-red-500">*</span>
 						</label>
 						<div class="relative">
 							<Calendar
 								size={18}
-								class="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400"
+								class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
 							/>
 							<input
 								id="startDate"
@@ -352,19 +352,19 @@
 								type="datetime-local"
 								bind:value={startDate}
 								required
-								class="w-full pl-10 pr-4 py-3 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent"
+								class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent"
 							/>
 						</div>
 					</div>
 
 					<div>
-						<label for="endDate" class="block text-sm font-medium text-dark-700 mb-2">
+						<label for="endDate" class="block text-sm font-medium text-foreground-alt mb-2">
 							Date de Fin <span class="text-red-500">*</span>
 						</label>
 						<div class="relative">
 							<Calendar
 								size={18}
-								class="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400"
+								class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
 							/>
 							<input
 								id="endDate"
@@ -372,7 +372,7 @@
 								type="datetime-local"
 								bind:value={endDate}
 								required
-								class="w-full pl-10 pr-4 py-3 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent"
+								class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent"
 							/>
 						</div>
 					</div>
@@ -380,13 +380,13 @@
 
 				<!-- Location -->
 				<div>
-					<label for="location" class="block text-sm font-medium text-dark-700 mb-2">
+					<label for="location" class="block text-sm font-medium text-foreground-alt mb-2">
 						Lieu <span class="text-red-500">*</span>
 					</label>
 					<div class="relative">
 						<MapPin
 							size={18}
-							class="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400"
+							class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
 						/>
 						<input
 							id="location"
@@ -395,17 +395,17 @@
 							bind:value={location}
 							required
 							placeholder="Central Park, New York"
-							class="w-full pl-10 pr-4 py-3 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent"
+							class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent"
 						/>
 					</div>
 				</div>
 
 				<!-- Venue Details -->
 				<div class="space-y-4">
-					<h3 class="text-sm font-medium text-dark-700">Détails du Lieu (Optionnel)</h3>
+					<h3 class="text-sm font-medium text-foreground-alt">Détails du Lieu (Optionnel)</h3>
 
 					<div>
-						<label for="venueName" class="block text-sm font-medium text-dark-600 mb-2">
+						<label for="venueName" class="block text-sm font-medium text-foreground-alt mb-2">
 							Nom du Lieu
 						</label>
 						<input
@@ -414,12 +414,12 @@
 							type="text"
 							bind:value={venueName}
 							placeholder="e.g., Central Convention Center"
-							class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+							class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
 						/>
 					</div>
 
 					<div>
-						<label for="streetAddress" class="block text-sm font-medium text-dark-600 mb-2">
+						<label for="streetAddress" class="block text-sm font-medium text-foreground-alt mb-2">
 							Adresse Rue
 						</label>
 						<input
@@ -428,13 +428,13 @@
 							type="text"
 							bind:value={streetAddress}
 							placeholder="e.g., 123 Main Street"
-							class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+							class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
 						/>
 					</div>
 
 					<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
 						<div>
-							<label for="district" class="block text-sm font-medium text-dark-600 mb-2">
+							<label for="district" class="block text-sm font-medium text-foreground-alt mb-2">
 								Quartier
 							</label>
 							<input
@@ -443,11 +443,11 @@
 								type="text"
 								bind:value={district}
 								placeholder="e.g., Downtown"
-								class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+								class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
 							/>
 						</div>
 						<div>
-							<label for="city" class="block text-sm font-medium text-dark-600 mb-2">
+							<label for="city" class="block text-sm font-medium text-foreground-alt mb-2">
 								Ville
 							</label>
 							<input
@@ -456,11 +456,11 @@
 								type="text"
 								bind:value={city}
 								placeholder="e.g., Tokyo"
-								class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+								class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
 							/>
 						</div>
 						<div>
-							<label for="postalCode" class="block text-sm font-medium text-dark-600 mb-2">
+							<label for="postalCode" class="block text-sm font-medium text-foreground-alt mb-2">
 								Code Postal
 							</label>
 							<input
@@ -469,13 +469,13 @@
 								type="text"
 								bind:value={postalCode}
 								placeholder="e.g., 12345"
-								class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+								class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
 							/>
 						</div>
 					</div>
 
 					<div>
-						<label for="country" class="block text-sm font-medium text-dark-600 mb-2">
+						<label for="country" class="block text-sm font-medium text-foreground-alt mb-2">
 							Pays
 						</label>
 						<input
@@ -484,17 +484,17 @@
 							type="text"
 							bind:value={country}
 							placeholder="e.g., Japan"
-							class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+							class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
 						/>
 					</div>
 				</div>
 
 				<!-- Collaborators -->
 				<div>
-					<label class="block text-sm font-medium text-dark-700 mb-2">
+					<label class="block text-sm font-medium text-foreground-alt mb-2">
 						Collaborateurs (Optionnel)
 					</label>
-					<p class="text-xs text-dark-400 mb-3">Ajoutez des talents ou partenaires collaborateurs</p>
+					<p class="text-xs text-muted-foreground mb-3">Ajoutez des talents ou partenaires collaborateurs</p>
 
 					<div class="space-y-2">
 						{#each collaborators as collab, i}
@@ -503,13 +503,13 @@
 									type="text"
 									bind:value={collaborators[i].name}
 									placeholder="Nom"
-									class="flex-1 px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+									class="flex-1 px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
 								/>
 								<input
 									type="text"
 									bind:value={collaborators[i].role}
 									placeholder="Rôle"
-									class="flex-1 px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+									class="flex-1 px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
 								/>
 								<button
 									type="button"
@@ -524,7 +524,7 @@
 						<button
 							type="button"
 							onclick={() => collaborators = [...collaborators, {name: "", role: ""}]}
-							class="text-sm text-dark-600 hover:text-dark-900 font-medium"
+							class="text-sm text-foreground-alt hover:text-foreground font-medium"
 						>
 							+ Ajouter un Collaborateur
 						</button>
@@ -535,10 +535,10 @@
 
 				<!-- Timings -->
 				<div>
-					<label class="block text-sm font-medium text-dark-700 mb-2">
+					<label class="block text-sm font-medium text-foreground-alt mb-2">
 						Horaires de l'Événement (Optionnel)
 					</label>
-					<p class="text-xs text-dark-400 mb-3">Ajoutez des informations de programmation pour différentes sessions</p>
+					<p class="text-xs text-muted-foreground mb-3">Ajoutez des informations de programmation pour différentes sessions</p>
 
 					<div class="space-y-2">
 						{#each timings as timing, i}
@@ -547,13 +547,13 @@
 									type="text"
 									bind:value={timings[i].label}
 									placeholder="e.g., Opening Night"
-									class="flex-1 px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+									class="flex-1 px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
 								/>
 								<input
 									type="text"
 									bind:value={timings[i].time}
 									placeholder="e.g., 18:00 - 22:00"
-									class="flex-1 px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+									class="flex-1 px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
 								/>
 								<button
 									type="button"
@@ -568,7 +568,7 @@
 						<button
 							type="button"
 							onclick={() => timings = [...timings, {label: "", time: ""}]}
-							class="text-sm text-dark-600 hover:text-dark-900 font-medium"
+							class="text-sm text-foreground-alt hover:text-foreground font-medium"
 						>
 							+ Ajouter un Horaire
 						</button>
@@ -579,10 +579,10 @@
 
 				<!-- Event Details -->
 				<div class="space-y-4">
-					<h3 class="text-sm font-medium text-dark-700">Détails Supplémentaires (Optionnel)</h3>
+					<h3 class="text-sm font-medium text-foreground-alt">Détails Supplémentaires (Optionnel)</h3>
 
 					<div>
-						<label for="curatorEn" class="block text-sm font-medium text-dark-600 mb-2">
+						<label for="curatorEn" class="block text-sm font-medium text-foreground-alt mb-2">
 							Commissaire (Anglais)
 						</label>
 						<input
@@ -591,12 +591,12 @@
 							type="text"
 							bind:value={curatorEn}
 							placeholder="e.g., John Smith"
-							class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+							class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
 						/>
 					</div>
 
 					<div>
-						<label for="curatorFr" class="block text-sm font-medium text-dark-600 mb-2">
+						<label for="curatorFr" class="block text-sm font-medium text-foreground-alt mb-2">
 							Commissaire (Français)
 						</label>
 						<input
@@ -605,12 +605,12 @@
 							type="text"
 							bind:value={curatorFr}
 							placeholder="ex: Jean Smith"
-							class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+							class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
 						/>
 					</div>
 
 					<div>
-						<label for="materialsEn" class="block text-sm font-medium text-dark-600 mb-2">
+						<label for="materialsEn" class="block text-sm font-medium text-foreground-alt mb-2">
 							Matériaux (Anglais)
 						</label>
 						<input
@@ -619,12 +619,12 @@
 							type="text"
 							bind:value={materialsEn}
 							placeholder="e.g., Canvas, Wood, Digital"
-							class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+							class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
 						/>
 					</div>
 
 					<div>
-						<label for="materialsFr" class="block text-sm font-medium text-dark-600 mb-2">
+						<label for="materialsFr" class="block text-sm font-medium text-foreground-alt mb-2">
 							Matériaux (Français)
 						</label>
 						<input
@@ -633,12 +633,12 @@
 							type="text"
 							bind:value={materialsFr}
 							placeholder="ex: Toile, Bois, Numérique"
-							class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+							class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
 						/>
 					</div>
 
 					<div>
-						<label for="admissionInfoEn" class="block text-sm font-medium text-dark-600 mb-2">
+						<label for="admissionInfoEn" class="block text-sm font-medium text-foreground-alt mb-2">
 							Informations d'Admission (Anglais)
 						</label>
 						<input
@@ -647,12 +647,12 @@
 							type="text"
 							bind:value={admissionInfoEn}
 							placeholder="e.g., Free, $25, Members Only"
-							class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+							class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
 						/>
 					</div>
 
 					<div>
-						<label for="admissionInfoFr" class="block text-sm font-medium text-dark-600 mb-2">
+						<label for="admissionInfoFr" class="block text-sm font-medium text-foreground-alt mb-2">
 							Informations d'Admission (Français)
 						</label>
 						<input
@@ -661,26 +661,26 @@
 							type="text"
 							bind:value={admissionInfoFr}
 							placeholder="ex: Gratuit, 25$, Membres seulement"
-							class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+							class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
 						/>
 					</div>
 				</div>
 
 				<!-- Published Status -->
-				<div class="flex items-center gap-3 p-4 bg-dark-50 rounded-lg">
+				<div class="flex items-center gap-3 p-4 bg-muted rounded-lg">
 					<input
 						id="published"
 						name="published"
 						type="checkbox"
 						value="true"
 						bind:checked={published}
-						class="w-5 h-5 text-dark-900 border-border-dark rounded focus:ring-dark-900"
+						class="w-5 h-5 text-foreground border-border-input rounded focus:ring-foreground"
 					/>
 					<div>
-						<label for="published" class="block text-sm font-medium text-dark-900 cursor-pointer">
+						<label for="published" class="block text-sm font-medium text-foreground cursor-pointer">
 							Publier immédiatement
 						</label>
-						<p class="text-xs text-dark-400">
+						<p class="text-xs text-muted-foreground">
 							Décochez pour sauvegarder comme brouillon
 						</p>
 					</div>
@@ -712,13 +712,13 @@
 						type="submit"
 						name="action"
 						value="create"
-						class="flex-1 px-6 py-3 bg-dark-900 text-white rounded-lg hover:bg-dark-800 focus:outline-none focus:ring-2 focus:ring-dark-900 focus:ring-offset-2 transition-colors font-medium"
+						class="flex-1 px-6 py-3 bg-foreground text-background rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-foreground focus:ring-offset-2 transition-colors font-medium"
 					>
 						Créer l'Événement
 					</button>
 					<a
 						href="/admin/events"
-						class="flex-1 px-6 py-3 bg-white border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 focus:outline-none focus:ring-2 focus:ring-dark-900 focus:ring-offset-2 transition-colors font-medium text-center"
+						class="flex-1 px-6 py-3 bg-background border border-border-input text-foreground-alt rounded-lg hover:bg-muted focus:outline-none focus:ring-2 focus:ring-foreground focus:ring-offset-2 transition-colors font-medium text-center"
 					>
 						Annuler
 					</a>

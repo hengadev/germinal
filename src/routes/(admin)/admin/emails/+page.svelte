@@ -46,7 +46,7 @@
 			case 'failed':
 				return { text: 'Échoué', class: 'bg-red-50 text-red-700', icon: XCircle };
 			default:
-				return { text: status, class: 'bg-dark-100 text-dark-600', icon: null };
+				return { text: status, class: 'bg-muted text-foreground-alt', icon: null };
 		}
 	}
 
@@ -60,7 +60,7 @@
 			case 'event_reminder':
 				return { text: 'Rappel d\'Événement', class: 'bg-orange-50 text-orange-700', icon: Calendar };
 			default:
-				return { text: type, class: 'bg-dark-100 text-dark-600', icon: Mail };
+				return { text: type, class: 'bg-muted text-foreground-alt', icon: Mail };
 		}
 	}
 
@@ -116,19 +116,19 @@
 <div class="container mx-auto px-4 py-8 lg:py-12">
 	<div class="mb-8">
 		<h1 class="text-3xl lg:text-4xl font-bold mb-2">File d'Attente Email</h1>
-		<p class="text-dark-400">Surveiller et gérer l'envoi des emails</p>
+		<p class="text-muted-foreground">Surveiller et gérer l'envoi des emails</p>
 	</div>
 
 	<!-- Filters -->
-	<div class="bg-white rounded-lg border border-border-card p-4 mb-6">
+	<div class="bg-background rounded-lg border border-border-card p-4 mb-6">
 		<div class="flex flex-col sm:flex-row gap-4">
 			<!-- Status Filter -->
 			<div class="flex-1">
-				<label for="statusFilter" class="block text-sm font-medium text-dark-700 mb-1">Filtrer par Statut</label>
+				<label for="statusFilter" class="block text-sm font-medium text-foreground-alt mb-1">Filtrer par Statut</label>
 				<select
 					id="statusFilter"
 					bind:value={statusFilter}
-					class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+					class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
 				>
 					<option value="all">Tous les Statuts</option>
 					<option value="pending">En attente</option>
@@ -139,11 +139,11 @@
 
 			<!-- Type Filter -->
 			<div class="flex-1">
-				<label for="typeFilter" class="block text-sm font-medium text-dark-700 mb-1">Filtrer par Type</label>
+				<label for="typeFilter" class="block text-sm font-medium text-foreground-alt mb-1">Filtrer par Type</label>
 				<select
 					id="typeFilter"
 					bind:value={typeFilter}
-					class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+					class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
 				>
 					<option value="all">Tous les Types</option>
 					<option value="ticket_confirmation">Confirmation de Billet</option>
@@ -156,7 +156,7 @@
 			<div class="flex items-end">
 				<button
 					onclick={applyFilters}
-					class="w-full sm:w-auto px-6 py-2.5 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors font-medium text-sm inline-flex items-center justify-center gap-2"
+					class="w-full sm:w-auto px-6 py-2.5 bg-foreground text-background rounded-lg hover:opacity-90 transition-colors font-medium text-sm inline-flex items-center justify-center gap-2"
 				>
 					<Filter size={16} />
 					Appliquer les Filtres
@@ -165,18 +165,18 @@
 		</div>
 
 		<!-- Results count -->
-		<div class="mt-3 text-sm text-dark-500">
+		<div class="mt-3 text-sm text-muted-foreground">
 			Affichage de {data.emails.length} emails
 		</div>
 	</div>
 
 	{#if data.emails.length === 0}
-		<div class="bg-white rounded-lg border border-border-card p-12 text-center">
-			<Mail size={48} class="mx-auto mb-4 text-dark-300" />
-			<h3 class="text-xl font-semibold text-dark-900 mb-2">
+		<div class="bg-background rounded-lg border border-border-card p-12 text-center">
+			<Mail size={48} class="mx-auto mb-4 text-muted-foreground" />
+			<h3 class="text-xl font-semibold text-foreground mb-2">
 				Aucun email trouvé
 			</h3>
-			<p class="text-dark-400">
+			<p class="text-muted-foreground">
 				{#if statusFilter !== 'all' || typeFilter !== 'all'}
 					Essayez d'ajuster vos filtres
 				{:else}
@@ -186,32 +186,32 @@
 		</div>
 	{:else}
 		<!-- Table view for desktop -->
-		<div class="bg-white rounded-lg border border-border-card overflow-hidden hidden lg:block">
+		<div class="bg-background rounded-lg border border-border-card overflow-hidden hidden lg:block">
 			<table class="w-full">
-				<thead class="bg-dark-50 border-b border-border-card">
+				<thead class="bg-muted border-b border-border-card">
 					<tr>
-						<th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">
+						<th class="px-6 py-4 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">
 							Type
 						</th>
-						<th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">
+						<th class="px-6 py-4 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">
 							Destinataire
 						</th>
-						<th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">
+						<th class="px-6 py-4 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">
 							Sujet
 						</th>
-						<th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">
+						<th class="px-6 py-4 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">
 							Statut
 						</th>
-						<th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">
+						<th class="px-6 py-4 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">
 							Tentatives
 						</th>
-						<th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">
+						<th class="px-6 py-4 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">
 							Créé
 						</th>
-						<th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">
+						<th class="px-6 py-4 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">
 							Envoyé
 						</th>
-						<th class="px-6 py-4 text-right text-xs font-semibold text-dark-600 uppercase tracking-wider">
+						<th class="px-6 py-4 text-right text-xs font-semibold text-foreground-alt uppercase tracking-wider">
 							Actions
 						</th>
 					</tr>
@@ -220,17 +220,17 @@
 					{#each data.emails as email}
 						{@const statusBadge = getStatusBadge(email.status)}
 						{@const typeBadge = getTypeBadge(email.type)}
-						<tr class="hover:bg-dark-50 transition-colors">
+						<tr class="hover:bg-muted transition-colors">
 							<td class="px-6 py-4">
 								<span class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium {typeBadge.class} rounded-full">
 									{typeBadge.text}
 								</span>
 							</td>
 							<td class="px-6 py-4">
-								<div class="text-sm text-dark-900">{email.recipient}</div>
+								<div class="text-sm text-foreground">{email.recipient}</div>
 							</td>
 							<td class="px-6 py-4">
-								<div class="text-sm text-dark-900 truncate max-w-xs" title={email.subject}>
+								<div class="text-sm text-foreground truncate max-w-xs" title={email.subject}>
 									{email.subject}
 								</div>
 							</td>
@@ -248,17 +248,17 @@
 								{/if}
 							</td>
 							<td class="px-6 py-4">
-								<div class="text-sm text-dark-900">
+								<div class="text-sm text-foreground">
 									{email.attempts} / {email.maxAttempts}
 								</div>
 							</td>
 							<td class="px-6 py-4">
-								<div class="text-sm text-dark-600">
+								<div class="text-sm text-foreground-alt">
 									{formatDateTime(email.createdAt)}
 								</div>
 							</td>
 							<td class="px-6 py-4">
-								<div class="text-sm text-dark-600">
+								<div class="text-sm text-foreground-alt">
 									{formatDateTime(email.sentAt)}
 								</div>
 							</td>
@@ -266,7 +266,7 @@
 								<div class="flex items-center justify-end gap-2">
 									<button
 										onclick={() => viewEmail(email)}
-										class="p-2 text-dark-600 hover:text-dark-900 hover:bg-dark-50 rounded-lg transition-colors"
+										class="p-2 text-foreground-alt hover:text-foreground hover:bg-muted rounded-lg transition-colors"
 										title="View Content"
 									>
 										<Eye size={18} />
@@ -285,7 +285,7 @@
 											<input type="hidden" name="emailId" value={email.id} />
 											<button
 												type="submit"
-												class="p-2 text-dark-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+												class="p-2 text-foreground-alt hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
 												title="Retry"
 											>
 												<RotateCcw size={18} />
@@ -308,7 +308,7 @@
 										<input type="hidden" name="emailId" value={email.id} />
 										<button
 											type="submit"
-											class="p-2 text-dark-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+											class="p-2 text-foreground-alt hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
 											title="Delete"
 										>
 											<Trash2 size={18} />
@@ -327,7 +327,7 @@
 			{#each data.emails as email}
 				{@const statusBadge = getStatusBadge(email.status)}
 				{@const typeBadge = getTypeBadge(email.type)}
-				<div class="bg-white rounded-lg border border-border-card p-4">
+				<div class="bg-background rounded-lg border border-border-card p-4">
 					<div class="flex items-start justify-between mb-3">
 						<div>
 							<span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium {typeBadge.class} rounded-full">
@@ -344,33 +344,33 @@
 
 					<div class="space-y-2 mb-3">
 						<div>
-							<div class="text-xs text-dark-400">Destinataire</div>
-							<div class="text-sm font-medium text-dark-900">{email.recipient}</div>
+							<div class="text-xs text-muted-foreground">Destinataire</div>
+							<div class="text-sm font-medium text-foreground">{email.recipient}</div>
 						</div>
 						<div>
-							<div class="text-xs text-dark-400">Sujet</div>
-							<div class="text-sm text-dark-900 truncate">{email.subject}</div>
+							<div class="text-xs text-muted-foreground">Sujet</div>
+							<div class="text-sm text-foreground truncate">{email.subject}</div>
 						</div>
 						<div>
-							<div class="text-xs text-dark-400">Tentatives</div>
-							<div class="text-sm text-dark-900">{email.attempts} / {email.maxAttempts}</div>
+							<div class="text-xs text-muted-foreground">Tentatives</div>
+							<div class="text-sm text-foreground">{email.attempts} / {email.maxAttempts}</div>
 						</div>
 						{#if email.lastError}
 							<div>
-								<div class="text-xs text-dark-400">Erreur</div>
+								<div class="text-xs text-muted-foreground">Erreur</div>
 								<div class="text-sm text-red-600 truncate">{email.lastError}</div>
 							</div>
 						{/if}
 					</div>
 
 					<div class="flex items-center justify-between pt-3 border-t border-border-card">
-						<div class="text-xs text-dark-400">
+						<div class="text-xs text-muted-foreground">
 							{formatDateTime(email.createdAt)}
 						</div>
 						<div class="flex items-center gap-2">
 							<button
 								onclick={() => viewEmail(email)}
-								class="p-2 text-dark-600 hover:text-dark-900 hover:bg-dark-50 rounded-lg transition-colors"
+								class="p-2 text-foreground-alt hover:text-foreground hover:bg-muted rounded-lg transition-colors"
 								title="View Content"
 							>
 								<Eye size={16} />
@@ -389,7 +389,7 @@
 									<input type="hidden" name="emailId" value={email.id} />
 									<button
 										type="submit"
-										class="p-2 text-dark-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+										class="p-2 text-foreground-alt hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
 										title="Retry"
 									>
 										<RotateCcw size={16} />
@@ -412,7 +412,7 @@
 								<input type="hidden" name="emailId" value={email.id} />
 								<button
 									type="submit"
-									class="p-2 text-dark-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+									class="p-2 text-foreground-alt hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
 									title="Delete"
 								>
 									<Trash2 size={16} />
@@ -427,8 +427,8 @@
 
 	<!-- Bulk Actions -->
 	{#if data.emails.length > 0}
-		<div class="mt-6 bg-white rounded-lg border border-border-card p-4">
-			<h3 class="text-sm font-semibold text-dark-900 mb-3">Actions Groupées</h3>
+		<div class="mt-6 bg-background rounded-lg border border-border-card p-4">
+			<h3 class="text-sm font-semibold text-foreground mb-3">Actions Groupées</h3>
 			<form method="POST" action="?/deleteOld" use:enhance={({ formData, action, cancel }) => {
 					if (!confirm('Êtes-vous sûr de vouloir supprimer tous les emails envoyés de plus de 30 jours ?')) {
 						cancel();
@@ -457,12 +457,12 @@
 <!-- Email Content Modal -->
 {#if viewingEmail}
 	<div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50" onclick={closeModal}>
-		<div class="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-hidden" onclick={(e) => e.stopPropagation()}>
+		<div class="bg-background rounded-lg max-w-3xl w-full max-h-[90vh] overflow-hidden" onclick={(e) => e.stopPropagation()}>
 			<div class="flex items-center justify-between p-6 border-b border-border-card">
-				<h2 class="text-xl font-semibold text-dark-900">Contenu de l'Email</h2>
+				<h2 class="text-xl font-semibold text-foreground">Contenu de l'Email</h2>
 				<button
 					onclick={closeModal}
-					class="p-2 text-dark-600 hover:text-dark-900 hover:bg-dark-50 rounded-lg transition-colors"
+					class="p-2 text-foreground-alt hover:text-foreground hover:bg-muted rounded-lg transition-colors"
 				>
 					<XCircle size={24} />
 				</button>
@@ -470,36 +470,36 @@
 			<div class="p-6 overflow-y-auto max-h-[calc(90vh-100px)]">
 				<div class="space-y-4">
 					<div>
-						<div class="text-sm font-medium text-dark-700">Type</div>
-						<div class="text-dark-900">{viewingEmail.type}</div>
+						<div class="text-sm font-medium text-foreground-alt">Type</div>
+						<div class="text-foreground">{viewingEmail.type}</div>
 					</div>
 					<div>
-						<div class="text-sm font-medium text-dark-700">Destinataire</div>
-						<div class="text-dark-900">{viewingEmail.recipient}</div>
+						<div class="text-sm font-medium text-foreground-alt">Destinataire</div>
+						<div class="text-foreground">{viewingEmail.recipient}</div>
 					</div>
 					<div>
-						<div class="text-sm font-medium text-dark-700">Sujet</div>
-						<div class="text-dark-900">{viewingEmail.subject}</div>
+						<div class="text-sm font-medium text-foreground-alt">Sujet</div>
+						<div class="text-foreground">{viewingEmail.subject}</div>
 					</div>
 					<div>
-						<div class="text-sm font-medium text-dark-700">Statut</div>
-						<div class="text-dark-900 capitalize">{viewingEmail.status}</div>
+						<div class="text-sm font-medium text-foreground-alt">Statut</div>
+						<div class="text-foreground capitalize">{viewingEmail.status}</div>
 					</div>
 					{#if viewingEmail.lastError}
 						<div>
-							<div class="text-sm font-medium text-dark-700">Dernière Erreur</div>
+							<div class="text-sm font-medium text-foreground-alt">Dernière Erreur</div>
 							<div class="text-red-600">{viewingEmail.lastError}</div>
 						</div>
 					{/if}
 					<div>
-						<div class="text-sm font-medium text-dark-700 mb-2">Aperçu HTML</div>
-						<div class="bg-dark-50 rounded-lg p-4 border border-border-card">
+						<div class="text-sm font-medium text-foreground-alt mb-2">Aperçu HTML</div>
+						<div class="bg-muted rounded-lg p-4 border border-border-card">
 							<iframe class="w-full h-64 border-0" srcdoc={viewingEmail.htmlBody}></iframe>
 						</div>
 					</div>
 					<div>
-						<div class="text-sm font-medium text-dark-700 mb-2">Contenu Texte</div>
-						<pre class="bg-dark-900 text-dark-100 rounded-lg p-4 overflow-x-auto text-sm">{viewingEmail.textBody}</pre>
+						<div class="text-sm font-medium text-foreground-alt mb-2">Contenu Texte</div>
+						<pre class="bg-foreground text-muted-foreground rounded-lg p-4 overflow-x-auto text-sm">{viewingEmail.textBody}</pre>
 					</div>
 				</div>
 			</div>

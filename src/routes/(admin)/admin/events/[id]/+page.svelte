@@ -55,13 +55,13 @@
     <div class="mb-8">
         <a
             href="/admin/events"
-            class="inline-flex items-center gap-2 text-dark-600 hover:text-dark-900 transition-colors mb-4"
+            class="inline-flex items-center gap-2 text-foreground-alt hover:text-foreground transition-colors mb-4"
         >
             <ArrowLeft size={20} />
             <span>Retour aux événements</span>
         </a>
         <h1 class="text-3xl lg:text-4xl font-bold mb-2">{data.event.titleEn}</h1>
-        <p class="text-dark-400">Gérer cet événement</p>
+        <p class="text-muted-foreground">Gérer cet événement</p>
     </div>
 
     {#if form?.error}
@@ -86,7 +86,7 @@
         {#each triggers as trigger}
             <TabsTrigger
                 value={trigger.value}
-                class="px-2 py-1.75 md:px-4 md:py-2 md:h-8 rounded-none bg-transparent border-b-3 data-[state=active]:shadow-none mb-[-2px] data-[state=active]:border-b-dark-900 data-[state=active]:text-dark-900 data-[state=inactive]:border-transparent data-[state=inactive]:text-dark-400 data-[state=inactive]:hover:bg-transparent data-[state=inactive]:hover:text-dark-600 transition-colors cursor-pointer"
+                class="px-2 py-1.75 md:px-4 md:py-2 md:h-8 rounded-none bg-transparent border-b-3 data-[state=active]:shadow-none mb-[-2px] data-[state=active]:border-b-dark-900 data-[state=active]:text-foreground data-[state=inactive]:border-transparent data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:bg-transparent data-[state=inactive]:hover:text-foreground-alt transition-colors cursor-pointer"
             >
                 {trigger.name}
             </TabsTrigger>
@@ -111,7 +111,7 @@
             <PromoCodes {data} {form} />
         </TabsContent>
         <TabsContent value="communication" class="h-full p-6">
-            <p class="text-dark-400">Communication features coming soon...</p>
+            <p class="text-muted-foreground">Communication features coming soon...</p>
         </TabsContent>
     </div>
 </Tabs>

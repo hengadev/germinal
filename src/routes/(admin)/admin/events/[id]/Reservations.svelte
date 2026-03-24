@@ -25,9 +25,9 @@
 			case 'cancelled':
 				return { text: 'Cancelled', class: 'bg-red-50 text-red-700', icon: XCircle };
 			case 'expired':
-				return { text: 'Expired', class: 'bg-dark-100 text-dark-600', icon: AlertCircle };
+				return { text: 'Expired', class: 'bg-muted text-foreground-alt', icon: AlertCircle };
 			default:
-				return { text: status, class: 'bg-dark-100 text-dark-600', icon: null };
+				return { text: status, class: 'bg-muted text-foreground-alt', icon: null };
 		}
 	}
 
@@ -41,9 +41,9 @@
 			case 'failed':
 				return { text: 'Failed', class: 'bg-red-50 text-red-700' };
 			case 'refunded':
-				return { text: 'Refunded', class: 'bg-dark-100 text-dark-600' };
+				return { text: 'Refunded', class: 'bg-muted text-foreground-alt' };
 			default:
-				return { text: 'None', class: 'bg-dark-100 text-dark-600' };
+				return { text: 'None', class: 'bg-muted text-foreground-alt' };
 		}
 	}
 
@@ -90,15 +90,15 @@
 </script>
 
 <!-- Filters and Search -->
-<div class="bg-white rounded-lg border border-border-card p-4 mb-6">
+<div class="bg-background rounded-lg border border-border-card p-4 mb-6">
 	<div class="flex flex-col sm:flex-row gap-4">
 		<!-- Status Filter -->
 		<div class="flex-1">
-			<label for="statusFilter" class="block text-sm font-medium text-dark-700 mb-1">Filter by Status</label>
+			<label for="statusFilter" class="block text-sm font-medium text-foreground-alt mb-1">Filter by Status</label>
 			<select
 				id="statusFilter"
 				bind:value={statusFilter}
-				class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+				class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
 			>
 				<option value="all">All Statuses</option>
 				<option value="confirmed">Confirmed</option>
@@ -110,33 +110,33 @@
 
 		<!-- Search -->
 		<div class="flex-1">
-			<label for="search" class="block text-sm font-medium text-dark-700 mb-1">Search</label>
+			<label for="search" class="block text-sm font-medium text-foreground-alt mb-1">Search</label>
 			<div class="relative">
-				<Search size={18} class="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400" />
+				<Search size={18} class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
 				<input
 					id="search"
 					type="text"
 					bind:value={searchQuery}
 					placeholder="Search by name, email, or session..."
-					class="w-full pl-10 pr-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+					class="w-full pl-10 pr-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
 				/>
 			</div>
 		</div>
 	</div>
 
 	<!-- Results count -->
-	<div class="mt-3 text-sm text-dark-500">
+	<div class="mt-3 text-sm text-muted-foreground">
 		Showing {filteredReservations().length} of {data.reservations.length} reservations
 	</div>
 </div>
 
 {#if filteredReservations().length === 0}
-	<div class="bg-white rounded-lg border border-border-card p-12 text-center">
-		<Ticket size={48} class="mx-auto mb-4 text-dark-300" />
-		<h3 class="text-xl font-semibold text-dark-900 mb-2">
+	<div class="bg-background rounded-lg border border-border-card p-12 text-center">
+		<Ticket size={48} class="mx-auto mb-4 text-muted-foreground" />
+		<h3 class="text-xl font-semibold text-foreground mb-2">
 			No reservations found
 		</h3>
-		<p class="text-dark-400">
+		<p class="text-muted-foreground">
 			{#if searchQuery || statusFilter !== 'all'}
 				Try adjusting your filters or search query
 			{:else}
@@ -146,29 +146,29 @@
 	</div>
 {:else}
 	<!-- Table view for desktop -->
-	<div class="bg-white rounded-lg border border-border-card overflow-hidden hidden lg:block">
+	<div class="bg-background rounded-lg border border-border-card overflow-hidden hidden lg:block">
 		<table class="w-full">
-			<thead class="bg-dark-50 border-b border-border-card">
+			<thead class="bg-muted border-b border-border-card">
 				<tr>
-					<th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">
+					<th class="px-6 py-4 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">
 						Guest
 					</th>
-					<th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">
+					<th class="px-6 py-4 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">
 						Session
 					</th>
-					<th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">
+					<th class="px-6 py-4 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">
 						Quantity & Total
 					</th>
-					<th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">
+					<th class="px-6 py-4 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">
 						Status
 					</th>
-					<th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">
+					<th class="px-6 py-4 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">
 						Payment
 					</th>
-					<th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">
+					<th class="px-6 py-4 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">
 						Date
 					</th>
-					<th class="px-6 py-4 text-right text-xs font-semibold text-dark-600 uppercase tracking-wider">
+					<th class="px-6 py-4 text-right text-xs font-semibold text-foreground-alt uppercase tracking-wider">
 						Actions
 					</th>
 				</tr>
@@ -177,15 +177,15 @@
 				{#each filteredReservations() as reservation}
 					{@const statusBadge = getStatusBadge(reservation.status)}
 					{@const paymentBadge = getPaymentStatusBadge(reservation.paymentStatus)}
-					<tr class="hover:bg-dark-50 transition-colors">
+					<tr class="hover:bg-muted transition-colors">
 						<td class="px-6 py-4">
 							<div class="flex items-center gap-3">
-								<div class="w-10 h-10 bg-dark-100 rounded-full flex items-center justify-center">
-									<User size={18} class="text-dark-500" />
+								<div class="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
+									<User size={18} class="text-muted-foreground" />
 								</div>
 								<div>
-									<div class="font-medium text-dark-900">{reservation.guestName}</div>
-									<div class="text-sm text-dark-400 flex items-center gap-1">
+									<div class="font-medium text-foreground">{reservation.guestName}</div>
+									<div class="text-sm text-muted-foreground flex items-center gap-1">
 										<Mail size={12} />
 										{reservation.guestEmail}
 									</div>
@@ -194,19 +194,19 @@
 						</td>
 						<td class="px-6 py-4">
 							<div class="text-sm">
-								<div class="font-medium text-dark-900">{reservation.sessionTitle}</div>
-								<div class="text-dark-400 text-xs mt-1">
+								<div class="font-medium text-foreground">{reservation.sessionTitle}</div>
+								<div class="text-muted-foreground text-xs mt-1">
 									{formatDate(reservation.sessionStartTime)}
 								</div>
 							</div>
 						</td>
 						<td class="px-6 py-4">
 							<div class="text-sm">
-								<div class="flex items-center gap-2 text-dark-900">
+								<div class="flex items-center gap-2 text-foreground">
 									<Ticket size={14} />
 									<span class="font-medium">{reservation.quantity}</span>
 								</div>
-								<div class="text-dark-900">
+								<div class="text-foreground">
 									{formatCurrency(reservation.totalAmount, reservation.currency)}
 								</div>
 							</div>
@@ -227,7 +227,7 @@
 							</div>
 						</td>
 						<td class="px-6 py-4">
-							<div class="text-sm text-dark-600">
+							<div class="text-sm text-foreground-alt">
 								{formatDateTime(reservation.createdAt)}
 							</div>
 						</td>
@@ -235,7 +235,7 @@
 							<div class="flex items-center justify-end gap-2">
 								<a
 									href="/admin/reservations/{reservation.id}"
-									class="p-2 text-dark-600 hover:text-dark-900 hover:bg-dark-50 rounded-lg transition-colors"
+									class="p-2 text-foreground-alt hover:text-foreground hover:bg-muted rounded-lg transition-colors"
 									title="View Details"
 								>
 									<Eye size={18} />
@@ -253,14 +253,14 @@
 		{#each filteredReservations() as reservation}
 			{@const statusBadge = getStatusBadge(reservation.status)}
 			{@const paymentBadge = getPaymentStatusBadge(reservation.paymentStatus)}
-			<div class="bg-white rounded-lg border border-border-card p-4">
+			<div class="bg-background rounded-lg border border-border-card p-4">
 				<div class="flex items-start gap-3 mb-3">
-					<div class="w-10 h-10 bg-dark-100 rounded-full flex items-center justify-center flex-shrink-0">
-						<User size={18} class="text-dark-500" />
+					<div class="w-10 h-10 bg-muted rounded-full flex items-center justify-center flex-shrink-0">
+						<User size={18} class="text-muted-foreground" />
 					</div>
 					<div class="flex-1 min-w-0">
 						<div class="flex items-start justify-between gap-2 mb-1">
-							<h3 class="font-semibold text-dark-900 truncate">
+							<h3 class="font-semibold text-foreground truncate">
 								{reservation.guestName}
 							</h3>
 							<span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium {statusBadge.class} rounded-full flex-shrink-0">
@@ -270,27 +270,27 @@
 								{statusBadge.text}
 							</span>
 						</div>
-						<p class="text-sm text-dark-400 truncate">{reservation.guestEmail}</p>
+						<p class="text-sm text-muted-foreground truncate">{reservation.guestEmail}</p>
 					</div>
 				</div>
 
 				<div class="grid grid-cols-2 gap-3 mb-3">
 					<div>
-						<div class="text-xs text-dark-400">Session</div>
-						<div class="text-sm font-medium text-dark-900 truncate">{reservation.sessionTitle}</div>
+						<div class="text-xs text-muted-foreground">Session</div>
+						<div class="text-sm font-medium text-foreground truncate">{reservation.sessionTitle}</div>
 					</div>
 					<div>
-						<div class="text-xs text-dark-400">Tickets</div>
-						<div class="text-sm font-medium text-dark-900">{reservation.quantity}</div>
+						<div class="text-xs text-muted-foreground">Tickets</div>
+						<div class="text-sm font-medium text-foreground">{reservation.quantity}</div>
 					</div>
 					<div>
-						<div class="text-xs text-dark-400">Total</div>
-						<div class="text-sm font-medium text-dark-900">
+						<div class="text-xs text-muted-foreground">Total</div>
+						<div class="text-sm font-medium text-foreground">
 							{formatCurrency(reservation.totalAmount, reservation.currency)}
 						</div>
 					</div>
 					<div>
-						<div class="text-xs text-dark-400">Payment</div>
+						<div class="text-xs text-muted-foreground">Payment</div>
 						<span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium {paymentBadge.class} rounded-full">
 							{paymentBadge.text}
 						</span>
@@ -298,12 +298,12 @@
 				</div>
 
 				<div class="flex items-center justify-between pt-3 border-t border-border-card">
-					<div class="text-xs text-dark-400">
+					<div class="text-xs text-muted-foreground">
 						{formatDateTime(reservation.createdAt)}
 					</div>
 					<a
 						href="/admin/reservations/{reservation.id}"
-						class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-dark-600 hover:text-dark-900 hover:bg-dark-50 rounded-lg transition-colors"
+						class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-foreground-alt hover:text-foreground hover:bg-muted rounded-lg transition-colors"
 					>
 						View Details
 						<ArrowRight size={14} />

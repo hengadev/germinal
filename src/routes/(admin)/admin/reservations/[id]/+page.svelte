@@ -60,9 +60,9 @@
 			case 'cancelled':
 				return { text: 'Annulée', class: 'bg-red-50 text-red-700', icon: null };
 			case 'expired':
-				return { text: 'Expirée', class: 'bg-dark-100 text-dark-600', icon: null };
+				return { text: 'Expirée', class: 'bg-muted text-foreground-alt', icon: null };
 			default:
-				return { text: status, class: 'bg-dark-100 text-dark-600', icon: null };
+				return { text: status, class: 'bg-muted text-foreground-alt', icon: null };
 		}
 	}
 
@@ -146,7 +146,7 @@ END:VCALENDAR`;
 	<!-- Back Button -->
 	<a
 		href="/admin/reservations"
-		class="inline-flex items-center gap-2 text-dark-600 hover:text-dark-900 mb-6"
+		class="inline-flex items-center gap-2 text-foreground-alt hover:text-foreground mb-6"
 	>
 		<ArrowLeft size={18} />
 		<span>Retour aux Réservations</span>
@@ -157,7 +157,7 @@ END:VCALENDAR`;
 		<div class="flex items-start justify-between mb-2">
 			<div>
 				<h1 class="text-3xl lg:text-4xl font-bold mb-2">Détails de la Réservation</h1>
-				<p class="text-dark-400">
+				<p class="text-muted-foreground">
 					ID de Confirmation : {data.reservation.id.substring(0, 8).toUpperCase()}
 				</p>
 			</div>
@@ -174,120 +174,120 @@ END:VCALENDAR`;
 		<!-- Main Content (2 columns) -->
 		<div class="lg:col-span-2 space-y-6">
 			<!-- Guest Information -->
-			<div class="bg-white rounded-lg border border-border-card p-6">
-				<h2 class="text-lg font-semibold text-dark-900 mb-4">Informations de l'Invité</h2>
+			<div class="bg-background rounded-lg border border-border-card p-6">
+				<h2 class="text-lg font-semibold text-foreground mb-4">Informations de l'Invité</h2>
 				<div class="grid gap-4">
 					<div class="flex items-center gap-3">
-						<div class="w-10 h-10 bg-dark-100 rounded-full flex items-center justify-center">
-							<User size={18} class="text-dark-500" />
+						<div class="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
+							<User size={18} class="text-muted-foreground" />
 						</div>
 						<div>
-							<div class="text-sm text-dark-400">Nom</div>
-							<div class="font-medium text-dark-900">{data.reservation.guestName}</div>
+							<div class="text-sm text-muted-foreground">Nom</div>
+							<div class="font-medium text-foreground">{data.reservation.guestName}</div>
 						</div>
 					</div>
 					<div class="flex items-center gap-3">
-						<div class="w-10 h-10 bg-dark-100 rounded-full flex items-center justify-center">
-							<Mail size={18} class="text-dark-500" />
+						<div class="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
+							<Mail size={18} class="text-muted-foreground" />
 						</div>
 						<div>
-							<div class="text-sm text-dark-400">Email</div>
-							<div class="font-medium text-dark-900">{data.reservation.guestEmail}</div>
+							<div class="text-sm text-muted-foreground">Email</div>
+							<div class="font-medium text-foreground">{data.reservation.guestEmail}</div>
 						</div>
 					</div>
 					{#if data.reservation.guestPhone}
 						<div class="flex items-center gap-3">
-							<div class="w-10 h-10 bg-dark-100 rounded-full flex items-center justify-center">
-								<Phone size={18} class="text-dark-500" />
+							<div class="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
+								<Phone size={18} class="text-muted-foreground" />
 							</div>
 							<div>
-								<div class="text-sm text-dark-400">Téléphone</div>
-								<div class="font-medium text-dark-900">{data.reservation.guestPhone}</div>
+								<div class="text-sm text-muted-foreground">Téléphone</div>
+								<div class="font-medium text-foreground">{data.reservation.guestPhone}</div>
 							</div>
 						</div>
 					{/if}
 					<div class="flex items-center gap-3">
-						<div class="w-10 h-10 bg-dark-100 rounded-full flex items-center justify-center">
-							<Ticket size={18} class="text-dark-500" />
+						<div class="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
+							<Ticket size={18} class="text-muted-foreground" />
 						</div>
 						<div>
-							<div class="text-sm text-dark-400">Billets</div>
-							<div class="font-medium text-dark-900">{data.reservation.quantity} billet{data.reservation.quantity > 1 ? 's' : ''}</div>
+							<div class="text-sm text-muted-foreground">Billets</div>
+							<div class="font-medium text-foreground">{data.reservation.quantity} billet{data.reservation.quantity > 1 ? 's' : ''}</div>
 						</div>
 					</div>
 				</div>
 			</div>
 
 			<!-- Event Information -->
-			<div class="bg-white rounded-lg border border-border-card p-6">
-				<h2 class="text-lg font-semibold text-dark-900 mb-4">Informations sur l'Événement</h2>
+			<div class="bg-background rounded-lg border border-border-card p-6">
+				<h2 class="text-lg font-semibold text-foreground mb-4">Informations sur l'Événement</h2>
 				<div class="space-y-4">
 					<div>
-						<div class="text-sm text-dark-400 mb-1">Événement</div>
-						<div class="font-semibold text-dark-900 text-lg">{data.reservation.session.event.title}</div>
-						<div class="text-dark-600">{data.reservation.session.title}</div>
+						<div class="text-sm text-muted-foreground mb-1">Événement</div>
+						<div class="font-semibold text-foreground text-lg">{data.reservation.session.event.title}</div>
+						<div class="text-foreground-alt">{data.reservation.session.title}</div>
 					</div>
 					<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
 						<div class="flex items-center gap-3">
-							<Calendar size={18} class="text-dark-400" />
+							<Calendar size={18} class="text-muted-foreground" />
 							<div>
-								<div class="text-sm text-dark-400">Date</div>
-								<div class="font-medium text-dark-900">{formatDate(data.reservation.session.startTime)}</div>
+								<div class="text-sm text-muted-foreground">Date</div>
+								<div class="font-medium text-foreground">{formatDate(data.reservation.session.startTime)}</div>
 							</div>
 						</div>
 						<div class="flex items-center gap-3">
-							<Clock size={18} class="text-dark-400" />
+							<Clock size={18} class="text-muted-foreground" />
 							<div>
-								<div class="text-sm text-dark-400">Heure</div>
-								<div class="font-medium text-dark-900">
+								<div class="text-sm text-muted-foreground">Heure</div>
+								<div class="font-medium text-foreground">
 									{formatTime(data.reservation.session.startTime)} - {formatTime(data.reservation.session.endTime)}
 								</div>
 							</div>
 						</div>
 					</div>
 					<div class="flex items-center gap-3">
-						<MapPin size={18} class="text-dark-400" />
+						<MapPin size={18} class="text-muted-foreground" />
 						<div>
-							<div class="text-sm text-dark-400">Lieu</div>
-							<div class="font-medium text-dark-900">{data.reservation.session.event.location}</div>
+							<div class="text-sm text-muted-foreground">Lieu</div>
+							<div class="font-medium text-foreground">{data.reservation.session.event.location}</div>
 						</div>
 					</div>
 				</div>
 			</div>
 
 			<!-- Payment Information -->
-			<div class="bg-white rounded-lg border border-border-card p-6">
-				<h2 class="text-lg font-semibold text-dark-900 mb-4">Informations de Paiement</h2>
+			<div class="bg-background rounded-lg border border-border-card p-6">
+				<h2 class="text-lg font-semibold text-foreground mb-4">Informations de Paiement</h2>
 				{#if data.reservation.payment}
 					<div class="space-y-3">
 						<div class="flex items-center justify-between">
-							<span class="text-dark-600">Statut</span>
-							<span class="font-medium text-dark-900 capitalize">{data.reservation.payment.status}</span>
+							<span class="text-foreground-alt">Statut</span>
+							<span class="font-medium text-foreground capitalize">{data.reservation.payment.status}</span>
 						</div>
 						<div class="flex items-center justify-between">
-							<span class="text-dark-600">Montant Payé</span>
-							<span class="font-semibold text-dark-900">
+							<span class="text-foreground-alt">Montant Payé</span>
+							<span class="font-semibold text-foreground">
 								{formatCurrency(data.reservation.totalAmount, data.reservation.currency)}
 							</span>
 						</div>
 						{#if data.reservation.payment.refundedAmount > 0}
 							<div class="flex items-center justify-between">
-								<span class="text-dark-600">Montant Remboursé</span>
+								<span class="text-foreground-alt">Montant Remboursé</span>
 								<span class="font-medium text-red-600">
 									-{formatCurrency(data.reservation.payment.refundedAmount, data.reservation.currency)}
 								</span>
 							</div>
 						{/if}
 						<div class="flex items-center justify-between">
-							<span class="text-dark-600">Stripe Payment Intent</span>
-							<span class="text-sm text-dark-500 font-mono">{data.reservation.payment.stripePaymentIntentId}</span>
+							<span class="text-foreground-alt">Stripe Payment Intent</span>
+							<span class="text-sm text-muted-foreground font-mono">{data.reservation.payment.stripePaymentIntentId}</span>
 						</div>
 						{#if data.reservation.payment.receiptUrl}
 							<a
 								href={data.reservation.payment.receiptUrl}
 								target="_blank"
 								rel="noopener noreferrer"
-								class="inline-flex items-center gap-2 text-dark-600 hover:text-dark-900 transition-colors"
+								class="inline-flex items-center gap-2 text-foreground-alt hover:text-foreground transition-colors"
 							>
 								<ExternalLink size={16} />
 								Voir le Reçu Stripe
@@ -295,27 +295,27 @@ END:VCALENDAR`;
 						{/if}
 					</div>
 				{:else}
-					<div class="text-dark-400">Aucune information de paiement disponible</div>
+					<div class="text-muted-foreground">Aucune information de paiement disponible</div>
 				{/if}
 			</div>
 
 			<!-- Timeline -->
-			<div class="bg-white rounded-lg border border-border-card p-6">
-				<h2 class="text-lg font-semibold text-dark-900 mb-4">Chronologie</h2>
+			<div class="bg-background rounded-lg border border-border-card p-6">
+				<h2 class="text-lg font-semibold text-foreground mb-4">Chronologie</h2>
 				<div class="space-y-3">
 					<div class="flex items-start gap-3">
-						<div class="w-2 h-2 bg-dark-900 rounded-full mt-2"></div>
+						<div class="w-2 h-2 bg-foreground rounded-full mt-2"></div>
 						<div>
-							<div class="text-sm text-dark-400">Créé</div>
-							<div class="font-medium text-dark-900">{formatDateTime(data.reservation.createdAt)}</div>
+							<div class="text-sm text-muted-foreground">Créé</div>
+							<div class="font-medium text-foreground">{formatDateTime(data.reservation.createdAt)}</div>
 						</div>
 					</div>
 					{#if data.reservation.confirmedAt}
 						<div class="flex items-start gap-3">
 							<div class="w-2 h-2 bg-green-600 rounded-full mt-2"></div>
 							<div>
-								<div class="text-sm text-dark-400">Confirmée</div>
-								<div class="font-medium text-dark-900">{formatDateTime(data.reservation.confirmedAt)}</div>
+								<div class="text-sm text-muted-foreground">Confirmée</div>
+								<div class="font-medium text-foreground">{formatDateTime(data.reservation.confirmedAt)}</div>
 							</div>
 						</div>
 					{/if}
@@ -323,8 +323,8 @@ END:VCALENDAR`;
 						<div class="flex items-start gap-3">
 							<div class="w-2 h-2 bg-red-600 rounded-full mt-2"></div>
 							<div>
-								<div class="text-sm text-dark-400">Annulée</div>
-								<div class="font-medium text-dark-900">{formatDateTime(data.reservation.cancelledAt)}</div>
+								<div class="text-sm text-muted-foreground">Annulée</div>
+								<div class="font-medium text-foreground">{formatDateTime(data.reservation.cancelledAt)}</div>
 							</div>
 						</div>
 					{/if}
@@ -335,10 +335,10 @@ END:VCALENDAR`;
 		<!-- Sidebar (1 column) -->
 		<div class="space-y-6">
 			<!-- QR Code -->
-			<div class="bg-white rounded-lg border border-border-card p-6">
-				<h2 class="text-lg font-semibold text-dark-900 mb-4">QR Code du Billet</h2>
+			<div class="bg-background rounded-lg border border-border-card p-6">
+				<h2 class="text-lg font-semibold text-foreground mb-4">QR Code du Billet</h2>
 				{#if qrCodeUrl}
-					<div class="bg-dark-50 rounded-lg p-4 mb-4">
+					<div class="bg-muted rounded-lg p-4 mb-4">
 						<img
 							src={qrCodeUrl}
 							alt="Ticket QR Code"
@@ -346,15 +346,15 @@ END:VCALENDAR`;
 						/>
 					</div>
 				{:else}
-					<div class="bg-dark-50 rounded-lg p-8 text-center">
-						<div class="animate-pulse text-dark-400">Chargement...</div>
+					<div class="bg-muted rounded-lg p-8 text-center">
+						<div class="animate-pulse text-muted-foreground">Chargement...</div>
 					</div>
 				{/if}
 				<a
 					href={publicTicketUrl}
 					target="_blank"
 					rel="noopener noreferrer"
-					class="block w-full text-center px-4 py-2.5 border border-dark-300 text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium text-sm"
+					class="block w-full text-center px-4 py-2.5 border border-border-input text-foreground-alt rounded-lg hover:bg-muted transition-colors font-medium text-sm"
 				>
 					<ExternalLink size={16} class="inline mr-2" />
 					Voir le Billet Public
@@ -362,8 +362,8 @@ END:VCALENDAR`;
 			</div>
 
 			<!-- Actions -->
-			<div class="bg-white rounded-lg border border-border-card p-6">
-				<h2 class="text-lg font-semibold text-dark-900 mb-4">Actions</h2>
+			<div class="bg-background rounded-lg border border-border-card p-6">
+				<h2 class="text-lg font-semibold text-foreground mb-4">Actions</h2>
 				<div class="space-y-3">
 					<!-- Admin Actions -->
 					{#if data.reservation.status === 'confirmed'}
@@ -381,7 +381,7 @@ END:VCALENDAR`;
 							<button
 								type="submit"
 								disabled={isSubmitting}
-								class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+								class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 border border-border-input text-foreground-alt rounded-lg hover:bg-muted transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
 							>
 								<MailCheck size={18} />
 								Envoyer un Rappel
@@ -438,14 +438,14 @@ END:VCALENDAR`;
 					<!-- Utility Actions -->
 					<button
 						onclick={downloadCalendar}
-						class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium text-sm"
+						class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 border border-border-input text-foreground-alt rounded-lg hover:bg-muted transition-colors font-medium text-sm"
 					>
 						<Download size={18} />
 						Ajouter au Calendrier
 					</button>
 					<button
 						onclick={printTicket}
-						class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors font-medium text-sm"
+						class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-foreground text-background rounded-lg hover:opacity-90 transition-colors font-medium text-sm"
 					>
 						<Printer size={18} />
 						Imprimer le Billet
@@ -454,19 +454,19 @@ END:VCALENDAR`;
 			</div>
 
 			<!-- Quick Stats -->
-			<div class="bg-dark-900 text-white rounded-lg p-6">
+			<div class="bg-foreground text-background rounded-lg p-6">
 				<h3 class="text-lg font-semibold mb-4">Statistiques Rapides</h3>
 				<div class="space-y-3">
 					<div class="flex items-center justify-between">
-						<span class="text-dark-200">Billets</span>
+						<span class="text-muted-foreground">Billets</span>
 						<span class="font-semibold">{data.reservation.quantity}</span>
 					</div>
 					<div class="flex items-center justify-between">
-						<span class="text-dark-200">Total</span>
+						<span class="text-muted-foreground">Total</span>
 						<span class="font-semibold">{formatCurrency(data.reservation.totalAmount, data.reservation.currency)}</span>
 					</div>
 					<div class="flex items-center justify-between">
-						<span class="text-dark-200">Statut</span>
+						<span class="text-muted-foreground">Statut</span>
 						<span class="font-semibold capitalize">{data.reservation.status}</span>
 					</div>
 				</div>

@@ -52,7 +52,7 @@
 			case 'failed':
 				return { text: 'Échoué', class: 'bg-red-50 text-red-700', bg: 'bg-red-500' };
 			case 'refunded':
-				return { text: 'Remboursé', class: 'bg-dark-100 text-dark-600', bg: 'bg-dark-500' };
+				return { text: 'Remboursé', class: 'bg-muted text-foreground-alt', bg: 'bg-muted0' };
 			case 'partially_refunded':
 				return { text: 'Remboursé partiellement', class: 'bg-orange-50 text-orange-700', bg: 'bg-orange-500' };
 			case 'pending':
@@ -60,7 +60,7 @@
 			case 'processing':
 				return { text: 'En traitement', class: 'bg-blue-50 text-blue-700', bg: 'bg-blue-500' };
 			default:
-				return { text: status, class: 'bg-dark-100 text-dark-600', bg: 'bg-dark-500' };
+				return { text: status, class: 'bg-muted text-foreground-alt', bg: 'bg-muted0' };
 		}
 	}
 
@@ -140,7 +140,7 @@
 			label: 'Remboursés',
 			value: data.metrics.refundedPayments.toString(),
 			icon: AlertCircle,
-			color: 'bg-dark-500',
+			color: 'bg-muted0',
 			trend: null
 		}
 	];
@@ -155,17 +155,17 @@
 		<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-2">
 			<div>
 				<h1 class="text-3xl lg:text-4xl font-bold mb-2">Analytiques des Paiements</h1>
-				<p class="text-dark-400">Suivre les revenus, les paiements et les métriques de performance</p>
+				<p class="text-muted-foreground">Suivre les revenus, les paiements et les métriques de performance</p>
 			</div>
 			<div class="flex items-center gap-3">
 				<!-- Date Range Selector -->
-				<div class="flex items-center gap-2 bg-white rounded-lg border border-border-card p-1">
+				<div class="flex items-center gap-2 bg-background rounded-lg border border-border-card p-1">
 				{#each ['7d', '30d', '90d', 'all'] as range}
 					<button
 						onclick={() => updateRange(range)}
 						class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors {selectedRange === range
-							? 'bg-dark-900 text-white'
-							: 'text-dark-600 hover:bg-dark-50'}"
+							? 'bg-foreground text-background'
+							: 'text-foreground-alt hover:opacity-90'}"
 					>
 						{range === 'all' ? 'Toutes périodes' : range === '7d' ? '7 jours' : range === '30d' ? '30 jours' : '90 jours'}
 					</button>
@@ -176,7 +176,7 @@
 					href="/admin/export/analytics"
 					target="_blank"
 					rel="noopener noreferrer"
-					class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium text-sm whitespace-nowrap"
+					class="inline-flex items-center gap-2 px-4 py-2 bg-background border border-border-input text-foreground-alt rounded-lg hover:bg-muted transition-colors font-medium text-sm whitespace-nowrap"
 				>
 					<Download size={16} />
 					Exporter CSV
@@ -189,7 +189,7 @@
 	<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
 		{#each metrics as metric}
 			{@const Icon = metric.icon}
-			<div class="bg-white rounded-lg border border-border-card p-6 hover:shadow-sm transition-shadow">
+			<div class="bg-background rounded-lg border border-border-card p-6 hover:shadow-sm transition-shadow">
 				<div class="flex items-center justify-between mb-4">
 					<div class="p-2 {metric.color} bg-opacity-10 rounded-lg">
 						<Icon size={20} class="{metric.color.replace('bg-', 'text-')}" />
@@ -203,32 +203,32 @@
 								<ArrowDown size={16} class="text-red-600" />
 								<span class="text-red-600 font-medium">{Math.abs(metric.trend)}%</span>
 							{:else}
-								<span class="text-dark-400">-</span>
+								<span class="text-muted-foreground">-</span>
 							{/if}
 						</div>
 					{/if}
 				</div>
-				<div class="text-2xl font-bold text-dark-900 mb-1">{metric.value}</div>
-				<div class="text-sm text-dark-400">{metric.label}</div>
+				<div class="text-2xl font-bold text-foreground mb-1">{metric.value}</div>
+				<div class="text-sm text-muted-foreground">{metric.label}</div>
 			</div>
 		{/each}
 	</div>
 
 	<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
 		<!-- Revenue Over Time Chart -->
-		<div class="bg-white rounded-lg border border-border-card p-6">
+		<div class="bg-background rounded-lg border border-border-card p-6">
 			<div class="flex items-center justify-between mb-6">
 				<div>
-					<h2 class="text-lg font-semibold text-dark-900">Revenus au Fil du Temps</h2>
-					<p class="text-sm text-dark-400">Revenus quotidiens des paiements réussis</p>
+					<h2 class="text-lg font-semibold text-foreground">Revenus au Fil du Temps</h2>
+					<p class="text-sm text-muted-foreground">Revenus quotidiens des paiements réussis</p>
 				</div>
-				<BarChart3 size={20} class="text-dark-400" />
+				<BarChart3 size={20} class="text-muted-foreground" />
 			</div>
 
 			{#if data.dailyRevenue.length === 0}
-				<div class="flex items-center justify-center h-64 text-dark-400">
+				<div class="flex items-center justify-center h-64 text-muted-foreground">
 					<div class="text-center">
-						<BarChart3 size={48} class="mx-auto mb-4 text-dark-300" />
+						<BarChart3 size={48} class="mx-auto mb-4 text-muted-foreground" />
 						<p>Pas de données de revenus pour cette période</p>
 					</div>
 				</div>
@@ -276,7 +276,7 @@
 								x={getX(0, data.dailyRevenue.length)}
 								y={chartHeight - 10}
 								text-anchor="middle"
-								class="text-xs fill-dark-400"
+								class="text-xs fill-muted-foreground"
 							>
 								{formatDate(data.dailyRevenue[0].date)}
 							</text>
@@ -284,7 +284,7 @@
 								x={getX(Math.floor(data.dailyRevenue.length / 2), data.dailyRevenue.length)}
 								y={chartHeight - 10}
 								text-anchor="middle"
-								class="text-xs fill-dark-400"
+								class="text-xs fill-muted-foreground"
 							>
 								{formatDate(data.dailyRevenue[Math.floor(data.dailyRevenue.length / 2)].date)}
 							</text>
@@ -292,7 +292,7 @@
 								x={getX(data.dailyRevenue.length - 1, data.dailyRevenue.length)}
 								y={chartHeight - 10}
 								text-anchor="middle"
-								class="text-xs fill-dark-400"
+								class="text-xs fill-muted-foreground"
 							>
 								{formatDate(data.dailyRevenue[data.dailyRevenue.length - 1].date)}
 							</text>
@@ -303,19 +303,19 @@
 		</div>
 
 		<!-- Payment Status Breakdown -->
-		<div class="bg-white rounded-lg border border-border-card p-6">
+		<div class="bg-background rounded-lg border border-border-card p-6">
 			<div class="flex items-center justify-between mb-6">
 				<div>
-					<h2 class="text-lg font-semibold text-dark-900">Statut des Paiements</h2>
-					<p class="text-sm text-dark-400">Répartition des statuts de paiement</p>
+					<h2 class="text-lg font-semibold text-foreground">Statut des Paiements</h2>
+					<p class="text-sm text-muted-foreground">Répartition des statuts de paiement</p>
 				</div>
-				<CreditCard size={20} class="text-dark-400" />
+				<CreditCard size={20} class="text-muted-foreground" />
 			</div>
 
 			{#if data.paymentStatusBreakdown.length === 0}
-				<div class="flex items-center justify-center h-64 text-dark-400">
+				<div class="flex items-center justify-center h-64 text-muted-foreground">
 					<div class="text-center">
-						<CreditCard size={48} class="mx-auto mb-4 text-dark-300" />
+						<CreditCard size={48} class="mx-auto mb-4 text-muted-foreground" />
 						<p>Pas de données de paiement disponibles</p>
 					</div>
 				</div>
@@ -327,18 +327,18 @@
 							<div class="flex items-center justify-between mb-2">
 								<div class="flex items-center gap-2">
 									<div class="w-3 h-3 {badge.bg} rounded-full"></div>
-									<span class="text-sm font-medium text-dark-900">{badge.text}</span>
+									<span class="text-sm font-medium text-foreground">{badge.text}</span>
 								</div>
 								<div class="flex items-center gap-4">
-									<span class="text-sm text-dark-400">
+									<span class="text-sm text-muted-foreground">
 										{status.count} paiements
 									</span>
-									<span class="text-sm font-semibold text-dark-900">
+									<span class="text-sm font-semibold text-foreground">
 										{formatCurrency(status.amount)}
 									</span>
 								</div>
 							</div>
-							<div class="w-full bg-dark-100 rounded-full h-2">
+							<div class="w-full bg-muted rounded-full h-2">
 								<div
 									class="{badge.bg} h-2 rounded-full transition-all"
 									style="width: {status.percentage}%"
@@ -352,19 +352,19 @@
 	</div>
 
 	<!-- Top Events by Revenue -->
-	<div class="bg-white rounded-lg border border-border-card p-6">
+	<div class="bg-background rounded-lg border border-border-card p-6">
 		<div class="flex items-center justify-between mb-6">
 			<div>
-				<h2 class="text-lg font-semibold text-dark-900">Meilleurs Événements par Revenus</h2>
-				<p class="text-sm text-dark-400">Événements les plus performants de cette période</p>
+				<h2 class="text-lg font-semibold text-foreground">Meilleurs Événements par Revenus</h2>
+				<p class="text-sm text-muted-foreground">Événements les plus performants de cette période</p>
 			</div>
-			<Calendar size={20} class="text-dark-400" />
+			<Calendar size={20} class="text-muted-foreground" />
 		</div>
 
 		{#if data.eventRevenue.length === 0}
-			<div class="flex items-center justify-center h-64 text-dark-400">
+			<div class="flex items-center justify-center h-64 text-muted-foreground">
 				<div class="text-center">
-					<Calendar size={48} class="mx-auto mb-4 text-dark-300" />
+					<Calendar size={48} class="mx-auto mb-4 text-muted-foreground" />
 					<p>Pas de données de revenus d'événements pour cette période</p>
 				</div>
 			</div>
@@ -372,21 +372,21 @@
 			<!-- Table view -->
 			<div class="overflow-x-auto">
 				<table class="w-full">
-					<thead class="bg-dark-50 border-b border-border-card">
+					<thead class="bg-muted border-b border-border-card">
 						<tr>
-							<th class="px-4 py-3 text-left text-xs font-semibold text-dark-600 uppercase">
+							<th class="px-4 py-3 text-left text-xs font-semibold text-foreground-alt uppercase">
 								Événement
 							</th>
-							<th class="px-4 py-3 text-right text-xs font-semibold text-dark-600 uppercase">
+							<th class="px-4 py-3 text-right text-xs font-semibold text-foreground-alt uppercase">
 								Revenus
 							</th>
-							<th class="px-4 py-3 text-right text-xs font-semibold text-dark-600 uppercase">
+							<th class="px-4 py-3 text-right text-xs font-semibold text-foreground-alt uppercase">
 								Billets Vendus
 							</th>
-							<th class="px-4 py-3 text-right text-xs font-semibold text-dark-600 uppercase">
+							<th class="px-4 py-3 text-right text-xs font-semibold text-foreground-alt uppercase">
 								Paiements
 							</th>
-							<th class="px-4 py-3 text-right text-xs font-semibold text-dark-600 uppercase">
+							<th class="px-4 py-3 text-right text-xs font-semibold text-foreground-alt uppercase">
 								%
 							</th>
 						</tr>
@@ -394,36 +394,36 @@
 					<tbody class="divide-y divide-border-card">
 						{#each data.eventRevenue as event, index}
 							{@const maxRevenue = data.eventRevenue[0].revenue}
-							<tr class="hover:bg-dark-50 transition-colors">
+							<tr class="hover:bg-muted transition-colors">
 								<td class="px-4 py-3">
 									<div class="flex items-center gap-3">
 										<div
-											class="w-6 h-6 bg-dark-100 rounded-full flex items-center justify-center text-xs font-medium text-dark-600"
+											class="w-6 h-6 bg-muted rounded-full flex items-center justify-center text-xs font-medium text-foreground-alt"
 										>
 											{index + 1}
 										</div>
-										<span class="font-medium text-dark-900">{event.eventTitle}</span>
+										<span class="font-medium text-foreground">{event.eventTitle}</span>
 									</div>
 								</td>
-								<td class="px-4 py-3 text-right font-medium text-dark-900">
+								<td class="px-4 py-3 text-right font-medium text-foreground">
 									{formatCurrency(event.revenue)}
 								</td>
 								<td class="px-4 py-3 text-right">
 									<div class="flex items-center justify-end gap-1">
-										<Ticket size={14} class="text-dark-400" />
-										<span class="text-dark-600">{event.ticketsSold}</span>
+										<Ticket size={14} class="text-muted-foreground" />
+										<span class="text-foreground-alt">{event.ticketsSold}</span>
 									</div>
 								</td>
-								<td class="px-4 py-3 text-right text-dark-600">{event.payments}</td>
+								<td class="px-4 py-3 text-right text-foreground-alt">{event.payments}</td>
 								<td class="px-4 py-3 text-right">
 									<div class="flex items-center justify-end gap-2">
-										<div class="w-16 bg-dark-100 rounded-full h-1.5">
+										<div class="w-16 bg-muted rounded-full h-1.5">
 											<div
 												class="bg-green-500 h-1.5 rounded-full"
 												style="width: {(event.revenue / maxRevenue) * 100}%"
 											></div>
 										</div>
-										<span class="text-xs text-dark-400 w-8">
+										<span class="text-xs text-muted-foreground w-8">
 											{((event.revenue / maxRevenue) * 100).toFixed(0)}%
 										</span>
 									</div>

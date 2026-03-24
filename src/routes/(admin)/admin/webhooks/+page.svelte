@@ -40,7 +40,7 @@
 			case 'failed':
 				return { text: 'Échoué', class: 'bg-red-50 text-red-700', icon: XCircle };
 			default:
-				return { text: status, class: 'bg-dark-100 text-dark-600', icon: null };
+				return { text: status, class: 'bg-muted text-foreground-alt', icon: null };
 		}
 	}
 
@@ -73,16 +73,16 @@
 <div class="container mx-auto px-4 py-8 lg:py-12">
 	<div class="mb-8">
 		<h1 class="text-3xl lg:text-4xl font-bold mb-2">Surveillance des Webhooks</h1>
-		<p class="text-dark-400">Surveiller les paiements avec des webhooks non traités</p>
+		<p class="text-muted-foreground">Surveiller les paiements avec des webhooks non traités</p>
 	</div>
 
 	{#if data.payments.length === 0}
-		<div class="bg-white rounded-lg border border-border-card p-12 text-center">
+		<div class="bg-background rounded-lg border border-border-card p-12 text-center">
 			<CheckCircle2 size={48} class="mx-auto mb-4 text-green-300" />
-			<h3 class="text-xl font-semibold text-dark-900 mb-2">
+			<h3 class="text-xl font-semibold text-foreground mb-2">
 				Tous les webhooks ont été traités
 			</h3>
-			<p class="text-dark-400">
+			<p class="text-muted-foreground">
 				Aucun paiement avec des webhooks non traités n'a été trouvé. Tout est à jour !
 			</p>
 		</div>
@@ -100,34 +100,34 @@
 		</div>
 
 		<!-- Results count -->
-		<div class="mb-6 text-sm text-dark-500">
+		<div class="mb-6 text-sm text-muted-foreground">
 			Affichage de {data.payments.length} paiements avec des webhooks non traités
 		</div>
 
 		<!-- Table view for desktop -->
-		<div class="bg-white rounded-lg border border-border-card overflow-hidden hidden lg:block">
+		<div class="bg-background rounded-lg border border-border-card overflow-hidden hidden lg:block">
 			<table class="w-full">
-				<thead class="bg-dark-50 border-b border-border-card">
+				<thead class="bg-muted border-b border-border-card">
 					<tr>
-						<th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">
+						<th class="px-6 py-4 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">
 							Paiement
 						</th>
-						<th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">
+						<th class="px-6 py-4 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">
 							Réservation
 						</th>
-						<th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">
+						<th class="px-6 py-4 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">
 							Montant
 						</th>
-						<th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">
+						<th class="px-6 py-4 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">
 							Statut
 						</th>
-						<th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">
+						<th class="px-6 py-4 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">
 							Créé
 						</th>
-						<th class="px-6 py-4 text-left text-xs font-semibold text-dark-600 uppercase tracking-wider">
+						<th class="px-6 py-4 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">
 							Erreur
 						</th>
-						<th class="px-6 py-4 text-right text-xs font-semibold text-dark-600 uppercase tracking-wider">
+						<th class="px-6 py-4 text-right text-xs font-semibold text-foreground-alt uppercase tracking-wider">
 							Actions
 						</th>
 					</tr>
@@ -135,17 +135,17 @@
 				<tbody class="divide-y divide-border-card">
 					{#each data.payments as payment}
 						{@const statusBadge = getStatusBadge(payment.status)}
-						<tr class="hover:bg-dark-50 transition-colors">
+						<tr class="hover:bg-muted transition-colors">
 							<td class="px-6 py-4">
 								<div class="flex items-center gap-3">
-									<div class="w-10 h-10 bg-dark-100 rounded-full flex items-center justify-center">
-										<CreditCard size={18} class="text-dark-500" />
+									<div class="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
+										<CreditCard size={18} class="text-muted-foreground" />
 									</div>
 									<div>
-										<div class="font-medium text-dark-900 font-mono text-sm">
+										<div class="font-medium text-foreground font-mono text-sm">
 											{payment.stripePaymentIntentId}
 										</div>
-										<div class="text-xs text-dark-400">
+										<div class="text-xs text-muted-foreground">
 											ID: {payment.id.substring(0, 8)}
 										</div>
 									</div>
@@ -155,26 +155,26 @@
 								{#if payment.reservation}
 									<div class="text-sm">
 										<div class="flex items-center gap-2">
-											<User size={14} class="text-dark-400" />
-											<span class="font-medium text-dark-900">{payment.reservation.guestName}</span>
+											<User size={14} class="text-muted-foreground" />
+											<span class="font-medium text-foreground">{payment.reservation.guestName}</span>
 										</div>
-										<div class="flex items-center gap-2 text-dark-400">
+										<div class="flex items-center gap-2 text-muted-foreground">
 											<Mail size={12} />
 											<span class="text-xs">{payment.reservation.guestEmail}</span>
 										</div>
-										<div class="text-dark-400 text-xs mt-1">
+										<div class="text-muted-foreground text-xs mt-1">
 											{payment.reservation.eventTitle}
 										</div>
-										<div class="text-dark-400 text-xs">
+										<div class="text-muted-foreground text-xs">
 											{payment.reservation.sessionTitle}
 										</div>
 									</div>
 								{:else}
-									<div class="text-sm text-dark-400">No reservation</div>
+									<div class="text-sm text-muted-foreground">No reservation</div>
 								{/if}
 							</td>
 							<td class="px-6 py-4">
-								<div class="text-sm font-semibold text-dark-900">
+								<div class="text-sm font-semibold text-foreground">
 									{formatCurrency(payment.amount, payment.currency)}
 								</div>
 							</td>
@@ -187,7 +187,7 @@
 								</span>
 							</td>
 							<td class="px-6 py-4">
-								<div class="text-sm text-dark-600">
+								<div class="text-sm text-foreground-alt">
 									{formatDateTime(payment.createdAt)}
 								</div>
 							</td>
@@ -197,7 +197,7 @@
 										{payment.lastError}
 									</div>
 								{:else}
-									<div class="text-sm text-dark-400">-</div>
+									<div class="text-sm text-muted-foreground">-</div>
 								{/if}
 							</td>
 							<td class="px-6 py-4">
@@ -205,7 +205,7 @@
 									{#if payment.reservation}
 										<a
 											href="/admin/reservations/{payment.reservation.id}"
-											class="p-2 text-dark-600 hover:text-dark-900 hover:bg-dark-50 rounded-lg transition-colors"
+											class="p-2 text-foreground-alt hover:text-foreground hover:bg-muted rounded-lg transition-colors"
 											title="View Reservation"
 										>
 											<ExternalLink size={18} />
@@ -227,7 +227,7 @@
 										<input type="hidden" name="paymentId" value={payment.id} />
 										<button
 											type="submit"
-											class="p-2 text-dark-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+											class="p-2 text-foreground-alt hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
 											title="Retry Webhook"
 										>
 											<RefreshCw size={18} />
@@ -245,14 +245,14 @@
 		<div class="lg:hidden space-y-4">
 			{#each data.payments as payment}
 				{@const statusBadge = getStatusBadge(payment.status)}
-				<div class="bg-white rounded-lg border border-border-card p-4">
+				<div class="bg-background rounded-lg border border-border-card p-4">
 					<div class="flex items-start gap-3 mb-3">
-						<div class="w-10 h-10 bg-dark-100 rounded-full flex items-center justify-center flex-shrink-0">
-							<CreditCard size={18} class="text-dark-500" />
+						<div class="w-10 h-10 bg-muted rounded-full flex items-center justify-center flex-shrink-0">
+							<CreditCard size={18} class="text-muted-foreground" />
 						</div>
 						<div class="flex-1 min-w-0">
 							<div class="flex items-start justify-between gap-2 mb-1">
-								<h3 class="font-mono text-sm font-semibold text-dark-900 truncate">
+								<h3 class="font-mono text-sm font-semibold text-foreground truncate">
 									{payment.stripePaymentIntentId}
 								</h3>
 								<span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium {statusBadge.class} rounded-full flex-shrink-0">
@@ -262,29 +262,29 @@
 									{statusBadge.text}
 								</span>
 							</div>
-							<p class="text-xs text-dark-400">ID: {payment.id.substring(0, 8)}</p>
+							<p class="text-xs text-muted-foreground">ID: {payment.id.substring(0, 8)}</p>
 						</div>
 					</div>
 
 					<div class="grid grid-cols-2 gap-3 mb-3">
 						<div>
-							<div class="text-xs text-dark-400">Amount</div>
-							<div class="text-sm font-semibold text-dark-900">
+							<div class="text-xs text-muted-foreground">Amount</div>
+							<div class="text-sm font-semibold text-foreground">
 								{formatCurrency(payment.amount, payment.currency)}
 							</div>
 						</div>
 						<div>
-							<div class="text-xs text-dark-400">Created</div>
-							<div class="text-sm text-dark-900">{formatDate(payment.createdAt)}</div>
+							<div class="text-xs text-muted-foreground">Created</div>
+							<div class="text-sm text-foreground">{formatDate(payment.createdAt)}</div>
 						</div>
 					</div>
 
 					{#if payment.reservation}
 						<div class="mb-3 pb-3 border-b border-border-card">
-							<div class="text-xs text-dark-400 mb-1">Guest</div>
-							<div class="text-sm font-medium text-dark-900">{payment.reservation.guestName}</div>
-							<div class="text-xs text-dark-400">{payment.reservation.guestEmail}</div>
-							<div class="text-xs text-dark-400 mt-1">
+							<div class="text-xs text-muted-foreground mb-1">Guest</div>
+							<div class="text-sm font-medium text-foreground">{payment.reservation.guestName}</div>
+							<div class="text-xs text-muted-foreground">{payment.reservation.guestEmail}</div>
+							<div class="text-xs text-muted-foreground mt-1">
 								{payment.reservation.eventTitle}
 							</div>
 						</div>
@@ -292,20 +292,20 @@
 
 					{#if payment.lastError}
 						<div class="mb-3">
-							<div class="text-xs text-dark-400">Error</div>
+							<div class="text-xs text-muted-foreground">Error</div>
 							<div class="text-sm text-red-600 truncate">{payment.lastError}</div>
 						</div>
 					{/if}
 
 					<div class="flex items-center justify-between pt-3 border-t border-border-card">
-						<div class="text-xs text-dark-400">
+						<div class="text-xs text-muted-foreground">
 							{formatDateTime(payment.createdAt)}
 						</div>
 						<div class="flex items-center gap-2">
 							{#if payment.reservation}
 								<a
 									href="/admin/reservations/{payment.reservation.id}"
-									class="p-2 text-dark-600 hover:text-dark-900 hover:bg-dark-50 rounded-lg transition-colors"
+									class="p-2 text-foreground-alt hover:text-foreground hover:bg-muted rounded-lg transition-colors"
 									title="View Reservation"
 								>
 									<ExternalLink size={16} />
@@ -327,7 +327,7 @@
 								<input type="hidden" name="paymentId" value={payment.id} />
 								<button
 									type="submit"
-									class="p-2 text-dark-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+									class="p-2 text-foreground-alt hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
 									title="Retry Webhook"
 								>
 									<RefreshCw size={16} />

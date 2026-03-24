@@ -90,7 +90,7 @@
 	}
 </script>
 
-<div class="bg-white rounded-lg border border-border-card p-6 lg:p-8">
+<div class="bg-background rounded-lg border border-border-card p-6 lg:p-8">
 	<form method="POST" action="?/updateMedia" use:enhance={() => {
 		return async ({ result, update }) => {
 			await update({ reset: false });
@@ -105,8 +105,8 @@
 
 		<!-- Cover Photo -->
 		<div>
-			<h2 class="text-base font-semibold text-dark-900 mb-1">Photo de couverture</h2>
-			<p class="text-sm text-dark-400 mb-4">
+			<h2 class="text-base font-semibold text-foreground mb-1">Photo de couverture</h2>
+			<p class="text-sm text-muted-foreground mb-4">
 				Photo principale affichée dans les listes et en en-tête de l'événement.
 			</p>
 			<MediaUpload
@@ -124,8 +124,8 @@
 
 		<!-- Gallery -->
 		<div>
-			<h2 class="text-base font-semibold text-dark-900 mb-1">Galerie</h2>
-			<p class="text-sm text-dark-400 mb-4">
+			<h2 class="text-base font-semibold text-foreground mb-1">Galerie</h2>
+			<p class="text-sm text-muted-foreground mb-4">
 				Photos supplémentaires. Glissez pour réorganiser.
 			</p>
 			<MediaUpload
@@ -145,7 +145,7 @@
 		<div class="pt-4 border-t border-border-card">
 			<button
 				type="submit"
-				class="px-6 py-3 bg-dark-900 text-white rounded-lg hover:bg-dark-800 focus:outline-none focus:ring-2 focus:ring-dark-900 focus:ring-offset-2 transition-colors font-medium"
+				class="px-6 py-3 bg-foreground text-background rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-foreground focus:ring-offset-2 transition-colors font-medium"
 			>
 				Enregistrer les photos
 			</button>
@@ -158,7 +158,7 @@
 		<button
 			type="button"
 			onclick={closeDeleteModal}
-			class="px-4 py-2 text-sm font-medium text-dark-700 bg-white border border-border-card rounded-lg hover:bg-gray-50 transition-colors"
+			class="px-4 py-2 text-sm font-medium text-foreground-alt bg-background border border-border-card rounded-lg hover:bg-gray-50 transition-colors"
 		>
 			Annuler
 		</button>

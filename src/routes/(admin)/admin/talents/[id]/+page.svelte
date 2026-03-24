@@ -76,25 +76,25 @@
 		<div class="mb-8">
 			<a
 				href="/admin/talents"
-				class="inline-flex items-center gap-2 text-dark-600 hover:text-dark-900 transition-colors mb-4"
+				class="inline-flex items-center gap-2 text-foreground-alt hover:text-foreground transition-colors mb-4"
 			>
 				<ArrowLeft size={20} />
 				<span>Retour aux Talents</span>
 			</a>
 			<h1 class="text-3xl lg:text-4xl font-bold mb-2">Modifier le Talent</h1>
-			<p class="text-dark-400">
+			<p class="text-muted-foreground">
 				Updating "{data.talent.firstName} {data.talent.lastName}"
 			</p>
 		</div>
 
-		<div class="bg-white rounded-lg border border-border-card p-6 lg:p-8">
+		<div class="bg-background rounded-lg border border-border-card p-6 lg:p-8">
 			<form method="POST" use:enhance={updateTalentEnhance} class="space-y-6">
 				<!-- Photo de Profil Section -->
 				<div class="form-section">
-					<label class="block text-sm font-medium text-dark-700 mb-2">
+					<label class="block text-sm font-medium text-foreground-alt mb-2">
 						Photo de Profil
 					</label>
-					<p class="text-xs text-dark-400 mb-3">
+					<p class="text-xs text-muted-foreground mb-3">
 						{existingProfileMedia.length > 0 ? 'Replace or remove the current profile photo' : 'Upload a profile photo for this talent'}
 					</p>
 					<MediaUpload
@@ -113,13 +113,13 @@
 				<!-- Name -->
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 					<div>
-						<label for="firstName" class="block text-sm font-medium text-dark-700 mb-2">
+						<label for="firstName" class="block text-sm font-medium text-foreground-alt mb-2">
 							Prénom <span class="text-red-500">*</span>
 						</label>
 						<div class="relative">
 							<User
 								size={18}
-								class="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400"
+								class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
 							/>
 							<input
 								id="firstName"
@@ -128,19 +128,19 @@
 								bind:value={firstName}
 								required
 								placeholder="Sarah"
-								class="w-full pl-10 pr-4 py-3 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent"
+								class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent"
 							/>
 						</div>
 					</div>
 
 					<div>
-						<label for="lastName" class="block text-sm font-medium text-dark-700 mb-2">
+						<label for="lastName" class="block text-sm font-medium text-foreground-alt mb-2">
 							Nom <span class="text-red-500">*</span>
 						</label>
 						<div class="relative">
 							<User
 								size={18}
-								class="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400"
+								class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
 							/>
 							<input
 								id="lastName"
@@ -149,7 +149,7 @@
 								bind:value={lastName}
 								required
 								placeholder="Johnson"
-								class="w-full pl-10 pr-4 py-3 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent"
+								class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent"
 							/>
 						</div>
 					</div>
@@ -157,13 +157,13 @@
 
 				<!-- Role (English) -->
 				<div>
-					<label for="roleEn" class="block text-sm font-medium text-dark-700 mb-2">
+					<label for="roleEn" class="block text-sm font-medium text-foreground-alt mb-2">
 						Rôle (Anglais) <span class="text-red-500">*</span>
 					</label>
 					<div class="relative">
 						<Briefcase
 							size={18}
-							class="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400"
+							class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
 						/>
 						<input
 							id="roleEn"
@@ -172,20 +172,20 @@
 							bind:value={roleEn}
 							required
 							placeholder="Lead Vocalist & Songwriter"
-							class="w-full pl-10 pr-4 py-3 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent"
+							class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent"
 						/>
 					</div>
 				</div>
 
 				<!-- Role (French) -->
 				<div>
-					<label for="roleFr" class="block text-sm font-medium text-dark-700 mb-2">
+					<label for="roleFr" class="block text-sm font-medium text-foreground-alt mb-2">
 						Rôle (Français) <span class="text-red-500">*</span>
 					</label>
 					<div class="relative">
 						<Briefcase
 							size={18}
-							class="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400"
+							class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
 						/>
 						<input
 							id="roleFr"
@@ -194,20 +194,20 @@
 							bind:value={roleFr}
 							required
 							placeholder="Chanteur principal et auteur-compositeur"
-							class="w-full pl-10 pr-4 py-3 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent"
+							class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent"
 						/>
 					</div>
 				</div>
 
 				<!-- Bio (English) -->
 				<div>
-					<label for="bioEn" class="block text-sm font-medium text-dark-700 mb-2">
+					<label for="bioEn" class="block text-sm font-medium text-foreground-alt mb-2">
 						Bio (Anglais) <span class="text-red-500">*</span>
 					</label>
 					<div class="relative">
 						<FileText
 							size={18}
-							class="absolute left-3 top-3 text-dark-400"
+							class="absolute left-3 top-3 text-muted-foreground"
 						/>
 						<textarea
 							id="bioEn"
@@ -216,20 +216,20 @@
 							required
 							rows="5"
 							placeholder="Tell us about this talent..."
-							class="w-full pl-10 pr-4 py-3 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent resize-none"
+							class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent resize-none"
 						></textarea>
 					</div>
 				</div>
 
 				<!-- Bio (French) -->
 				<div>
-					<label for="bioFr" class="block text-sm font-medium text-dark-700 mb-2">
+					<label for="bioFr" class="block text-sm font-medium text-foreground-alt mb-2">
 						Bio (Français) <span class="text-red-500">*</span>
 					</label>
 					<div class="relative">
 						<FileText
 							size={18}
-							class="absolute left-3 top-3 text-dark-400"
+							class="absolute left-3 top-3 text-muted-foreground"
 						/>
 						<textarea
 							id="bioFr"
@@ -238,26 +238,26 @@
 							required
 							rows="5"
 							placeholder="Parlez-nous de ce talent..."
-							class="w-full pl-10 pr-4 py-3 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent resize-none"
+							class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent resize-none"
 						></textarea>
 					</div>
 				</div>
 
 				<!-- Category Selection -->
 				<div>
-					<label for="categoryId" class="block text-sm font-medium text-dark-700 mb-2">
+					<label for="categoryId" class="block text-sm font-medium text-foreground-alt mb-2">
 						Catégorie (Optionnel)
 					</label>
 					<div class="relative">
 						<Tag
 							size={18}
-							class="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400"
+							class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
 						/>
 						<select
 							id="categoryId"
 							name="categoryId"
 							bind:value={categoryId}
-							class="w-full pl-10 pr-4 py-3 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent appearance-none bg-white"
+							class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent appearance-none bg-background"
 						>
 							<option value="">Aucune catégorie</option>
 							{#each (data.categories || []) as category}
@@ -265,17 +265,17 @@
 							{/each}
 						</select>
 					</div>
-					<p class="mt-1 text-xs text-dark-400">
+					<p class="mt-1 text-xs text-muted-foreground">
 						Lier ce talent à une catégorie existante
 					</p>
 				</div>
 
 				<!-- Location -->
 				<div class="space-y-4">
-					<h3 class="text-sm font-medium text-dark-700">Emplacement (Optionnel)</h3>
+					<h3 class="text-sm font-medium text-foreground-alt">Emplacement (Optionnel)</h3>
 					<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 						<div>
-							<label for="city" class="block text-sm font-medium text-dark-600 mb-2">
+							<label for="city" class="block text-sm font-medium text-foreground-alt mb-2">
 								Ville
 							</label>
 							<input
@@ -284,11 +284,11 @@
 								type="text"
 								bind:value={city}
 								placeholder="Tokyo"
-								class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+								class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
 							/>
 						</div>
 						<div>
-							<label for="country" class="block text-sm font-medium text-dark-600 mb-2">
+							<label for="country" class="block text-sm font-medium text-foreground-alt mb-2">
 								Pays
 							</label>
 							<input
@@ -297,7 +297,7 @@
 								type="text"
 								bind:value={country}
 								placeholder="Japan"
-								class="w-full px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+								class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
 							/>
 						</div>
 					</div>
@@ -305,7 +305,7 @@
 
 				<!-- Quote (English) -->
 				<div>
-					<label for="quoteEn" class="block text-sm font-medium text-dark-700 mb-2">
+					<label for="quoteEn" class="block text-sm font-medium text-foreground-alt mb-2">
 						Citation Personnelle (Anglais) (Optionnel)
 					</label>
 					<textarea
@@ -314,13 +314,13 @@
 						bind:value={quoteEn}
 						rows="2"
 						placeholder="A meaningful quote or tagline..."
-						class="w-full px-4 py-3 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent resize-none"
+						class="w-full px-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent resize-none"
 					></textarea>
 				</div>
 
 				<!-- Quote (French) -->
 				<div>
-					<label for="quoteFr" class="block text-sm font-medium text-dark-700 mb-2">
+					<label for="quoteFr" class="block text-sm font-medium text-foreground-alt mb-2">
 						Citation Personnelle (Français) (Optionnel)
 					</label>
 					<textarea
@@ -329,16 +329,16 @@
 						bind:value={quoteFr}
 						rows="2"
 						placeholder="Une citation significative ou une phrase accrocheuse..."
-						class="w-full px-4 py-3 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent resize-none"
+						class="w-full px-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent resize-none"
 					></textarea>
 				</div>
 
 				<!-- Specializations (English) -->
 				<div>
-					<label class="block text-sm font-medium text-dark-700 mb-2">
+					<label class="block text-sm font-medium text-foreground-alt mb-2">
 						Spécialisations (Anglais) (Optionnel)
 					</label>
-					<p class="text-xs text-dark-400 mb-3">Add up to 5 specializations</p>
+					<p class="text-xs text-muted-foreground mb-3">Add up to 5 specializations</p>
 
 					<div class="space-y-2">
 						{#each specializationsEn as spec, i}
@@ -347,7 +347,7 @@
 									type="text"
 									bind:value={specializationsEn[i]}
 									placeholder="e.g., Spatial Audio Installation"
-									class="flex-1 px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+									class="flex-1 px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
 								/>
 								<button
 									type="button"
@@ -363,7 +363,7 @@
 							<button
 								type="button"
 								onclick={() => specializationsEn = [...specializationsEn, ""]}
-								class="text-sm text-dark-600 hover:text-dark-900 font-medium"
+								class="text-sm text-foreground-alt hover:text-foreground font-medium"
 							>
 								+ Ajouter une Spécialisation
 							</button>
@@ -375,10 +375,10 @@
 
 				<!-- Specializations (French) -->
 				<div>
-					<label class="block text-sm font-medium text-dark-700 mb-2">
+					<label class="block text-sm font-medium text-foreground-alt mb-2">
 						Spécialisations (Français) (Optionnel)
 					</label>
-					<p class="text-xs text-dark-400 mb-3">Ajoutez jusqu'à 5 spécialisations</p>
+					<p class="text-xs text-muted-foreground mb-3">Ajoutez jusqu'à 5 spécialisations</p>
 
 					<div class="space-y-2">
 						{#each specializationsFr as spec, i}
@@ -387,7 +387,7 @@
 									type="text"
 									bind:value={specializationsFr[i]}
 									placeholder="ex: Installation audio spatiale"
-									class="flex-1 px-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+									class="flex-1 px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
 								/>
 								<button
 									type="button"
@@ -403,7 +403,7 @@
 							<button
 								type="button"
 								onclick={() => specializationsFr = [...specializationsFr, ""]}
-								class="text-sm text-dark-600 hover:text-dark-900 font-medium"
+								class="text-sm text-foreground-alt hover:text-foreground font-medium"
 							>
 								+ Ajouter une Spécialisation
 							</button>
@@ -415,17 +415,17 @@
 
 				<!-- Social Links -->
 				<div class="space-y-4">
-					<h3 class="text-sm font-medium text-dark-700">Liens Sociaux (Optionnel)</h3>
+					<h3 class="text-sm font-medium text-foreground-alt">Liens Sociaux (Optionnel)</h3>
 
 					<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 						<div>
-							<label for="instagram" class="block text-sm font-medium text-dark-600 mb-2">
+							<label for="instagram" class="block text-sm font-medium text-foreground-alt mb-2">
 								Instagram
 							</label>
 							<div class="relative">
 								<LinkIcon
 									size={18}
-									class="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400"
+									class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
 								/>
 								<input
 									id="instagram"
@@ -433,19 +433,19 @@
 									type="url"
 									bind:value={instagram}
 									placeholder="https://instagram.com/username"
-									class="w-full pl-10 pr-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+									class="w-full pl-10 pr-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
 								/>
 							</div>
 						</div>
 
 						<div>
-							<label for="linkedin" class="block text-sm font-medium text-dark-600 mb-2">
+							<label for="linkedin" class="block text-sm font-medium text-foreground-alt mb-2">
 								LinkedIn
 							</label>
 							<div class="relative">
 								<LinkIcon
 									size={18}
-									class="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400"
+									class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
 								/>
 								<input
 									id="linkedin"
@@ -453,19 +453,19 @@
 									type="url"
 									bind:value={linkedin}
 									placeholder="https://linkedin.com/in/username"
-									class="w-full pl-10 pr-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+									class="w-full pl-10 pr-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
 								/>
 							</div>
 						</div>
 
 						<div>
-							<label for="twitter" class="block text-sm font-medium text-dark-600 mb-2">
+							<label for="twitter" class="block text-sm font-medium text-foreground-alt mb-2">
 								Twitter
 							</label>
 							<div class="relative">
 								<LinkIcon
 									size={18}
-									class="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400"
+									class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
 								/>
 								<input
 									id="twitter"
@@ -473,19 +473,19 @@
 									type="url"
 									bind:value={twitter}
 									placeholder="https://twitter.com/username"
-									class="w-full pl-10 pr-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+									class="w-full pl-10 pr-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
 								/>
 							</div>
 						</div>
 
 						<div>
-							<label for="website" class="block text-sm font-medium text-dark-600 mb-2">
+							<label for="website" class="block text-sm font-medium text-foreground-alt mb-2">
 								Website
 							</label>
 							<div class="relative">
 								<LinkIcon
 									size={18}
-									class="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400"
+									class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
 								/>
 								<input
 									id="website"
@@ -493,7 +493,7 @@
 									type="url"
 									bind:value={website}
 									placeholder="https://example.com"
-									class="w-full pl-10 pr-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm"
+									class="w-full pl-10 pr-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
 								/>
 							</div>
 						</div>
@@ -501,20 +501,20 @@
 				</div>
 
 				<!-- Publié Status -->
-				<div class="flex items-center gap-3 p-4 bg-dark-50 rounded-lg">
+				<div class="flex items-center gap-3 p-4 bg-muted rounded-lg">
 					<input
 						id="published"
 						name="published"
 						type="checkbox"
 						bind:checked={published}
 						value="true"
-						class="w-5 h-5 text-dark-900 border-border-dark rounded focus:ring-dark-900"
+						class="w-5 h-5 text-foreground border-border-input rounded focus:ring-foreground"
 					/>
 					<div>
-						<label for="published" class="block text-sm font-medium text-dark-900 cursor-pointer">
+						<label for="published" class="block text-sm font-medium text-foreground cursor-pointer">
 							Publié
 						</label>
-						<p class="text-xs text-dark-400">
+						<p class="text-xs text-muted-foreground">
 							Décochez pour sauvegarder comme brouillon
 						</p>
 					</div>
@@ -524,13 +524,13 @@
 				<div class="flex flex-col sm:flex-row gap-3 pt-4 border-t border-border-card">
 					<button
 						type="submit"
-						class="flex-1 px-6 py-3 bg-dark-900 text-white rounded-lg hover:bg-dark-800 focus:outline-none focus:ring-2 focus:ring-dark-900 focus:ring-offset-2 transition-colors font-medium"
+						class="flex-1 px-6 py-3 bg-foreground text-background rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-foreground focus:ring-offset-2 transition-colors font-medium"
 					>
 						Mettre à jour le Talent
 					</button>
 					<a
 						href="/admin/talents"
-						class="flex-1 px-6 py-3 bg-white border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 focus:outline-none focus:ring-2 focus:ring-dark-900 focus:ring-offset-2 transition-colors font-medium text-center"
+						class="flex-1 px-6 py-3 bg-background border border-border-input text-foreground-alt rounded-lg hover:bg-muted focus:outline-none focus:ring-2 focus:ring-foreground focus:ring-offset-2 transition-colors font-medium text-center"
 					>
 						Annuler
 					</a>
