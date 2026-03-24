@@ -16,7 +16,11 @@ export const load: PageServerLoad = async ({ params }) => {
       .map((s) => ({
         id: s.id,
         title: s.title,
-        description: s.description,
+        titleEn: (s as any).titleEn,
+        titleFr: (s as any).titleFr,
+        description: s.description ?? null,
+        descriptionEn: (s as any).descriptionEn ?? null,
+        descriptionFr: (s as any).descriptionFr ?? null,
         startTime: s.startTime.toISOString(),
         endTime: s.endTime.toISOString(),
         priceAmount: s.priceAmount,
@@ -24,6 +28,7 @@ export const load: PageServerLoad = async ({ params }) => {
         availableCapacity: s.availableCapacity,
         totalCapacity: s.totalCapacity,
         allowWaitlist: s.allowWaitlist,
+        badgeType: (s as any).badgeType ?? 'none',
         soldOut: s.availableCapacity === 0,
         isPast: s.startTime < new Date()
       }));
@@ -39,7 +44,11 @@ export const load: PageServerLoad = async ({ params }) => {
       sessions: sessions.map((s: typeof sessions[number]) => ({
         id: s.id,
         title: s.title,
+        titleEn: (s as any).titleEn ?? null,
+        titleFr: (s as any).titleFr ?? null,
         description: s.description,
+        descriptionEn: (s as any).descriptionEn ?? null,
+        descriptionFr: (s as any).descriptionFr ?? null,
         startTime: s.startTime.toISOString(),
         endTime: s.endTime.toISOString(),
         priceAmount: s.priceAmount,
@@ -47,6 +56,7 @@ export const load: PageServerLoad = async ({ params }) => {
         availableCapacity: s.availableCapacity,
         totalCapacity: s.totalCapacity,
         allowWaitlist: s.allowWaitlist,
+        badgeType: s.badgeType ?? 'none',
         soldOut: s.availableCapacity === 0,
         isPast: s.startTime < new Date()
       }))

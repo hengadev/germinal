@@ -21,6 +21,7 @@ interface SessionWithEventAndSoldCount {
 	price_amount: number;
 	currency: string;
 	allow_waitlist: boolean;
+	badge_type: string;
 	// Event fields (prefixed to avoid conflicts)
 	events_id: string;
 	events_title: string;
@@ -149,6 +150,7 @@ export async function getAllSessionsByEventId(eventId: string) {
 			currency: row.currency,
 			allowWaitlist: row.allow_waitlist,
 			published: row.published,
+			badgeType: (row.badge_type || 'none') as 'none' | 'featured' | 'vip' | 'popular' | 'best_value' | 'limited',
 			createdAt: new Date(row.created_at),
 			updatedAt: new Date(row.updated_at),
 			soldCount,
