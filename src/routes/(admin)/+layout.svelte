@@ -43,18 +43,18 @@
 </script>
 
 <!-- Mobile Layout -->
-<div class="lg:hidden h-screen h-[100dvh] flex flex-col overflow-hidden bg-dark-50/25">
+<div class="lg:hidden h-screen h-[100dvh] flex flex-col overflow-hidden bg-muted/25">
     <!-- Mobile Header - fixed at top -->
-    <header class="flex-shrink-0 bg-white dark:bg-dark-900 border-b border-border-card z-40">
+    <header class="flex-shrink-0 bg-background border-b border-border-card z-40">
         <div class="flex items-center justify-between px-4 py-3">
             <div class="flex items-center gap-3">
-                <h1 class="text-lg font-semibold text-dark-900 dark:text-dark-50">Admin</h1>
+                <h1 class="text-lg font-semibold text-foreground">Admin</h1>
             </div>
             <div class="flex items-center gap-2">
                 <ThemeToggle />
                 <button
                     onclick={() => (mobileMenuOpen = true)}
-                    class="p-2 text-dark-600 hover:text-dark-900 dark:text-dark-400 dark:hover:text-dark-100 rounded-lg hover:bg-dark-50 dark:hover:bg-dark-800 transition-colors"
+                    class="p-2 text-foreground-alt hover:text-foreground rounded-lg hover:bg-muted transition-colors"
                     aria-label="Menu"
                 >
                     <svg
@@ -84,14 +84,14 @@
 
     <!-- Mobile Bottom Navigation - fixed at bottom -->
     <nav
-        class="flex-shrink-0 bg-white dark:bg-dark-900 border-t border-border-card z-50"
+        class="flex-shrink-0 bg-background border-t border-border-card z-50"
         aria-label="Mobile navigation"
     >
         <div class="flex items-stretch">
             {#if ["/", "/admin"].includes(page.url.pathname)}
                 <a
                     href="/admin"
-                    class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-dark-900 dark:text-dark-50"
+                    class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-foreground"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -114,7 +114,7 @@
             {:else}
                 <a
                     href="/admin"
-                    class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-dark-500 hover:text-dark-700 dark:text-dark-400 dark:hover:text-dark-200"
+                    class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-muted-foreground hover:text-foreground-alt"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -139,7 +139,7 @@
             {#if page.url.pathname.startsWith("/admin/events")}
                 <a
                     href="/admin/events"
-                    class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-dark-900 dark:text-dark-50"
+                    class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-foreground"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -163,7 +163,7 @@
             {:else}
                 <a
                     href="/admin/events"
-                    class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-dark-500 hover:text-dark-700 dark:text-dark-400 dark:hover:text-dark-200"
+                    class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-muted-foreground hover:text-foreground-alt"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -189,7 +189,7 @@
             {#if page.url.pathname.startsWith("/admin/talents")}
                 <a
                     href="/admin/talents"
-                    class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-dark-900 dark:text-dark-50"
+                    class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-foreground"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -213,7 +213,7 @@
             {:else}
                 <a
                     href="/admin/talents"
-                    class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-dark-500 hover:text-dark-700 dark:text-dark-400 dark:hover:text-dark-200"
+                    class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-muted-foreground hover:text-foreground-alt"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -239,7 +239,7 @@
             {#if page.url.pathname.startsWith("/admin/reservations")}
                 <a
                     href="/admin/reservations"
-                    class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-dark-900 dark:text-dark-50"
+                    class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-foreground"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -263,7 +263,7 @@
             {:else}
                 <a
                     href="/admin/reservations"
-                    class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-dark-500 hover:text-dark-700 dark:text-dark-400 dark:hover:text-dark-200"
+                    class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-muted-foreground hover:text-foreground-alt"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -289,7 +289,7 @@
             {#if page.url.pathname.startsWith("/admin/analytics")}
                 <a
                     href="/admin/analytics"
-                    class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-dark-900 dark:text-dark-50"
+                    class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-foreground"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -312,7 +312,7 @@
             {:else}
                 <a
                     href="/admin/analytics"
-                    class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-dark-500 hover:text-dark-700 dark:text-dark-400 dark:hover:text-dark-200"
+                    class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-muted-foreground hover:text-foreground-alt"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -347,12 +347,12 @@
 </div>
 
 <!-- Desktop Layout -->
-<div class="hidden lg:flex min-h-screen bg-dark-50/25 dark:bg-dark-900/50">
+<div class="hidden lg:flex min-h-screen bg-muted/25">
     <!-- Desktop Sidebar -->
     <AdminSidebar {data} />
 
     <!-- Main Content Area -->
-    <main class="flex-1 bg-white dark:bg-dark-900">
+    <main class="flex-1 bg-background">
         {@render children()}
     </main>
 
@@ -366,17 +366,17 @@
         <!-- User Info -->
         <div class="flex items-center gap-3 pb-4 border-b border-border-card">
             <div
-                class="w-12 h-12 rounded-full flex items-center justify-center bg-dark-100 border border-border-card"
+                class="w-12 h-12 rounded-full flex items-center justify-center bg-muted border border-border-card"
             >
-                <span class="text-sm font-semibold text-dark-700 uppercase">
+                <span class="text-sm font-semibold text-foreground-alt uppercase">
                     {data.user.email[0].toUpperCase()}
                 </span>
             </div>
             <div class="flex-1 min-w-0">
-                <p class="text-sm font-medium text-dark-900 truncate">
+                <p class="text-sm font-medium text-foreground truncate">
                     {data.user.email}
                 </p>
-                <p class="text-xs text-dark-400 capitalize">
+                <p class="text-xs text-muted-foreground capitalize">
                     {data.user.role}
                 </p>
             </div>
@@ -386,7 +386,7 @@
         <a
             href="/admin/change-password"
             onclick={() => (mobileMenuOpen = false)}
-            class="flex items-center gap-3 px-4 py-3 text-dark-600 hover:text-dark-900 hover:bg-dark-50 rounded-lg transition-colors"
+            class="flex items-center gap-3 px-4 py-3 text-foreground-alt hover:text-foreground hover:bg-muted rounded-lg transition-colors"
         >
             <svg
                 xmlns="http://www.w3.org/2000/svg"

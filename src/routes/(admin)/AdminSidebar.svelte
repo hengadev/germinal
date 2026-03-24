@@ -68,68 +68,68 @@
 
 <!-- Desktop Sidebar Navigation -->
 <aside
-    class="hidden lg:flex lg:flex-col lg:border-r lg:border-border-card bg-white dark:bg-dark-900 sticky top-0 h-screen transition-all duration-300 {isCollapsed
-        ? 'lg:w-20'
-        : 'lg:w-64'}"
-    aria-label="Sidebar navigation"
+    class="hidden lg:flex lg:flex-col lg:border-r lg:border-border-card bg-background sticky top-0 h-screen transition-all duration-300 {isCollapsed
+ ? 'lg:w-20'
+ : 'lg:w-64'}"
+ aria-label="Sidebar navigation"
 >
-    <!-- Collapse Toggle Button -->
-    <button
-        onclick={toggleSidebar}
-        class="absolute -right-4 bottom-24 z-10 w-8 h-8 rounded-full bg-white flex items-center justify-center text-dark-700 hover:text-dark-900 hover:bg-dark-50 transition-all duration-200 border border-border-card shadow-sm"
-        aria-label={isCollapsed ? "Agrandir la barre latérale" : "Réduire la barre latérale"}
-        title={isCollapsed ? "Agrandir la barre latérale" : "Réduire la barre latérale"}
-    >
-        {#if isCollapsed}
-            <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-            >
-                <polyline points="9 18 15 12 9 6"></polyline>
-            </svg>
-        {:else}
-            <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-            >
-                <polyline points="15 18 9 12 15 6"></polyline>
-            </svg>
-        {/if}
-    </button>
+ <!-- Collapse Toggle Button -->
+ <button
+ onclick={toggleSidebar}
+ class="absolute -right-4 bottom-24 z-10 w-8 h-8 rounded-full bg-background flex items-center justify-center text-foreground-alt hover:text-foreground hover:bg-muted transition-all duration-200 border border-border-card shadow-sm"
+ aria-label={isCollapsed ? "Agrandir la barre latérale" : "Réduire la barre latérale"}
+ title={isCollapsed ? "Agrandir la barre latérale" : "Réduire la barre latérale"}
+ >
+ {#if isCollapsed}
+ <svg
+ xmlns="http://www.w3.org/2000/svg"
+ width="16"
+ height="16"
+ viewBox="0 0 24 24"
+ fill="none"
+ stroke="currentColor"
+ stroke-width="2"
+ stroke-linecap="round"
+ stroke-linejoin="round"
+ >
+ <polyline points="9 18 15 12 9 6"></polyline>
+ </svg>
+ {:else}
+ <svg
+ xmlns="http://www.w3.org/2000/svg"
+ width="16"
+ height="16"
+ viewBox="0 0 24 24"
+ fill="none"
+ stroke="currentColor"
+ stroke-width="2"
+ stroke-linecap="round"
+ stroke-linejoin="round"
+ >
+ <polyline points="15 18 9 12 15 6"></polyline>
+ </svg>
+ {/if}
+ </button>
 
-    <!-- Sidebar Header -->
-    <div
-        class="flex items-center justify-between border-b border-border-card py-6 {isCollapsed
-            ? 'px-3'
-            : 'px-6'}"
-    >
-        {#if !isCollapsed}
-            <div>
-                <h1
-                    class="text-sm font-semibold tracking-tight text-dark-900 dark:text-dark-50 uppercase"
-                >
-                    Germinal
-                </h1>
-                <p class="text-xs text-dark-400">Panneau d'Administration</p>
+ <!-- Sidebar Header -->
+ <div
+ class="flex items-center justify-between border-b border-border-card py-6 {isCollapsed
+ ? 'px-3'
+ : 'px-6'}"
+ >
+ {#if !isCollapsed}
+ <div>
+ <h1
+ class="text-sm font-semibold tracking-tight text-foreground uppercase"
+ >
+ Germinal
+ </h1>
+ <p class="text-xs text-muted-foreground">Panneau d'Administration</p>
             </div>
             <ThemeToggle />
         {:else}
             <div class="mx-auto flex flex-col items-center gap-2">
-                <span class="text-lg font-bold text-dark-900 dark:text-dark-50">G</span>
+                <span class="text-lg font-bold text-foreground">G</span>
                 <ThemeToggle />
             </div>
         {/if}
@@ -137,17 +137,17 @@
 
     <!-- Navigation Items -->
     <nav class="flex-1 py-6 {isCollapsed ? 'px-3' : 'px-4'}">
-        <ul class="space-y-1">
-            {#each desktopNavigation as item (item.href)}
-                {@const active = isActive(item.href, page.url.pathname)}
-                <li>
-                    <a
-                        href={item.href}
-                        class="flex items-center text-sm font-medium transition-all duration-200 rounded-lg {isCollapsed
-                            ? 'justify-center px-3 py-3'
-                            : 'gap-3 px-3 py-2.5'} {active
-                            ? 'text-dark-900 dark:text-dark-50 bg-dark-50 dark:bg-dark-800'
-                            : 'text-dark-600 hover:text-dark-900 dark:text-dark-400 dark:hover:text-dark-100 hover:bg-dark-50 dark:hover:bg-dark-800'}"
+ <ul class="space-y-1">
+ {#each desktopNavigation as item (item.href)}
+ {@const active = isActive(item.href, page.url.pathname)}
+ <li>
+ <a
+ href={item.href}
+ class="flex items-center text-sm font-medium transition-all duration-200 rounded-lg {isCollapsed
+ ? 'justify-center px-3 py-3'
+ : 'gap-3 px-3 py-2.5'} {active
+ ? 'text-foreground bg-muted'
+ : 'text-foreground-alt hover:text-foreground hover:bg-muted'}"
                         aria-current={active ? "page" : undefined}
                         title={isCollapsed ? item.label : undefined}
                     >
@@ -168,19 +168,19 @@
         {#if !isCollapsed}
             <div class="flex items-center gap-3">
                 <div
-                    class="w-9 h-9 rounded-full flex items-center justify-center bg-dark-100 border border-border-card"
+                    class="w-9 h-9 rounded-full flex items-center justify-center bg-muted border border-border-card"
                 >
-                    <span class="text-xs font-semibold text-dark-700 uppercase">
+                    <span class="text-xs font-semibold text-foreground-alt uppercase">
                         {data.user.email[0].toUpperCase()}
                     </span>
                 </div>
                 <div class="flex-1 min-w-0">
                     <p
-                        class="text-sm font-medium text-dark-900 truncate tracking-tight"
+                        class="text-sm font-medium text-foreground truncate tracking-tight"
                     >
                         {data.user.email}
                     </p>
-                    <p class="text-xs text-dark-400 capitalize">
+                    <p class="text-xs text-muted-foreground capitalize">
                         {data.user.role}
                     </p>
                 </div>
@@ -188,7 +188,7 @@
             <div class="mt-3 flex gap-2">
                 <a
                     href="/admin/change-password"
-                    class="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-dark-600 hover:text-dark-900 hover:bg-dark-50 rounded-lg transition-colors"
+                    class="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-foreground-alt hover:text-foreground hover:bg-muted rounded-lg transition-colors"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -211,7 +211,7 @@
                 <form method="POST" action="/logout" class="flex-1">
                     <button
                         type="submit"
-                        class="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-dark-600 hover:text-dark-900 hover:bg-dark-50 rounded-lg transition-colors"
+                        class="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-foreground-alt hover:text-foreground hover:bg-muted rounded-lg transition-colors"
                     >
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -235,10 +235,10 @@
             </div>
         {:else}
             <div
-                class="w-9 h-9 mx-auto rounded-full flex items-center justify-center bg-dark-100 border border-border-card"
+                class="w-9 h-9 mx-auto rounded-full flex items-center justify-center bg-muted border border-border-card"
                 title={data.user.email}
             >
-                <span class="text-xs font-semibold text-dark-700 uppercase">
+                <span class="text-xs font-semibold text-foreground-alt uppercase">
                     {data.user.email[0].toUpperCase()}
                 </span>
             </div>
