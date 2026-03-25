@@ -543,6 +543,7 @@
                         id="published"
                         name="published"
                         type="checkbox"
+                        value="true"
                         bind:checked={published}
                         class="w-5 h-5 text-foreground border-border-input rounded focus:ring-foreground"
                     />
