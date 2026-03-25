@@ -1,5 +1,6 @@
 <script lang="ts">
     import { enhance } from "$app/forms";
+    import { goto } from "$app/navigation";
     import {
         ArrowLeft,
         User,
@@ -22,6 +23,7 @@
         return async ({ result }: { result: import('@sveltejs/kit').ActionResult }) => {
             if (result.type === 'success') {
                 toast.success('Succès', (result.data as { success?: string })?.success ?? 'Talent créé');
+                goto('/admin/talents');
             } else if (result.type === 'failure') {
                 toast.error('Erreur', (result.data as { error?: string })?.error ?? 'Une erreur est survenue');
  }

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { invalidateAll } from '$app/navigation';
+	import { goto, invalidateAll } from '$app/navigation';
 	import { Calendar, MapPin, Type, FileText } from 'lucide-svelte';
 	import type { ActionData, PageData } from './$types';
 	import { getToastContext } from '$lib/components/toast/state.svelte';
@@ -13,7 +13,7 @@
 		return async ({ result }: { result: import('@sveltejs/kit').ActionResult }) => {
 			if (result.type === 'success') {
 				toast.success('Succès', (result.data as { success?: string })?.success ?? 'Événement mis à jour');
-				await invalidateAll();
+				goto('/admin/events');
 			} else if (result.type === 'failure') {
 				toast.error('Erreur', (result.data as { error?: string })?.error ?? 'Une erreur est survenue');
 			}
