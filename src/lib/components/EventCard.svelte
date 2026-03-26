@@ -1,5 +1,6 @@
 <script lang="ts">
     import type { EventWithMedia } from "$lib/types/events";
+    import { locale } from "svelte-i18n";
 
     interface Props {
         event: EventWithMedia;
@@ -34,7 +35,7 @@
 
     <div class="mt-4">
         <h3 class="text-lg font-medium">{event.titleEn}</h3>
-        <p class="text-dark-500 text-sm line-clamp-2">{event.location}</p>
+        <p class="text-dark-500 text-sm line-clamp-2">{$locale === "en" ? event.locationEn : event.locationFr}</p>
     </div>
 </a>
 

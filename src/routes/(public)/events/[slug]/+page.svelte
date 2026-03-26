@@ -19,9 +19,9 @@
 
     let hasUpcomingSessions = $derived(data.sessions.some(s => !s.isPast));
 
-    function getEventField(field: 'title' | 'description' | 'subtitle' | 'curator' | 'materials' | 'admissionInfo'): string {
-        const enField = (field + 'En') as 'titleEn' | 'descriptionEn' | 'subtitleEn' | 'curatorEn' | 'materialsEn' | 'admissionInfoEn';
-        const frField = (field + 'Fr') as 'titleFr' | 'descriptionFr' | 'subtitleFr' | 'curatorFr' | 'materialsFr' | 'admissionInfoFr';
+    function getEventField(field: 'title' | 'description' | 'subtitle' | 'curator' | 'materials' | 'admissionInfo' | 'location' | 'venueName' | 'streetAddress' | 'district' | 'city' | 'country'): string {
+        const enField = (field + 'En') as 'titleEn' | 'descriptionEn' | 'subtitleEn' | 'curatorEn' | 'materialsEn' | 'admissionInfoEn' | 'locationEn' | 'venueNameEn' | 'streetAddressEn' | 'districtEn' | 'cityEn' | 'countryEn';
+        const frField = (field + 'Fr') as 'titleFr' | 'descriptionFr' | 'subtitleFr' | 'curatorFr' | 'materialsFr' | 'admissionInfoFr' | 'locationFr' | 'venueNameFr' | 'streetAddressFr' | 'districtFr' | 'cityFr' | 'countryFr';
         return $locale === 'en' ? data.event[enField] || '' : data.event[frField] || '';
     }
 </script>
@@ -93,24 +93,23 @@
                 <div class="grid gap-3 lg:gap-4">
                     {@render asideTitle($t("events.location"), MapPin)}
                     <div class="text-dark-500 text-sm lg:text-base">
-                        {#if data.event.venueName}
-                            <p>{data.event.venueName}</p>
+                        {#if getEventField('venueName')}
+                            <p>{getEventField('venueName')}</p>
                         {/if}
-                        {#if data.event.streetAddress}
-                            <p>{data.event.streetAddress}</p>
+                        {#if getEventField('streetAddress')}
+                            <p>{getEventField('streetAddress')}</p>
                         {/if}
-                        {#if data.event.district || data.event.city || data.event.postalCode}
+                        {#if getEventField('district') || getEventField('city') || data.event.postalCode}
                             <p>
-                                {#if data.event.district}{data.event.district},
+                                {#if getEventField('district')}{getEventField('district')},
                                 {/if}
-                                {#if data.event.city}{data.event.city}
+                                {#if getEventField('city')}{getEventField('city')}
                                 {/if}
-                                {#if data.event.postalCode}{data.event
-                                        .postalCode}{/if}
+                                {#if data.event.postalCode}{data.event.postalCode}{/if}
                             </p>
                         {/if}
-                        {#if data.event.country}
-                            <p>{data.event.country}</p>
+                        {#if getEventField('country')}
+                            <p>{getEventField('country')}</p>
                         {/if}
                     </div>
                 </div>
