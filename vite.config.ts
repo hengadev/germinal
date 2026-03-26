@@ -39,8 +39,14 @@ export default defineConfig({
 				]
 			},
 			workbox: {
-				globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff,woff2}'],
+				globPatterns: ['**/*.{js,css,ico,png,svg,webp,woff,woff2}'],
 				runtimeCaching: [
+					{
+						// Always fetch HTML pages from the network so server-side redirects
+						// (e.g. maintenance mode) are never bypassed by the service worker cache.
+						urlPattern: ({ request }) => request.mode === 'navigate',
+						handler: 'NetworkOnly'
+					},
 					{
 						urlPattern: /^https:\/\/api\./i,
 						handler: 'NetworkFirst',
