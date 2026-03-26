@@ -137,7 +137,7 @@ async function sendReminder(
 		session: reservation.eventSession as any,
 		event: {
 			title: reservation.eventSession.event?.title || 'Event',
-			location: reservation.eventSession.event?.location || '',
+			locationEn: reservation.eventSession.event?.locationEn || '',
 		},
 		guestName: reservation.guestName,
 		guestEmail: reservation.guestEmail,

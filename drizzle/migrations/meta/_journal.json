@@ -36,6 +36,13 @@
       "when": 1774900000000,
       "tag": "0004_coupons_promo_codes",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1774900001000,
+      "tag": "0005_localized_address_fields",
+      "breakpoints": true
     }
   ]
 }

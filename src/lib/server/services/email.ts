@@ -184,7 +184,7 @@ Your tickets for ${data.event.title} are confirmed!
 EVENT DETAILS:
 ${data.session.title}
 ${data.session.startTime.toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })}
-${data.event.location}
+${data.event.locationEn}
 
 TICKETS:
 ${data.reservation.quantity} × ${formatCurrency(data.session.priceAmount, data.session.currency)}
@@ -233,7 +233,7 @@ function generateTicketHtmlTemplate(data: TicketEmailData): string {
       </tr>
       <tr>
         <td style="padding: 8px 0; color: #6c757d;">
-          ${escapeHtml(data.event.location)}
+          ${escapeHtml(data.event.locationEn)}
         </td>
       </tr>
     </table>
@@ -343,7 +343,7 @@ This is a friendly reminder that your event is coming up ${timePhrase}!
 EVENT DETAILS:
 ${data.session.title}
 ${data.session.startTime.toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })}
-${data.event.location}
+${data.event.locationEn}
 
 TICKETS:
 ${data.reservation.quantity} × ${formatCurrency(data.session.priceAmount, data.session.currency)}
@@ -394,7 +394,7 @@ function generateEventReminderHtmlTemplate(data: TicketEmailData & { daysUntil: 
       </tr>
       <tr>
         <td style="padding: 8px 0; color: #6c757d;">
-          ${escapeHtml(data.event.location)}
+          ${escapeHtml(data.event.locationEn)}
         </td>
       </tr>
     </table>

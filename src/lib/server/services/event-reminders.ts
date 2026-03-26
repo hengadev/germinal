@@ -56,7 +56,7 @@ export async function findReservationsNeedingReminders() {
  */
 function generateReminderTextTemplate(
 	data: typeof reservations.$inferSelect & {
-		eventSession: typeof eventSessions.$inferSelect & { event: { title: string; location: string } };
+		eventSession: typeof eventSessions.$inferSelect & { event: { title: string; locationEn: string } };
 	},
 	daysUntil: number
 ): string {
@@ -83,7 +83,7 @@ This is a friendly reminder that your event is coming up ${timePhrase}.
 ${data.eventSession.event.title}
 ${data.eventSession.title}
 ${formattedDate} at ${formattedTime}
-${data.eventSession.event.location}
+${data.eventSession.event.locationEn}
 
 Your tickets: ${env.PUBLIC_URL}/tickets/${data.accessToken}
 
@@ -98,7 +98,7 @@ Need help? Just reply to this email.
  */
 function generateReminderHtmlTemplate(
 	data: typeof reservations.$inferSelect & {
-		eventSession: typeof eventSessions.$inferSelect & { event: { title: string; location: string } };
+		eventSession: typeof eventSessions.$inferSelect & { event: { title: string; locationEn: string } };
 	},
 	daysUntil: number
 ): string {
@@ -148,7 +148,7 @@ function generateReminderHtmlTemplate(
 
     <div style="margin-bottom: 0;">
       <p style="margin: 0 0 4px 0; color: #6c757d; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Location</p>
-      <p style="margin: 0; color: #1a1a1a; font-size: 16px;">${escapeHtml(data.eventSession.event.location)}</p>
+      <p style="margin: 0; color: #1a1a1a; font-size: 16px;">${escapeHtml(data.eventSession.event.locationEn)}</p>
     </div>
   </div>
 
@@ -184,7 +184,7 @@ function generateReminderHtmlTemplate(
  */
 async function sendReminderEmail(
 	reservation: typeof reservations.$inferSelect & {
-		eventSession: typeof eventSessions.$inferSelect & { event: { title: string; location: string } };
+		eventSession: typeof eventSessions.$inferSelect & { event: { title: string; locationEn: string } };
 	},
 	daysUntil: number
 ) {

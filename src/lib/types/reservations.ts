@@ -22,11 +22,16 @@ export type ReservationWithDetails = Reservation & {
 			id: string;
 			title: string;
 			slug: string;
-			location: string;
-			venueName: string | null;
-			streetAddress: string | null;
-			city: string | null;
-			country: string | null;
+			locationEn: string;
+			locationFr: string;
+			venueNameEn: string | null;
+			venueNameFr: string | null;
+			streetAddressEn: string | null;
+			streetAddressFr: string | null;
+			cityEn: string | null;
+			cityFr: string | null;
+			countryEn: string | null;
+			countryFr: string | null;
 		};
 	};
 	payment: Payment | null;
@@ -40,6 +45,6 @@ export type TicketEmailData = {
 	session: typeof eventSessions.$inferSelect;
 	event: {
 		title: string;
-		location: string;
+		locationEn: string;
 	};
 };
