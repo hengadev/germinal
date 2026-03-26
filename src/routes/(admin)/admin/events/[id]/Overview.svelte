@@ -33,14 +33,20 @@
 	let endDate = $state(
 		new Date(data.event.endDate).toISOString().slice(0, 16)
 	);
-	let location = $state(data.event.location);
-	let venueName = $state(data.event.venueName || "");
-	let streetAddress = $state(data.event.streetAddress || "");
-	let district = $state(data.event.district || "");
-	let city = $state(data.event.city || "");
+	let locationEn = $state(data.event.locationEn);
+	let locationFr = $state(data.event.locationFr);
+	let venueNameEn = $state(data.event.venueNameEn || "");
+	let venueNameFr = $state(data.event.venueNameFr || "");
+	let streetAddressEn = $state(data.event.streetAddressEn || "");
+	let streetAddressFr = $state(data.event.streetAddressFr || "");
+	let districtEn = $state(data.event.districtEn || "");
+	let districtFr = $state(data.event.districtFr || "");
+	let cityEn = $state(data.event.cityEn || "");
+	let cityFr = $state(data.event.cityFr || "");
 	let postalCode = $state(data.event.postalCode || "");
-	let country = $state(data.event.country || "");
-	let collaborators = $state<Array<{name: string, role: string}>>(
+	let countryEn = $state(data.event.countryEn || "");
+	let countryFr = $state(data.event.countryFr || "");
+	let collaborators = $state<Array<{talentId: string, name: string, role: string}>>(
 		data.event.collaborators ? JSON.parse(data.event.collaborators) : []
 	);
 	let timings = $state<Array<{label: string, time: string}>>(
@@ -257,10 +263,10 @@
  </div>
  </div>
 
- <!-- Lieu -->
+ <!-- Lieu (English) -->
  <div>
- <label for="location" class="block text-sm font-medium text-foreground-alt mb-2">
- Lieu <span class="text-red-500">*</span>
+ <label for="locationEn" class="block text-sm font-medium text-foreground-alt mb-2">
+ Lieu (Anglais) <span class="text-red-500">*</span>
  </label>
  <div class="relative">
  <MapPin
@@ -268,10 +274,32 @@
  class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
  />
  <input
- id="location"
- name="location"
+ id="locationEn"
+ name="locationEn"
  type="text"
- bind:value={location}
+ bind:value={locationEn}
+ required
+ placeholder="Central Park, New York"
+ class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent"
+ />
+ </div>
+ </div>
+
+ <!-- Lieu (French) -->
+ <div>
+ <label for="locationFr" class="block text-sm font-medium text-foreground-alt mb-2">
+ Lieu (Français) <span class="text-red-500">*</span>
+ </label>
+ <div class="relative">
+ <MapPin
+ size={18}
+ class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+ />
+ <input
+ id="locationFr"
+ name="locationFr"
+ type="text"
+ bind:value={locationFr}
  required
  placeholder="Central Park, New York"
  class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent"
@@ -283,64 +311,123 @@
  <div class="space-y-4">
  <h3 class="text-sm font-medium text-foreground-alt">Détails du Lieu (Optionnel)</h3>
 
+ <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
  <div>
- <label for="venueName" class="block text-sm font-medium text-foreground-alt mb-2">
- Nom du Lieu
+ <label for="venueNameEn" class="block text-sm font-medium text-foreground-alt mb-2">
+ Nom du Lieu (Anglais)
  </label>
  <input
- id="venueName"
- name="venueName"
+ id="venueNameEn"
+ name="venueNameEn"
  type="text"
- bind:value={venueName}
+ bind:value={venueNameEn}
  placeholder="e.g., Central Convention Center"
  class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
  />
  </div>
-
  <div>
- <label for="streetAddress" class="block text-sm font-medium text-foreground-alt mb-2">
- Adresse Rue
+ <label for="venueNameFr" class="block text-sm font-medium text-foreground-alt mb-2">
+ Nom du Lieu (Français)
  </label>
  <input
- id="streetAddress"
- name="streetAddress"
+ id="venueNameFr"
+ name="venueNameFr"
  type="text"
- bind:value={streetAddress}
+ bind:value={venueNameFr}
+ placeholder="ex: Centre de Conventions Central"
+ class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
+ />
+ </div>
+ </div>
+
+ <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+ <div>
+ <label for="streetAddressEn" class="block text-sm font-medium text-foreground-alt mb-2">
+ Adresse Rue (Anglais)
+ </label>
+ <input
+ id="streetAddressEn"
+ name="streetAddressEn"
+ type="text"
+ bind:value={streetAddressEn}
  placeholder="e.g., 123 Main Street"
  class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
  />
  </div>
-
- <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
  <div>
- <label for="district" class="block text-sm font-medium text-foreground-alt mb-2">
- District
+ <label for="streetAddressFr" class="block text-sm font-medium text-foreground-alt mb-2">
+ Adresse Rue (Français)
  </label>
  <input
- id="district"
- name="district"
+ id="streetAddressFr"
+ name="streetAddressFr"
  type="text"
- bind:value={district}
+ bind:value={streetAddressFr}
+ placeholder="ex: 123 rue Principale"
+ class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
+ />
+ </div>
+ </div>
+
+ <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+ <div>
+ <label for="districtEn" class="block text-sm font-medium text-foreground-alt mb-2">
+ District (Anglais)
+ </label>
+ <input
+ id="districtEn"
+ name="districtEn"
+ type="text"
+ bind:value={districtEn}
  placeholder="e.g., Downtown"
  class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
  />
  </div>
  <div>
- <label for="city" class="block text-sm font-medium text-foreground-alt mb-2">
- City
+ <label for="districtFr" class="block text-sm font-medium text-foreground-alt mb-2">
+ District (Français)
  </label>
  <input
- id="city"
- name="city"
+ id="districtFr"
+ name="districtFr"
  type="text"
- bind:value={city}
+ bind:value={districtFr}
+ placeholder="ex: Centre-ville"
+ class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
+ />
+ </div>
+ </div>
+
+ <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+ <div>
+ <label for="cityEn" class="block text-sm font-medium text-foreground-alt mb-2">
+ Ville (Anglais)
+ </label>
+ <input
+ id="cityEn"
+ name="cityEn"
+ type="text"
+ bind:value={cityEn}
  placeholder="e.g., Tokyo"
  class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
  />
  </div>
  <div>
+ <label for="cityFr" class="block text-sm font-medium text-foreground-alt mb-2">
+ Ville (Français)
+ </label>
+ <input
+ id="cityFr"
+ name="cityFr"
+ type="text"
+ bind:value={cityFr}
+ placeholder="ex: Tokyo"
+ class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
+ />
+ </div>
+ <div>
  <label for="postalCode" class="block text-sm font-medium text-foreground-alt mb-2">
- Postal Code
+ Code Postal
  </label>
  <input
  id="postalCode"
@@ -353,18 +440,33 @@
  </div>
  </div>
 
+ <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
  <div>
- <label for="country" class="block text-sm font-medium text-foreground-alt mb-2">
- Country
+ <label for="countryEn" class="block text-sm font-medium text-foreground-alt mb-2">
+ Pays (Anglais)
  </label>
  <input
- id="country"
- name="country"
+ id="countryEn"
+ name="countryEn"
  type="text"
- bind:value={country}
+ bind:value={countryEn}
  placeholder="e.g., Japan"
  class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
  />
+ </div>
+ <div>
+ <label for="countryFr" class="block text-sm font-medium text-foreground-alt mb-2">
+ Pays (Français)
+ </label>
+ <input
+ id="countryFr"
+ name="countryFr"
+ type="text"
+ bind:value={countryFr}
+ placeholder="ex: Japon"
+ class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
+ />
+ </div>
  </div>
  </div>
 
@@ -377,17 +479,24 @@
 
  <div class="space-y-2">
  {#each collaborators as collab, i}
- <div class="flex gap-2">
- <input
- type="text"
- bind:value={collaborators[i].name}
- placeholder="Name"
- class="flex-1 px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
- />
+ <div class="flex gap-2 items-center">
+ <select
+ bind:value={collaborators[i].talentId}
+ onchange={() => {
+ const talent = (data.talents || []).find(t => t.id === collaborators[i].talentId);
+ if (talent) collaborators[i].name = talent.firstName + ' ' + talent.lastName;
+ }}
+ class="flex-1 px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm bg-background"
+ >
+ <option value="">Sélectionner un talent...</option>
+ {#each (data.talents || []) as talent}
+ <option value={talent.id}>{talent.firstName} {talent.lastName}</option>
+ {/each}
+ </select>
  <input
  type="text"
  bind:value={collaborators[i].role}
- placeholder="Role"
+ placeholder="Rôle"
  class="flex-1 px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
  />
  <button
@@ -395,14 +504,14 @@
  onclick={() => collaborators = collaborators.filter((_, idx) => idx !== i)}
  class="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
  >
- Remove
+ Supprimer
  </button>
  </div>
  {/each}
 
  <button
  type="button"
- onclick={() => collaborators = [...collaborators, {name: "", role: ""}]}
+ onclick={() => collaborators = [...collaborators, {talentId: "", name: "", role: ""}]}
  class="text-sm text-foreground-alt hover:text-foreground font-medium"
  >
  + Ajouter un Collaborateur

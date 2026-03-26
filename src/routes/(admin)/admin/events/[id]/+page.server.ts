@@ -1,7 +1,7 @@
 import { fail, redirect, error, type Actions, type ServerLoad } from '@sveltejs/kit';
 import { logger } from '$lib/server/logger';
 import { env } from '$lib/server/env';
-import { MOCK_EVENTS, MOCK_SESSIONS, MOCK_RESERVATIONS } from '$lib/mock-data';
+import { MOCK_EVENTS, MOCK_SESSIONS, MOCK_RESERVATIONS, MOCK_TALENTS } from '$lib/mock-data';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params }) => {
@@ -58,7 +58,8 @@ export const load: PageServerLoad = async ({ params }) => {
 				};
 			});
 
-		return { event, sessions, reservations, promoCodes: [] };
+		const talents = MOCK_TALENTS.map(t => ({ id: t.id, firstName: t.firstName, lastName: t.lastName }));
+		return { event, sessions, reservations, promoCodes: [], talents };
 	}
 
 	// Database mode - fetch from database
@@ -101,9 +102,15 @@ export const load: PageServerLoad = async ({ params }) => {
 			})
 			: [];
 
+		// Load talents for collaborator selector
+		const { getAllTalents } = await import('$lib/server/services/talents');
+		const talentsData = await getAllTalents({ publishedOnly: false, limit: 1000 });
+		const talents = talentsData.data.map((t: typeof talentsData.data[number]) => ({ id: t.id, firstName: t.firstName, lastName: t.lastName }));
+
 		return {
 			event,
 			promoCodes,
+			talents,
 			sessions: sessionsData.map((s: typeof sessionsData[number]) => ({
 				id: s.id,
 				title: s.title,
@@ -163,13 +170,19 @@ export const actions: Actions = {
 		const subtitleFr = formData.get('subtitleFr');
 		const startDate = formData.get('startDate');
 		const endDate = formData.get('endDate');
-		const location = formData.get('location');
-		const venueName = formData.get('venueName');
-		const streetAddress = formData.get('streetAddress');
-		const district = formData.get('district');
-		const city = formData.get('city');
+		const locationEn = formData.get('locationEn');
+		const locationFr = formData.get('locationFr');
+		const venueNameEn = formData.get('venueNameEn');
+		const venueNameFr = formData.get('venueNameFr');
+		const streetAddressEn = formData.get('streetAddressEn');
+		const streetAddressFr = formData.get('streetAddressFr');
+		const districtEn = formData.get('districtEn');
+		const districtFr = formData.get('districtFr');
+		const cityEn = formData.get('cityEn');
+		const cityFr = formData.get('cityFr');
 		const postalCode = formData.get('postalCode');
-		const country = formData.get('country');
+		const countryEn = formData.get('countryEn');
+		const countryFr = formData.get('countryFr');
 		const collaborators = formData.get('collaborators');
 		const timings = formData.get('timings');
 		const curatorEn = formData.get('curatorEn');
@@ -210,8 +223,12 @@ export const actions: Actions = {
 			return fail(400, { error: 'End date is required' });
 		}
 
-		if (!location || typeof location !== 'string') {
-			return fail(400, { error: 'Location is required' });
+		if (!locationEn || typeof locationEn !== 'string') {
+			return fail(400, { error: 'Location (English) is required' });
+		}
+
+		if (!locationFr || typeof locationFr !== 'string') {
+			return fail(400, { error: 'Location (French) is required' });
 		}
 
 		// Validate slug format
@@ -271,13 +288,19 @@ export const actions: Actions = {
 				subtitleFr: subtitleFr?.toString() || null,
 				startDate: start,
 				endDate: end,
-				location,
-				venueName: venueName?.toString() || null,
-				streetAddress: streetAddress?.toString() || null,
-				district: district?.toString() || null,
-				city: city?.toString() || null,
+				locationEn,
+				locationFr,
+				venueNameEn: venueNameEn?.toString() || null,
+				venueNameFr: venueNameFr?.toString() || null,
+				streetAddressEn: streetAddressEn?.toString() || null,
+				streetAddressFr: streetAddressFr?.toString() || null,
+				districtEn: districtEn?.toString() || null,
+				districtFr: districtFr?.toString() || null,
+				cityEn: cityEn?.toString() || null,
+				cityFr: cityFr?.toString() || null,
 				postalCode: postalCode?.toString() || null,
-				country: country?.toString() || null,
+				countryEn: countryEn?.toString() || null,
+				countryFr: countryFr?.toString() || null,
 				collaborators: collaborators?.toString() || null,
 				timings: timings?.toString() || null,
 				curatorEn: curatorEn?.toString() || null,
@@ -308,13 +331,19 @@ export const actions: Actions = {
 				subtitleFr: subtitleFr?.toString() || null,
 				startDate: start,
 				endDate: end,
-				location,
-				venueName: venueName?.toString() || null,
-				streetAddress: streetAddress?.toString() || null,
-				district: district?.toString() || null,
-				city: city?.toString() || null,
+				locationEn,
+				locationFr,
+				venueNameEn: venueNameEn?.toString() || null,
+				venueNameFr: venueNameFr?.toString() || null,
+				streetAddressEn: streetAddressEn?.toString() || null,
+				streetAddressFr: streetAddressFr?.toString() || null,
+				districtEn: districtEn?.toString() || null,
+				districtFr: districtFr?.toString() || null,
+				cityEn: cityEn?.toString() || null,
+				cityFr: cityFr?.toString() || null,
 				postalCode: postalCode?.toString() || null,
-				country: country?.toString() || null,
+				countryEn: countryEn?.toString() || null,
+				countryFr: countryFr?.toString() || null,
 				collaborators: collaborators?.toString() || null,
 				timings: timings?.toString() || null,
 				curatorEn: curatorEn?.toString() || null,
