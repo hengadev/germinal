@@ -53,7 +53,8 @@
 	let materialsFr = $state('');
 	let admissionInfoEn = $state('');
 	let admissionInfoFr = $state('');
-	let published = $state(false);
+	// Events are created as drafts; publish after adding sessions
+	// let published = $state(false);
 	let isSpotlight = $state(false);
 	let categoryId = $state<string>('');
 
@@ -774,26 +775,6 @@
 							placeholder="ex: Gratuit, 25$, Membres seulement"
 							class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
 						/>
-					</div>
-				</div>
-
-				<!-- Published Status -->
-				<div class="flex items-center gap-3 p-4 bg-muted rounded-lg">
-					<input
-						id="published"
-						name="published"
-						type="checkbox"
-						value="true"
-						bind:checked={published}
-						class="w-5 h-5 text-foreground border-border-input rounded focus:ring-foreground"
-					/>
-					<div>
-						<label for="published" class="block text-sm font-medium text-foreground cursor-pointer">
-							Publier immédiatement
-						</label>
-						<p class="text-xs text-muted-foreground">
-							Décochez pour sauvegarder comme brouillon
-						</p>
 					</div>
 				</div>
 

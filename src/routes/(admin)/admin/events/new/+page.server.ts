@@ -52,7 +52,9 @@ export const actions: Actions = {
 		const coverMediaId = formData.get('coverMediaId') as string | null;
 		const galleryMediaIds = formData.get('galleryMediaIds') as string | null;
 		const categoryId = formData.get('categoryId') as string | null;
-		const published = formData.get('published') === 'true';
+		// Events are always created as drafts - publish after adding sessions
+		// const published = formData.get('published') === 'true';
+		const published = false;
 		const isSpotlight = formData.get('isSpotlight') === 'true';
 
 		// Parse gallery media IDs
