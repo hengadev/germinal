@@ -11,10 +11,10 @@
 	const toastState = getToastContext();
 
 	const iconConfig = {
-		success: { icon: Check, color: "text-green-600", bgColor: "bg-green-50", borderColor: "border-green-200" },
-		error: { icon: XCircle, color: "text-red-600", bgColor: "bg-red-50", borderColor: "border-red-200" },
-		warning: { icon: AlertTriangle, color: "text-orange-600", bgColor: "bg-orange-50", borderColor: "border-orange-200" },
-		info: { icon: InfoIcon, color: "text-blue-600", bgColor: "bg-blue-50", borderColor: "border-blue-200" }
+		success: { icon: Check, color: "text-green-600 dark:text-green-400", bgColor: "bg-green-50 dark:bg-green-950", borderColor: "border-green-200 dark:border-green-800" },
+		error: { icon: XCircle, color: "text-red-600 dark:text-red-400", bgColor: "bg-red-50 dark:bg-red-950", borderColor: "border-red-200 dark:border-red-800" },
+		warning: { icon: AlertTriangle, color: "text-orange-600 dark:text-orange-400", bgColor: "bg-orange-50 dark:bg-orange-950", borderColor: "border-orange-200 dark:border-orange-800" },
+		info: { icon: InfoIcon, color: "text-blue-600 dark:text-blue-400", bgColor: "bg-blue-50 dark:bg-blue-950", borderColor: "border-blue-200 dark:border-blue-800" }
 	};
 
 	const config = $derived(iconConfig[toast.level]);
@@ -27,13 +27,13 @@
 >
 	<Icon size={24} class="{config.color} flex-shrink-0 mt-0.5" />
 	<div class="flex-1 min-w-0">
-		<p class="font-semibold text-sm text-dark-900">{toast.title}</p>
-		<p class="text-sm text-dark-700">{toast.message}</p>
+		<p class="font-semibold text-sm text-dark-900 dark:text-dark-100">{toast.title}</p>
+		<p class="text-sm text-dark-700 dark:text-dark-300">{toast.message}</p>
 	</div>
 	<button
 		type="button"
 		onclick={() => toastState.remove(toast.id)}
-		class="flex-shrink-0 text-dark-400 hover:text-dark-600 transition-colors p-1 rounded hover:bg-black/5"
+		class="flex-shrink-0 text-dark-400 hover:text-dark-600 dark:text-dark-500 dark:hover:text-dark-300 transition-colors p-1 rounded hover:bg-black/5 dark:hover:bg-white/10"
 		aria-label="Close"
 	>
 		<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
