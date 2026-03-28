@@ -50,14 +50,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 	// Maintenance mode: redirect all public traffic to the maintenance page
 	const maintenanceMode = process.env.MAINTENANCE_MODE === 'true';
 	if (maintenanceMode && !event.locals.isAdminDomain && event.url.pathname !== '/maintenance') {
-		return new Response(null, {
-			status: 302,
-			headers: {
-				Location: '/maintenance',
-				'Cache-Control': 'no-store, no-cache, must-revalidate',
-				Pragma: 'no-cache'
-			}
-		});
+		throw redirect(302, '/maintenance');
 	}
 
 	// Reuse the existing CSRF token from the cookie if present; otherwise generate a new one.
