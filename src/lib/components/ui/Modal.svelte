@@ -105,7 +105,7 @@
 		max-width: 540px;
 		max-height: 90vh;
 		overflow-y: auto;
-		background: white;
+		background: var(--background-alt);
 		border-radius: 0.75rem;
 		box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
 		z-index: 9999;
@@ -116,21 +116,21 @@
 	.modal-header {
 		margin-bottom: 1rem;
 		padding-bottom: 1rem;
-		border-bottom: 1px solid #e5e7eb;
+		border-bottom: 1px solid var(--border-card);
 	}
 
 	.modal-title {
 		font-size: 1.25rem;
 		font-weight: 600;
 		line-height: 1.75rem;
-		color: #111827;
+		color: var(--foreground);
 		margin: 0 0 0.25rem 0;
 	}
 
 	.modal-description {
 		font-size: 0.875rem;
 		line-height: 1.25rem;
-		color: #6b7280;
+		color: var(--foreground-alt);
 		margin: 0;
 	}
 </style>
