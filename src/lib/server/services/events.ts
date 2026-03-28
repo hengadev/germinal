@@ -76,7 +76,7 @@ export async function getEventById(id: string) {
 
 export async function getSpotlightEvent() {
   const spotlightEvent = await db.query.events.findFirst({
-    where: eq(events.isSpotlight, true),
+    where: and(eq(events.isSpotlight, true), eq(events.published, true)),
     with: {
       coverMedia: true,
       category: true,
