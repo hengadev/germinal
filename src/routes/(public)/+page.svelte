@@ -171,9 +171,11 @@
             </div>
 
             {#if data.events.length === 0}
-                <p class="text-dark-500 text-center">
-                    {$t("home.noEvents")}
-                </p>
+                <div class="flex items-center justify-center py-16">
+                    <p class="text-dark-500 text-center">
+                        {$t("home.noEvents")}
+                    </p>
+                </div>
             {:else}
                 <div
                     class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
@@ -210,9 +212,11 @@
             </div>
 
             {#if data.talents.length === 0}
-                <p class="text-dark-500 text-center">
-                    {$t("home.noTalents")}
-                </p>
+                <div class="flex items-center justify-center py-16">
+                    <p class="text-dark-500 text-center">
+                        {$t("home.noTalents")}
+                    </p>
+                </div>
             {:else}
                 <div
                     class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
