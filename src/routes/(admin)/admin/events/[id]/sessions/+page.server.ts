@@ -61,7 +61,10 @@ export const actions: Actions = {
 			return { success: `Séance "${session.titleEn}" créée avec succès` };
 		} catch (err) {
 			logger.error({ err }, 'Create session error');
-			return fail(500, { error: err instanceof Error ? err.message : 'Failed to create session' });
+			const message = err instanceof Error && (err.message === 'Event not found' || err.message === 'Session times must fall within the event dates')
+				? err.message
+				: 'Failed to create session';
+			return fail(500, { error: message });
 		}
 	},
 
@@ -92,7 +95,10 @@ export const actions: Actions = {
 			return { success: 'Séance mise à jour avec succès' };
 		} catch (err) {
 			logger.error({ err }, 'Update session error');
-			return fail(500, { error: err instanceof Error ? err.message : 'Failed to update session' });
+			const message = err instanceof Error && err.message === 'Session times must fall within the event dates'
+				? err.message
+				: 'Failed to update session';
+			return fail(500, { error: message });
 		}
 	},
 
