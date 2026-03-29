@@ -4,10 +4,8 @@ export type EventSession = typeof eventSessions.$inferSelect;
 
 export type CreateEventSessionInput = {
 	eventId: string;
-	title: string;
-	titleEn?: string;
-	titleFr?: string;
-	description?: string | null;
+	titleEn: string;
+	titleFr: string;
 	descriptionEn?: string | null;
 	descriptionFr?: string | null;
 	startTime: Date;
@@ -25,8 +23,10 @@ export type UpdateEventSessionInput = Partial<Omit<CreateEventSessionInput, 'eve
 export type EventSessionWithEvent = EventSession & {
 	event: {
 		id: string;
-		title: string;
+		titleEn: string;
+		titleFr: string;
 		slug: string;
-		location: string;
+		locationEn: string;
+		locationFr: string;
 	};
 };

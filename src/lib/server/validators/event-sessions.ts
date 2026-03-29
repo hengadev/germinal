@@ -6,10 +6,16 @@ const dateSchema = z.string().datetime().transform(s => new Date(s));
 // Base schema without refinements (allows .partial() to work)
 const baseEventSessionSchema = z.object({
 	eventId: z.string().uuid('Invalid event ID'),
-	title: z.string()
-		.min(1, 'Session title is required')
-		.max(255, 'Session title is too long'),
-	description: z.string()
+	titleEn: z.string()
+		.min(1, 'Session title (EN) is required')
+		.max(255, 'Session title (EN) is too long'),
+	titleFr: z.string()
+		.min(1, 'Session title (FR) is required')
+		.max(255, 'Session title (FR) is too long'),
+	descriptionEn: z.string()
+		.optional()
+		.transform(v => v ?? null),
+	descriptionFr: z.string()
 		.optional()
 		.transform(v => v ?? null),
 	startTime: dateSchema,

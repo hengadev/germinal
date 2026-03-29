@@ -423,8 +423,10 @@ export const eventSessions = pgTable('event_sessions', {
     eventId: uuid('event_id')
         .notNull()
         .references(() => events.id, { onDelete: 'cascade' }),
-    title: varchar('title', { length: 255 }).notNull(),
-    description: text('description'),
+    titleEn: varchar('title_en', { length: 255 }).notNull(),
+    titleFr: varchar('title_fr', { length: 255 }).notNull(),
+    descriptionEn: text('description_en'),
+    descriptionFr: text('description_fr'),
     startTime: timestamp('start_time', { withTimezone: true }).notNull(),
     endTime: timestamp('end_time', { withTimezone: true }).notNull(),
     totalCapacity: integer('total_capacity').notNull(),
