@@ -11,7 +11,6 @@
 		Tag,
 		X
 	} from 'lucide-svelte';
-	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { formatCurrency } from '$lib/utils/currency';
 	import { t, locale } from 'svelte-i18n';

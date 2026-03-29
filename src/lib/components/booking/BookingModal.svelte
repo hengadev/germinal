@@ -2,6 +2,7 @@
 	import { X, User, Mail, Phone, Ticket, AlertCircle, Loader2 } from 'lucide-svelte';
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import Drawer from '$lib/components/ui/Drawer.svelte';
+	import { browser } from '$app/environment';
 	import { page } from '$app/stores';
 	import { formatCurrency } from '$lib/utils/currency';
 	import { t, locale } from 'svelte-i18n';
