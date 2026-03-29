@@ -166,9 +166,9 @@
 
 	function openEditDialog(session: Session) {
 		selectedSession = session;
-		editTitleEn = session.titleEn || session.title || '';
+		editTitleEn = session.titleEn || '';
 		editTitleFr = session.titleFr || '';
-		editDescriptionEn = session.descriptionEn || session.description || '';
+		editDescriptionEn = session.descriptionEn || '';
 		editDescriptionFr = session.descriptionFr || '';
 		editStartTime = formatDateForInput(session.startTime);
 		editEndTime = formatDateForInput(session.endTime);
@@ -507,8 +507,8 @@
 						<tr class="hover:bg-muted transition-colors">
 							<td class="px-6 py-4">
 								<div class="font-medium text-foreground">
-									{session.titleEn || session.title}
-									{#if session.titleFr && session.titleFr !== (session.titleEn || session.title)}
+									{session.titleEn}
+									{#if session.titleFr && session.titleFr !== session.titleEn}
 										<span class="text-muted-foreground font-normal"> / {session.titleFr}</span>
 									{/if}
 								</div>
@@ -584,9 +584,9 @@
 					<div class="flex items-start justify-between mb-3">
 						<div class="flex-1">
 							<h3 class="font-semibold text-foreground">
-								{session.titleEn || session.title}
+								{session.titleEn}
 							</h3>
-							{#if session.titleFr && session.titleFr !== (session.titleEn || session.title)}
+							{#if session.titleFr && session.titleFr !== session.titleEn}
 								<p class="text-sm text-muted-foreground">{session.titleFr}</p>
 							{/if}
 							<p class="text-sm text-muted-foreground mt-1">
