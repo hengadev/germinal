@@ -43,6 +43,13 @@
       "when": 1774900001000,
       "tag": "0005_localized_address_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1774900002000,
+      "tag": "0006_localized_session_fields",
+      "breakpoints": true
     }
   ]
 }
