@@ -13,7 +13,7 @@
 
 	let stripe: Stripe | null = null;
 	let elements: StripeElements | null = null;
-	let reservationData: any = null;
+	let reservationData = $state<any>(null);
 	let isProcessing = $state(false);
 	let error = $state<string | null>(null);
 	let success = $state(false);
