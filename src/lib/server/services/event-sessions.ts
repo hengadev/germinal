@@ -61,6 +61,7 @@ export async function createEventSession(input: CreateEventSessionInput) {
 		currency: input.currency ?? 'EUR',
 		published: input.published ?? false,
 		allowWaitlist: input.allowWaitlist ?? false,
+		badgeType: input.badgeType ?? 'none',
 	}).returning();
 
 	return session;
