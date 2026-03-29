@@ -182,7 +182,7 @@ Hi ${data.guestName},
 Your tickets for ${data.event.title} are confirmed!
 
 EVENT DETAILS:
-${data.session.title}
+${data.session.titleEn}
 ${data.session.startTime.toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })}
 ${data.event.locationEn}
 
@@ -224,7 +224,7 @@ function generateTicketHtmlTemplate(data: TicketEmailData): string {
     <h3 style="margin: 24px 0 12px 0; color: #495057; font-size: 16px; font-weight: 600;">Event Details</h3>
     <table style="width: 100%; border-collapse: collapse;">
       <tr>
-        <td style="padding: 8px 0; color: #212529;"><strong>${escapeHtml(data.session.title)}</strong></td>
+        <td style="padding: 8px 0; color: #212529;"><strong>${escapeHtml(data.session.titleEn)}</strong></td>
       </tr>
       <tr>
         <td style="padding: 8px 0; color: #6c757d;">
@@ -341,7 +341,7 @@ Hi ${data.guestName},
 This is a friendly reminder that your event is coming up ${timePhrase}!
 
 EVENT DETAILS:
-${data.session.title}
+${data.session.titleEn}
 ${data.session.startTime.toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })}
 ${data.event.locationEn}
 
@@ -385,7 +385,7 @@ function generateEventReminderHtmlTemplate(data: TicketEmailData & { daysUntil: 
     <h3 style="margin: 24px 0 12px 0; color: #495057; font-size: 16px; font-weight: 600;">Event Details</h3>
     <table style="width: 100%; border-collapse: collapse;">
       <tr>
-        <td style="padding: 8px 0; color: #212529;"><strong>${escapeHtml(data.session.title)}</strong></td>
+        <td style="padding: 8px 0; color: #212529;"><strong>${escapeHtml(data.session.titleEn)}</strong></td>
       </tr>
       <tr>
         <td style="padding: 8px 0; color: #6c757d;">

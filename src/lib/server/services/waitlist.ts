@@ -129,7 +129,7 @@ Good news, ${entry.name}!
 
 Tickets are now available for:
 
-${session.title}
+${session.titleEn}
 ${session.startTime.toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })}
 ${session.priceAmount / 100}${session.currency} per ticket
 
@@ -158,12 +158,12 @@ function generateWaitlistHtmlTemplate(entry: typeof waitlist.$inferSelect, sessi
 
   <div style="background-color: #ffffff; border: 1px solid #e9ecef; border-radius: 8px; padding: 24px; margin-bottom: 16px;">
     <p style="margin: 0 0 16px 0; font-size: 16px;">Hi ${escapeHtml(entry.name)},</p>
-    <p style="margin: 0 0 16px 0; font-size: 16px;">Tickets for <strong>${escapeHtml(session.title)}</strong> are now available!</p>
+    <p style="margin: 0 0 16px 0; font-size: 16px;">Tickets for <strong>${escapeHtml(session.titleEn)}</strong> are now available!</p>
 
     <h3 style="margin: 24px 0 12px 0; color: #495057; font-size: 16px; font-weight: 600;">Event Details</h3>
     <table style="width: 100%; border-collapse: collapse;">
       <tr>
-        <td style="padding: 8px 0; color: #212529;"><strong>${escapeHtml(session.title)}</strong></td>
+        <td style="padding: 8px 0; color: #212529;"><strong>${escapeHtml(session.titleEn)}</strong></td>
       </tr>
       <tr>
         <td style="padding: 8px 0; color: #6c757d;">
@@ -216,7 +216,7 @@ async function sendWaitlistNotificationEmail(
 	await queueEmail({
 		type: 'contact_notification',
 		recipient: entry.email,
-		subject: `Tickets Available for ${session.title}`,
+		subject: `Tickets Available for ${session.titleEn}`,
 		textBody,
 		htmlBody,
 		metadata: {
@@ -245,7 +245,7 @@ export async function sendWaitlistNotification(
 			await sendWaitlistNotificationSMS({
 				phone: entry.phone,
 				name: entry.name,
-				eventTitle: session.title,
+				eventTitle: session.titleEn,
 			});
 		} catch (error) {
 			logger.error({ err: error }, 'Failed to send waitlist notification SMS');
