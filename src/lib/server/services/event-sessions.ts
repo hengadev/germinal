@@ -9,8 +9,10 @@ import type { CreateEventSessionInput, UpdateEventSessionInput } from '$lib/type
 interface SessionWithEventAndSoldCount {
 	id: string;
 	event_id: string;
-	title: string;
-	description: string | null;
+	title_en: string;
+	title_fr: string;
+	description_en: string | null;
+	description_fr: string | null;
 	published: boolean;
 	created_at: Date;
 	updated_at: Date;
@@ -45,12 +47,12 @@ export async function createEventSession(input: CreateEventSessionInput) {
 		throw new Error('Session times must fall within the event dates');
 	}
 
-	const { titleEn, titleFr, descriptionEn, descriptionFr, ...dbInput } = input;
-
 	const [session] = await db.insert(eventSessions).values({
 		eventId: input.eventId,
-		title: input.title,
-		description: input.description ?? null,
+		titleEn: input.titleEn,
+		titleFr: input.titleFr,
+		descriptionEn: input.descriptionEn ?? null,
+		descriptionFr: input.descriptionFr ?? null,
 		startTime: input.startTime,
 		endTime: input.endTime,
 		totalCapacity: input.totalCapacity,
@@ -61,14 +63,7 @@ export async function createEventSession(input: CreateEventSessionInput) {
 		allowWaitlist: input.allowWaitlist ?? false,
 	}).returning();
 
-	// Add localized fields to the returned session (for mock mode compatibility)
-	return {
-		...session,
-		...(titleEn && { titleEn }),
-		...(titleFr && { titleFr }),
-		...(descriptionEn && { descriptionEn }),
-		...(descriptionFr && { descriptionFr }),
-	} as typeof session & { titleEn?: string; titleFr?: string; descriptionEn?: string; descriptionFr?: string };
+	return session;
 }
 
 export async function getSessionById(id: string) {
@@ -81,7 +76,6 @@ export async function getSessionById(id: string) {
 					titleEn: true,
 					titleFr: true,
 					slug: true,
-					location: true,
 					startDate: true,
 					endDate: true,
 				},
@@ -131,7 +125,7 @@ export async function getAllSessionsByEventId(eventId: string) {
 
 	return (result as unknown as SessionWithEventAndSoldCount[]).map((row) => {
 		const soldCount = parseInt(row.sold_count, 10);
-		const session: any = {
+		return {
 			id: row.id,
 			eventId: row.event_id,
 			event: {
@@ -140,8 +134,10 @@ export async function getAllSessionsByEventId(eventId: string) {
 				slug: row.events_slug,
 				description: row.events_description,
 			},
-			title: row.title,
-			description: row.description,
+			titleEn: row.title_en,
+			titleFr: row.title_fr,
+			descriptionEn: row.description_en,
+			descriptionFr: row.description_fr,
 			startTime: new Date(row.start_time),
 			endTime: new Date(row.end_time),
 			totalCapacity: row.total_capacity,
@@ -156,23 +152,12 @@ export async function getAllSessionsByEventId(eventId: string) {
 			soldCount,
 			reservationCount: soldCount,
 		};
-
-		// Preserve localized fields if they exist in the raw row (for mock mode)
-		if ((row as any).title_en) session.titleEn = (row as any).title_en;
-		if ((row as any).title_fr) session.titleFr = (row as any).title_fr;
-		if ((row as any).description_en) session.descriptionEn = (row as any).description_en;
-		if ((row as any).description_fr) session.descriptionFr = (row as any).description_fr;
-
-		return session;
 	});
 }
 
 export async function updateEventSession(id: string, input: UpdateEventSessionInput) {
 	const session = await getSessionById(id);
 	const soldCount = session.reservations.length;
-
-	// Extract localized fields (not stored in DB yet, but preserved for mock mode)
-	const { titleEn, titleFr, descriptionEn, descriptionFr, ...dbInput } = input;
 
 	if (input.startTime !== undefined || input.endTime !== undefined) {
 		const effectiveStartTime = input.startTime ?? session.startTime;
@@ -189,7 +174,7 @@ export async function updateEventSession(id: string, input: UpdateEventSessionIn
 
 		const [updated] = await db.update(eventSessions)
 			.set({
-					...dbInput,
+					...input,
 					availableCapacity: input.totalCapacity - soldCount,
 					updatedAt: new Date(),
 				})
@@ -200,18 +185,12 @@ export async function updateEventSession(id: string, input: UpdateEventSessionIn
 			throw new Error('Session not found');
 		}
 
-		return {
-			...updated,
-			...(titleEn && { titleEn }),
-			...(titleFr && { titleFr }),
-			...(descriptionEn && { descriptionEn }),
-			...(descriptionFr && { descriptionFr }),
-		} as typeof updated & { titleEn?: string; titleFr?: string; descriptionEn?: string; descriptionFr?: string };
+		return updated;
 	}
 
 	const [updated] = await db.update(eventSessions)
 		.set({
-				...dbInput,
+				...input,
 				updatedAt: new Date(),
 			})
 		.where(eq(eventSessions.id, id))
@@ -221,13 +200,7 @@ export async function updateEventSession(id: string, input: UpdateEventSessionIn
 		throw new Error('Session not found');
 	}
 
-	return {
-		...updated,
-		...(titleEn && { titleEn }),
-		...(titleFr && { titleFr }),
-		...(descriptionEn && { descriptionEn }),
-		...(descriptionFr && { descriptionFr }),
-	} as typeof updated & { titleEn?: string; titleFr?: string; descriptionEn?: string; descriptionFr?: string };
+	return updated;
 }
 
 export async function deleteEventSession(id: string) {

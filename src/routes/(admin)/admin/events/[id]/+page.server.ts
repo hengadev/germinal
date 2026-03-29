@@ -20,8 +20,10 @@ export const load: PageServerLoad = async ({ params }) => {
 			.filter(s => s.eventId === id)
 			.map(s => ({
 				id: s.id,
-				title: s.title,
-				description: s.description,
+				titleEn: (s as any).titleEn || s.title,
+				titleFr: (s as any).titleFr || s.title,
+				descriptionEn: (s as any).descriptionEn ?? null,
+				descriptionFr: (s as any).descriptionFr ?? null,
 				startTime: s.startTime.toISOString(),
 				endTime: s.endTime.toISOString(),
 				totalCapacity: s.totalCapacity,
@@ -52,7 +54,7 @@ export const load: PageServerLoad = async ({ params }) => {
 					createdAt: r.createdAt,
 					confirmedAt: r.confirmedAt,
 					eventTitle: evt?.titleEn || '',
-					sessionTitle: session?.title || '',
+					sessionTitle: (session as any)?.titleEn || (session as any)?.title || '',
 					sessionStartTime: session?.startTime?.toISOString() || '',
 					paymentStatus: r.paymentStatus
 				};
@@ -87,7 +89,7 @@ export const load: PageServerLoad = async ({ params }) => {
 					eventSession: {
 						columns: {
 							id: true,
-							title: true,
+							titleEn: true,
 							startTime: true
 						}
 					},
@@ -113,8 +115,10 @@ export const load: PageServerLoad = async ({ params }) => {
 			talents,
 			sessions: sessionsData.map((s: typeof sessionsData[number]) => ({
 				id: s.id,
-				title: s.title,
-				description: s.description,
+				titleEn: s.titleEn,
+				titleFr: s.titleFr,
+				descriptionEn: s.descriptionEn,
+				descriptionFr: s.descriptionFr,
 				startTime: s.startTime.toISOString(),
 				endTime: s.endTime.toISOString(),
 				totalCapacity: s.totalCapacity,
@@ -137,7 +141,7 @@ export const load: PageServerLoad = async ({ params }) => {
 				createdAt: r.createdAt.toISOString(),
 				confirmedAt: r.confirmedAt?.toISOString(),
 				eventTitle: event.titleEn,
-				sessionTitle: r.eventSession.title,
+				sessionTitle: r.eventSession.titleEn,
 				sessionStartTime: r.eventSession.startTime.toISOString(),
 				paymentStatus: r.payment?.status || 'none'
 			}))
@@ -461,8 +465,10 @@ export const actions: Actions = {
 
 			const session = await createEventSession({
 				eventId: params.id,
-				title: formData.get('title') as string,
-				description: formData.get('description') as string || null,
+				titleEn: formData.get('titleEn') as string,
+				titleFr: formData.get('titleFr') as string,
+				descriptionEn: formData.get('descriptionEn') as string || null,
+				descriptionFr: formData.get('descriptionFr') as string || null,
 				startTime: new Date(formData.get('startTime') as string),
 				endTime: new Date(formData.get('endTime') as string),
 				totalCapacity: parseInt(formData.get('totalCapacity') as string),
@@ -472,7 +478,7 @@ export const actions: Actions = {
 				allowWaitlist: formData.get('allowWaitlist') === 'on'
 			});
 
-			return { success: `Séance "${session.title}" créée avec succès` };
+			return { success: `Séance "${session.titleEn}" créée avec succès` };
 		} catch (err) {
 			logger.error({ err }, 'Create session error');
 			return fail(500, { error: err instanceof Error ? err.message : 'Failed to create session' });
@@ -488,8 +494,10 @@ export const actions: Actions = {
 			const { updateEventSession } = await import('$lib/server/services/event-sessions');
 
 			await updateEventSession(id, {
-				title: formData.get('title') as string,
-				description: formData.get('description') as string || null,
+				titleEn: formData.get('titleEn') as string,
+				titleFr: formData.get('titleFr') as string,
+				descriptionEn: formData.get('descriptionEn') as string || null,
+				descriptionFr: formData.get('descriptionFr') as string || null,
 				startTime: new Date(formData.get('startTime') as string),
 				endTime: new Date(formData.get('endTime') as string),
 				totalCapacity: parseInt(formData.get('totalCapacity') as string),

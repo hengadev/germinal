@@ -12,12 +12,10 @@ export const load: PageServerLoad = async ({ params }) => {
 		event,
 		sessions: sessions.map((s: typeof sessions[number]) => ({
 			id: s.id,
-			title: s.title,
-			titleEn: (s as any).titleEn,
-			titleFr: (s as any).titleFr,
-			description: s.description,
-			descriptionEn: (s as any).descriptionEn,
-			descriptionFr: (s as any).descriptionFr,
+			titleEn: s.titleEn,
+			titleFr: s.titleFr,
+			descriptionEn: s.descriptionEn,
+			descriptionFr: s.descriptionFr,
 			startTime: s.startTime.toISOString(),
 			endTime: s.endTime.toISOString(),
 			totalCapacity: s.totalCapacity,
@@ -46,10 +44,8 @@ export const actions: Actions = {
 		try {
 			const session = await createEventSession({
 				eventId: params.id,
-				title: titleEn,
 				titleEn,
 				titleFr,
-				description: descriptionEn,
 				descriptionEn,
 				descriptionFr,
 				startTime: new Date(formData.get('startTime') as string),
@@ -62,7 +58,7 @@ export const actions: Actions = {
 				badgeType: (formData.get('badgeType') as string || 'none') as 'none' | 'featured' | 'vip' | 'popular' | 'best_value' | 'limited'
 			});
 
-			return { success: `Séance "${session.titleEn || session.title}" créée avec succès` };
+			return { success: `Séance "${session.titleEn}" créée avec succès` };
 		} catch (err) {
 			logger.error({ err }, 'Create session error');
 			return fail(500, { error: err instanceof Error ? err.message : 'Failed to create session' });
@@ -79,10 +75,8 @@ export const actions: Actions = {
 
 		try {
 			await updateEventSession(id, {
-				title: titleEn,
 				titleEn,
 				titleFr,
-				description: descriptionEn,
 				descriptionEn,
 				descriptionFr,
 				startTime: new Date(formData.get('startTime') as string),
