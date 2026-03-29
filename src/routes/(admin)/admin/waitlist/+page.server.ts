@@ -46,7 +46,7 @@ export const load: PageServerLoad = async ({ url }) => {
 			eventSession: {
 				columns: {
 					id: true,
-					title: true,
+					titleEn: true,
 					startTime: true,
 					eventId: true
 				},
@@ -54,7 +54,7 @@ export const load: PageServerLoad = async ({ url }) => {
 					event: {
 						columns: {
 							id: true,
-							title: true,
+							titleEn: true,
 							slug: true
 						}
 					}
@@ -68,13 +68,13 @@ export const load: PageServerLoad = async ({ url }) => {
 		orderBy: [desc(eventSessions.startTime)],
 		columns: {
 			id: true,
-			title: true,
+			titleEn: true,
 			startTime: true
 		},
 		with: {
 			event: {
 				columns: {
-					title: true
+					titleEn: true
 				}
 			}
 		}
@@ -94,7 +94,7 @@ export const load: PageServerLoad = async ({ url }) => {
 			createdAt: entry.createdAt.toISOString(),
 			session: {
 				id: entry.eventSession.id,
-				title: entry.eventSession.title,
+				title: entry.eventSession.titleEn,
 				startTime: entry.eventSession.startTime.toISOString(),
 				eventTitle: entry.eventSession.event?.titleEn || '',
 				eventSlug: entry.eventSession.event?.slug || ''
@@ -102,7 +102,7 @@ export const load: PageServerLoad = async ({ url }) => {
 		})),
 		sessions: allSessions.map((s: typeof allSessions[number]) => ({
 			id: s.id,
-			title: `${s.event?.titleEn || ''}: ${s.title}`,
+			title: `${s.event?.titleEn || ''}: ${s.titleEn}`,
 			startTime: s.startTime.toISOString()
 		})),
 		filters: {

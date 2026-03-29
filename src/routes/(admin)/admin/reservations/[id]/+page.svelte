@@ -225,7 +225,7 @@ END:VCALENDAR`;
 					<div>
 						<div class="text-sm text-muted-foreground mb-1">Événement</div>
 						<div class="font-semibold text-foreground text-lg">{data.reservation.session.event.title}</div>
-						<div class="text-foreground-alt">{data.reservation.session.title}</div>
+						<div class="text-foreground-alt">{data.reservation.session.titleEn}</div>
 					</div>
 					<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
 						<div class="flex items-center gap-3">

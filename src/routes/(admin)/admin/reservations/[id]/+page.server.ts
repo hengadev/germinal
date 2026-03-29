@@ -42,7 +42,8 @@ export const load: PageServerLoad = async ({ params }) => {
 				cancelledAt: reservation.cancelledAt,
 				createdAt: reservation.createdAt,
 				session: {
-					title: session.title,
+					titleEn: (session as any).titleEn || session.title,
+					titleFr: (session as any).titleFr || session.title,
 					startTime: session.startTime.toISOString(),
 					endTime: session.endTime.toISOString(),
 					event: {
@@ -90,7 +91,8 @@ export const load: PageServerLoad = async ({ params }) => {
 				cancelledAt: reservation.cancelledAt?.toISOString(),
 				createdAt: reservation.createdAt.toISOString(),
 				session: {
-					title: reservation.eventSession.title,
+					titleEn: reservation.eventSession.titleEn,
+					titleFr: reservation.eventSession.titleFr,
 					startTime: reservation.eventSession.startTime.toISOString(),
 					endTime: reservation.eventSession.endTime.toISOString(),
 					event: reservation.eventSession.event

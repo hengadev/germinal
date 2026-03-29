@@ -67,7 +67,7 @@ export const load: PageServerLoad = async () => {
 				totalAmount: p.reservation.totalAmount,
 				currency: p.reservation.currency,
 				status: p.reservation.status,
-				sessionTitle: p.reservation.eventSession?.title,
+				sessionTitle: p.reservation.eventSession?.titleEn,
 				eventTitle: p.reservation.eventSession?.event?.titleEn,
 				sessionStartTime: p.reservation.eventSession?.startTime.toISOString()
 			} : null

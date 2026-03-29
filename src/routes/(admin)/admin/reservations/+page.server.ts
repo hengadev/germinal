@@ -19,7 +19,7 @@ export const load: PageServerLoad = async () => {
 				createdAt: r.createdAt,
 				confirmedAt: r.confirmedAt,
 				eventTitle: event?.titleEn || '',
-				sessionTitle: session?.title || '',
+				sessionTitle: (session as any)?.titleEn || (session as any)?.title || '',
 				sessionStartTime: session?.startTime?.toISOString() || '',
 				paymentStatus: r.paymentStatus
 			};
@@ -39,7 +39,7 @@ export const load: PageServerLoad = async () => {
 				with: {
 					event: {
 						columns: {
-							title: true,
+							titleEn: true,
 							slug: true
 						}
 					}
@@ -67,7 +67,7 @@ export const load: PageServerLoad = async () => {
 			createdAt: r.createdAt.toISOString(),
 			confirmedAt: r.confirmedAt?.toISOString(),
 			eventTitle: r.eventSession.event.titleEn,
-			sessionTitle: r.eventSession.title,
+			sessionTitle: r.eventSession.titleEn,
 			sessionStartTime: r.eventSession.startTime.toISOString(),
 			paymentStatus: r.payment?.status || 'none'
 		}))
