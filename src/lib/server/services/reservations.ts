@@ -3,7 +3,8 @@ import { logger } from '$lib/server/logger';
 import { eventSessions, reservations, payments } from '../db/schema';
 import { eq, and, sql, lt } from 'drizzle-orm';
 import { generateAccessToken } from '$lib/utils/tokens';
-import { createPaymentIntent } from './stripe';
+import { createCheckoutSession } from './stripe';
+import { events } from '../db/schema';
 import { env } from '../env';
 import type { CreateReservationInput, ReservationWithDetails } from '$lib/types/reservations';
 import { validatePromoCode, calculateDiscountAmount, incrementRedemption } from './promo-codes';
@@ -18,8 +19,8 @@ export async function createReservation(input: CreateReservationInput) {
 		throw new Error('Invalid submission');
 	}
 
-	// Track PaymentIntent ID for cleanup in case of transaction failure
-	let paymentIntentId: string | null = null;
+	// Track Checkout Session ID for cleanup in case of transaction failure
+	let checkoutSessionId: string | null = null;
 
 	try {
 		return await db.transaction(async (tx: typeof db) => {
@@ -115,26 +116,45 @@ export async function createReservation(input: CreateReservationInput) {
 			discountAmount,
 		}).returning();
 
-		// Step 8: Create Stripe PaymentIntent
-		const paymentIntent = await createPaymentIntent({
+		// Step 8: Load event title for checkout session product name
+		const [event] = await tx
+			.select({ titleEn: events.titleEn, slug: events.slug })
+			.from(events)
+			.where(eq(events.id, session.eventId));
+
+		// Step 9: Create Stripe Checkout Session (hosted payment page)
+		const checkoutSession = await createCheckoutSession({
 			reservationId: reservation.id,
+			accessToken,
 			amount: totalAmount,
 			currency: session.currency,
+			quantity: input.quantity,
+			productName: `${session.titleEn}${event ? ` — ${event.titleEn}` : ''}`,
+			customerEmail: input.email,
 			metadata: {
 				reservationId: reservation.id,
 				sessionId: session.id,
 				guestEmail: input.email,
 			},
+			successUrl: `${env.PUBLIC_URL}/tickets/${accessToken}?success=true`,
+			cancelUrl: event
+				? `${env.PUBLIC_URL}/events/${event.slug}`
+				: `${env.PUBLIC_URL}/events`,
+			expiresAt,
 		});
 
-		// Store PaymentIntent ID for potential cleanup
-		paymentIntentId = paymentIntent.id;
+		// Store Checkout Session ID for potential cleanup
+		checkoutSessionId = checkoutSession.id;
 
-		// Step 9: Store payment record
+		if (!checkoutSession.payment_intent) {
+			throw new Error('Stripe did not return a PaymentIntent for the Checkout Session');
+		}
+
+		// Step 10: Store payment record
 		await tx.insert(payments).values({
 			reservationId: reservation.id,
-			stripePaymentIntentId: paymentIntent.id,
-			stripeClientSecret: paymentIntent.client_secret ?? null,
+			stripePaymentIntentId: checkoutSession.payment_intent as string,
+			stripeClientSecret: null,
 			amount: totalAmount,
 			currency: session.currency,
 			status: 'pending',
@@ -144,19 +164,19 @@ export async function createReservation(input: CreateReservationInput) {
 		// Transaction commits here - capacity is locked, reservation created
 		return {
 			reservation,
-			clientSecret: paymentIntent.client_secret,
+			checkoutUrl: checkoutSession.url!,
 			expiresAt,
 		};
 		});
 	} catch (error) {
-		// Transaction failed - clean up orphaned PaymentIntent
-		if (paymentIntentId) {
+		// Transaction failed - clean up orphaned Checkout Session
+		if (checkoutSessionId) {
 			try {
-				const { cancelPaymentIntent } = await import('./stripe');
-				await cancelPaymentIntent(paymentIntentId);
-				logger.info(`[Reservation Cleanup] Cleaned up orphaned PaymentIntent ${paymentIntentId} after transaction failure`);
+				const { cancelCheckoutSession } = await import('./stripe');
+				await cancelCheckoutSession(checkoutSessionId);
+				logger.info(`[Reservation Cleanup] Cleaned up orphaned Checkout Session ${checkoutSessionId} after transaction failure`);
 			} catch (cancelError) {
-				logger.error({ err: cancelError, paymentIntentId }, '[Reservation Cleanup] Failed to cancel orphaned PaymentIntent');
+				logger.error({ err: cancelError, checkoutSessionId }, '[Reservation Cleanup] Failed to cancel orphaned Checkout Session');
 			}
 		}
 		throw error;

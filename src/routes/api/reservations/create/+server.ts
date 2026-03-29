@@ -57,7 +57,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress, locals }
 		return json(
 			{
 				reservationId: result.reservation.id,
-				clientSecret: result.clientSecret,
+				checkoutUrl: result.checkoutUrl,
 				expiresAt: result.expiresAt,
 				accessToken: result.reservation.accessToken,
 			},

@@ -2,9 +2,7 @@
 	import { X, User, Mail, Phone, Ticket, AlertCircle, Loader2 } from 'lucide-svelte';
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import Drawer from '$lib/components/ui/Drawer.svelte';
-	import { browser } from '$app/environment';
 	import { page } from '$app/stores';
-	import { goto } from '$app/navigation';
 	import { formatCurrency } from '$lib/utils/currency';
 	import { t, locale } from 'svelte-i18n';
 
@@ -120,24 +118,8 @@
 				throw new Error(userMessage);
 			}
 
-			// Reservation created successfully, now process payment
-			// Store reservation details in sessionStorage for checkout page
-			if (browser) {
-				sessionStorage.setItem('pendingReservation', JSON.stringify({
-					reservationId: data.reservationId,
-					clientSecret: data.clientSecret,
-					expiresAt: data.expiresAt,
-					accessToken: data.accessToken,
-					sessionTitle: getSessionTitle(session),
-					eventTitle,
-					quantity,
-					totalAmount,
-					currency: session.currency
-				}));
-			}
-
-			// Navigate to checkout page
-			await goto(`/checkout?reservation=${data.reservationId}`);
+			// Reservation created — redirect to Stripe's hosted checkout page
+			window.location.href = data.checkoutUrl;
 
 		} catch (err) {
 			console.error('Booking error:', err);

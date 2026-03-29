@@ -18,37 +18,76 @@ export function getStripeClient(): Stripe {
 	return stripeClient;
 }
 
-export type CreatePaymentIntentParams = {
+export type CreateCheckoutSessionParams = {
 	reservationId: string;
+	accessToken: string;
 	amount: number;
 	currency: string;
+	quantity: number;
+	productName: string;
+	customerEmail: string;
 	metadata: {
 		reservationId: string;
 		sessionId: string;
 		guestEmail: string;
 	};
+	successUrl: string;
+	cancelUrl: string;
+	expiresAt: Date;
 };
 
 /**
- * Create a Stripe PaymentIntent for a reservation
+ * Create a Stripe Checkout Session for a reservation (hosted Stripe payment page)
  */
-export async function createPaymentIntent(params: CreatePaymentIntentParams) {
+export async function createCheckoutSession(params: CreateCheckoutSessionParams) {
 	const stripe = getStripeClient();
 
-	const idempotencyKey = `reservation-${params.reservationId}`;
+	// Stripe minimum expiry is 30 minutes; use whichever is later
+	const expiresAt = Math.max(
+		Math.floor(params.expiresAt.getTime() / 1000),
+		Math.floor(Date.now() / 1000) + 30 * 60
+	);
 
-	const paymentIntent = await stripe.paymentIntents.create({
-		amount: params.amount,
-		currency: params.currency,
-		metadata: params.metadata,
-		automatic_payment_methods: {
-			enabled: true,
+	const session = await stripe.checkout.sessions.create({
+		mode: 'payment',
+		customer_email: params.customerEmail,
+		line_items: [{
+			price_data: {
+				currency: params.currency.toLowerCase(),
+				unit_amount: params.amount,
+				product_data: {
+					name: params.productName,
+				},
+			},
+			quantity: 1,
+		}],
+		payment_intent_data: {
+			metadata: params.metadata,
 		},
+		metadata: params.metadata,
+		success_url: params.successUrl,
+		cancel_url: params.cancelUrl,
+		expires_at: expiresAt,
 	}, {
-		idempotencyKey,
+		idempotencyKey: `checkout-${params.reservationId}`,
 	});
 
-	return paymentIntent;
+	return session;
+}
+
+/**
+ * Cancel a Stripe Checkout Session (for failed reservations)
+ */
+export async function cancelCheckoutSession(sessionId: string): Promise<void> {
+	const stripe = getStripeClient();
+	try {
+		await stripe.checkout.sessions.expire(sessionId);
+	} catch (error) {
+		if (error instanceof Stripe.errors.StripeError) {
+			if (error.code === 'resource_missing') return; // Already expired/completed
+		}
+		throw error;
+	}
 }
 
 /**

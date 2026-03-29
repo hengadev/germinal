@@ -148,25 +148,8 @@
 				throw new Error(result.error || 'Failed to create reservation');
 			}
 
-			sessionStorage.setItem(
-				'pendingReservation',
-				JSON.stringify({
-					reservationId: result.reservationId,
-					clientSecret: result.clientSecret,
-					expiresAt: result.expiresAt,
-					accessToken: result.accessToken,
-					sessionTitle: $locale === 'en' ? data.session.titleEn : data.session.titleFr,
-					eventTitle,
-					quantity,
-					originalAmount: baseAmount,
-					discountAmount,
-					totalAmount,
-					currency: data.session.currency,
-					promoCode: appliedPromoCode?.code ?? null,
-				})
-			);
-
-			await goto(`/checkout?reservation=${result.reservationId}`);
+			// Redirect to Stripe's hosted checkout page
+			window.location.href = result.checkoutUrl;
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to create reservation';
 			isSubmitting = false;
