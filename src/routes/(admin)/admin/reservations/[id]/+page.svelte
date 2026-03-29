@@ -4,6 +4,7 @@
 	import { formatCurrency } from '$lib/utils/currency';
 	import QRCode from 'qrcode';
 	import { enhance } from '$app/forms';
+	import { env } from '$env/dynamic/public';
 	import { getToastContext } from '$lib/components/toast/state.svelte';
 
 	let { data }: { data: PageData } = $props();
@@ -36,7 +37,7 @@
 
 	// Generate QR code on mount
 	$effect(async () => {
-		const PUBLIC_URL = import.meta.env.PUBLIC_URL || 'http://localhost:5173';
+		const PUBLIC_URL = env.PUBLIC_URL || 'http://localhost:5173';
 		qrCodeUrl = await QRCode.toDataURL(
 			`${PUBLIC_URL}/tickets/${data.reservation.accessToken}`,
 			{
