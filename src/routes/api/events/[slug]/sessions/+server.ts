@@ -11,8 +11,10 @@ export const GET: RequestHandler = async ({ params }) => {
 		return json({
 			sessions: sessions.map((session: typeof sessions[number]) => ({
 				id: session.id,
-				title: session.title,
-				description: session.description,
+				titleEn: session.titleEn,
+				titleFr: session.titleFr,
+				descriptionEn: session.descriptionEn,
+				descriptionFr: session.descriptionFr,
 				startTime: session.startTime,
 				endTime: session.endTime,
 				priceAmount: session.priceAmount,

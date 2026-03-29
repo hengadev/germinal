@@ -36,7 +36,8 @@ export const load: PageServerLoad = async ({ params }) => {
 			createdAt: reservation.createdAt.toISOString(),
 			accessToken: params.token,
 			session: {
-				title: reservation.eventSession.title,
+				titleEn: reservation.eventSession.titleEn,
+				titleFr: reservation.eventSession.titleFr,
 				startTime: reservation.eventSession.startTime.toISOString(),
 				endTime: reservation.eventSession.endTime.toISOString(),
 				event: reservation.eventSession.event

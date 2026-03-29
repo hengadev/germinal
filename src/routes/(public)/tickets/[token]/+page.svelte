@@ -152,7 +152,7 @@ END:VCALENDAR`;
 				<div class="flex items-start justify-between mb-4">
 					<div>
 						<h1 class="text-2xl font-bold mb-1">{data.reservation.session.event.title}</h1>
-						<p class="text-dark-200">{data.reservation.session.title}</p>
+						<p class="text-dark-200">{data.reservation.session.titleEn}</p>
 					</div>
 					<span class={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium ${statusBadge.class}`}>
 						{#if statusBadge.icon}

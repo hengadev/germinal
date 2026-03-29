@@ -155,7 +155,7 @@
 					clientSecret: result.clientSecret,
 					expiresAt: result.expiresAt,
 					accessToken: result.accessToken,
-					sessionTitle: data.session.title,
+					sessionTitle: $locale === 'en' ? data.session.titleEn : data.session.titleFr,
 					eventTitle,
 					quantity,
 					originalAmount: baseAmount,
@@ -234,7 +234,7 @@
 			<!-- Session Info -->
 			<div class="bg-dark-50 rounded-lg p-4">
 				<div class="text-sm text-dark-600 mb-1">{eventTitle}</div>
-				<div class="font-semibold text-dark-900">{data.session.title}</div>
+				<div class="font-semibold text-dark-900">{$locale === 'en' ? data.session.titleEn : data.session.titleFr}</div>
 				<div class="text-sm text-dark-500 mt-1">{formatDateTime(data.session.startTime)}</div>
 			</div>
 

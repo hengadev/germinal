@@ -7,8 +7,10 @@ import type { PageServerLoad } from './$types';
 function mapSession(s: (typeof MOCK_SESSIONS)[number]) {
 	return {
 		id: s.id,
-		title: s.title,
-		description: s.description,
+		titleEn: (s as any).titleEn || s.title,
+		titleFr: (s as any).titleFr || s.title,
+		descriptionEn: (s as any).descriptionEn ?? null,
+		descriptionFr: (s as any).descriptionFr ?? null,
 		startTime: s.startTime.toISOString(),
 		endTime: s.endTime.toISOString(),
 		priceAmount: s.priceAmount,
@@ -44,8 +46,10 @@ export const load: PageServerLoad = async ({ params }) => {
 			event,
 			session: {
 				id: dbSession.id,
-				title: dbSession.title,
-				description: dbSession.description,
+				titleEn: dbSession.titleEn,
+				titleFr: dbSession.titleFr,
+				descriptionEn: dbSession.descriptionEn ?? null,
+				descriptionFr: dbSession.descriptionFr ?? null,
 				startTime: dbSession.startTime.toISOString(),
 				endTime: dbSession.endTime.toISOString(),
 				priceAmount: dbSession.priceAmount,
