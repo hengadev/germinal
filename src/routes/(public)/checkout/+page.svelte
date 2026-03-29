@@ -6,9 +6,10 @@
 	import { loadStripe, type Stripe, type StripeElements } from '@stripe/stripe-js';
 	import { Lock, Clock, AlertCircle, CheckCircle2, Loader2, Tag } from 'lucide-svelte';
 	import { formatCurrency } from '$lib/utils/currency';
+	import { env } from '$env/dynamic/public';
 
 	// Stripe publishable key - MUST be set in .env as PUBLIC_STRIPE_PUBLISHABLE_KEY
-	const STRIPE_KEY = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY;
+	const STRIPE_KEY = env.PUBLIC_STRIPE_PUBLISHABLE_KEY;
 
 	let stripe: Stripe | null = null;
 	let elements: StripeElements | null = null;
@@ -165,7 +166,13 @@
 
 <div class="min-h-screen bg-dark-50/30 py-12">
 	<div class="container mx-auto px-4 max-w-2xl">
-		{#if !reservationData}
+		{#if error && !reservationData}
+			<div class="bg-white rounded-lg border border-border-card p-12 text-center">
+				<AlertCircle size={48} class="mx-auto mb-4 text-red-400" />
+				<h3 class="text-xl font-semibold text-dark-900 mb-2">Unable to Load Checkout</h3>
+				<p class="text-red-600 text-sm">{error}</p>
+			</div>
+		{:else if !reservationData}
 			<div class="bg-white rounded-lg border border-border-card p-12 text-center">
 				<Loader2 size={48} class="mx-auto mb-4 text-dark-300 animate-spin" />
 				<h3 class="text-xl font-semibold text-dark-900">Loading...</h3>
