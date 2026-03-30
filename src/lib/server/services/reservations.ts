@@ -368,6 +368,14 @@ export async function expireReservation(reservationId: string) {
 			.where(eq(eventSessions.id, reservation.eventSessionId))
 			.for('update');
 
+		// Update reservation status
+		await tx.update(reservations)
+			.set({
+				status: 'expired',
+				updatedAt: new Date(),
+			})
+			.where(eq(reservations.id, reservationId));
+
 		if (session) {
 			await tx.update(eventSessions)
 				.set({
@@ -379,14 +387,6 @@ export async function expireReservation(reservationId: string) {
 			// Return session data for waitlist notification after transaction
 			return { sessionId: session.id, availableCapacity: reservation.quantity, allowWaitlist: session.allowWaitlist };
 		}
-
-		// Update reservation status
-		await tx.update(reservations)
-			.set({
-				status: 'expired',
-				updatedAt: new Date(),
-			})
-			.where(eq(reservations.id, reservationId));
 
 		return null;
 	});
