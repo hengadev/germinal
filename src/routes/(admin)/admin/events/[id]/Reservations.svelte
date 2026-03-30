@@ -19,13 +19,13 @@
 	function getStatusBadge(status: string) {
 		switch (status) {
 			case 'confirmed':
-				return { text: 'Confirmed', class: 'bg-green-50 text-green-700', icon: CheckCircle2 };
+				return { text: 'Confirmée', class: 'bg-green-50 text-green-700', icon: CheckCircle2 };
 			case 'pending':
-				return { text: 'Pending', class: 'bg-yellow-50 text-yellow-700', icon: Clock };
+				return { text: 'En attente', class: 'bg-yellow-50 text-yellow-700', icon: Clock };
 			case 'cancelled':
-				return { text: 'Cancelled', class: 'bg-red-50 text-red-700', icon: XCircle };
+				return { text: 'Annulée', class: 'bg-red-50 text-red-700', icon: XCircle };
 			case 'expired':
-				return { text: 'Expired', class: 'bg-muted text-foreground-alt', icon: AlertCircle };
+				return { text: 'Expirée', class: 'bg-muted text-foreground-alt', icon: AlertCircle };
 			default:
 				return { text: status, class: 'bg-muted text-foreground-alt', icon: null };
 		}
@@ -35,15 +35,15 @@
 	function getPaymentStatusBadge(status: string) {
 		switch (status) {
 			case 'succeeded':
-				return { text: 'Paid', class: 'bg-green-50 text-green-700' };
+				return { text: 'Payé', class: 'bg-green-50 text-green-700' };
 			case 'pending':
-				return { text: 'Pending', class: 'bg-yellow-50 text-yellow-700' };
+				return { text: 'En attente', class: 'bg-yellow-50 text-yellow-700' };
 			case 'failed':
-				return { text: 'Failed', class: 'bg-red-50 text-red-700' };
+				return { text: 'Échoué', class: 'bg-red-50 text-red-700' };
 			case 'refunded':
-				return { text: 'Refunded', class: 'bg-muted text-foreground-alt' };
+				return { text: 'Remboursé', class: 'bg-muted text-foreground-alt' };
 			default:
-				return { text: 'None', class: 'bg-muted text-foreground-alt' };
+				return { text: 'Aucun', class: 'bg-muted text-foreground-alt' };
 		}
 	}
 
@@ -92,32 +92,32 @@
 <!-- Filters and Search -->
 <div class="bg-background rounded-lg border border-border-card p-4 mb-6">
 	<div class="flex flex-col sm:flex-row gap-4">
-		<!-- Status Filter -->
+		<!-- Statut Filter -->
 		<div class="flex-1">
-			<label for="statusFilter" class="block text-sm font-medium text-foreground-alt mb-1">Filter by Status</label>
+			<label for="statusFilter" class="block text-sm font-medium text-foreground-alt mb-1">Filtrer par Statut</label>
 			<select
 				id="statusFilter"
 				bind:value={statusFilter}
 				class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
 			>
-				<option value="all">All Statuses</option>
-				<option value="confirmed">Confirmed</option>
-				<option value="pending">Pending</option>
-				<option value="cancelled">Cancelled</option>
-				<option value="expired">Expired</option>
+				<option value="all">Tous les Statuts</option>
+				<option value="confirmed">Confirmée</option>
+				<option value="pending">En attente</option>
+				<option value="cancelled">Annulée</option>
+				<option value="expired">Expirée</option>
 			</select>
 		</div>
 
 		<!-- Search -->
 		<div class="flex-1">
-			<label for="search" class="block text-sm font-medium text-foreground-alt mb-1">Search</label>
+			<label for="search" class="block text-sm font-medium text-foreground-alt mb-1">Rechercher</label>
 			<div class="relative">
 				<Search size={18} class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
 				<input
 					id="search"
 					type="text"
 					bind:value={searchQuery}
-					placeholder="Search by name, email, or session..."
+					placeholder="Rechercher par nom, email ou session..."
 					class="w-full pl-10 pr-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
 				/>
 			</div>
@@ -126,7 +126,7 @@
 
 	<!-- Results count -->
 	<div class="mt-3 text-sm text-muted-foreground">
-		Showing {filteredReservations().length} of {data.reservations.length} reservations
+		Affichage de {filteredReservations().length} sur {data.reservations.length} réservations
 	</div>
 </div>
 
@@ -134,13 +134,13 @@
 	<div class="bg-background rounded-lg border border-border-card p-12 text-center">
 		<Ticket size={48} class="mx-auto mb-4 text-muted-foreground" />
 		<h3 class="text-xl font-semibold text-foreground mb-2">
-			No reservations found
+			Aucune réservation trouvée
 		</h3>
 		<p class="text-muted-foreground">
 			{#if searchQuery || statusFilter !== 'all'}
-				Try adjusting your filters or search query
+				Essayez d'ajuster vos filtres ou votre recherche
 			{:else}
-				No reservations have been made yet
+				Aucune réservation n'a encore été faite
 			{/if}
 		</p>
 	</div>
@@ -151,19 +151,19 @@
 			<thead class="bg-muted border-b border-border-card">
 				<tr>
 					<th class="px-6 py-4 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">
-						Guest
+						Invité
 					</th>
 					<th class="px-6 py-4 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">
 						Session
 					</th>
 					<th class="px-6 py-4 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">
-						Quantity & Total
+						Quantité & Total
 					</th>
 					<th class="px-6 py-4 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">
-						Status
+						Statut
 					</th>
 					<th class="px-6 py-4 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">
-						Payment
+						Paiement
 					</th>
 					<th class="px-6 py-4 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">
 						Date
@@ -236,7 +236,7 @@
 								<a
 									href="/admin/reservations/{reservation.id}"
 									class="p-2 text-foreground-alt hover:text-foreground hover:bg-muted rounded-lg transition-colors"
-									title="View Details"
+									title="Voir Détails"
 								>
 									<Eye size={18} />
 								</a>
@@ -290,7 +290,7 @@
 						</div>
 					</div>
 					<div>
-						<div class="text-xs text-muted-foreground">Payment</div>
+						<div class="text-xs text-muted-foreground">Paiement</div>
 						<span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium {paymentBadge.class} rounded-full">
 							{paymentBadge.text}
 						</span>
@@ -305,7 +305,7 @@
 						href="/admin/reservations/{reservation.id}"
 						class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-foreground-alt hover:text-foreground hover:bg-muted rounded-lg transition-colors"
 					>
-						View Details
+						Voir Détails
 						<ArrowRight size={14} />
 					</a>
 				</div>

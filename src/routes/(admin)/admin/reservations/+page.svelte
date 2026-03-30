@@ -260,7 +260,7 @@
 									<a
 										href="/admin/reservations/{reservation.id}"
 										class="p-2 text-foreground-alt hover:text-foreground hover:bg-muted rounded-lg transition-colors"
-										title="View Details"
+										title="Voir Détails"
 									>
 										<Eye size={18} />
 									</a>
@@ -300,11 +300,11 @@
 
 					<div class="grid grid-cols-2 gap-3 mb-3">
 						<div>
-							<div class="text-xs text-muted-foreground">Event</div>
+							<div class="text-xs text-muted-foreground">Événement</div>
 							<div class="text-sm font-medium text-foreground truncate">{reservation.eventTitle}</div>
 						</div>
 						<div>
-							<div class="text-xs text-muted-foreground">Tickets</div>
+							<div class="text-xs text-muted-foreground">Billets</div>
 							<div class="text-sm font-medium text-foreground">{reservation.quantity}</div>
 						</div>
 						<div>
@@ -314,7 +314,7 @@
 							</div>
 						</div>
 						<div>
-							<div class="text-xs text-muted-foreground">Payment</div>
+							<div class="text-xs text-muted-foreground">Paiement</div>
 							<span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium {paymentBadge.class} rounded-full">
 								{paymentBadge.text}
 							</span>
@@ -329,7 +329,7 @@
 							href="/admin/reservations/{reservation.id}"
 							class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-foreground-alt hover:text-foreground hover:bg-muted rounded-lg transition-colors"
 						>
-							View Details
+							Voir Détails
 							<ArrowRight size={14} />
 						</a>
 					</div>

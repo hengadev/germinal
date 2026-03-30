@@ -321,7 +321,7 @@
  name="venueNameEn"
  type="text"
  bind:value={venueNameEn}
- placeholder="e.g., Central Convention Center"
+ placeholder="ex: Central Convention Center"
  class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
  />
  </div>
@@ -350,7 +350,7 @@
  name="streetAddressEn"
  type="text"
  bind:value={streetAddressEn}
- placeholder="e.g., 123 Main Street"
+ placeholder="ex: 123 Main Street"
  class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
  />
  </div>
@@ -379,7 +379,7 @@
  name="districtEn"
  type="text"
  bind:value={districtEn}
- placeholder="e.g., Downtown"
+ placeholder="ex: Downtown"
  class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
  />
  </div>
@@ -408,7 +408,7 @@
  name="cityEn"
  type="text"
  bind:value={cityEn}
- placeholder="e.g., Tokyo"
+ placeholder="ex: Tokyo"
  class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
  />
  </div>
@@ -434,7 +434,7 @@
  name="postalCode"
  type="text"
  bind:value={postalCode}
- placeholder="e.g., 12345"
+ placeholder="ex: 12345"
  class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
  />
  </div>
@@ -450,7 +450,7 @@
  name="countryEn"
  type="text"
  bind:value={countryEn}
- placeholder="e.g., Japan"
+ placeholder="ex: Japan"
  class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
  />
  </div>
@@ -475,7 +475,7 @@
  <label class="block text-sm font-medium text-foreground-alt mb-2">
  Collaborateurs (Optionnel)
  </label>
- <p class="text-xs text-muted-foreground mb-3">Add collaborating talents or partners</p>
+ <p class="text-xs text-muted-foreground mb-3">Ajouter des talents ou partenaires collaborants</p>
 
  <div class="space-y-2">
  {#each collaborators as collab, i}
@@ -526,7 +526,7 @@
  <label class="block text-sm font-medium text-foreground-alt mb-2">
  Horaires de l'Événement (Optionnel)
             </label>
-            <p class="text-xs text-muted-foreground mb-3">Add schedule information for different sessions</p>
+            <p class="text-xs text-muted-foreground mb-3">Ajouter des informations de planning pour différentes sessions</p>
 
             <div class="space-y-2">
                 {#each timings as timing, i}
@@ -534,13 +534,13 @@
                         <input
                             type="text"
                             bind:value={timings[i].label}
-                            placeholder="e.g., Opening Night"
+                            placeholder="ex: Soirée d'ouverture"
                             class="flex-1 px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
                         />
                         <input
                             type="text"
                             bind:value={timings[i].time}
-                            placeholder="e.g., 18:00 - 22:00"
+                            placeholder="ex: 18:00 - 22:00"
                             class="flex-1 px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
                         />
                         <button
@@ -548,7 +548,7 @@
                             onclick={() => timings = timings.filter((_, idx) => idx !== i)}
                             class="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                         >
-                            Remove
+                            Supprimer
                         </button>
                     </div>
                 {/each}
@@ -558,7 +558,7 @@
                     onclick={() => timings = [...timings, {label: "", time: ""}]}
                     class="text-sm text-foreground-alt hover:text-foreground font-medium"
                 >
-                    + Add Timing
+                    + Ajouter un Horaire
                 </button>
             </div>
 
@@ -571,21 +571,21 @@
 
             <div>
                 <label for="curatorEn" class="block text-sm font-medium text-foreground-alt mb-2">
-                    Curator (English)
+                    Commissaire (Anglais)
                 </label>
                 <input
                     id="curatorEn"
                     name="curatorEn"
                     type="text"
                     bind:value={curatorEn}
-                    placeholder="e.g., John Smith"
+                    placeholder="ex: John Smith"
                     class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
                 />
             </div>
 
             <div>
                 <label for="curatorFr" class="block text-sm font-medium text-foreground-alt mb-2">
-                    Curator (French)
+                    Commissaire (Français)
                 </label>
                 <input
                     id="curatorFr"
@@ -599,21 +599,21 @@
 
             <div>
                 <label for="materialsEn" class="block text-sm font-medium text-foreground-alt mb-2">
-                    Materials (English)
+                    Matériaux (Anglais)
                 </label>
                 <input
                     id="materialsEn"
                     name="materialsEn"
                     type="text"
                     bind:value={materialsEn}
-                    placeholder="e.g., Canvas, Wood, Digital"
+                    placeholder="ex: Canvas, Wood, Digital"
                     class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
                 />
             </div>
 
             <div>
                 <label for="materialsFr" class="block text-sm font-medium text-foreground-alt mb-2">
-                    Materials (French)
+                    Matériaux (Français)
                 </label>
                 <input
                     id="materialsFr"
@@ -627,21 +627,21 @@
 
             <div>
                 <label for="admissionInfoEn" class="block text-sm font-medium text-foreground-alt mb-2">
-                    Admission Info (English)
+                    Informations d'Admission (Anglais)
                 </label>
                 <input
                     id="admissionInfoEn"
                     name="admissionInfoEn"
                     type="text"
                     bind:value={admissionInfoEn}
-                    placeholder="e.g., Free, $25, Members Only"
+                    placeholder="ex: Free, $25, Members Only"
                     class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
                 />
             </div>
 
             <div>
                 <label for="admissionInfoFr" class="block text-sm font-medium text-foreground-alt mb-2">
-                    Admission Info (French)
+                    Informations d'Admission (Français)
                 </label>
                 <input
                     id="admissionInfoFr"
@@ -666,10 +666,10 @@
             />
             <div>
                 <label for="published" class="block text-sm font-medium text-foreground cursor-pointer">
-                    Published
+                    Publié
                 </label>
                 <p class="text-xs text-muted-foreground">
-                    Uncheck to save as draft
+                    Décocher pour sauvegarder comme brouillon
                 </p>
             </div>
         </div>
@@ -706,7 +706,7 @@
                 href="/admin/events"
                 class="flex-1 px-6 py-3 bg-background border border-border-input text-foreground-alt rounded-lg hover:bg-muted focus:outline-none focus:ring-2 focus:ring-foreground focus:ring-offset-2 transition-colors font-medium text-center"
             >
-                Cancel
+                Annuler
             </a>
         </div>
     </form>
