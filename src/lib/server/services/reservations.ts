@@ -379,7 +379,7 @@ export async function expireReservation(reservationId: string) {
 		if (session) {
 			await tx.update(eventSessions)
 				.set({
-					availableCapacity: session.availableCapacity + reservation.quantity,
+					availableCapacity: Math.min(session.availableCapacity + reservation.quantity, session.totalCapacity),
 					updatedAt: new Date(),
 				})
 				.where(eq(eventSessions.id, reservation.eventSessionId));
