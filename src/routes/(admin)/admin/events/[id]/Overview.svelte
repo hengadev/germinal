@@ -64,10 +64,10 @@
 
 <div class="bg-background rounded-lg border border-border-card p-6 lg:p-8">
  <form method="POST" action="?/updateEvent" use:enhance={updateEventEnhance} class="space-y-6">
- <!-- Title (English) -->
+ <!-- Titre (Anglais) -->
  <div>
  <label for="titleEn" class="block text-sm font-medium text-foreground-alt mb-2">
- Title (English) <span class="text-red-500">*</span>
+ Titre (Anglais) <span class="text-red-500">*</span>
  </label>
  <div class="relative">
  <Type
@@ -86,10 +86,10 @@
  </div>
  </div>
 
- <!-- Title (French) -->
+ <!-- Titre (Français) -->
  <div>
  <label for="titleFr" class="block text-sm font-medium text-foreground-alt mb-2">
- Title (French) <span class="text-red-500">*</span>
+ Titre (Français) <span class="text-red-500">*</span>
  </label>
  <div class="relative">
  <Type
@@ -134,10 +134,10 @@
             </p>
         </div>
 
-        <!-- Description (English) -->
+        <!-- Description (Anglais) -->
         <div>
             <label for="descriptionEn" class="block text-sm font-medium text-foreground-alt mb-2">
-                Description (English) <span class="text-red-500">*</span>
+                Description (Anglais) <span class="text-red-500">*</span>
             </label>
             <div class="relative">
                 <FileText
@@ -156,10 +156,10 @@
             </div>
         </div>
 
-        <!-- Description (French) -->
+        <!-- Description (Français) -->
         <div>
             <label for="descriptionFr" class="block text-sm font-medium text-foreground-alt mb-2">
-                Description (French) <span class="text-red-500">*</span>
+                Description (Français) <span class="text-red-500">*</span>
             </label>
             <div class="relative">
                 <FileText
@@ -178,10 +178,10 @@
             </div>
         </div>
 
-        <!-- Subtitle (English) -->
+        <!-- Sous-titre (Anglais) -->
         <div>
             <label for="subtitleEn" class="block text-sm font-medium text-foreground-alt mb-2">
-                Subtitle (English) (Optional)
+                Sous-titre (Anglais) (Optionnel)
             </label>
             <div class="relative">
                 <FileText
@@ -199,10 +199,10 @@
             </div>
         </div>
 
-        <!-- Subtitle (French) -->
+        <!-- Sous-titre (Français) -->
         <div>
             <label for="subtitleFr" class="block text-sm font-medium text-foreground-alt mb-2">
-                Subtitle (French) (Optional)
+                Sous-titre (Français) (Optionnel)
             </label>
             <div class="relative">
                 <FileText
