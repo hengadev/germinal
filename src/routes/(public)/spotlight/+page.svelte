@@ -27,10 +27,10 @@
 		})) ?? []
 	);
 
-	function getEventField(field: 'title' | 'description' | 'subtitle' | 'curator' | 'materials' | 'admissionInfo'): string {
+	function getEventField(field: 'title' | 'description' | 'subtitle' | 'curator' | 'materials' | 'admissionInfo' | 'location' | 'venueName' | 'streetAddress' | 'district' | 'city' | 'country'): string {
 		if (!spotlightEvent) return '';
-		const enField = (field + 'En') as 'titleEn' | 'descriptionEn' | 'subtitleEn' | 'curatorEn' | 'materialsEn' | 'admissionInfoEn';
-		const frField = (field + 'Fr') as 'titleFr' | 'descriptionFr' | 'subtitleFr' | 'curatorFr' | 'materialsFr' | 'admissionInfoFr';
+		const enField = (field + 'En') as 'titleEn' | 'descriptionEn' | 'subtitleEn' | 'curatorEn' | 'materialsEn' | 'admissionInfoEn' | 'locationEn' | 'venueNameEn' | 'streetAddressEn' | 'districtEn' | 'cityEn' | 'countryEn';
+		const frField = (field + 'Fr') as 'titleFr' | 'descriptionFr' | 'subtitleFr' | 'curatorFr' | 'materialsFr' | 'admissionInfoFr' | 'locationFr' | 'venueNameFr' | 'streetAddressFr' | 'districtFr' | 'cityFr' | 'countryFr';
 		return $locale === 'en' ? (spotlightEvent[enField] || '') : (spotlightEvent[frField] || '');
 	}
 </script>
@@ -110,23 +110,23 @@
 					<div class="grid gap-3 lg:gap-4">
 						{@render asideTitle($t('events.location'), MapPin)}
 						<div class="text-dark-500 text-sm lg:text-base">
-							{#if spotlightEvent.venueName}
-								<p>{spotlightEvent.venueName}</p>
+							{#if getEventField('venueName')}
+								<p>{getEventField('venueName')}</p>
 							{/if}
-							{#if spotlightEvent.streetAddress}
-								<p>{spotlightEvent.streetAddress}</p>
+							{#if getEventField('streetAddress')}
+								<p>{getEventField('streetAddress')}</p>
 							{/if}
-							{#if spotlightEvent.district || spotlightEvent.city || spotlightEvent.postalCode}
+							{#if getEventField('district') || getEventField('city') || spotlightEvent.postalCode}
 								<p>
-									{#if spotlightEvent.district}{spotlightEvent.district},
+									{#if getEventField('district')}{getEventField('district')},
 									{/if}
-									{#if spotlightEvent.city}{spotlightEvent.city}
+									{#if getEventField('city')}{getEventField('city')}
 									{/if}
 									{#if spotlightEvent.postalCode}{spotlightEvent.postalCode}{/if}
 								</p>
 							{/if}
-							{#if spotlightEvent.country}
-								<p>{spotlightEvent.country}</p>
+							{#if getEventField('country')}
+								<p>{getEventField('country')}</p>
 							{/if}
 						</div>
 					</div>
