@@ -1,7 +1,7 @@
 import { json, error } from '@sveltejs/kit';
 import { env } from '$lib/server/env';
 import { verifyWebhookSignature } from '$lib/server/services/stripe';
-import { handlePaymentSuccess, handlePaymentFailure, handleRefund } from '$lib/server/services/payments';
+import { handlePaymentSuccess, handlePaymentFailure, handleRefund, handleCheckoutSuccess } from '$lib/server/services/payments';
 import { logger } from '$lib/server/logger';
 import type { RequestHandler } from './$types';
 import type Stripe from 'stripe';
@@ -30,8 +30,12 @@ export const POST: RequestHandler = async ({ request }) => {
 	try {
 		// Handle different event types
 		switch (event.type) {
+			case 'checkout.session.completed':
+				await handleCheckoutSuccess(event.data.object as Stripe.Checkout.Session);
+				break;
+
 			case 'payment_intent.succeeded':
-				await handlePaymentSuccess(event.data.object as Stripe.PaymentIntent);
+				// Handled via checkout.session.completed; this fires as a duplicate — ignore
 				break;
 
 			case 'payment_intent.payment_failed':

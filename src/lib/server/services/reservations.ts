@@ -146,14 +146,12 @@ export async function createReservation(input: CreateReservationInput) {
 		// Store Checkout Session ID for potential cleanup
 		checkoutSessionId = checkoutSession.id;
 
-		if (!checkoutSession.payment_intent) {
-			throw new Error('Stripe did not return a PaymentIntent for the Checkout Session');
-		}
-
-		// Step 10: Store payment record
+		// Step 10: Store payment record using checkout session ID as the identifier.
+		// payment_intent is null at session creation time on this Stripe API version —
+		// it is populated when checkout.session.completed fires and we update it then.
 		await tx.insert(payments).values({
 			reservationId: reservation.id,
-			stripePaymentIntentId: checkoutSession.payment_intent as string,
+			stripePaymentIntentId: checkoutSession.id, // placeholder; updated by webhook
 			stripeClientSecret: null,
 			amount: totalAmount,
 			currency: session.currency,

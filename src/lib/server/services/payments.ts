@@ -91,6 +91,90 @@ export async function handlePaymentSuccess(paymentIntent: Stripe.PaymentIntent) 
 }
 
 /**
+ * Handle checkout.session.completed from Stripe webhook.
+ * Looks up payment by checkout session ID (stored as placeholder), updates it to the
+ * real PaymentIntent ID, confirms the reservation, and sends notifications.
+ */
+export async function handleCheckoutSuccess(session: Stripe.Checkout.Session) {
+	// Find payment by checkout session ID (stored in stripePaymentIntentId as placeholder)
+	const payment = await db.query.payments.findFirst({
+		where: eq(payments.stripePaymentIntentId, session.id),
+		with: {
+			reservation: {
+				with: {
+					eventSession: {
+						with: { event: true },
+					},
+				},
+			},
+		},
+	});
+
+	if (!payment) {
+		console.warn(`Payment not found for Checkout Session: ${session.id}`);
+		return;
+	}
+
+	// Idempotency check
+	if (payment.webhookProcessedAt) {
+		logger.info(`Webhook already processed for payment: ${payment.id}`);
+		return;
+	}
+
+	const paymentIntentId = typeof session.payment_intent === 'string' ? session.payment_intent : null;
+
+	// Update payment: swap placeholder to real PI ID and mark as succeeded
+	await db.update(payments)
+		.set({
+			...(paymentIntentId ? { stripePaymentIntentId: paymentIntentId } : {}),
+			stripeChargeId: typeof session.payment_intent === 'string' ? null : null,
+			status: 'succeeded',
+			webhookProcessedAt: new Date(),
+			updatedAt: new Date(),
+		})
+		.where(eq(payments.id, payment.id));
+
+	// Confirm reservation
+	await db.update(reservations)
+		.set({
+			status: 'confirmed',
+			confirmedAt: new Date(),
+			updatedAt: new Date(),
+		})
+		.where(eq(reservations.id, payment.reservationId));
+
+	// Send ticket confirmation email
+	try {
+		await sendTicketConfirmationEmail({
+			guestEmail: payment.reservation.guestEmail,
+			guestName: payment.reservation.guestName,
+			accessToken: payment.reservation.accessToken,
+			reservation: payment.reservation,
+			session: payment.reservation.eventSession,
+			event: payment.reservation.eventSession.event,
+		});
+	} catch (error) {
+		logger.error({ err: error }, 'Failed to send ticket confirmation email');
+	}
+
+	// Send SMS confirmation if opted in
+	if (payment.reservation.guestPhone && payment.reservation.notificationPreference !== 'email') {
+		try {
+			const { sendTicketConfirmationSMS } = await import('./sms');
+			await sendTicketConfirmationSMS({
+				phone: payment.reservation.guestPhone,
+				guestName: payment.reservation.guestName,
+				eventTitle: payment.reservation.eventSession.event.title,
+				sessionStartTime: payment.reservation.eventSession.startTime,
+				accessToken: payment.reservation.accessToken,
+			});
+		} catch (error) {
+			logger.error({ err: error }, 'Failed to send ticket confirmation SMS');
+		}
+	}
+}
+
+/**
  * Handle failed payment from Stripe webhook
  * Immediately expires the reservation and restores capacity
  */
