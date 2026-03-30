@@ -1,7 +1,7 @@
 <script lang="ts">
 	import EventGallery from '$lib/components/EventGallery.svelte';
 	import SessionSelector from '$lib/components/booking/SessionSelector.svelte';
-	import { ArrowLeft, MapPin, Clock, Info, Star } from 'lucide-svelte';
+	import { ArrowLeft, MapPin, Clock, Info } from 'lucide-svelte';
 	import type { Icon } from 'lucide-svelte';
 	import type { PageData } from './$types';
 	import { reveal } from '$lib/actions/reveal';
@@ -56,10 +56,6 @@
 				class="mb-8 lg:mb-16 grid gap-3 lg:gap-4"
 				use:reveal={{ preset: 'fade-up', delay: 50 }}
 			>
-				<div class="flex items-center gap-2">
-					<Star class="text-amber-500 fill-amber-500" size={20} />
-					<span class="text-amber-600 font-semibold uppercase tracking-wide text-xs lg:text-sm">Spotlight Event</span>
-				</div>
 				<h1 class="text-3xl lg:text-5xl font-bold">{getEventField('title')}</h1>
 				{#if getEventField('subtitle')}
 					<p class="text-dark-500 text-lg font-light">
@@ -184,7 +180,6 @@
 		</article>
 	{:else}
 		<div class="text-center py-16 lg:py-32" use:reveal={{ preset: 'fade-up' }}>
-			<Star class="mx-auto text-dark-200 mb-4 lg:mb-6" size={48} />
 			<h1 class="text-2xl lg:text-3xl font-bold mb-3 lg:mb-4">No Spotlight Event</h1>
 			<p class="text-dark-500 text-base lg:text-lg mb-6 lg:mb-8 px-4">
 				There is currently no spotlight event. Check back soon for featured events.
