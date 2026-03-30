@@ -96,4 +96,4 @@ app_env_vars:
 
   # Sentry - use a staging DSN if available, otherwise disable
   SENTRY_DSN: "{{ vault_staging_sentry_dsn | default('') }}"
-  USE_SCHEDULER: "false"
+  USE_SCHEDULER: "true"
