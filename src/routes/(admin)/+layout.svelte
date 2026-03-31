@@ -407,6 +407,31 @@
             <span class="text-sm font-medium">Changer le mot de passe</span>
         </a>
 
+        <a
+            href="https://germinalstudio.co"
+            target="_blank"
+            rel="noopener noreferrer"
+            onclick={() => (mobileMenuOpen = false)}
+            class="flex items-center gap-3 px-4 py-3 text-foreground-alt hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+        >
+            <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+            >
+                <path d="M15 3h6v6" />
+                <path d="M10 14 21 3" />
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+            </svg>
+            <span class="text-sm font-medium">Voir le site</span>
+        </a>
+
         <form method="POST" action="/logout">
             <button
                 type="submit"

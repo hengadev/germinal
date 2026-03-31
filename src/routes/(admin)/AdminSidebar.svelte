@@ -1,7 +1,7 @@
 <script lang="ts">
     import { page } from "$app/state";
 
-    import { LayoutDashboard, Calendar, User, Ticket, BarChart3 } from "lucide-svelte";
+    import { LayoutDashboard, Calendar, User, Ticket, BarChart3, ExternalLink } from "lucide-svelte";
     import ThemeToggle from "$lib/components/admin/ThemeToggle.svelte";
 
     interface SidebarProps {
@@ -187,6 +187,16 @@
             </div>
             <div class="mt-3 flex gap-2">
                 <a
+                    href="https://germinalstudio.co"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium text-foreground-alt hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+                    title="Voir le site public"
+                >
+                    <ExternalLink size={13} />
+                    <span>Site</span>
+                </a>
+                <a
                     href="/admin/change-password"
                     class="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-foreground-alt hover:text-foreground hover:bg-muted rounded-lg transition-colors"
                 >
@@ -234,13 +244,24 @@
                 </form>
             </div>
         {:else}
-            <div
-                class="w-9 h-9 mx-auto rounded-full flex items-center justify-center bg-muted border border-border-card"
-                title={data.user.email}
-            >
-                <span class="text-xs font-semibold text-foreground-alt uppercase">
-                    {data.user.email[0].toUpperCase()}
-                </span>
+            <div class="flex flex-col items-center gap-2">
+                <div
+                    class="w-9 h-9 rounded-full flex items-center justify-center bg-muted border border-border-card"
+                    title={data.user.email}
+                >
+                    <span class="text-xs font-semibold text-foreground-alt uppercase">
+                        {data.user.email[0].toUpperCase()}
+                    </span>
+                </div>
+                <a
+                    href="https://germinalstudio.co"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="flex items-center justify-center w-9 h-9 text-foreground-alt hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+                    title="Voir le site public"
+                >
+                    <ExternalLink size={14} />
+                </a>
             </div>
         {/if}
     </div>
