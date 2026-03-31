@@ -3,7 +3,11 @@
 		"offlineReady": "App ready for offline use",
 		"newVersion": "A new version is available",
 		"reload": "Reload",
-		"close": "Close"
+		"close": "Close",
+		"installTitle": "Install the app",
+		"installDescription": "Add Germinal to your home screen for quick access.",
+		"installButton": "Install",
+		"installDismiss": "Later"
 	},
 	"nav": {
 		"upcomingEvent": "Upcoming Event",

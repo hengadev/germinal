@@ -3,7 +3,11 @@
 		"offlineReady": "Application prête pour une utilisation hors ligne",
 		"newVersion": "Une nouvelle version est disponible",
 		"reload": "Recharger",
-		"close": "Fermer"
+		"close": "Fermer",
+		"installTitle": "Installer l'application",
+		"installDescription": "Accédez rapidement à Germinal depuis votre écran d'accueil.",
+		"installButton": "Installer",
+		"installDismiss": "Plus tard"
 	},
 	"nav": {
 		"upcomingEvent": "Prochain événement",

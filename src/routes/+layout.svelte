@@ -4,6 +4,7 @@
     import { isLoading, locale, t } from 'svelte-i18n';
     import { browser } from '$app/environment';
     import { onMount } from 'svelte';
+    import PWAInstallPrompt from '$lib/components/PWAInstallPrompt.svelte';
 
     let { children } = $props();
 
@@ -51,6 +52,8 @@
 {:else}
     {@render children()}
 {/if}
+
+<PWAInstallPrompt />
 
 {#if showBanner}
     <div class="fixed bottom-4 right-4 z-50 flex items-center gap-3 rounded-lg bg-gray-900 px-4 py-3 text-sm text-white shadow-lg">
