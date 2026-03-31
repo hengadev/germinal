@@ -3,7 +3,7 @@
     import { setupI18n } from '$lib/i18n';
     import { isLoading, locale, t } from 'svelte-i18n';
     import { browser } from '$app/environment';
-    import { useRegisterSW } from 'virtual:pwa-register/svelte';
+    import { onMount } from 'svelte';
 
     let { children } = $props();
 
@@ -16,20 +16,31 @@
         }
     });
 
-    const { offlineReady, needRefresh, updateServiceWorker } = useRegisterSW();
-
     let showBanner = $state(false);
     let bannerMessage = $state('');
+    let updateServiceWorker: ((reloadPage?: boolean) => void) | undefined;
+    let needRefreshValue = $state(false);
 
-    $effect(() => {
-        if ($offlineReady) {
-            bannerMessage = $t('pwa.offlineReady');
-            showBanner = true;
-            setTimeout(() => { showBanner = false; }, 4000);
-        } else if ($needRefresh) {
-            bannerMessage = $t('pwa.newVersion');
-            showBanner = true;
-        }
+    onMount(async () => {
+        const { useRegisterSW } = await import('virtual:pwa-register/svelte');
+        const { offlineReady, needRefresh, updateServiceWorker: _update } = useRegisterSW();
+        updateServiceWorker = _update;
+
+        offlineReady.subscribe((ready) => {
+            if (ready) {
+                bannerMessage = $t('pwa.offlineReady');
+                showBanner = true;
+                setTimeout(() => { showBanner = false; }, 4000);
+            }
+        });
+
+        needRefresh.subscribe((refresh) => {
+            needRefreshValue = refresh;
+            if (refresh) {
+                bannerMessage = $t('pwa.newVersion');
+                showBanner = true;
+            }
+        });
     });
 </script>
 
@@ -44,9 +55,9 @@
 {#if showBanner}
     <div class="fixed bottom-4 right-4 z-50 flex items-center gap-3 rounded-lg bg-gray-900 px-4 py-3 text-sm text-white shadow-lg">
         <span>{bannerMessage}</span>
-        {#if $needRefresh}
+        {#if needRefreshValue}
             <button
-                onclick={() => updateServiceWorker(true)}
+                onclick={() => updateServiceWorker?.(true)}
                 class="rounded bg-white px-2 py-0.5 text-xs font-medium text-gray-900 hover:bg-gray-100"
             >
                 {$t('pwa.reload')}
