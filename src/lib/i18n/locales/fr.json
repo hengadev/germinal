@@ -1,4 +1,10 @@
 {
+	"pwa": {
+		"offlineReady": "Application prête pour une utilisation hors ligne",
+		"newVersion": "Une nouvelle version est disponible",
+		"reload": "Recharger",
+		"close": "Fermer"
+	},
 	"nav": {
 		"upcomingEvent": "Prochain événement",
 		"events": "Événements",
