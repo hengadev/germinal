@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { Download, CheckCircle2, Clock, MapPin, Calendar, User, Mail, Ticket, CreditCard, AlertCircle, X } from 'lucide-svelte';
+	import { Download, Printer, CheckCircle2, Clock, MapPin, Calendar, User, Mail, Ticket, CreditCard, AlertCircle, X } from 'lucide-svelte';
+	import { locale } from 'svelte-i18n';
 	import type { PageData } from './$types';
 	import { formatCurrency } from '$lib/utils/currency';
 	import { page } from '$app/stores';
@@ -80,13 +81,15 @@ END:VCALENDAR`;
 	function getStatusBadge(status: string) {
 		switch (status) {
 			case 'confirmed':
-				return { text: 'Confirmed', class: 'bg-green-50 text-green-700', icon: CheckCircle2 };
+				return { text: 'Confirmed', class: 'bg-green-900/40 text-green-300', icon: CheckCircle2 };
 			case 'pending':
-				return { text: 'Pending Payment', class: 'bg-yellow-50 text-yellow-700', icon: Clock };
+				return { text: 'Pending Payment', class: 'bg-yellow-900/40 text-yellow-300', icon: Clock };
 			case 'cancelled':
-				return { text: 'Cancelled', class: 'bg-red-50 text-red-700', icon: null };
+				return { text: 'Cancelled', class: 'bg-red-900/40 text-red-300', icon: null };
+			case 'expired':
+				return { text: 'Expired', class: 'bg-red-900/40 text-red-300', icon: AlertCircle };
 			default:
-				return { text: status, class: 'bg-dark-100 text-dark-600', icon: null };
+				return { text: status, class: 'bg-white/10 text-white/60', icon: null };
 		}
 	}
 
@@ -101,14 +104,22 @@ END:VCALENDAR`;
 	<div class="container mx-auto px-4 max-w-3xl">
 		<!-- Success Banner -->
 		{#if showSuccess}
-			<div class="bg-green-50 border border-green-200 rounded-lg p-6 mb-8 flex items-start gap-4 print:hidden" use:reveal={{ preset: 'fade-down' }}>
-				<CheckCircle2 size={32} class="text-green-600 flex-shrink-0" />
-				<div>
-					<h2 class="text-xl font-bold text-green-900 mb-1">Payment Successful!</h2>
-					<p class="text-green-700">
-						Your tickets have been confirmed. A confirmation email has been sent to {data.reservation.guestEmail}.
-					</p>
+			<div class="bg-green-50 border border-green-200 rounded-lg p-6 mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 print:hidden" use:reveal={{ preset: 'fade-down' }}>
+				<div class="flex items-start gap-4">
+					<CheckCircle2 size={32} class="text-green-600 flex-shrink-0 mt-0.5" />
+					<div>
+						<h2 class="text-xl font-bold text-green-900 mb-1">Payment Successful!</h2>
+						<p class="text-green-700">
+							Your tickets have been confirmed. A confirmation email has been sent to {data.reservation.guestEmail}.
+						</p>
+					</div>
 				</div>
+				<a
+					href="/events"
+					class="inline-flex items-center gap-2 px-4 py-2.5 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors font-medium text-sm whitespace-nowrap"
+				>
+					Browse More Events
+				</a>
 			</div>
 		{/if}
 
@@ -152,7 +163,7 @@ END:VCALENDAR`;
 				<div class="flex items-start justify-between mb-4">
 					<div>
 						<h1 class="text-2xl font-bold mb-1">{data.reservation.session.event.title}</h1>
-						<p class="text-dark-200">{data.reservation.session.titleEn}</p>
+						<p class="text-dark-200">{$locale === 'en' ? data.reservation.session.titleEn : data.reservation.session.titleFr}</p>
 					</div>
 					<span class={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium ${statusBadge.class}`}>
 						{#if statusBadge.icon}
@@ -162,7 +173,7 @@ END:VCALENDAR`;
 					</span>
 				</div>
 
-				<div class="grid grid-cols-2 gap-4 text-sm">
+				<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
 					<div class="flex items-center gap-2">
 						<Calendar size={16} />
 						<span>{formatDateTime(data.reservation.session.startTime)}</span>
@@ -268,7 +279,7 @@ END:VCALENDAR`;
 						onclick={() => window.print()}
 						class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors font-medium"
 					>
-						<Download size={18} />
+						<Printer size={18} />
 						Print Ticket
 					</button>
 				</div>
