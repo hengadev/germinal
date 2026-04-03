@@ -144,12 +144,13 @@
                         </div>
                     {/if}
                     <div class="w-full border border-dark-50/80"></div>
-                    <button
+                    <a
+                        href="/spotlight"
                         class="inline-flex w-fit items-center gap-2 px-6 py-3 rounded-lg bg-dark-900 hover:bg-dark-700 text-white"
                     >
                         <p>{$t("home.reserveSeat")}</p>
                         <ArrowRight />
-                    </button>
+                    </a>
                 </div>
             {/if}
         </section>
