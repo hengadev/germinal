@@ -141,6 +141,36 @@
 			"generic": "Une erreur est survenue. Veuillez réessayer ou nous contacter si le problème persiste."
 		}
 	},
+	"tickets": {
+		"pageTitle": "Vos billets - {eventTitle}",
+		"status": {
+			"confirmed": "Confirmé",
+			"pendingPayment": "Paiement en attente",
+			"cancelled": "Annulé",
+			"expired": "Expiré"
+		},
+		"success": {
+			"title": "Paiement réussi !",
+			"description": "Vos billets ont été confirmés. Un email de confirmation a été envoyé à {email}.",
+			"browseMore": "Voir d'autres événements"
+		},
+		"paymentFailed": {
+			"title": "Paiement échoué",
+			"defaultError": "Votre paiement n'a pas pu être traité. Veuillez réessayer.",
+			"browseOther": "Voir d'autres événements",
+			"dismiss": "Ignorer"
+		},
+		"qrCodeHint": "Présentez ce QR code à l'entrée",
+		"guestInfo": "Informations du participant",
+		"paymentDetails": "Détails du paiement",
+		"totalPaid": "Total payé",
+		"viewReceipt": "Voir le reçu",
+		"eventLocation": "Lieu de l'événement",
+		"addToCalendar": "Ajouter au calendrier",
+		"printTicket": "Imprimer le billet",
+		"confirmationId": "Numéro de confirmation",
+		"ticketCount": "{count, plural, one {# Billet} other {# Billets}}"
+	},
 	"admin": {
 		"login": {
 			"pageTitle": "Connexion | Germinal",

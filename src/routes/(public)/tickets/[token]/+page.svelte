@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Download, Printer, CheckCircle2, Clock, MapPin, Calendar, User, Mail, Ticket, CreditCard, AlertCircle, X } from 'lucide-svelte';
-	import { locale } from 'svelte-i18n';
+	import { locale, t } from 'svelte-i18n';
 	import type { PageData } from './$types';
 	import { formatCurrency } from '$lib/utils/currency';
 	import { page } from '$app/stores';
@@ -10,7 +10,7 @@
 
 	const showSuccess = $page.url.searchParams.get('success') === 'true';
 	const paymentFailed = $page.url.searchParams.get('payment_failed') === 'true';
-	const paymentErrorMessage = $page.url.searchParams.get('error') || 'Your payment could not be processed. Please try again.';
+	const paymentErrorMessage = $page.url.searchParams.get('error') || $t('tickets.paymentFailed.defaultError');
 
 	let showPaymentFailure = $state(paymentFailed && data.reservation.status === 'expired');
 
@@ -81,15 +81,15 @@ END:VCALENDAR`;
 	function getStatusBadge(status: string) {
 		switch (status) {
 			case 'confirmed':
-				return { text: 'Confirmed', class: 'bg-green-900/40 text-green-300', icon: CheckCircle2 };
+				return { textKey: 'tickets.status.confirmed', class: 'bg-green-900/40 text-green-300', icon: CheckCircle2 };
 			case 'pending':
-				return { text: 'Pending Payment', class: 'bg-yellow-900/40 text-yellow-300', icon: Clock };
+				return { textKey: 'tickets.status.pendingPayment', class: 'bg-yellow-900/40 text-yellow-300', icon: Clock };
 			case 'cancelled':
-				return { text: 'Cancelled', class: 'bg-red-900/40 text-red-300', icon: null };
+				return { textKey: 'tickets.status.cancelled', class: 'bg-red-900/40 text-red-300', icon: null };
 			case 'expired':
-				return { text: 'Expired', class: 'bg-red-900/40 text-red-300', icon: AlertCircle };
+				return { textKey: 'tickets.status.expired', class: 'bg-red-900/40 text-red-300', icon: AlertCircle };
 			default:
-				return { text: status, class: 'bg-white/10 text-white/60', icon: null };
+				return { textKey: null, text: status, class: 'bg-white/10 text-white/60', icon: null };
 		}
 	}
 
@@ -97,7 +97,7 @@ END:VCALENDAR`;
 </script>
 
 <svelte:head>
-	<title>Your Tickets - {data.reservation.session.event.title}</title>
+	<title>{$t('tickets.pageTitle', { values: { eventTitle: data.reservation.session.event.title } })}</title>
 </svelte:head>
 
 <div class="min-h-screen bg-dark-50/30 py-12">
@@ -108,9 +108,9 @@ END:VCALENDAR`;
 				<div class="flex items-start gap-4">
 					<CheckCircle2 size={32} class="text-green-600 flex-shrink-0 mt-0.5" />
 					<div>
-						<h2 class="text-xl font-bold text-green-900 mb-1">Payment Successful!</h2>
+						<h2 class="text-xl font-bold text-green-900 mb-1">{$t('tickets.success.title')}</h2>
 						<p class="text-green-700">
-							Your tickets have been confirmed. A confirmation email has been sent to {data.reservation.guestEmail}.
+							{$t('tickets.success.description', { values: { email: data.reservation.guestEmail } })}
 						</p>
 					</div>
 				</div>
@@ -118,7 +118,7 @@ END:VCALENDAR`;
 					href="/events"
 					class="inline-flex items-center gap-2 px-4 py-2.5 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors font-medium text-sm whitespace-nowrap"
 				>
-					Browse More Events
+					{$t('tickets.success.browseMore')}
 				</a>
 			</div>
 		{/if}
@@ -129,20 +129,20 @@ END:VCALENDAR`;
 				<div class="flex items-start gap-4">
 					<AlertCircle size={32} class="text-red-600 flex-shrink-0 mt-0.5" />
 					<div class="flex-1">
-						<h2 class="text-xl font-bold text-red-900 mb-1">Payment Failed</h2>
+						<h2 class="text-xl font-bold text-red-900 mb-1">{$t('tickets.paymentFailed.title')}</h2>
 						<p class="text-red-700 mb-4">{paymentErrorMessage}</p>
 						<div class="flex items-center gap-3">
 							<a
 								href="/events"
 								class="inline-flex items-center gap-2 px-4 py-2 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors font-medium text-sm"
 							>
-								Browse Other Events
+								{$t('tickets.paymentFailed.browseOther')}
 							</a>
 							<button
 								onclick={dismissFailure}
 								class="text-dark-600 hover:text-dark-900 font-medium text-sm"
 							>
-								Dismiss
+								{$t('tickets.paymentFailed.dismiss')}
 							</button>
 						</div>
 					</div>
@@ -169,7 +169,7 @@ END:VCALENDAR`;
 						{#if statusBadge.icon}
 							<svelte:component this={statusBadge.icon} size={16} />
 						{/if}
-						{statusBadge.text}
+						{statusBadge.textKey ? $t(statusBadge.textKey) : statusBadge.text}
 					</span>
 				</div>
 
@@ -194,7 +194,7 @@ END:VCALENDAR`;
 						class="w-full h-auto rounded-lg border-4 border-white shadow-lg"
 					/>
 					<p class="text-center text-sm text-dark-500 mt-4">
-						Present this QR code at the entrance
+						{$t('tickets.qrCodeHint')}
 					</p>
 				</div>
 			</div>
@@ -204,7 +204,7 @@ END:VCALENDAR`;
 				<!-- Guest Information -->
 				<div>
 					<h3 class="text-sm font-semibold text-dark-600 uppercase tracking-wider mb-3">
-						Guest Information
+						{$t('tickets.guestInfo')}
 					</h3>
 					<div class="grid gap-3">
 						<div class="flex items-center gap-3 text-dark-700">
@@ -217,7 +217,7 @@ END:VCALENDAR`;
 						</div>
 						<div class="flex items-center gap-3 text-dark-700">
 							<Ticket size={18} class="text-dark-400" />
-							<span>{data.reservation.quantity} Ticket{data.reservation.quantity > 1 ? 's' : ''}</span>
+							<span>{$t('tickets.ticketCount', { values: { count: data.reservation.quantity } })}</span>
 						</div>
 					</div>
 				</div>
@@ -225,11 +225,11 @@ END:VCALENDAR`;
 				<!-- Payment Information -->
 				<div class="border-t border-border-card pt-6">
 					<h3 class="text-sm font-semibold text-dark-600 uppercase tracking-wider mb-3">
-						Payment Details
+						{$t('tickets.paymentDetails')}
 					</h3>
 					<div class="space-y-2">
 						<div class="flex items-center justify-between">
-							<span class="text-dark-600">Total Paid</span>
+							<span class="text-dark-600">{$t('tickets.totalPaid')}</span>
 							<span class="font-semibold text-dark-900">
 								{formatCurrency(data.reservation.totalAmount, data.reservation.currency)}
 							</span>
@@ -242,7 +242,7 @@ END:VCALENDAR`;
 								class="inline-flex items-center gap-2 text-sm text-dark-600 hover:text-dark-900 transition-colors"
 							>
 								<CreditCard size={16} />
-								View Receipt
+								{$t('tickets.viewReceipt')}
 							</a>
 						{/if}
 					</div>
@@ -251,7 +251,7 @@ END:VCALENDAR`;
 				<!-- Event Location -->
 				<div class="border-t border-border-card pt-6">
 					<h3 class="text-sm font-semibold text-dark-600 uppercase tracking-wider mb-3">
-						Event Location
+						{$t('tickets.eventLocation')}
 					</h3>
 					<div class="text-dark-700">
 						{#if data.reservation.session.event.venueName}
@@ -273,20 +273,20 @@ END:VCALENDAR`;
 						class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium"
 					>
 						<Download size={18} />
-						Add to Calendar
+						{$t('tickets.addToCalendar')}
 					</button>
 					<button
 						onclick={() => window.print()}
 						class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors font-medium"
 					>
 						<Printer size={18} />
-						Print Ticket
+						{$t('tickets.printTicket')}
 					</button>
 				</div>
 
 				<!-- Confirmation ID -->
 				<div class="text-center text-xs text-dark-400 pt-4 border-t border-border-card">
-					Confirmation ID: {data.reservation.id.substring(0, 8).toUpperCase()}
+					{$t('tickets.confirmationId')}: {data.reservation.id.substring(0, 8).toUpperCase()}
 				</div>
 			</div>
 		</div>

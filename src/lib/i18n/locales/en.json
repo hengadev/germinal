@@ -141,6 +141,36 @@
 			"generic": "Something went wrong. Please try again or contact us if the problem persists."
 		}
 	},
+	"tickets": {
+		"pageTitle": "Your Tickets - {eventTitle}",
+		"status": {
+			"confirmed": "Confirmed",
+			"pendingPayment": "Pending Payment",
+			"cancelled": "Cancelled",
+			"expired": "Expired"
+		},
+		"success": {
+			"title": "Payment Successful!",
+			"description": "Your tickets have been confirmed. A confirmation email has been sent to {email}.",
+			"browseMore": "Browse More Events"
+		},
+		"paymentFailed": {
+			"title": "Payment Failed",
+			"defaultError": "Your payment could not be processed. Please try again.",
+			"browseOther": "Browse Other Events",
+			"dismiss": "Dismiss"
+		},
+		"qrCodeHint": "Present this QR code at the entrance",
+		"guestInfo": "Guest Information",
+		"paymentDetails": "Payment Details",
+		"totalPaid": "Total Paid",
+		"viewReceipt": "View Receipt",
+		"eventLocation": "Event Location",
+		"addToCalendar": "Add to Calendar",
+		"printTicket": "Print Ticket",
+		"confirmationId": "Confirmation ID",
+		"ticketCount": "{count, plural, one {# Ticket} other {# Tickets}}"
+	},
 	"admin": {
 		"login": {
 			"pageTitle": "Login | Germinal",
