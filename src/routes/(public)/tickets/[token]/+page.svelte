@@ -203,12 +203,11 @@ END:VCALENDAR`;
 					</span>
 				</div>
 
-				<div class="flex flex-col sm:flex-row gap-3 text-sm text-dark-200">
+				<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-sm text-dark-200">
 					<div class="flex items-center gap-2">
 						<Calendar size={15} class="text-dark-400 flex-shrink-0" />
 						<span>{formatDateTime(data.reservation.session.startTime)}</span>
 					</div>
-					<div class="hidden sm:block text-dark-600">·</div>
 					<div class="flex items-center gap-2">
 						<MapPin size={15} class="text-dark-400 flex-shrink-0" />
 						<span>{locationFallback}</span>
