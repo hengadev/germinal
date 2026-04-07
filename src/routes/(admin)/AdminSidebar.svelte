@@ -24,6 +24,17 @@
         isCollapsed = !isCollapsed;
     }
 
+    // User menu state
+    let userMenuOpen = $state(false);
+
+    function toggleUserMenu() {
+        userMenuOpen = !userMenuOpen;
+    }
+
+    function closeUserMenu() {
+        userMenuOpen = false;
+    }
+
     interface NavItem {
         href: string;
         label: string;
@@ -166,82 +177,112 @@
         class="py-5 border-t border-border-card {isCollapsed ? 'px-3' : 'px-6'}"
     >
         {#if !isCollapsed}
-            <div class="flex items-center gap-3">
-                <div
-                    class="w-9 h-9 rounded-full flex items-center justify-center bg-muted border border-border-card"
-                >
-                    <span class="text-xs font-semibold text-foreground-alt uppercase">
-                        {data.user.email[0].toUpperCase()}
-                    </span>
-                </div>
-                <div class="flex-1 min-w-0">
-                    <p
-                        class="text-sm font-medium text-foreground truncate tracking-tight"
+            <!-- User row with kebab menu -->
+            <div class="relative">
+                {#if userMenuOpen}
+                    <!-- Backdrop -->
+                    <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+                    <div
+                        class="fixed inset-0 z-10"
+                        onclick={closeUserMenu}
+                    ></div>
+                    <!-- Dropdown (opens upward) -->
+                    <div
+                        class="absolute bottom-full left-0 right-0 mb-2 z-20 bg-background border border-border-card rounded-lg shadow-lg py-1 overflow-hidden"
                     >
-                        {data.user.email}
-                    </p>
-                    <p class="text-xs text-muted-foreground capitalize">
-                        {data.user.role}
-                    </p>
-                </div>
-            </div>
-            <div class="mt-3 flex gap-2">
-                <a
-                    href="https://germinalstudio.co"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium text-foreground-alt hover:text-foreground hover:bg-muted rounded-lg transition-colors"
-                    title="Voir le site public"
-                >
-                    <ExternalLink size={13} />
-                    <span>Site</span>
-                </a>
-                <a
-                    href="/admin/change-password"
-                    class="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-foreground-alt hover:text-foreground hover:bg-muted rounded-lg transition-colors"
-                >
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
+                        <a
+                            href="https://germinalstudio.co"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onclick={closeUserMenu}
+                            class="flex items-center gap-2.5 px-3 py-2 text-sm text-foreground-alt hover:text-foreground hover:bg-muted transition-colors"
+                        >
+                            <ExternalLink size={15} />
+                            <span>Voir le site</span>
+                        </a>
+                        <a
+                            href="/admin/change-password"
+                            onclick={closeUserMenu}
+                            class="flex items-center gap-2.5 px-3 py-2 text-sm text-foreground-alt hover:text-foreground hover:bg-muted transition-colors"
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="15"
+                                height="15"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            >
+                                <path d="M2 18a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v2a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-2Z"></path>
+                                <circle cx="12" cy="11" r="3"></circle>
+                            </svg>
+                            <span>Changer le mot de passe</span>
+                        </a>
+                        <div class="my-1 border-t border-border-card"></div>
+                        <form method="POST" action="/logout">
+                            <button
+                                type="submit"
+                                class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
+                            >
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="15"
+                                    height="15"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                >
+                                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                    <polyline points="16 17 21 12 16 7"></polyline>
+                                    <line x1="21" x2="9" y1="12" y2="12"></line>
+                                </svg>
+                                <span>Déconnexion</span>
+                            </button>
+                        </form>
+                    </div>
+                {/if}
+                <div class="flex items-center gap-3">
+                    <div
+                        class="w-9 h-9 flex-shrink-0 rounded-full flex items-center justify-center bg-muted border border-border-card"
                     >
-                        <path
-                            d="M2 18a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v2a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-2Z"
-                        ></path>
-                        <circle cx="12" cy="11" r="3"></circle>
-                    </svg>
-                    <span>Password</span>
-                </a>
-                <form method="POST" action="/logout" class="flex-1">
+                        <span class="text-xs font-semibold text-foreground-alt uppercase">
+                            {data.user.email[0].toUpperCase()}
+                        </span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-foreground truncate tracking-tight">
+                            {data.user.email}
+                        </p>
+                        <p class="text-xs text-muted-foreground capitalize">
+                            {data.user.role}
+                        </p>
+                    </div>
                     <button
-                        type="submit"
-                        class="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-foreground-alt hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+                        onclick={toggleUserMenu}
+                        class="flex-shrink-0 p-1.5 rounded-md text-foreground-alt hover:text-foreground hover:bg-muted transition-colors"
+                        aria-label="Options utilisateur"
+                        title="Options"
                     >
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
-                            width="14"
-                            height="14"
+                            width="16"
+                            height="16"
                             viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
+                            fill="currentColor"
+                            stroke="none"
                         >
-                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"
-                            ></path>
-                            <polyline points="16 17 21 12 16 7"></polyline>
-                            <line x1="21" x2="9" y1="12" y2="12"></line>
+                            <circle cx="12" cy="5" r="1.5" />
+                            <circle cx="12" cy="12" r="1.5" />
+                            <circle cx="12" cy="19" r="1.5" />
                         </svg>
-                        <span>Déconnexion</span>
                     </button>
-                </form>
+                </div>
             </div>
         {:else}
             <div class="flex flex-col items-center gap-2">
