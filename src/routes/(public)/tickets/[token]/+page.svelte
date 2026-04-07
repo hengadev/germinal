@@ -192,7 +192,7 @@ END:VCALENDAR`;
 				<div class="flex items-start justify-between gap-4 mb-5">
 					<div>
 						<p class="text-xs font-semibold uppercase tracking-widest text-dark-400 mb-1.5">{$t('tickets.ticketLabel')}</p>
-						<h1 class="text-2xl font-bold leading-tight">{data.reservation.session.event.title}</h1>
+						<h1 class="text-3xl font-bold leading-tight">{data.reservation.session.event.title}</h1>
 						<p class="text-dark-300 mt-1 text-sm">{isFr ? data.reservation.session.titleFr : data.reservation.session.titleEn}</p>
 					</div>
 					<span class={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold flex-shrink-0 ${statusBadge.class}`}>
