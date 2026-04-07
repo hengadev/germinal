@@ -171,6 +171,7 @@
 		"viewReceipt": "View Receipt",
 		"eventLocation": "Event Location",
 		"addToCalendar": "Add to Calendar",
+		"appleOutlook": "Apple / Outlook",
 		"printTicket": "Print Ticket",
 		"confirmationId": "Confirmation ID",
 		"ticketCount": "{count, plural, one {# Ticket} other {# Tickets}}"

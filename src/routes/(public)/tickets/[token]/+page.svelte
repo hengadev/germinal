@@ -125,6 +125,24 @@ END:VCALENDAR`;
 			? (data.reservation.session.event.locationFr ?? data.reservation.session.event.locationEn)
 			: (data.reservation.session.event.locationEn ?? data.reservation.session.event.locationFr)
 	);
+
+	let googleCalendarUrl = $derived(() => {
+		const session = data.reservation.session;
+		const startDate = new Date(session.startTime);
+		const endDate = new Date(session.endTime);
+		const formatDate = (d: Date) => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+		const location = isFr
+			? (session.event.locationFr ?? session.event.locationEn ?? '')
+			: (session.event.locationEn ?? session.event.locationFr ?? '');
+		const params = new URLSearchParams({
+			action: 'TEMPLATE',
+			text: `${session.event.title} — ${isFr ? session.titleFr : session.titleEn}`,
+			dates: `${formatDate(startDate)}/${formatDate(endDate)}`,
+			details: `${isFr ? 'Billet pour' : 'Ticket for'} ${session.event.title}\n${isFr ? 'Quantité' : 'Quantity'}: ${data.reservation.quantity}\n${isFr ? 'Confirmation' : 'Confirmation'}: ${data.reservation.id}`,
+			location
+		});
+		return `https://calendar.google.com/calendar/render?${params.toString()}`;
+	})();
 </script>
 
 <svelte:head>
@@ -333,17 +351,29 @@ END:VCALENDAR`;
 				</div>
 
 				<!-- Actions -->
-				<div class="border-t border-border-card pt-6 flex gap-3 print:hidden">
-					<button
-						onclick={downloadCalendar}
-						class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium text-sm"
-					>
-						<Download size={16} />
-						{$t('tickets.addToCalendar')}
-					</button>
+				<div class="border-t border-border-card pt-6 space-y-3 print:hidden">
+					<p class="text-xs font-semibold text-dark-400 uppercase tracking-widest">{$t('tickets.addToCalendar')}</p>
+					<div class="flex gap-3">
+						<a
+							href={googleCalendarUrl}
+							target="_blank"
+							rel="noopener noreferrer"
+							class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium text-sm"
+						>
+							<Download size={16} />
+							Google Calendar
+						</a>
+						<button
+							onclick={downloadCalendar}
+							class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium text-sm"
+						>
+							<Download size={16} />
+							{$t('tickets.appleOutlook')}
+						</button>
+					</div>
 					<button
 						onclick={() => window.print()}
-						class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors font-medium text-sm"
+						class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors font-medium text-sm"
 					>
 						<Printer size={16} />
 						{$t('tickets.printTicket')}
