@@ -126,7 +126,7 @@ END:VCALENDAR`;
 			: (data.reservation.session.event.locationEn ?? data.reservation.session.event.locationFr)
 	);
 
-	let googleCalendarUrl = $derived(() => {
+	let googleCalendarUrl = $derived.by(() => {
 		const session = data.reservation.session;
 		const startDate = new Date(session.startTime);
 		const endDate = new Date(session.endTime);
@@ -142,7 +142,7 @@ END:VCALENDAR`;
 			location
 		});
 		return `https://calendar.google.com/calendar/render?${params.toString()}`;
-	})();
+	});
 </script>
 
 <svelte:head>
