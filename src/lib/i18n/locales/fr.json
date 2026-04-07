@@ -160,8 +160,12 @@
 			"browseOther": "Voir d'autres événements",
 			"dismiss": "Ignorer"
 		},
+		"ticketLabel": "Billet",
 		"qrCodeHint": "Présentez ce QR code à l'entrée",
 		"guestInfo": "Informations du participant",
+		"guestName": "Nom",
+		"guestEmail": "Email",
+		"quantity": "Billets",
 		"paymentDetails": "Détails du paiement",
 		"totalPaid": "Total payé",
 		"viewReceipt": "Voir le reçu",
