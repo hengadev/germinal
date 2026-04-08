@@ -1,5 +1,6 @@
 <script lang="ts">
     import { enhance } from "$app/forms";
+    import { goto } from "$app/navigation";
     import {
         Plus,
         Calendar,
@@ -188,7 +189,10 @@
  </thead>
  <tbody class="divide-y divide-border-card">
  {#each data.events as event (event.id)}
- <tr class="hover:bg-muted transition-colors">
+ <tr
+ class="hover:bg-muted transition-colors cursor-pointer"
+ onclick={() => goto(`/admin/events/${event.id}`)}
+ >
  <td class="px-6 py-4">
  <div class="flex items-start gap-3">
  {#if event.coverMedia?.url}
@@ -265,7 +269,10 @@
  <Edit size={18} />
  </a>
  <button
- onclick={() => openDeleteDialog(event)}
+ onclick={(e) => {
+ e.stopPropagation();
+ openDeleteDialog(event);
+ }}
  class="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
  title="Supprimer"
  >
@@ -282,7 +289,10 @@
  <!-- Card view for mobile -->
  <div class="lg:hidden space-y-4">
  {#each data.events as event (event.id)}
- <div class="bg-background rounded-lg border border-border-card overflow-hidden">
+ <div
+ class="bg-background rounded-lg border border-border-card overflow-hidden cursor-pointer hover:border-foreground/30 transition-colors"
+ onclick={() => goto(`/admin/events/${event.id}`)}
+ >
  <div class="p-4">
  <div class="flex gap-3 mb-3">
  {#if event.coverMedia?.url}
@@ -351,7 +361,10 @@
  Modifier
  </a>
  <button
- onclick={() => openDeleteDialog(event)}
+ onclick={(e) => {
+ e.stopPropagation();
+ openDeleteDialog(event);
+ }}
  class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors"
  >
  <Trash2 size={16} />

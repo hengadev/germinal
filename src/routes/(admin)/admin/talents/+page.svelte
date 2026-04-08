@@ -1,5 +1,6 @@
 <script lang="ts">
     import { enhance } from "$app/forms";
+    import { goto } from "$app/navigation";
     import {
         Plus,
         User,
@@ -177,7 +178,10 @@
  </thead>
  <tbody class="divide-y divide-border-card">
  {#each data.talents as talent}
- <tr class="hover:bg-muted transition-colors">
+ <tr
+ class="hover:bg-muted transition-colors cursor-pointer"
+ onclick={() => goto(`/admin/talents/${talent.id}`)}
+ >
  <td class="px-6 py-4">
  <div class="flex items-center gap-4">
  {#if talent.profileMedia?.url}
@@ -250,7 +254,10 @@
  <Edit size={18} />
  </a>
  <button
- onclick={() => openDeleteDialog(talent)}
+ onclick={(e) => {
+ e.stopPropagation();
+ openDeleteDialog(talent);
+ }}
  class="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors"
  title="Supprimer"
  >
@@ -267,7 +274,10 @@
  <!-- Card view for mobile -->
  <div class="lg:hidden space-y-4">
  {#each data.talents as talent}
- <div class="bg-background rounded-lg border border-border-card p-4">
+ <div
+ class="bg-background rounded-lg border border-border-card p-4 cursor-pointer hover:border-foreground/30 transition-colors"
+ onclick={() => goto(`/admin/talents/${talent.id}`)}
+ >
  <div class="flex gap-4 mb-4">
  {#if talent.profileMedia?.url}
  <img
@@ -323,7 +333,10 @@
  <Edit size={18} />
  </a>
  <button
- onclick={() => openDeleteDialog(talent)}
+ onclick={(e) => {
+ e.stopPropagation();
+ openDeleteDialog(talent);
+ }}
  class="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors"
  title="Supprimer"
  >
