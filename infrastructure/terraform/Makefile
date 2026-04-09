@@ -1,7 +1,7 @@
 # Germinal Terraform Makefile
 # Usage: make <target>
 
-.PHONY: help init plan apply output credentials destroy destroy-backend \
+.PHONY: help init plan apply apply-twilio output credentials destroy destroy-backend \
         fmt validate refresh show graph clean \
         server-info server-ssh server-deploy server-rebuild server-backup \
         dns-info dns-email dns-verify
@@ -18,6 +18,7 @@ help:
 	@echo "Operations:"
 	@echo "  make plan          - Show planned changes"
 	@echo "  make apply         - Apply changes"
+	@echo "  make apply-twilio  - Create Twilio API keys and auto-update Ansible vault files"
 	@echo "  make refresh       - Refresh state file"
 	@echo "  make show          - Show current state"
 	@echo ""
@@ -61,6 +62,10 @@ plan:
 apply:
 	@echo "Applying Terraform changes..."
 	terraform apply
+
+# Create Twilio API keys and auto-update Ansible vault files
+apply-twilio:
+	@bash ../scripts/update-twilio-vault.sh
 
 # Validate configuration
 validate:

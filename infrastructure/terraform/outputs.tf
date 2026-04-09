@@ -65,33 +65,6 @@ output "env_variables" {
   sensitive   = true
 }
 
-# ============================================
-# Twilio Outputs
-# ============================================
-
-output "twilio_staging_api_key_sid" {
-  value       = twilio_api_keys_v2010_account_key.staging.sid
-  description = "Twilio API Key SID for staging (vault_staging_twilio_api_key_sid)"
-  sensitive   = true
-}
-
-output "twilio_staging_api_key_secret" {
-  value       = twilio_api_keys_v2010_account_key.staging.secret
-  description = "Twilio API Key Secret for staging — only available at creation time"
-  sensitive   = true
-}
-
-output "twilio_production_api_key_sid" {
-  value       = twilio_api_keys_v2010_account_key.production.sid
-  description = "Twilio API Key SID for production (vault_twilio_api_key_sid)"
-  sensitive   = true
-}
-
-output "twilio_production_api_key_secret" {
-  value       = twilio_api_keys_v2010_account_key.production.secret
-  description = "Twilio API Key Secret for production — only available at creation time"
-  sensitive   = true
-}
 
 # ============================================
 # Hetzner Cloud Outputs

@@ -26,11 +26,7 @@ terraform {
       source  = "cloudflare/cloudflare"
       version = "~> 5.0"
     }
-    twilio = {
-      source  = "twilio/twilio"
-      version = "~> 0.18"
-    }
-  }
+}
 
   required_version = ">= 1.0"
 }
@@ -49,12 +45,4 @@ provider "hcloud" {
 # Cloudflare Provider
 provider "cloudflare" {
   api_token = var.cloudflare_token
-}
-
-# Twilio Provider
-# Uses the master Auth Token solely to create scoped API keys — the Auth Token itself
-# never leaves Terraform and is never written to the VPS.
-provider "twilio" {
-  username = var.twilio_account_sid
-  password = var.twilio_auth_token
 }

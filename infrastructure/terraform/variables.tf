@@ -180,22 +180,28 @@ variable "email_dkim_records" {
 # ============================================
 # Twilio Configuration Variables
 # ============================================
+# Used by infrastructure/scripts/update-twilio-vault.sh to create API keys.
+# Not consumed by any Terraform resource — stored here so credentials live
+# in one place alongside the rest of the infrastructure config.
 
 variable "twilio_account_sid" {
-  description = "Twilio Account SID — used by Terraform to authenticate and create API keys"
+  description = "Twilio Account SID (AC...). Use TEST credentials for the staging key."
   type        = string
   sensitive   = true
+  default     = ""
 }
 
 variable "twilio_auth_token" {
-  description = "Twilio Auth Token — used only by Terraform to create API keys, never sent to the VPS"
+  description = "Twilio Auth Token — used only to create API keys, never written to the VPS."
   type        = string
   sensitive   = true
+  default     = ""
 }
 
 variable "twilio_phone_number_production" {
-  description = "Production Twilio sender phone number in E.164 format (e.g., +33600000000)"
+  description = "Production Twilio sender phone number in E.164 format (e.g., +33600000000)."
   type        = string
+  default     = ""
 }
 
 # ============================================
