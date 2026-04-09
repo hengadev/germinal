@@ -7,7 +7,7 @@
 # for hosts in the germinal_staging_servers group.
 #
 # Only define vars that need DIFFERENT values from production.
-# Shared secrets (AWS keys, Twilio, etc.) are inherited automatically.
+# Shared secrets (AWS keys, etc.) are inherited automatically.
 
 # Session secret - must differ from production
 vault_staging_session_secret: "change-me-staging-session-secret-min-32-characters"
@@ -32,3 +32,13 @@ vault_staging_cron_secret: "change-me-staging-cron-secret-min-32-characters-here
 
 # Sentry DSN for staging (optional - leave empty to disable)
 vault_staging_sentry_dsn: ""
+
+# ============================================
+# Twilio - Test Credentials
+# ============================================
+# Use Twilio test credentials so staging never sends real SMS and incurs no cost.
+# Get from: Twilio Console -> Account -> Test Credentials
+# Magic test number +15005550006 always succeeds; see https://www.twilio.com/docs/iam/test-credentials
+vault_staging_twilio_account_sid: "ACtest..."
+vault_staging_twilio_auth_token: "your_test_auth_token"
+vault_staging_twilio_phone_number: "+15005550006"
