@@ -38,6 +38,16 @@ vault_backup_aws_access_key: ""
 vault_backup_aws_secret_key: ""
 
 # ============================================
+# Twilio SMS Credentials (from Terraform outputs)
+# ============================================
+# Run: cd infrastructure/terraform && make credentials
+# The Auth Token is NOT stored here — Terraform uses it only to create the API key.
+vault_twilio_account_sid: "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+vault_twilio_api_key_sid: "SKxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+vault_twilio_api_key_secret: "your_api_key_secret_here"
+vault_twilio_phone_number: "+your_production_twilio_number"
+
+# ============================================
 # OAuth Credentials (Optional)
 # ============================================
 vault_github_client_id: ""

@@ -34,11 +34,12 @@ vault_staging_cron_secret: "change-me-staging-cron-secret-min-32-characters-here
 vault_staging_sentry_dsn: ""
 
 # ============================================
-# Twilio - Test Credentials
+# Twilio - Test API Key (from Terraform outputs)
 # ============================================
-# Use Twilio test credentials so staging never sends real SMS and incurs no cost.
-# Get from: Twilio Console -> Account -> Test Credentials
-# Magic test number +15005550006 always succeeds; see https://www.twilio.com/docs/iam/test-credentials
-vault_staging_twilio_account_sid: "ACtest..."
-vault_staging_twilio_auth_token: "your_test_auth_token"
+# Terraform creates a separate API key for staging using Twilio test credentials.
+# Run: cd infrastructure/terraform && terraform apply -var-file=terraform.tfvars.staging && make credentials
+# The Auth Token is NOT stored here — Terraform uses it only to create the API key.
+vault_staging_twilio_account_sid: "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+vault_staging_twilio_api_key_sid: "SKxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+vault_staging_twilio_api_key_secret: "your_staging_api_key_secret_here"
 vault_staging_twilio_phone_number: "+15005550006"

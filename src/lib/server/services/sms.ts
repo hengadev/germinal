@@ -8,12 +8,14 @@ let twilioClient: any = null;
  */
 function getTwilioClient() {
 	if (!twilioClient) {
-		if (!env.TWILIO_ACCOUNT_SID || !env.TWILIO_AUTH_TOKEN || !env.TWILIO_PHONE_NUMBER) {
+		if (!env.TWILIO_ACCOUNT_SID || !env.TWILIO_API_KEY_SID || !env.TWILIO_API_KEY_SECRET || !env.TWILIO_PHONE_NUMBER) {
 			throw new Error('Twilio is not configured');
 		}
 
 		const twilio = require('twilio');
-		twilioClient = twilio(env.TWILIO_ACCOUNT_SID, env.TWILIO_AUTH_TOKEN);
+		twilioClient = twilio(env.TWILIO_API_KEY_SID, env.TWILIO_API_KEY_SECRET, {
+			accountSid: env.TWILIO_ACCOUNT_SID,
+		});
 	}
 
 	return twilioClient;
@@ -25,7 +27,8 @@ function getTwilioClient() {
 export function isTwilioEnabled(): boolean {
 	return !!(
 		env.TWILIO_ACCOUNT_SID &&
-		env.TWILIO_AUTH_TOKEN &&
+		env.TWILIO_API_KEY_SID &&
+		env.TWILIO_API_KEY_SECRET &&
 		env.TWILIO_PHONE_NUMBER
 	);
 }

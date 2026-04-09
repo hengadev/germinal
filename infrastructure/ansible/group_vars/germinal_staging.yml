@@ -89,9 +89,10 @@ app_env_vars:
   # No mock data in staging - uses real DB
   USE_MOCK_DATA: "false"
 
-  # Twilio - use test credentials for staging (no real SMS sent, no cost)
+  # Twilio - use staging-specific API key (test credentials, no real SMS sent, no cost)
   TWILIO_ACCOUNT_SID: "{{ vault_staging_twilio_account_sid | default('') }}"
-  TWILIO_AUTH_TOKEN: "{{ vault_staging_twilio_auth_token | default('') }}"
+  TWILIO_API_KEY_SID: "{{ vault_staging_twilio_api_key_sid | default('') }}"
+  TWILIO_API_KEY_SECRET: "{{ vault_staging_twilio_api_key_secret | default('') }}"
   TWILIO_PHONE_NUMBER: "{{ vault_staging_twilio_phone_number | default('+15005550006') }}"
 
   # Sentry - use a staging DSN if available, otherwise disable

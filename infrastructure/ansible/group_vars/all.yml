@@ -138,7 +138,8 @@ app_env_vars:
 
   # Twilio SMS (Optional)
   TWILIO_ACCOUNT_SID: "{{ vault_twilio_account_sid | default('') }}"
-  TWILIO_AUTH_TOKEN: "{{ vault_twilio_auth_token | default('') }}"
+  TWILIO_API_KEY_SID: "{{ vault_twilio_api_key_sid | default('') }}"
+  TWILIO_API_KEY_SECRET: "{{ vault_twilio_api_key_secret | default('') }}"
   TWILIO_PHONE_NUMBER: "{{ vault_twilio_phone_number | default('') }}"
 
   # Monitoring (Optional)

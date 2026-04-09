@@ -40,7 +40,8 @@ const devEnvSchema = z.object({
     CRON_SECRET: z.string().optional().default('change-me-in-production'),
     // Twilio SMS - optional
     TWILIO_ACCOUNT_SID: z.string().optional().default(''),
-    TWILIO_AUTH_TOKEN: z.string().optional().default(''),
+    TWILIO_API_KEY_SID: z.string().optional().default(''),
+    TWILIO_API_KEY_SECRET: z.string().optional().default(''),
     TWILIO_PHONE_NUMBER: z.string().optional().default(''),
 });
 
@@ -80,7 +81,8 @@ const prodEnvSchema = z.object({
     CRON_SECRET: z.string().min(32, 'CRON_SECRET must be at least 32 characters'),
     // Twilio SMS - optional in production
     TWILIO_ACCOUNT_SID: z.string().optional(),
-    TWILIO_AUTH_TOKEN: z.string().optional(),
+    TWILIO_API_KEY_SID: z.string().optional(),
+    TWILIO_API_KEY_SECRET: z.string().optional(),
     TWILIO_PHONE_NUMBER: z.string().optional(),
 });
 
