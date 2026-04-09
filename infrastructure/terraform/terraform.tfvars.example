@@ -113,6 +113,21 @@ email_dkim_records = {
 }
 
 # ============================================
+# Twilio Configuration
+# ============================================
+# Terraform creates two API keys in one apply: staging-germinal-app and production-germinal-app.
+# The Auth Token is used only here (to authenticate with Twilio) and never written to the VPS.
+# Get from: https://console.twilio.com -> Account -> Account Info
+#
+# IMPORTANT: use Twilio TEST credentials (separate Account SID + Auth Token from the Twilio
+# Console test section) so the staging API key cannot send real SMS.
+
+twilio_account_sid             = "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+twilio_auth_token              = "your_twilio_auth_token_here"
+twilio_phone_number_production = "+your_production_twilio_number"
+# Staging always uses +15005550006 (Twilio magic test number) — no variable needed.
+
+# ============================================
 # Database Backup Configuration
 # ============================================
 

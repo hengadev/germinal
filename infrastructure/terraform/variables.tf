@@ -178,6 +178,27 @@ variable "email_dkim_records" {
 }
 
 # ============================================
+# Twilio Configuration Variables
+# ============================================
+
+variable "twilio_account_sid" {
+  description = "Twilio Account SID — used by Terraform to authenticate and create API keys"
+  type        = string
+  sensitive   = true
+}
+
+variable "twilio_auth_token" {
+  description = "Twilio Auth Token — used only by Terraform to create API keys, never sent to the VPS"
+  type        = string
+  sensitive   = true
+}
+
+variable "twilio_phone_number_production" {
+  description = "Production Twilio sender phone number in E.164 format (e.g., +33600000000)"
+  type        = string
+}
+
+# ============================================
 # Backup Configuration Variables
 # ============================================
 

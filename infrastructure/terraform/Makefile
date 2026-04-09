@@ -89,20 +89,29 @@ output:
 	@echo ""
 	terraform output -json | jq -r 'to_entries | .[] | "\(.key): \(.value.value // .value)"' 2>/dev/null || terraform output
 
-# Show IAM credentials for .env file
+# Show all app credentials for the Ansible vault
 credentials:
 	@echo "==========================================="
-	@echo "AWS S3 Credentials for .env file"
+	@echo "AWS credentials → group_vars/all.vault.yml"
 	@echo "==========================================="
-	@echo ""
-	@echo "S3_BUCKET=$$(terraform output -raw media_bucket_name)"
-	@echo "S3_REGION=$$(terraform output -raw media_bucket_region)"
-	@echo "AWS_ACCESS_KEY_ID=$$(terraform output -raw iam_access_key_id)"
-	@echo "AWS_SECRET_ACCESS_KEY=$$(terraform output -raw iam_access_key_secret)"
+	@echo "vault_aws_access_key_id: \"$$(terraform output -raw iam_access_key_id)\""
+	@echo "vault_aws_secret_access_key: \"$$(terraform output -raw iam_access_key_secret)\""
+	@echo "vault_s3_bucket: \"$$(terraform output -raw media_bucket_name)\""
+	@echo "vault_s3_region: \"$$(terraform output -raw media_bucket_region)\""
 	@echo ""
 	@echo "==========================================="
+	@echo "Twilio (production) → group_vars/all.vault.yml"
+	@echo "==========================================="
+	@echo "vault_twilio_api_key_sid: \"$$(terraform output -raw twilio_production_api_key_sid)\""
+	@echo "vault_twilio_api_key_secret: \"$$(terraform output -raw twilio_production_api_key_secret)\""
+	@echo ""
+	@echo "==========================================="
+	@echo "Twilio (staging) → group_vars/germinal_staging.vault.yml"
+	@echo "==========================================="
+	@echo "vault_staging_twilio_api_key_sid: \"$$(terraform output -raw twilio_staging_api_key_sid)\""
+	@echo "vault_staging_twilio_api_key_secret: \"$$(terraform output -raw twilio_staging_api_key_secret)\""
+	@echo ""
 	@echo "⚠️  Save these credentials securely!"
-	@echo "==========================================="
 
 # Export as environment variables
 env:
