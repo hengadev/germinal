@@ -102,8 +102,9 @@ export const POST: RequestHandler = async (event) => {
       });
 
     } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err);
       logger.error({ err, name: file.name, bucket: env.S3_BUCKET_NAME, region: env.AWS_REGION }, 'File upload error');
-      return error(500, `Failed to upload file ${file.name}`);
+      return error(500, `Failed to upload file ${file.name}: ${reason}`);
     }
   }
 
