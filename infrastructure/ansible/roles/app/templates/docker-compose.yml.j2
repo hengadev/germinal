@@ -55,7 +55,7 @@ services:
     environment:
       CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN}
     volumes:
-      - {{ caddy_data_dir }}/config/Caddyfile:/etc/caddy/Caddyfile:ro
+      - {{ caddy_data_dir }}/config:/etc/caddy:ro
       - {{ caddy_data_dir }}/data:/data
       - {{ caddy_data_dir }}/logs:/var/log/caddy
     networks:

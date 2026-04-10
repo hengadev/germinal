@@ -92,19 +92,30 @@
           - "Admin: https://admin-staging.{{ app_domain }}"
 
 # ─── Play 2: Update prod Caddy to route staging domains ──────────────────────
-# Must explicitly reset app_base_dir to the prod path because the staging
-# extra vars loaded by the Makefile would otherwise override it for this play.
+# vars: overrides are insufficient here because -e (extra vars) from the
+# Makefile take precedence over play vars. We use set_fact instead, which
+# creates host facts that beat extra vars, so app_name / app_base_dir /
+# caddy_data_dir are correctly set to the production values for this play.
 - name: Update Caddy configuration for staging domains
   hosts: germinal_servers
   become: true
   become_user: "{{ deploy_user }}"
 
-  vars:
-    staging_enabled: true
-    app_name: germinal
-    app_base_dir: /opt/germinal
-    caddy_data_dir: /opt/germinal/caddy
+  pre_tasks:
+    - name: Override variables to production values for Caddy update
+      ansible.builtin.set_fact:
+        staging_enabled: true
+        app_name: germinal
+        app_base_dir: /opt/germinal
+        caddy_data_dir: /opt/germinal/caddy
 
   roles:
     - role: caddy
       tags: ['caddy', 'staging']
+
+  post_tasks:
+    - name: Reload Caddy with updated config
+      ansible.builtin.command:
+        cmd: docker exec germinal_caddy caddy reload --config /etc/caddy/Caddyfile
+      become: true
+      changed_when: true
