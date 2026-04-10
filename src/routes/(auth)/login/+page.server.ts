@@ -6,7 +6,7 @@ import { verifyPassword, verifyPasswordMock, getMockAdminEmail } from '$lib/serv
 import { createSession } from '$lib/server/session';
 import { env } from '$lib/server/env';
 import { checkRateLimit, resetRateLimit, getRateLimitReset } from '$lib/server/rate-limit';
-import { getCookieDomain } from '$lib/server/hostname';
+import { getCookieDomain, getSessionCookieName } from '$lib/server/hostname';
 import type { PageServerLoad } from './$types';
 
 // Redirect to /admin if already logged in
@@ -41,6 +41,7 @@ export const actions: Actions = {
 		// Get client IP for rate limiting
 		const ip = getClientAddress();
 		const cookieDomain = getCookieDomain(url.hostname);
+		const sessionCookieName = getSessionCookieName(url.hostname);
 
 		// Check rate limit
 		if (!checkRateLimit(ip)) {
@@ -79,7 +80,7 @@ export const actions: Actions = {
 			const session = await createSession(email);
 
 			// Set secure cookie with subdomain support
-			cookies.set('session', session.id, {
+			cookies.set(sessionCookieName, session.id, {
 				path: '/',
 				domain: cookieDomain ?? undefined,
 				httpOnly: true,
@@ -113,7 +114,7 @@ export const actions: Actions = {
 		const session = await createSession(user.id);
 
 		// Set secure cookie with subdomain support
-		cookies.set('session', session.id, {
+		cookies.set(sessionCookieName, session.id, {
 			path: '/',
 			domain: cookieDomain ?? undefined,
 			httpOnly: true,

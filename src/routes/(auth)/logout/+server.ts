@@ -1,10 +1,11 @@
 import { redirect } from '@sveltejs/kit';
 import { deleteSession } from '$lib/server/session';
-import { getCookieDomain, getAdminUrl } from '$lib/server/hostname';
+import { getCookieDomain, getAdminUrl, getSessionCookieName } from '$lib/server/hostname';
 import type { RequestHandler } from './$types';
 
 export const POST: RequestHandler = async ({ cookies, url }) => {
-	const sessionId = cookies.get('session');
+	const sessionCookieName = getSessionCookieName(url.hostname);
+	const sessionId = cookies.get(sessionCookieName);
 
 	// Delete session from database
 	if (sessionId) {
@@ -13,7 +14,7 @@ export const POST: RequestHandler = async ({ cookies, url }) => {
 
 	// Clear session cookie with correct domain
 	const cookieDomain = getCookieDomain(url.hostname);
-	cookies.delete('session', {
+	cookies.delete(sessionCookieName, {
 		path: '/',
 		domain: cookieDomain ?? undefined
 	});

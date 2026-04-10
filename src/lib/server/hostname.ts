@@ -47,6 +47,32 @@ export function getCookieDomain(hostname: string): string | null {
 }
 
 /**
+ * Whether the hostname belongs to the staging environment
+ */
+export function isStagingHost(hostname: string): boolean {
+	return (
+		hostname === 'staging.germinalstudio.co' ||
+		hostname === 'admin-staging.germinalstudio.co'
+	);
+}
+
+/**
+ * Return the session cookie name for the given hostname.
+ * Staging uses a distinct name so it never conflicts with the production
+ * cookie that shares the same `.germinalstudio.co` domain.
+ */
+export function getSessionCookieName(hostname: string): string {
+	return isStagingHost(hostname) ? 'session_staging' : 'session';
+}
+
+/**
+ * Return the CSRF cookie name for the given hostname (same scoping rationale).
+ */
+export function getCsrfCookieName(hostname: string): string {
+	return isStagingHost(hostname) ? 'csrf_token_staging' : 'csrf_token';
+}
+
+/**
  * Get the admin URL for the current domain environment
  * Used for redirects after logout, etc.
  */

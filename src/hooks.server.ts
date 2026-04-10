@@ -1,7 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import type { Handle, HandleServerError } from '@sveltejs/kit';
 import { validateSession, deleteExpiredSessions } from '$lib/server/session';
-import { isAdminDomain, getCookieDomain } from '$lib/server/hostname';
+import { isAdminDomain, getCookieDomain, getSessionCookieName, getCsrfCookieName } from '$lib/server/hostname';
 import { initJobScheduler, stopJobScheduler } from '$lib/server/jobs/scheduler';
 import { runMigrations } from '$lib/server/db';
 import { initMonitoring, captureException } from '$lib/server/monitoring';
@@ -40,6 +40,8 @@ export const handle: Handle = async ({ event, resolve }) => {
 	const hostname = event.url.hostname;
 	event.locals.isAdminDomain = isAdminDomain(hostname);
 	const cookieDomain = getCookieDomain(hostname) ?? undefined;
+	const sessionCookieName = getSessionCookieName(hostname);
+	const csrfCookieName = getCsrfCookieName(hostname);
 
 	// On the admin subdomain (not localhost), redirect bare root to /admin so the auth flow runs
 	const isLocalhost = hostname.startsWith('localhost') || hostname.startsWith('127.0.0.1');
@@ -56,13 +58,13 @@ export const handle: Handle = async ({ event, resolve }) => {
 	// Reuse the existing CSRF token from the cookie if present; otherwise generate a new one.
 	// Regenerating on every request breaks validation because API calls arrive with the token
 	// from the page load, not the newly-generated one for that request.
-	const existingCsrfToken = event.cookies.get('csrf_token');
+	const existingCsrfToken = event.cookies.get(csrfCookieName);
 	const csrfToken = existingCsrfToken || generateToken();
 	event.locals.csrfToken = csrfToken;
 
 	// Store CSRF token in httpOnly cookie for API validation
 	if (!existingCsrfToken) {
-		event.cookies.set('csrf_token', csrfToken, {
+		event.cookies.set(csrfCookieName, csrfToken, {
 			httpOnly: true,
 			secure: process.env.NODE_ENV === 'production',
 			sameSite: 'strict',
@@ -72,7 +74,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 	}
 
 	// Read session cookie
-	const sessionId = event.cookies.get('session');
+	const sessionId = event.cookies.get(sessionCookieName);
 
 	// Initialize user as null
 	event.locals.user = null;
@@ -84,7 +86,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 			event.locals.user = user;
 		} else {
 			// Invalid/expired session - clear the cookie with correct domain
-			event.cookies.delete('session', {
+			event.cookies.delete(sessionCookieName, {
 				path: '/',
 				domain: cookieDomain
 			});
