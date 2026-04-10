@@ -73,7 +73,7 @@ admin.{{ app_domain }} {
     dns cloudflare {env.CLOUDFLARE_API_TOKEN}
   }
 
-  reverse_proxy app:3001 {
+  reverse_proxy germinal_app:3001 {
     header_up X-Real-IP {remote_host}
     header_up X-Forwarded-For {remote_host}
     header_up X-Forwarded-Proto {scheme}
@@ -106,7 +106,7 @@ www.{{ app_domain }} {
   }
 
   # Reverse proxy to application container
-  reverse_proxy app:3001 {
+  reverse_proxy germinal_app:3001 {
     header_up X-Real-IP {remote_host}
     header_up X-Forwarded-For {remote_host}
     header_up X-Forwarded-Proto {scheme}
