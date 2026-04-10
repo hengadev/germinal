@@ -1,6 +1,9 @@
 <script lang="ts">
 	import { Upload, X, Image as ImageIcon, AlertCircle, RefreshCw, GripVertical } from 'lucide-svelte';
 	import type { Media } from '$lib/types/media';
+	import { getToastContext } from '$lib/components/toast/state.svelte';
+
+	const toast = getToastContext();
 
 	interface Props {
 		mode: 'single' | 'multiple';
@@ -139,7 +142,14 @@
 				} else if (xhr.status === 401) {
 					reject(new Error('Session expired. Please log in again.'));
 				} else {
-					reject(new Error(xhr.responseText || 'Upload failed'));
+					let message = 'Upload failed';
+					try {
+						const parsed = JSON.parse(xhr.responseText);
+						if (parsed?.message) message = parsed.message;
+					} catch {
+						if (xhr.responseText) message = xhr.responseText;
+					}
+					reject(new Error(message));
 				}
 			};
 
@@ -164,6 +174,7 @@
 			// Validate file
 			const error = validateFile(file);
 			if (error) {
+				toast?.error('Fichier invalide', error);
 				uploadingFiles = [
 					...uploadingFiles,
 					{ id: progressId, file, progress: 0, error, preview: createPreview(file) }
@@ -196,10 +207,10 @@
 					uploadingFiles = uploadingFiles.filter((p) => p.id !== progressId);
 				}, 500);
 			} catch (err) {
+				const message = err instanceof Error ? err.message : 'Upload failed';
 				const idx = uploadingFiles.findIndex((p) => p.id === progressId);
-				if (idx >= 0)
-					uploadingFiles[idx].error =
-						err instanceof Error ? err.message : 'Upload failed';
+				if (idx >= 0) uploadingFiles[idx].error = message;
+				toast?.error('Erreur upload', message);
 			}
 		}
 	}
@@ -342,7 +353,14 @@
 			<p class="upload-text">
 				{mode === 'single' ? 'Cliquer ou glisser une photo' : maxFiles !== undefined ? `Cliquer ou glisser des fichiers (max ${maxFiles})` : 'Cliquer ou glisser des fichiers'}
 			</p>
-			<p class="upload-hint">Max {maxSizeMB}Mo par fichier</p>
+			<p class="upload-hint">
+				{accept === 'image/*'
+					? 'JPEG, PNG, WebP, GIF'
+					: accept === 'video/*'
+						? 'MP4, WebM, MOV'
+						: 'JPEG, PNG, WebP, GIF · MP4, WebM, MOV'}
+				· max {maxSizeMB} Mo
+			</p>
 		</div>
 	{/if}
 
