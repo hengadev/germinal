@@ -1,6 +1,23 @@
 import { db } from '../src/lib/server/db/index.js';
 import { events, talents } from '../src/lib/server/db/schema.js';
 
+// ============================================================
+// 🚨 PRODUCTION GUARD - Prevent accidental data loss
+// ============================================================
+// This seed script deletes ALL events and talents before seeding.
+// It should NEVER be run in production as it will wipe all data.
+const isProduction = process.env.NODE_ENV === 'production';
+const isProductionDatabase = process.env.DATABASE_URL?.includes('germinal') ||
+                             process.env.DATABASE_URL?.includes('46.225.25.238');
+
+if (isProduction || isProductionDatabase) {
+  console.error('🚨 ERROR: Seed script cannot be run in production!');
+  console.error('   This script deletes ALL events and talents data.');
+  console.error('   NODE_ENV:', process.env.NODE_ENV);
+  console.error('   DATABASE_URL:', process.env.DATABASE_URL?.replace(/:[^:@]+@/, ':****@'));
+  process.exit(1);
+}
+
 async function seed() {
   console.log('🌱 Seeding database with mock data...');
 
