@@ -83,7 +83,7 @@ export function getAdminUrl(hostname: string): string {
 	}
 
 	// Staging environment
-	if (hostname === 'staging.germinalstudio.co') {
+	if (isStagingHost(hostname)) {
 		return 'https://admin-staging.germinalstudio.co';
 	}
 
