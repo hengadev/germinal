@@ -144,7 +144,10 @@ export const load: PageServerLoad = async ({ params }) => {
 				sessionTitle: r.eventSession.titleEn,
 				sessionStartTime: r.eventSession.startTime.toISOString(),
 				paymentStatus: r.payment?.status || 'none'
-			}))
+			})),
+			eventStaff: [],
+			tasks: [],
+			allStaff: [],
 		};
 	} catch (err) {
 		if (err instanceof Error && err.message === 'Event not found') {

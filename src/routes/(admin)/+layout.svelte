@@ -186,9 +186,9 @@
                 </a>
             {/if}
 
-            {#if page.url.pathname.startsWith("/admin/talents")}
+            {#if page.url.pathname.startsWith("/admin/team")}
                 <a
-                    href="/admin/talents"
+                    href="/admin/team"
                     class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-foreground"
                 >
                     <svg
@@ -207,12 +207,13 @@
                         <circle cx="9" cy="7" r="4"></circle>
                         <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
                         <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        <line x1="10" x2="10" y1="3" y2="21"></line>
                     </svg>
-                    <span class="text-[10px] font-medium">Talents</span>
+                    <span class="text-[10px] font-medium">Team</span>
                 </a>
             {:else}
                 <a
-                    href="/admin/talents"
+                    href="/admin/team"
                     class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-muted-foreground hover:text-foreground-alt"
                 >
                     <svg
@@ -231,8 +232,9 @@
                         <circle cx="9" cy="7" r="4"></circle>
                         <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
                         <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        <line x1="10" x2="10" y1="3" y2="21"></line>
                     </svg>
-                    <span class="text-[10px] font-medium">Talents</span>
+                    <span class="text-[10px] font-medium">Team</span>
                 </a>
             {/if}
 

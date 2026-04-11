@@ -1,7 +1,7 @@
 <script lang="ts">
     import { page } from "$app/state";
 
-    import { LayoutDashboard, Calendar, User, Ticket, BarChart3, ExternalLink } from "lucide-svelte";
+    import { LayoutDashboard, Calendar, Users, Ticket, BarChart3, ExternalLink } from "lucide-svelte";
     import ThemeToggle from "$lib/components/admin/ThemeToggle.svelte";
 
     interface SidebarProps {
@@ -53,9 +53,9 @@
             icon: Calendar,
         },
         {
-            href: "/admin/talents",
-            label: "Talents",
-            icon: User,
+            href: "/admin/team",
+            label: "Team",
+            icon: Users,
         },
         {
             href: "/admin/reservations",

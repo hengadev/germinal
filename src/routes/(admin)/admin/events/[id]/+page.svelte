@@ -31,6 +31,8 @@
     import Reservations from "./Reservations.svelte";
     import Photos from "./Photos.svelte";
     import PromoCodes from "./PromoCodes.svelte";
+    import Team from "./Team.svelte";
+    import Tasks from "./Tasks.svelte";
 
     interface Trigger {
         value: string;
@@ -41,9 +43,10 @@
         { value: "overview", name: "Vue d'ensemble" },
         { value: "photos", name: "Photos" },
         { value: "sessions", name: "Sessions" },
+        { value: "team", name: "Team" },
+        { value: "tasks", name: "Tasks" },
         { value: "reservations", name: "Réservations" },
         { value: "promotions", name: "Promotions" },
-        { value: "communication", name: "Communication" },
     ];
 </script>
 
@@ -104,14 +107,17 @@
         <TabsContent value="sessions" class="h-full p-6">
             <Sessions {data} {form} />
         </TabsContent>
+        <TabsContent value="team" class="h-full p-6">
+            <Team {data} {form} />
+        </TabsContent>
+        <TabsContent value="tasks" class="h-full p-6">
+            <Tasks {data} {form} />
+        </TabsContent>
         <TabsContent value="reservations" class="h-full p-6">
             <Reservations {data} />
         </TabsContent>
         <TabsContent value="promotions" class="h-full p-6">
             <PromoCodes {data} {form} />
-        </TabsContent>
-        <TabsContent value="communication" class="h-full p-6">
-            <p class="text-muted-foreground">Communication features coming soon...</p>
         </TabsContent>
     </div>
 </Tabs>
