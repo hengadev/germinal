@@ -355,6 +355,9 @@ export async function expireReservation(reservationId: string) {
 	const sessionData = await db.transaction(async (tx: typeof db) => {
 		const reservation = await tx.query.reservations.findFirst({
 			where: eq(reservations.id, reservationId),
+			with: {
+				payment: true,
+			},
 		});
 
 		if (!reservation) {
@@ -375,6 +378,17 @@ export async function expireReservation(reservationId: string) {
 				updatedAt: new Date(),
 			})
 			.where(eq(reservations.id, reservationId));
+
+		// Update payment status to failed for expired reservations
+		if (reservation.payment) {
+			await tx.update(payments)
+				.set({
+					status: 'failed',
+					lastError: 'Reservation expired',
+					updatedAt: new Date(),
+				})
+				.where(eq(payments.id, reservation.payment.id));
+		}
 
 		if (session) {
 			await tx.update(eventSessions)
