@@ -4,7 +4,16 @@
 
 services:
   # Application Container
+{% if use_shared_services | default(false) %}
+  # For staging (shared-service) deployments the service is named after the container
+  # so it does NOT register a generic 'app' alias on the shared germinal_network.
+  # If both prod and staging used 'app' as the service name they would both register
+  # an 'app' DNS alias on germinal_network, causing round-robin DNS and intermittent
+  # requests landing on the wrong container.
+  {{ app_name }}_app:
+{% else %}
   app:
+{% endif %}
     image: {{ app_docker_image }}
     container_name: {{ app_name }}_app
     restart: unless-stopped

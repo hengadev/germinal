@@ -84,6 +84,15 @@ caddy_cloudflare_api_token: "{{ vault_caddy_cloudflare_api_token | default('') }
 staging_enabled: true
 
 # ============================================
+# Shared Services (staging-only flag, default false)
+# ============================================
+# When true, the app container joins the prod network instead of creating its own services.
+# Overridden to true via -e "@group_vars/germinal_staging.yml" for staging deploys.
+# Explicitly set here so production deploys never pick up the value from the
+# germinal_staging_servers inventory group (germinal_vps belongs to both groups).
+use_shared_services: false
+
+# ============================================
 # Database and Session Configuration
 # ============================================
 # These are populated from vault variables

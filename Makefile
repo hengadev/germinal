@@ -216,15 +216,15 @@ staging-logs:
 	$(VPS_SSH) "cd $(STAGING_DIR) && docker compose logs -f"
 
 staging-shell:
-	$(VPS_SSH) -t "cd $(STAGING_DIR) && docker compose exec app sh"
+	$(VPS_SSH) -t "cd $(STAGING_DIR) && docker compose exec germinal_staging_app sh"
 
 staging-migrate:
 	@echo "Running database migrations (staging)..."
-	$(VPS_SSH) "cd $(STAGING_DIR) && docker compose run --rm --no-deps app node scripts/migrate.js"
+	$(VPS_SSH) "cd $(STAGING_DIR) && docker compose run --rm --no-deps germinal_staging_app node scripts/migrate.js"
 
 staging-create-admin:
 	@echo "Creating admin user (staging)..."
-	$(VPS_SSH) "cd $(STAGING_DIR) && docker compose exec app npx tsx scripts/create-admin.ts"
+	$(VPS_SSH) "cd $(STAGING_DIR) && docker compose exec germinal_staging_app npx tsx scripts/create-admin.ts"
 
 # ===========================================
 # Local Development Commands (run dev.sh directly)
@@ -250,7 +250,7 @@ deploy:
 deploy-staging:
 	@echo "Deploying staging..."
 	$(VPS_SSH) "docker pull $(DOCKER_IMAGE_STAGING)"
-	$(VPS_SSH) "cd $(STAGING_DIR) && docker compose run --rm --no-deps app node scripts/migrate.js"
+	$(VPS_SSH) "cd $(STAGING_DIR) && docker compose run --rm --no-deps germinal_staging_app node scripts/migrate.js"
 	$(VPS_SSH) "cd $(STAGING_DIR) && DOCKER_IMAGE=$(DOCKER_IMAGE_STAGING) docker compose up -d"
 	@echo "Staging deployed."
 

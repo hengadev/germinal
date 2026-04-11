@@ -57,19 +57,19 @@
   post_tasks:
     - name: Pull latest staging image
       ansible.builtin.command:
-        cmd: docker compose pull app
+        cmd: docker compose pull {{ app_name }}_app
         chdir: "{{ app_base_dir }}"
       changed_when: true
 
     - name: Run database migrations
       ansible.builtin.command:
-        cmd: docker compose run --rm --no-deps app node scripts/migrate.js
+        cmd: docker compose run --rm --no-deps {{ app_name }}_app node scripts/migrate.js
         chdir: "{{ app_base_dir }}"
       changed_when: true
 
     - name: Start/restart staging app
       ansible.builtin.command:
-        cmd: docker compose up -d --force-recreate
+        cmd: docker compose up -d --force-recreate --remove-orphans
         chdir: "{{ app_base_dir }}"
       changed_when: true
 

@@ -125,7 +125,7 @@ restart:
 # Quick restart for staging
 restart-staging:
 	@echo "Pulling latest staging image and restarting..."
-	@ssh -i ~/.ssh/germinal germinal@$(VPS_IP) "cd /opt/germinal-staging && docker compose pull app && docker compose up -d app"
+	@ssh -i ~/.ssh/germinal germinal@$(VPS_IP) "cd /opt/germinal-staging && docker compose pull germinal_staging_app && docker compose up -d germinal_staging_app"
 
 # Configure database backups
 backup:
