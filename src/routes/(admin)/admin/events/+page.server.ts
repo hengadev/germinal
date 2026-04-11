@@ -6,12 +6,27 @@ import { env } from '$lib/server/env';
 import { MOCK_EVENTS, MOCK_CATEGORIES } from '$lib/mock-data';
 import type { EventWithMedia } from '$lib/types/events';
 
-export const load: PageServerLoad = async () => {
+export const load: PageServerLoad = async ({ url }) => {
+    // Get search query from URL
+    const searchQuery = url.searchParams.get('q') || undefined;
+
     if (env.USE_MOCK_DATA) {
         // Mock mode - return all events (published and unpublished)
+        let filteredEvents = MOCK_EVENTS;
+
+        // Apply search filter if provided
+        if (searchQuery) {
+            const query = searchQuery.toLowerCase();
+            filteredEvents = MOCK_EVENTS.filter(e =>
+                e.titleEn.toLowerCase().includes(query) ||
+                e.titleFr.toLowerCase().includes(query)
+            );
+        }
+
         return {
-            events: MOCK_EVENTS as unknown as EventWithMedia[],
-            categories: MOCK_CATEGORIES
+            events: filteredEvents as unknown as EventWithMedia[],
+            categories: MOCK_CATEGORIES,
+            searchQuery,
         };
     }
 
@@ -19,13 +34,14 @@ export const load: PageServerLoad = async () => {
     const { getAllEvents } = await import('$lib/server/services/events');
     const { getAllCategories } = await import('$lib/server/services/categories');
     const [result, categories] = await Promise.all([
-        getAllEvents({ publishedOnly: false }),
+        getAllEvents({ publishedOnly: false, search: searchQuery }),
         getAllCategories({ publishedOnly: false })
     ]);
 
     return {
         events: result.data as EventWithMedia[],
-        categories
+        categories,
+        searchQuery,
     };
 };
 

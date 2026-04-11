@@ -1,6 +1,6 @@
 import { db } from '../db';
 import { events, media, eventSessions, eventCategories } from '../db/schema';
-import { eq, desc, and, isNull, sql } from 'drizzle-orm';
+import { eq, desc, and, isNull, sql, or, ilike } from 'drizzle-orm';
 import type { Event, CreateEventInput, UpdateEventInput } from '$lib/types/events';
 import {
 	parsePagination,
@@ -10,17 +10,35 @@ import {
 } from '$lib/utils/pagination';
 import { invalidateCacheTags, CACHE_TAGS } from '$lib/server/cache';
 
-export async function getAllEvents(options: { publishedOnly?: boolean; page?: number; limit?: number; cursor?: string }) {
-	const { publishedOnly = true, page = 1, limit = 20 } = options;
+export async function getAllEvents(options: { publishedOnly?: boolean; page?: number; limit?: number; cursor?: string; search?: string }) {
+	const { publishedOnly = true, page = 1, limit = 20, search } = options;
+
+	// Build where clause
+	let whereClause = undefined;
+	if (publishedOnly) {
+		whereClause = eq(events.published, true);
+	}
+
+	// Add search filter
+	if (search && search.trim()) {
+		const searchTerm = `%${search.trim()}%`;
+		const searchCondition = or(
+			ilike(events.titleEn, searchTerm),
+			ilike(events.titleFr, searchTerm),
+			ilike(events.descriptionEn, searchTerm),
+			ilike(events.descriptionFr, searchTerm)
+		);
+		whereClause = whereClause ? and(whereClause, searchCondition) : searchCondition;
+	}
 
 	// Count total events for pagination
-	const totalQuery = db.select({ count: sql<number>`count(*)::int` }).from(events);
+	const totalQuery = db.select({ count: sql<number>`count(*)::int` }).from(events).where(whereClause);
 	const totalResult = await totalQuery;
 	const total = totalResult[0]?.count ?? 0;
 
 	// Fetch paginated events
 	const paginatedEvents = await db.query.events.findMany({
-		where: publishedOnly ? eq(events.published, true) : undefined,
+		where: whereClause,
 		orderBy: [desc(events.startDate)],
 		limit,
 		offset: (page - 1) * limit,

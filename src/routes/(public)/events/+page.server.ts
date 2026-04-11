@@ -7,7 +7,10 @@ import type { EventWithMedia } from '$lib/types/events';
 
 const INITIAL_PAGE_SIZE = 6;
 
-export const load: PageServerLoad = async () => {
+export const load: PageServerLoad = async ({ url }) => {
+    // Get search query from URL
+    const searchQuery = url.searchParams.get('q') || undefined;
+
     // Load categories
     let categories;
     if (USE_MOCK_DATA) {
@@ -20,22 +23,42 @@ export const load: PageServerLoad = async () => {
     // Use mock data if enabled (no database required!)
     if (USE_MOCK_DATA) {
         logger.info('📦 Using mock data for events');
-        const totalEvents = MOCK_EVENTS.length;
-        const initialEvents = MOCK_EVENTS.slice(0, INITIAL_PAGE_SIZE) as unknown as EventWithMedia[];
+        let filteredEvents = MOCK_EVENTS;
+
+        // Apply search filter if provided
+        if (searchQuery) {
+            const query = searchQuery.toLowerCase();
+            filteredEvents = MOCK_EVENTS.filter(e =>
+                e.titleEn.toLowerCase().includes(query) ||
+                e.titleFr.toLowerCase().includes(query) ||
+                e.descriptionEn.toLowerCase().includes(query) ||
+                e.descriptionFr.toLowerCase().includes(query)
+            );
+        }
+
+        const totalEvents = filteredEvents.length;
+        const initialEvents = filteredEvents.slice(0, INITIAL_PAGE_SIZE) as unknown as EventWithMedia[];
         const pagination = calculatePagination(1, INITIAL_PAGE_SIZE, totalEvents);
 
         return {
             events: initialEvents,
             pagination,
             categories,
+            searchQuery,
         };
     }
 
-    const result = await getAllEvents({ publishedOnly: true, page: 1, limit: INITIAL_PAGE_SIZE });
+    const result = await getAllEvents({
+        publishedOnly: true,
+        page: 1,
+        limit: INITIAL_PAGE_SIZE,
+        search: searchQuery
+    });
 
     return {
         events: result.data as EventWithMedia[],
         pagination: result.pagination,
         categories,
+        searchQuery,
     };
 };
