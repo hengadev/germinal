@@ -50,6 +50,13 @@
       "when": 1774900002000,
       "tag": "0006_localized_session_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1742961600000,
+      "tag": "0007_staff_tasks_module",
+      "breakpoints": true
     }
   ]
 }

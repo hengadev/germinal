@@ -31,7 +31,11 @@ export const paymentStatusEnum = pgEnum('payment_status', [
     'partially_refunded'
 ]);
 
-export const userRoleEnum = pgEnum('user_role', ['user', 'admin']);
+export const userRoleEnum = pgEnum('user_role', ['user', 'admin', 'staff']);
+
+export const taskStatusEnum = pgEnum('task_status', ['pending', 'in_progress', 'done']);
+
+export const taskPriorityEnum = pgEnum('task_priority', ['low', 'medium', 'high']);
 
 export const notificationPreferenceEnum = pgEnum('notification_preference', [
     'email',
@@ -214,6 +218,8 @@ export const eventsRelations = relations(events, ({ many, one }) => ({
     }),
     eventSessions: many(eventSessions),
     coupons: many(coupons),
+    staff: many(eventStaff),
+    tasks: many(tasks),
 }));
 
 export const eventCategoriesRelations = relations(eventCategories, ({ many }) => ({
@@ -276,6 +282,9 @@ export const sessions = pgTable('sessions', {
 
 export const usersRelations = relations(users, ({ many }) => ({
     sessions: many(sessions),
+    eventAssignments: many(eventStaff),
+    createdTasks: many(tasks),
+    assignedTasks: many(tasks),
 }));
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({
@@ -600,4 +609,77 @@ export const promotionCodesRelations = relations(promotionCodes, ({ one, many })
         references: [coupons.id],
     }),
     reservations: many(reservations),
+}));
+
+// ============================================
+// STAFF AND TASKS TABLES
+// ============================================
+
+export const eventStaff = pgTable('event_staff', {
+    id: uuid('id').defaultRandom().primaryKey(),
+    eventId: uuid('event_id')
+        .notNull()
+        .references(() => events.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+        .notNull()
+        .references(() => users.id, { onDelete: 'cascade' }),
+    roleLabel: varchar('role_label', { length: 100 }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+    eventIdIdx: index('event_staff_event_id_idx').on(table.eventId),
+    userIdIdx: index('event_staff_user_id_idx').on(table.userId),
+    uniqueEventUser: unique('event_staff_event_user_unique').on(table.eventId, table.userId),
+}));
+
+export const tasks = pgTable('tasks', {
+    id: uuid('id').defaultRandom().primaryKey(),
+    eventId: uuid('event_id')
+        .notNull()
+        .references(() => events.id, { onDelete: 'cascade' }),
+    assignedTo: uuid('assigned_to').references(() => users.id, { onDelete: 'set null' }),
+    createdBy: uuid('created_by')
+        .notNull()
+        .references(() => users.id, { onDelete: 'cascade' }),
+    title: varchar('title', { length: 255 }).notNull(),
+    description: text('description'),
+    dueDate: timestamp('due_date', { withTimezone: true }),
+    status: taskStatusEnum('status').notNull().default('pending'),
+    priority: taskPriorityEnum('priority').notNull().default('medium'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+    eventIdIdx: index('tasks_event_id_idx').on(table.eventId),
+    assignedToIdx: index('tasks_assigned_to_idx').on(table.assignedTo),
+    createdByIdx: index('tasks_created_by_idx').on(table.createdBy),
+    statusIdx: index('tasks_status_idx').on(table.status),
+}));
+
+// ============================================
+// STAFF AND TASKS RELATIONS
+// ============================================
+
+export const eventStaffRelations = relations(eventStaff, ({ one }) => ({
+    event: one(events, {
+        fields: [eventStaff.eventId],
+        references: [events.id],
+    }),
+    user: one(users, {
+        fields: [eventStaff.userId],
+        references: [users.id],
+    }),
+}));
+
+export const tasksRelations = relations(tasks, ({ one }) => ({
+    event: one(events, {
+        fields: [tasks.eventId],
+        references: [events.id],
+    }),
+    assignedTo: one(users, {
+        fields: [tasks.assignedTo],
+        references: [users.id],
+    }),
+    createdBy: one(users, {
+        fields: [tasks.createdBy],
+        references: [users.id],
+    }),
 }));
