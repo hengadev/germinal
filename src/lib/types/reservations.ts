@@ -45,6 +45,10 @@ export type TicketEmailData = {
 	session: typeof eventSessions.$inferSelect;
 	event: {
 		title: string;
+		slug: string;
 		locationEn: string;
 	};
+	qrCode?: string;
+	googleCalendarUrl?: string;
+	icsUrl?: string;
 };

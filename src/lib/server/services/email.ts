@@ -194,6 +194,7 @@ VIEW YOUR TICKETS:
 ${env.PUBLIC_URL}/tickets/${data.accessToken}
 
 Present this link or QR code at the event entrance.
+${data.googleCalendarUrl ? `\nADD TO CALENDAR:\n${data.googleCalendarUrl}` : ''}
 
 See you there!
 
@@ -263,9 +264,22 @@ function generateTicketHtmlTemplate(data: TicketEmailData): string {
       </a>
     </div>
 
-    <p style="margin: 24px 0 0 0; font-size: 14px; color: #6c757d; text-align: center;">
-      Present this link or QR code at the event entrance.
-    </p>
+    ${data.qrCode ? `
+    <div style="margin-top: 24px; text-align: center;">
+      <p style="margin: 0 0 12px 0; font-size: 14px; color: #6c757d;">Present this QR code at the event entrance</p>
+      <img src="${data.qrCode}" alt="Entry QR Code" width="200" height="200" style="display: block; margin: 0 auto; border: 1px solid #e9ecef; border-radius: 8px;" />
+    </div>
+    ` : ''}
+
+    ${data.googleCalendarUrl || data.icsUrl ? `
+    <div style="margin-top: 24px; text-align: center; border-top: 1px solid #e9ecef; padding-top: 20px;">
+      <p style="margin: 0 0 12px 0; font-size: 14px; color: #6c757d; font-weight: 600;">Add to your calendar</p>
+      <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+        ${data.googleCalendarUrl ? `<a href="${escapeHtmlAttr(data.googleCalendarUrl)}" style="display: inline-block; background-color: #ffffff; border: 1px solid #e9ecef; color: #495057; text-decoration: none; padding: 8px 20px; border-radius: 6px; font-size: 14px;">Google Calendar</a>` : ''}
+        ${data.icsUrl ? `<a href="${escapeHtmlAttr(data.icsUrl)}" style="display: inline-block; background-color: #ffffff; border: 1px solid #e9ecef; color: #495057; text-decoration: none; padding: 8px 20px; border-radius: 6px; font-size: 14px;">Download .ics</a>` : ''}
+      </div>
+    </div>
+    ` : ''}
   </div>
 
   <div style="border-top: 1px solid #e9ecef; padding-top: 16px;">
@@ -280,8 +294,43 @@ function generateTicketHtmlTemplate(data: TicketEmailData): string {
 }
 
 export async function sendTicketConfirmationEmail(data: TicketEmailData): Promise<void> {
-	const textBody = generateTicketTextTemplate(data);
-	const htmlBody = generateTicketHtmlTemplate(data);
+	// Generate QR code — non-fatal: email still sends if this fails
+	let qrCode: string | undefined;
+	try {
+		const QRCode = await import('qrcode');
+		qrCode = await QRCode.toDataURL(
+			`${env.PUBLIC_URL}/tickets/${data.accessToken}`,
+			{
+				width: 300,
+				margin: 2,
+				color: {
+					dark: '#1a1a1a',
+					light: '#ffffff',
+				},
+			}
+		);
+	} catch (err) {
+		logger.warn({ err }, 'QR code generation failed — sending email without QR code');
+	}
+
+	// Generate calendar links
+	const { generateGoogleCalendarUrl } = await import('../utils/calendar');
+	const googleCalendarUrl = generateGoogleCalendarUrl(data.event, data.session);
+	const icsUrl = `${env.PUBLIC_URL}/api/events/${data.event.slug}/sessions/${data.session.id}/calendar.ics`;
+
+	const textBody = generateTicketTextTemplate({
+		...data,
+		qrCode,
+		googleCalendarUrl,
+		icsUrl,
+	});
+
+	const htmlBody = generateTicketHtmlTemplate({
+		...data,
+		qrCode,
+		googleCalendarUrl,
+		icsUrl,
+	});
 
 	if (!isAWSConfigured()) {
 		logger.info({
