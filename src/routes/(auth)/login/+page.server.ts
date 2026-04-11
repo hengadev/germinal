@@ -17,7 +17,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 	}
 
 	if (locals.user) {
-		throw redirect(302, '/admin');
+		const redirectPath = locals.user.role === 'staff' ? '/staff' : '/admin';
+		throw redirect(302, redirectPath);
 	}
 
 	// Show mock admin credentials in development mode
@@ -123,7 +124,8 @@ export const actions: Actions = {
 			maxAge: 60 * 60 * 24 * 7 // 7 days
 		});
 
-		// Redirect to admin dashboard
-		throw redirect(302, '/admin');
+		// Redirect based on user role
+		const redirectPath = user.role === 'staff' ? '/staff' : '/admin';
+		throw redirect(302, redirectPath);
 	}
 };
