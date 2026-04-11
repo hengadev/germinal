@@ -29,6 +29,10 @@ prod_network_name: germinal_network
 # ============================================
 # db_user and db_password are inherited from all.vault.yml (same postgres instance)
 db_name: germinal_staging
+# staging_db_name is the variable used by env.j2 for the staging DATABASE_URL.
+# It is intentionally separate from db_name to avoid being shadowed by all.yml
+# when all group_vars files are loaded together as Ansible extra vars.
+staging_db_name: germinal_staging
 
 # ============================================
 # Redis (shared instance, separate DB index)
