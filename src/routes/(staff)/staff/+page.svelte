@@ -295,7 +295,7 @@
         <div class="mt-8">
             <h2 class="text-lg font-semibold text-foreground mb-4">Tasks by Event</h2>
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {#each Object.entries(data.tasksByEvent) as [eventId, tasks], (eventId)}
+                {#each Object.entries(data.tasksByEvent) as [eventId, tasks] (eventId)}
                     <div class="bg-background border border-border-card rounded-lg">
                         <div class="p-4 border-b border-border-card">
                             <h3 class="font-semibold text-foreground">{tasks[0]?.event?.titleEn || 'Event'}</h3>
