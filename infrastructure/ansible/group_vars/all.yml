@@ -155,6 +155,9 @@ app_env_vars:
   SENTRY_DSN: "{{ vault_sentry_dsn | default('') }}"
   USE_SCHEDULER: "{{ vault_use_scheduler | default('false') }}"
 
+  # Maintenance Mode
+  MAINTENANCE_MODE: "{{ vault_maintenance_mode | default('false') }}"
+
 # ============================================
 # Backup Configuration
 # ============================================
