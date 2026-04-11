@@ -185,7 +185,17 @@
 			"password": "Password",
 			"signIn": "Sign In",
 			"rateLimited": "Rate Limited",
-			"invalidCredentials": "Invalid email or password"
+			"invalidCredentials": "Invalid email or password",
+			"errors": {
+				"rateLimit": "Too many login attempts. Try again in {seconds} seconds.",
+				"emailRequired": "Email is required",
+				"passwordRequired": "Password is required"
+			},
+			"showPassword": "Show password",
+			"hidePassword": "Hide password",
+			"mockCredentials": "For development, use:",
+			"mockPasswordHint": "(your password)",
+			"metaDescription": "Sign in to your Germinal account"
 		},
 		"dashboard": {
 			"title": "Dashboard",

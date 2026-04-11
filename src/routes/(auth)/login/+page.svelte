@@ -13,7 +13,7 @@
 	<title>{$t('admin.login.pageTitle')}</title>
 	<meta
 		name="description"
-		content="Sign in to your Germinal account"
+		content={$t('admin.login.metaDescription')}
 	/>
 </svelte:head>
 
@@ -68,7 +68,7 @@
 							type="button"
 							onclick={() => (showPassword = !showPassword)}
 							class="absolute right-3 top-1/2 -translate-y-1/2 text-dark-400 hover:text-dark-700 transition-colors"
-							aria-label={showPassword ? 'Hide password' : 'Show password'}
+							aria-label={showPassword ? $t('admin.login.hidePassword') : $t('admin.login.showPassword')}
 						>
 							{#if showPassword}
 								<EyeOff size={20} />
@@ -91,8 +91,8 @@
 
 		{#if data.showMockCredentials}
 			<div class="mt-6 text-center text-sm text-dark-400">
-				<p>For development, use:</p>
-				<p class="font-mono mt-1">{data.mockEmail} / (your password)</p>
+				<p>{$t('admin.login.mockCredentials')}</p>
+				<p class="font-mono mt-1">{data.mockEmail} / {$t('admin.login.mockPasswordHint')}</p>
 			</div>
 		{/if}
 	</div>

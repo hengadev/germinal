@@ -47,7 +47,7 @@ export const actions: Actions = {
 		if (!checkRateLimit(ip)) {
 			const resetTime = getRateLimitReset(ip);
 			return fail(429, {
-				error: `Too many login attempts. Try again in ${resetTime} seconds.`,
+				error: `Trop de tentatives de connexion. Réessayez dans ${resetTime} secondes.`,
 				rateLimited: true
 			});
 		}
@@ -58,11 +58,11 @@ export const actions: Actions = {
 
 		// Validate input
 		if (!email || typeof email !== 'string') {
-			return fail(400, { error: 'Email is required' });
+			return fail(400, { error: "L'email est requis" });
 		}
 
 		if (!password || typeof password !== 'string') {
-			return fail(400, { error: 'Password is required' });
+			return fail(400, { error: 'Le mot de passe est requis' });
 		}
 
 		if (env.USE_MOCK_DATA) {
@@ -70,7 +70,7 @@ export const actions: Actions = {
 			const validPassword = await verifyPasswordMock(email, password);
 
 			if (!validPassword) {
-				return fail(400, { error: 'Invalid email or password' });
+				return fail(400, { error: "Email ou mot de passe invalide" });
 			}
 
 			// Reset rate limit on successful login

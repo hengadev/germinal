@@ -185,7 +185,17 @@
 			"password": "Mot de passe",
 			"signIn": "Se connecter",
 			"rateLimited": "Limite de débit atteinte",
-			"invalidCredentials": "Email ou mot de passe invalide"
+			"invalidCredentials": "Email ou mot de passe invalide",
+			"errors": {
+				"rateLimit": "Trop de tentatives de connexion. Réessayez dans {seconds} secondes.",
+				"emailRequired": "L'email est requis",
+				"passwordRequired": "Le mot de passe est requis"
+			},
+			"showPassword": "Afficher le mot de passe",
+			"hidePassword": "Masquer le mot de passe",
+			"mockCredentials": "Pour le développement, utilisez :",
+			"mockPasswordHint": "(votre mot de passe)",
+			"metaDescription": "Connectez-vous à votre compte Germinal"
 		},
 		"dashboard": {
 			"title": "Tableau de bord",
