@@ -32,6 +32,6 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 		return json(task, { status: 201 });
 	} catch (error) {
 		console.error('Failed to create task:', error);
-		return json({ error: 'Failed to create task' }, { status: 500 });
+		return json({ error: error instanceof Error ? error.message : 'Failed to create task' }, { status: 500 });
 	}
 };

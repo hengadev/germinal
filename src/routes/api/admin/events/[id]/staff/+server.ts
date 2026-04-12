@@ -17,7 +17,7 @@ export const GET: RequestHandler = async ({ locals, params }) => {
 		return json(staff);
 	} catch (error) {
 		console.error('Failed to get staff for event:', error);
-		return json({ error: 'Failed to get staff' }, { status: 500 });
+		return json({ error: error instanceof Error ? error.message : 'Failed to get staff' }, { status: 500 });
 	}
 };
 
@@ -43,6 +43,6 @@ export const POST: RequestHandler = async ({ locals, params, request }) => {
 			return json({ error: error.message }, { status });
 		}
 		console.error('Failed to assign staff:', error);
-		return json({ error: 'Failed to assign staff' }, { status: 500 });
+		return json({ error: error instanceof Error ? error.message : 'Failed to assign staff' }, { status: 500 });
 	}
 };

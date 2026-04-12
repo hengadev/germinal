@@ -57,6 +57,6 @@ export const POST: RequestHandler = async ({ locals, request }) => {
         return json({ success: `Password reset for ${user.email}` });
     } catch (error) {
         console.error('Failed to reset password:', error);
-        return json({ error: 'Failed to reset password' }, { status: 500 });
+        return json({ error: error instanceof Error ? error.message : 'Failed to reset password' }, { status: 500 });
     }
 };

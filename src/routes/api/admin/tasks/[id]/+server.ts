@@ -23,7 +23,7 @@ export const PUT: RequestHandler = async ({ locals, params, request }) => {
 		return json(task);
 	} catch (error) {
 		console.error('Failed to update task:', error);
-		return json({ error: 'Failed to update task' }, { status: 500 });
+		return json({ error: error instanceof Error ? error.message : 'Failed to update task' }, { status: 500 });
 	}
 };
 
@@ -36,6 +36,6 @@ export const DELETE: RequestHandler = async ({ locals, params }) => {
 		return json({ success: true });
 	} catch (error) {
 		console.error('Failed to delete task:', error);
-		return json({ error: 'Failed to delete task' }, { status: 500 });
+		return json({ error: error instanceof Error ? error.message : 'Failed to delete task' }, { status: 500 });
 	}
 };

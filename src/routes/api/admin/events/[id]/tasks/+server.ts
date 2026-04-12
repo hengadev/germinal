@@ -13,6 +13,6 @@ export const GET: RequestHandler = async ({ locals, params }) => {
 		return json({ tasks, summary });
 	} catch (error) {
 		console.error('Failed to get tasks for event:', error);
-		return json({ error: 'Failed to get tasks' }, { status: 500 });
+		return json({ error: error instanceof Error ? error.message : 'Failed to get tasks' }, { status: 500 });
 	}
 };

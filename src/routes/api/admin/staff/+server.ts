@@ -17,6 +17,6 @@ export const GET: RequestHandler = async ({ locals }) => {
 		return json(staff);
 	} catch (error) {
 		console.error('Failed to get staff list:', error);
-		return json({ error: 'Failed to get staff list' }, { status: 500 });
+		return json({ error: error instanceof Error ? error.message : 'Failed to get staff list' }, { status: 500 });
 	}
 };

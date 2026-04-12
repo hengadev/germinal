@@ -197,8 +197,8 @@
 
             await loadData();
         } catch (error) {
-            console.error('Failed to update task:', error);
-            toast.error('Error', 'Failed to update task');
+            const errorMsg = error instanceof Error ? error.message : 'Failed to update task';
+            toast.error('Error', errorMsg);
         } finally {
             processing = false;
         }

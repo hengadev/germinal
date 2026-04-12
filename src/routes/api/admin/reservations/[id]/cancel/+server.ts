@@ -28,6 +28,6 @@ export const POST: RequestHandler = async (event) => {
 			}
 		}
 
-		return json({ error: 'Failed to cancel reservation' }, { status: 500 });
+		return json({ error: error instanceof Error ? error.message : 'Failed to cancel reservation' }, { status: 500 });
 	}
 };

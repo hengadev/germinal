@@ -44,6 +44,6 @@ export const POST: RequestHandler = async ({ locals, request }) => {
         return json({ success: `Staff member ${user.email} has been deactivated` });
     } catch (error) {
         console.error('Failed to deactivate staff:', error);
-        return json({ error: 'Failed to deactivate staff' }, { status: 500 });
+        return json({ error: error instanceof Error ? error.message : 'Failed to deactivate staff' }, { status: 500 });
     }
 };

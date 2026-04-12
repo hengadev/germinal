@@ -12,6 +12,6 @@ export const DELETE: RequestHandler = async ({ locals, params }) => {
 		return json({ success: true });
 	} catch (error) {
 		console.error('Failed to remove staff:', error);
-		return json({ error: 'Failed to remove staff' }, { status: 500 });
+		return json({ error: error instanceof Error ? error.message : 'Failed to remove staff' }, { status: 500 });
 	}
 };
