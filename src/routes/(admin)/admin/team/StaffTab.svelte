@@ -51,7 +51,7 @@
             }
             staffList = data;
         } catch (err) {
-            error = err instanceof Error ? err.message : 'Failed to load staff';
+            error = err instanceof Error ? err.message : 'Échec du chargement du staff';
             console.error('Error loading staff:', err);
         } finally {
             loading = false;
@@ -64,17 +64,17 @@
 
     async function createStaff() {
         if (!newStaffEmail || !newStaffPassword) {
-            createFormError = 'Email and password are required';
+            createFormError = 'L\'email et le mot de passe sont requis';
             return;
         }
 
         if (newStaffPassword.length < 8) {
-            createFormError = 'Password must be at least 8 characters';
+            createFormError = 'Le mot de passe doit contenir au moins 8 caractères';
             return;
         }
 
         if (newStaffEmail.includes('germinal.com')) {
-            createFormError = 'Email cannot contain "germinal.com"';
+            createFormError = 'L\'email ne peut pas contenir "germinal.com"';
             return;
         }
 
@@ -94,28 +94,28 @@
             const result = await response.json();
 
             if (!response.ok) {
-                throw new Error(result.error || 'Failed to create staff');
+                throw new Error(result.error || 'Échec de la création du staff');
             }
 
-            toast.success('Success', result.success || 'Staff member created successfully');
+            toast.success('Succès', result.success || 'Membre du staff créé avec succès');
             newStaffEmail = '';
             newStaffPassword = '';
             showCreateForm = false;
             await loadStaff();
         } catch (err) {
-            createFormError = err instanceof Error ? err.message : 'Failed to create staff';
-            toast.error('Error', createFormError);
+            createFormError = err instanceof Error ? err.message : 'Échec de la création du staff';
+            toast.error('Erreur', createFormError);
         } finally {
             processingAction = null;
         }
     }
 
     async function resetPassword(staffId: string, email: string) {
-        const newPassword = prompt(`Enter new password for ${email}:`);
+        const newPassword = prompt(`Entrez le nouveau mot de passe pour ${email} :`);
         if (!newPassword) return;
 
         if (newPassword.length < 8) {
-            toast.error('Error', 'Password must be at least 8 characters');
+            toast.error('Erreur', 'Le mot de passe doit contenir au moins 8 caractères');
             return;
         }
 
@@ -134,20 +134,20 @@
             const result = await response.json();
 
             if (!response.ok) {
-                throw new Error(result.error || 'Failed to reset password');
+                throw new Error(result.error || 'Échec de la réinitialisation du mot de passe');
             }
 
-            toast.success('Success', result.success || 'Password reset successfully');
+            toast.success('Succès', result.success || 'Mot de passe réinitialisé avec succès');
         } catch (err) {
-            const errorMsg = err instanceof Error ? err.message : 'Failed to reset password';
-            toast.error('Error', errorMsg);
+            const errorMsg = err instanceof Error ? err.message : 'Échec de la réinitialisation du mot de passe';
+            toast.error('Erreur', errorMsg);
         } finally {
             processingAction = null;
         }
     }
 
     async function deactivateStaff(staffId: string, email: string) {
-        if (!confirm(`Are you sure you want to deactivate ${email}? This will prevent them from accessing the staff portal.`)) {
+        if (!confirm(`Êtes-vous sûr de vouloir désactiver ${email} ? Cela l'empêchera d'accéder au portail staff.`)) {
             return;
         }
 
@@ -165,14 +165,14 @@
             const result = await response.json();
 
             if (!response.ok) {
-                throw new Error(result.error || 'Failed to deactivate staff');
+                throw new Error(result.error || 'Échec de la désactivation du staff');
             }
 
-            toast.success('Success', result.success || 'Staff deactivated successfully');
+            toast.success('Succès', result.success || 'Staff désactivé avec succès');
             await loadStaff();
         } catch (err) {
-            const errorMsg = err instanceof Error ? err.message : 'Failed to deactivate staff';
-            toast.error('Error', errorMsg);
+            const errorMsg = err instanceof Error ? err.message : 'Échec de la désactivation du staff';
+            toast.error('Erreur', errorMsg);
         } finally {
             processingAction = null;
         }
@@ -191,22 +191,22 @@
     <!-- Header -->
     <div class="flex items-center justify-between">
         <div>
-            <h2 class="text-2xl font-semibold">Staff Members</h2>
-            <p class="text-muted-foreground">Manage staff accounts and access</p>
+            <h2 class="text-2xl font-semibold">Membres du Staff</h2>
+            <p class="text-muted-foreground">Gérer les comptes et accès du staff</p>
         </div>
         <button
             onclick={() => showCreateForm = true}
             class="inline-flex items-center gap-2 px-4 py-2 bg-foreground text-background rounded-lg hover:opacity-90 transition-colors"
         >
             <Plus size={18} />
-            <span>Add Staff</span>
+            <span>Ajouter un membre du staff</span>
         </button>
     </div>
 
     <!-- Create Staff Form -->
     {#if showCreateForm}
         <div class="bg-background border border-border-card rounded-lg p-6">
-            <h3 class="text-lg font-semibold mb-4">Create New Staff Account</h3>
+            <h3 class="text-lg font-semibold mb-4">Créer un nouveau compte staff</h3>
 
             {#if createFormError}
                 <div class="mb-4 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg">
@@ -217,13 +217,13 @@
             <div class="space-y-4">
                 <div>
                     <label for="staff-email" class="block text-sm font-medium text-foreground mb-1">
-                        Email Address
+                        Adresse email
                     </label>
                     <input
                         id="staff-email"
                         type="email"
                         bind:value={newStaffEmail}
-                        placeholder="staff@example.com"
+                        placeholder="staff@exemple.com"
                         class="w-full px-3 py-2 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                         disabled={processingAction === 'create'}
                     />
@@ -231,7 +231,7 @@
 
                 <div>
                     <label for="staff-password" class="block text-sm font-medium text-foreground mb-1">
-                        Temporary Password
+                        Mot de passe temporaire
                     </label>
                     <input
                         id="staff-password"
@@ -242,7 +242,7 @@
                         disabled={processingAction === 'create'}
                     />
                     <p class="text-xs text-muted-foreground mt-1">
-                        Minimum 8 characters. Staff member will be prompted to change on first login.
+                        Minimum 8 caractères. Le membre du staff devra le changer à la première connexion.
                     </p>
                 </div>
 
@@ -253,7 +253,7 @@
                             class="inline-flex items-center gap-2 px-4 py-2 bg-foreground text-background rounded-lg opacity-50"
                         >
                             <Loader2 size={16} class="animate-spin" />
-                            <span>Creating...</span>
+                            <span>Création...</span>
                         </button>
                     {:else}
                         <button
@@ -261,7 +261,7 @@
                             class="inline-flex items-center gap-2 px-4 py-2 bg-foreground text-background rounded-lg hover:opacity-90 transition-colors"
                         >
                             <CheckCircle2 size={16} />
-                            <span>Create Account</span>
+                            <span>Créer le compte</span>
                         </button>
                     {/if}
                     <button
@@ -275,7 +275,7 @@
                         disabled={processingAction === 'create'}
                     >
                         <XCircle size={16} />
-                        <span>Cancel</span>
+                        <span>Annuler</span>
                     </button>
                 </div>
             </div>
@@ -286,7 +286,7 @@
     {#if loading}
         <div class="bg-background border border-border-card rounded-lg p-8 text-center">
             <Loader2 size={32} class="animate-spin mx-auto text-muted-foreground" />
-            <p class="text-muted-foreground mt-4">Loading staff...</p>
+            <p class="text-muted-foreground mt-4">Chargement du staff...</p>
         </div>
     {:else if error}
         <div class="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg">
@@ -295,16 +295,16 @@
     {:else if staffList.length === 0}
         <div class="bg-background border border-border-card rounded-lg p-8 text-center">
             <UserX size={48} class="mx-auto text-muted-foreground mb-4" />
-            <h3 class="text-lg font-semibold text-foreground mb-2">No Staff Members</h3>
+            <h3 class="text-lg font-semibold text-foreground mb-2">Aucun membre du staff</h3>
             <p class="text-muted-foreground mb-4">
-                Create staff accounts to give team members access to the staff portal.
+                Créez des comptes staff pour donner accès au portail staff aux membres de l'équipe.
             </p>
             <button
                 onclick={() => showCreateForm = true}
                 class="inline-flex items-center gap-2 px-4 py-2 bg-foreground text-background rounded-lg hover:opacity-90 transition-colors"
             >
                 <Plus size={18} />
-                <span>Add First Staff Member</span>
+                <span>Ajouter le premier membre du staff</span>
             </button>
         </div>
     {:else}
@@ -317,10 +317,10 @@
                                 Email
                             </th>
                             <th class="px-6 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider">
-                                Role
+                                Rôle
                             </th>
                             <th class="px-6 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider">
-                                Created
+                                Créé le
                             </th>
                             <th class="px-6 py-3 text-right text-xs font-semibold text-foreground uppercase tracking-wider">
                                 Actions
@@ -356,7 +356,7 @@
                                         <button
                                             onclick={() => resetPassword(staff.id, staff.email)}
                                             class="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
-                                            title="Reset Password"
+                                            title="Réinitialiser le mot de passe"
                                             disabled={processingAction === `reset-${staff.id}`}
                                         >
                                             {#if processingAction === `reset-${staff.id}`}
@@ -368,7 +368,7 @@
                                         <button
                                             onclick={() => deactivateStaff(staff.id, staff.email)}
                                             class="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors"
-                                            title="Deactivate Staff"
+                                            title="Désactiver le staff"
                                             disabled={processingAction === `deactivate-${staff.id}`}
                                         >
                                             {#if processingAction === `deactivate-${staff.id}`}

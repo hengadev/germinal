@@ -93,7 +93,7 @@
             }
         } catch (error) {
             console.error('Failed to load tasks:', error);
-            toast.error('Error', 'Failed to load tasks');
+            toast.error('Erreur', 'Échec du chargement des tâches');
         } finally {
             loading = false;
         }
@@ -105,7 +105,7 @@
 
     async function createTask() {
         if (!taskTitle.trim()) {
-            toast.error('Error', 'Task title is required');
+            toast.error('Erreur', 'Le titre de la tâche est requis');
             return;
         }
 
@@ -130,10 +130,10 @@
             const result = await response.json();
 
             if (!response.ok) {
-                throw new Error(result.error || 'Failed to create task');
+                throw new Error(result.error || 'Échec de la création de la tâche');
             }
 
-            toast.success('Success', 'Task created successfully');
+            toast.success('Succès', 'Tâche créée avec succès');
             taskTitle = '';
             taskDescription = '';
             taskAssignedTo = '';
@@ -142,15 +142,15 @@
             showCreateForm = false;
             await loadData();
         } catch (error) {
-            const errorMsg = error instanceof Error ? error.message : 'Failed to create task';
-            toast.error('Error', errorMsg);
+            const errorMsg = error instanceof Error ? error.message : 'Échec de la création de la tâche';
+            toast.error('Erreur', errorMsg);
         } finally {
             processing = false;
         }
     }
 
     async function deleteTask(taskId: string, taskTitle: string) {
-        if (!confirm(`Delete task "${taskTitle}"?`)) {
+        if (!confirm(`Supprimer la tâche "${taskTitle}" ?`)) {
             return;
         }
 
@@ -164,14 +164,14 @@
             const result = await response.json();
 
             if (!response.ok) {
-                throw new Error(result.error || 'Failed to delete task');
+                throw new Error(result.error || 'Échec de la suppression de la tâche');
             }
 
-            toast.success('Success', 'Task deleted successfully');
+            toast.success('Succès', 'Tâche supprimée avec succès');
             await loadData();
         } catch (error) {
-            const errorMsg = error instanceof Error ? error.message : 'Failed to delete task';
-            toast.error('Error', errorMsg);
+            const errorMsg = error instanceof Error ? error.message : 'Échec de la suppression de la tâche';
+            toast.error('Erreur', errorMsg);
         } finally {
             processing = false;
         }
@@ -192,13 +192,13 @@
             const result = await response.json();
 
             if (!response.ok) {
-                throw new Error(result.error || 'Failed to update task');
+                throw new Error(result.error || 'Échec de la mise à jour de la tâche');
             }
 
             await loadData();
         } catch (error) {
-            const errorMsg = error instanceof Error ? error.message : 'Failed to update task';
-            toast.error('Error', errorMsg);
+            const errorMsg = error instanceof Error ? error.message : 'Échec de la mise à jour de la tâche';
+            toast.error('Erreur', errorMsg);
         } finally {
             processing = false;
         }
@@ -207,11 +207,11 @@
     function getStatusBadge(status: string) {
         switch (status) {
             case 'done':
-                return { class: 'bg-green-100 text-green-800', icon: CheckCircle2, label: 'Done' };
+                return { class: 'bg-green-100 text-green-800', icon: CheckCircle2, label: 'Terminé' };
             case 'in_progress':
-                return { class: 'bg-blue-100 text-blue-800', icon: Clock, label: 'In Progress' };
+                return { class: 'bg-blue-100 text-blue-800', icon: Clock, label: 'En cours' };
             case 'pending':
-                return { class: 'bg-gray-100 text-gray-800', icon: Circle, label: 'Pending' };
+                return { class: 'bg-gray-100 text-gray-800', icon: Circle, label: 'En attente' };
             default:
                 return { class: 'bg-gray-100 text-gray-800', icon: AlertCircle, label: status };
         }
@@ -231,8 +231,8 @@
     }
 
     function formatDate(date: Date | string | null): string {
-        if (!date) return 'No due date';
-        return new Date(date).toLocaleDateString("en-US", {
+        if (!date) return 'Aucune date d\'échéance';
+        return new Date(date).toLocaleDateString("fr-FR", {
             month: 'short',
             day: 'numeric',
             hour: '2-digit',
@@ -246,50 +246,50 @@
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div class="bg-background border border-border-card rounded-lg p-4">
             <p class="text-2xl font-bold text-foreground">{taskSummary.total}</p>
-            <p class="text-sm text-muted-foreground">Total Tasks</p>
+            <p class="text-sm text-muted-foreground">Total des tâches</p>
         </div>
         <div class="bg-background border border-border-card rounded-lg p-4">
             <p class="text-2xl font-bold text-gray-600">{taskSummary.pending}</p>
-            <p class="text-sm text-muted-foreground">Pending</p>
+            <p class="text-sm text-muted-foreground">En attente</p>
         </div>
         <div class="bg-background border border-border-card rounded-lg p-4">
             <p class="text-2xl font-bold text-blue-600">{taskSummary.inProgress}</p>
-            <p class="text-sm text-muted-foreground">In Progress</p>
+            <p class="text-sm text-muted-foreground">En cours</p>
         </div>
         <div class="bg-background border border-border-card rounded-lg p-4">
             <p class="text-2xl font-bold text-green-600">{taskSummary.done}</p>
-            <p class="text-sm text-muted-foreground">Done</p>
+            <p class="text-sm text-muted-foreground">Terminées</p>
         </div>
     </div>
 
     <!-- Header -->
     <div class="flex items-center justify-between">
-        <h3 class="text-lg font-semibold text-foreground">Event Tasks</h3>
+        <h3 class="text-lg font-semibold text-foreground">Tâches de l'événement</h3>
         <button
             onclick={() => showCreateForm = !showCreateForm}
             class="inline-flex items-center gap-2 px-4 py-2 bg-foreground text-background rounded-lg hover:opacity-90 transition-colors"
             disabled={processing}
         >
             <Plus size={18} />
-            <span>Add Task</span>
+            <span>Ajouter une tâche</span>
         </button>
     </div>
 
     <!-- Create Task Form -->
     {#if showCreateForm}
         <div class="bg-background border border-border-card rounded-lg p-6">
-            <h4 class="text-md font-semibold mb-4">Create New Task</h4>
+            <h4 class="text-md font-semibold mb-4">Créer une nouvelle tâche</h4>
 
             <div class="space-y-4">
                 <div>
                     <label for="task-title" class="block text-sm font-medium text-foreground mb-2">
-                        Title *
+                        Titre *
                     </label>
                     <input
                         id="task-title"
                         type="text"
                         bind:value={taskTitle}
-                        placeholder="Enter task title..."
+                        placeholder="Entrez le titre de la tâche..."
                         class="w-full px-3 py-2 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                         disabled={processing}
                     />
@@ -302,7 +302,7 @@
                     <textarea
                         id="task-description"
                         bind:value={taskDescription}
-                        placeholder="Enter task description..."
+                        placeholder="Entrez la description de la tâche..."
                         rows="3"
                         class="w-full px-3 py-2 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                         disabled={processing}
@@ -312,7 +312,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label for="task-assignee" class="block text-sm font-medium text-foreground mb-2">
-                            Assign To
+                            Assigner à
                         </label>
                         <select
                             id="task-assignee"
@@ -320,7 +320,7 @@
                             class="w-full px-3 py-2 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                             disabled={processing}
                         >
-                            <option value="">Unassigned</option>
+                            <option value="">Non assigné</option>
                             {#each eventStaff as staff}
                                 <option value={staff.userId}>{staff.user.email}</option>
                             {/each}
@@ -329,7 +329,7 @@
 
                     <div>
                         <label for="task-priority" class="block text-sm font-medium text-foreground mb-2">
-                            Priority
+                            Priorité
                         </label>
                         <select
                             id="task-priority"
@@ -337,16 +337,16 @@
                             class="w-full px-3 py-2 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                             disabled={processing}
                         >
-                            <option value="low">Low</option>
-                            <option value="medium">Medium</option>
-                            <option value="high">High</option>
+                            <option value="low">Faible</option>
+                            <option value="medium">Moyenne</option>
+                            <option value="high">Élevée</option>
                         </select>
                     </div>
                 </div>
 
                 <div>
                     <label for="task-due-date" class="block text-sm font-medium text-foreground mb-2">
-                        Due Date
+                        Date d'échéance
                     </label>
                     <input
                         id="task-due-date"
@@ -364,7 +364,7 @@
                             class="inline-flex items-center gap-2 px-4 py-2 bg-foreground text-background rounded-lg opacity-50"
                         >
                             <Loader2 size={16} class="animate-spin" />
-                            <span>Creating...</span>
+                            <span>Création...</span>
                         </button>
                     {:else}
                         <button
@@ -372,7 +372,7 @@
                             class="inline-flex items-center gap-2 px-4 py-2 bg-foreground text-background rounded-lg hover:opacity-90 transition-colors"
                         >
                             <CheckCircle2 size={16} />
-                            <span>Create Task</span>
+                            <span>Créer la tâche</span>
                         </button>
                     {/if}
                     <button
@@ -388,7 +388,7 @@
                         disabled={processing}
                     >
                         <X size={16} />
-                        <span>Cancel</span>
+                        <span>Annuler</span>
                     </button>
                 </div>
             </div>
@@ -399,12 +399,12 @@
     {#if loading}
         <div class="bg-background border border-border-card rounded-lg p-8 text-center">
             <Loader2 size={32} class="animate-spin mx-auto text-muted-foreground" />
-            <p class="text-muted-foreground mt-4">Loading tasks...</p>
+            <p class="text-muted-foreground mt-4">Chargement des tâches...</p>
         </div>
     {:else if tasks.length === 0}
         <div class="bg-background border border-border-card rounded-lg p-8 text-center">
             <p class="text-muted-foreground">
-                No tasks created for this event yet.
+                Aucune tâche créée pour cet événement pour le moment.
             </p>
         </div>
     {:else}
@@ -431,7 +431,7 @@
                                 {#if task.assignedToUser}
                                     <span>• {task.assignedToUser.email}</span>
                                 {:else}
-                                    <span>• Unassigned</span>
+                                    <span>• Non assigné</span>
                                 {/if}
                                 <span>• {formatDate(task.dueDate)}</span>
                             </div>
@@ -443,7 +443,7 @@
                                     updateTaskStatus(task.id, nextStatus);
                                 }}
                                 class="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
-                                title="Change status"
+                                title="Changer le statut"
                                 disabled={processing}
                             >
                                 <svelte:component this={statusBadge.icon} size={16} />
@@ -451,7 +451,7 @@
                             <button
                                 onclick={() => deleteTask(task.id, task.title)}
                                 class="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors"
-                                title="Delete task"
+                                title="Supprimer la tâche"
                                 disabled={processing}
                             >
                                 <Trash2 size={16} />

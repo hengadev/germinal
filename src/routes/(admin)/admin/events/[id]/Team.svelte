@@ -63,7 +63,7 @@
             }
         } catch (error) {
             console.error('Failed to load staff data:', error);
-            toast.error('Error', 'Failed to load staff data');
+            toast.error('Erreur', 'Échec du chargement des données du staff');
         } finally {
             loading = false;
         }
@@ -75,7 +75,7 @@
 
     async function assignStaff() {
         if (!selectedStaffId) {
-            toast.error('Error', 'Please select a staff member');
+            toast.error('Erreur', 'Veuillez sélectionner un membre du staff');
             return;
         }
 
@@ -94,24 +94,24 @@
             const result = await response.json();
 
             if (!response.ok) {
-                throw new Error(result.error || 'Failed to assign staff');
+                throw new Error(result.error || 'Échec de l\'assignation du staff');
             }
 
-            toast.success('Success', 'Staff assigned successfully');
+            toast.success('Succès', 'Staff assigné avec succès');
             selectedStaffId = '';
             roleLabel = '';
             showAddForm = false;
             await loadData();
         } catch (error) {
-            const errorMsg = error instanceof Error ? error.message : 'Failed to assign staff';
-            toast.error('Error', errorMsg);
+            const errorMsg = error instanceof Error ? error.message : 'Échec de l\'assignation du staff';
+            toast.error('Erreur', errorMsg);
         } finally {
             processing = false;
         }
     }
 
     async function removeStaff(staffUserId: string, userEmail: string) {
-        if (!confirm(`Remove ${userEmail} from this event?`)) {
+        if (!confirm(`Retirer ${userEmail} de cet événement ?`)) {
             return;
         }
 
@@ -125,14 +125,14 @@
             const result = await response.json();
 
             if (!response.ok) {
-                throw new Error(result.error || 'Failed to remove staff');
+                throw new Error(result.error || 'Échec du retrait du staff');
             }
 
-            toast.success('Success', 'Staff removed successfully');
+            toast.success('Succès', 'Staff retiré avec succès');
             await loadData();
         } catch (error) {
-            const errorMsg = error instanceof Error ? error.message : 'Failed to remove staff';
-            toast.error('Error', errorMsg);
+            const errorMsg = error instanceof Error ? error.message : 'Échec du retrait du staff';
+            toast.error('Erreur', errorMsg);
         } finally {
             processing = false;
         }
@@ -149,9 +149,9 @@
     <!-- Header -->
     <div class="flex items-center justify-between">
         <div>
-            <h3 class="text-lg font-semibold text-foreground mb-1">Event Team</h3>
+            <h3 class="text-lg font-semibold text-foreground mb-1">Équipe de l'événement</h3>
             <p class="text-sm text-muted-foreground">
-                {eventStaff.length} staff member{eventStaff.length !== 1 ? 's' : ''} assigned
+                {eventStaff.length} membre{eventStaff.length !== 1 ? 's' : ''} du staff assigné{eventStaff.length !== 1 ? 's' : ''}
             </p>
         </div>
         <button
@@ -160,19 +160,19 @@
             disabled={processing}
         >
             <Plus size={18} />
-            <span>Assign Staff</span>
+            <span>Assigner du staff</span>
         </button>
     </div>
 
     <!-- Add Staff Form -->
     {#if showAddForm}
         <div class="bg-background border border-border-card rounded-lg p-6">
-            <h4 class="text-md font-semibold mb-4">Assign Staff Member</h4>
+            <h4 class="text-md font-semibold mb-4">Assigner un membre du staff</h4>
 
             <div class="space-y-4">
                 <div>
                     <label for="staff-select" class="block text-sm font-medium text-foreground mb-2">
-                        Staff Member
+                        Membre du staff
                     </label>
                     <select
                         id="staff-select"
@@ -180,7 +180,7 @@
                         class="w-full px-3 py-2 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                         disabled={processing}
                     >
-                        <option value="">Select a staff member...</option>
+                        <option value="">Sélectionner un membre du staff...</option>
                         {#each allStaff.filter(s => !assignedStaffIds.has(s.id)) as staff}
                             <option value={staff.id}>{staff.email}</option>
                         {/each}
@@ -189,18 +189,18 @@
 
                 <div>
                     <label for="role-label" class="block text-sm font-medium text-foreground mb-2">
-                        Role Label (optional)
+                        Libellé du rôle (optionnel)
                     </label>
                     <input
                         id="role-label"
                         type="text"
                         bind:value={roleLabel}
-                        placeholder="e.g. Sound, Door, Photography"
+                        placeholder="ex. Son, Porte, Photographie"
                         class="w-full px-3 py-2 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                         disabled={processing}
                     />
                     <p class="text-xs text-muted-foreground mt-1">
-                        Optional: specify the staff member's role for this event
+                        Optionnel : spécifier le rôle du membre du staff pour cet événement
                     </p>
                 </div>
 
@@ -211,7 +211,7 @@
                             class="inline-flex items-center gap-2 px-4 py-2 bg-foreground text-background rounded-lg opacity-50"
                         >
                             <Loader2 size={16} class="animate-spin" />
-                            <span>Assigning...</span>
+                            <span>Assignation...</span>
                         </button>
                     {:else}
                         <button
@@ -219,7 +219,7 @@
                             class="inline-flex items-center gap-2 px-4 py-2 bg-foreground text-background rounded-lg hover:opacity-90 transition-colors"
                         >
                             <CheckCircle2 size={16} />
-                            <span>Assign</span>
+                            <span>Assigner</span>
                         </button>
                     {/if}
                     <button
@@ -232,7 +232,7 @@
                         disabled={processing}
                     >
                         <X size={16} />
-                        <span>Cancel</span>
+                        <span>Annuler</span>
                     </button>
                 </div>
             </div>
@@ -243,12 +243,12 @@
     {#if loading}
         <div class="bg-background border border-border-card rounded-lg p-8 text-center">
             <Loader2 size={32} class="animate-spin mx-auto text-muted-foreground" />
-            <p class="text-muted-foreground mt-4">Loading staff assignments...</p>
+            <p class="text-muted-foreground mt-4">Chargement des assignations du staff...</p>
         </div>
     {:else if eventStaff.length === 0}
         <div class="bg-background border border-border-card rounded-lg p-8 text-center">
             <p class="text-muted-foreground">
-                No staff members assigned to this event yet.
+                Aucun membre du staff assigné à cet événement pour le moment.
             </p>
         </div>
     {:else}
@@ -258,13 +258,13 @@
                     <thead class="bg-muted border-b border-border-card">
                         <tr>
                             <th class="px-6 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider">
-                                Staff Member
+                                Membre du staff
                             </th>
                             <th class="px-6 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider">
-                                Role
+                                Rôle
                             </th>
                             <th class="px-6 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider">
-                                Assigned
+                                Assigné le
                             </th>
                             <th class="px-6 py-3 text-right text-xs font-semibold text-foreground uppercase tracking-wider">
                                 Actions
@@ -301,7 +301,7 @@
                                         <button
                                             onclick={() => removeStaff(staff.userId, staff.user.email)}
                                             class="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors"
-                                            title="Remove from event"
+                                            title="Retirer de l'événement"
                                             disabled={processing}
                                         >
                                             <UserMinus size={16} />

@@ -39,13 +39,13 @@
 </script>
 
 <svelte:head>
-    <title>Team | Admin</title>
+    <title>Équipe | Admin</title>
 </svelte:head>
 
 <div class="container mx-auto px-4 py-8 lg:py-12">
     <div class="mb-8">
-        <h1 class="text-3xl lg:text-4xl font-bold mb-2">Team</h1>
-        <p class="text-muted-foreground">Manage talents and staff members</p>
+        <h1 class="text-3xl lg:text-4xl font-bold mb-2">Équipe</h1>
+        <p class="text-muted-foreground">Gérer les talents et les membres du staff</p>
     </div>
 
     {#if form?.error}
