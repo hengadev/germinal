@@ -1,8 +1,7 @@
-import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
+import { requireAdmin } from '$lib/server/auth-guards';
 
-export const load: PageServerLoad = async () => {
-	// Redirect to talents tab by default for now
-	// This will allow the existing talents functionality to work
-	throw redirect(302, '/admin/team/talents');
+export const load: PageServerLoad = async ({ locals }) => {
+	requireAdmin(locals);
+	return {};
 };
