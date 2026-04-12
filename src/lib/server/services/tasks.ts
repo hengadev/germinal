@@ -86,7 +86,8 @@ export async function createTask(data: CreateTaskInput): Promise<TaskWithUser> {
 		logger.info(`Created task ${task.id} for event ${data.eventId}`);
 		return fullTask;
 	} catch (error) {
-		logger.error({ err: error }, 'Failed to create task');
+		const cause = error instanceof Error ? (error as any).cause : undefined;
+		logger.error({ err: error, cause: cause?.message ?? cause }, 'Failed to create task');
 		throw error;
 	}
 }
