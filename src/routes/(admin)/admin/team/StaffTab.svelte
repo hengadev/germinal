@@ -45,10 +45,10 @@
         error = null;
         try {
             const response = await fetch('/api/admin/staff');
-            if (!response.ok) {
-                throw new Error('Failed to load staff');
-            }
             const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data?.error ?? `Erreur ${response.status}`);
+            }
             staffList = data;
         } catch (err) {
             error = err instanceof Error ? err.message : 'Failed to load staff';
