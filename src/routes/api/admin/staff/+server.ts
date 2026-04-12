@@ -1,13 +1,18 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { requireAdmin } from '$lib/server/auth-guards';
-import { getAllStaff } from '$lib/server/services/event-staff';
+import { env } from '$lib/server/env';
 
 // GET /api/admin/staff - Get all users with the staff role
 export const GET: RequestHandler = async ({ locals }) => {
 	requireAdmin(locals);
 
+	if (env.USE_MOCK_DATA) {
+		return json([]);
+	}
+
 	try {
+		const { getAllStaff } = await import('$lib/server/services/event-staff');
 		const staff = await getAllStaff();
 		return json(staff);
 	} catch (error) {

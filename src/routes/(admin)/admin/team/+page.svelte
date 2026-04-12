@@ -79,7 +79,7 @@
         </TabsList>
 
         <TabsContent value="talents" class="p-6">
-            <TalentsTab {form} />
+            <TalentsTab talents={data.talents} categories={data.categories} {form} />
         </TabsContent>
         <TabsContent value="staff" class="p-6">
             <StaffTab {form} />
