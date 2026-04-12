@@ -11,6 +11,7 @@
         Circle,
         Clock,
         AlertCircle,
+        Edit,
     } from "lucide-svelte";
     import type { PageData, ActionData } from "../+page.server";
     import { getToastContext } from "$lib/components/toast/state.svelte";
@@ -59,6 +60,7 @@
     let showCreateForm = $state(false);
     let processing = $state(false);
     let deleteDialogOpen = $state(false);
+    let editDialogOpen = $state(false);
     let selectedTask: Task | null = $state(null);
 
     // Mobile detection
@@ -76,6 +78,14 @@
     let taskAssignedTo = $state('');
     let taskDueDate = $state('');
     let taskPriority = $state<'low' | 'medium' | 'high'>('medium');
+
+    // Edit form state
+    let editTitle = $state('');
+    let editDescription = $state('');
+    let editAssignedTo = $state('');
+    let editDueDate = $state('');
+    let editPriority = $state<'low' | 'medium' | 'high'>('medium');
+    let editStatus = $state<'pending' | 'in_progress' | 'done'>('pending');
 
     interface EventStaff {
         id: string;
@@ -194,16 +204,39 @@
         deleteDialogOpen = true;
     }
 
-    async function updateTaskStatus(taskId: string, status: 'pending' | 'in_progress' | 'done') {
+    function openEditDialog(task: Task) {
+        selectedTask = task;
+        editTitle = task.title;
+        editDescription = task.description || '';
+        editAssignedTo = task.assignedTo || '';
+        editDueDate = task.dueDate ? new Date(task.dueDate).toISOString().slice(0, 16) : '';
+        editPriority = task.priority;
+        editStatus = task.status;
+        editDialogOpen = true;
+    }
+
+    async function updateTask() {
+        if (!selectedTask || !editTitle.trim()) {
+            toast.error('Erreur', 'Le titre de la tâche est requis');
+            return;
+        }
+
         processing = true;
 
         try {
-            const response = await fetch(`/api/admin/tasks/${taskId}`, {
+            const response = await fetch(`/api/admin/tasks/${selectedTask.id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ status }),
+                body: JSON.stringify({
+                    assignedTo: editAssignedTo || null,
+                    title: editTitle.trim(),
+                    description: editDescription.trim() || null,
+                    dueDate: editDueDate ? new Date(editDueDate) : null,
+                    priority: editPriority,
+                    status: editStatus,
+                }),
             });
 
             const result = await response.json();
@@ -212,6 +245,9 @@
                 throw new Error(result.error || 'Échec de la mise à jour de la tâche');
             }
 
+            toast.success('Succès', 'Tâche mise à jour avec succès');
+            editDialogOpen = false;
+            selectedTask = null;
             await loadData();
         } catch (error) {
             const errorMsg = error instanceof Error ? error.message : 'Échec de la mise à jour de la tâche';
@@ -455,15 +491,12 @@
                         </div>
                         <div class="flex items-center gap-2">
                             <button
-                                onclick={() => {
-                                    const nextStatus = task.status === 'pending' ? 'in_progress' : task.status === 'in_progress' ? 'done' : 'pending';
-                                    updateTaskStatus(task.id, nextStatus);
-                                }}
+                                onclick={() => openEditDialog(task)}
                                 class="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
-                                title="Changer le statut"
+                                title="Modifier la tâche"
                                 disabled={processing}
                             >
-                                <svelte:component this={statusBadge.icon} size={16} />
+                                <Edit size={16} />
                             </button>
                             <button
                                 onclick={() => openDeleteDialog(task)}
@@ -537,6 +570,248 @@
                 <button type="button" onclick={() => selectedTask && deleteTask(selectedTask.id, selectedTask.title)}
                     class="px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium">
                     Supprimer
+                </button>
+            {/if}
+        </div>
+    </Modal>
+{/if}
+
+<!-- Edit Task Dialog/Drawer -->
+{#if isMobile}
+    <Drawer bind:isOpen={editDialogOpen}>
+        <div class="sticky top-0 bg-background pb-4 border-b border-border-card -mx-4 px-4 -mt-4 pt-4 z-10">
+            <div class="flex items-center justify-between mb-2">
+                <h2 class="text-xl font-semibold tracking-tight">Modifier la tâche</h2>
+                <button type="button" onclick={() => (editDialogOpen = false)} class="p-2 hover:bg-muted rounded-md transition-colors">
+                    <X class="text-foreground size-5" />
+                </button>
+            </div>
+            <p class="text-muted-foreground text-sm">Mettre à jour les détails de la tâche</p>
+        </div>
+        <div class="pt-4 space-y-4">
+            <div>
+                <label for="edit-task-title" class="block text-sm font-medium text-foreground mb-2">
+                    Titre *
+                </label>
+                <input
+                    id="edit-task-title"
+                    type="text"
+                    bind:value={editTitle}
+                    placeholder="Entrez le titre de la tâche..."
+                    class="w-full px-3 py-2 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    disabled={processing}
+                />
+            </div>
+
+            <div>
+                <label for="edit-task-description" class="block text-sm font-medium text-foreground mb-2">
+                    Description
+                </label>
+                <textarea
+                    id="edit-task-description"
+                    bind:value={editDescription}
+                    placeholder="Entrez la description de la tâche..."
+                    rows="3"
+                    class="w-full px-3 py-2 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    disabled={processing}
+                ></textarea>
+            </div>
+
+            <div>
+                <label for="edit-task-assignee" class="block text-sm font-medium text-foreground mb-2">
+                    Assigner à
+                </label>
+                <select
+                    id="edit-task-assignee"
+                    bind:value={editAssignedTo}
+                    class="w-full px-3 py-2 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    disabled={processing}
+                >
+                    <option value="">Non assigné</option>
+                    {#each eventStaff as staff}
+                        <option value={staff.userId}>{staff.user.email}</option>
+                    {/each}
+                </select>
+            </div>
+
+            <div>
+                <label for="edit-task-status" class="block text-sm font-medium text-foreground mb-2">
+                    Statut
+                </label>
+                <select
+                    id="edit-task-status"
+                    bind:value={editStatus}
+                    class="w-full px-3 py-2 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    disabled={processing}
+                >
+                    <option value="pending">En attente</option>
+                    <option value="in_progress">En cours</option>
+                    <option value="done">Terminé</option>
+                </select>
+            </div>
+
+            <div>
+                <label for="edit-task-priority" class="block text-sm font-medium text-foreground mb-2">
+                    Priorité
+                </label>
+                <select
+                    id="edit-task-priority"
+                    bind:value={editPriority}
+                    class="w-full px-3 py-2 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    disabled={processing}
+                >
+                    <option value="low">Faible</option>
+                    <option value="medium">Moyenne</option>
+                    <option value="high">Élevée</option>
+                </select>
+            </div>
+
+            <div>
+                <label for="edit-task-due-date" class="block text-sm font-medium text-foreground mb-2">
+                    Date d'échéance
+                </label>
+                <input
+                    id="edit-task-due-date"
+                    type="datetime-local"
+                    bind:value={editDueDate}
+                    class="w-full px-3 py-2 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    disabled={processing}
+                />
+            </div>
+
+            <div class="flex w-full justify-end gap-3 pt-2">
+                <button type="button" onclick={() => (editDialogOpen = false)}
+                    class="px-4 py-2 border border-border-input text-foreground-alt rounded-lg hover:bg-muted transition-colors font-medium text-sm">
+                    Annuler
+                </button>
+                {#if processing}
+                    <button disabled
+                        class="px-4 py-2 bg-foreground text-background rounded-lg opacity-50 font-medium text-sm inline-flex items-center gap-2">
+                        <Loader2 size={16} class="animate-spin" />
+                        Mise à jour...
+                    </button>
+                {:else}
+                    <button type="button" onclick={updateTask}
+                        class="px-4 py-2 bg-foreground text-background rounded-lg hover:opacity-90 transition-colors font-medium text-sm">
+                        Enregistrer
+                    </button>
+                {/if}
+            </div>
+        </div>
+    </Drawer>
+{:else}
+    <Modal
+        bind:isOpen={editDialogOpen}
+        title="Modifier la tâche"
+        description="Mettre à jour les détails de la tâche"
+    >
+        <div class="grid grid-cols-2 gap-4 pt-6">
+            <div class="col-span-2">
+                <label for="edit-task-title-d" class="block text-sm font-medium text-foreground mb-2">
+                    Titre *
+                </label>
+                <input
+                    id="edit-task-title-d"
+                    type="text"
+                    bind:value={editTitle}
+                    placeholder="Entrez le titre de la tâche..."
+                    class="w-full px-3 py-2 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    disabled={processing}
+                />
+            </div>
+
+            <div class="col-span-2">
+                <label for="edit-task-description-d" class="block text-sm font-medium text-foreground mb-2">
+                    Description
+                </label>
+                <textarea
+                    id="edit-task-description-d"
+                    bind:value={editDescription}
+                    placeholder="Entrez la description de la tâche..."
+                    rows="3"
+                    class="w-full px-3 py-2 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    disabled={processing}
+                ></textarea>
+            </div>
+
+            <div>
+                <label for="edit-task-assignee-d" class="block text-sm font-medium text-foreground mb-2">
+                    Assigner à
+                </label>
+                <select
+                    id="edit-task-assignee-d"
+                    bind:value={editAssignedTo}
+                    class="w-full px-3 py-2 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    disabled={processing}
+                >
+                    <option value="">Non assigné</option>
+                    {#each eventStaff as staff}
+                        <option value={staff.userId}>{staff.user.email}</option>
+                    {/each}
+                </select>
+            </div>
+
+            <div>
+                <label for="edit-task-status-d" class="block text-sm font-medium text-foreground mb-2">
+                    Statut
+                </label>
+                <select
+                    id="edit-task-status-d"
+                    bind:value={editStatus}
+                    class="w-full px-3 py-2 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    disabled={processing}
+                >
+                    <option value="pending">En attente</option>
+                    <option value="in_progress">En cours</option>
+                    <option value="done">Terminé</option>
+                </select>
+            </div>
+
+            <div>
+                <label for="edit-task-priority-d" class="block text-sm font-medium text-foreground mb-2">
+                    Priorité
+                </label>
+                <select
+                    id="edit-task-priority-d"
+                    bind:value={editPriority}
+                    class="w-full px-3 py-2 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    disabled={processing}
+                >
+                    <option value="low">Faible</option>
+                    <option value="medium">Moyenne</option>
+                    <option value="high">Élevée</option>
+                </select>
+            </div>
+
+            <div>
+                <label for="edit-task-due-date-d" class="block text-sm font-medium text-foreground mb-2">
+                    Date d'échéance
+                </label>
+                <input
+                    id="edit-task-due-date-d"
+                    type="datetime-local"
+                    bind:value={editDueDate}
+                    class="w-full px-3 py-2 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    disabled={processing}
+                />
+            </div>
+        </div>
+
+        <div class="flex w-full justify-end gap-3 pt-6">
+            <button type="button" onclick={() => (editDialogOpen = false)}
+                class="px-6 py-2.5 border border-border-input text-foreground-alt rounded-lg hover:bg-muted transition-colors font-medium">
+                Annuler
+            </button>
+            {#if processing}
+                <button disabled
+                    class="px-6 py-2.5 bg-foreground text-background rounded-lg opacity-50 font-medium inline-flex items-center gap-2">
+                    <Loader2 size={16} class="animate-spin" />
+                    Mise à jour...
+                </button>
+            {:else}
+                <button type="button" onclick={updateTask}
+                    class="px-6 py-2.5 bg-foreground text-background rounded-lg hover:opacity-90 transition-colors font-medium">
+                    Enregistrer
                 </button>
             {/if}
         </div>
