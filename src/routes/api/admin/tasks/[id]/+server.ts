@@ -2,6 +2,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { requireStaff } from '$lib/server/auth-guards';
 import { updateTask, deleteTask } from '$lib/server/services/tasks';
+import { isAppError } from '$lib/server/errors';
 
 // PUT /api/admin/tasks/[id] - Update a task
 export const PUT: RequestHandler = async ({ locals, params, request }) => {
@@ -23,7 +24,7 @@ export const PUT: RequestHandler = async ({ locals, params, request }) => {
 		return json(task);
 	} catch (error) {
 		console.error('Failed to update task:', error);
-		return json({ error: error instanceof Error ? error.message : 'Failed to update task' }, { status: 500 });
+		return json({ error: isAppError(error) ? error.message : 'Failed to update task' }, { status: 500 });
 	}
 };
 
@@ -36,6 +37,6 @@ export const DELETE: RequestHandler = async ({ locals, params }) => {
 		return json({ success: true });
 	} catch (error) {
 		console.error('Failed to delete task:', error);
-		return json({ error: error instanceof Error ? error.message : 'Failed to delete task' }, { status: 500 });
+		return json({ error: isAppError(error) ? error.message : 'Failed to delete task' }, { status: 500 });
 	}
 };

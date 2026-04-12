@@ -5,6 +5,7 @@ import { hashPassword } from '$lib/server/auth';
 import { db } from '$lib/server/db';
 import { users } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
+import { isAppError } from '$lib/server/errors';
 
 // POST /api/admin/team/staff/reset-password - Reset staff password
 export const POST: RequestHandler = async ({ locals, request }) => {
@@ -57,6 +58,6 @@ export const POST: RequestHandler = async ({ locals, request }) => {
         return json({ success: `Password reset for ${user.email}` });
     } catch (error) {
         console.error('Failed to reset password:', error);
-        return json({ error: error instanceof Error ? error.message : 'Failed to reset password' }, { status: 500 });
+        return json({ error: isAppError(error) ? error.message : 'Failed to reset password' }, { status: 500 });
     }
 };

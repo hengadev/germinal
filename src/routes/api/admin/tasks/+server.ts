@@ -2,6 +2,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { requireStaff } from '$lib/server/auth-guards';
 import { createTask } from '$lib/server/services/tasks';
+import { isAppError } from '$lib/server/errors';
 
 // POST /api/admin/tasks - Create a new task
 export const POST: RequestHandler = async ({ locals, request }) => {
@@ -32,6 +33,6 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 		return json(task, { status: 201 });
 	} catch (error) {
 		console.error('Failed to create task:', error);
-		return json({ error: error instanceof Error ? error.message : 'Failed to create task' }, { status: 500 });
+		return json({ error: isAppError(error) ? error.message : 'Failed to create task' }, { status: 500 });
 	}
 };

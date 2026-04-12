@@ -5,6 +5,7 @@ import { hashPassword } from '$lib/server/auth';
 import { db } from '$lib/server/db';
 import { users } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
+import { isAppError } from '$lib/server/errors';
 
 // GET /api/admin/team/staff - Get all staff users
 export const GET: RequestHandler = async ({ locals }) => {
@@ -24,7 +25,7 @@ export const GET: RequestHandler = async ({ locals }) => {
         return json(staff);
     } catch (error) {
         console.error('Failed to load staff:', error);
-        return json({ error: error instanceof Error ? error.message : 'Failed to load staff' }, { status: 500 });
+        return json({ error: isAppError(error) ? error.message : 'Failed to load staff' }, { status: 500 });
     }
 };
 
@@ -87,6 +88,6 @@ export const POST: RequestHandler = async ({ locals, request }) => {
         }, { status: 201 });
     } catch (error) {
         console.error('Failed to create staff:', error);
-        return json({ error: error instanceof Error ? error.message : 'Failed to create staff' }, { status: 500 });
+        return json({ error: isAppError(error) ? error.message : 'Failed to create staff' }, { status: 500 });
     }
 };

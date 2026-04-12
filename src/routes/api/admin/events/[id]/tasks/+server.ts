@@ -2,6 +2,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { requireStaff } from '$lib/server/auth-guards';
 import { getTasksForEvent, getTaskSummary } from '$lib/server/services/tasks';
+import { isAppError } from '$lib/server/errors';
 
 // GET /api/admin/events/[id]/tasks - Get all tasks for an event
 export const GET: RequestHandler = async ({ locals, params }) => {
@@ -13,6 +14,6 @@ export const GET: RequestHandler = async ({ locals, params }) => {
 		return json({ tasks, summary });
 	} catch (error) {
 		console.error('Failed to get tasks for event:', error);
-		return json({ error: error instanceof Error ? error.message : 'Failed to get tasks' }, { status: 500 });
+		return json({ error: isAppError(error) ? error.message : 'Failed to get tasks' }, { status: 500 });
 	}
 };

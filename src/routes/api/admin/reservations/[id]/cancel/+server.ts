@@ -2,6 +2,7 @@ import { json } from '@sveltejs/kit';
 import { logger } from '$lib/server/logger';
 import { requireAdmin } from '$lib/server/guards';
 import { cancelReservationWithRefund } from '$lib/server/services/reservations';
+import { isAppError } from '$lib/server/errors';
 import type { RequestHandler } from './$types';
 
 export const POST: RequestHandler = async (event) => {
@@ -28,6 +29,6 @@ export const POST: RequestHandler = async (event) => {
 			}
 		}
 
-		return json({ error: error instanceof Error ? error.message : 'Failed to cancel reservation' }, { status: 500 });
+		return json({ error: isAppError(error) ? error.message : 'Failed to cancel reservation' }, { status: 500 });
 	}
 };

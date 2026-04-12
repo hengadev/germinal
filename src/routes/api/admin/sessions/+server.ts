@@ -3,6 +3,7 @@ import { logger } from '$lib/server/logger';
 import { requireAdmin } from '$lib/server/guards';
 import { createEventSession, getAllSessionsByEventId } from '$lib/server/services/event-sessions';
 import { createEventSessionSchema } from '$lib/server/validators/event-sessions';
+import { isAppError } from '$lib/server/errors';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async (event) => {
@@ -19,7 +20,7 @@ export const GET: RequestHandler = async (event) => {
 		return json({ sessions });
 	} catch (error) {
 		logger.error({ err: error }, 'Failed to fetch sessions');
-		return json({ error: error instanceof Error ? error.message : 'Failed to fetch sessions' }, { status: 500 });
+		return json({ error: isAppError(error) ? error.message : 'Failed to fetch sessions' }, { status: 500 });
 	}
 };
 
@@ -38,6 +39,6 @@ export const POST: RequestHandler = async (event) => {
 		return json(session, { status: 201 });
 	} catch (error) {
 		logger.error({ err: error }, 'Failed to create session');
-		return json({ error: error instanceof Error ? error.message : 'Failed to create session' }, { status: 500 });
+		return json({ error: isAppError(error) ? error.message : 'Failed to create session' }, { status: 500 });
 	}
 };

@@ -2,6 +2,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { requireStaff } from '$lib/server/auth-guards';
 import { removeStaff } from '$lib/server/services/event-staff';
+import { isAppError } from '$lib/server/errors';
 
 // DELETE /api/admin/events/[id]/staff/[userId] - Remove a staff member from an event
 export const DELETE: RequestHandler = async ({ locals, params }) => {
@@ -12,6 +13,6 @@ export const DELETE: RequestHandler = async ({ locals, params }) => {
 		return json({ success: true });
 	} catch (error) {
 		console.error('Failed to remove staff:', error);
-		return json({ error: error instanceof Error ? error.message : 'Failed to remove staff' }, { status: 500 });
+		return json({ error: isAppError(error) ? error.message : 'Failed to remove staff' }, { status: 500 });
 	}
 };
