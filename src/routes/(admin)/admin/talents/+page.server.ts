@@ -1,4 +1,5 @@
 import type { PageServerLoad } from './$types';
+import { redirect } from '@sveltejs/kit';
 import { logger } from '$lib/server/logger';
 import type { Actions } from '@sveltejs/kit';
 import { fail } from '@sveltejs/kit';
@@ -7,6 +8,7 @@ import { MOCK_TALENTS, MOCK_TALENT_CATEGORIES } from '$lib/mock-data';
 import type { TalentWithMedia } from '$lib/types/talents';
 
 export const load: PageServerLoad = async () => {
+	throw redirect(302, '/admin/team');
 	if (env.USE_MOCK_DATA) {
 		// Mock mode - return all talents (published and unpublished)
 		return {
