@@ -22,6 +22,9 @@ export interface EventStaffWithUser {
 	user: {
 		id: string;
 		email: string;
+		firstName: string;
+		lastName: string;
+		phone: string | null;
 		role: string;
 	};
 }
@@ -103,6 +106,9 @@ export async function assignStaff(
 			user: {
 				id: fullStaff.user.id,
 				email: fullStaff.user.email,
+				firstName: fullStaff.user.firstName,
+				lastName: fullStaff.user.lastName,
+				phone: fullStaff.user.phone,
 				role: fullStaff.user.role,
 			},
 		};
@@ -151,6 +157,9 @@ export async function getStaffForEvent(eventId: string): Promise<EventStaffWithU
 			user: {
 				id: s.user.id,
 				email: s.user.email,
+				firstName: s.user.firstName,
+				lastName: s.user.lastName,
+				phone: s.user.phone,
 				role: s.user.role,
 			},
 		}));
@@ -192,12 +201,15 @@ export async function getEventsForStaff(userId: string): Promise<EventStaffWithE
 /**
  * Get all staff users (for dropdowns)
  */
-export async function getAllStaff(): Promise<Array<{ id: string; email: string; role: string }>> {
+export async function getAllStaff(): Promise<Array<{ id: string; email: string; firstName: string; lastName: string; phone: string | null; role: string }>> {
 	try {
 		const staff = await db
 			.select({
 				id: users.id,
 				email: users.email,
+				firstName: users.firstName,
+				lastName: users.lastName,
+				phone: users.phone,
 				role: users.role,
 			})
 			.from(users)

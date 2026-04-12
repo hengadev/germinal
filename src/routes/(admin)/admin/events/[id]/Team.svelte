@@ -28,6 +28,9 @@
         user: {
             id: string;
             email: string;
+            firstName: string;
+            lastName: string;
+            phone: string | null;
             role: string;
         };
     }
@@ -35,6 +38,9 @@
     interface StaffMember {
         id: string;
         email: string;
+        firstName: string;
+        lastName: string;
+        phone: string | null;
         role: string;
     }
 
@@ -110,8 +116,8 @@
         }
     }
 
-    async function removeStaff(staffUserId: string, userEmail: string) {
-        if (!confirm(`Retirer ${userEmail} de cet événement ?`)) {
+    async function removeStaff(staffUserId: string, firstName: string, lastName: string) {
+        if (!confirm(`Retirer ${firstName} ${lastName} de cet événement ?`)) {
             return;
         }
 
@@ -182,7 +188,7 @@
                     >
                         <option value="">Sélectionner un membre du staff...</option>
                         {#each allStaff.filter(s => !assignedStaffIds.has(s.id)) as staff}
-                            <option value={staff.id}>{staff.email}</option>
+                            <option value={staff.id}>{staff.firstName} {staff.lastName} ({staff.email})</option>
                         {/each}
                     </select>
                 </div>
@@ -278,11 +284,12 @@
                                     <div class="flex items-center gap-3">
                                         <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
                                             <span class="text-xs font-semibold text-primary uppercase">
-                                                {staff.user.email[0].toUpperCase()}
+                                                {staff.user.firstName[0]}{staff.user.lastName[0]}
                                             </span>
                                         </div>
                                         <div>
-                                            <p class="text-sm font-medium text-foreground">{staff.user.email}</p>
+                                            <p class="text-sm font-medium text-foreground">{staff.user.firstName} {staff.user.lastName}</p>
+                                            <p class="text-xs text-muted-foreground">{staff.user.email}</p>
                                         </div>
                                     </div>
                                 </td>
@@ -299,7 +306,7 @@
                                 <td class="px-6 py-4">
                                     <div class="flex items-center justify-end">
                                         <button
-                                            onclick={() => removeStaff(staff.userId, staff.user.email)}
+                                            onclick={() => removeStaff(staff.userId, staff.user.firstName, staff.user.lastName)}
                                             class="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors"
                                             title="Retirer de l'événement"
                                             disabled={processing}

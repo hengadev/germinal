@@ -25,6 +25,9 @@
     interface StaffUser {
         id: string;
         email: string;
+        firstName: string;
+        lastName: string;
+        phone: string | null;
         role: string;
         createdAt: Date;
     }
@@ -37,7 +40,10 @@
     let processingAction = $state<string | null>(null);
 
     // Create form state
+    let newStaffFirstName = $state('');
+    let newStaffLastName = $state('');
     let newStaffEmail = $state('');
+    let newStaffPhone = $state('');
     let newStaffPassword = $state('');
 
     async function loadStaff() {
@@ -63,6 +69,16 @@
     });
 
     async function createStaff() {
+        if (!newStaffFirstName || newStaffFirstName.length < 1 || newStaffFirstName.length > 100) {
+            createFormError = 'Le prénom est requis (1-100 caractères)';
+            return;
+        }
+
+        if (!newStaffLastName || newStaffLastName.length < 1 || newStaffLastName.length > 100) {
+            createFormError = 'Le nom est requis (1-100 caractères)';
+            return;
+        }
+
         if (!newStaffEmail || !newStaffPassword) {
             createFormError = 'L\'email et le mot de passe sont requis';
             return;
@@ -78,12 +94,20 @@
             return;
         }
 
+        if (newStaffPhone && newStaffPhone.length > 50) {
+            createFormError = 'Le numéro de téléphone ne peut pas dépasser 50 caractères';
+            return;
+        }
+
         processingAction = 'create';
         createFormError = null;
 
         try {
             const formData = new FormData();
+            formData.append('firstName', newStaffFirstName);
+            formData.append('lastName', newStaffLastName);
             formData.append('email', newStaffEmail);
+            formData.append('phone', newStaffPhone);
             formData.append('password', newStaffPassword);
 
             const response = await fetch('/admin/team/staff', {
@@ -98,7 +122,10 @@
             }
 
             toast.success('Succès', result.success || 'Membre du staff créé avec succès');
+            newStaffFirstName = '';
+            newStaffLastName = '';
             newStaffEmail = '';
+            newStaffPhone = '';
             newStaffPassword = '';
             showCreateForm = false;
             await loadStaff();
@@ -215,6 +242,35 @@
             {/if}
 
             <div class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="staff-firstname" class="block text-sm font-medium text-foreground mb-1">
+                            Prénom <span class="text-red-500">*</span>
+                        </label>
+                        <input
+                            id="staff-firstname"
+                            type="text"
+                            bind:value={newStaffFirstName}
+                            placeholder="Jean"
+                            class="w-full px-3 py-2 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                            disabled={processingAction === 'create'}
+                        />
+                    </div>
+                    <div>
+                        <label for="staff-lastname" class="block text-sm font-medium text-foreground mb-1">
+                            Nom <span class="text-red-500">*</span>
+                        </label>
+                        <input
+                            id="staff-lastname"
+                            type="text"
+                            bind:value={newStaffLastName}
+                            placeholder="Dupont"
+                            class="w-full px-3 py-2 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                            disabled={processingAction === 'create'}
+                        />
+                    </div>
+                </div>
+
                 <div>
                     <label for="staff-email" class="block text-sm font-medium text-foreground mb-1">
                         Adresse email
@@ -224,6 +280,20 @@
                         type="email"
                         bind:value={newStaffEmail}
                         placeholder="staff@exemple.com"
+                        class="w-full px-3 py-2 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                        disabled={processingAction === 'create'}
+                    />
+                </div>
+
+                <div>
+                    <label for="staff-phone" class="block text-sm font-medium text-foreground mb-1">
+                        Numéro de téléphone <span class="text-xs text-muted-foreground">(optionnel)</span>
+                    </label>
+                    <input
+                        id="staff-phone"
+                        type="tel"
+                        bind:value={newStaffPhone}
+                        placeholder="+33 6 12 34 56 78"
                         class="w-full px-3 py-2 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                         disabled={processingAction === 'create'}
                     />
@@ -267,7 +337,10 @@
                     <button
                         onclick={() => {
                             showCreateForm = false;
+                            newStaffFirstName = '';
+                            newStaffLastName = '';
                             newStaffEmail = '';
+                            newStaffPhone = '';
                             newStaffPassword = '';
                             createFormError = null;
                         }}
@@ -314,7 +387,7 @@
                     <thead class="bg-muted border-b border-border-card">
                         <tr>
                             <th class="px-6 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider">
-                                Email
+                                Membre du staff
                             </th>
                             <th class="px-6 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider">
                                 Rôle
@@ -334,12 +407,15 @@
                                     <div class="flex items-center gap-3">
                                         <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
                                             <span class="text-xs font-semibold text-primary uppercase">
-                                                {staff.email[0].toUpperCase()}
+                                                {staff.firstName[0]}{staff.lastName[0]}
                                             </span>
                                         </div>
                                         <div>
-                                            <p class="text-sm font-medium text-foreground">{staff.email}</p>
-                                            <p class="text-xs text-muted-foreground">ID: {staff.id.slice(0, 8)}</p>
+                                            <p class="text-sm font-medium text-foreground">{staff.firstName} {staff.lastName}</p>
+                                            <p class="text-xs text-muted-foreground">{staff.email}</p>
+                                            {#if staff.phone}
+                                                <p class="text-xs text-muted-foreground">{staff.phone}</p>
+                                            {/if}
                                         </div>
                                     </div>
                                 </td>

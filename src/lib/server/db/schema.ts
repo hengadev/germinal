@@ -260,12 +260,18 @@ export const mediaRelations = relations(media, ({ one }) => ({
 export const users = pgTable('users', {
     id: uuid('id').defaultRandom().primaryKey(),
     email: varchar('email', { length: 255 }).notNull().unique(),
+    firstName: varchar('first_name', { length: 100 }).notNull(),
+    lastName: varchar('last_name', { length: 100 }).notNull(),
+    phone: varchar('phone', { length: 50 }),
     passwordHash: text('password_hash').notNull(),
     role: userRoleEnum('role').notNull().default('user'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => ({
     emailIdx: index('users_email_idx').on(table.email),
+    firstNameIdx: index('users_first_name_idx').on(table.firstName),
+    lastNameIdx: index('users_last_name_idx').on(table.lastName),
+    phoneIdx: index('users_phone_idx').on(table.phone),
 }));
 
 export const sessions = pgTable('sessions', {
