@@ -1,6 +1,7 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import { enhance } from "$app/forms";
+    import { browser } from "$app/environment";
     import {
         Plus,
         Trash2,
@@ -13,6 +14,8 @@
     } from "lucide-svelte";
     import type { PageData, ActionData } from "../+page.server";
     import { getToastContext } from "$lib/components/toast/state.svelte";
+    import Modal from "$lib/components/ui/Modal.svelte";
+    import Drawer from "$lib/components/ui/Drawer.svelte";
 
     interface Props {
         data: PageData;
@@ -55,6 +58,17 @@
     let loading = $state(true);
     let showCreateForm = $state(false);
     let processing = $state(false);
+    let deleteDialogOpen = $state(false);
+    let selectedTask: Task | null = $state(null);
+
+    // Mobile detection
+    let isMobile = $state(false);
+    if (browser) {
+        isMobile = window.innerWidth < 768;
+        window.addEventListener("resize", () => {
+            isMobile = window.innerWidth < 768;
+        });
+    }
 
     // Create form state
     let taskTitle = $state('');
@@ -150,10 +164,6 @@
     }
 
     async function deleteTask(taskId: string, taskTitle: string) {
-        if (!confirm(`Supprimer la tâche "${taskTitle}" ?`)) {
-            return;
-        }
-
         processing = true;
 
         try {
@@ -168,6 +178,8 @@
             }
 
             toast.success('Succès', 'Tâche supprimée avec succès');
+            deleteDialogOpen = false;
+            selectedTask = null;
             await loadData();
         } catch (error) {
             const errorMsg = error instanceof Error ? error.message : 'Échec de la suppression de la tâche';
@@ -175,6 +187,11 @@
         } finally {
             processing = false;
         }
+    }
+
+    function openDeleteDialog(task: Task) {
+        selectedTask = task;
+        deleteDialogOpen = true;
     }
 
     async function updateTaskStatus(taskId: string, status: 'pending' | 'in_progress' | 'done') {
@@ -449,7 +466,7 @@
                                 <svelte:component this={statusBadge.icon} size={16} />
                             </button>
                             <button
-                                onclick={() => deleteTask(task.id, task.title)}
+                                onclick={() => openDeleteDialog(task)}
                                 class="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors"
                                 title="Supprimer la tâche"
                                 disabled={processing}
@@ -463,3 +480,65 @@
         </div>
     {/if}
 </div>
+
+<!-- Delete Task Dialog/Drawer -->
+{#if isMobile}
+    <Drawer bind:isOpen={deleteDialogOpen}>
+        <div class="sticky top-0 bg-background pb-4 border-b border-border-card -mx-4 px-4 -mt-4 pt-4 z-10">
+            <div class="flex items-center justify-between mb-2">
+                <h2 class="text-xl font-semibold tracking-tight">Supprimer la tâche</h2>
+                <button type="button" onclick={() => (deleteDialogOpen = false)} class="p-2 hover:bg-muted rounded-md transition-colors">
+                    <X class="text-foreground size-5" />
+                </button>
+            </div>
+            <p class="text-muted-foreground text-sm">
+                Êtes-vous sûr de vouloir supprimer la tâche "{selectedTask?.title}" ? Cette action ne peut pas être annulée.
+            </p>
+        </div>
+        <div class="pt-4">
+            <div class="flex w-full justify-end gap-3">
+                <button type="button" onclick={() => (deleteDialogOpen = false)}
+                    class="px-4 py-2 border border-border-input text-foreground-alt rounded-lg hover:bg-muted transition-colors font-medium text-sm">
+                    Annuler
+                </button>
+                {#if processing}
+                    <button disabled
+                        class="px-4 py-2 bg-red-600 text-white rounded-lg opacity-50 font-medium text-sm inline-flex items-center gap-2">
+                        <Loader2 size={16} class="animate-spin" />
+                        Suppression...
+                    </button>
+                {:else}
+                    <button type="button" onclick={() => selectedTask && deleteTask(selectedTask.id, selectedTask.title)}
+                        class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium text-sm">
+                        Supprimer
+                    </button>
+                {/if}
+            </div>
+        </div>
+    </Drawer>
+{:else}
+    <Modal
+        bind:isOpen={deleteDialogOpen}
+        title="Supprimer la tâche"
+        description="Êtes-vous sûr de vouloir supprimer la tâche '{selectedTask?.title}' ? Cette action ne peut pas être annulée."
+    >
+        <div class="flex w-full justify-end gap-3 mt-6">
+            <button type="button" onclick={() => (deleteDialogOpen = false)}
+                class="px-6 py-2.5 border border-border-input text-foreground-alt rounded-lg hover:bg-muted transition-colors font-medium">
+                Annuler
+            </button>
+            {#if processing}
+                <button disabled
+                    class="px-6 py-2.5 bg-red-600 text-white rounded-lg opacity-50 font-medium inline-flex items-center gap-2">
+                    <Loader2 size={16} class="animate-spin" />
+                    Suppression...
+                </button>
+            {:else}
+                <button type="button" onclick={() => selectedTask && deleteTask(selectedTask.id, selectedTask.title)}
+                    class="px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium">
+                    Supprimer
+                </button>
+            {/if}
+        </div>
+    </Modal>
+{/if}
