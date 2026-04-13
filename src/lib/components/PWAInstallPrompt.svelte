@@ -43,7 +43,7 @@
 </script>
 
 {#if visible}
-    <div class="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 z-50 rounded-xl border border-gray-200 bg-white p-4 shadow-lg dark:border-gray-700 dark:bg-gray-900">
+    <div class="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 z-50 rounded-xl border border-gray-200 bg-white p-4 shadow-lg dark:border-gray-700 dark:bg-gray-900 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:pb-4">
         <div class="flex items-start gap-3">
             <img src="/pwa-192x192.png" alt="Germinal" class="h-10 w-10 rounded-xl flex-shrink-0" />
             <div class="flex-1 min-w-0">

@@ -147,6 +147,7 @@
 		right: 0;
 		z-index: 100;
 		padding: 1rem;
+		padding-bottom: calc(1rem + env(safe-area-inset-bottom));
 		animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 	}
 

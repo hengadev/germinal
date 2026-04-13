@@ -81,7 +81,7 @@
 
     <!-- Mobile Bottom Navigation - fixed at bottom -->
     <nav
-        class="flex-shrink-0 bg-background border-t border-border-card z-50"
+        class="flex-shrink-0 bg-background border-t border-border-card z-50 pb-[env(safe-area-inset-bottom)]"
         aria-label="Mobile navigation"
     >
         <div class="flex items-stretch">

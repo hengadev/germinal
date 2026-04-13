@@ -58,7 +58,7 @@
 <IOSInstallPrompt />
 
 {#if showBanner}
-    <div class="fixed bottom-4 right-4 z-50 flex items-center gap-3 rounded-lg bg-gray-900 px-4 py-3 text-sm text-white shadow-lg">
+    <div class="fixed bottom-4 right-4 left-4 sm:left-auto z-50 flex items-center gap-3 rounded-lg bg-gray-900 px-4 py-3 text-sm text-white shadow-lg pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:pb-3">
         <span>{bannerMessage}</span>
         {#if needRefreshValue}
             <button
