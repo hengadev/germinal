@@ -10,6 +10,8 @@
         CheckCircle2,
         XCircle,
         Loader2,
+        Eye,
+        EyeOff,
     } from "lucide-svelte";
     import type { ActionData } from "../+page.server";
     import { getToastContext } from "$lib/components/toast/state.svelte";
@@ -45,6 +47,7 @@
     let newStaffEmail = $state('');
     let newStaffPhone = $state('');
     let newStaffPassword = $state('');
+    let showPassword = $state(false);
 
     async function loadStaff() {
         loading = true;
@@ -67,6 +70,24 @@
     onMount(() => {
         loadStaff();
     });
+
+    async function generatePassword() {
+        try {
+            const response = await fetch('/api/admin/team/staff/generate-password');
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to generate password');
+            }
+            newStaffPassword = data.password;
+        } catch (err) {
+            toast.error('Erreur', err instanceof Error ? err.message : 'Échec de la génération du mot de passe');
+        }
+    }
+
+    function openCreateForm() {
+        showCreateForm = true;
+        generatePassword();
+    }
 
     async function createStaff() {
         if (!newStaffFirstName || newStaffFirstName.length < 1 || newStaffFirstName.length > 100) {
@@ -138,35 +159,30 @@
     }
 
     async function resetPassword(staffId: string, email: string) {
-        const newPassword = prompt(`Entrez le nouveau mot de passe pour ${email} :`);
-        if (!newPassword) return;
-
-        if (newPassword.length < 8) {
-            toast.error('Erreur', 'Le mot de passe doit contenir au moins 8 caractères');
+        if (!confirm(`Envoyer un email de réinitialisation du mot de passe à ${email} ?`)) {
             return;
         }
 
         processingAction = `reset-${staffId}`;
 
         try {
-            const formData = new FormData();
-            formData.append('staffId', staffId);
-            formData.append('newPassword', newPassword);
-
             const response = await fetch('/admin/team/staff/reset-password', {
                 method: 'POST',
-                body: formData,
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ staffId }),
             });
 
             const result = await response.json();
 
             if (!response.ok) {
-                throw new Error(result.error || 'Échec de la réinitialisation du mot de passe');
+                throw new Error(result.error || 'Échec de l\'envoi de l\'email de réinitialisation');
             }
 
-            toast.success('Succès', result.success || 'Mot de passe réinitialisé avec succès');
+            toast.success('Succès', result.success || 'Email de réinitialisation envoyé avec succès');
         } catch (err) {
-            const errorMsg = err instanceof Error ? err.message : 'Échec de la réinitialisation du mot de passe';
+            const errorMsg = err instanceof Error ? err.message : 'Échec de l\'envoi de l\'email de réinitialisation';
             toast.error('Erreur', errorMsg);
         } finally {
             processingAction = null;
@@ -222,7 +238,7 @@
             <p class="text-muted-foreground">Gérer les comptes et accès du staff</p>
         </div>
         <button
-            onclick={() => showCreateForm = true}
+            onclick={openCreateForm}
             class="inline-flex items-center gap-2 px-4 py-2 bg-foreground text-background rounded-lg hover:opacity-90 transition-colors"
         >
             <Plus size={18} />
@@ -301,18 +317,44 @@
 
                 <div>
                     <label for="staff-password" class="block text-sm font-medium text-foreground mb-1">
-                        Mot de passe temporaire
+                        Mot de passe temporaire (généré automatiquement)
                     </label>
-                    <input
-                        id="staff-password"
-                        type="password"
-                        bind:value={newStaffPassword}
-                        placeholder="••••••••"
-                        class="w-full px-3 py-2 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                        disabled={processingAction === 'create'}
-                    />
+                    <div class="flex gap-2">
+                        <div class="relative flex-1">
+                            <input
+                                id="staff-password"
+                                type={showPassword ? "text" : "password"}
+                                bind:value={newStaffPassword}
+                                placeholder="Génération..."
+                                class="w-full px-3 py-2 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary pr-10"
+                                disabled={processingAction === 'create'}
+                                readonly
+                            />
+                            <button
+                                type="button"
+                                onclick={() => showPassword = !showPassword}
+                                class="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                title={showPassword ? "Masquer" : "Afficher"}
+                            >
+                                {#if showPassword}
+                                    <EyeOff size={16} />
+                                {:else}
+                                    <Eye size={16} />
+                                {/if}
+                            </button>
+                        </div>
+                        <button
+                            type="button"
+                            onclick={generatePassword}
+                            class="inline-flex items-center gap-2 px-3 py-2 border border-border-dark text-foreground rounded-lg hover:bg-muted transition-colors"
+                            title="Régénérer le mot de passe"
+                            disabled={processingAction === 'create'}
+                        >
+                            <RefreshCw size={16} />
+                        </button>
+                    </div>
                     <p class="text-xs text-muted-foreground mt-1">
-                        Minimum 8 caractères. Le membre du staff devra le changer à la première connexion.
+                        Un email d'invitation sera envoyé au membre du staff pour définir son mot de passe.
                     </p>
                 </div>
 
@@ -373,7 +415,7 @@
                 Créez des comptes staff pour donner accès au portail staff aux membres de l'équipe.
             </p>
             <button
-                onclick={() => showCreateForm = true}
+                onclick={openCreateForm}
                 class="inline-flex items-center gap-2 px-4 py-2 bg-foreground text-background rounded-lg hover:opacity-90 transition-colors"
             >
                 <Plus size={18} />
