@@ -1,19 +1,12 @@
 @import url("https://fonts.googleapis.com/css2?family=Source+Code+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Gilda+Display&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&display=swap");
 
 @import "tailwindcss";
 @plugin "tailwindcss-animate";
 
 @custom-variant dark (&:is(.dark *));
-
-@font-face {
-	font-family: "Cal Sans";
-	font-style: normal;
-	font-weight: 600;
-	font-display: swap;
-	src: url("/CalSans-SemiBold.woff2") format("woff2");
-}
 
 :root {
 	/* Colors */
@@ -177,7 +170,7 @@
 	--font-sans: "Inter", "sans-serif";
 	--font-mono: "Source Code Pro", "monospace";
 	--font-alt: "Courier", "sans-serif";
-	--font-display: "Cal Sans", "sans-serif";
+	--font-display: "Outfit", "sans-serif";
 	--font-serif: "Gilda Display", serif;
 
 	@keyframes accordion-down {
