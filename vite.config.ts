@@ -10,34 +10,8 @@ export default defineConfig({
 		SvelteKitPWA({
 			registerType: 'autoUpdate',
 			includeManifestIcons: false,
-			manifest: {
-				short_name: 'Germinal',
-				name: 'Germinal Event Ticketing',
-				description: 'Event ticketing and reservation management platform',
-				start_url: '/',
-				scope: '/',
-				display: 'standalone',
-				theme_color: '#ffffff',
-				background_color: '#ffffff',
-				icons: [
-					{
-						src: '/pwa-192x192.png',
-						sizes: '192x192',
-						type: 'image/png'
-					},
-					{
-						src: '/pwa-512x512.png',
-						sizes: '512x512',
-						type: 'image/png'
-					},
-					{
-						src: '/pwa-512x512.png',
-						sizes: '512x512',
-						type: 'image/png',
-						purpose: 'any maskable'
-					}
-				]
-			},
+			// Disable auto-generated manifest - we use a custom endpoint
+			manifest: false,
 			workbox: {
 				globPatterns: ['**/*.{js,css,ico,png,svg,webp,woff,woff2,html}'],
 				navigateFallback: '/offline.html',
