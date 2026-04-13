@@ -366,7 +366,7 @@
  class="inline-flex items-center gap-2 px-4 py-2 bg-foreground text-background rounded-lg hover:opacity-90 transition-colors self-start"
  >
  <Plus size={18} />
- <span>Nouvelle Catégorie</span>
+ <span class="whitespace-nowrap">Nouvelle Catégorie</span>
  </button>
  </div>
 
@@ -386,7 +386,7 @@
  class="inline-flex items-center gap-2 px-4 py-2 bg-foreground text-background rounded-lg hover:opacity-90 transition-colors"
  >
  <Plus size={18} />
- <span>Créer la Catégorie</span>
+ <span class="whitespace-nowrap">Créer la Catégorie</span>
  </button>
  </div>
  {:else}

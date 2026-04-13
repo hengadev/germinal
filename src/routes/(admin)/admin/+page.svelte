@@ -199,28 +199,28 @@
 			class="inline-flex items-center gap-2 px-4 py-2 bg-background border border-border-input text-foreground-alt rounded-lg hover:bg-muted transition-colors text-sm font-medium"
 		>
 			<Plus size={15} />
-			Nouvel événement
+			<span class="whitespace-nowrap">Nouvel événement</span>
 		</a>
 		<a
 			href="/admin/talents/new"
 			class="inline-flex items-center gap-2 px-4 py-2 bg-background border border-border-input text-foreground-alt rounded-lg hover:bg-muted transition-colors text-sm font-medium"
 		>
 			<Plus size={15} />
-			Nouveau talent
+			<span class="whitespace-nowrap">Nouveau talent</span>
 		</a>
 		<a
 			href="/admin/analytics"
 			class="inline-flex items-center gap-2 px-4 py-2 bg-background border border-border-input text-foreground-alt rounded-lg hover:bg-muted transition-colors text-sm font-medium"
 		>
 			<BarChart3 size={15} />
-			Analytiques
+			<span class="whitespace-nowrap">Analytiques</span>
 		</a>
 		<a
 			href="/admin/reservations"
 			class="inline-flex items-center gap-2 px-4 py-2 bg-background border border-border-input text-foreground-alt rounded-lg hover:bg-muted transition-colors text-sm font-medium"
 		>
 			<Ticket size={15} />
-			Réservations
+			<span class="whitespace-nowrap">Réservations</span>
 		</a>
 	</div>
 </div>
