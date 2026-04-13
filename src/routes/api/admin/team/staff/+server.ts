@@ -43,6 +43,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
         const email = formData.get('email');
         const phone = formData.get('phone');
         const password = formData.get('password');
+        const inviteMethod = formData.get('inviteMethod'); // 'email' or 'sms'
 
         // Validate firstName
         if (!firstName || typeof firstName !== 'string' || firstName.length < 1 || firstName.length > 100) {
@@ -70,7 +71,19 @@ export const POST: RequestHandler = async ({ locals, request }) => {
             return json({ error: 'Email cannot contain "germinal.com"' }, { status: 400 });
         }
 
-        // Validate phone (optional, max 50 chars)
+        // Validate invite method
+        const validInviteMethods = ['email', 'sms'];
+        const method = inviteMethod?.toString() || 'email';
+        if (!validInviteMethods.includes(method)) {
+            return json({ error: 'Invalid invite method. Must be "email" or "sms"' }, { status: 400 });
+        }
+
+        // Phone is required for SMS
+        if (method === 'sms' && (!phone || typeof phone !== 'string' || phone.length === 0)) {
+            return json({ error: 'Phone number is required when sending invitation via SMS' }, { status: 400 });
+        }
+
+        // Validate phone (optional for email, max 50 chars)
         if (phone && typeof phone === 'string' && phone.length > 50) {
             return json({ error: 'Phone number must be 50 characters or less' }, { status: 400 });
         }
@@ -89,7 +102,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
         // Hash password
         const passwordHash = await hashPassword(password);
 
-        // Generate reset token for invite email
+        // Generate reset token for invite
         const { generateResetToken, getResetExpiration } = await import('$lib/server/utils/password');
         const resetToken = generateResetToken();
         const resetExpires = getResetExpiration(24); // 24 hours
@@ -109,20 +122,33 @@ export const POST: RequestHandler = async ({ locals, request }) => {
             })
             .returning();
 
-        // Send invite email (non-blocking)
-        const { sendStaffInviteEmail } = await import('$lib/server/services/email');
-        sendStaffInviteEmail({
-            firstName: newUser.firstName,
-            lastName: newUser.lastName,
-            email: newUser.email,
-            resetToken,
-        }).catch(err => {
-            console.error('Failed to send staff invite email:', err);
-            // Don't fail the request if email fails
-        });
+        // Send invite via selected method (non-blocking)
+        if (method === 'sms' && newUser.phone) {
+            const { sendStaffInviteSMS } = await import('$lib/server/services/sms');
+            sendStaffInviteSMS({
+                phone: newUser.phone,
+                firstName: newUser.firstName,
+                resetToken,
+            }).catch(err => {
+                console.error('Failed to send staff invite SMS:', err);
+                // Don't fail the request if SMS fails
+            });
+        } else {
+            const { sendStaffInviteEmail } = await import('$lib/server/services/email');
+            sendStaffInviteEmail({
+                firstName: newUser.firstName,
+                lastName: newUser.lastName,
+                email: newUser.email,
+                resetToken,
+            }).catch(err => {
+                console.error('Failed to send staff invite email:', err);
+                // Don't fail the request if email fails
+            });
+        }
 
+        const methodLabel = method === 'sms' ? 'SMS' : 'email';
         return json({
-            success: `Staff account created for ${firstName} ${lastName}. An invitation email has been sent.`,
+            success: `Staff account created for ${firstName} ${lastName}. An invitation has been sent via ${methodLabel}.`,
             user: {
                 id: newUser.id,
                 email: newUser.email,

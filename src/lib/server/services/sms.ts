@@ -209,3 +209,54 @@ Don't forget to bring your tickets! See you there.`;
 		message,
 	});
 }
+
+/**
+ * Send staff invitation SMS with password reset link
+ */
+export async function sendStaffInviteSMS(options: {
+    phone: string;
+    firstName: string;
+    resetToken: string;
+}): Promise<void> {
+    const resetUrl = `${env.PUBLIC_URL}/staff/reset-password/${options.resetToken}`;
+
+    const message = `👋 Welcome to the Germinal Team!
+
+Hi ${options.firstName}! You've been invited to join the Germinal staff portal.
+
+Set your password here: ${resetUrl}
+
+This link expires in 24 hours.
+
+Once you've set your password, login at: ${env.PUBLIC_URL}/staff`;
+
+    await sendSMS({
+        to: formatPhoneNumber(options.phone),
+        message,
+    });
+}
+
+/**
+ * Send staff password reset SMS
+ */
+export async function sendStaffPasswordResetSMS(options: {
+    phone: string;
+    resetToken: string;
+}): Promise<void> {
+    const resetUrl = `${env.PUBLIC_URL}/staff/reset-password/${options.resetToken}`;
+
+    const message = `🔑 Reset Your Password
+
+You requested to reset your password for the Germinal staff portal.
+
+Reset your password here: ${resetUrl}
+
+This link expires in 24 hours.
+
+If you didn't request this, please contact your administrator.`;
+
+    await sendSMS({
+        to: formatPhoneNumber(options.phone),
+        message,
+    });
+}

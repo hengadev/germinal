@@ -12,6 +12,7 @@
         Loader2,
         Eye,
         EyeOff,
+        MessageSquare,
     } from "lucide-svelte";
     import type { ActionData } from "../+page.server";
     import { getToastContext } from "$lib/components/toast/state.svelte";
@@ -48,6 +49,7 @@
     let newStaffPhone = $state('');
     let newStaffPassword = $state('');
     let showPassword = $state(false);
+    let inviteMethod = $state<'email' | 'sms'>('email');
 
     async function loadStaff() {
         loading = true;
@@ -86,6 +88,7 @@
 
     function openCreateForm() {
         showCreateForm = true;
+        inviteMethod = 'email'; // Reset to default
         generatePassword();
     }
 
@@ -115,6 +118,12 @@
             return;
         }
 
+        // Phone is required for SMS
+        if (inviteMethod === 'sms' && (!newStaffPhone || newStaffPhone.length === 0)) {
+            createFormError = 'Le numéro de téléphone est requis pour l\'envoi par SMS';
+            return;
+        }
+
         if (newStaffPhone && newStaffPhone.length > 50) {
             createFormError = 'Le numéro de téléphone ne peut pas dépasser 50 caractères';
             return;
@@ -130,6 +139,7 @@
             formData.append('email', newStaffEmail);
             formData.append('phone', newStaffPhone);
             formData.append('password', newStaffPassword);
+            formData.append('inviteMethod', inviteMethod);
 
             const response = await fetch('/admin/team/staff', {
                 method: 'POST',
@@ -303,7 +313,7 @@
 
                 <div>
                     <label for="staff-phone" class="block text-sm font-medium text-foreground mb-1">
-                        Numéro de téléphone <span class="text-xs text-muted-foreground">(optionnel)</span>
+                        Numéro de téléphone {inviteMethod === 'sms' ? '<span class="text-red-500">*</span>' : '<span class="text-xs text-muted-foreground">(optionnel)</span>'}
                     </label>
                     <input
                         id="staff-phone"
@@ -313,6 +323,36 @@
                         class="w-full px-3 py-2 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                         disabled={processingAction === 'create'}
                     />
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-foreground mb-2">
+                        Méthode d'envoi de l'invitation
+                    </label>
+                    <div class="flex flex-col sm:flex-row gap-4">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input
+                                type="radio"
+                                bind:group={inviteMethod}
+                                value="email"
+                                class="w-4 h-4 text-primary border-border-dark focus:ring-primary"
+                                disabled={processingAction === 'create'}
+                            />
+                            <Mail size={16} class="text-muted-foreground" />
+                            <span class="text-sm">Email</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input
+                                type="radio"
+                                bind:group={inviteMethod}
+                                value="sms"
+                                class="w-4 h-4 text-primary border-border-dark focus:ring-primary"
+                                disabled={processingAction === 'create'}
+                            />
+                            <MessageSquare size={16} class="text-muted-foreground" />
+                            <span class="text-sm">SMS</span>
+                        </label>
+                    </div>
                 </div>
 
                 <div>
@@ -354,7 +394,11 @@
                         </button>
                     </div>
                     <p class="text-xs text-muted-foreground mt-1">
-                        Un email d'invitation sera envoyé au membre du staff pour définir son mot de passe.
+                        {#if inviteMethod === 'sms'}
+                            Un SMS avec le lien de définition du mot de passe sera envoyé au membre du staff.
+                        {:else}
+                            Un email d'invitation sera envoyé au membre du staff pour définir son mot de passe.
+                        {/if}
                     </p>
                 </div>
 
@@ -384,6 +428,7 @@
                             newStaffEmail = '';
                             newStaffPhone = '';
                             newStaffPassword = '';
+                            inviteMethod = 'email';
                             createFormError = null;
                         }}
                         class="inline-flex items-center gap-2 px-4 py-2 border border-border-dark text-foreground rounded-lg hover:bg-muted transition-colors"
