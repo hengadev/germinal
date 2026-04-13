@@ -7,7 +7,11 @@
 		"installTitle": "Installer l'application",
 		"installDescription": "Accédez rapidement à Germinal depuis votre écran d'accueil.",
 		"installButton": "Installer",
-		"installDismiss": "Plus tard"
+		"installDismiss": "Plus tard",
+		"iosTitle": "Installer {appName}",
+		"iosSubtitle": "Ajoutez à l'écran d'accueil pour la meilleure expérience",
+		"iosStep1": "Appuyez sur le bouton <strong>Partager</strong>",
+		"iosStep2": "Faites défiler et appuyez sur <strong>Ajouter à l'écran d'accueil</strong>"
 	},
 	"nav": {
 		"upcomingEvent": "Prochain événement",
