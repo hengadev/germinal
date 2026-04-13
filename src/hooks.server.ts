@@ -44,6 +44,12 @@ export const handle: Handle = async ({ event, resolve }) => {
 	const sessionCookieName = getSessionCookieName(hostname);
 	const csrfCookieName = getCsrfCookieName(hostname);
 
+	// Determine the correct PWA icon for iOS based on domain
+	const isAdminOrStaff = event.locals.isAdminDomain || event.locals.isStaffDomain;
+	const appleTouchIcon = isAdminOrStaff ? '/pwa-admin-192x192.png' : '/pwa-192x192.png';
+	const appleTouchTitle = event.locals.isAdminDomain ? 'Germinal Admin' : (event.locals.isStaffDomain ? 'Germinal Staff' : 'Germinal');
+	const themeColor = isAdminOrStaff ? '#1a1a1a' : '#ffffff';
+
 	// On the admin subdomain (not localhost), redirect bare root to /admin so the auth flow runs
 	const isLocalhost = hostname.startsWith('localhost') || hostname.startsWith('127.0.0.1');
 	if (event.locals.isAdminDomain && !isLocalhost && event.url.pathname === '/') {
@@ -99,7 +105,24 @@ export const handle: Handle = async ({ event, resolve }) => {
 		}
 	}
 
-	const response = await resolve(event);
+	const response = await resolve(event, {
+		transformPageChunk: ({ html }) => {
+			// Replace apple-touch-icon href with domain-specific icon
+			return html
+				.replace(
+					/<link rel="apple-touch-icon" href="\/pwa-192x192\.png" \/>/,
+					`<link rel="apple-touch-icon" href="${appleTouchIcon}" />`
+				)
+				.replace(
+					/<meta name="theme-color" content="#ffffff" \/>/,
+					`<meta name="theme-color" content="${themeColor}" />`
+				)
+				.replace(
+					/<meta name="apple-mobile-web-app-title" content="Germinal" \/>/,
+					`<meta name="apple-mobile-web-app-title" content="${appleTouchTitle}" />`
+				});
+		}
+	});
 
 	return response;
 };
