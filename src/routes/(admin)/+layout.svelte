@@ -54,7 +54,7 @@
                 <ThemeToggle />
                 <button
                     onclick={() => (mobileMenuOpen = true)}
-                    class="p-2 text-foreground-alt hover:text-foreground rounded-lg hover:bg-muted transition-colors"
+                    class="p-3 text-foreground-alt hover:text-foreground rounded-lg hover:bg-muted transition-colors"
                     aria-label="Menu"
                 >
                     <svg
@@ -91,7 +91,7 @@
             {#if ["/", "/admin"].includes(page.url.pathname)}
                 <a
                     href="/admin"
-                    class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-foreground"
+                    class="flex-1 flex flex-col items-center justify-center gap-1 py-3 text-foreground"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -114,7 +114,7 @@
             {:else}
                 <a
                     href="/admin"
-                    class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-muted-foreground hover:text-foreground-alt"
+                    class="flex-1 flex flex-col items-center justify-center gap-1 py-3 text-muted-foreground hover:text-foreground-alt"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -139,7 +139,7 @@
             {#if page.url.pathname.startsWith("/admin/events")}
                 <a
                     href="/admin/events"
-                    class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-foreground"
+                    class="flex-1 flex flex-col items-center justify-center gap-1 py-3 text-foreground"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -163,7 +163,7 @@
             {:else}
                 <a
                     href="/admin/events"
-                    class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-muted-foreground hover:text-foreground-alt"
+                    class="flex-1 flex flex-col items-center justify-center gap-1 py-3 text-muted-foreground hover:text-foreground-alt"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -189,7 +189,7 @@
             {#if page.url.pathname.startsWith("/admin/team")}
                 <a
                     href="/admin/team"
-                    class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-foreground"
+                    class="flex-1 flex flex-col items-center justify-center gap-1 py-3 text-foreground"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -214,7 +214,7 @@
             {:else}
                 <a
                     href="/admin/team"
-                    class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-muted-foreground hover:text-foreground-alt"
+                    class="flex-1 flex flex-col items-center justify-center gap-1 py-3 text-muted-foreground hover:text-foreground-alt"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -241,7 +241,7 @@
             {#if page.url.pathname.startsWith("/admin/reservations")}
                 <a
                     href="/admin/reservations"
-                    class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-foreground"
+                    class="flex-1 flex flex-col items-center justify-center gap-1 py-3 text-foreground"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -265,7 +265,7 @@
             {:else}
                 <a
                     href="/admin/reservations"
-                    class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-muted-foreground hover:text-foreground-alt"
+                    class="flex-1 flex flex-col items-center justify-center gap-1 py-3 text-muted-foreground hover:text-foreground-alt"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -291,7 +291,7 @@
             {#if page.url.pathname.startsWith("/admin/analytics")}
                 <a
                     href="/admin/analytics"
-                    class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-foreground"
+                    class="flex-1 flex flex-col items-center justify-center gap-1 py-3 text-foreground"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -314,7 +314,7 @@
             {:else}
                 <a
                     href="/admin/analytics"
-                    class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-muted-foreground hover:text-foreground-alt"
+                    class="flex-1 flex flex-col items-center justify-center gap-1 py-3 text-muted-foreground hover:text-foreground-alt"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"

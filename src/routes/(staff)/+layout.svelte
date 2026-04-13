@@ -51,7 +51,7 @@
                 <ThemeToggle />
                 <button
                     onclick={() => (mobileMenuOpen = true)}
-                    class="p-2 text-foreground-alt hover:text-foreground rounded-lg hover:bg-muted transition-colors"
+                    class="p-3 text-foreground-alt hover:text-foreground rounded-lg hover:bg-muted transition-colors"
                     aria-label="Menu"
                 >
                     <svg
@@ -88,7 +88,7 @@
             {#if page.url.pathname === "/staff"}
                 <a
                     href="/staff"
-                    class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-foreground"
+                    class="flex-1 flex flex-col items-center justify-center gap-1 py-3 text-foreground"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -111,7 +111,7 @@
             {:else}
                 <a
                     href="/staff"
-                    class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-muted-foreground hover:text-foreground-alt"
+                    class="flex-1 flex flex-col items-center justify-center gap-1 py-3 text-muted-foreground hover:text-foreground-alt"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -136,7 +136,7 @@
             {#if page.url.pathname.startsWith("/staff/events")}
                 <a
                     href="/staff/events"
-                    class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-foreground"
+                    class="flex-1 flex flex-col items-center justify-center gap-1 py-3 text-foreground"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -160,7 +160,7 @@
             {:else}
                 <a
                     href="/staff/events"
-                    class="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-muted-foreground hover:text-foreground-alt"
+                    class="flex-1 flex flex-col items-center justify-center gap-1 py-3 text-muted-foreground hover:text-foreground-alt"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -281,7 +281,7 @@
             <div class="space-y-1">
                 <a
                     href="/staff/change-password"
-                    class="flex items-center gap-3 px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+                    class="flex items-center gap-3 px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -305,7 +305,7 @@
                 <form method="POST" action="/logout">
                     <button
                         type="submit"
-                        class="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors"
+                        class="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors"
                     >
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
