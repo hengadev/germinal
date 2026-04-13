@@ -89,7 +89,12 @@ export const POST: RequestHandler = async ({ locals, request }) => {
         // Hash password
         const passwordHash = await hashPassword(password);
 
-        // Create staff user
+        // Generate reset token for invite email
+        const { generateResetToken, getResetExpiration } = await import('$lib/server/utils/password');
+        const resetToken = generateResetToken();
+        const resetExpires = getResetExpiration(24); // 24 hours
+
+        // Create staff user with reset token
         const [newUser] = await db
             .insert(users)
             .values({
@@ -98,12 +103,26 @@ export const POST: RequestHandler = async ({ locals, request }) => {
                 email,
                 phone: phone?.toString() || null,
                 passwordHash,
+                passwordResetToken: resetToken,
+                passwordResetExpires: resetExpires,
                 role: 'staff',
             })
             .returning();
 
+        // Send invite email (non-blocking)
+        const { sendStaffInviteEmail } = await import('$lib/server/services/email');
+        sendStaffInviteEmail({
+            firstName: newUser.firstName,
+            lastName: newUser.lastName,
+            email: newUser.email,
+            resetToken,
+        }).catch(err => {
+            console.error('Failed to send staff invite email:', err);
+            // Don't fail the request if email fails
+        });
+
         return json({
-            success: `Staff account created for ${firstName} ${lastName}`,
+            success: `Staff account created for ${firstName} ${lastName}. An invitation email has been sent.`,
             user: {
                 id: newUser.id,
                 email: newUser.email,
