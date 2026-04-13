@@ -265,6 +265,8 @@ export const users = pgTable('users', {
     phone: varchar('phone', { length: 50 }),
     passwordHash: text('password_hash').notNull(),
     role: userRoleEnum('role').notNull().default('user'),
+    passwordResetToken: varchar('password_reset_token', { length: 255 }),
+    passwordResetExpires: timestamp('password_reset_expires', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => ({
@@ -272,6 +274,7 @@ export const users = pgTable('users', {
     firstNameIdx: index('users_first_name_idx').on(table.firstName),
     lastNameIdx: index('users_last_name_idx').on(table.lastName),
     phoneIdx: index('users_phone_idx').on(table.phone),
+    passwordResetTokenIdx: index('users_password_reset_token_idx').on(table.passwordResetToken),
 }));
 
 export const sessions = pgTable('sessions', {
