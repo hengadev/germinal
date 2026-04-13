@@ -120,7 +120,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 				.replace(
 					/<meta name="apple-mobile-web-app-title" content="Germinal" \/>/,
 					`<meta name="apple-mobile-web-app-title" content="${appleTouchTitle}" />`
-				});
+				);
 		}
 	});
 
