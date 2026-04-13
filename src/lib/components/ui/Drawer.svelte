@@ -105,7 +105,7 @@
 		border-top-left-radius: var(--border-top-radius);
 		border-top-right-radius: var(--border-top-radius);
 		z-index: 9999;
-		background: white;
+		background: var(--color-background);
 		outline: none;
 	}
 	.drawer.visible {
