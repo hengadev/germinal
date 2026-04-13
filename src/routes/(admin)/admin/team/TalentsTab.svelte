@@ -84,7 +84,7 @@
 </script>
 
 <!-- Sub-tab navigation -->
-<div class="flex items-center justify-between mb-6">
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
     <div class="flex border-b border-border-card">
         <button
             onclick={() => (activeTab = 'talents')}
@@ -103,15 +103,15 @@
     {#if activeTab === 'talents'}
         <a
             href="/admin/talents/new"
-            class="inline-flex items-center gap-2 px-4 py-2 bg-foreground text-background rounded-lg hover:opacity-90 transition-colors"
+            class="inline-flex items-center gap-2 px-4 py-2 bg-foreground text-background rounded-lg hover:opacity-90 transition-colors self-start"
         >
             <Plus size={18} />
-            <span>Nouveau Talent</span>
+            <span class="whitespace-nowrap">Nouveau Talent</span>
         </a>
     {:else}
         <button
             onclick={() => (catCreateDialogOpen = true)}
-            class="inline-flex items-center gap-2 px-4 py-2 bg-foreground text-background rounded-lg hover:opacity-90 transition-colors"
+            class="inline-flex items-center gap-2 px-4 py-2 bg-foreground text-background rounded-lg hover:opacity-90 transition-colors self-start"
         >
             <Plus size={18} />
             <span class="whitespace-nowrap">Nouvelle Catégorie</span>
