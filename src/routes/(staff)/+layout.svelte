@@ -88,7 +88,7 @@
             {#if page.url.pathname === "/staff"}
                 <a
                     href="/staff"
-                    class="flex-1 flex flex-col items-center justify-center gap-1 py-3 text-foreground"
+                    class="flex-1 flex flex-col items-center justify-center gap-1 pt-3 pb-6 text-foreground"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -111,7 +111,7 @@
             {:else}
                 <a
                     href="/staff"
-                    class="flex-1 flex flex-col items-center justify-center gap-1 py-3 text-muted-foreground hover:text-foreground-alt"
+                    class="flex-1 flex flex-col items-center justify-center gap-1 pt-3 pb-6 text-muted-foreground hover:text-foreground-alt"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -136,7 +136,7 @@
             {#if page.url.pathname.startsWith("/staff/events")}
                 <a
                     href="/staff/events"
-                    class="flex-1 flex flex-col items-center justify-center gap-1 py-3 text-foreground"
+                    class="flex-1 flex flex-col items-center justify-center gap-1 pt-3 pb-6 text-foreground"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -160,7 +160,7 @@
             {:else}
                 <a
                     href="/staff/events"
-                    class="flex-1 flex flex-col items-center justify-center gap-1 py-3 text-muted-foreground hover:text-foreground-alt"
+                    class="flex-1 flex flex-col items-center justify-center gap-1 pt-3 pb-6 text-muted-foreground hover:text-foreground-alt"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
