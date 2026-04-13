@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
+	import { t } from 'svelte-i18n';
 
 	// Admin domain configuration (must match server config)
 	const ADMIN_DOMAINS = [
@@ -89,8 +90,8 @@
 					</svg>
 				</div>
 				<div class="banner-text">
-					<p class="banner-title">Install {getAppName()}</p>
-					<p class="banner-subtitle">Add to home screen for the best experience</p>
+					<p class="banner-title">{t('pwa.iosTitle', { values: { appName: getAppName() } })}</p>
+					<p class="banner-subtitle">{$t('pwa.iosSubtitle')}</p>
 				</div>
 				<button onclick={dismiss} class="close-btn" aria-label="Close">
 					<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -108,7 +109,7 @@
 							<path d="M12 8V8.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
 						</svg>
 					</div>
-					<span class="step-text">Tap the <strong>Share</strong> button</span>
+					<span class="step-text">{@html $t('pwa.iosStep1')}</span>
 					<div class="step-visual">
 						<svg width="44" height="28" viewBox="0 0 44 28" fill="none" xmlns="http://www.w3.org/2000/svg">
 							<rect x="0.5" y="0.5" width="43" height="27" rx="5.5" stroke="currentColor" stroke-width="1"/>
@@ -124,7 +125,7 @@
 							<path d="M12 8V16M8 12H16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
 						</svg>
 					</div>
-					<span class="step-text">Scroll and tap <strong>Add to Home Screen</strong></span>
+					<span class="step-text">{@html $t('pwa.iosStep2')}</span>
 					<div class="step-visual">
 						<svg width="44" height="28" viewBox="0 0 44 28" fill="none" xmlns="http://www.w3.org/2000/svg">
 							<rect x="0.5" y="0.5" width="43" height="27" rx="5.5" stroke="currentColor" stroke-width="1"/>
