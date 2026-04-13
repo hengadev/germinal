@@ -513,3 +513,228 @@ export async function sendEventReminderEmail(data: TicketEmailData & { daysUntil
 	});
 	logger.info({ to: data.guestEmail }, '📋 Event reminder email queued');
 }
+
+// ============================================
+// STAFF INVITE EMAIL
+// ============================================
+
+interface StaffInviteEmailData {
+	firstName: string;
+	lastName: string;
+	email: string;
+	resetToken: string;
+}
+
+function generateStaffInviteTextTemplate(data: StaffInviteEmailData): string {
+	const resetUrl = `${env.PUBLIC_URL}/staff/reset-password/${data.resetToken}`;
+
+	return `
+Welcome to the Germinal Staff Team!
+
+Hi ${data.firstName},
+
+You have been invited to join the Germinal staff portal. Your account has been created and you can now set your password to get started.
+
+SET YOUR PASSWORD:
+${resetUrl}
+
+This link will expire in 24 hours. If you need a new link, please contact your administrator.
+
+Once you've set your password, you can access the staff portal at:
+${env.PUBLIC_URL}/staff
+
+We're excited to have you on the team!
+
+---
+This is an automated invitation from Germinal.
+	`.trim();
+}
+
+function generateStaffInviteHtmlTemplate(data: StaffInviteEmailData): string {
+	const resetUrl = `${env.PUBLIC_URL}/staff/reset-password/${data.resetToken}`;
+
+	return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome to the Germinal Staff Team</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background-color: #f8f9fa; border-radius: 8px; padding: 24px; margin-bottom: 24px;">
+    <h2 style="margin: 0 0 8px 0; color: #1a1a1a; font-size: 24px;">Welcome to the Team!</h2>
+    <p style="margin: 0; color: #6c757d; font-size: 14px;">You've been invited to join the Germinal staff portal</p>
+  </div>
+
+  <div style="background-color: #ffffff; border: 1px solid #e9ecef; border-radius: 8px; padding: 24px; margin-bottom: 16px;">
+    <p style="margin: 0 0 16px 0; font-size: 16px;">Hi ${escapeHtml(data.firstName)},</p>
+    <p style="margin: 0 0 16px 0; font-size: 16px;">You have been invited to join the <strong>Germinal staff portal</strong>. Your account has been created and you can now set your password to get started.</p>
+
+    <h3 style="margin: 24px 0 12px 0; color: #495057; font-size: 16px; font-weight: 600;">Set Your Password</h3>
+    <p style="margin: 0 0 16px 0; font-size: 14px; color: #6c757d;">Click the button below to create your password. This link will expire in 24 hours.</p>
+
+    <div style="margin: 24px 0; text-align: center;">
+      <a href="${escapeHtmlAttr(resetUrl)}"
+         style="display: inline-block; background-color: #007bff; color: white; text-decoration: none; padding: 12px 32px; border-radius: 6px; font-weight: 600;">
+        Set Your Password
+      </a>
+    </div>
+
+    <p style="margin: 24px 0 0 0; font-size: 12px; color: #6c757d; text-align: center;">
+      Or copy this link: ${resetUrl}
+    </p>
+
+    <p style="margin: 24px 0 0 0; font-size: 14px;">
+      Once you've set your password, you can access the staff portal at:<br>
+      <a href="${env.PUBLIC_URL}/staff" style="color: #007bff; text-decoration: none;">${env.PUBLIC_URL}/staff</a>
+    </p>
+
+    <p style="margin: 24px 0 0 0; font-size: 14px;">
+      If you need a new link, please contact your administrator.
+    </p>
+  </div>
+
+  <div style="border-top: 1px solid #e9ecef; padding-top: 16px;">
+    <p style="margin: 0; color: #6c757d; font-size: 12px; text-align: center;">
+      We're excited to have you on the team!<br>
+      This is an automated invitation from Germinal.
+    </p>
+  </div>
+</body>
+</html>
+	`.trim();
+}
+
+export async function sendStaffInviteEmail(data: StaffInviteEmailData): Promise<void> {
+	const textBody = generateStaffInviteTextTemplate(data);
+	const htmlBody = generateStaffInviteHtmlTemplate(data);
+
+	if (!isAWSConfigured()) {
+		logger.info({
+			to: data.email,
+			resetToken: data.resetToken,
+			resetUrl: `${env.PUBLIC_URL}/staff/reset-password/${data.resetToken}`,
+		}, '📧 AWS not configured - staff invite email would have been sent');
+		return;
+	}
+
+	// Always queue for delivery with automatic retry
+	const { queueEmail } = await import('../jobs/process-email-queue');
+	await queueEmail({
+		type: 'staff_invite',
+		recipient: data.email,
+		subject: `Welcome to the Germinal Staff Team`,
+		textBody,
+		htmlBody,
+		metadata: {
+			staffEmail: data.email,
+			staffName: `${data.firstName} ${data.lastName}`,
+			resetToken: data.resetToken,
+		},
+	});
+	logger.info({ to: data.email }, '📋 Staff invite email queued');
+}
+
+interface StaffPasswordResetEmailData {
+	email: string;
+	resetToken: string;
+}
+
+function generateStaffPasswordResetTextTemplate(data: StaffPasswordResetEmailData): string {
+	const resetUrl = `${env.PUBLIC_URL}/staff/reset-password/${data.resetToken}`;
+
+	return `
+Reset Your Password
+
+Hi,
+
+You requested to reset your password for the Germinal staff portal.
+
+RESET YOUR PASSWORD:
+${resetUrl}
+
+This link will expire in 24 hours. If you didn't request this change, please contact your administrator.
+
+---
+This is an automated notification from Germinal.
+	`.trim();
+}
+
+function generateStaffPasswordResetHtmlTemplate(data: StaffPasswordResetEmailData): string {
+	const resetUrl = `${env.PUBLIC_URL}/staff/reset-password/${data.resetToken}`;
+
+	return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reset Your Password</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background-color: #f8f9fa; border-radius: 8px; padding: 24px; margin-bottom: 24px;">
+    <h2 style="margin: 0 0 8px 0; color: #1a1a1a; font-size: 24px;">Reset Your Password</h2>
+    <p style="margin: 0; color: #6c757d; font-size: 14px;">Germinal Staff Portal</p>
+  </div>
+
+  <div style="background-color: #ffffff; border: 1px solid #e9ecef; border-radius: 8px; padding: 24px; margin-bottom: 16px;">
+    <p style="margin: 0 0 16px 0; font-size: 16px;">Hi,</p>
+    <p style="margin: 0 0 16px 0; font-size: 16px;">You requested to reset your password for the <strong>Germinal staff portal</strong>.</p>
+
+    <p style="margin: 0 0 16px 0; font-size: 14px; color: #6c757d;">Click the button below to set a new password. This link will expire in 24 hours.</p>
+
+    <div style="margin: 24px 0; text-align: center;">
+      <a href="${escapeHtmlAttr(resetUrl)}"
+         style="display: inline-block; background-color: #007bff; color: white; text-decoration: none; padding: 12px 32px; border-radius: 6px; font-weight: 600;">
+        Reset Your Password
+      </a>
+    </div>
+
+    <p style="margin: 24px 0 0 0; font-size: 12px; color: #6c757d; text-align: center;">
+      Or copy this link: ${resetUrl}
+    </p>
+
+    <p style="margin: 24px 0 0 0; font-size: 14px;">
+      If you didn't request this change, please contact your administrator.
+    </p>
+  </div>
+
+  <div style="border-top: 1px solid #e9ecef; padding-top: 16px;">
+    <p style="margin: 0; color: #6c757d; font-size: 12px; text-align: center;">
+      This is an automated notification from Germinal.
+    </p>
+  </div>
+</body>
+</html>
+	`.trim();
+}
+
+export async function sendStaffPasswordResetEmail(data: StaffPasswordResetEmailData): Promise<void> {
+	const textBody = generateStaffPasswordResetTextTemplate(data);
+	const htmlBody = generateStaffPasswordResetHtmlTemplate(data);
+
+	if (!isAWSConfigured()) {
+		logger.info({
+			to: data.email,
+			resetToken: data.resetToken,
+			resetUrl: `${env.PUBLIC_URL}/staff/reset-password/${data.resetToken}`,
+		}, '📧 AWS not configured - staff password reset email would have been sent');
+		return;
+	}
+
+	// Always queue for delivery with automatic retry
+	const { queueEmail } = await import('../jobs/process-email-queue');
+	await queueEmail({
+		type: 'staff_password_reset',
+		recipient: data.email,
+		subject: `Reset Your Password - Germinal Staff Portal`,
+		textBody,
+		htmlBody,
+		metadata: {
+			staffEmail: data.email,
+			resetToken: data.resetToken,
+		},
+	});
+	logger.info({ to: data.email }, '📋 Staff password reset email queued');
+}
