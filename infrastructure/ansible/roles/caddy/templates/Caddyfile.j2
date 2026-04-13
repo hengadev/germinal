@@ -30,6 +30,27 @@ admin-staging.{{ app_domain }} {
   }
 }
 
+staff-staging.{{ app_domain }} {
+  tls {
+    dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+  }
+
+  reverse_proxy germinal_staging_app:3001 {
+    header_up X-Real-IP {remote_host}
+    header_up X-Forwarded-For {remote_host}
+    header_up X-Forwarded-Proto {scheme}
+  }
+
+  header {
+    Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    X-Content-Type-Options "nosniff"
+    X-Frame-Options "DENY"
+    X-XSS-Protection "1; mode=block"
+    Referrer-Policy "strict-origin-when-cross-origin"
+    -Server
+  }
+}
+
 staging.{{ app_domain }} {
   tls {
     dns cloudflare {env.CLOUDFLARE_API_TOKEN}
@@ -69,6 +90,29 @@ staging.{{ app_domain }} {
 
 # Admin subdomain - reverse proxy to application (admin routes protected by the app)
 admin.{{ app_domain }} {
+  tls {
+    dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+  }
+
+  reverse_proxy germinal_app:3001 {
+    header_up X-Real-IP {remote_host}
+    header_up X-Forwarded-For {remote_host}
+    header_up X-Forwarded-Proto {scheme}
+  }
+
+  # Security headers
+  header {
+    Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    X-Content-Type-Options "nosniff"
+    X-Frame-Options "DENY"
+    X-XSS-Protection "1; mode=block"
+    Referrer-Policy "strict-origin-when-cross-origin"
+    -Server
+  }
+}
+
+# Staff subdomain - reverse proxy to application (staff routes protected by the app)
+staff.{{ app_domain }} {
   tls {
     dns cloudflare {env.CLOUDFLARE_API_TOKEN}
   }
