@@ -1,7 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import type { Handle, HandleServerError } from '@sveltejs/kit';
 import { validateSession, deleteExpiredSessions } from '$lib/server/session';
-import { isAdminDomain, getCookieDomain, getSessionCookieName, getCsrfCookieName } from '$lib/server/hostname';
+import { isAdminDomain, isStaffDomain, getCookieDomain, getSessionCookieName, getCsrfCookieName } from '$lib/server/hostname';
 import { initJobScheduler, stopJobScheduler } from '$lib/server/jobs/scheduler';
 import { runMigrations } from '$lib/server/db';
 import { initMonitoring, captureException } from '$lib/server/monitoring';
@@ -39,6 +39,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 	// Detect hostname and set domain context
 	const hostname = event.url.hostname;
 	event.locals.isAdminDomain = isAdminDomain(hostname);
+	event.locals.isStaffDomain = isStaffDomain(hostname);
 	const cookieDomain = getCookieDomain(hostname) ?? undefined;
 	const sessionCookieName = getSessionCookieName(hostname);
 	const csrfCookieName = getCsrfCookieName(hostname);
@@ -49,9 +50,14 @@ export const handle: Handle = async ({ event, resolve }) => {
 		throw redirect(302, '/admin');
 	}
 
+	// On the staff subdomain (not localhost), redirect bare root to /staff so the auth flow runs
+	if (event.locals.isStaffDomain && !isLocalhost && event.url.pathname === '/') {
+		throw redirect(302, '/staff');
+	}
+
 	// Maintenance mode: redirect all public traffic to the maintenance page
 	const maintenanceMode = process.env.MAINTENANCE_MODE === 'true';
-	if (maintenanceMode && !event.locals.isAdminDomain && event.url.pathname !== '/maintenance') {
+	if (maintenanceMode && !event.locals.isAdminDomain && !event.locals.isStaffDomain && event.url.pathname !== '/maintenance') {
 		throw redirect(302, '/maintenance');
 	}
 

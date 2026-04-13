@@ -15,6 +15,7 @@ declare global {
 				createdAt: Date;
 			} | null;
 			isAdminDomain: boolean;
+			isStaffDomain: boolean;
 			csrfToken: string;
 		}
 

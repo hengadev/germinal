@@ -11,8 +11,8 @@ import type { PageServerLoad } from './$types';
 
 // Redirect to /admin if already logged in
 export const load: PageServerLoad = async ({ locals }) => {
-	// SECURITY: Login only accessible from admin subdomain
-	if (!locals.isAdminDomain) {
+	// SECURITY: Login only accessible from admin or staff subdomain
+	if (!locals.isAdminDomain && !locals.isStaffDomain) {
 		throw error(404, 'Not Found');
 	}
 
@@ -34,8 +34,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 export const actions: Actions = {
 	default: async ({ request, cookies, getClientAddress, locals, url }) => {
-		// SECURITY: Login only accessible from admin subdomain
-		if (!locals.isAdminDomain) {
+		// SECURITY: Login only accessible from admin or staff subdomain
+		if (!locals.isAdminDomain && !locals.isStaffDomain) {
 			throw error(404, 'Not Found');
 		}
 
@@ -90,8 +90,8 @@ export const actions: Actions = {
 				maxAge: 60 * 60 * 24 * 7 // 7 days
 			});
 
-			// Redirect to admin dashboard
-			throw redirect(302, '/admin');
+			// Redirect based on subdomain context
+			throw redirect(302, locals.isStaffDomain ? '/staff' : '/admin');
 		}
 
 		// Database mode: verify against database

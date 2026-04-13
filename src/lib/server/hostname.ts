@@ -13,6 +13,15 @@ const ADMIN_DOMAINS = [
 ];
 
 /**
+ * Staff domain configuration
+ * Add new staff domains here when switching to a new domain
+ */
+const STAFF_DOMAINS = [
+	'staff.germinalstudio.co', // Production
+	'staff-staging.germinalstudio.co' // Staging
+];
+
+/**
  * Detect if request is from admin subdomain
  * Development: localhost and 127.0.0.1 treated as admin domain for convenience
  * Production: checks against configured admin domains
@@ -25,6 +34,21 @@ export function isAdminDomain(hostname: string): boolean {
 
 	// Check against configured admin domains
 	return ADMIN_DOMAINS.includes(hostname);
+}
+
+/**
+ * Detect if request is from staff subdomain
+ * Development: localhost and 127.0.0.1 treated as staff domain for convenience
+ * Production: checks against configured staff domains
+ */
+export function isStaffDomain(hostname: string): boolean {
+	// Development mode: localhost always acts as staff domain for testing
+	if (hostname.startsWith('localhost') || hostname.startsWith('127.0.0.1')) {
+		return true;
+	}
+
+	// Check against configured staff domains
+	return STAFF_DOMAINS.includes(hostname);
 }
 
 /**
@@ -52,7 +76,8 @@ export function getCookieDomain(hostname: string): string | null {
 export function isStagingHost(hostname: string): boolean {
 	return (
 		hostname === 'staging.germinalstudio.co' ||
-		hostname === 'admin-staging.germinalstudio.co'
+		hostname === 'admin-staging.germinalstudio.co' ||
+		hostname === 'staff-staging.germinalstudio.co'
 	);
 }
 
@@ -88,4 +113,22 @@ export function getAdminUrl(hostname: string): string {
 	}
 
 	return 'https://admin.germinalstudio.co';
+}
+
+/**
+ * Get the staff URL for the current domain environment
+ * Used for redirects, links, etc.
+ */
+export function getStaffUrl(hostname: string): string {
+	// Localhost: use relative path
+	if (hostname.startsWith('localhost') || hostname.startsWith('127.0.0.1')) {
+		return '';
+	}
+
+	// Staging environment
+	if (isStagingHost(hostname)) {
+		return 'https://staff-staging.germinalstudio.co';
+	}
+
+	return 'https://staff.germinalstudio.co';
 }
