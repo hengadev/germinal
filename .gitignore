@@ -47,3 +47,4 @@ playwright-report/
 *.tfvars.*
 !**/*.tfvars.example
 
+dev-dist/
