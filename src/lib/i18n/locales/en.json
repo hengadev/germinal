@@ -184,7 +184,7 @@
 		"login": {
 			"pageTitle": "Login | Germinal",
 			"title": "Sign In",
-			"description": "Enter your credentials to access the admin dashboard",
+			"description": "Enter your credentials to access your dashboard",
 			"email": "Email address",
 			"password": "Password",
 			"signIn": "Sign In",

@@ -184,7 +184,7 @@
 		"login": {
 			"pageTitle": "Connexion | Germinal",
 			"title": "Se connecter",
-			"description": "Entrez vos identifiants pour accéder au tableau de bord d'administration",
+			"description": "Entrez vos identifiants pour accéder à votre tableau de bord",
 			"email": "Adresse email",
 			"password": "Mot de passe",
 			"signIn": "Se connecter",
