@@ -96,8 +96,8 @@
     <div class="mt-12 lg:mt-24 grid grid-cols-1 lg:grid-cols-[auto_1fr] gap-12 lg:gap-24">
         <section class="flex flex-col gap-6 lg:gap-12" use:reveal={{ preset: 'fade-up', delay: 100 }}>
             <div class="grid gap-6 lg:gap-8">
-                {@render asidePart($t('contact.sidebar.generalInquiries'), "events@germinal.co")}
-                {@render asidePart($t('contact.sidebar.pressMedia'), "events@germinal.co")}
+                {@render asidePart($t('contact.sidebar.generalInquiries'), "contact@germinalstudio.co")}
+                {@render asidePart($t('contact.sidebar.pressMedia'), "contact@germinalstudio.co")}
                 <div class="grid gap-2">
                     <p class="uppercase text-dark-300 text-[10px] md:text-xs">{$t('contact.sidebar.followUs')}</p>
                     <div class="flex items-center gap-3 md:gap-4">
