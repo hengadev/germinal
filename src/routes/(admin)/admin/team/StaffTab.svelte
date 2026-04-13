@@ -313,7 +313,12 @@
 
                 <div>
                     <label for="staff-phone" class="block text-sm font-medium text-foreground mb-1">
-                        Numéro de téléphone {inviteMethod === 'sms' ? '<span class="text-red-500">*</span>' : '<span class="text-xs text-muted-foreground">(optionnel)</span>'}
+                        Numéro de téléphone
+                        {#if inviteMethod === 'sms'}
+                            <span class="text-red-500">*</span>
+                        {:else}
+                            <span class="text-xs text-muted-foreground">(optionnel)</span>
+                        {/if}
                     </label>
                     <input
                         id="staff-phone"
