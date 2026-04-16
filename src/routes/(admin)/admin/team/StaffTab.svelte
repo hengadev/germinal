@@ -141,7 +141,7 @@
             formData.append('password', newStaffPassword);
             formData.append('inviteMethod', inviteMethod);
 
-            const response = await fetch('/admin/team/staff', {
+            const response = await fetch('/api/admin/team/staff', {
                 method: 'POST',
                 body: formData,
             });
