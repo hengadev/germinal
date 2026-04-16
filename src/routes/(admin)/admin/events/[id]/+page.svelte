@@ -83,18 +83,20 @@
         </div>
     {/if}
 
+    <div class="overflow-x-auto w-full">
     <TabsList
         class="inline-flex items-center w-fit bg-transparent gap-2 md:gap-1 text-sm font-semibold border-b-1 border-border-card md:p-1 md:leading-[0.01em]"
     >
         {#each triggers as trigger}
             <TabsTrigger
                 value={trigger.value}
-                class="px-2 py-1.75 md:px-4 md:py-2 md:h-8 rounded-none bg-transparent border-b-3 data-[state=active]:shadow-none mb-[-2px] data-[state=active]:border-b-dark-900 data-[state=active]:text-foreground data-[state=inactive]:border-transparent data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:bg-transparent data-[state=inactive]:hover:text-foreground-alt transition-colors cursor-pointer"
+                class="px-2 py-1.75 md:px-4 md:py-2 md:h-8 rounded-none bg-transparent border-b-3 data-[state=active]:shadow-none mb-[-2px] data-[state=active]:border-b-dark-900 data-[state=active]:text-foreground data-[state=inactive]:border-transparent data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:bg-transparent data-[state=inactive]:hover:text-foreground-alt transition-colors cursor-pointer whitespace-nowrap"
             >
                 {trigger.name}
             </TabsTrigger>
         {/each}
     </TabsList>
+    </div>
 
     <!-- Tab content area -->
     <div class="flex-1 overflow-y-auto">
