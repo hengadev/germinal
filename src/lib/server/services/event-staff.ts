@@ -201,7 +201,7 @@ export async function getEventsForStaff(userId: string): Promise<EventStaffWithE
 /**
  * Get all staff users (for dropdowns)
  */
-export async function getAllStaff(): Promise<Array<{ id: string; email: string; firstName: string; lastName: string; phone: string | null; role: string }>> {
+export async function getAllStaff(): Promise<Array<{ id: string; email: string; firstName: string; lastName: string; phone: string | null; role: string; createdAt: Date }>> {
 	try {
 		const staff = await db
 			.select({
@@ -211,6 +211,7 @@ export async function getAllStaff(): Promise<Array<{ id: string; email: string; 
 				lastName: users.lastName,
 				phone: users.phone,
 				role: users.role,
+				createdAt: users.createdAt,
 			})
 			.from(users)
 			.where(eq(users.role, 'staff'));
