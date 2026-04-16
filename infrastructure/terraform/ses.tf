@@ -44,8 +44,8 @@ resource "aws_ses_configuration_set" "main" {
 # ============================================
 
 resource "aws_iam_policy" "ses_send" {
-  name        = "${var.project_name}-ses-send"
-  description = "Policy for ${var.project_name} to send emails via SES"
+  name        = "${var.environment}-${var.project_name}-ses-send"
+  description = "Policy for ${var.environment} ${var.project_name} to send emails via SES"
 
   policy = jsonencode({
     Version = "2012-10-17"

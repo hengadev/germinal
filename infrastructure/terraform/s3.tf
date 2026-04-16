@@ -93,8 +93,8 @@ resource "aws_s3_bucket_cors_configuration" "media_cors" {
 
 # IAM policy for the application to access S3
 resource "aws_iam_policy" "s3_access" {
-  name        = "${var.project_name}-s3-access"
-  description = "Policy for ${var.project_name} to access media S3 bucket"
+  name        = "${var.environment}-${var.project_name}-s3-access"
+  description = "Policy for ${var.environment} ${var.project_name} to access media S3 bucket"
 
   policy = jsonencode({
     Version = "2012-10-17"

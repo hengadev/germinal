@@ -162,8 +162,8 @@ resource "aws_s3_bucket_lifecycle_configuration" "backups_lifecycle" {
 # ============================================
 
 resource "aws_iam_policy" "backup_access" {
-  name        = "${var.project_name}-backup-access"
-  description = "Policy for ${var.project_name} to manage database backups in S3"
+  name        = "${var.environment}-${var.project_name}-backup-access"
+  description = "Policy for ${var.environment} ${var.project_name} to manage database backups in S3"
 
   policy = jsonencode({
     Version = "2012-10-17"
