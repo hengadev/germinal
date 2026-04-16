@@ -27,10 +27,13 @@ export function reveal(
 	// Get preset configuration
 	const preset = ANIMATION_PRESETS[options?.preset || 'fade-up'];
 
-	// Set initial state (invisible)
+	// Set initial state (invisible).
+	// No will-change here: setting will-change creates a GPU compositing layer,
+	// and changing/removing it mid-animation destroys that layer. On iOS Safari
+	// this invalidates the touch hit-test tree, causing taps on nearby interactive
+	// elements (buttons, links) to miss inconsistently until the next relayout.
 	node.style.opacity = '0';
 	node.style.transform = ('transform' in preset.initial ? preset.initial.transform : '') || '';
-	node.style.willChange = 'opacity, transform';
 
 	// Create/reuse observer
 	if (!observer) {
@@ -45,13 +48,15 @@ export function reveal(
 							element.style.transition = `opacity ${data.duration}ms ${data.easing}, transform ${data.duration}ms ${data.easing}`;
 							element.style.opacity = '1';
 							element.style.transform = data.animate.transform || 'none';
-							element.style.willChange = 'auto';
 
 							// Clear transform after animation ends to avoid creating a stacking context,
 							// which would break position:fixed descendants (e.g. modals).
+							// Also flush iOS Safari's touch hit-test cache so interactive elements
+							// inside this container are tappable immediately after animation.
 							setTimeout(() => {
 								element.style.transform = '';
 								element.style.transition = '';
+								void element.getBoundingClientRect();
 							}, data.duration);
 						}, data.delay || 0);
 
