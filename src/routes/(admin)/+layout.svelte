@@ -2,6 +2,8 @@
     import { page } from "$app/state";
     import { slide } from "svelte/transition";
     import { browser } from "$app/environment";
+    import { setContext } from "svelte";
+    import { afterNavigate } from "$app/navigation";
     import AdminSidebar from "./AdminSidebar.svelte";
     import Toaster from "$lib/components/toast/Toaster.svelte";
     import { setToastContext } from "$lib/components/toast/state.svelte";
@@ -18,8 +20,26 @@
     // Set up toast context for all admin pages
     setToastContext();
 
+    // Tell Drawer components in this layout tree not to apply body position:fixed.
+    // Admin uses a scroll-jail (<main> scrolls, not body), so body locking corrupts
+    // iOS Safari's touch hit-test regions for elements inside the scroll container.
+    setContext('drawer-lock-body-scroll', false);
+
     // Mobile menu drawer state
     let mobileMenuOpen = $state(false);
+
+    // Reference to the scrollable main content area
+    let mainEl: HTMLElement;
+
+    // After each client-side navigation, scroll main to top and force iOS Safari
+    // to repaint the scroll-jail container. Without this, iOS can freeze the
+    // compositing layer and show stale content until a hard refresh.
+    afterNavigate(() => {
+        if (browser && mainEl) {
+            mainEl.scrollTop = 0;
+            void mainEl.getBoundingClientRect();
+        }
+    });
 
     // Apply dark mode class to html element only when in admin routes
     $effect(() => {
@@ -78,7 +98,7 @@
     </header>
 
     <!-- Main Content Area - scrollable -->
-    <main class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
+    <main bind:this={mainEl} class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
         {@render children()}
     </main>
 

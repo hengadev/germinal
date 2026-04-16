@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onDestroy } from 'svelte';
+	import { onDestroy, getContext } from 'svelte';
 	import { browser } from '$app/environment';
 	import { slide, fade } from 'svelte/transition';
 	import { createVerticalSwipeHandler } from '$lib/utils/swipe';
@@ -10,6 +10,11 @@
 	}
 
 	let { children, isOpen = $bindable(false) }: Props = $props();
+
+	// Layouts that use a scroll-jail (overflow on a container, not body) should set
+	// this context to false so we don't apply body position:fixed, which corrupts
+	// iOS Safari's touch hit-test regions for elements inside the scroll container.
+	const lockBodyScroll = (getContext<boolean>('drawer-lock-body-scroll') ?? true);
 
 	let scrollPosition = 0;
 
@@ -22,6 +27,12 @@
 
 	function toggleBodyScroll(isOpen: boolean) {
 		if (!browser) return;
+		if (!lockBodyScroll) {
+			// No body lock needed (scroll-jail layout). Still flush iOS's touch
+			// hit-test cache when the drawer closes so buttons below are responsive.
+			if (!isOpen) void document.body.getBoundingClientRect();
+			return;
+		}
 		if (isOpen) {
 			// Save the current position
 			scrollPosition = window.scrollY;
@@ -51,7 +62,7 @@
 	});
 
 	onDestroy(() => {
-		if (!browser) return;
+		if (!browser || !lockBodyScroll) return;
 		document.body.style.position = '';
 		document.body.style.top = '';
 		window.scrollTo(0, scrollPosition);
