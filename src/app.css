@@ -314,6 +314,15 @@
 			"calt" 1;
 	}
 
+	/* iOS Safari: prevent 300ms tap delay and ensure reliable tap registration
+	   after DOM changes (e.g. filter buttons, nav items inside drawers). */
+	button,
+	a,
+	[role="button"] {
+		touch-action: manipulation;
+		-webkit-tap-highlight-color: transparent;
+	}
+
 	::selection {
 		background: #fdffa4;
 		color: black;

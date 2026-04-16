@@ -25,7 +25,9 @@ export function createHorizontalSwipeHandler(
 
 	return {
 		action: (node: HTMLElement) => {
-			node.style.touchAction = 'pan-y';
+			// 'none' lets JS own all touch handling. Click events still fire for
+			// genuine taps (iOS tap recogniser uses movement delta, not touch-action).
+			node.style.touchAction = 'none';
 			node.addEventListener('touchstart', handleTouchStart);
 			node.addEventListener('touchmove', handleTouchMove);
 			node.addEventListener('touchend', handleTouchEnd);
@@ -62,7 +64,9 @@ export function createVerticalSwipeHandler(
 
 	return {
 		action: (node: HTMLElement) => {
-			node.style.touchAction = 'pan-x';
+			// 'none' lets JS own all touch handling. Click events still fire for
+			// genuine taps (iOS tap recogniser uses movement delta, not touch-action).
+			node.style.touchAction = 'none';
 			node.addEventListener('touchstart', handleTouchStart);
 			node.addEventListener('touchmove', handleTouchMove);
 			node.addEventListener('touchend', handleTouchEnd);

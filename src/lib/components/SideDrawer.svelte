@@ -31,6 +31,10 @@
 			document.body.style.top = '';
 			document.body.style.width = '';
 			window.scrollTo(0, scrollPosition);
+			// iOS Safari caches touch hit-test regions. After removing position:fixed
+			// from body we must force a synchronous relayout so those cached regions
+			// are invalidated before the next tap event is processed.
+			void document.body.getBoundingClientRect();
 		}
 	}
 
