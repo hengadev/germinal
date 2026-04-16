@@ -181,7 +181,7 @@
         processingAction = `reset-${staffId}`;
 
         try {
-            const response = await fetch('/admin/team/staff/reset-password', {
+            const response = await fetch('/api/admin/team/staff/reset-password', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -219,7 +219,7 @@
             const formData = new FormData();
             formData.append('staffId', staffToDeactivate.id);
 
-            const response = await fetch('/admin/team/staff/deactivate', {
+            const response = await fetch('/api/admin/team/staff/deactivate', {
                 method: 'POST',
                 body: formData,
             });
