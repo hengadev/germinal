@@ -16,6 +16,7 @@
     } from "lucide-svelte";
     import type { ActionData } from "../+page.server";
     import { getToastContext } from "$lib/components/toast/state.svelte";
+    import Modal from "$lib/components/ui/Modal.svelte";
 
     interface Props {
         form?: ActionData;
@@ -41,6 +42,10 @@
     let showCreateForm = $state(false);
     let createFormError = $state<string | null>(null);
     let processingAction = $state<string | null>(null);
+
+    // Deactivate confirmation modal state
+    let deactivateModalOpen = $state(false);
+    let staffToDeactivate = $state<StaffUser | null>(null);
 
     // Create form state
     let newStaffFirstName = $state('');
@@ -199,16 +204,20 @@
         }
     }
 
-    async function deactivateStaff(staffId: string, email: string) {
-        if (!confirm(`Êtes-vous sûr de vouloir désactiver ${email} ? Cela l'empêchera d'accéder au portail staff.`)) {
-            return;
-        }
+    function openDeactivateModal(staff: StaffUser) {
+        staffToDeactivate = staff;
+        deactivateModalOpen = true;
+    }
 
-        processingAction = `deactivate-${staffId}`;
+    async function confirmDeactivate() {
+        if (!staffToDeactivate) return;
+
+        processingAction = `deactivate-${staffToDeactivate.id}`;
+        deactivateModalOpen = false;
 
         try {
             const formData = new FormData();
-            formData.append('staffId', staffId);
+            formData.append('staffId', staffToDeactivate.id);
 
             const response = await fetch('/admin/team/staff/deactivate', {
                 method: 'POST',
@@ -228,6 +237,7 @@
             toast.error('Erreur', errorMsg);
         } finally {
             processingAction = null;
+            staffToDeactivate = null;
         }
     }
 
@@ -534,7 +544,7 @@
                                             {/if}
                                         </button>
                                         <button
-                                            onclick={() => deactivateStaff(staff.id, staff.email)}
+                                            onclick={() => openDeactivateModal(staff)}
                                             class="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors"
                                             title="Désactiver le staff"
                                             disabled={processingAction === `deactivate-${staff.id}`}
@@ -555,3 +565,26 @@
         </div>
     {/if}
 </div>
+
+<Modal
+    bind:isOpen={deactivateModalOpen}
+    title="Désactiver le membre du staff"
+    description="Êtes-vous sûr de vouloir désactiver {staffToDeactivate?.firstName} {staffToDeactivate?.lastName} ({staffToDeactivate?.email}) ? Cela l'empêchera d'accéder au portail staff."
+>
+    <div class="flex justify-end gap-3 mt-6">
+        <button
+            type="button"
+            onclick={() => { deactivateModalOpen = false; staffToDeactivate = null; }}
+            class="px-6 py-2.5 border border-border-input text-foreground-alt rounded-lg hover:bg-muted transition-colors font-medium"
+        >
+            Annuler
+        </button>
+        <button
+            type="button"
+            onclick={confirmDeactivate}
+            class="px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+        >
+            Désactiver
+        </button>
+    </div>
+</Modal>
