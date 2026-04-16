@@ -51,12 +51,9 @@ export function reveal(
 
 							// Clear transform after animation ends to avoid creating a stacking context,
 							// which would break position:fixed descendants (e.g. modals).
-							// Also flush iOS Safari's touch hit-test cache so interactive elements
-							// inside this container are tappable immediately after animation.
 							setTimeout(() => {
 								element.style.transform = '';
 								element.style.transition = '';
-								void element.getBoundingClientRect();
 							}, data.duration);
 						}, data.delay || 0);
 
