@@ -1,7 +1,7 @@
 # Germinal Terraform Makefile
 # Usage: make <target>
 
-.PHONY: help init plan apply apply-twilio output credentials destroy destroy-backend \
+.PHONY: help init plan apply apply-staging apply-production apply-twilio output credentials destroy destroy-backend \
         fmt validate refresh show graph clean \
         server-info server-ssh server-deploy server-rebuild server-backup \
         dns-info dns-email dns-verify
@@ -16,11 +16,13 @@ help:
 	@echo "  make validate      - Validate configuration files"
 	@echo ""
 	@echo "Operations:"
-	@echo "  make plan          - Show planned changes"
-	@echo "  make apply         - Apply changes"
-	@echo "  make apply-twilio  - Create Twilio API keys and auto-update Ansible vault files"
-	@echo "  make refresh       - Refresh state file"
-	@echo "  make show          - Show current state"
+	@echo "  make plan              - Show planned changes"
+	@echo "  make apply             - Apply changes"
+	@echo "  make apply-staging     - Apply staging Terraform and auto-update Ansible vault"
+	@echo "  make apply-production  - Apply production Terraform and auto-update Ansible vault"
+	@echo "  make apply-twilio      - Create Twilio API keys and auto-update Ansible vault files"
+	@echo "  make refresh           - Refresh state file"
+	@echo "  make show              - Show current state"
 	@echo ""
 	@echo "Outputs:"
 	@echo "  make output        - Show all outputs"
@@ -66,6 +68,14 @@ apply:
 # Create Twilio API keys and auto-update Ansible vault files
 apply-twilio:
 	@bash ../scripts/update-twilio-vault.sh
+
+# Apply staging Terraform and auto-update Ansible vault with IAM credentials
+apply-staging:
+	@bash ../scripts/update-staging-vault.sh
+
+# Apply production Terraform and auto-update Ansible vault with IAM credentials
+apply-production:
+	@bash ../scripts/update-production-vault.sh
 
 # Validate configuration
 validate:
