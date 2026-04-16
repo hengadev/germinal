@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
-	import { fly, fade } from 'svelte/transition';
 
 	interface Props {
 		isOpen?: boolean;
@@ -19,9 +18,9 @@
 		}
 	}
 
-	function toggleBodyScroll(isOpen: boolean) {
+	function toggleBodyScroll(open: boolean) {
 		if (!browser) return;
-		if (isOpen) {
+		if (open) {
 			scrollPosition = window.scrollY;
 			document.body.style.position = 'fixed';
 			document.body.style.top = `-${scrollPosition}px`;
@@ -51,29 +50,33 @@
 	});
 </script>
 
-{#if isOpen}
-	<div
-		transition:fade={{ duration: 300 }}
-		class="overlay"
-		onclick={() => (isOpen = false)}
-		onkeydown={handleKeydown}
-		class:visible={isOpen}
-		tabindex="0"
-		role="button"
-		aria-label="Close drawer"
-	></div>
-	<div
-		transition:fly={{ x: 300, duration: 300 }}
-		class="side-drawer"
-		class:visible={isOpen}
-		onkeydown={handleKeydown}
-		tabindex="0"
-		role="dialog"
-		aria-modal="true"
-	>
+<!--
+	Overlay and side-drawer are always in the DOM (not inside {#if}).
+	CSS transitions handle animation. pointer-events:none when closed ensures
+	touches are never dispatched to the hidden elements — removing a DOM node
+	mid-touch-sequence on iOS Safari corrupts the entire touch-dispatch state
+	until the page is reloaded.
+-->
+<div
+	class="overlay"
+	class:visible={isOpen}
+	onclick={() => (isOpen = false)}
+	onkeydown={handleKeydown}
+	aria-hidden="true"
+></div>
+<div
+	class="side-drawer"
+	class:visible={isOpen}
+	onkeydown={handleKeydown}
+	tabindex="-1"
+	role="dialog"
+	aria-modal={isOpen}
+	aria-hidden={!isOpen}
+>
+	{#if isOpen}
 		{@render children?.()}
-	</div>
-{/if}
+	{/if}
+</div>
 
 <style>
 	.overlay {
@@ -84,12 +87,13 @@
 		width: 100vw;
 		background: rgba(0, 0, 0, 0.5);
 		opacity: 0;
-		visibility: hidden;
+		pointer-events: none;
 		z-index: 9998;
+		transition: opacity 300ms;
 	}
 	.overlay.visible {
 		opacity: 1;
-		visibility: visible;
+		pointer-events: auto;
 	}
 
 	.side-drawer {
@@ -104,8 +108,12 @@
 		box-shadow: -2px 0 10px rgba(0, 0, 0, 0.2);
 		z-index: 9999;
 		overflow-y: auto;
+		pointer-events: none;
+		transform: translateX(100%);
+		transition: transform 300ms;
 	}
 	.side-drawer.visible {
-		right: 0;
+		pointer-events: auto;
+		transform: translateX(0);
 	}
 </style>

@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { onDestroy, getContext } from 'svelte';
 	import { browser } from '$app/environment';
-	import { slide, fade } from 'svelte/transition';
 	import { createVerticalSwipeHandler } from '$lib/utils/swipe';
 
 	interface Props {
@@ -25,16 +24,15 @@
 		}
 	}
 
-	function toggleBodyScroll(isOpen: boolean) {
+	function toggleBodyScroll(open: boolean) {
 		if (!browser) return;
 		if (!lockBodyScroll) {
 			// No body lock needed (scroll-jail layout). Still flush iOS's touch
 			// hit-test cache when the drawer closes so buttons below are responsive.
-			if (!isOpen) void document.body.getBoundingClientRect();
+			if (!open) void document.body.getBoundingClientRect();
 			return;
 		}
-		if (isOpen) {
-			// Save the current position
+		if (open) {
 			scrollPosition = window.scrollY;
 			document.body.style.position = 'fixed';
 			document.body.style.top = `-${scrollPosition}px`;
@@ -69,26 +67,33 @@
 	});
 </script>
 
-{#if isOpen}
-	<div
-		transition:fade={{ duration: 300 }}
-		class="overlay"
-		class:visible={isOpen}
-		onclick={() => (isOpen = false)}
-	></div>
-	<div
-		transition:slide={{ duration: 300 }}
-		class="drawer"
-		class:visible={isOpen}
-		use:closeSwipeAction.action
-		role="dialog"
-		aria-modal="true"
-		tabindex="-1"
-		onkeydown={handleKeydown}
-	>
+<!--
+	Overlay and drawer are always in the DOM (not inside {#if}).
+	CSS transitions handle animation. pointer-events:none when closed ensures
+	touches are never dispatched to the hidden elements — removing a DOM node
+	mid-touch-sequence on iOS Safari corrupts the entire touch-dispatch state
+	until the page is reloaded.
+-->
+<div
+	class="overlay"
+	class:visible={isOpen}
+	onclick={() => (isOpen = false)}
+	aria-hidden="true"
+></div>
+<div
+	class="drawer"
+	class:visible={isOpen}
+	use:closeSwipeAction.action
+	role="dialog"
+	aria-modal={isOpen}
+	aria-hidden={!isOpen}
+	tabindex="-1"
+	onkeydown={handleKeydown}
+>
+	{#if isOpen}
 		{@render children?.()}
-	</div>
-{/if}
+	{/if}
+</div>
 
 <style>
 	.overlay {
@@ -99,18 +104,19 @@
 		width: 100vw;
 		background: rgba(0, 0, 0, 0.5);
 		opacity: 0;
-		visibility: hidden;
+		pointer-events: none;
 		z-index: 9998;
+		transition: opacity 300ms;
 	}
 	.overlay.visible {
 		opacity: 1;
-		visibility: visible;
+		pointer-events: auto;
 	}
 
 	.drawer {
 		--border-top-radius: 1rem;
 		position: fixed;
-		bottom: -100%;
+		bottom: 0;
 		left: 0;
 		width: 100%;
 		max-height: 90vh;
@@ -122,8 +128,12 @@
 		z-index: 9999;
 		background: var(--color-background);
 		outline: none;
+		pointer-events: none;
+		transform: translateY(100%);
+		transition: transform 300ms;
 	}
 	.drawer.visible {
-		bottom: 0;
+		pointer-events: auto;
+		transform: translateY(0);
 	}
 </style>
