@@ -13,6 +13,7 @@
 	let exportUrl = $derived(() => {
 		const params = new URLSearchParams();
 		if (statusFilter !== 'all') params.set('status', statusFilter);
+		if (searchQuery.trim()) params.set('search', searchQuery.trim());
 		return `/admin/export/reservations?${params.toString()}`;
 	});
 

@@ -10,11 +10,13 @@ import type { RequestHandler } from './$types';
 export const GET: RequestHandler = async ({ url }) => {
 	const status = url.searchParams.get('status');
 	const limit = parseInt(url.searchParams.get('limit') || '1000');
+	const search = url.searchParams.get('search') || undefined;
 
 	try {
 		const csv = await exportReservationsToCSV({
 			limit,
 			status: status || undefined,
+			search,
 		});
 
 		return new Response(csv, {

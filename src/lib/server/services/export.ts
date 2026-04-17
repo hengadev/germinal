@@ -57,10 +57,11 @@ function formatCellValue(value: unknown): string {
 export async function exportReservationsToCSV(options: {
 	limit?: number;
 	status?: string;
+	search?: string;
 	startDate?: Date;
 	endDate?: Date;
 } = {}) {
-	const { limit = 1000, status, startDate, endDate } = options;
+	const { limit = 1000, status, search, startDate, endDate } = options;
 
 	let query = db.query.reservations.findMany({
 		with: {
@@ -92,7 +93,19 @@ export async function exportReservationsToCSV(options: {
 
 	const reservations_data = await query;
 
-	const csvData = reservations_data.map((r: typeof reservations_data[number]) => ({
+	// Apply search filter (case-insensitive, matches frontend behavior)
+	let filtered = reservations_data;
+	if (search && search.trim()) {
+		const query = search.trim().toLowerCase();
+		filtered = reservations_data.filter((r: typeof reservations_data[number]) =>
+			r.guestName.toLowerCase().includes(query) ||
+			r.guestEmail.toLowerCase().includes(query) ||
+			r.eventSession.event.title.toLowerCase().includes(query) ||
+			r.eventSession.title.toLowerCase().includes(query)
+		);
+	}
+
+	const csvData = filtered.map((r: typeof filtered[number]) => ({
 		'Reservation ID': r.id,
 		'Guest Name': r.guestName,
 		'Guest Email': r.guestEmail,
