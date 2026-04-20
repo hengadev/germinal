@@ -74,7 +74,7 @@
 
 <div
     class="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-4 xl:grid xl:grid-cols-[1fr_auto_1fr] xl:py-4 xl:px-12 border {showScrolledState
-        ? `bg-white/80 backdrop-blur-md border-border-card`
+        ? `bg-white border-border-card`
         : `bg-transparent border-transparent`}"
 >
     <button
