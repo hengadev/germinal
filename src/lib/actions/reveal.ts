@@ -7,6 +7,7 @@ const observedElements = new WeakMap<HTMLElement, {
 	duration: number;
 	easing: string;
 	delay: number;
+	timeoutIds: ReturnType<typeof setTimeout>[];
 }>();
 
 export function reveal(
@@ -35,6 +36,9 @@ export function reveal(
 	node.style.opacity = '0';
 	node.style.transform = ('transform' in preset.initial ? preset.initial.transform : '') || '';
 
+	// Track timeout IDs for cleanup
+	const timeoutIds: ReturnType<typeof setTimeout>[] = [];
+
 	// Create/reuse observer
 	if (!observer) {
 		observer = new IntersectionObserver((entries) => {
@@ -44,18 +48,22 @@ export function reveal(
 					const data = observedElements.get(element);
 
 					if (data) {
-						setTimeout(() => {
+						const initialTimeout = setTimeout(() => {
 							element.style.transition = `opacity ${data.duration}ms ${data.easing}, transform ${data.duration}ms ${data.easing}`;
 							element.style.opacity = '1';
 							element.style.transform = data.animate.transform || 'none';
 
 							// Clear transform after animation ends to avoid creating a stacking context,
 							// which would break position:fixed descendants (e.g. modals).
-							setTimeout(() => {
+							const cleanupTimeout = setTimeout(() => {
 								element.style.transform = '';
 								element.style.transition = '';
 							}, data.duration);
+
+							data.timeoutIds.push(cleanupTimeout);
 						}, data.delay || 0);
+
+						data.timeoutIds.push(initialTimeout);
 
 						// Unobserve after animation
 						observer?.unobserve(element);
@@ -71,13 +79,24 @@ export function reveal(
 		duration: options?.duration || preset.duration,
 		easing: preset.easing,
 		delay: options?.delay || 0,
+		timeoutIds,
 	});
-
 	observer.observe(node);
 
 	// Cleanup
 	return {
 		destroy() {
+			// Clear any pending timeouts
+			timeoutIds.forEach(id => clearTimeout(id));
+			timeoutIds.length = 0;
+
+			// Clear any timeouts stored in the WeakMap
+			const data = observedElements.get(node);
+			if (data) {
+				data.timeoutIds.forEach(id => clearTimeout(id));
+				data.timeoutIds.length = 0;
+			}
+
 			observer?.unobserve(node);
 			observedElements.delete(node);
 		},

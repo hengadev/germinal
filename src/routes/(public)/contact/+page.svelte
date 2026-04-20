@@ -66,6 +66,15 @@
     function hasFieldError(key: string): boolean {
         return getFieldError(key) !== undefined;
     }
+
+    // Helper to get filter button class string
+    function getFilterButtonClass(isSelected: boolean): string {
+        return `px-3 py-1.5 md:px-4 md:py-2 text-sm md:text-base cursor-pointer border rounded-full ${
+            isSelected
+                ? "bg-dark-900 text-white border-dark-900"
+                : "text-dark-500 border-dark-300"
+        }`;
+    }
 </script>
 
 <svelte:head>
@@ -82,10 +91,7 @@
 {#snippet tag(content: string, index: number)}
     <button
         type="button"
-        class="px-3 py-1.5 md:px-4 md:py-2 text-sm md:text-base text-dark-500 cursor-pointer border border-dark-300 rounded-full {selectedIndex ===
-        index
-            ? `bg-dark-900 text-white`
-            : ``}"
+        class={getFilterButtonClass(selectedIndex === index)}
         onclick={() => (selectedIndex = index)}
     >
         <p class="capitalize">{content}</p>
@@ -158,25 +164,27 @@
                     <p class="text-red-800">{form.error}</p>
                 </div>
             {/if}
+        </section>
 
-            <div
-                class="grid gap-4"
-                use:reveal={{ preset: "fade-up", delay: 150 }}
-            >
-                <p class="text-sm lg:text-base">{$t("contact.regarding")}</p>
-                <div class="flex flex-wrap items-center gap-3">
-                    {#each filters as filter, index}
-                        {@render tag(filter, index)}
-                    {/each}
-                </div>
+        <section
+            class="grid gap-4"
+            use:reveal={{ preset: "fade-up", delay: 150 }}
+        >
+            <p class="text-sm lg:text-base">{$t("contact.regarding")}</p>
+            <div class="flex flex-wrap items-center gap-3">
+                {#each filters as filter, index}
+                    {@render tag(filter, index)}
+                {/each}
             </div>
+        </section>
 
+        <section>
             <form
                 method="POST"
                 class="space-y-8 md:space-y-12 mt-6 md:mt-8"
                 use:enhance={() => {
-                    isSubmitting = true;
                     return async ({ update }) => {
+                        isSubmitting = true;
                         await update();
                         isSubmitting = false;
                     };
