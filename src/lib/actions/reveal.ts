@@ -58,6 +58,9 @@ export function reveal(
 							const cleanupTimeout = setTimeout(() => {
 								element.style.transform = '';
 								element.style.transition = '';
+								// Force a synchronous relayout so iOS Safari rebuilds its touch
+								// hit-test cache after the compositing layer is destroyed.
+								void document.body.getBoundingClientRect();
 							}, data.duration);
 
 							data.timeoutIds.push(cleanupTimeout);

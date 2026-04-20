@@ -9,12 +9,12 @@
 
 	let { children, isOpen = $bindable(false) }: Props = $props();
 
-	let scrollPosition = 0;
-	let scrollLocked = false;
+	let drawerEl: HTMLElement | null = null;
 	let renderChildren = $state(false);
 	let closeTimer: ReturnType<typeof setTimeout> | undefined;
+	let scrollLocked = false;
 
-	// CSS transition duration must match the .side-drawer / .overlay transition in <style>
+	// Must match .side-drawer / .overlay transition duration in <style>
 	const TRANSITION_MS = 300;
 
 	function handleKeydown(event: KeyboardEvent) {
@@ -24,23 +24,25 @@
 		}
 	}
 
+	function preventBodyTouchMove(e: TouchEvent) {
+		// Allow scrolling inside the drawer itself
+		if (drawerEl && drawerEl.contains(e.target as Node)) return;
+		e.preventDefault();
+	}
+
 	function lockScroll() {
-		scrollPosition = window.scrollY;
-		document.body.style.position = 'fixed';
-		document.body.style.top = `-${scrollPosition}px`;
-		document.body.style.width = '100%';
+		// Use touchmove prevention instead of body position:fixed.
+		// Setting position:fixed on body changes the compositing layer structure
+		// on iOS Safari and permanently corrupts its touch hit-test cache,
+		// causing all subsequent taps to be swallowed even after the style is removed.
+		document.body.style.overflow = 'hidden'; // desktop fallback
+		document.addEventListener('touchmove', preventBodyTouchMove, { passive: false });
 		scrollLocked = true;
 	}
 
 	function unlockScroll() {
-		document.body.style.position = '';
-		document.body.style.top = '';
-		document.body.style.width = '';
-		window.scrollTo(0, scrollPosition);
-		// iOS Safari caches touch hit-test regions. After removing position:fixed
-		// from body we must force a synchronous relayout so those cached regions
-		// are invalidated before the next tap event is processed.
-		void document.body.getBoundingClientRect();
+		document.body.style.overflow = '';
+		document.removeEventListener('touchmove', preventBodyTouchMove);
 		scrollLocked = false;
 	}
 
@@ -51,11 +53,9 @@
 			renderChildren = true;
 			lockScroll();
 		} else if (scrollLocked) {
-			// Delay both the body-scroll unlock and the children DOM removal until
-			// after the CSS transition (TRANSITION_MS). Mutating the DOM or clearing
-			// position:fixed synchronously on the same tick as the tap that closed
-			// the drawer corrupts iOS Safari's touch hit-test cache, causing every
-			// subsequent tap to be swallowed until the page is reloaded.
+			// Delay unlock and DOM removal until after the CSS transition.
+			// Removing DOM nodes or changing body styles synchronously on the
+			// same tick as the closing tap corrupts iOS Safari's touch dispatch.
 			closeTimer = setTimeout(() => {
 				unlockScroll();
 				renderChildren = false;
@@ -86,6 +86,7 @@
 ></div>
 <div
 	class="side-drawer"
+	bind:this={drawerEl}
 	class:visible={isOpen}
 	onkeydown={handleKeydown}
 	tabindex="-1"
