@@ -3,7 +3,7 @@
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import Drawer from '$lib/components/ui/Drawer.svelte';
 	import { browser } from '$app/environment';
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import { locale } from 'svelte-i18n';
 
 	type NotificationPreference = 'email' | 'sms' | 'both';

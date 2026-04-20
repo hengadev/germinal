@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import { browser } from '$app/environment';
 	import { loadStripe, type Stripe, type StripeElements } from '@stripe/stripe-js';
 	import { Lock, Clock, AlertCircle, CheckCircle2, Loader2, Tag } from 'lucide-svelte';

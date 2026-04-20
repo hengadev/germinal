@@ -11,7 +11,7 @@
 		Tag,
 		X
 	} from 'lucide-svelte';
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import { formatCurrency } from '$lib/utils/currency';
 	import { t, locale } from 'svelte-i18n';
 	import type { PageData } from './$types';

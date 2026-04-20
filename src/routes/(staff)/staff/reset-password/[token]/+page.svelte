@@ -1,6 +1,6 @@
 <script lang="ts">
     import { enhance } from "$app/forms";
-    import { page } from "$app/stores";
+    import { page } from "$app/state";
     import { Loader2, CheckCircle2, AlertCircle } from "lucide-svelte";
     import { getToastContext } from "$lib/components/toast/state.svelte";
 

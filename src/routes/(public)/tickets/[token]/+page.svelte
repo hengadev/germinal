@@ -3,7 +3,7 @@
 	import { locale, t } from 'svelte-i18n';
 	import type { PageData } from './$types';
 	import { formatCurrency } from '$lib/utils/currency';
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import { reveal } from '$lib/actions/reveal';
 
 	let { data }: { data: PageData } = $props();

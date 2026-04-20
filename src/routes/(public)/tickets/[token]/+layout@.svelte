@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Navigation from "$lib/components/Navigation.svelte";
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import type { LayoutData } from './$types';
 	import { Instagram } from "lucide-svelte";
 	import { t } from 'svelte-i18n';
