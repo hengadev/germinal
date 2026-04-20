@@ -85,6 +85,12 @@
                 : "text-dark-500 border-dark-300"
         }`;
     }
+
+    // Stable handler for filter buttons (not inline)
+    function handleFilterClick(index: number, content: string) {
+        trackClick(`Filter ${index}: ${content}`);
+        selectedIndex = index;
+    }
 </script>
 
 <svelte:head>
@@ -102,10 +108,7 @@
     <button
         type="button"
         class={getFilterButtonClass(selectedIndex === index)}
-        onclick={() => {
-            trackClick(`Filter ${index}: ${content}`);
-            selectedIndex = index;
-        }}
+        onclick={() => handleFilterClick(index, content)}
     >
         <p class="capitalize">{content}</p>
     </button>
@@ -185,10 +188,7 @@
             {/if}
         </section>
 
-        <section
-            class="grid gap-4"
-            use:reveal={{ preset: "fade-up", delay: 150 }}
-        >
+        <section class="grid gap-4">
             <p class="text-sm lg:text-base">{$t("contact.regarding")}</p>
             <div class="flex flex-wrap items-center gap-3">
                 {#each filters as filter, index}
