@@ -1,7 +1,13 @@
 <script lang="ts">
     import EventCard from "$lib/components/EventCard.svelte";
     import type { PageData } from "./$types";
-    import { Grid2x2, LayoutList, ArrowDown, ArrowRight, Loader2 } from "lucide-svelte";
+    import {
+        Grid2x2,
+        LayoutList,
+        ArrowDown,
+        ArrowRight,
+        Loader2,
+    } from "lucide-svelte";
     import { t, locale } from "svelte-i18n";
     import { reveal } from "$lib/actions/reveal";
 
@@ -17,8 +23,12 @@
     let selectedCategoryId = $state<string | null>(null);
 
     // Helper function to get localized category display name
-    function getCategoryDisplayName(category: typeof filters[number]): string {
-        return $locale === 'en' ? category.displayNameEn : category.displayNameFr;
+    function getCategoryDisplayName(
+        category: (typeof filters)[number],
+    ): string {
+        return $locale === "en"
+            ? category.displayNameEn
+            : category.displayNameFr;
     }
 
     // Pagination state
@@ -31,9 +41,18 @@
     // Filtered events based on selected category
     let filteredEvents = $derived(
         selectedCategoryId
-            ? allEvents.filter(e => e.categoryId === selectedCategoryId)
-            : allEvents
+            ? allEvents.filter((e) => e.categoryId === selectedCategoryId)
+            : allEvents,
     );
+
+    // Compute button class string to avoid Safari iOS reactive state issues
+    function getFilterButtonClass(isSelected: boolean): string {
+        const base = "px-4 py-2 rounded-full text-sm font-medium transition-colors";
+        if (isSelected) {
+            return `${base} bg-dark-900 text-white`;
+        }
+        return `${base} bg-transparent text-dark-600 border border-dark-600 hover:border-dark-900 cursor-pointer`;
+    }
 
     async function loadMoreEvents() {
         if (isLoading || !hasMore) return;
@@ -43,9 +62,11 @@
 
         try {
             const nextPage = currentPage + 1;
-            const response = await fetch(`/api/events?page=${nextPage}&limit=6`);
+            const response = await fetch(
+                `/api/events?page=${nextPage}&limit=6`,
+            );
 
-            if (!response.ok) throw new Error('Failed to load more events');
+            if (!response.ok) throw new Error("Failed to load more events");
 
             const result = await response.json();
 
@@ -53,7 +74,8 @@
             currentPage = nextPage;
             hasMore = result.pagination.hasNextPage;
         } catch (err) {
-            error = err instanceof Error ? err.message : 'Failed to load events';
+            error =
+                err instanceof Error ? err.message : "Failed to load events";
         } finally {
             isLoading = false;
         }
@@ -79,26 +101,14 @@
             <div class="flex flex-wrap items-center gap-3">
                 <button
                     onclick={() => (selectedCategoryId = null)}
-                    class="px-4 py-2 rounded-full text-sm font-medium transition-colors"
-                    class:bg-dark-900={selectedCategoryId === null}
-                    class:text-white={selectedCategoryId === null}
-                    class:bg-transparent={selectedCategoryId !== null}
-                    class:text-dark-600={selectedCategoryId !== null}
-                    class:border={selectedCategoryId !== null}
-                    class:border-dark-600={selectedCategoryId !== null}
+                    class={getFilterButtonClass(selectedCategoryId === null)}
                 >
                     All
                 </button>
                 {#each filters as filter}
                     <button
                         onclick={() => (selectedCategoryId = filter.id)}
-                        class="px-4 py-2 rounded-full text-sm whitespace-nowrap transition-colors cursor-pointer"
-                        class:bg-dark-900={selectedCategoryId === filter.id}
-                        class:text-white={selectedCategoryId === filter.id}
-                        class:bg-transparent={selectedCategoryId !== filter.id}
-                        class:text-dark-600={selectedCategoryId !== filter.id}
-                        class:border={selectedCategoryId !== filter.id}
-                        class:border-dark-900={selectedCategoryId !== filter.id}
+                        class={getFilterButtonClass(selectedCategoryId === filter.id)}
                     >
                         {getCategoryDisplayName(filter)}
                     </button>
@@ -159,7 +169,9 @@
 
     {#if filteredEvents.length === 0}
         <p class="text-gray-500">
-            {selectedCategoryId ? 'No events found in this category.' : $t('events.noEvents')}
+            {selectedCategoryId
+                ? "No events found in this category."
+                : $t("events.noEvents")}
         </p>
     {:else if viewMode === VIEW_MODE.GRID}
         <div
