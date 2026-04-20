@@ -185,7 +185,7 @@
                 <input
                     type="hidden"
                     name="csrf_token"
-                    value={$page.data.csrfToken}
+                    value={page.data.csrfToken}
                 />
                 <input
                     type="hidden"

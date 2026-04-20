@@ -8,7 +8,7 @@
 	let { data, children }: { data: LayoutData; children: any } = $props();
 
 	// Check if this is a success page - hide nav/footer for cleaner UX
-	const showSuccess = $derived($page.url.searchParams.get('success') === 'true');
+	const showSuccess = $derived(page.url.searchParams.get('success') === 'true');
 </script>
 
 {#if showSuccess}

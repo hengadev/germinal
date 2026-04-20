@@ -127,7 +127,7 @@
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
-					'X-CSRF-Token': $page.data.csrfToken
+					'X-CSRF-Token': page.data.csrfToken
 				},
 				body: JSON.stringify({
 					sessionId: data.session.id,

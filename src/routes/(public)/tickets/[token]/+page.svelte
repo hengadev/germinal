@@ -8,9 +8,9 @@
 
 	let { data }: { data: PageData } = $props();
 
-	const showSuccess = $page.url.searchParams.get('success') === 'true';
-	const paymentFailed = $page.url.searchParams.get('payment_failed') === 'true';
-	const paymentErrorMessage = $page.url.searchParams.get('error') || $t('tickets.paymentFailed.defaultError');
+	const showSuccess = page.url.searchParams.get('success') === 'true';
+	const paymentFailed = page.url.searchParams.get('payment_failed') === 'true';
+	const paymentErrorMessage = page.url.searchParams.get('error') || $t('tickets.paymentFailed.defaultError');
 
 	let showPaymentFailure = $state(paymentFailed && data.reservation.status === 'expired');
 
