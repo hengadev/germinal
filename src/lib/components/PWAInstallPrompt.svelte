@@ -42,37 +42,39 @@
     }
 </script>
 
-{#if visible}
-    <div class="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 z-50 rounded-xl border border-gray-200 bg-white p-4 shadow-lg dark:border-gray-700 dark:bg-gray-900 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:pb-4">
-        <div class="flex items-start gap-3">
-            <img src="/pwa-192x192.png" alt="Germinal" class="h-10 w-10 rounded-xl flex-shrink-0" />
-            <div class="flex-1 min-w-0">
-                <p class="text-sm font-semibold text-gray-900 dark:text-white">{$t('pwa.installTitle')}</p>
-                <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{$t('pwa.installDescription')}</p>
-                <div class="mt-3 flex items-center gap-2">
-                    <button
-                        onclick={install}
-                        class="rounded-lg bg-gray-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-gray-700 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 transition-colors"
-                    >
-                        {$t('pwa.installButton')}
-                    </button>
-                    <button
-                        onclick={dismiss}
-                        class="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-                    >
-                        {$t('pwa.installDismiss')}
-                    </button>
-                </div>
+<div
+    class="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 z-50 rounded-xl border border-gray-200 bg-white p-4 shadow-lg dark:border-gray-700 dark:bg-gray-900 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:pb-4"
+    style="transition: opacity 300ms; opacity: {visible ? 1 : 0}; pointer-events: {visible ? 'auto' : 'none'};"
+    aria-hidden={!visible}
+>
+    <div class="flex items-start gap-3">
+        <img src="/pwa-192x192.png" alt="Germinal" class="h-10 w-10 rounded-xl flex-shrink-0" />
+        <div class="flex-1 min-w-0">
+            <p class="text-sm font-semibold text-gray-900 dark:text-white">{$t('pwa.installTitle')}</p>
+            <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{$t('pwa.installDescription')}</p>
+            <div class="mt-3 flex items-center gap-2">
+                <button
+                    onclick={install}
+                    class="rounded-lg bg-gray-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-gray-700 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 transition-colors"
+                >
+                    {$t('pwa.installButton')}
+                </button>
+                <button
+                    onclick={dismiss}
+                    class="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                >
+                    {$t('pwa.installDismiss')}
+                </button>
             </div>
-            <button
-                onclick={dismiss}
-                aria-label={$t('pwa.close')}
-                class="text-gray-300 hover:text-gray-500 dark:hover:text-gray-400 transition-colors flex-shrink-0"
-            >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
-                </svg>
-            </button>
         </div>
+        <button
+            onclick={dismiss}
+            aria-label={$t('pwa.close')}
+            class="text-gray-300 hover:text-gray-500 dark:hover:text-gray-400 transition-colors flex-shrink-0"
+        >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+            </svg>
+        </button>
     </div>
-{/if}
+</div>

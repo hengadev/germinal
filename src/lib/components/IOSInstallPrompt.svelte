@@ -79,9 +79,8 @@
 	}
 </script>
 
-{#if visible}
-	<div class="ios-install-banner">
-		<div class="banner-content">
+<div class="ios-install-banner" style="transition: opacity 300ms; opacity: {visible ? 1 : 0}; pointer-events: {visible ? 'auto' : 'none'};" aria-hidden={!visible}>
+	<div class="banner-content">
 			<div class="icon-header">
 				<div class="app-icon">
 					<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -137,7 +136,7 @@
 			</div>
 		</div>
 	</div>
-{/if}
+</div>
 
 <style>
 	.ios-install-banner {
@@ -148,7 +147,6 @@
 		z-index: 100;
 		padding: 1rem;
 		padding-bottom: calc(1rem + env(safe-area-inset-bottom));
-		animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 	}
 
 	.banner-content {
@@ -271,17 +269,6 @@
 	.step-visual {
 		flex-shrink: 0;
 		color: #9ca3af;
-	}
-
-	@keyframes slideUp {
-		from {
-			opacity: 0;
-			transform: translateY(20px);
-		}
-		to {
-			opacity: 1;
-			transform: translateY(0);
-		}
 	}
 
 	/* Dark mode */

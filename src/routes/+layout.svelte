@@ -57,17 +57,19 @@
 <PWAInstallPrompt />
 <IOSInstallPrompt />
 
-{#if showBanner}
-    <div class="fixed bottom-4 right-4 left-4 sm:left-auto z-50 flex items-center gap-3 rounded-lg bg-gray-900 px-4 py-3 text-sm text-white shadow-lg pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:pb-3">
-        <span>{bannerMessage}</span>
-        {#if needRefreshValue}
-            <button
-                onclick={() => updateServiceWorker?.(true)}
-                class="rounded bg-white px-2 py-0.5 text-xs font-medium text-gray-900 hover:bg-gray-100"
-            >
-                {$t('pwa.reload')}
-            </button>
-        {/if}
-        <button onclick={() => { showBanner = false; }} aria-label={$t('pwa.close')} class="opacity-60 hover:opacity-100">✕</button>
-    </div>
-{/if}
+<div
+    class="fixed bottom-4 right-4 left-4 sm:left-auto z-50 flex items-center gap-3 rounded-lg bg-gray-900 px-4 py-3 text-sm text-white shadow-lg pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:pb-3"
+    style="transition: opacity 300ms; opacity: {showBanner ? 1 : 0}; pointer-events: {showBanner ? 'auto' : 'none'};"
+    aria-hidden={!showBanner}
+>
+    <span>{bannerMessage}</span>
+    {#if needRefreshValue}
+        <button
+            onclick={() => updateServiceWorker?.(true)}
+            class="rounded bg-white px-2 py-0.5 text-xs font-medium text-gray-900 hover:bg-gray-100"
+        >
+            {$t('pwa.reload')}
+        </button>
+    {/if}
+    <button onclick={() => { showBanner = false; }} aria-label={$t('pwa.close')} class="opacity-60 hover:opacity-100">✕</button>
+</div>
