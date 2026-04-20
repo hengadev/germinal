@@ -80,7 +80,7 @@
 </script>
 
 <div class="ios-install-banner" style="transition: opacity 300ms; opacity: {visible ? 1 : 0}; pointer-events: {visible ? 'auto' : 'none'};" aria-hidden={!visible}>
-{#if browser}
+{#if visible}
 	<div class="banner-content">
 			<div class="icon-header">
 				<div class="app-icon">
