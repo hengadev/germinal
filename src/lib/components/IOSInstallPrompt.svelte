@@ -136,7 +136,6 @@
 			</div>
 		</div>
 	</div>
-</div>
 
 <style>
 	.ios-install-banner {

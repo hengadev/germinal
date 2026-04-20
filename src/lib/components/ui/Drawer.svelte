@@ -11,11 +11,16 @@
 	let { children, isOpen = $bindable(false) }: Props = $props();
 
 	// Layouts that use a scroll-jail (overflow on a container, not body) should set
-	// this context to false so we don't apply body position:fixed, which corrupts
-	// iOS Safari's touch hit-test regions for elements inside the scroll container.
+	// this context to false so we don't apply scroll locking at all.
 	const lockBodyScroll = (getContext<boolean>('drawer-lock-body-scroll') ?? true);
 
-	let scrollPosition = 0;
+	let drawerEl: HTMLElement | null = null;
+	let renderChildren = $state(false);
+	let closeTimer: ReturnType<typeof setTimeout> | undefined;
+	let scrollLocked = false;
+
+	// Must match .drawer transition duration in <style>
+	const TRANSITION_MS = 300;
 
 	function handleKeydown(event: KeyboardEvent) {
 		event.stopPropagation();
@@ -24,47 +29,50 @@
 		}
 	}
 
-	function toggleBodyScroll(open: boolean) {
-		if (!browser) return;
-		if (!lockBodyScroll) {
-			// No body lock needed (scroll-jail layout). Still flush iOS's touch
-			// hit-test cache when the drawer closes so buttons below are responsive.
-			if (!open) void document.body.getBoundingClientRect();
-			return;
-		}
-		if (open) {
-			scrollPosition = window.scrollY;
-			document.body.style.position = 'fixed';
-			document.body.style.top = `-${scrollPosition}px`;
-			document.body.style.width = '100%';
-		} else {
-			document.body.style.position = '';
-			document.body.style.top = '';
-			document.body.style.width = '';
-			window.scrollTo(0, scrollPosition);
-			// iOS Safari caches touch hit-test regions. After removing position:fixed
-			// from body we must force a synchronous relayout so those cached regions
-			// are invalidated before the next tap event is processed.
-			void document.body.getBoundingClientRect();
-		}
+	function preventBodyTouchMove(e: TouchEvent) {
+		if (drawerEl && drawerEl.contains(e.target as Node)) return;
+		e.preventDefault();
 	}
+
+	function lockScroll() {
+		document.body.style.overflow = 'hidden'; // desktop fallback
+		document.addEventListener('touchmove', preventBodyTouchMove, { passive: false });
+		scrollLocked = true;
+	}
+
+	function unlockScroll() {
+		document.body.style.overflow = '';
+		document.removeEventListener('touchmove', preventBodyTouchMove);
+		// Flush iOS Safari's touch hit-test cache after unlocking.
+		void document.body.getBoundingClientRect();
+		scrollLocked = false;
+	}
+
+	$effect(() => {
+		if (!browser) return;
+		if (isOpen) {
+			clearTimeout(closeTimer);
+			renderChildren = true;
+			if (lockBodyScroll) lockScroll();
+		} else if (scrollLocked || renderChildren) {
+			closeTimer = setTimeout(() => {
+				if (lockBodyScroll) unlockScroll();
+				renderChildren = false;
+			}, TRANSITION_MS);
+		}
+	});
+
+	onDestroy(() => {
+		clearTimeout(closeTimer);
+		if (!browser) return;
+		if (scrollLocked) unlockScroll();
+	});
 
 	const onSwipe = (direction: 'top' | 'bottom') => {
 		if (direction === 'bottom') isOpen = false;
 	};
 
 	const closeSwipeAction = createVerticalSwipeHandler(onSwipe);
-
-	$effect(() => {
-		toggleBodyScroll(isOpen);
-	});
-
-	onDestroy(() => {
-		if (!browser || !lockBodyScroll) return;
-		document.body.style.position = '';
-		document.body.style.top = '';
-		window.scrollTo(0, scrollPosition);
-	});
 </script>
 
 <!--
@@ -82,6 +90,7 @@
 ></div>
 <div
 	class="drawer"
+	bind:this={drawerEl}
 	class:visible={isOpen}
 	use:closeSwipeAction.action
 	role="dialog"
@@ -90,7 +99,7 @@
 	tabindex="-1"
 	onkeydown={handleKeydown}
 >
-	{#if isOpen}
+	{#if renderChildren}
 		{@render children?.()}
 	{/if}
 </div>
