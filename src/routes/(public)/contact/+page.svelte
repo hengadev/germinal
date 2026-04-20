@@ -79,7 +79,7 @@
 
     // Helper to get filter button class string
     function getFilterButtonClass(isSelected: boolean): string {
-        return `px-3 py-1.5 md:px-4 md:py-2 text-sm md:text-base cursor-pointer border rounded-full ${
+        return `px-3 py-1.5 md:px-4 md:py-2 text-sm md:text-base cursor-pointer border rounded-full touch-action-manipulation ${
             isSelected
                 ? "bg-dark-900 text-white border-dark-900"
                 : "text-dark-500 border-dark-300"
@@ -108,7 +108,8 @@
     <button
         type="button"
         class={getFilterButtonClass(selectedIndex === index)}
-        onclick={() => handleFilterClick(index, content)}
+        data-filter-index={index}
+        data-filter-content={content}
     >
         <p class="capitalize">{content}</p>
     </button>
@@ -190,7 +191,15 @@
 
         <section class="grid gap-4">
             <p class="text-sm lg:text-base">{$t("contact.regarding")}</p>
-            <div class="flex flex-wrap items-center gap-3">
+            <div class="flex flex-wrap items-center gap-3" on:click={(e) => {
+                const button = e.target.closest('button[data-filter-index]');
+                if (button) {
+                    const index = parseInt(button.getAttribute('data-filter-index')!);
+                    const content = button.getAttribute('data-filter-content')!;
+                    trackClick(`Filter ${index}: ${content}`);
+                    selectedIndex = index;
+                }
+            }}>
                 {#each filters as filter, index}
                     {@render tag(filter, index)}
                 {/each}
@@ -201,6 +210,7 @@
             <form
                 method="POST"
                 class="space-y-8 md:space-y-12 mt-6 md:mt-8"
+                novalidate
                 use:enhance={() => {
                     return async ({ update }) => {
                         isSubmitting = true;
