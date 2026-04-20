@@ -45,13 +45,17 @@
             : allEvents,
     );
 
-    // Compute button class string to avoid Safari iOS reactive state issues
+    // Compute button class strings to avoid Safari iOS reactive state issues
     function getFilterButtonClass(isSelected: boolean): string {
         const base = "px-4 py-2 rounded-full text-sm font-medium transition-colors";
         if (isSelected) {
             return `${base} bg-dark-900 text-white`;
         }
         return `${base} bg-transparent text-dark-600 border border-dark-600 hover:border-dark-900 cursor-pointer`;
+    }
+
+    function getViewModeButtonClass(isActive: boolean): string {
+        return `cursor-pointer p-1 ${isActive ? 'text-dark-900' : 'text-dark-300'}`;
     }
 
     async function loadMoreEvents() {
@@ -121,18 +125,14 @@
                 <button
                     type="button"
                     onclick={() => (viewMode = VIEW_MODE.GRID)}
-                    class="cursor-pointer p-1"
-                    class:text-dark-900={viewMode === VIEW_MODE.GRID}
-                    class:text-dark-300={viewMode === VIEW_MODE.LIST}
+                    class={getViewModeButtonClass(viewMode === VIEW_MODE.GRID)}
                 >
                     <Grid2x2 />
                 </button>
                 <button
                     type="button"
                     onclick={() => (viewMode = VIEW_MODE.LIST)}
-                    class="cursor-pointer p-1"
-                    class:text-dark-900={viewMode === VIEW_MODE.LIST}
-                    class:text-dark-300={viewMode === VIEW_MODE.GRID}
+                    class={getViewModeButtonClass(viewMode === VIEW_MODE.LIST)}
                 >
                     <LayoutList />
                 </button>
@@ -148,18 +148,14 @@
                 <button
                     type="button"
                     onclick={() => (viewMode = VIEW_MODE.GRID)}
-                    class="cursor-pointer p-1"
-                    class:text-dark-900={viewMode === VIEW_MODE.GRID}
-                    class:text-dark-300={viewMode === VIEW_MODE.LIST}
+                    class={getViewModeButtonClass(viewMode === VIEW_MODE.GRID)}
                 >
                     <Grid2x2 />
                 </button>
                 <button
                     type="button"
                     onclick={() => (viewMode = VIEW_MODE.LIST)}
-                    class="cursor-pointer p-1"
-                    class:text-dark-900={viewMode === VIEW_MODE.LIST}
-                    class:text-dark-300={viewMode === VIEW_MODE.GRID}
+                    class={getViewModeButtonClass(viewMode === VIEW_MODE.LIST)}
                 >
                     <LayoutList />
                 </button>
