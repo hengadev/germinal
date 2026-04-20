@@ -27,6 +27,16 @@
     let selectedIndex = $state(0);
     let isSubmitting = $state(false);
 
+    // Debug: Track clicks
+    let clickCount = $state(0);
+    let lastClickTarget = $state<string>("");
+
+    function trackClick(target: string) {
+        clickCount++;
+        lastClickTarget = target;
+        console.log(`[DEBUG] Click #${clickCount}: ${target}`);
+    }
+
     interface Link {
         href: string;
         Icon: typeof import("lucide-svelte").Icon;
@@ -92,7 +102,10 @@
     <button
         type="button"
         class={getFilterButtonClass(selectedIndex === index)}
-        onclick={() => (selectedIndex = index)}
+        onclick={() => {
+            trackClick(`Filter ${index}: ${content}`);
+            selectedIndex = index;
+        }}
     >
         <p class="capitalize">{content}</p>
     </button>
@@ -104,6 +117,12 @@
         <p class="text-dark-400 text-base lg:text-lg max-w-160">
             {$t("contact.description")}
         </p>
+        <!-- DEBUG: Click counter -->
+        <div class="fixed bottom-4 right-4 bg-yellow-100 border-2 border-yellow-500 p-4 rounded-lg text-sm font-mono z-[99999]">
+            <p>Clicks tracked: {clickCount}</p>
+            <p>Last: {lastClickTarget || "none"}</p>
+            <p>Selected index: {selectedIndex}</p>
+        </div>
     </div>
 
     <div
