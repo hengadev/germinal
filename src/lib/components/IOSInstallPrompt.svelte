@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
-	import { t } from 'svelte-i18n';
+	import { t, isLoading } from 'svelte-i18n';
 
 	// Admin domain configuration (must match server config)
 	const ADMIN_DOMAINS = [
@@ -80,7 +80,7 @@
 </script>
 
 <div class="ios-install-banner" style="transition: opacity 300ms; opacity: {visible ? 1 : 0}; pointer-events: {visible ? 'auto' : 'none'};" aria-hidden={!visible}>
-{#if visible}
+{#if !$isLoading}
 	<div class="banner-content">
 			<div class="icon-header">
 				<div class="app-icon">
@@ -90,7 +90,7 @@
 					</svg>
 				</div>
 				<div class="banner-text">
-					<p class="banner-title">{t('pwa.iosTitle', { values: { appName: getAppName() } })}</p>
+					<p class="banner-title">{$t('pwa.iosTitle', { values: { appName: getAppName() } })}</p>
 					<p class="banner-subtitle">{$t('pwa.iosSubtitle')}</p>
 				</div>
 				<button onclick={dismiss} class="close-btn" aria-label="Close">
