@@ -17,6 +17,7 @@
 		"upcomingEvent": "Prochain événement",
 		"events": "Notre portfolio",
 		"talents": "Nos talents",
+		"manifesto": "Notre manifesto",
 		"contact": "Contact"
 	},
 	"footer": {
@@ -105,6 +106,17 @@
 			"pressMedia": "presse & médias",
 			"followUs": "Suivez-nous"
 		}
+	},
+	"manifesto": {
+		"pageTitle": "Notre Manifesto | Germinal",
+		"title": "Notre Manifesto",
+		"intro": "Chez Germinal, nous croyons que les moments les plus significatifs sont ceux qui défient les frontières du possible — là où le goût rencontre l'espace, où le son sculpte le silence.",
+		"section1Title": "L'éphémère comme discipline",
+		"section1Body": "Nous ne créons pas des événements. Nous architecturons des expériences sensorielles qui existent hors du temps ordinaire. Chaque projet est conçu pour être vécu pleinement, une seule fois, avant de rejoindre la mémoire.",
+		"section2Title": "La rigueur comme liberté",
+		"section2Body": "Notre approche est fondée sur une exigence absolue : chaque détail, chaque matière, chaque sensation doit répondre à une intention précise. C'est dans la contrainte que naît la créativité la plus pure.",
+		"section3Title": "Le collectif comme force",
+		"section3Body": "Germinal est avant tout un collectif de talents — architectes, chefs, sonographes, designers — qui partagent une vision commune : dépasser les disciplines pour créer quelque chose d'inédit."
 	},
 	"upcoming": {
 		"title": "Le prochain événement"
