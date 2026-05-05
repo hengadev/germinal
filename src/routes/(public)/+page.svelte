@@ -131,7 +131,7 @@
                             <!-- Location -->
                             <div class="grid gap-0.5">
                                 <p class="uppercase text-xs text-dark-300">{$t("home.location")}</p>
-                                <p class="text-dark-900 text-sm font-medium">{event.location}</p>
+                                <p class="text-dark-900 text-sm font-medium">{$locale === 'en' ? event.locationEn : event.locationFr}</p>
                             </div>
 
                             <!-- Admission info -->
