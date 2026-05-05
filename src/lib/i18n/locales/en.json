@@ -14,9 +14,9 @@
 		"iosStep2": "Scroll and tap <strong>Add to Home Screen</strong>"
 	},
 	"nav": {
-		"upcomingEvent": "Upcoming Event",
-		"events": "Events",
-		"talents": "Talents",
+		"upcomingEvent": "Upcoming event",
+		"events": "Our portfolio",
+		"talents": "Our talents",
 		"contact": "Contact"
 	},
 	"footer": {
