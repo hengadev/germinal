@@ -28,5 +28,5 @@
     title="Switch language / Changer de langue"
 >
     <Globe size={16} />
-    <span class="uppercase text-sm font-medium">{currentLocale}</span>
+    <span class="uppercase text-sm font-medium">{currentLocale === "en" ? "FR" : "EN"}</span>
 </button>
