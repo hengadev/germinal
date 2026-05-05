@@ -31,6 +31,7 @@
         ...(hasSpotlightEvent ? [{ href: "/spotlight", label: $t('nav.upcomingEvent') }] : []),
         { href: "/events", label: $t('nav.events') },
         { href: "/talents", label: $t('nav.talents') },
+        { href: "/manifesto", label: $t('nav.manifesto') },
         { href: "/contact", label: $t('nav.contact') },
     ]);
 
