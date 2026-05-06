@@ -109,15 +109,47 @@
 		}
 	},
 	"manifesto": {
-		"pageTitle": "Notre Manifesto | Germinal",
-		"title": "Notre Manifesto",
-		"intro": "Chez Germinal, nous croyons que les moments les plus significatifs sont ceux qui défient les frontières du possible — là où le goût rencontre l'espace, où le son sculpte le silence.",
-		"section1Title": "L'éphémère comme discipline",
-		"section1Body": "Nous ne créons pas des événements. Nous architecturons des expériences sensorielles qui existent hors du temps ordinaire. Chaque projet est conçu pour être vécu pleinement, une seule fois, avant de rejoindre la mémoire.",
-		"section2Title": "La rigueur comme liberté",
-		"section2Body": "Notre approche est fondée sur une exigence absolue : chaque détail, chaque matière, chaque sensation doit répondre à une intention précise. C'est dans la contrainte que naît la créativité la plus pure.",
-		"section3Title": "Le collectif comme force",
-		"section3Body": "Germinal est avant tout un collectif de talents — architectes, chefs, sonographes, designers — qui partagent une vision commune : dépasser les disciplines pour créer quelque chose d'inédit."
+		"pageTitle": "Nos Savoir-Faire | Germinal",
+		"eyebrow": "Savoir-faire",
+		"title": "Ce que nous créons",
+		"intro": "Nous ne gérons pas des événements. Nous architecturons des expériences — des instants construits avec méthode, intention et sensibilité. Chaque projet naît de la vision de nos clients et prend forme à travers un processus rigoureux, mené par un collectif de talents qui partagent une seule exigence : que rien ne soit laissé au hasard.",
+		"artDirection": {
+			"number": "01",
+			"title": "Direction Artistique",
+			"tagline": "Donner un visage à votre vision.",
+			"body": "Avant qu'un espace soit défini, avant qu'un matériau soit sélectionné, il y a une idée. Notre rôle est de la saisir, de l'affiner, de lui donner une cohérence esthétique et émotionnelle qui traversera chaque détail de l'événement. De l'intention initiale au rendu final, nous sommes les gardiens de la vision.",
+			"point1": "Création du concept visuel global et de l'identité de l'événement",
+			"point2": "Définition de la palette sensorielle : lumière, matière, couleur, son",
+			"point3": "Direction créative de l'ensemble des prestataires artistiques",
+			"point4": "Moodboards, carnets de tendances et références visuelles",
+			"imageAlt": "Mise en scène d'une table élaborée sous une lumière dorée et dramatique, illustrant la précision et l'intention derrière chaque détail de direction artistique"
+		},
+		"scenography": {
+			"number": "02",
+			"title": "Scénographie",
+			"tagline": "L'espace comme langage.",
+			"body": "Nous pensons l'espace non pas comme un décor, mais comme un langage. Chaque volume, chaque texture, chaque axe de regard est conçu pour guider l'expérience, installer une atmosphère qui s'impose sans se justifier. La scénographie est l'art de rendre visible ce qui ne peut être dit.",
+			"point1": "Design spatial et architecture éphémère sur mesure",
+			"point2": "Sélection et agencement du mobilier, des matières et des textures",
+			"point3": "Mise en lumière architecturale, scénique et d'ambiance",
+			"point4": "Habillage floral, végétal et installation artistique",
+			"imageAlt": "Vue large d'un espace scénographié avec des volumes architecturaux audacieux, des drapés sophistiqués et un éclairage tamisé créant une atmosphère à la fois dramatique et luxueuse"
+		},
+		"production": {
+			"number": "03",
+			"title": "Production Créative",
+			"tagline": "L'exigence de l'invisible.",
+			"body": "Un projet réussi est celui où l'effort ne se voit pas. Derrière l'élégance apparente se cache une rigueur absolue : coordination des équipes, gestion des prestataires, anticipation des imprévus. Nous portons cette complexité pour que vous puissiez simplement vivre l'expérience.",
+			"point1": "Coordination des équipes artistiques, techniques et logistiques",
+			"point2": "Sélection et gestion des prestataires et fournisseurs",
+			"point3": "Suivi budgétaire détaillé et pilotage opérationnel",
+			"point4": "Installation, régie et accompagnement le jour J",
+			"imageAlt": "Photographie en coulisses d'une équipe installant des éléments scénographiques dans un vaste espace vide, illustrant la rigueur et la précision du processus de production"
+		},
+		"approach": {
+			"title": "Notre approche",
+			"body": "Chaque projet est unique. Pas de formule, pas de réponse standard. Nous commençons par écouter — votre vision, vos contraintes, l'émotion que vous souhaitez faire naître. Puis nous bâtissons, avec exigence et méthode, l'expérience qui vous ressemble. De la première conversation à la dernière lumière éteinte, nous sommes là."
+		}
 	},
 	"upcoming": {
 		"title": "Le prochain événement"

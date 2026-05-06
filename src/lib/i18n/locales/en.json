@@ -109,15 +109,47 @@
 		}
 	},
 	"manifesto": {
-		"pageTitle": "Our Manifesto | Germinal",
-		"title": "Our Manifesto",
-		"intro": "At Germinal, we believe the most significant moments are those that challenge the boundaries of the possible — where taste meets space, where sound sculpts silence.",
-		"section1Title": "The ephemeral as discipline",
-		"section1Body": "We don't create events. We architect sensory experiences that exist outside ordinary time. Each project is designed to be fully lived, once, before joining memory.",
-		"section2Title": "Rigour as freedom",
-		"section2Body": "Our approach is founded on absolute exigence: every detail, every material, every sensation must answer to a precise intention. It is within constraint that the purest creativity is born.",
-		"section3Title": "The collective as strength",
-		"section3Body": "Germinal is above all a collective of talents — architects, chefs, sound artists, designers — who share a common vision: to transcend disciplines and create something unprecedented."
+		"pageTitle": "Our Expertise | Germinal",
+		"eyebrow": "Expertise",
+		"title": "What we create",
+		"intro": "We don't manage events. We architect experiences — moments built with method, intention, and sensitivity. Every project is born from our clients' vision and takes shape through a rigorous process, led by a collective of talents who share a single standard: nothing left to chance.",
+		"artDirection": {
+			"number": "01",
+			"title": "Art Direction",
+			"tagline": "Giving shape to your vision.",
+			"body": "Before a space is defined, before a material is selected, there is an idea. Our role is to capture it, refine it, and give it an aesthetic and emotional coherence that runs through every detail of the event. From initial intention to final delivery, we are the guardians of the vision.",
+			"point1": "Global visual concept creation and event identity",
+			"point2": "Sensory palette definition: light, texture, colour, sound",
+			"point3": "Creative direction of all artistic contributors",
+			"point4": "Mood boards, trend books, and visual reference curation",
+			"imageAlt": "An elaborately styled table setting under dramatic golden light, illustrating the precision and intention behind every detail of art direction"
+		},
+		"scenography": {
+			"number": "02",
+			"title": "Scenography",
+			"tagline": "Space as language.",
+			"body": "We think of space not as décor, but as language. Every volume, every texture, every sightline is designed to guide the experience, to establish an atmosphere that asserts itself without explanation. Scenography is the art of making visible what cannot be said.",
+			"point1": "Spatial design and bespoke ephemeral architecture",
+			"point2": "Furniture, material, and texture selection and arrangement",
+			"point3": "Architectural, scenic, and ambient lighting design",
+			"point4": "Custom floral, botanical, and artistic installations",
+			"imageAlt": "Wide shot of a scenographed event space featuring bold architectural volumes, sophisticated drapery, and subdued lighting creating a dramatic, luxurious atmosphere"
+		},
+		"production": {
+			"number": "03",
+			"title": "Creative Production",
+			"tagline": "The discipline of the invisible.",
+			"body": "A successful project is one where the effort is unseen. Behind the apparent elegance lies absolute rigour: team coordination, vendor management, anticipation of the unexpected. We carry this complexity so that you can simply live the experience.",
+			"point1": "Coordination of artistic, technical, and logistics teams",
+			"point2": "Vendor and supplier selection and management",
+			"point3": "Detailed budget tracking and operational oversight",
+			"point4": "Day-of installation, operations, and on-site presence",
+			"imageAlt": "Behind-the-scenes photograph of a production team installing scenographic elements in a large empty space, illustrating the rigour and precision of the production process"
+		},
+		"approach": {
+			"title": "Our approach",
+			"body": "Every project is singular. No formula, no standard answer. We begin by listening — to your vision, your constraints, the emotion you want to create. Then we build, with rigour and method, the experience that reflects you. From the first conversation to the last light switched off, we are there."
+		}
 	},
 	"upcoming": {
 		"title": "The next event"
