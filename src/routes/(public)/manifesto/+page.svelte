@@ -23,7 +23,11 @@
 
     <!-- Intro -->
     <div class="grid lg:grid-cols-[1fr_2fr] gap-12 mb-32 lg:mb-56" use:reveal={{ preset: "fade-up" }}>
-        <div></div>
+        <div>
+            <p class="uppercase text-dark-300 text-xxs tracking-widest">
+                {$t("manifesto.introLabel")}
+            </p>
+        </div>
         <p class="text-dark-700 text-xl lg:text-2xl leading-relaxed">
             {$t("manifesto.intro")}
         </p>
