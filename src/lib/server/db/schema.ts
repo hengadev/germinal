@@ -137,6 +137,7 @@ export const events = pgTable('events', {
     admissionInfoEn: varchar('admission_info_en', { length: 150 }),
     admissionInfoFr: varchar('admission_info_fr', { length: 150 }),
     coverMediaId: uuid('cover_media_id'),
+    coverVideoId: uuid('cover_video_id'),
     categoryId: uuid('category_id').references(() => eventCategories.id),
     published: boolean('published').default(false).notNull(),
     isSpotlight: boolean('is_spotlight').default(false).notNull(),
@@ -211,6 +212,12 @@ export const eventsRelations = relations(events, ({ many, one }) => ({
     coverMedia: one(media, {
         fields: [events.coverMediaId],
         references: [media.id],
+        relationName: 'event_cover_image',
+    }),
+    coverVideo: one(media, {
+        fields: [events.coverVideoId],
+        references: [media.id],
+        relationName: 'event_cover_video',
     }),
     category: one(eventCategories, {
         fields: [events.categoryId],
@@ -246,6 +253,16 @@ export const mediaRelations = relations(media, ({ one }) => ({
     event: one(events, {
         fields: [media.eventId],
         references: [events.id],
+    }),
+    coverImageEvent: one(events, {
+        fields: [media.id],
+        references: [events.coverMediaId],
+        relationName: 'event_cover_image',
+    }),
+    coverVideoEvent: one(events, {
+        fields: [media.id],
+        references: [events.coverVideoId],
+        relationName: 'event_cover_video',
     }),
     talent: one(talents, {
         fields: [media.talentId],

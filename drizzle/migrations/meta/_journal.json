@@ -71,6 +71,13 @@
       "when": 1776081292117,
       "tag": "0009_fine_echo",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1778097985485,
+      "tag": "0010_add_cover_video_to_events",
+      "breakpoints": true
     }
   ]
 }
