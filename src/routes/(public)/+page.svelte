@@ -209,22 +209,24 @@
                         {/if}
 
                         <!-- Info -->
-                        <div class="flex items-start justify-between gap-6">
-                            <div>
-                                <p class="uppercase text-dark-300 text-xxs tracking-widest mb-3">
+                        <div class="flex items-center justify-between gap-6">
+                            <div class="flex items-center gap-4 min-w-0">
+                                <p class="uppercase text-dark-300 text-xxs tracking-widest shrink-0">
                                     {String(index + 1).padStart(2, '0')}
                                 </p>
-                                <h3 class="text-xl md:text-2xl font-normal mb-3 group-hover:text-dark-500 transition-colors">
+                                <h3 class="text-xl md:text-2xl font-normal truncate group-hover:text-dark-500 transition-colors">
                                     {title}
                                 </h3>
-                                <p class="text-dark-400 text-sm">
+                            </div>
+                            <div class="flex items-center gap-4 shrink-0">
+                                <p class="text-dark-400 text-sm hidden md:block">
                                     {start.toLocaleDateString($locale === 'en' ? 'en-US' : 'fr-FR', { month: 'long', day: 'numeric', year: 'numeric' })}
                                     {#if location}
                                         <span class="mx-2 text-dark-200">·</span>{location}
                                     {/if}
                                 </p>
+                                <ArrowUpRight size={20} class="text-dark-300 group-hover:text-dark-900 transition-colors" />
                             </div>
-                            <ArrowUpRight size={20} class="shrink-0 mt-1 text-dark-300 group-hover:text-dark-900 transition-colors" />
                         </div>
                     </a>
                 {/each}
