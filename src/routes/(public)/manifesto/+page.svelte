@@ -31,20 +31,30 @@
 
     <!-- Service 01: Art Direction -->
     <section class="mb-32 lg:mb-56">
+        <div use:reveal={{ preset: "fade-up" }}>
+            <p class="uppercase text-dark-300 text-xxs tracking-widest mb-6">
+                {$t("manifesto.artDirection.number")}
+            </p>
+            <img
+                src="https://picsum.photos/seed/germinal-artdirection/1600/700"
+                alt={$t("manifesto.artDirection.imageAlt")}
+                class="w-full aspect-[4/3] lg:aspect-[21/9] object-cover mb-12 lg:mb-16"
+                loading="lazy"
+            />
+        </div>
         <div class="grid lg:grid-cols-2 gap-16 lg:gap-24 items-start">
             <div use:reveal={{ preset: "fade-up" }}>
-                <p class="uppercase text-dark-300 text-xxs tracking-widest mb-6">
-                    {$t("manifesto.artDirection.number")}
-                </p>
                 <h2 class="text-3xl lg:text-5xl font-normal mb-3">
                     {$t("manifesto.artDirection.title")}
                 </h2>
                 <p class="text-dark-400 text-lg lg:text-xl mb-10">
                     {$t("manifesto.artDirection.tagline")}
                 </p>
-                <p class="text-dark-700 text-base lg:text-lg leading-relaxed mb-12 max-w-prose">
+                <p class="text-dark-700 text-base lg:text-lg leading-relaxed max-w-prose">
                     {$t("manifesto.artDirection.body")}
                 </p>
+            </div>
+            <div use:reveal={{ preset: "fade-up", delay: 150 }}>
                 <ul class="flex flex-col gap-0">
                     {#each servicePoints as i}
                         <li class="flex items-start gap-5 border-t border-dark-100 py-5">
@@ -56,41 +66,35 @@
                     {/each}
                 </ul>
             </div>
-            <div use:reveal={{ preset: "fade-up", delay: 150 }}>
-                <img
-                    src="https://picsum.photos/seed/germinal-artdirection/800/1000"
-                    alt={$t("manifesto.artDirection.imageAlt")}
-                    class="w-full aspect-[4/5] object-cover"
-                    loading="lazy"
-                />
-            </div>
         </div>
     </section>
 
-    <!-- Service 02: Scenography (image left) -->
+    <!-- Service 02: Scenography -->
     <section class="mb-32 lg:mb-56">
+        <div use:reveal={{ preset: "fade-up" }}>
+            <p class="uppercase text-dark-300 text-xxs tracking-widest mb-6">
+                {$t("manifesto.scenography.number")}
+            </p>
+            <img
+                src="https://picsum.photos/seed/germinal-scenography/1600/700"
+                alt={$t("manifesto.scenography.imageAlt")}
+                class="w-full aspect-[4/3] lg:aspect-[21/9] object-cover mb-12 lg:mb-16"
+                loading="lazy"
+            />
+        </div>
         <div class="grid lg:grid-cols-2 gap-16 lg:gap-24 items-start">
-            <div use:reveal={{ preset: "fade-up", delay: 150 }} class="order-2 lg:order-1">
-                <img
-                    src="https://picsum.photos/seed/germinal-scenography/800/1000"
-                    alt={$t("manifesto.scenography.imageAlt")}
-                    class="w-full aspect-[4/5] object-cover"
-                    loading="lazy"
-                />
-            </div>
-            <div use:reveal={{ preset: "fade-up" }} class="order-1 lg:order-2">
-                <p class="uppercase text-dark-300 text-xxs tracking-widest mb-6">
-                    {$t("manifesto.scenography.number")}
-                </p>
+            <div use:reveal={{ preset: "fade-up" }}>
                 <h2 class="text-3xl lg:text-5xl font-normal mb-3">
                     {$t("manifesto.scenography.title")}
                 </h2>
                 <p class="text-dark-400 text-lg lg:text-xl mb-10">
                     {$t("manifesto.scenography.tagline")}
                 </p>
-                <p class="text-dark-700 text-base lg:text-lg leading-relaxed mb-12 max-w-prose">
+                <p class="text-dark-700 text-base lg:text-lg leading-relaxed max-w-prose">
                     {$t("manifesto.scenography.body")}
                 </p>
+            </div>
+            <div use:reveal={{ preset: "fade-up", delay: 150 }}>
                 <ul class="flex flex-col gap-0">
                     {#each servicePoints as i}
                         <li class="flex items-start gap-5 border-t border-dark-100 py-5">
@@ -107,20 +111,30 @@
 
     <!-- Service 03: Creative Production -->
     <section class="mb-32 lg:mb-56">
+        <div use:reveal={{ preset: "fade-up" }}>
+            <p class="uppercase text-dark-300 text-xxs tracking-widest mb-6">
+                {$t("manifesto.production.number")}
+            </p>
+            <img
+                src="https://picsum.photos/seed/germinal-production/1600/700"
+                alt={$t("manifesto.production.imageAlt")}
+                class="w-full aspect-[4/3] lg:aspect-[21/9] object-cover mb-12 lg:mb-16"
+                loading="lazy"
+            />
+        </div>
         <div class="grid lg:grid-cols-2 gap-16 lg:gap-24 items-start">
             <div use:reveal={{ preset: "fade-up" }}>
-                <p class="uppercase text-dark-300 text-xxs tracking-widest mb-6">
-                    {$t("manifesto.production.number")}
-                </p>
                 <h2 class="text-3xl lg:text-5xl font-normal mb-3">
                     {$t("manifesto.production.title")}
                 </h2>
                 <p class="text-dark-400 text-lg lg:text-xl mb-10">
                     {$t("manifesto.production.tagline")}
                 </p>
-                <p class="text-dark-700 text-base lg:text-lg leading-relaxed mb-12 max-w-prose">
+                <p class="text-dark-700 text-base lg:text-lg leading-relaxed max-w-prose">
                     {$t("manifesto.production.body")}
                 </p>
+            </div>
+            <div use:reveal={{ preset: "fade-up", delay: 150 }}>
                 <ul class="flex flex-col gap-0">
                     {#each servicePoints as i}
                         <li class="flex items-start gap-5 border-t border-dark-100 py-5">
@@ -131,14 +145,6 @@
                         </li>
                     {/each}
                 </ul>
-            </div>
-            <div use:reveal={{ preset: "fade-up", delay: 150 }}>
-                <img
-                    src="https://picsum.photos/seed/germinal-production/800/1000"
-                    alt={$t("manifesto.production.imageAlt")}
-                    class="w-full aspect-[4/5] object-cover"
-                    loading="lazy"
-                />
             </div>
         </div>
     </section>
