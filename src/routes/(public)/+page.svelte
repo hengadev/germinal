@@ -156,7 +156,7 @@
         </section>
         <section>
             <div
-                class="flex justify-between items-baseline gap-4 border-t border-dark-100 pt-6 mb-0"
+                class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8"
                 use:reveal={{ preset: "fade-up", delay: 150 }}
             >
                 <h2 class="text-2xl md:text-3xl font-base">
@@ -164,10 +164,10 @@
                 </h2>
                 <a
                     href="/events"
-                    class="flex items-center gap-2 text-dark-400 hover:text-dark-900 text-sm transition-colors"
+                    class="flex items-center gap-2 text-dark-600 hover:text-dark-800 font-normal"
                 >
                     <p>{$t("home.viewEvents")}</p>
-                    <ArrowRight size={16} />
+                    <ArrowRight />
                 </a>
             </div>
 
