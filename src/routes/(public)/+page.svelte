@@ -61,7 +61,7 @@
                 href={hasSpotlightEvent ? "/spotlight" : "/events"}
                 class="mx-auto text-dark-900 font-medium px-6 py-3 bg-white flex items-center gap-2 rounded-full cursor-pointer"
             >
-                <p>{hasSpotlightEvent ? $t("home.viewUpcoming") : $t("home.viewEvents")}</p>
+                <p>{hasSpotlightEvent ? $t("home.viewUpcoming") : $t("home.viewCreations")}</p>
                 <ArrowUpRight size={20} />
             </a>
         </div>
