@@ -208,7 +208,7 @@ export const media = pgTable('media', {
 // ============================================
 
 export const eventsRelations = relations(events, ({ many, one }) => ({
-    media: many(media),
+    media: many(media, { relationName: 'event_media' }),
     coverMedia: one(media, {
         fields: [events.coverMediaId],
         references: [media.id],
@@ -253,6 +253,7 @@ export const mediaRelations = relations(media, ({ one }) => ({
     event: one(events, {
         fields: [media.eventId],
         references: [events.id],
+        relationName: 'event_media',
     }),
     coverImageEvent: one(events, {
         fields: [media.id],
