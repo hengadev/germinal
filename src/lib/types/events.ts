@@ -8,6 +8,7 @@ export type UpdateEventInput = Partial<CreateEventInput>;
 export type EventWithMedia = Event & {
   media?: Media[];
   coverMedia?: Media | null;
+  coverVideo?: Media | null;
   category?: {
     id: string;
     name: string;

@@ -44,6 +44,7 @@ export async function getAllEvents(options: { publishedOnly?: boolean; page?: nu
 		offset: (page - 1) * limit,
 		with: {
 			coverMedia: true,
+			coverVideo: true,
 			category: true,
 			media: true,
 		},
@@ -61,6 +62,7 @@ export async function getEventBySlug(slug: string) {
     where: eq(events.slug, slug),
     with: {
       coverMedia: true,
+      coverVideo: true,
       category: true,
       media: {
         orderBy: [desc(media.createdAt)],
@@ -80,6 +82,7 @@ export async function getEventById(id: string) {
     where: eq(events.id, id),
     with: {
       coverMedia: true,
+      coverVideo: true,
       category: true,
       media: true,
     },
@@ -97,6 +100,7 @@ export async function getSpotlightEvent() {
     where: and(eq(events.isSpotlight, true), eq(events.published, true)),
     with: {
       coverMedia: true,
+      coverVideo: true,
       category: true,
       media: {
         orderBy: [desc(media.createdAt)],
