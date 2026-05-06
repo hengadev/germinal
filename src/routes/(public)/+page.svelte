@@ -154,9 +154,9 @@
                 </div>
             {/if}
         </section>
-        <section class="">
+        <section>
             <div
-                class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8"
+                class="flex justify-between items-baseline gap-4 border-t border-dark-100 pt-6 mb-0"
                 use:reveal={{ preset: "fade-up", delay: 150 }}
             >
                 <h2 class="text-2xl md:text-3xl font-base">
@@ -164,34 +164,70 @@
                 </h2>
                 <a
                     href="/events"
-                    class="flex items-center gap-2 text-dark-600 hover:text-dark-800 font-normal"
+                    class="flex items-center gap-2 text-dark-400 hover:text-dark-900 text-sm transition-colors"
                 >
                     <p>{$t("home.viewEvents")}</p>
-                    <ArrowRight />
+                    <ArrowRight size={16} />
                 </a>
             </div>
 
             {#if data.events.length === 0}
-                <div class="flex items-center justify-center py-16">
+                <div class="flex items-center justify-center py-16 border-t border-dark-100 mt-6">
                     <p class="text-dark-500 text-center">
                         {$t("home.noEvents")}
                     </p>
                 </div>
             {:else}
-                <div
-                    class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-                >
-                    {#each data.events.slice(0, 3) as event, index}
-                        <div
-                            use:reveal={{
-                                preset: "fade-up",
-                                delay: 200 + index * 60,
-                            }}
-                        >
-                            <EventCard {event} />
+                {#each data.events.slice(0, 3) as event, index}
+                    {@const start = new Date(event.startDate)}
+                    {@const title = $locale === 'en' ? event.titleEn : event.titleFr}
+                    {@const location = $locale === 'en' ? event.locationEn : event.locationFr}
+                    <a
+                        href="/events/{event.slug}"
+                        class="block border-t border-dark-100 pt-8 pb-10 group"
+                        use:reveal={{ preset: "fade-up", delay: 100 + index * 80 }}
+                    >
+                        <!-- Media -->
+                        {#if event.coverVideo}
+                            <video
+                                src={event.coverVideo.url}
+                                class="w-full aspect-[16/9] object-cover mb-6"
+                                autoplay
+                                muted
+                                loop
+                                playsinline
+                            ></video>
+                        {:else if event.coverMedia}
+                            <img
+                                src={event.coverMedia.url}
+                                alt={title}
+                                class="w-full aspect-[16/9] object-cover mb-6"
+                                loading="lazy"
+                            />
+                        {:else}
+                            <div class="w-full aspect-[16/9] bg-dark-50 mb-6"></div>
+                        {/if}
+
+                        <!-- Info -->
+                        <div class="flex items-start justify-between gap-6">
+                            <div>
+                                <p class="uppercase text-dark-300 text-xxs tracking-widest mb-3">
+                                    {String(index + 1).padStart(2, '0')}
+                                </p>
+                                <h3 class="text-xl md:text-2xl font-normal mb-3 group-hover:text-dark-500 transition-colors">
+                                    {title}
+                                </h3>
+                                <p class="text-dark-400 text-sm">
+                                    {start.toLocaleDateString($locale === 'en' ? 'en-US' : 'fr-FR', { month: 'long', day: 'numeric', year: 'numeric' })}
+                                    {#if location}
+                                        <span class="mx-2 text-dark-200">·</span>{location}
+                                    {/if}
+                                </p>
+                            </div>
+                            <ArrowUpRight size={20} class="shrink-0 mt-1 text-dark-300 group-hover:text-dark-900 transition-colors" />
                         </div>
-                    {/each}
-                </div>
+                    </a>
+                {/each}
             {/if}
         </section>
 
