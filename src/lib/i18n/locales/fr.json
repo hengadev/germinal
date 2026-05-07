@@ -54,7 +54,15 @@
     "statsArtists": "Artistes",
     "statsYears": "Années",
     "partnersEyebrow": "Ils nous font confiance",
-    "partnersTitle": "Partenaires sélectionnés"
+    "partnersTitle": "Partenaires sélectionnés",
+    "newsletter": {
+      "eyebrow": "Restez informé",
+      "title": "Recevez nos envois.",
+      "subtitle": "Annonces d'événements, coulisses et notes culturelles — livrés au bon moment.",
+      "placeholder": "Votre adresse email",
+      "button": "S'abonner",
+      "success": "Vous êtes sur la liste."
+    }
   },
   "events": {
     "pageTitle": "Événements | Germinal",

@@ -15,6 +15,15 @@
         'Fondation Louis Vuitton', 'Centre Pompidou', 'Palais de Tokyo', 'Musée Guimet',
         'Galerie Perrotin', 'FIAC', 'Maison & Objet', 'Villa Noailles',
     ];
+    let newsletterEmail = $state('');
+    let newsletterSubmitted = $state(false);
+    function handleNewsletter(e: SubmitEvent) {
+        e.preventDefault();
+        if (newsletterEmail.trim()) {
+            newsletterSubmitted = true;
+            newsletterEmail = '';
+        }
+    }
 
     function getEventField(event: typeof data.events[0], field: 'title' | 'description' | 'subtitle'): string {
         const enField = (field + 'En') as 'titleEn' | 'descriptionEn' | 'subtitleEn';
@@ -362,5 +371,35 @@
                 {/each}
             </div>
         </section> -->
+
+        <!-- Newsletter -->
+        <section
+            class="border border-dark-100 px-8 py-12 md:px-16 md:py-16"
+            use:reveal={{ preset: "fade-up", delay: 100 }}
+        >
+            <div class="max-w-lg mx-auto text-center grid gap-6">
+                <div class="grid gap-3">
+                    <p class="text-dark-500 uppercase text-sm tracking-widest">{$t("home.newsletter.eyebrow")}</p>
+                    <h2 class="text-2xl md:text-3xl font-base">{$t("home.newsletter.title")}</h2>
+                    <p class="text-dark-500">{$t("home.newsletter.subtitle")}</p>
+                </div>
+                {#if newsletterSubmitted}
+                    <p class="text-dark-900 font-medium">{$t("home.newsletter.success")}</p>
+                {:else}
+                    <form class="flex" onsubmit={handleNewsletter}>
+                        <input
+                            type="email"
+                            placeholder={$t("home.newsletter.placeholder")}
+                            class="flex-1 border border-dark-200 px-4 py-3 text-sm focus:outline-none focus:border-dark-900 min-w-0"
+                            bind:value={newsletterEmail}
+                            required
+                        />
+                        <button type="submit" class="px-6 py-3 bg-dark-900 text-white text-sm hover:bg-dark-700 transition-colors shrink-0">
+                            {$t("home.newsletter.button")}
+                        </button>
+                    </form>
+                {/if}
+            </div>
+        </section>
     </div>
 </div>
