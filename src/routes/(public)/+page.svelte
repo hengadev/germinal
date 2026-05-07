@@ -18,10 +18,10 @@
 </script>
 
 <svelte:head>
-    <title>Germinal - Events & Talents</title>
+    <title>Germinal - {$t("home.metaTitle")}</title>
     <meta
         name="description"
-        content="Discover amazing events and talented individuals at Germinal"
+        content={$t("home.metaDescription")}
     />
 </svelte:head>
 
