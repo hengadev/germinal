@@ -171,14 +171,14 @@
                 </a>
             </div>
 
-            {#if data.events.length === 0}
+            {#if data.events.filter(e => !e.isSpotlight).length === 0}
                 <div class="flex items-center justify-center py-16 border-t border-dark-100 mt-6">
                     <p class="text-dark-500 text-center">
                         {$t("home.noEvents")}
                     </p>
                 </div>
             {:else}
-                {#each data.events.slice(0, 3) as event, index}
+                {#each data.events.filter(e => !e.isSpotlight).slice(0, 3) as event, index}
                     {@const start = new Date(event.startDate)}
                     {@const title = $locale === 'en' ? event.titleEn : event.titleFr}
                     {@const location = $locale === 'en' ? event.locationEn : event.locationFr}
