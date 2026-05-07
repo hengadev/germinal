@@ -401,5 +401,23 @@
                 {/if}
             </div>
         </section>
+
+        <!-- CTA -->
+        <section
+            class="text-center py-8 md:py-16"
+            use:reveal={{ preset: "fade-up", delay: 100 }}
+        >
+            <div class="grid gap-6 max-w-2xl mx-auto">
+                <p class="text-dark-500 uppercase text-sm tracking-widest">{$t("home.cta.eyebrow")}</p>
+                <h2 class="text-3xl md:text-4xl lg:text-5xl font-base leading-tight">{$t("home.cta.title")}</h2>
+                <a
+                    href="/contact"
+                    class="mx-auto inline-flex items-center gap-2 px-8 py-4 bg-dark-900 text-white hover:bg-dark-700 transition-colors rounded-full"
+                >
+                    <p>{$t("home.cta.button")}</p>
+                    <ArrowUpRight size={20} />
+                </a>
+            </div>
+        </section>
     </div>
 </div>

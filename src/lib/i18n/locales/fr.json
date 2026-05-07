@@ -62,6 +62,11 @@
       "placeholder": "Votre adresse email",
       "button": "S'abonner",
       "success": "Vous êtes sur la liste."
+    },
+    "cta": {
+      "eyebrow": "Travaillons ensemble",
+      "title": "Créons quelque chose qui compte.",
+      "button": "Prendre contact"
     }
   },
   "events": {
