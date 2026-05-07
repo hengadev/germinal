@@ -1,5 +1,4 @@
 <script lang="ts">
-	import EventGallery from '$lib/components/EventGallery.svelte';
 	import SessionSelector from '$lib/components/booking/SessionSelector.svelte';
 	import { ArrowLeft, MapPin, Clock, Info } from 'lucide-svelte';
 	import type { Icon } from 'lucide-svelte';
@@ -40,32 +39,61 @@
 	<meta name="description" content="Featured spotlight event" />
 </svelte:head>
 
-<div class="container mx-auto px-4 py-16 lg:py-32 max-w-8xl">
-	<a
-		href="/events"
-		class="flex items-center gap-2 mb-6 lg:mb-8 cursor-pointer"
-		use:reveal={{ preset: 'fade-in' }}
-	>
-		<ArrowLeft size={18} />
-		<p class="text-700 text-sm lg:text-base">{$t('events.backToAll')}</p>
-	</a>
+{#if spotlightEvent}
+	<!-- Full-height hero -->
+	<section class="relative h-screen w-full overflow-hidden">
+		<!-- Background media -->
+		{#if spotlightEvent.coverMedia?.type === 'video'}
+			<video
+				src={spotlightEvent.coverMedia.url}
+				autoplay
+				muted
+				loop
+				playsinline
+				class="absolute inset-0 w-full h-full object-cover"
+			></video>
+		{:else}
+			<img
+				src={spotlightEvent.coverMedia?.url ?? ''}
+				alt={getEventField('title')}
+				class="absolute inset-0 w-full h-full object-cover"
+			/>
+		{/if}
 
-	{#if spotlightEvent}
-		<article>
-			<header
-				class="mb-8 lg:mb-16 grid gap-3 lg:gap-4"
-				use:reveal={{ preset: 'fade-up', delay: 50 }}
-			>
-				<h1 class="text-3xl lg:text-5xl font-bold">{getEventField('title')}</h1>
+		<!-- Gradient overlay: darker at top (nav area + back button) and bottom (title area) -->
+		<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/60"></div>
+
+		<!-- Back button — sits below the fixed nav -->
+		<a
+			href="/events"
+			class="absolute top-24 left-6 lg:left-12 z-10 flex items-center gap-2 text-white/90 hover:text-white transition-colors"
+			use:reveal={{ preset: 'fade-in', duration: 600 }}
+		>
+			<ArrowLeft size={18} />
+			<p class="text-sm lg:text-base">{$t('events.backToAll')}</p>
+		</a>
+
+		<!-- Title and subtitle at bottom -->
+		<div
+			class="absolute bottom-0 left-0 right-0 px-6 pb-12 lg:px-12 lg:pb-16 z-10"
+			use:reveal={{ preset: 'fade-up', delay: 100, duration: 700 }}
+		>
+			<div class="flex items-baseline gap-4 flex-wrap">
+				<h1 class="text-3xl lg:text-6xl font-bold text-white leading-tight">
+					{getEventField('title')}
+				</h1>
 				{#if getEventField('subtitle')}
-					<p class="text-dark-500 text-lg font-light">
+					<p class="text-white/70 text-base lg:text-xl font-light">
 						{getEventField('subtitle')}
 					</p>
 				{/if}
-			</header>
+			</div>
+		</div>
+	</section>
 
-			<div class="w-full border border-border-card/20 mb-8 lg:mb-16"></div>
-
+	<!-- Page content -->
+	<div class="container mx-auto px-4 py-16 lg:py-24 max-w-8xl">
+		<article>
 			<section class="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-8 lg:gap-32 text-sm lg:text-base">
 				<div class="grid gap-6 lg:gap-8">
 					<div use:reveal={{ preset: 'fade-up', delay: 100 }}>
@@ -157,16 +185,6 @@
 				</div>
 			</section>
 
-			{#if spotlightEvent.media && spotlightEvent.media.length > 0}
-				<section
-					class="mt-8 lg:mt-12"
-					use:reveal={{ preset: 'fade-up', delay: 200 }}
-				>
-					<h2 class="text-2xl lg:text-3xl font-bold mb-4 lg:mb-6">{$t('events.gallery')}</h2>
-					<EventGallery media={spotlightEvent.media} />
-				</section>
-			{/if}
-
 			{#if sessions.some((s) => !s.isPast)}
 				<section class="mt-12 lg:mt-16" use:reveal={{ preset: 'fade-up', delay: 250 }}>
 					<h2 class="text-2xl lg:text-3xl font-bold mb-6 lg:mb-8">{$t('events.bookTickets')}</h2>
@@ -178,7 +196,17 @@
 				</section>
 			{/if}
 		</article>
-	{:else}
+	</div>
+{:else}
+	<div class="container mx-auto px-4 py-16 lg:py-32 max-w-8xl">
+		<a
+			href="/events"
+			class="flex items-center gap-2 mb-6 lg:mb-8 cursor-pointer"
+			use:reveal={{ preset: 'fade-in' }}
+		>
+			<ArrowLeft size={18} />
+			<p class="text-700 text-sm lg:text-base">{$t('events.backToAll')}</p>
+		</a>
 		<div class="text-center py-16 lg:py-32" use:reveal={{ preset: 'fade-up' }}>
 			<h1 class="text-2xl lg:text-3xl font-bold mb-3 lg:mb-4">No Spotlight Event</h1>
 			<p class="text-dark-500 text-base lg:text-lg mb-6 lg:mb-8 px-4">
@@ -191,8 +219,8 @@
 				View All Events
 			</a>
 		</div>
-	{/if}
-</div>
+	</div>
+{/if}
 
 {#snippet asideTitle(title: string, AsideIcon: typeof Icon)}
 	<div class="flex items-center gap-2">
