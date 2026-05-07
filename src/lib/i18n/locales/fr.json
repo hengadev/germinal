@@ -1,394 +1,396 @@
 {
-	"pwa": {
-		"offlineReady": "Application prête pour une utilisation hors ligne",
-		"newVersion": "Une nouvelle version est disponible",
-		"reload": "Recharger",
-		"close": "Fermer",
-		"installTitle": "Installer l'application",
-		"installDescription": "Accédez rapidement à Germinal depuis votre écran d'accueil.",
-		"installButton": "Installer",
-		"installDismiss": "Plus tard",
-		"iosTitle": "Installer {appName}",
-		"iosSubtitle": "Ajoutez à l'écran d'accueil pour la meilleure expérience",
-		"iosStep1": "Appuyez sur le bouton <strong>Partager</strong>",
-		"iosStep2": "Faites défiler et appuyez sur <strong>Ajouter à l'écran d'accueil</strong>"
-	},
-	"nav": {
-		"upcomingEvent": "Prochain événement",
-		"events": "Notre portfolio",
-		"talents": "Nos talents",
-		"manifesto": "Notre manifesto",
-		"contact": "Contact"
-	},
-	"footer": {
-		"allRightsReserved": "Tous droits réservés.",
-		"instagram": "Instagram"
-	},
-	"home": {
-		"heroTitle": "Sublimer l'éphémère",
-		"heroSubtitle": "Un collectif dédié à l'architecture des expériences sensorielles. Nous façonnons des instants où le goût, le son et l'espace entrent en résonance.",
-		"viewUpcoming": "Voir le prochain événement",
-			"viewCreations": "Voir nos créations",
-		"selectedEvents": "Nos créations",
-		"noEvents": "Aucun événement disponible pour le moment",
-		"featuredTalents": "Talents en vedette",
-		"noTalents": "Aucun talent disponible pour le moment",
-		"heroDescription": "Une exploration du goût sans le son. Une expérience culinaire de privation sensorielle conçue pour affiner le palais et concentrer l'esprit. Quatre plats, zéro mot.",
-		"reserveSeat": "Réservez votre place",
-		"viewEvents": "Voir les événements",
-		"viewTalents": "Voir les talents",
-		"date": "Date",
-		"time": "Heure",
-		"location": "Lieu",
-		"admission": "Admission"
-	},
-	"events": {
-		"pageTitle": "Événements | Germinal",
-		"title": "Événements sélectionnés",
-		"description": "Explorez notre sélection soignée d'expositions, expériences culinaires et visites architecturales à venir. Cliquez sur un événement pour voir tous les détails.",
-		"view": "Vue :",
-		"loadMore": "Charger plus d'événements",
-		"filters": {
-			"exhibitions": "Expositions",
-			"dining": "Gastronomie",
-			"workshops": "Ateliers"
-		},
-		"noEvents": "Aucun événement disponible pour le moment.",
-		"backToAll": "Retour à tous les événements",
-		"inCollaborationWith": "en collaboration avec",
-		"location": "lieu",
-		"timings": "horaires",
-		"seeEventDates": "Voir les dates de l'événement ci-dessus",
-		"details": "détails",
-		"curator": "commissaire",
-		"materials": "matériaux",
-		"admission": "admission",
-		"gallery": "Galerie",
-		"bookTickets": "Réserver des billets"
-	},
-	"talents": {
-		"pageTitle": "Talents | Germinal",
-		"title": "Talents",
-		"description": "Une liste d'artistes, architectes et penseurs multidisciplinaires qui façonnent la culture contemporaine. Sélectionnez un profil pour voir leur portfolio.",
-		"view": "Vue :",
-		"loadMore": "Charger plus de talents",
-		"filters": {
-			"visualArts": "Arts visuels",
-			"design": "Design",
-			"culinary": "Culinaire"
-		},
-		"noTalents": "Aucun talent disponible pour le moment.",
-		"basedIn": "Basé à",
-		"specialization": "Spécialisation",
-		"category": "Catégorie",
-		"gallery": "Galerie"
-	},
-	"contact": {
-		"pageTitle": "Contact | Germinal",
-		"title": "Prenons contact.",
-		"description": "Nous sommes toujours à la recherche de nouveaux talents, collaborateurs et projets architecturaux. Contactez-nous pour entamer une conversation.",
-		"regarding": "De quoi s'agit-il ?",
-		"filters": {
-			"collaboration": "Collaboration",
-			"newProject": "Nouveau projet",
-			"joinRoster": "Rejoindre la liste",
-			"other": "Autre"
-		},
-		"form": {
-			"name": "Nom",
-			"email": "Email",
-			"company": "Entreprise/Organisation (optionnel)",
-			"message": "Parlez-nous de votre projet...",
-			"send": "Envoyer le message",
-			"sending": "Envoi en cours..."
-		},
-		"sidebar": {
-			"generalInquiries": "demandes générales",
-			"pressMedia": "presse & médias",
-			"followUs": "Suivez-nous"
-		}
-	},
-	"manifesto": {
-		"pageTitle": "Nos Savoir-Faire | Germinal",
-		"eyebrow": "Savoir-faire",
-		"title": "Ce que nous créons",
-		"introLabel": "Notre positionnement",
-		"intro": "Nous ne gérons pas des événements. Nous architecturons des expériences — des instants construits avec méthode, intention et sensibilité. Chaque projet naît de la vision de nos clients et prend forme à travers un processus rigoureux, mené par un collectif de talents qui partagent une seule exigence : que rien ne soit laissé au hasard.",
-		"artDirection": {
-			"number": "01",
-			"title": "Direction Artistique",
-			"tagline": "Donner un visage à votre vision.",
-			"body": "Avant qu'un espace soit défini, avant qu'un matériau soit sélectionné, il y a une idée. Notre rôle est de la saisir, de l'affiner, de lui donner une cohérence esthétique et émotionnelle qui traversera chaque détail de l'événement. De l'intention initiale au rendu final, nous sommes les gardiens de la vision.",
-			"point1": "Création du concept visuel global et de l'identité de l'événement",
-			"point2": "Définition de la palette sensorielle : lumière, matière, couleur, son",
-			"point3": "Direction créative de l'ensemble des prestataires artistiques",
-			"point4": "Moodboards, carnets de tendances et références visuelles",
-			"imageAlt": "Mise en scène d'une table élaborée sous une lumière dorée et dramatique, illustrant la précision et l'intention derrière chaque détail de direction artistique"
-		},
-		"scenography": {
-			"number": "02",
-			"title": "Scénographie",
-			"tagline": "L'espace comme langage.",
-			"body": "Nous pensons l'espace non pas comme un décor, mais comme un langage. Chaque volume, chaque texture, chaque axe de regard est conçu pour guider l'expérience, installer une atmosphère qui s'impose sans se justifier. La scénographie est l'art de rendre visible ce qui ne peut être dit.",
-			"point1": "Design spatial et architecture éphémère sur mesure",
-			"point2": "Sélection et agencement du mobilier, des matières et des textures",
-			"point3": "Mise en lumière architecturale, scénique et d'ambiance",
-			"point4": "Habillage floral, végétal et installation artistique",
-			"imageAlt": "Vue large d'un espace scénographié avec des volumes architecturaux audacieux, des drapés sophistiqués et un éclairage tamisé créant une atmosphère à la fois dramatique et luxueuse"
-		},
-		"production": {
-			"number": "03",
-			"title": "Production Créative",
-			"tagline": "L'exigence de l'invisible.",
-			"body": "Un projet réussi est celui où l'effort ne se voit pas. Derrière l'élégance apparente se cache une rigueur absolue : coordination des équipes, gestion des prestataires, anticipation des imprévus. Nous portons cette complexité pour que vous puissiez simplement vivre l'expérience.",
-			"point1": "Coordination des équipes artistiques, techniques et logistiques",
-			"point2": "Sélection et gestion des prestataires et fournisseurs",
-			"point3": "Suivi budgétaire détaillé et pilotage opérationnel",
-			"point4": "Installation, régie et accompagnement le jour J",
-			"imageAlt": "Photographie en coulisses d'une équipe installant des éléments scénographiques dans un vaste espace vide, illustrant la rigueur et la précision du processus de production"
-		},
-		"approach": {
-			"title": "Notre approche",
-			"body": "Chaque projet est unique. Pas de formule, pas de réponse standard. Nous commençons par écouter — votre vision, vos contraintes, l'émotion que vous souhaitez faire naître. Puis nous bâtissons, avec exigence et méthode, l'expérience qui vous ressemble. De la première conversation à la dernière lumière éteinte, nous sommes là."
-		}
-	},
-	"upcoming": {
-		"title": "Le prochain événement"
-	},
-	"booking": {
-		"title": "Réserver des billets",
-		"description": "Complétez vos informations de réservation",
-		"errorTitle": "Réservation échouée",
-		"fullName": "Nom complet",
-		"email": "Email",
-		"emailHint": "La confirmation du billet sera envoyée ici",
-		"phone": "Numéro de téléphone",
-		"optional": "(optionnel)",
-		"notificationsLabel": "Comment souhaitez-vous recevoir les notifications ?",
-		"notifEmail": "Email",
-		"notifSms": "SMS",
-		"notifBoth": "Les deux",
-		"notifHint": "Recevez les confirmations de réservation et les rappels d'événements",
-		"numberOfTickets": "Nombre de billets",
-		"maxTickets": "Maximum {max} billets par commande",
-		"tickets": "Billets ({qty}×)",
-		"total": "Total",
-		"cancel": "Annuler",
-		"continueToPay": "Continuer vers le paiement",
-		"processing": "Traitement en cours...",
-		"perTicket": "par billet",
-		"ticketsAvailable": "billets disponibles",
-		"soldOut": "Épuisé",
-		"sessionEnded": "Session terminée",
-		"notAvailable": "Non disponible",
-		"joinWaitlist": "Rejoindre la liste d'attente",
-		"bookNow": "Réserver",
-		"errors": {
-			"soldOut": "Cette session est complète.",
-			"sessionStarted": "Cette session a déjà commencé.",
-			"sessionNotFound": "Cette session n'est plus disponible.",
-			"rateLimit": "Trop de tentatives. Veuillez patienter quelques minutes avant de réessayer.",
-			"generic": "Une erreur est survenue. Veuillez réessayer ou nous contacter si le problème persiste."
-		}
-	},
-	"tickets": {
-		"pageTitle": "Vos billets - {eventTitle}",
-		"status": {
-			"confirmed": "Confirmé",
-			"pendingPayment": "Paiement en attente",
-			"cancelled": "Annulé",
-			"expired": "Expiré"
-		},
-		"success": {
-			"title": "Paiement réussi !",
-			"description": "Vos billets ont été confirmés. Un email de confirmation a été envoyé à {email}.",
-			"browseMore": "Voir d'autres événements"
-		},
-		"paymentFailed": {
-			"title": "Paiement échoué",
-			"defaultError": "Votre paiement n'a pas pu être traité. Veuillez réessayer.",
-			"browseOther": "Voir d'autres événements",
-			"dismiss": "Ignorer"
-		},
-		"ticketLabel": "Billet",
-		"qrCodeHint": "Présentez ce QR code à l'entrée",
-		"guestInfo": "Informations du participant",
-		"guestName": "Nom",
-		"guestEmail": "Email",
-		"quantity": "Billets",
-		"paymentDetails": "Détails du paiement",
-		"totalPaid": "Total payé",
-		"viewReceipt": "Voir le reçu",
-		"eventLocation": "Lieu de l'événement",
-		"addToCalendar": "Ajouter au calendrier",
-		"appleOutlook": "Apple / Outlook",
-		"printTicket": "Imprimer le billet",
-		"confirmationId": "Numéro de confirmation",
-		"ticketCount": "{count, plural, one {# Billet} other {# Billets}}"
-	},
-	"admin": {
-		"login": {
-			"pageTitle": "Connexion | Germinal",
-			"title": "Se connecter",
-			"description": "Entrez vos identifiants pour accéder à votre tableau de bord",
-			"email": "Adresse email",
-			"password": "Mot de passe",
-			"signIn": "Se connecter",
-			"rateLimited": "Limite de débit atteinte",
-			"invalidCredentials": "Email ou mot de passe invalide",
-			"errors": {
-				"rateLimit": "Trop de tentatives de connexion. Réessayez dans {seconds} secondes.",
-				"emailRequired": "L'email est requis",
-				"passwordRequired": "Le mot de passe est requis"
-			},
-			"showPassword": "Afficher le mot de passe",
-			"hidePassword": "Masquer le mot de passe",
-			"mockCredentials": "Pour le développement, utilisez :",
-			"mockPasswordHint": "(votre mot de passe)",
-			"metaDescription": "Connectez-vous à votre compte Germinal"
-		},
-		"dashboard": {
-			"title": "Tableau de bord",
-			"welcome": "Bienvenue ! Voici un aperçu de votre contenu Germinal.",
-			"newEvent": {
-				"title": "Nouvel événement",
-				"description": "Créer un nouvel événement ou exposition",
-				"button": "Créer un événement"
-			},
-			"newTalent": {
-				"title": "Nouveau talent",
-				"description": "Ajouter un nouveau talent à la collection",
-				"button": "Ajouter un talent"
-			},
-			"settings": {
-				"title": "Paramètres",
-				"description": "Gérer les paramètres de votre compte",
-				"button": "Changer le mot de passe"
-			},
-			"accountInfo": {
-				"title": "Informations du compte",
-				"email": "Email",
-				"role": "Rôle",
-				"memberSince": "Membre depuis"
-			}
-		},
-		"sidebar": {
-			"title": "Panneau d'administration",
-			"dashboard": "Tableau de bord",
-			"events": "Événements",
-			"talents": "Talents",
-			"password": "Mot de passe",
-			"logout": "Déconnexion"
-		},
-		"layout": {
-			"admin": "Admin",
-			"mobileNav": {
-				"dashboard": "Tableau de bord",
-				"events": "Événements",
-				"talents": "Talents",
-				"settings": "Paramètres"
-			}
-		},
-		"events": {
-			"title": "Événements",
-			"description": "Gérer vos événements et expositions",
-			"newEvent": "Nouvel événement",
-			"noEvents": "Aucun événement pour le moment",
-			"noEventsDescription": "Créez votre premier événement pour commencer",
-			"createEvent": "Créer un événement",
-			"table": {
-				"event": "Événement",
-				"date": "Date",
-				"location": "Lieu",
-				"status": "Statut",
-				"actions": "Actions"
-			},
-			"status": {
-				"published": "Publié",
-				"draft": "Brouillon"
-			},
-			"dialog": {
-				"create": {
-					"title": "Créer un nouvel événement",
-					"description": "Remplissez les détails pour créer un nouvel événement"
-				},
-				"edit": {
-					"title": "Modifier l'événement"
-				},
-				"delete": {
-					"title": "Supprimer l'événement",
-					"confirmation": "Êtes-vous sûr de vouloir supprimer cet événement ?"
-				},
-				"fields": {
-					"title": "Titre",
-					"slug": "Slug",
-					"description": "Description",
-					"startDate": "Date de début",
-					"endDate": "Date de fin",
-					"location": "Lieu",
-					"publishImmediately": "Publier immédiatement",
-					"publishHelp": "Décochez pour enregistrer comme brouillon"
-				},
-				"actions": {
-					"cancel": "Annuler",
-					"create": "Créer l'événement",
-					"save": "Enregistrer les modifications",
-					"delete": "Supprimer"
-				}
-			}
-		},
-		"talents": {
-			"title": "Talents",
-			"description": "Gérer votre collection de talents",
-			"newTalent": "Nouveau talent",
-			"noTalents": "Aucun talent pour le moment",
-			"noTalentsDescription": "Ajoutez votre premier talent pour commencer",
-			"addTalent": "Ajouter un talent",
-			"table": {
-				"talent": "Talent",
-				"role": "Rôle",
-				"bio": "Biographie",
-				"status": "Statut",
-				"actions": "Actions"
-			},
-			"dialog": {
-				"create": {
-					"title": "Ajouter un nouveau talent"
-				},
-				"edit": {
-					"title": "Modifier le talent"
-				},
-				"delete": {
-					"title": "Supprimer le talent",
-					"confirmation": "Êtes-vous sûr de vouloir supprimer ce talent ?"
-				},
-				"fields": {
-					"firstName": "Prénom",
-					"lastName": "Nom",
-					"role": "Rôle",
-					"bio": "Biographie",
-					"socialLinks": "Liens sociaux (optionnel)",
-					"instagram": "Instagram",
-					"linkedin": "LinkedIn",
-					"twitter": "Twitter",
-					"website": "Site web"
-				},
-				"actions": {
-					"cancel": "Annuler",
-					"add": "Ajouter le talent",
-					"save": "Enregistrer les modifications",
-					"delete": "Supprimer"
-				}
-			}
-		},
-		"changePassword": {
-			"title": "Changer le mot de passe",
-			"backToDashboard": "Retour au tableau de bord",
-			"currentPassword": "Mot de passe actuel",
-			"newPassword": "Nouveau mot de passe",
-			"confirmPassword": "Confirmer le nouveau mot de passe",
-			"passwordHelp": "Doit contenir au moins 8 caractères",
-			"updatePassword": "Mettre à jour le mot de passe"
-		}
-	}
+  "pwa": {
+    "offlineReady": "Application prête pour une utilisation hors ligne",
+    "newVersion": "Une nouvelle version est disponible",
+    "reload": "Recharger",
+    "close": "Fermer",
+    "installTitle": "Installer l'application",
+    "installDescription": "Accédez rapidement à Germinal depuis votre écran d'accueil.",
+    "installButton": "Installer",
+    "installDismiss": "Plus tard",
+    "iosTitle": "Installer {appName}",
+    "iosSubtitle": "Ajoutez à l'écran d'accueil pour la meilleure expérience",
+    "iosStep1": "Appuyez sur le bouton <strong>Partager</strong>",
+    "iosStep2": "Faites défiler et appuyez sur <strong>Ajouter à l'écran d'accueil</strong>"
+  },
+  "nav": {
+    "upcomingEvent": "Prochain événement",
+    "events": "Notre portfolio",
+    "talents": "Nos talents",
+    "manifesto": "Notre manifesto",
+    "contact": "Contact"
+  },
+  "footer": {
+    "allRightsReserved": "Tous droits réservés.",
+    "instagram": "Instagram"
+  },
+  "home": {
+    "heroTitle": "Sublimer l'éphémère",
+    "heroSubtitle": "Un collectif dédié à l'architecture des expériences sensorielles. Nous façonnons des instants où le goût, le son et l'espace entrent en résonance.",
+    "viewUpcoming": "Voir le prochain événement",
+    "viewCreations": "Voir nos créations",
+    "selectedEvents": "Nos créations",
+    "noEvents": "Aucun événement disponible pour le moment",
+    "featuredTalents": "Talents en vedette",
+    "noTalents": "Aucun talent disponible pour le moment",
+    "heroDescription": "Une exploration du goût sans le son. Une expérience culinaire de privation sensorielle conçue pour affiner le palais et concentrer l'esprit. Quatre plats, zéro mot.",
+    "reserveSeat": "Réservez votre place",
+    "viewEvents": "Voir les événements",
+    "viewTalents": "Voir les talents",
+    "date": "Date",
+    "time": "Heure",
+    "location": "Lieu",
+    "admission": "Admission",
+    "metaTitle": "Germinal - Sublimer l'éphémère",
+    "metaDescription": "Germinal est un collectif dédié à l'architecture des expériences sensorielles. Nous façonnons des instants où le goût, le son et l'espace entrent en résonance à travers des événements et expositions curatoriaux."
+  },
+  "events": {
+    "pageTitle": "Événements | Germinal",
+    "title": "Événements sélectionnés",
+    "description": "Explorez notre sélection soignée d'expositions, expériences culinaires et visites architecturales à venir. Cliquez sur un événement pour voir tous les détails.",
+    "view": "Vue :",
+    "loadMore": "Charger plus d'événements",
+    "filters": {
+      "exhibitions": "Expositions",
+      "dining": "Gastronomie",
+      "workshops": "Ateliers"
+    },
+    "noEvents": "Aucun événement disponible pour le moment.",
+    "backToAll": "Retour à tous les événements",
+    "inCollaborationWith": "en collaboration avec",
+    "location": "lieu",
+    "timings": "horaires",
+    "seeEventDates": "Voir les dates de l'événement ci-dessus",
+    "details": "détails",
+    "curator": "commissaire",
+    "materials": "matériaux",
+    "admission": "admission",
+    "gallery": "Galerie",
+    "bookTickets": "Réserver des billets"
+  },
+  "talents": {
+    "pageTitle": "Talents | Germinal",
+    "title": "Talents",
+    "description": "Une liste d'artistes, architectes et penseurs multidisciplinaires qui façonnent la culture contemporaine. Sélectionnez un profil pour voir leur portfolio.",
+    "view": "Vue :",
+    "loadMore": "Charger plus de talents",
+    "filters": {
+      "visualArts": "Arts visuels",
+      "design": "Design",
+      "culinary": "Culinaire"
+    },
+    "noTalents": "Aucun talent disponible pour le moment.",
+    "basedIn": "Basé à",
+    "specialization": "Spécialisation",
+    "category": "Catégorie",
+    "gallery": "Galerie"
+  },
+  "contact": {
+    "pageTitle": "Contact | Germinal",
+    "title": "Prenons contact.",
+    "description": "Nous sommes toujours à la recherche de nouveaux talents, collaborateurs et projets architecturaux. Contactez-nous pour entamer une conversation.",
+    "regarding": "De quoi s'agit-il ?",
+    "filters": {
+      "collaboration": "Collaboration",
+      "newProject": "Nouveau projet",
+      "joinRoster": "Rejoindre la liste",
+      "other": "Autre"
+    },
+    "form": {
+      "name": "Nom",
+      "email": "Email",
+      "company": "Entreprise/Organisation (optionnel)",
+      "message": "Parlez-nous de votre projet...",
+      "send": "Envoyer le message",
+      "sending": "Envoi en cours..."
+    },
+    "sidebar": {
+      "generalInquiries": "demandes générales",
+      "pressMedia": "presse & médias",
+      "followUs": "Suivez-nous"
+    }
+  },
+  "manifesto": {
+    "pageTitle": "Nos Savoir-Faire | Germinal",
+    "eyebrow": "Savoir-faire",
+    "title": "Ce que nous créons",
+    "introLabel": "Notre positionnement",
+    "intro": "Nous ne gérons pas des événements. Nous architecturons des expériences — des instants construits avec méthode, intention et sensibilité. Chaque projet naît de la vision de nos clients et prend forme à travers un processus rigoureux, mené par un collectif de talents qui partagent une seule exigence : que rien ne soit laissé au hasard.",
+    "artDirection": {
+      "number": "01",
+      "title": "Direction Artistique",
+      "tagline": "Donner un visage à votre vision.",
+      "body": "Avant qu'un espace soit défini, avant qu'un matériau soit sélectionné, il y a une idée. Notre rôle est de la saisir, de l'affiner, de lui donner une cohérence esthétique et émotionnelle qui traversera chaque détail de l'événement. De l'intention initiale au rendu final, nous sommes les gardiens de la vision.",
+      "point1": "Création du concept visuel global et de l'identité de l'événement",
+      "point2": "Définition de la palette sensorielle : lumière, matière, couleur, son",
+      "point3": "Direction créative de l'ensemble des prestataires artistiques",
+      "point4": "Moodboards, carnets de tendances et références visuelles",
+      "imageAlt": "Mise en scène d'une table élaborée sous une lumière dorée et dramatique, illustrant la précision et l'intention derrière chaque détail de direction artistique"
+    },
+    "scenography": {
+      "number": "02",
+      "title": "Scénographie",
+      "tagline": "L'espace comme langage.",
+      "body": "Nous pensons l'espace non pas comme un décor, mais comme un langage. Chaque volume, chaque texture, chaque axe de regard est conçu pour guider l'expérience, installer une atmosphère qui s'impose sans se justifier. La scénographie est l'art de rendre visible ce qui ne peut être dit.",
+      "point1": "Design spatial et architecture éphémère sur mesure",
+      "point2": "Sélection et agencement du mobilier, des matières et des textures",
+      "point3": "Mise en lumière architecturale, scénique et d'ambiance",
+      "point4": "Habillage floral, végétal et installation artistique",
+      "imageAlt": "Vue large d'un espace scénographié avec des volumes architecturaux audacieux, des drapés sophistiqués et un éclairage tamisé créant une atmosphère à la fois dramatique et luxueuse"
+    },
+    "production": {
+      "number": "03",
+      "title": "Production Créative",
+      "tagline": "L'exigence de l'invisible.",
+      "body": "Un projet réussi est celui où l'effort ne se voit pas. Derrière l'élégance apparente se cache une rigueur absolue : coordination des équipes, gestion des prestataires, anticipation des imprévus. Nous portons cette complexité pour que vous puissiez simplement vivre l'expérience.",
+      "point1": "Coordination des équipes artistiques, techniques et logistiques",
+      "point2": "Sélection et gestion des prestataires et fournisseurs",
+      "point3": "Suivi budgétaire détaillé et pilotage opérationnel",
+      "point4": "Installation, régie et accompagnement le jour J",
+      "imageAlt": "Photographie en coulisses d'une équipe installant des éléments scénographiques dans un vaste espace vide, illustrant la rigueur et la précision du processus de production"
+    },
+    "approach": {
+      "title": "Notre approche",
+      "body": "Chaque projet est unique. Pas de formule, pas de réponse standard. Nous commençons par écouter — votre vision, vos contraintes, l'émotion que vous souhaitez faire naître. Puis nous bâtissons, avec exigence et méthode, l'expérience qui vous ressemble. De la première conversation à la dernière lumière éteinte, nous sommes là."
+    }
+  },
+  "upcoming": {
+    "title": "Le prochain événement"
+  },
+  "booking": {
+    "title": "Réserver des billets",
+    "description": "Complétez vos informations de réservation",
+    "errorTitle": "Réservation échouée",
+    "fullName": "Nom complet",
+    "email": "Email",
+    "emailHint": "La confirmation du billet sera envoyée ici",
+    "phone": "Numéro de téléphone",
+    "optional": "(optionnel)",
+    "notificationsLabel": "Comment souhaitez-vous recevoir les notifications ?",
+    "notifEmail": "Email",
+    "notifSms": "SMS",
+    "notifBoth": "Les deux",
+    "notifHint": "Recevez les confirmations de réservation et les rappels d'événements",
+    "numberOfTickets": "Nombre de billets",
+    "maxTickets": "Maximum {max} billets par commande",
+    "tickets": "Billets ({qty}×)",
+    "total": "Total",
+    "cancel": "Annuler",
+    "continueToPay": "Continuer vers le paiement",
+    "processing": "Traitement en cours...",
+    "perTicket": "par billet",
+    "ticketsAvailable": "billets disponibles",
+    "soldOut": "Épuisé",
+    "sessionEnded": "Session terminée",
+    "notAvailable": "Non disponible",
+    "joinWaitlist": "Rejoindre la liste d'attente",
+    "bookNow": "Réserver",
+    "errors": {
+      "soldOut": "Cette session est complète.",
+      "sessionStarted": "Cette session a déjà commencé.",
+      "sessionNotFound": "Cette session n'est plus disponible.",
+      "rateLimit": "Trop de tentatives. Veuillez patienter quelques minutes avant de réessayer.",
+      "generic": "Une erreur est survenue. Veuillez réessayer ou nous contacter si le problème persiste."
+    }
+  },
+  "tickets": {
+    "pageTitle": "Vos billets - {eventTitle}",
+    "status": {
+      "confirmed": "Confirmé",
+      "pendingPayment": "Paiement en attente",
+      "cancelled": "Annulé",
+      "expired": "Expiré"
+    },
+    "success": {
+      "title": "Paiement réussi !",
+      "description": "Vos billets ont été confirmés. Un email de confirmation a été envoyé à {email}.",
+      "browseMore": "Voir d'autres événements"
+    },
+    "paymentFailed": {
+      "title": "Paiement échoué",
+      "defaultError": "Votre paiement n'a pas pu être traité. Veuillez réessayer.",
+      "browseOther": "Voir d'autres événements",
+      "dismiss": "Ignorer"
+    },
+    "ticketLabel": "Billet",
+    "qrCodeHint": "Présentez ce QR code à l'entrée",
+    "guestInfo": "Informations du participant",
+    "guestName": "Nom",
+    "guestEmail": "Email",
+    "quantity": "Billets",
+    "paymentDetails": "Détails du paiement",
+    "totalPaid": "Total payé",
+    "viewReceipt": "Voir le reçu",
+    "eventLocation": "Lieu de l'événement",
+    "addToCalendar": "Ajouter au calendrier",
+    "appleOutlook": "Apple / Outlook",
+    "printTicket": "Imprimer le billet",
+    "confirmationId": "Numéro de confirmation",
+    "ticketCount": "{count, plural, one {# Billet} other {# Billets}}"
+  },
+  "admin": {
+    "login": {
+      "pageTitle": "Connexion | Germinal",
+      "title": "Se connecter",
+      "description": "Entrez vos identifiants pour accéder à votre tableau de bord",
+      "email": "Adresse email",
+      "password": "Mot de passe",
+      "signIn": "Se connecter",
+      "rateLimited": "Limite de débit atteinte",
+      "invalidCredentials": "Email ou mot de passe invalide",
+      "errors": {
+        "rateLimit": "Trop de tentatives de connexion. Réessayez dans {seconds} secondes.",
+        "emailRequired": "L'email est requis",
+        "passwordRequired": "Le mot de passe est requis"
+      },
+      "showPassword": "Afficher le mot de passe",
+      "hidePassword": "Masquer le mot de passe",
+      "mockCredentials": "Pour le développement, utilisez :",
+      "mockPasswordHint": "(votre mot de passe)",
+      "metaDescription": "Connectez-vous à votre compte Germinal"
+    },
+    "dashboard": {
+      "title": "Tableau de bord",
+      "welcome": "Bienvenue ! Voici un aperçu de votre contenu Germinal.",
+      "newEvent": {
+        "title": "Nouvel événement",
+        "description": "Créer un nouvel événement ou exposition",
+        "button": "Créer un événement"
+      },
+      "newTalent": {
+        "title": "Nouveau talent",
+        "description": "Ajouter un nouveau talent à la collection",
+        "button": "Ajouter un talent"
+      },
+      "settings": {
+        "title": "Paramètres",
+        "description": "Gérer les paramètres de votre compte",
+        "button": "Changer le mot de passe"
+      },
+      "accountInfo": {
+        "title": "Informations du compte",
+        "email": "Email",
+        "role": "Rôle",
+        "memberSince": "Membre depuis"
+      }
+    },
+    "sidebar": {
+      "title": "Panneau d'administration",
+      "dashboard": "Tableau de bord",
+      "events": "Événements",
+      "talents": "Talents",
+      "password": "Mot de passe",
+      "logout": "Déconnexion"
+    },
+    "layout": {
+      "admin": "Admin",
+      "mobileNav": {
+        "dashboard": "Tableau de bord",
+        "events": "Événements",
+        "talents": "Talents",
+        "settings": "Paramètres"
+      }
+    },
+    "events": {
+      "title": "Événements",
+      "description": "Gérer vos événements et expositions",
+      "newEvent": "Nouvel événement",
+      "noEvents": "Aucun événement pour le moment",
+      "noEventsDescription": "Créez votre premier événement pour commencer",
+      "createEvent": "Créer un événement",
+      "table": {
+        "event": "Événement",
+        "date": "Date",
+        "location": "Lieu",
+        "status": "Statut",
+        "actions": "Actions"
+      },
+      "status": {
+        "published": "Publié",
+        "draft": "Brouillon"
+      },
+      "dialog": {
+        "create": {
+          "title": "Créer un nouvel événement",
+          "description": "Remplissez les détails pour créer un nouvel événement"
+        },
+        "edit": {
+          "title": "Modifier l'événement"
+        },
+        "delete": {
+          "title": "Supprimer l'événement",
+          "confirmation": "Êtes-vous sûr de vouloir supprimer cet événement ?"
+        },
+        "fields": {
+          "title": "Titre",
+          "slug": "Slug",
+          "description": "Description",
+          "startDate": "Date de début",
+          "endDate": "Date de fin",
+          "location": "Lieu",
+          "publishImmediately": "Publier immédiatement",
+          "publishHelp": "Décochez pour enregistrer comme brouillon"
+        },
+        "actions": {
+          "cancel": "Annuler",
+          "create": "Créer l'événement",
+          "save": "Enregistrer les modifications",
+          "delete": "Supprimer"
+        }
+      }
+    },
+    "talents": {
+      "title": "Talents",
+      "description": "Gérer votre collection de talents",
+      "newTalent": "Nouveau talent",
+      "noTalents": "Aucun talent pour le moment",
+      "noTalentsDescription": "Ajoutez votre premier talent pour commencer",
+      "addTalent": "Ajouter un talent",
+      "table": {
+        "talent": "Talent",
+        "role": "Rôle",
+        "bio": "Biographie",
+        "status": "Statut",
+        "actions": "Actions"
+      },
+      "dialog": {
+        "create": {
+          "title": "Ajouter un nouveau talent"
+        },
+        "edit": {
+          "title": "Modifier le talent"
+        },
+        "delete": {
+          "title": "Supprimer le talent",
+          "confirmation": "Êtes-vous sûr de vouloir supprimer ce talent ?"
+        },
+        "fields": {
+          "firstName": "Prénom",
+          "lastName": "Nom",
+          "role": "Rôle",
+          "bio": "Biographie",
+          "socialLinks": "Liens sociaux (optionnel)",
+          "instagram": "Instagram",
+          "linkedin": "LinkedIn",
+          "twitter": "Twitter",
+          "website": "Site web"
+        },
+        "actions": {
+          "cancel": "Annuler",
+          "add": "Ajouter le talent",
+          "save": "Enregistrer les modifications",
+          "delete": "Supprimer"
+        }
+      }
+    },
+    "changePassword": {
+      "title": "Changer le mot de passe",
+      "backToDashboard": "Retour au tableau de bord",
+      "currentPassword": "Mot de passe actuel",
+      "newPassword": "Nouveau mot de passe",
+      "confirmPassword": "Confirmer le nouveau mot de passe",
+      "passwordHelp": "Doit contenir au moins 8 caractères",
+      "updatePassword": "Mettre à jour le mot de passe"
+    }
+  }
 }
