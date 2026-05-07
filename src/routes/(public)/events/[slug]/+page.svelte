@@ -31,28 +31,60 @@
     <meta name="description" content={getEventField('description').slice(0, 160)} />
 </svelte:head>
 
-<div class="container mx-auto px-4 py-16 lg:py-32 max-w-8xl">
+<!-- Full-height hero -->
+<section class="relative h-screen w-full overflow-hidden">
+    <!-- Background media -->
+    {#if data.event.coverMedia?.type === 'video'}
+        <video
+            src={data.event.coverMedia.url}
+            autoplay
+            muted
+            loop
+            playsinline
+            class="absolute inset-0 w-full h-full object-cover"
+        ></video>
+    {:else}
+        <img
+            src={data.event.coverMedia?.url ?? ''}
+            alt={getEventField('title')}
+            class="absolute inset-0 w-full h-full object-cover"
+        />
+    {/if}
+
+    <!-- Gradient overlay -->
+    <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/60"></div>
+
+    <!-- Back button — sits below the fixed nav -->
     <a
         href="/events"
-        class="flex items-center gap-2 mb-6 lg:mb-8 cursor-pointer"
-        use:reveal={{ preset: "fade-in" }}
+        class="absolute top-24 left-6 lg:left-12 z-10 flex items-center gap-2 text-white/90 hover:text-white transition-colors"
+        use:reveal={{ preset: 'fade-in', duration: 600 }}
     >
         <ArrowLeft size={18} />
-        <p class="text-700 text-sm lg:text-base">{$t("events.backToAll")}</p>
+        <p class="text-sm lg:text-base">{$t("events.backToAll")}</p>
     </a>
-    <article>
-        <header
-            class="mb-8 lg:mb-16 grid gap-3 lg:gap-4"
-            use:reveal={{ preset: "fade-up", delay: 50 }}
-        >
-            <h1 class="text-3xl lg:text-5xl font-bold">{getEventField('title')}</h1>
+
+    <!-- Title and subtitle at bottom -->
+    <div
+        class="absolute bottom-0 left-0 right-0 px-6 pb-12 lg:px-12 lg:pb-16 z-10"
+        use:reveal={{ preset: 'fade-up', delay: 100, duration: 700 }}
+    >
+        <div class="flex items-baseline gap-4 flex-wrap">
+            <h1 class="text-3xl lg:text-6xl font-bold text-white leading-tight">
+                {getEventField('title')}
+            </h1>
             {#if getEventField('subtitle')}
-                <p class="text-dark-500 text-lg font-light">
+                <p class="text-white/70 text-base lg:text-xl font-light">
                     {getEventField('subtitle')}
                 </p>
             {/if}
-        </header>
-        <div class="w-full border border-border-card/20 mb-8 lg:mb-16"></div>
+        </div>
+    </div>
+</section>
+
+<!-- Page content -->
+<div class="container mx-auto px-4 py-16 lg:py-24 max-w-8xl">
+    <article>
         <section class="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-8 lg:gap-32 text-sm lg:text-base">
             <div class="grid gap-6 lg:gap-8">
                 <div use:reveal={{ preset: "fade-up", delay: 100 }}>
@@ -60,31 +92,29 @@
                         {getEventField('description')}
                     </p>
                 </div>
-                <div
-                    class="bg-dark-50/60 p-4 lg:p-8 grid gap-3 lg:gap-4"
-                    use:reveal={{ preset: "fade-up", delay: 150 }}
-                >
-                    <p
-                        class="text-xs lg:text-md text-dark-300 text-bold leading-relaxed uppercase"
+                {#if collaborators.length > 0}
+                    <div
+                        class="bg-dark-50/60 p-4 lg:p-8 grid gap-3 lg:gap-4"
+                        use:reveal={{ preset: "fade-up", delay: 150 }}
                     >
-                        {$t("events.inCollaborationWith")}
-                    </p>
-                    <div class="flex gap-6 lg:gap-12 items-center flex-wrap">
-                        {#each collaborators as collab}
-                            <div class="flex gap-2 items-center">
-                                <div
-                                    class="rounded-full bg-dark-400 w-10 h-10 lg:w-12 lg:h-12"
-                                ></div>
-                                <div>
-                                    <p class="text-dark-900 font-bold text-sm lg:text-base">
-                                        {collab.name}
-                                    </p>
-                                    <p class="text-dark-500 text-xs lg:text-sm">{collab.role}</p>
+                        <p class="text-xs lg:text-md text-dark-300 text-bold leading-relaxed uppercase">
+                            {$t("events.inCollaborationWith")}
+                        </p>
+                        <div class="flex gap-6 lg:gap-12 items-center flex-wrap">
+                            {#each collaborators as collab}
+                                <div class="flex gap-2 items-center">
+                                    <div class="rounded-full bg-dark-400 w-10 h-10 lg:w-12 lg:h-12"></div>
+                                    <div>
+                                        <p class="text-dark-900 font-bold text-sm lg:text-base">
+                                            {collab.name}
+                                        </p>
+                                        <p class="text-dark-500 text-xs lg:text-sm">{collab.role}</p>
+                                    </div>
                                 </div>
-                            </div>
-                        {/each}
+                            {/each}
+                        </div>
                     </div>
-                </div>
+                {/if}
             </div>
             <div
                 class="grid gap-6 lg:gap-8"
@@ -129,22 +159,13 @@
                     {@render asideTitle($t("events.details"), Info)}
                     <div class="grid gap-2">
                         {#if getEventField('curator')}
-                            {@render asideLastPart(
-                                $t("events.curator"),
-                                getEventField('curator'),
-                            )}
+                            {@render asideLastPart($t("events.curator"), getEventField('curator'))}
                         {/if}
                         {#if getEventField('materials')}
-                            {@render asideLastPart(
-                                $t("events.materials"),
-                                getEventField('materials'),
-                            )}
+                            {@render asideLastPart($t("events.materials"), getEventField('materials'))}
                         {/if}
                         {#if getEventField('admissionInfo')}
-                            {@render asideLastPart(
-                                $t("events.admission"),
-                                getEventField('admissionInfo'),
-                            )}
+                            {@render asideLastPart($t("events.admission"), getEventField('admissionInfo'))}
                         {/if}
                     </div>
                 </div>
