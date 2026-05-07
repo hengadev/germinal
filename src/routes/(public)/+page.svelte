@@ -316,5 +316,24 @@
                 </div>
             {/each}
         </section>
+
+        <!-- Stats -->
+        <section use:reveal={{ preset: "fade-up", delay: 100 }}>
+            <p class="text-dark-500 uppercase text-sm tracking-widest mb-8">{$t("home.statsEyebrow")}</p>
+            <div class="grid grid-cols-3">
+                <div class="py-10 px-6 text-center grid gap-2">
+                    <p class="text-6xl md:text-7xl font-bold">30+</p>
+                    <p class="text-dark-400 text-xs uppercase tracking-widest">{$t("home.statsProductions")}</p>
+                </div>
+                <div class="py-10 px-6 text-center grid gap-2">
+                    <p class="text-6xl md:text-7xl font-bold">80+</p>
+                    <p class="text-dark-400 text-xs uppercase tracking-widest">{$t("home.statsArtists")}</p>
+                </div>
+                <div class="py-10 px-6 text-center grid gap-2">
+                    <p class="text-6xl md:text-7xl font-bold">5</p>
+                    <p class="text-dark-400 text-xs uppercase tracking-widest">{$t("home.statsYears")}</p>
+                </div>
+            </div>
+        </section>
     </div>
 </div>

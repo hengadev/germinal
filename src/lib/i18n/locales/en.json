@@ -48,7 +48,11 @@
     "aboutBody": "We bring together scenographers, artists, and producers around a single ambition: crafting events that linger long after the lights go out. Every project is built with intention — nothing left to chance.",
     "servicesEyebrow": "What we do",
     "servicesTitle": "Our disciplines",
-    "viewServices": "View our expertise"
+    "viewServices": "View our expertise",
+    "statsEyebrow": "In numbers",
+    "statsProductions": "Productions",
+    "statsArtists": "Artists",
+    "statsYears": "Years"
   },
   "events": {
     "pageTitle": "Events | Germinal",

@@ -48,7 +48,11 @@
     "aboutBody": "Nous réunissons scénographes, artistes et producteurs autour d'une seule ambition : créer des événements qui perdurent longtemps après l'extinction des lumières. Chaque projet est construit avec intention — rien n'est laissé au hasard.",
     "servicesEyebrow": "Ce que nous faisons",
     "servicesTitle": "Nos disciplines",
-    "viewServices": "Voir notre expertise"
+    "viewServices": "Voir notre expertise",
+    "statsEyebrow": "En chiffres",
+    "statsProductions": "Productions",
+    "statsArtists": "Artistes",
+    "statsYears": "Années"
   },
   "events": {
     "pageTitle": "Événements | Germinal",
