@@ -42,7 +42,10 @@
     "location": "Lieu",
     "admission": "Admission",
     "metaTitle": "Germinal - Sublimer l'éphémère",
-    "metaDescription": "Germinal est un collectif dédié à l'architecture des expériences sensorielles. Nous façonnons des instants où le goût, le son et l'espace entrent en résonance à travers des événements et expositions curatoriaux."
+    "metaDescription": "Germinal est un collectif dédié à l'architecture des expériences sensorielles. Nous façonnons des instants où le goût, le son et l'espace entrent en résonance à travers des événements et expositions curatoriaux.",
+    "aboutEyebrow": "Qui nous sommes",
+    "aboutTitle": "Un collectif à l'intersection de l'art, de l'espace et de l'expérience vécue.",
+    "aboutBody": "Nous réunissons scénographes, artistes et producteurs autour d'une seule ambition : créer des événements qui perdurent longtemps après l'extinction des lumières. Chaque projet est construit avec intention — rien n'est laissé au hasard."
   },
   "events": {
     "pageTitle": "Événements | Germinal",

@@ -71,6 +71,19 @@
     <div
         class="container mx-auto mb-32 px-4 grid gap-y-24 md:gap-y-40 pt-24 md:pt-32"
     >
+        <!-- About block -->
+        <section
+            class="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16 items-start mb-16 md:mb-24"
+            use:reveal={{ preset: "fade-up", delay: 100 }}
+        >
+            <div class="grid gap-3">
+                <p class="text-dark-500 uppercase text-sm tracking-widest">{$t("home.aboutEyebrow")}</p>
+                <h2 class="text-2xl md:text-3xl lg:text-4xl font-base leading-snug">{$t("home.aboutTitle")}</h2>
+            </div>
+            <p class="text-dark-500 leading-relaxed md:pt-10">{$t("home.aboutBody")}</p>
+        </section>
+
+        <!-- Upcoming event -->
         <section
             class="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12"
             use:reveal={{ preset: "fade-up", delay: 100 }}
