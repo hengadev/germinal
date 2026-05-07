@@ -205,6 +205,8 @@
     "processing": "Processing...",
     "perTicket": "per ticket",
     "ticketsAvailable": "tickets available",
+    "doors": "Doors",
+    "capacity": "Capacity",
     "soldOut": "Sold Out",
     "sessionEnded": "Session ended",
     "notAvailable": "Not Available",

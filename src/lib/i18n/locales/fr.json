@@ -205,6 +205,8 @@
     "processing": "Traitement en cours...",
     "perTicket": "par billet",
     "ticketsAvailable": "billets disponibles",
+    "doors": "Ouverture",
+    "capacity": "Capacité",
     "soldOut": "Épuisé",
     "sessionEnded": "Session terminée",
     "notAvailable": "Non disponible",
