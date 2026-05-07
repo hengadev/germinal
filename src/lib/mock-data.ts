@@ -271,7 +271,12 @@ export const MOCK_EVENTS = [
         updatedAt: new Date(),
         coverMediaId: null,
         coverMedia: createMockMedia("https://images.unsplash.com/photo-1470723710355-95304d8aece4?q=80&w=2670&auto=format&fit=crop"),
-        media: [],
+        media: [
+            createMockMedia("https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=2670&auto=format&fit=crop"),
+            createMockMedia("https://images.unsplash.com/photo-1515187029135-18ee286d815b?q=80&w=2670&auto=format&fit=crop"),
+            createMockMedia("https://images.unsplash.com/photo-1505373877841-8d25f7d46678?q=80&w=2560&auto=format&fit=crop"),
+            createMockMedia("https://images.unsplash.com/photo-1475721027785-f74eccf877e2?q=80&w=2670&auto=format&fit=crop"),
+        ],
     },
     {
         id: '3',
@@ -319,7 +324,13 @@ export const MOCK_EVENTS = [
         updatedAt: new Date(),
         coverMediaId: null,
         coverMedia: createMockMedia("https://images.unsplash.com/photo-1544531586-fde5298cdd40?q=80&w=2670&auto=format&fit=crop"),
-        media: [],
+        media: [
+            createMockMedia("https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?q=80&w=2680&auto=format&fit=crop"),
+            createMockMedia("https://images.unsplash.com/photo-1501084817091-a4f3d1d19e07?q=80&w=2670&auto=format&fit=crop"),
+            createMockMedia("https://images.unsplash.com/photo-1518998053901-5348d3961a04?q=80&w=2574&auto=format&fit=crop"),
+            createMockMedia("https://images.unsplash.com/photo-1549490349-8643362247b5?q=80&w=2574&auto=format&fit=crop"),
+            createMockMedia("https://images.unsplash.com/photo-1605721911519-3dfeb3be25e7?q=80&w=2670&auto=format&fit=crop"),
+        ],
     },
     {
         id: '4',
@@ -367,7 +378,11 @@ export const MOCK_EVENTS = [
         updatedAt: new Date(),
         coverMediaId: null,
         coverMedia: createMockMedia("https://images.unsplash.com/photo-1600607686527-6fb886090705?q=80&w=2500&auto=format&fit=crop"),
-        media: [],
+        media: [
+            createMockMedia("https://images.unsplash.com/photo-1414235077428-338989a2e8c0?q=80&w=2670&auto=format&fit=crop"),
+            createMockMedia("https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=2670&auto=format&fit=crop"),
+            createMockMedia("https://images.unsplash.com/photo-1547592180-85f173990554?q=80&w=2670&auto=format&fit=crop"),
+        ],
     },
     {
         id: '5',
@@ -416,7 +431,11 @@ export const MOCK_EVENTS = [
         updatedAt: new Date(),
         coverMediaId: null,
         coverMedia: createMockMedia("https://images.unsplash.com/photo-1519750783826-e2420f4d687f?q=80&w=2574&auto=format&fit=crop"),
-        media: [],
+        media: [
+            createMockMedia("https://images.unsplash.com/photo-1530549387789-4c1017266635?q=80&w=2670&auto=format&fit=crop"),
+            createMockMedia("https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?q=80&w=2670&auto=format&fit=crop"),
+            createMockMedia("https://images.unsplash.com/photo-1571008887538-b36bb32f4571?q=80&w=2670&auto=format&fit=crop"),
+        ],
     },
     {
         id: '6',
@@ -463,7 +482,12 @@ export const MOCK_EVENTS = [
         updatedAt: new Date(),
         coverMediaId: null,
         coverMedia: createMockMedia("https://images.unsplash.com/photo-1554907984-15263bfd63bd?q=80&w=2670&auto=format&fit=crop"),
-        media: [],
+        media: [
+            createMockMedia("https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?q=80&w=2574&auto=format&fit=crop"),
+            createMockMedia("https://images.unsplash.com/photo-1558618666-fcd25c85cd64?q=80&w=2670&auto=format&fit=crop"),
+            createMockMedia("https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=2574&auto=format&fit=crop"),
+            createMockMedia("https://images.unsplash.com/photo-1524178232363-1fb2b075b655?q=80&w=2670&auto=format&fit=crop"),
+        ],
     },
     {
         id: '7',
@@ -513,7 +537,10 @@ export const MOCK_EVENTS = [
         updatedAt: new Date(),
         coverMediaId: null,
         coverMedia: createMockMedia("https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?q=80&w=2670&auto=format&fit=crop"),
-        media: [],
+        media: [
+            createMockMedia("https://images.unsplash.com/photo-1416879595882-3373a0480b5b?q=80&w=2670&auto=format&fit=crop"),
+            createMockMedia("https://images.unsplash.com/photo-1466692476868-aef1dfb1e735?q=80&w=2670&auto=format&fit=crop"),
+        ],
     },
 ];
 
