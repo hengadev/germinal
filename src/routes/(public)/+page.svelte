@@ -11,6 +11,10 @@
     const hasSpotlightEvent = $derived(page.data.hasSpotlightEvent ?? false);
 
     const serviceKeys = ['artDirection', 'scenography', 'production'] as const;
+    const placeholderPartners = [
+        'Fondation Louis Vuitton', 'Centre Pompidou', 'Palais de Tokyo', 'Musée Guimet',
+        'Galerie Perrotin', 'FIAC', 'Maison & Objet', 'Villa Noailles',
+    ];
 
     function getEventField(event: typeof data.events[0], field: 'title' | 'description' | 'subtitle'): string {
         const enField = (field + 'En') as 'titleEn' | 'descriptionEn' | 'subtitleEn';
@@ -335,5 +339,28 @@
                 </div>
             </div>
         </section>
+
+        <!-- Partners — uncomment when real partner names are available -->
+        <!-- <section use:reveal={{ preset: "fade-up", delay: 100 }}>
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-12">
+                <div class="grid gap-2">
+                    <p class="text-dark-500 uppercase text-sm tracking-widest">{$t("home.partnersEyebrow")}</p>
+                    <h2 class="text-2xl md:text-3xl font-base">{$t("home.partnersTitle")}</h2>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-4">
+                {#each placeholderPartners as partner, index}
+                    <div
+                        class="group relative h-32 flex items-center justify-center px-8 overflow-hidden"
+                        use:reveal={{ preset: "fade-up", delay: 80 + index * 40 }}
+                    >
+                        <div class="absolute inset-0 bg-dark-900 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        <p class="relative z-10 text-dark-400 text-xs font-medium uppercase tracking-widest text-center group-hover:text-white transition-colors duration-300">
+                            {partner}
+                        </p>
+                    </div>
+                {/each}
+            </div>
+        </section> -->
     </div>
 </div>

@@ -52,7 +52,9 @@
     "statsEyebrow": "En chiffres",
     "statsProductions": "Productions",
     "statsArtists": "Artistes",
-    "statsYears": "Années"
+    "statsYears": "Années",
+    "partnersEyebrow": "Ils nous font confiance",
+    "partnersTitle": "Partenaires sélectionnés"
   },
   "events": {
     "pageTitle": "Événements | Germinal",
