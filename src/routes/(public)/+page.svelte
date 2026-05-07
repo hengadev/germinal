@@ -83,7 +83,7 @@
                         <img
                             src={data.events[0].coverMedia.url}
                             alt={getEventField(data.events[0], 'title')}
-                            class="w-full max-h-[25rem] md:max-h-[30rem] object-cover grayscale"
+                            class="w-full max-h-[25rem] md:max-h-[30rem] object-cover"
                         />
                     {:else}
                         <div class="w-full max-h-[25rem] md:max-h-[30rem] aspect-video bg-gray-200"></div>
