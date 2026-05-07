@@ -184,7 +184,7 @@
                     {@const location = $locale === 'en' ? event.locationEn : event.locationFr}
                     <a
                         href="/events/{event.slug}"
-                        class="block border-t border-dark-100 pt-8 pb-10 group"
+                        class="block pt-8 pb-10 group"
                         use:reveal={{ preset: "fade-up", delay: 100 + index * 80 }}
                     >
                         <!-- Media -->
