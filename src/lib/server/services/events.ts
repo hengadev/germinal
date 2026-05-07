@@ -10,13 +10,18 @@ import {
 } from '$lib/utils/pagination';
 import { invalidateCacheTags, CACHE_TAGS } from '$lib/server/cache';
 
-export async function getAllEvents(options: { publishedOnly?: boolean; page?: number; limit?: number; cursor?: string; search?: string }) {
-	const { publishedOnly = true, page = 1, limit = 20, search } = options;
+export async function getAllEvents(options: { publishedOnly?: boolean; excludeSpotlight?: boolean; page?: number; limit?: number; cursor?: string; search?: string }) {
+	const { publishedOnly = true, excludeSpotlight = false, page = 1, limit = 20, search } = options;
 
 	// Build where clause
 	let whereClause = undefined;
 	if (publishedOnly) {
 		whereClause = eq(events.published, true);
+	}
+
+	if (excludeSpotlight) {
+		const spotlightClause = eq(events.isSpotlight, false);
+		whereClause = whereClause ? and(whereClause, spotlightClause) : spotlightClause;
 	}
 
 	// Add search filter

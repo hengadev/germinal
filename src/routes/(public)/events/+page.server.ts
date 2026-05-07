@@ -23,12 +23,12 @@ export const load: PageServerLoad = async ({ url }) => {
     // Use mock data if enabled (no database required!)
     if (USE_MOCK_DATA) {
         logger.info('📦 Using mock data for events');
-        let filteredEvents = MOCK_EVENTS;
+        let filteredEvents = MOCK_EVENTS.filter(e => !e.isSpotlight);
 
         // Apply search filter if provided
         if (searchQuery) {
             const query = searchQuery.toLowerCase();
-            filteredEvents = MOCK_EVENTS.filter(e =>
+            filteredEvents = filteredEvents.filter(e =>
                 e.titleEn.toLowerCase().includes(query) ||
                 e.titleFr.toLowerCase().includes(query) ||
                 e.descriptionEn.toLowerCase().includes(query) ||
@@ -50,6 +50,7 @@ export const load: PageServerLoad = async ({ url }) => {
 
     const result = await getAllEvents({
         publishedOnly: true,
+        excludeSpotlight: true,
         page: 1,
         limit: INITIAL_PAGE_SIZE,
         search: searchQuery

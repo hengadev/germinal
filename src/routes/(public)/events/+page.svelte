@@ -67,7 +67,7 @@
         try {
             const nextPage = currentPage + 1;
             const response = await fetch(
-                `/api/events?page=${nextPage}&limit=6`,
+                `/api/events?page=${nextPage}&limit=6&excludeSpotlight=true`,
             );
 
             if (!response.ok) throw new Error("Failed to load more events");
