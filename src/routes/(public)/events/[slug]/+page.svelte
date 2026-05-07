@@ -1,6 +1,5 @@
 <script lang="ts">
     import EventGallery from "$lib/components/EventGallery.svelte";
-    import SessionSelector from "$lib/components/booking/SessionSelector.svelte";
     import type { PageData } from "./$types";
     import { ArrowLeft, MapPin, Clock, Info } from "lucide-svelte";
     import { Icon } from "lucide-svelte";
@@ -16,8 +15,6 @@
     let timings = $derived(
         data.event.timings ? JSON.parse(data.event.timings) : [],
     );
-
-    let hasUpcomingSessions = $derived(data.sessions.some(s => !s.isPast));
 
     function getEventField(field: 'title' | 'description' | 'subtitle' | 'curator' | 'materials' | 'admissionInfo' | 'location' | 'venueName' | 'streetAddress' | 'district' | 'city' | 'country'): string {
         const enField = (field + 'En') as 'titleEn' | 'descriptionEn' | 'subtitleEn' | 'curatorEn' | 'materialsEn' | 'admissionInfoEn' | 'locationEn' | 'venueNameEn' | 'streetAddressEn' | 'districtEn' | 'cityEn' | 'countryEn';
@@ -182,16 +179,6 @@
             </section>
         {/if}
 
-        {#if hasUpcomingSessions}
-            <section class="mt-12 lg:mt-16" use:reveal={{ preset: "fade-up", delay: 250 }}>
-                <h2 class="text-2xl lg:text-3xl font-bold mb-6 lg:mb-8">{$t("events.bookTickets")}</h2>
-                <SessionSelector
-                    sessions={data.sessions}
-                    eventTitle={getEventField('title')}
-                    eventSlug={data.event.slug}
-                />
-            </section>
-        {/if}
     </article>
 </div>
 
