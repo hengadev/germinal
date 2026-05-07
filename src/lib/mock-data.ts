@@ -222,14 +222,7 @@ export const MOCK_EVENTS = [
         updatedAt: new Date(),
         coverMediaId: 'mock-cover-1',
         coverMedia: createMockMedia("https://hoirqrkdgbmvpwutwuwj.supabase.co/storage/v1/object/public/assets/assets/917d6f93-fb36-439a-8c48-884b67b35381_1600w.jpg"),
-        media: [
-            createMockMedia("https://hoirqrkdgbmvpwutwuwj.supabase.co/storage/v1/object/public/assets/assets/917d6f93-fb36-439a-8c48-884b67b35381_1600w.jpg"),
-            createMockMedia("https://images.unsplash.com/photo-1470723710355-95304d8aece4?q=80&w=2670&auto=format&fit=crop"),
-            createMockMedia("https://images.unsplash.com/photo-1544531586-fde5298cdd40?q=80&w=2670&auto=format&fit=crop"),
-            createMockMedia("https://images.unsplash.com/photo-1600607686527-6fb886090705?q=80&w=2500&auto=format&fit=crop"),
-            createMockMedia("https://images.unsplash.com/photo-1519750783826-e2420f4d687f?q=80&w=2574&auto=format&fit=crop"),
-            createMockMedia("https://images.unsplash.com/photo-1554907984-15263bfd63bd?q=80&w=2670&auto=format&fit=crop"),
-        ],
+        media: [],
     },
     {
         id: '2',
