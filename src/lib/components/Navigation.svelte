@@ -16,7 +16,11 @@
     let scrolled = $state(false);
     let isMobileMenuOpen = $state(false);
 
-    const isHeroPage = $derived(page.url.pathname === "/" || page.url.pathname === "/spotlight");
+    const isHeroPage = $derived(
+        page.url.pathname === "/" ||
+        page.url.pathname === "/spotlight" ||
+        page.url.pathname.startsWith("/events/")
+    );
     const showScrolledState = $derived(!isHeroPage || scrolled);
 
     function handleScroll() {
