@@ -45,7 +45,10 @@
     "metaDescription": "Germinal is a collective dedicated to the architecture of sensory experiences. We craft moments where taste, sound and space resonate together through curated events and exhibitions.",
     "aboutEyebrow": "Who we are",
     "aboutTitle": "A collective at the intersection of art, space, and lived experience.",
-    "aboutBody": "We bring together scenographers, artists, and producers around a single ambition: crafting events that linger long after the lights go out. Every project is built with intention — nothing left to chance."
+    "aboutBody": "We bring together scenographers, artists, and producers around a single ambition: crafting events that linger long after the lights go out. Every project is built with intention — nothing left to chance.",
+    "servicesEyebrow": "What we do",
+    "servicesTitle": "Our disciplines",
+    "viewServices": "View our expertise"
   },
   "events": {
     "pageTitle": "Events | Germinal",

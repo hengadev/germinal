@@ -10,6 +10,8 @@
 
     const hasSpotlightEvent = $derived(page.data.hasSpotlightEvent ?? false);
 
+    const serviceKeys = ['artDirection', 'scenography', 'production'] as const;
+
     function getEventField(event: typeof data.events[0], field: 'title' | 'description' | 'subtitle'): string {
         const enField = (field + 'En') as 'titleEn' | 'descriptionEn' | 'subtitleEn';
         const frField = (field + 'Fr') as 'titleFr' | 'descriptionFr' | 'subtitleFr';
@@ -285,6 +287,34 @@
                     {/each}
                 </div>
             {/if}
+        </section>
+
+        <!-- Services -->
+        <section use:reveal={{ preset: "fade-up", delay: 100 }}>
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+                <div class="grid gap-2">
+                    <p class="text-dark-500 uppercase text-sm tracking-widest">{$t("home.servicesEyebrow")}</p>
+                    <h2 class="text-2xl md:text-3xl font-base">{$t("home.servicesTitle")}</h2>
+                </div>
+                <a href="/manifesto" class="flex items-center gap-2 text-dark-600 hover:text-dark-800 font-normal">
+                    <p>{$t("home.viewServices")}</p>
+                    <ArrowRight />
+                </a>
+            </div>
+            {#each serviceKeys as key, index}
+                <div
+                    class="flex items-start gap-6 md:gap-16 py-8 border-t border-dark-100 last:border-b last:border-dark-100"
+                    use:reveal={{ preset: "fade-up", delay: 100 + index * 80 }}
+                >
+                    <p class="text-dark-300 text-xs uppercase tracking-widest shrink-0 pt-1">
+                        {$t(`manifesto.${key}.number`)}
+                    </p>
+                    <div class="grid gap-1 flex-1 min-w-0">
+                        <h3 class="text-lg font-medium">{$t(`manifesto.${key}.title`)}</h3>
+                        <p class="text-dark-500 text-sm">{$t(`manifesto.${key}.tagline`)}</p>
+                    </div>
+                </div>
+            {/each}
         </section>
     </div>
 </div>
