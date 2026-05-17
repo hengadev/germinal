@@ -30,6 +30,8 @@ vite.config.ts.timestamp-*
 
 *.md
 !README.md
+!CONTEXT.md
+!docs/**/*.md
 !infrastructure/terraform/README.md
 !infrastructure/ansible/README.md
 !infrastructure/ansible/VAULT.md
