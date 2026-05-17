@@ -73,8 +73,6 @@ const baseEventSchema = z.object({
   }),
   curatorEn: z.string().max(150).optional().transform(v => v ?? null),
   curatorFr: z.string().max(150).optional().transform(v => v ?? null),
-  materialsEn: z.string().optional().transform(v => v ?? null),
-  materialsFr: z.string().optional().transform(v => v ?? null),
   admissionInfoEn: z.string().max(150).optional().transform(v => v ?? null),
   admissionInfoFr: z.string().max(150).optional().transform(v => v ?? null),
   coverMediaId: z.string().uuid().optional().transform(v => v ?? null),

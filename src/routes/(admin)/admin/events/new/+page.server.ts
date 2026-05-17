@@ -45,8 +45,6 @@ export const actions: Actions = {
 		const timings = formData.get('timings');
 		const curatorEn = formData.get('curatorEn');
 		const curatorFr = formData.get('curatorFr');
-		const materialsEn = formData.get('materialsEn');
-		const materialsFr = formData.get('materialsFr');
 		const admissionInfoEn = formData.get('admissionInfoEn');
 		const admissionInfoFr = formData.get('admissionInfoFr');
 		const coverMediaId = formData.get('coverMediaId') as string | null;
@@ -174,8 +172,6 @@ export const actions: Actions = {
 				timings: timings?.toString() || null,
 				curatorEn: curatorEn?.toString() || null,
 				curatorFr: curatorFr?.toString() || null,
-				materialsEn: materialsEn?.toString() || null,
-				materialsFr: materialsFr?.toString() || null,
 				admissionInfoEn: admissionInfoEn?.toString() || null,
 				admissionInfoFr: admissionInfoFr?.toString() || null,
 				published,
@@ -227,8 +223,6 @@ export const actions: Actions = {
 				timings: timings?.toString() || null,
 				curatorEn: curatorEn?.toString() || null,
 				curatorFr: curatorFr?.toString() || null,
-				materialsEn: materialsEn?.toString() || null,
-				materialsFr: materialsFr?.toString() || null,
 				admissionInfoEn: admissionInfoEn?.toString() || null,
 				admissionInfoFr: admissionInfoFr?.toString() || null,
 				coverMediaId: coverMediaId || null,

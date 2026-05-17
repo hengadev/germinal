@@ -78,6 +78,13 @@
       "when": 1778097985485,
       "tag": "0010_add_cover_video_to_events",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1779047598110,
+      "tag": "0011_drop_materials_fields",
+      "breakpoints": true
     }
   ]
 }

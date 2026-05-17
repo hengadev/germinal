@@ -132,8 +132,6 @@ export const events = pgTable('events', {
     timings: text('timings'),
     curatorEn: varchar('curator_en', { length: 150 }),
     curatorFr: varchar('curator_fr', { length: 150 }),
-    materialsEn: text('materials_en'),
-    materialsFr: text('materials_fr'),
     admissionInfoEn: varchar('admission_info_en', { length: 150 }),
     admissionInfoFr: varchar('admission_info_fr', { length: 150 }),
     coverMediaId: uuid('cover_media_id'),

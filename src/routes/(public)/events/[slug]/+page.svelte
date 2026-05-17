@@ -16,9 +16,9 @@
         data.event.timings ? JSON.parse(data.event.timings) : [],
     );
 
-    function getEventField(field: 'title' | 'description' | 'subtitle' | 'curator' | 'materials' | 'admissionInfo' | 'location' | 'venueName' | 'streetAddress' | 'district' | 'city' | 'country'): string {
-        const enField = (field + 'En') as 'titleEn' | 'descriptionEn' | 'subtitleEn' | 'curatorEn' | 'materialsEn' | 'admissionInfoEn' | 'locationEn' | 'venueNameEn' | 'streetAddressEn' | 'districtEn' | 'cityEn' | 'countryEn';
-        const frField = (field + 'Fr') as 'titleFr' | 'descriptionFr' | 'subtitleFr' | 'curatorFr' | 'materialsFr' | 'admissionInfoFr' | 'locationFr' | 'venueNameFr' | 'streetAddressFr' | 'districtFr' | 'cityFr' | 'countryFr';
+    function getEventField(field: 'title' | 'description' | 'subtitle' | 'curator' | 'admissionInfo' | 'location' | 'venueName' | 'streetAddress' | 'district' | 'city' | 'country'): string {
+        const enField = (field + 'En') as 'titleEn' | 'descriptionEn' | 'subtitleEn' | 'curatorEn' | 'admissionInfoEn' | 'locationEn' | 'venueNameEn' | 'streetAddressEn' | 'districtEn' | 'cityEn' | 'countryEn';
+        const frField = (field + 'Fr') as 'titleFr' | 'descriptionFr' | 'subtitleFr' | 'curatorFr' | 'admissionInfoFr' | 'locationFr' | 'venueNameFr' | 'streetAddressFr' | 'districtFr' | 'cityFr' | 'countryFr';
         return $locale === 'en' ? data.event[enField] || '' : data.event[frField] || '';
     }
 </script>
@@ -157,9 +157,6 @@
                     <div class="grid gap-2">
                         {#if getEventField('curator')}
                             {@render asideLastPart($t("events.curator"), getEventField('curator'))}
-                        {/if}
-                        {#if getEventField('materials')}
-                            {@render asideLastPart($t("events.materials"), getEventField('materials'))}
                         {/if}
                         {#if getEventField('admissionInfo')}
                             {@render asideLastPart($t("events.admission"), getEventField('admissionInfo'))}

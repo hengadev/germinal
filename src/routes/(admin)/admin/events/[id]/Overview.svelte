@@ -54,8 +54,6 @@
 	);
 	let curatorEn = $state(data.event.curatorEn || "");
 	let curatorFr = $state(data.event.curatorFr || "");
-	let materialsEn = $state(data.event.materialsEn || "");
-	let materialsFr = $state(data.event.materialsFr || "");
 	let admissionInfoEn = $state(data.event.admissionInfoEn || "");
 	let admissionInfoFr = $state(data.event.admissionInfoFr || "");
 	let published = $state(data.event.published);
@@ -593,34 +591,6 @@
                     type="text"
                     bind:value={curatorFr}
                     placeholder="ex: Jean Smith"
-                    class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
-                />
-            </div>
-
-            <div>
-                <label for="materialsEn" class="block text-sm font-medium text-foreground-alt mb-2">
-                    Matériaux (Anglais)
-                </label>
-                <input
-                    id="materialsEn"
-                    name="materialsEn"
-                    type="text"
-                    bind:value={materialsEn}
-                    placeholder="ex: Canvas, Wood, Digital"
-                    class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
-                />
-            </div>
-
-            <div>
-                <label for="materialsFr" class="block text-sm font-medium text-foreground-alt mb-2">
-                    Matériaux (Français)
-                </label>
-                <input
-                    id="materialsFr"
-                    name="materialsFr"
-                    type="text"
-                    bind:value={materialsFr}
-                    placeholder="ex: Toile, Bois, Numérique"
                     class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
                 />
             </div>

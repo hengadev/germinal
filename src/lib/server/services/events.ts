@@ -157,8 +157,6 @@ export async function createEvent(input: CreateEventInput) {
       timings: input.timings,
       curatorEn: input.curatorEn,
       curatorFr: input.curatorFr,
-      materialsEn: input.materialsEn,
-      materialsFr: input.materialsFr,
       admissionInfoEn: input.admissionInfoEn,
       admissionInfoFr: input.admissionInfoFr,
       coverMediaId: input.coverMediaId,
