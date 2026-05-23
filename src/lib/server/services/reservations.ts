@@ -301,7 +301,7 @@ export async function cancelReservationWithRefund(reservationId: string) {
 
 		await tx.update(eventSessions)
 			.set({
-				availableCapacity: session!.availableCapacity + reservation.quantity,
+				availableCapacity: Math.min(session!.availableCapacity + reservation.quantity, session!.totalCapacity),
 				updatedAt: new Date(),
 			})
 			.where(eq(eventSessions.id, reservation.eventSessionId));
@@ -361,6 +361,11 @@ export async function expireReservation(reservationId: string) {
 		});
 
 		if (!reservation) {
+			return null;
+		}
+
+		// Only expire pending reservations; any other terminal/non-pending status is a no-op
+		if (reservation.status !== 'pending') {
 			return null;
 		}
 
