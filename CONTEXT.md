@@ -120,8 +120,14 @@ A contact form submission from an external party. Four types: `collaboration` (c
 
 - `materialsEn` / `materialsFr` on Event: no defined use case — to be removed from schema, admin form, and public page.
 
+## Legal & Compliance
+
+**Privacy Contact**: `privacy@germinalstudio.co` — the designated data controller contact for GDPR/RGPD inquiries. Referenced in the privacy policy. Must be set up as a forwarding alias before go-live.
+
+**Legal entity**: Germinal. Registered address: _TODO — to be filled before publishing legal pages._
+
 ## Flagged ambiguities
 
 - **Collaborator vs Talent**: a Talent is a standing roster member; a Collaborator is a named contributor on a specific Event. These are distinct and must not be conflated.
-- **Spotlight uniqueness**: only one Event should have `isSpotlight = true` at a time, but this is not enforced by a DB unique partial index — the admin UI is the only guard.
+- **Spotlight uniqueness**: only one Event should have `isSpotlight = true` at a time. Enforced at the service layer (`createEvent` / `updateEvent` clear all other spotlights before setting the new one). Not enforced at the DB level — a direct SQL write could bypass this.
 - **User role**: the `user` role exists in the schema but no Guest registration flow exists yet. A `Guest` making a Reservation is not the same as a `User`.
