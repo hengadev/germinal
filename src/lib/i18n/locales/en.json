@@ -22,7 +22,10 @@
   },
   "footer": {
     "allRightsReserved": "All rights reserved.",
-    "instagram": "Instagram"
+    "instagram": "Instagram",
+    "privacyPolicy": "Privacy Policy",
+    "termsOfSale": "Terms of Sale",
+    "faq": "FAQ"
   },
   "home": {
     "heroTitle": "Elevating the Ephemeral",
@@ -254,6 +257,78 @@
     "printTicket": "Print Ticket",
     "confirmationId": "Confirmation ID",
     "ticketCount": "{count, plural, one {# Ticket} other {# Tickets}}"
+  },
+  "legal": {
+    "lastUpdated": "Last updated: {date}",
+    "privacy": {
+      "pageTitle": "Privacy Policy | Germinal",
+      "title": "Privacy Policy",
+      "intro": "Germinal (\"we\", \"us\", \"our\") is committed to protecting your personal data. This policy explains how we collect, use, and protect your information in accordance with the General Data Protection Regulation (RGPD/GDPR).",
+      "controllerTitle": "1. Data Controller",
+      "controllerBody": "The data controller is:",
+      "controllerName": "Germinal",
+      "controllerAddress": "[ADRESSE — À COMPLÉTER]",
+      "controllerEmail": "Email: privacy@germinalstudio.co",
+      "dataTitle": "2. Personal Data We Collect",
+      "dataIntro": "We collect the following categories of personal data:",
+      "dataReservation": "Reservation data: first name, last name, email address, phone number — collected when you book a Session or create a Reservation.",
+      "dataTechnical": "Technical data: IP address, browser user-agent — collected automatically for fraud prevention and site security.",
+      "basisTitle": "3. Legal Basis",
+      "basisContractual": "Contractual necessity: processing your data is required to fulfil the booking contract (creating your Reservation, sending your Ticket, processing payment).",
+      "basisLegitimate": "Legitimate interest: we use technical data to prevent fraud and ensure the security of our platform.",
+      "retentionTitle": "4. Retention Periods",
+      "retentionBody": "Reservation data is retained for the duration necessary to fulfil the contract plus 3 years for accounting and customer-relationship purposes. Technical data (logs) is retained for 12 months.",
+      "rightsTitle": "5. Your Rights Under RGPD",
+      "rightsBody": "As a data subject, you have the right to:",
+      "rightAccess": "Access your personal data",
+      "rightRectification": "Rectify inaccurate data",
+      "rightErasure": "Request erasure of your data",
+      "rightPortability": "Receive your data in a portable format",
+      "rightObject": "Object to processing based on legitimate interest",
+      "rightWithdraw": "Withdraw your consent at any time",
+      "rightsExercice": "To exercise any of these rights, contact us at privacy@germinalstudio.co."
+    },
+    "terms": {
+      "pageTitle": "Terms of Sale | Germinal",
+      "title": "General Terms of Sale",
+      "intro": "These General Terms of Sale (\"CGV\") govern all transactions made through the Germinal platform. By placing an order, you accept these terms in full.",
+      "offerTitle": "1. Offer and Acceptance",
+      "offerBody": "Our Events and Sessions are presented on the site with their description, date, time, and price in euros (EUR). An order is accepted only upon confirmation by Germinal, sent by email. This confirmation constitutes the formation of the contract.",
+      "pricingTitle": "2. Pricing",
+      "pricingBody": "All prices are displayed in euros (EUR) inclusive of all taxes (TTC). Germinal reserves the right to modify prices at any time; however, the applicable price is the one in effect at the time of order confirmation.",
+      "paymentTitle": "3. Payment",
+      "paymentBody": "Payment is processed securely via Stripe. We accept major credit and debit cards. Payment is required in full at the time of order to confirm your Reservation.",
+      "cancellationTitle": "4. Cancellation and Refund Policy",
+      "cancellationBody": "Confirmed Reservations may be cancelled for a full refund. Refunds are processed to the original payment method within 14 business days. If Germinal cancels an Event or Session, all affected Reservations will be refunded in full.",
+      "liabilityTitle": "5. Liability",
+      "liabilityBody": "Germinal's liability is limited to the amount paid by the Guest for the relevant Reservation. Germinal shall not be held liable for indirect damages, including loss of profit or opportunity.",
+      "governingTitle": "6. Governing Law",
+      "governingBody": "These terms are governed by French law. Any dispute shall be submitted to the exclusive jurisdiction of the courts of Paris, France."
+    }
+  },
+  "faq": {
+    "pageTitle": "FAQ | Germinal",
+    "title": "Frequently Asked Questions",
+    "q1": {
+      "question": "How do I retrieve my ticket?",
+      "answer": "After completing your reservation, you will receive a confirmation email containing a unique link to your ticket. You can also access your ticket at any time by using the token link provided. Your ticket includes a QR code — present it at the entrance on the day of the event."
+    },
+    "q2": {
+      "question": "What happens if a session is sold out?",
+      "answer": "When a session is sold out, you can join the waitlist. If a spot becomes available (e.g. due to a cancellation), you will be notified automatically and given the opportunity to book."
+    },
+    "q3": {
+      "question": "How do I cancel my reservation?",
+      "answer": "You can cancel your reservation by using the cancellation link in your confirmation email, or by contacting us directly. Confirmed reservations are eligible for a full refund, processed to your original payment method within 14 business days."
+    },
+    "q4": {
+      "question": "What is the QR code for?",
+      "answer": "The QR code on your ticket is your digital proof of purchase. Present it at the entrance of the event for scanning. It contains all the information needed to validate your reservation."
+    },
+    "q5": {
+      "question": "How can I contact Germinal?",
+      "answer": "You can reach us through our contact page, by email at privacy@germinalstudio.co, or via our Instagram @Germinal.studio. We typically respond within 48 hours."
+    }
   },
   "admin": {
     "login": {

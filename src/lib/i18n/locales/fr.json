@@ -22,7 +22,10 @@
   },
   "footer": {
     "allRightsReserved": "Tous droits réservés.",
-    "instagram": "Instagram"
+    "instagram": "Instagram",
+    "privacyPolicy": "Politique de confidentialité",
+    "termsOfSale": "Conditions générales de vente",
+    "faq": "FAQ"
   },
   "home": {
     "heroTitle": "Sublimer l'éphémère",
@@ -254,6 +257,78 @@
     "printTicket": "Imprimer le billet",
     "confirmationId": "Numéro de confirmation",
     "ticketCount": "{count, plural, one {# Billet} other {# Billets}}"
+  },
+  "legal": {
+    "lastUpdated": "Dernière mise à jour : {date}",
+    "privacy": {
+      "pageTitle": "Politique de confidentialité | Germinal",
+      "title": "Politique de confidentialité",
+      "intro": "Germinal (\"nous\", \"notre\") s'engage à protéger vos données personnelles. Cette politique explique comment nous collectons, utilisons et protégeons vos informations conformément au Règlement Général sur la Protection des Données (RGPD).",
+      "controllerTitle": "1. Responsable du traitement",
+      "controllerBody": "Le responsable du traitement est :",
+      "controllerName": "Germinal",
+      "controllerAddress": "[ADRESSE — À COMPLÉTER]",
+      "controllerEmail": "Email : privacy@germinalstudio.co",
+      "dataTitle": "2. Données personnelles collectées",
+      "dataIntro": "Nous collectons les catégories suivantes de données personnelles :",
+      "dataReservation": "Données de réservation : prénom, nom, adresse e-mail, numéro de téléphone — collectées lors de la réservation d'une Session ou de la création d'une Réservation.",
+      "dataTechnical": "Données techniques : adresse IP, user-agent du navigateur — collectées automatiquement pour la prévention de la fraude et la sécurité du site.",
+      "basisTitle": "3. Base légale",
+      "basisContractual": "Obligation contractuelle : le traitement de vos données est nécessaire à l'exécution du contrat de réservation (création de votre Réservation, envoi de votre Ticket, traitement du paiement).",
+      "basisLegitimate": "Intérêt légitime : nous utilisons les données techniques pour prévenir la fraude et assurer la sécurité de notre plateforme.",
+      "retentionTitle": "4. Durées de conservation",
+      "retentionBody": "Les données de réservation sont conservées pendant la durée nécessaire à l'exécution du contrat, augmentée de 3 ans à des fins comptables et de relation client. Les données techniques (logs) sont conservées pendant 12 mois.",
+      "rightsTitle": "5. Vos droits en vertu du RGPD",
+      "rightsBody": "En tant que personne concernée, vous disposez des droits suivants :",
+      "rightAccess": "Accéder à vos données personnelles",
+      "rightRectification": "Rectifier les données inexactes",
+      "rightErasure": "Demander la suppression de vos données",
+      "rightPortability": "Recevoir vos données dans un format portable",
+      "rightObject": "Vous opposer au traitement fondé sur l'intérêt légitime",
+      "rightWithdraw": "Retirer votre consentement à tout moment",
+      "rightsExercice": "Pour exercer l'un de ces droits, contactez-nous à privacy@germinalstudio.co."
+    },
+    "terms": {
+      "pageTitle": "Conditions générales de vente | Germinal",
+      "title": "Conditions Générales de Vente",
+      "intro": "Les présentes Conditions Générales de Vente (\"CGV\") régissent l'ensemble des transactions effectuées via la plateforme Germinal. En passant commande, vous acceptez intégralement ces conditions.",
+      "offerTitle": "1. Offre et acceptation",
+      "offerBody": "Nos Événements et Sessions sont présentés sur le site avec leur description, date, heure et prix en euros (EUR). Une commande n'est acceptée qu'après confirmation par Germinal, envoyée par email. Cette confirmation constitue la formation du contrat.",
+      "pricingTitle": "2. Tarification",
+      "pricingBody": "Tous les prix sont affichés en euros (EUR) toutes taxes comprises (TTC). Germinal se réserve le droit de modifier les prix à tout moment ; toutefois, le prix applicable est celui en vigueur au moment de la confirmation de commande.",
+      "paymentTitle": "3. Paiement",
+      "paymentBody": "Le paiement est traité de manière sécurisée via Stripe. Nous acceptons les principales cartes de crédit et de débit. Le paiement intégral est requis au moment de la commande pour confirmer votre Réservation.",
+      "cancellationTitle": "4. Politique d'annulation et de remboursement",
+      "cancellationBody": "Les Réservations confirmées peuvent être annulées pour un remboursement intégral. Les remboursements sont traités vers le moyen de paiement d'origine sous 14 jours ouvrés. Si Germinal annule un Événement ou une Session, toutes les Réservations concernées seront remboursées intégralement.",
+      "liabilityTitle": "5. Responsabilité",
+      "liabilityBody": "La responsabilité de Germinal est limitée au montant payé par l'Invité pour la Réservation concernée. Germinal ne saurait être tenue responsable des dommages indirects, y compris la perte de profit ou d'opportunité.",
+      "governingTitle": "6. Droit applicable",
+      "governingBody": "Les présentes conditions sont régies par le droit français. Tout litige sera soumis à la compétence exclusive des tribunaux de Paris, France."
+    }
+  },
+  "faq": {
+    "pageTitle": "FAQ | Germinal",
+    "title": "Questions fréquentes",
+    "q1": {
+      "question": "Comment récupérer mon billet ?",
+      "answer": "Après avoir complété votre réservation, vous recevrez un email de confirmation contenant un lien unique vers votre billet. Vous pouvez également accéder à votre billet à tout moment en utilisant le lien token fourni. Votre billet inclut un QR code — présentez-le à l'entrée le jour de l'événement."
+    },
+    "q2": {
+      "question": "Que se passe-t-il si une session est complète ?",
+      "answer": "Lorsqu'une session est complète, vous pouvez rejoindre la liste d'attente. Si une place se libère (par exemple suite à une annulation), vous serez notifié automatiquement et aurez la possibilité de réserver."
+    },
+    "q3": {
+      "question": "Comment annuler ma réservation ?",
+      "answer": "Vous pouvez annuler votre réservation en utilisant le lien d'annulation dans votre email de confirmation, ou en nous contactant directement. Les réservations confirmées sont éligibles à un remboursement intégral, traité vers votre moyen de paiement d'origine sous 14 jours ouvrés."
+    },
+    "q4": {
+      "question": "À quoi sert le QR code ?",
+      "answer": "Le QR code sur votre billet est votre preuve d'achat numérique. Présentez-le à l'entrée de l'événement pour scan. Il contient toutes les informations nécessaires pour valider votre réservation."
+    },
+    "q5": {
+      "question": "Comment contacter Germinal ?",
+      "answer": "Vous pouvez nous joindre via notre page contact, par email à privacy@germinalstudio.co, ou via notre Instagram @Germinal.studio. Nous répondons généralement sous 48 heures."
+    }
   },
   "admin": {
     "login": {

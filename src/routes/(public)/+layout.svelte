@@ -42,6 +42,24 @@
             </p>
             <div class="flex gap-8">
                 <a
+                    class="text-white/80 hover:text-white"
+                    href="/legal/privacy"
+                >
+                    {$t('footer.privacyPolicy')}
+                </a>
+                <a
+                    class="text-white/80 hover:text-white"
+                    href="/legal/terms"
+                >
+                    {$t('footer.termsOfSale')}
+                </a>
+                <a
+                    class="text-white/80 hover:text-white"
+                    href="/faq"
+                >
+                    {$t('footer.faq')}
+                </a>
+                <a
                     class="text-white/80 hover:text-white flex items-center gap-2"
                     target="_blank"
                     href="https://www.instagram.com/Germinal.studio/"
@@ -50,10 +68,6 @@
                     <Instagram class="w-3 h-3 sm:w-[14px] sm:h-[14px]" />
                     <p>{$t('footer.instagram')}</p>
                 </a>
-                <!-- <a -->
-                <!--     class="hover:text-white" -->
-                <!--     href="https://www.instagram.com/Germinal.studio/">Terms</a -->
-                <!-- > -->
             </div>
         </div>
     </footer>
