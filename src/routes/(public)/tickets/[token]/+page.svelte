@@ -254,6 +254,9 @@ END:VCALENDAR`;
 				<p class="mt-2 text-xs font-mono font-semibold text-dark-500 tracking-wider">
 					{data.reservation.id.substring(0, 8).toUpperCase()}
 				</p>
+				<p class="hidden print:block mt-1 text-xs font-mono text-dark-400 tracking-wide">
+					{data.reservation.id}
+				</p>
 			</div>
 
 			<!-- Tear line separator -->
@@ -385,13 +388,113 @@ END:VCALENDAR`;
 </div>
 
 <style>
+	@page {
+		margin: 1.5cm;
+		size: A4 portrait;
+	}
+
 	@media print {
+		/* ---- Page reset ---- */
 		:global(body) {
-			background: white;
+			background: white !important;
 		}
+
+		/* Hide site-wide chrome */
+		:global(nav),
+		:global(footer),
+		:global(.print\:hidden) {
+			display: none !important;
+		}
+
+		/* Remove outer wrapper spacing */
+		.min-h-screen {
+			min-height: auto;
+			background: white !important;
+			padding: 0 !important;
+			margin: 0 !important;
+		}
+
 		:global(.container) {
 			max-width: 100%;
 			padding: 0;
+		}
+
+		/* ---- Ticket card ---- */
+		.bg-white.rounded-xl {
+			border: 1px solid #ccc;
+			box-shadow: none;
+			border-radius: 0;
+			opacity: 1 !important;
+		}
+
+		/* Header: black text on white, no background colour */
+		.bg-dark-900 {
+			background: white !important;
+			color: black !important;
+			border-bottom: 2px solid black;
+		}
+		.bg-dark-900 h1 {
+			color: black !important;
+		}
+		.bg-dark-900 p,
+		.bg-dark-900 span {
+			color: #333 !important;
+		}
+
+		/* Status badge: neutral pill */
+		.bg-green-900\/40,
+		.bg-yellow-900\/40,
+		.bg-red-900\/40 {
+			background: #eee !important;
+			color: black !important;
+		}
+
+		/* Tear-line decorative circles: removed */
+		.border-y.border-dashed .rounded-full {
+			display: none !important;
+		}
+
+		/* Tear-line separators: subtle dashed line */
+		.border-y.border-dashed {
+			border-top: 1px dashed #999 !important;
+			border-bottom: 1px dashed #999 !important;
+		}
+
+		/* ---- QR code: full width ---- */
+		.w-48 {
+			width: 100% !important;
+			height: auto !important;
+			max-width: 400px;
+			print-color-adjust: exact;
+			-webkit-print-color-adjust: exact;
+		}
+
+		/* ---- Black-on-white text ---- */
+		.text-dark-900 {
+			color: black !important;
+		}
+		.text-dark-500,
+		.text-dark-700 {
+			color: #333 !important;
+		}
+		.text-dark-400 {
+			color: #555 !important;
+		}
+
+		/* Section dividers */
+		.border-t {
+			border-color: #ccc !important;
+		}
+
+		/* Links: no decoration in print */
+		a {
+			color: black !important;
+			text-decoration: none !important;
+		}
+
+		/* Prevent page breaks inside the ticket card */
+		.print\:break-inside-avoid {
+			break-inside: avoid;
 		}
 	}
 </style>
