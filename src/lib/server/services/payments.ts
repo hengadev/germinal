@@ -35,27 +35,25 @@ export async function handlePaymentSuccess(paymentIntent: Stripe.PaymentIntent) 
 		return;
 	}
 
-	// Update payment status
-	// Note: In newer Stripe API, charges is not available on PaymentIntent directly
-	// Receipt URL would need to be fetched separately via stripe.charges.retrieve if needed
-	await db.update(payments)
-		.set({
-			status: 'succeeded',
-			stripeChargeId: typeof paymentIntent.latest_charge === 'string' ? paymentIntent.latest_charge : paymentIntent.latest_charge?.id ?? null,
-			receiptUrl: null, // Would need separate API call to get receipt URL
-			webhookProcessedAt: new Date(),
-			updatedAt: new Date(),
-		})
-		.where(eq(payments.id, payment.id));
+	await db.transaction(async (tx) => {
+		await tx.update(payments)
+			.set({
+				status: 'succeeded',
+				stripeChargeId: typeof paymentIntent.latest_charge === 'string' ? paymentIntent.latest_charge : paymentIntent.latest_charge?.id ?? null,
+				receiptUrl: null,
+				webhookProcessedAt: new Date(),
+				updatedAt: new Date(),
+			})
+			.where(eq(payments.id, payment.id));
 
-	// Confirm reservation
-	await db.update(reservations)
-		.set({
-			status: 'confirmed',
-			confirmedAt: new Date(),
-			updatedAt: new Date(),
-		})
-		.where(eq(reservations.id, payment.reservationId));
+		await tx.update(reservations)
+			.set({
+				status: 'confirmed',
+				confirmedAt: new Date(),
+				updatedAt: new Date(),
+			})
+			.where(eq(reservations.id, payment.reservationId));
+	});
 
 	// Send ticket confirmation email
 	try {
@@ -187,6 +185,11 @@ export async function handlePaymentFailure(paymentIntent: Stripe.PaymentIntent) 
 	});
 
 	if (!payment) {
+		return;
+	}
+
+	if (payment.webhookProcessedAt) {
+		logger.info(`Webhook already processed for payment: ${payment.id}`);
 		return;
 	}
 
