@@ -14,6 +14,9 @@ export default defineConfig({
 			'.svelte-kit/**',
 			'.opencode/**',
 		],
+		// All integration tests share the same test database;
+		// running files in parallel causes TRUNCATE deadlocks.
+		fileParallelism: false,
 	},
 	resolve: {
 		alias: {
