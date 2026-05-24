@@ -4,8 +4,8 @@ FROM node:20-alpine AS builder
 # Install libc compatibility layer for esbuild
 RUN apk add --no-cache libc6-compat
 
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# Install pnpm (v10 is the last series supporting Node 20)
+RUN corepack enable && corepack prepare pnpm@10 --activate
 
 WORKDIR /app
 
@@ -24,8 +24,8 @@ RUN pnpm run build
 # ---------- Production stage ----------
 FROM node:20-alpine
 
-# Install pnpm in production stage too
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# Install pnpm in production stage too (v10 is the last series supporting Node 20)
+RUN corepack enable && corepack prepare pnpm@10 --activate
 
 WORKDIR /app
 
