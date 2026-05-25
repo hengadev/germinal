@@ -66,7 +66,7 @@
         class="absolute bottom-0 left-0 right-0 px-6 pb-12 lg:px-12 lg:pb-16 z-10"
         use:reveal={{ preset: 'fade-up', delay: 100, duration: 700 }}
     >
-        <div class="flex items-baseline gap-4 flex-wrap">
+        <div class="flex flex-col gap-2">
             <h1 class="text-3xl lg:text-6xl font-bold text-white leading-tight">
                 {getEventField('title')}
             </h1>
