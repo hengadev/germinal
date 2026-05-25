@@ -13,15 +13,23 @@ export const load: PageServerLoad = async () => {
         return {
             events: MOCK_EVENTS as unknown as EventWithMedia[],
             talents: MOCK_TALENTS as unknown as TalentWithMedia[],
+            heroImage: null,
+            heroVideo: null,
         };
     }
-    const [eventsResult, talentsResult] = await Promise.all([
+
+    const { getSiteSettings } = await import('$lib/server/services/site-settings');
+
+    const [eventsResult, talentsResult, siteSettings] = await Promise.all([
         getAllEvents({ publishedOnly: true }),
         getAllTalents({ publishedOnly: true }),
+        getSiteSettings(),
     ]);
 
     return {
         events: eventsResult.data as EventWithMedia[],
         talents: talentsResult.data as TalentWithMedia[],
+        heroImage: siteSettings?.heroImage ?? null,
+        heroVideo: siteSettings?.heroVideo ?? null,
     };
 };
