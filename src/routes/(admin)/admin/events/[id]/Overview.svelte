@@ -58,6 +58,7 @@
 	let admissionInfoFr = $state(data.event.admissionInfoFr || "");
 	let published = $state(data.event.published);
 	let isSpotlight = $state(data.event.isSpotlight ?? false);
+	let isPortfolio = $state(data.event.isPortfolio ?? false);
 </script>
 
 <div class="bg-background rounded-lg border border-border-card p-6 lg:p-8">
@@ -660,6 +661,26 @@
                 </label>
                 <p class="text-xs text-amber-600">
                     Les événements à la une sont mis en avant sur le site. Un seul événement peut être à la une à la fois.
+                </p>
+            </div>
+        </div>
+
+        <!-- Portfolio Status -->
+        <div class="flex items-center gap-3 p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
+            <input
+                id="isPortfolio"
+                name="isPortfolio"
+                type="checkbox"
+                bind:checked={isPortfolio}
+                value="true"
+                class="w-5 h-5 text-indigo-900 border-indigo-300 rounded focus:ring-indigo-900"
+            />
+            <div>
+                <label for="isPortfolio" class="block text-sm font-medium text-indigo-900 cursor-pointer">
+                    Inclure dans la galerie Portfolio
+                </label>
+                <p class="text-xs text-indigo-600">
+                    Les événements portfolio apparaissent dans la galerie visuelle de la page d'accueil. Une image de couverture est requise.
                 </p>
             </div>
         </div>

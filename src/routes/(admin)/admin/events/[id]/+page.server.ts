@@ -198,6 +198,7 @@ export const actions: Actions = {
 		const admissionInfoFr = formData.get('admissionInfoFr');
 		const published = formData.get('published') === 'true';
 		const isSpotlight = formData.get('isSpotlight') === 'true';
+		const isPortfolio = formData.get('isPortfolio') === 'true';
 
 		// Validation
 		if (!titleEn || typeof titleEn !== 'string') {
@@ -314,6 +315,7 @@ export const actions: Actions = {
 				admissionInfoFr: admissionInfoFr?.toString() || null,
 				published,
 				isSpotlight,
+				isPortfolio,
 				updatedAt: new Date()
 			} as typeof MOCK_EVENTS[number];
 
@@ -354,7 +356,8 @@ export const actions: Actions = {
 				admissionInfoEn: admissionInfoEn?.toString() || null,
 				admissionInfoFr: admissionInfoFr?.toString() || null,
 				published,
-				isSpotlight
+				isSpotlight,
+				isPortfolio
 			});
 
 			return { success: `Événement "${titleEn}" mis à jour` };
