@@ -1,6 +1,7 @@
 <script lang="ts">
     import EventCard from "$lib/components/EventCard.svelte";
     import TalentCard from "$lib/components/TalentCard.svelte";
+    import PortfolioGallery from "$lib/components/PortfolioGallery.svelte";
     import type { PageData } from "./$types";
     import { ArrowRight, ArrowUpRight } from "lucide-svelte";
     import { t, locale } from "svelte-i18n";
@@ -9,6 +10,11 @@
     let { data }: { data: PageData } = $props();
 
     const hasSpotlightEvent = $derived(page.data.hasSpotlightEvent ?? false);
+
+    const portfolioEvents = $derived(
+        data.events.filter(e => e.isPortfolio && e.coverMedia && !e.isSpotlight).slice(0, 9)
+    );
+    const showGallery = $derived(portfolioEvents.length >= 5);
 
     const serviceKeys = ['artDirection', 'scenography', 'production'] as const;
     const placeholderPartners = [
@@ -45,12 +51,23 @@
     <section
         class="relative min-h-[60vh] md:h-screen w-full flex items-center justify-center"
     >
-        <!-- Background Image -->
-        <img
-            src="/hero/hero.webp"
-            alt="Germinal Hero"
-            class="absolute inset-0 w-full h-full object-fill"
-        />
+        <!-- Background Media -->
+        {#if data.heroVideo}
+            <video
+                src={data.heroVideo.url}
+                class="absolute inset-0 w-full h-full object-cover"
+                autoplay
+                muted
+                loop
+                playsinline
+            ></video>
+        {:else}
+            <img
+                src={data.heroImage?.url ?? '/hero/hero.webp'}
+                alt="Germinal Hero"
+                class="absolute inset-0 w-full h-full object-fill"
+            />
+        {/if}
 
         <!-- Dark Overlay -->
         <div class="absolute inset-0 bg-black/80"></div>
@@ -199,65 +216,75 @@
                 </a>
             </div>
 
-            {#if data.events.filter(e => !e.isSpotlight).length === 0}
-                <div class="flex items-center justify-center py-16 border-t border-dark-100 mt-6">
-                    <p class="text-dark-500 text-center">
-                        {$t("home.noEvents")}
-                    </p>
+            <!-- Desktop: gallery when ≥5 portfolio events, otherwise list -->
+            {#if showGallery}
+                <div class="hidden md:block" use:reveal={{ preset: "fade-up", delay: 100 }}>
+                    <PortfolioGallery events={portfolioEvents} />
+                </div>
+            {:else if data.events.filter(e => !e.isSpotlight).length === 0}
+                <div class="hidden md:flex items-center justify-center py-16 border-t border-dark-100 mt-6">
+                    <p class="text-dark-500 text-center">{$t("home.noEvents")}</p>
                 </div>
             {:else}
-                {#each data.events.filter(e => !e.isSpotlight).slice(0, 3) as event, index}
-                    {@const start = new Date(event.startDate)}
-                    {@const title = $locale === 'en' ? event.titleEn : event.titleFr}
-                    {@const location = $locale === 'en' ? event.locationEn : event.locationFr}
-                    <a
-                        href="/events/{event.slug}"
-                        class="block pt-8 pb-10 group"
-                        use:reveal={{ preset: "fade-up", delay: 100 + index * 80 }}
-                    >
-                        <!-- Media -->
-                        {#if event.coverVideo}
-                            <video
-                                src={event.coverVideo.url}
-                                class="w-full aspect-[16/9] object-cover mb-6"
-                                autoplay
-                                muted
-                                loop
-                                playsinline
-                            ></video>
-                        {:else if event.coverMedia}
-                            <img
-                                src={event.coverMedia.url}
-                                alt={title}
-                                class="w-full aspect-[16/9] object-cover mb-6"
-                                loading="lazy"
-                            />
-                        {:else}
-                            <div class="w-full aspect-[16/9] bg-dark-50 mb-6"></div>
-                        {/if}
+                <div class="hidden md:block">
+                    {#each data.events.filter(e => !e.isSpotlight).slice(0, 3) as event, index}
+                        {@const start = new Date(event.startDate)}
+                        {@const title = $locale === 'en' ? event.titleEn : event.titleFr}
+                        {@const location = $locale === 'en' ? event.locationEn : event.locationFr}
+                        <a href="/events/{event.slug}" class="block pt-8 pb-10 group" use:reveal={{ preset: "fade-up", delay: 100 + index * 80 }}>
+                            {#if event.coverVideo}
+                                <video src={event.coverVideo.url} class="w-full aspect-[16/9] object-cover mb-6" autoplay muted loop playsinline></video>
+                            {:else if event.coverMedia}
+                                <img src={event.coverMedia.url} alt={title} class="w-full aspect-[16/9] object-cover mb-6" loading="lazy" />
+                            {:else}
+                                <div class="w-full aspect-[16/9] bg-dark-50 mb-6"></div>
+                            {/if}
+                            <div class="flex items-center justify-between gap-6">
+                                <div class="flex items-center gap-4 min-w-0">
+                                    <p class="uppercase text-dark-300 text-xxs tracking-widest shrink-0">{String(index + 1).padStart(2, '0')}</p>
+                                    <h3 class="text-xl md:text-2xl font-normal truncate group-hover:text-dark-500 transition-colors">{title}</h3>
+                                </div>
+                                <div class="flex items-center gap-4 shrink-0">
+                                    <p class="text-dark-400 text-sm">{start.toLocaleDateString($locale === 'en' ? 'en-US' : 'fr-FR', { month: 'long', day: 'numeric', year: 'numeric' })}{#if location}<span class="mx-2 text-dark-200">·</span>{location}{/if}</p>
+                                    <ArrowUpRight size={20} class="text-dark-300 group-hover:text-dark-900 transition-colors" />
+                                </div>
+                            </div>
+                        </a>
+                    {/each}
+                </div>
+            {/if}
 
-                        <!-- Info -->
-                        <div class="flex items-center justify-between gap-6">
-                            <div class="flex items-center gap-4 min-w-0">
-                                <p class="uppercase text-dark-300 text-xxs tracking-widest shrink-0">
-                                    {String(index + 1).padStart(2, '0')}
-                                </p>
-                                <h3 class="text-xl md:text-2xl font-normal truncate group-hover:text-dark-500 transition-colors">
-                                    {title}
-                                </h3>
+            <!-- Mobile: always use the standard list -->
+            {#if data.events.filter(e => !e.isSpotlight).length === 0}
+                <div class="md:hidden flex items-center justify-center py-16 border-t border-dark-100 mt-6">
+                    <p class="text-dark-500 text-center">{$t("home.noEvents")}</p>
+                </div>
+            {:else}
+                <div class="md:hidden">
+                    {#each data.events.filter(e => !e.isSpotlight).slice(0, 3) as event, index}
+                        {@const start = new Date(event.startDate)}
+                        {@const title = $locale === 'en' ? event.titleEn : event.titleFr}
+                        {@const location = $locale === 'en' ? event.locationEn : event.locationFr}
+                        <a href="/events/{event.slug}" class="block pt-8 pb-10 group" use:reveal={{ preset: "fade-up", delay: 100 + index * 80 }}>
+                            {#if event.coverVideo}
+                                <video src={event.coverVideo.url} class="w-full aspect-[16/9] object-cover mb-6" autoplay muted loop playsinline></video>
+                            {:else if event.coverMedia}
+                                <img src={event.coverMedia.url} alt={title} class="w-full aspect-[16/9] object-cover mb-6" loading="lazy" />
+                            {:else}
+                                <div class="w-full aspect-[16/9] bg-dark-50 mb-6"></div>
+                            {/if}
+                            <div class="flex items-center justify-between gap-6">
+                                <div class="flex items-center gap-4 min-w-0">
+                                    <p class="uppercase text-dark-300 text-xxs tracking-widest shrink-0">{String(index + 1).padStart(2, '0')}</p>
+                                    <h3 class="text-xl font-normal truncate group-hover:text-dark-500 transition-colors">{title}</h3>
+                                </div>
+                                <div class="flex items-center gap-4 shrink-0">
+                                    <ArrowUpRight size={20} class="text-dark-300 group-hover:text-dark-900 transition-colors" />
+                                </div>
                             </div>
-                            <div class="flex items-center gap-4 shrink-0">
-                                <p class="text-dark-400 text-sm hidden md:block">
-                                    {start.toLocaleDateString($locale === 'en' ? 'en-US' : 'fr-FR', { month: 'long', day: 'numeric', year: 'numeric' })}
-                                    {#if location}
-                                        <span class="mx-2 text-dark-200">·</span>{location}
-                                    {/if}
-                                </p>
-                                <ArrowUpRight size={20} class="text-dark-300 group-hover:text-dark-900 transition-colors" />
-                            </div>
-                        </div>
-                    </a>
-                {/each}
+                        </a>
+                    {/each}
+                </div>
             {/if}
         </section>
 
