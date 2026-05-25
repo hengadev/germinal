@@ -54,9 +54,12 @@
     {@render children()}
 {/if}
 
-<PWAInstallPrompt />
-<IOSInstallPrompt />
+{#if browser}
+    <PWAInstallPrompt />
+    <IOSInstallPrompt />
+{/if}
 
+{#if browser}
 <div
     class="fixed bottom-4 right-4 left-4 sm:left-auto z-50 flex items-center gap-3 rounded-lg bg-gray-900 px-4 py-3 text-sm text-white shadow-lg pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:pb-3"
     style="transition: opacity 300ms; opacity: {showBanner ? 1 : 0}; pointer-events: {showBanner ? 'auto' : 'none'};"
@@ -73,3 +76,4 @@
     {/if}
     <button onclick={() => { showBanner = false; }} aria-label={$t('pwa.close')} class="opacity-60 hover:opacity-100">✕</button>
 </div>
+{/if}
