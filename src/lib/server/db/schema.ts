@@ -139,6 +139,7 @@ export const events = pgTable('events', {
     categoryId: uuid('category_id').references(() => eventCategories.id),
     published: boolean('published').default(false).notNull(),
     isSpotlight: boolean('is_spotlight').default(false).notNull(),
+    isPortfolio: boolean('is_portfolio').default(false).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => ({
@@ -150,6 +151,7 @@ export const events = pgTable('events', {
     // Index for filtering by category
     categoryIdx: index('events_category_idx').on(table.categoryId),
     spotlightIdx: index('events_spotlight_idx').on(table.isSpotlight),
+    portfolioIdx: index('events_portfolio_idx').on(table.isPortfolio),
 }));
 
 export const talents = pgTable('talents', {
@@ -191,15 +193,24 @@ export const media = pgTable('media', {
     eventId: uuid('event_id'),
     talentId: uuid('talent_id'),
     isCover: boolean('is_cover').default(false).notNull(),
+    siteRole: varchar('site_role', { length: 50 }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => ({
     eventIdIdx: index('media_event_id_idx').on(table.eventId),
     talentIdIdx: index('media_talent_id_idx').on(table.talentId),
     coverIdx: index('media_is_cover_idx').on(table.isCover),
+    siteRoleIdx: index('media_site_role_idx').on(table.siteRole),
     checkEntityMutualExclusion: check('media_entity_mutual_exclusion_check',
         sql`NOT (event_id IS NOT NULL AND talent_id IS NOT NULL)`
     ),
 }));
+
+export const siteSettings = pgTable('site_settings', {
+    id: integer('id').primaryKey().default(1),
+    heroImageId: uuid('hero_image_id').references(() => media.id, { onDelete: 'set null' }),
+    heroVideoId: uuid('hero_video_id').references(() => media.id, { onDelete: 'set null' }),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
 
 // ============================================
 // RELATIONS
@@ -266,6 +277,19 @@ export const mediaRelations = relations(media, ({ one }) => ({
     talent: one(talents, {
         fields: [media.talentId],
         references: [talents.id],
+    }),
+}));
+
+export const siteSettingsRelations = relations(siteSettings, ({ one }) => ({
+    heroImage: one(media, {
+        fields: [siteSettings.heroImageId],
+        references: [media.id],
+        relationName: 'site_hero_image',
+    }),
+    heroVideo: one(media, {
+        fields: [siteSettings.heroVideoId],
+        references: [media.id],
+        relationName: 'site_hero_video',
     }),
 }));
 
