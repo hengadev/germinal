@@ -34,6 +34,7 @@ export async function cleanupOrphanedMedia(): Promise<CleanupOrphanedMediaResult
 				and(
 					isNull(media.eventId),
 					isNull(media.talentId),
+					isNull(media.siteRole),
 					lt(media.createdAt, threshold)
 				)
 			);
