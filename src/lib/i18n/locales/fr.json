@@ -288,6 +288,24 @@
       "rightWithdraw": "Retirer votre consentement à tout moment",
       "rightsExercice": "Pour exercer l'un de ces droits, contactez-nous à privacy@germinalstudio.co."
     },
+    "mentions": {
+      "pageTitle": "Mentions légales | Germinal",
+      "title": "Mentions légales",
+      "publisherTitle": "1. Éditeur du site",
+      "publisherBody": "Le présent site est édité par :",
+      "publisherName": "Germinal",
+      "publisherAddress": "[ADRESSE — À COMPLÉTER]",
+      "publisherEmail": "Email : contact@germinalstudio.co",
+      "publisherDirector": "Directeur de la publication : [NOM — À COMPLÉTER]",
+      "hostingTitle": "2. Hébergement",
+      "hostingBody": "Le présent site est hébergé par :",
+      "hostingName": "[HÉBERGEUR — À COMPLÉTER]",
+      "hostingAddress": "[ADRESSE DE L'HÉBERGEUR — À COMPLÉTER]",
+      "ipTitle": "3. Propriété intellectuelle",
+      "ipBody": "L'ensemble des contenus du présent site (textes, images, graphismes, logos) est la propriété exclusive de Germinal et est protégé par le droit d'auteur français et international. Toute reproduction, représentation, modification ou adaptation, totale ou partielle, sans autorisation écrite préalable de Germinal, est strictement interdite.",
+      "dataTitle": "4. Données personnelles",
+      "dataBody": "Les informations relatives à la collecte et au traitement des données personnelles sont détaillées dans notre Politique de confidentialité."
+    },
     "terms": {
       "pageTitle": "Conditions générales de vente | Germinal",
       "title": "Conditions Générales de Vente",

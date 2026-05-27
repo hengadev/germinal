@@ -288,6 +288,24 @@
       "rightWithdraw": "Withdraw your consent at any time",
       "rightsExercice": "To exercise any of these rights, contact us at privacy@germinalstudio.co."
     },
+    "mentions": {
+      "pageTitle": "Legal Notice | Germinal",
+      "title": "Legal Notice",
+      "publisherTitle": "1. Publisher",
+      "publisherBody": "This website is published by:",
+      "publisherName": "Germinal",
+      "publisherAddress": "[ADDRESS — TO BE COMPLETED]",
+      "publisherEmail": "Email: contact@germinalstudio.co",
+      "publisherDirector": "Publication Director: [NAME — TO BE COMPLETED]",
+      "hostingTitle": "2. Hosting",
+      "hostingBody": "This website is hosted by:",
+      "hostingName": "[HOSTING PROVIDER — TO BE COMPLETED]",
+      "hostingAddress": "[HOSTING PROVIDER ADDRESS — TO BE COMPLETED]",
+      "ipTitle": "3. Intellectual Property",
+      "ipBody": "All content on this website (texts, images, graphics, logos) is the exclusive property of Germinal and is protected under French and international intellectual property law. Any reproduction, representation, modification, or adaptation, in whole or in part, without prior written authorisation from Germinal, is strictly prohibited.",
+      "dataTitle": "4. Personal Data",
+      "dataBody": "Information regarding the collection and processing of personal data is set out in our Privacy Policy."
+    },
     "terms": {
       "pageTitle": "Terms of Sale | Germinal",
       "title": "General Terms of Sale",
