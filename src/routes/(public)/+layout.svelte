@@ -35,39 +35,81 @@
         {@render children()}
     </main>
 
-    <footer class="bg-dark-900 text-white/80 py-6 mt-12">
-        <div class="container mx-auto px-4 flex items-center justify-between text-xs sm:text-sm">
-            <p>
-                &copy; {new Date().getFullYear()} Germinal. {$t('footer.allRightsReserved')}
-            </p>
-            <div class="flex gap-8">
-                <a
-                    class="text-white/80 hover:text-white"
-                    href="/legal/privacy"
-                >
-                    {$t('footer.privacyPolicy')}
-                </a>
-                <a
-                    class="text-white/80 hover:text-white"
-                    href="/legal/terms"
-                >
-                    {$t('footer.termsOfSale')}
-                </a>
-                <a
-                    class="text-white/80 hover:text-white"
-                    href="/faq"
-                >
-                    {$t('footer.faq')}
-                </a>
-                <a
-                    class="text-white/80 hover:text-white flex items-center gap-2"
-                    target="_blank"
-                    href="https://www.instagram.com/Germinal.studio/"
-                    rel="noopener noreferrer"
-                >
-                    <Instagram class="w-3 h-3 sm:w-[14px] sm:h-[14px]" />
-                    <p>{$t('footer.instagram')}</p>
-                </a>
+    <footer class="bg-dark-900 text-white/80 pt-16 pb-8 mt-12">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr] gap-12 pb-12 border-b border-white/10">
+                <div class="flex flex-col gap-4">
+                    <a href="/" class="text-xl font-medium font-serif uppercase text-white w-fit">
+                        Germinal
+                    </a>
+                    <p class="text-white/40 text-sm max-w-xs leading-relaxed">
+                        {$t('footer.tagline')}
+                    </p>
+                    <div class="mt-2 flex flex-col gap-1.5">
+                        <p class="uppercase text-white/30 text-[10px] tracking-widest">
+                            {$t('footer.contactLabel')}
+                        </p>
+                        <a
+                            href="mailto:contact@germinalstudio.co"
+                            class="text-white/60 hover:text-white text-sm transition-colors w-fit"
+                        >
+                            contact@germinalstudio.co
+                        </a>
+                    </div>
+                    <a
+                        class="mt-2 flex items-center gap-2 text-white/60 hover:text-white text-sm transition-colors w-fit"
+                        target="_blank"
+                        href="https://www.instagram.com/Germinal.studio/"
+                        rel="noopener noreferrer"
+                    >
+                        <Instagram class="w-3.5 h-3.5" />
+                        <span>@Germinal.studio</span>
+                    </a>
+                </div>
+
+                <div class="flex flex-col gap-4">
+                    <p class="uppercase text-white/30 text-[10px] tracking-widest">
+                        {$t('footer.explore')}
+                    </p>
+                    <nav class="flex flex-col gap-3">
+                        <a href="/manifesto" class="text-white/60 hover:text-white text-sm transition-colors w-fit">
+                            {$t('nav.manifesto')}
+                        </a>
+                        <a href="/events" class="text-white/60 hover:text-white text-sm transition-colors w-fit">
+                            {$t('nav.events')}
+                        </a>
+                        <a href="/talents" class="text-white/60 hover:text-white text-sm transition-colors w-fit">
+                            {$t('nav.talents')}
+                        </a>
+                        <a href="/contact" class="text-white/60 hover:text-white text-sm transition-colors w-fit">
+                            {$t('nav.contact')}
+                        </a>
+                    </nav>
+                </div>
+
+                <div class="flex flex-col gap-4">
+                    <p class="uppercase text-white/30 text-[10px] tracking-widest">
+                        {$t('footer.legal')}
+                    </p>
+                    <nav class="flex flex-col gap-3">
+                        <a href="/legal/privacy" class="text-white/60 hover:text-white text-sm transition-colors w-fit">
+                            {$t('footer.privacyPolicy')}
+                        </a>
+                        <a href="/legal/terms" class="text-white/60 hover:text-white text-sm transition-colors w-fit">
+                            {$t('footer.termsOfSale')}
+                        </a>
+                        <a href="/legal/mentions" class="text-white/60 hover:text-white text-sm transition-colors w-fit">
+                            {$t('footer.mentionsLegales')}
+                        </a>
+                        <a href="/faq" class="text-white/60 hover:text-white text-sm transition-colors w-fit">
+                            {$t('footer.faq')}
+                        </a>
+                    </nav>
+                </div>
+            </div>
+
+            <div class="pt-6 text-white/30 text-xs">
+                <p>&copy; {new Date().getFullYear()} Germinal. {$t('footer.allRightsReserved')}</p>
             </div>
         </div>
     </footer>

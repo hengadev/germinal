@@ -22,9 +22,13 @@
   },
   "footer": {
     "allRightsReserved": "Tous droits réservés.",
-    "instagram": "Instagram",
+    "tagline": "L'architecture des expériences sensorielles.",
+    "contactLabel": "Contact",
+    "explore": "Explorer",
+    "legal": "Légal",
     "privacyPolicy": "Politique de confidentialité",
     "termsOfSale": "Conditions générales de vente",
+    "mentionsLegales": "Mentions légales",
     "faq": "FAQ"
   },
   "home": {
