@@ -25,20 +25,25 @@ export async function verifyPassword(hash: string, password: string): Promise<bo
 }
 
 /**
- * Mock password verification for development mode
- * Uses environment variables for configurable credentials
+ * Mock password verification for development/demo mode.
+ * Returns the matched role or null if credentials don't match.
  */
-export async function verifyPasswordMock(email: string, password: string): Promise<boolean> {
-	// Use environment variables for mock admin credentials
-	if (email === env.MOCK_ADMIN_EMAIL && password === env.MOCK_ADMIN_PASSWORD) {
-		return true;
+export async function verifyPasswordMock(email: string, password: string): Promise<'admin' | 'staff' | null> {
+	if (env.MOCK_ADMIN_EMAIL && email === env.MOCK_ADMIN_EMAIL && password === env.MOCK_ADMIN_PASSWORD) {
+		return 'admin';
 	}
-	return false;
+	if (env.MOCK_STAFF_EMAIL && email === env.MOCK_STAFF_EMAIL && password === env.MOCK_STAFF_PASSWORD) {
+		return 'staff';
+	}
+	return null;
 }
 
 /**
- * Get the mock admin email from environment
+ * Get mock credential pairs for display on the login page.
  */
-export function getMockAdminEmail(): string {
-	return env.MOCK_ADMIN_EMAIL;
+export function getMockCredentials(): { role: string; email: string }[] {
+	const pairs: { role: string; email: string }[] = [];
+	if (env.MOCK_ADMIN_EMAIL) pairs.push({ role: 'admin', email: env.MOCK_ADMIN_EMAIL });
+	if (env.MOCK_STAFF_EMAIL) pairs.push({ role: 'staff', email: env.MOCK_STAFF_EMAIL });
+	return pairs;
 }

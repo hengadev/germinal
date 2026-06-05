@@ -9,7 +9,8 @@
  */
 const ADMIN_DOMAINS = [
 	'admin.germinalstudio.co', // Production
-	'admin-staging.germinalstudio.co' // Staging
+	'admin-staging.germinalstudio.co', // Staging
+	'germinal.henga.dev' // Demo
 ];
 
 /**
@@ -18,7 +19,8 @@ const ADMIN_DOMAINS = [
  */
 const STAFF_DOMAINS = [
 	'staff.germinalstudio.co', // Production
-	'staff-staging.germinalstudio.co' // Staging
+	'staff-staging.germinalstudio.co', // Staging
+	'germinal.henga.dev' // Demo
 ];
 
 /**
@@ -67,6 +69,11 @@ export function getCookieDomain(hostname: string): string | null {
 		return '.germinalstudio.co';
 	}
 
+	// henga.dev demo domain
+	if (hostname === 'germinal.henga.dev') {
+		return 'germinal.henga.dev';
+	}
+
 	return null;
 }
 
@@ -112,6 +119,11 @@ export function getAdminUrl(hostname: string): string {
 		return 'https://admin-staging.germinalstudio.co';
 	}
 
+	// Demo domain
+	if (hostname === 'germinal.henga.dev') {
+		return 'https://germinal.henga.dev';
+	}
+
 	return 'https://admin.germinalstudio.co';
 }
 
@@ -128,6 +140,11 @@ export function getStaffUrl(hostname: string): string {
 	// Staging environment
 	if (isStagingHost(hostname)) {
 		return 'https://staff-staging.germinalstudio.co';
+	}
+
+	// Demo domain
+	if (hostname === 'germinal.henga.dev') {
+		return 'https://germinal.henga.dev';
 	}
 
 	return 'https://staff.germinalstudio.co';

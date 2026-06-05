@@ -89,10 +89,12 @@
 			</button>
 		</form>
 
-		{#if data.showMockCredentials}
+		{#if data.showMockCredentials && data.mockCredentials.length > 0}
 			<div class="mt-6 text-center text-sm text-dark-400">
 				<p>{$t('admin.login.mockCredentials')}</p>
-				<p class="font-mono mt-1">{data.mockEmail} / {$t('admin.login.mockPasswordHint')}</p>
+				{#each data.mockCredentials as cred}
+					<p class="font-mono mt-1">[{cred.role}] {cred.email} / {$t('admin.login.mockPasswordHint')}</p>
+				{/each}
 			</div>
 		{/if}
 	</div>

@@ -2,7 +2,7 @@ import { redirect, fail, error, type Actions } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
 import { users } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
-import { verifyPassword, verifyPasswordMock, getMockAdminEmail } from '$lib/server/auth';
+import { verifyPassword, verifyPasswordMock, getMockCredentials } from '$lib/server/auth';
 import { createSession } from '$lib/server/session';
 import { env } from '$lib/server/env';
 import { checkRateLimit, resetRateLimit, getRateLimitReset } from '$lib/server/rate-limit';
@@ -21,13 +21,12 @@ export const load: PageServerLoad = async ({ locals }) => {
 		throw redirect(302, redirectPath);
 	}
 
-	// Show mock admin credentials in development mode
 	const showMockCredentials = env.USE_MOCK_DATA;
-	const mockEmail = showMockCredentials ? getMockAdminEmail() : null;
+	const mockCredentials = showMockCredentials ? getMockCredentials() : [];
 
 	return {
 		showMockCredentials,
-		mockEmail,
+		mockCredentials,
 		csrfToken: locals.csrfToken
 	};
 };
@@ -67,31 +66,26 @@ export const actions: Actions = {
 		}
 
 		if (env.USE_MOCK_DATA) {
-			// Mock mode: simple credential check
-			const validPassword = await verifyPasswordMock(email, password);
+			const role = await verifyPasswordMock(email, password);
 
-			if (!validPassword) {
+			if (!role) {
 				return fail(400, { error: "Email ou mot de passe invalide" });
 			}
 
-			// Reset rate limit on successful login
 			resetRateLimit(ip);
 
-			// Create session (uses email as userId in mock mode)
-			const session = await createSession(email);
+			const session = await createSession(email, role);
 
-			// Set secure cookie with subdomain support
 			cookies.set(sessionCookieName, session.id, {
 				path: '/',
 				domain: cookieDomain ?? undefined,
 				httpOnly: true,
 				sameSite: 'lax',
 				secure: true,
-				maxAge: 60 * 60 * 24 * 7 // 7 days
+				maxAge: 60 * 60 * 24 * 7
 			});
 
-			// Redirect based on subdomain context
-			throw redirect(302, locals.isStaffDomain ? '/staff' : '/admin');
+			throw redirect(302, role === 'staff' ? '/staff' : '/admin');
 		}
 
 		// Database mode: verify against database

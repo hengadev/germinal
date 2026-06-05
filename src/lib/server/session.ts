@@ -19,9 +19,10 @@ function generateSessionId(): string {
 /**
  * Create a new session for a user
  * @param userId - The user's UUID (or email in mock mode)
+ * @param role - Role to assign in mock mode ('admin' | 'staff'), defaults to 'admin'
  * @returns Session object with id and expiresAt
  */
-export async function createSession(userId: string) {
+export async function createSession(userId: string, role: 'admin' | 'staff' = 'admin') {
 	if (env.USE_MOCK_DATA) {
 		// Mock mode: create in-memory session
 		const sessionId = generateSessionId();
@@ -30,7 +31,7 @@ export async function createSession(userId: string) {
 		const mockUser = {
 			id: 'mock-user-id',
 			email: userId,
-			role: 'admin',
+			role,
 			createdAt: new Date()
 		};
 
