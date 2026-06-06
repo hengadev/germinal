@@ -157,7 +157,7 @@ END:VCALENDAR`;
 				<div class="flex items-start gap-3">
 					<CheckCircle2 size={28} class="text-green-600 flex-shrink-0 mt-0.5" />
 					<div>
-						<h2 class="text-lg font-bold text-green-900 mb-0.5">{$t('tickets.success.title')}</h2>
+						<h2 class="text-lg font-serif text-green-900 mb-0.5">{$t('tickets.success.title')}</h2>
 						<p class="text-sm text-green-700">
 							{$t('tickets.success.description', { values: { email: data.reservation.guestEmail } })}
 						</p>
@@ -165,7 +165,7 @@ END:VCALENDAR`;
 				</div>
 				<a
 					href="/events"
-					class="inline-flex items-center gap-2 px-4 py-2.5 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors font-medium text-sm whitespace-nowrap"
+					class="inline-flex items-center gap-2 px-4 py-2.5 bg-dark-900 text-white rounded-none hover:bg-dark-800 transition-colors font-medium text-sm whitespace-nowrap"
 				>
 					{$t('tickets.success.browseMore')}
 				</a>
@@ -178,12 +178,12 @@ END:VCALENDAR`;
 				<div class="flex items-start gap-3">
 					<AlertCircle size={28} class="text-red-600 flex-shrink-0 mt-0.5" />
 					<div class="flex-1">
-						<h2 class="text-lg font-bold text-red-900 mb-0.5">{$t('tickets.paymentFailed.title')}</h2>
+						<h2 class="text-lg font-serif text-red-900 mb-0.5">{$t('tickets.paymentFailed.title')}</h2>
 						<p class="text-sm text-red-700 mb-4">{paymentErrorMessage}</p>
 						<div class="flex items-center gap-3">
 							<a
 								href="/events"
-								class="inline-flex items-center gap-2 px-4 py-2 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors font-medium text-sm"
+								class="inline-flex items-center gap-2 px-4 py-2 bg-dark-900 text-white rounded-none hover:bg-dark-800 transition-colors font-medium text-sm"
 							>
 								{$t('tickets.paymentFailed.browseOther')}
 							</a>
@@ -210,7 +210,7 @@ END:VCALENDAR`;
 				<div class="flex items-start justify-between gap-4 mb-5">
 					<div>
 						<p class="text-xs font-semibold uppercase tracking-widest text-dark-400 mb-1.5">{$t('tickets.ticketLabel')}</p>
-						<h1 class="text-3xl font-bold leading-tight">{data.reservation.session.event.title}</h1>
+						<h1 class="text-3xl font-serif leading-tight">{data.reservation.session.event.title}</h1>
 						<p class="text-dark-300 mt-1 text-sm">{isFr ? data.reservation.session.titleFr : data.reservation.session.titleEn}</p>
 					</div>
 					<span class={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold flex-shrink-0 ${statusBadge.class}`}>
@@ -361,14 +361,14 @@ END:VCALENDAR`;
 							href={googleCalendarUrl}
 							target="_blank"
 							rel="noopener noreferrer"
-							class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium text-sm"
+							class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 border border-border-dark text-dark-700 rounded-none hover:bg-dark-50 transition-colors font-medium text-sm"
 						>
 							<Download size={16} />
 							Google Calendar
 						</a>
 						<button
 							onclick={downloadCalendar}
-							class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium text-sm"
+							class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 border border-border-dark text-dark-700 rounded-none hover:bg-dark-50 transition-colors font-medium text-sm"
 						>
 							<Download size={16} />
 							{$t('tickets.appleOutlook')}
@@ -376,7 +376,7 @@ END:VCALENDAR`;
 					</div>
 					<button
 						onclick={() => window.print()}
-						class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors font-medium text-sm"
+						class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-dark-900 text-white rounded-none hover:bg-dark-800 transition-colors font-medium text-sm"
 					>
 						<Printer size={16} />
 						{$t('tickets.printTicket')}

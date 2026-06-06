@@ -180,7 +180,7 @@
 		{:else}
 			<!-- Header -->
 			<div class="mb-8">
-				<h1 class="text-3xl font-bold text-dark-900 mb-2">Complete Your Booking</h1>
+				<h1 class="text-3xl font-serif text-dark-900 mb-2">Complete Your Booking</h1>
 				<p class="text-dark-500">Secure payment powered by Stripe</p>
 			</div>
 
@@ -200,7 +200,7 @@
 
 			<!-- Order Summary -->
 			<div class="bg-white rounded-lg border border-border-card p-6 mb-6">
-				<h2 class="text-lg font-semibold text-dark-900 mb-4">Order Summary</h2>
+				<h2 class="text-lg font-serif text-dark-900 mb-4">Order Summary</h2>
 
 				<div class="space-y-3">
 					<div>
@@ -246,7 +246,7 @@
 
 			<!-- Payment Form -->
 			<div class="bg-white rounded-lg border border-border-card p-6">
-				<h2 class="text-lg font-semibold text-dark-900 mb-4">Payment Details</h2>
+				<h2 class="text-lg font-serif text-dark-900 mb-4">Payment Details</h2>
 
 				{#if error}
 					<div class="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3 mb-6">
@@ -278,7 +278,7 @@
 					<button
 						type="submit"
 						disabled={!stripeLoaded || isProcessing || timeRemaining === 'Expired'}
-						class="w-full inline-flex items-center justify-center gap-2 px-6 py-3 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors font-medium disabled:bg-dark-300 disabled:cursor-not-allowed"
+						class="w-full inline-flex items-center justify-center gap-2 px-6 py-3 bg-dark-900 text-white rounded-none hover:bg-dark-800 transition-colors font-medium disabled:bg-dark-300 disabled:cursor-not-allowed"
 					>
 						{#if isProcessing}
 							<Loader2 size={20} class="animate-spin" />

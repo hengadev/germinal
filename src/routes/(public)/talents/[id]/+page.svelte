@@ -78,7 +78,7 @@ import type {Component} from "svelte"
         <div class="flex-1" use:reveal={{ preset: 'fade-up', delay: 100 }}>
             <div class="flex justify-between items-end">
                 <div class="grid gap-2">
-                    <h1 class="text-5xl font-bold mb-2">
+                    <h1 class="text-5xl font-serif mb-2">
                         {data.talent.firstName}
                         {data.talent.lastName}
                     </h1>
@@ -104,7 +104,7 @@ import type {Component} from "svelte"
                 {#if getTalentField('quote')}
                     <p class="text-lg text-dark-900 leading-relaxed font-medium">"{getTalentField('quote')}"</p>
                 {/if}
-                <p class="text-normal text-dark-500 leading-relaxed">
+                <p class="font-normal text-dark-500 leading-relaxed">
                     {getTalentField('bio')}
                 </p>
                 {#if data.talent.category || specializations().length > 0}
@@ -135,7 +135,7 @@ import type {Component} from "svelte"
 
     {#if data.talent.media && data.talent.media.length > 0}
         <section class="mt-12" use:reveal={{ preset: 'fade-up', delay: 200 }}>
-            <h2 class="text-3xl font-bold mb-6">{$t('talents.gallery')}</h2>
+            <h2 class="text-3xl font-serif mb-6">{$t('talents.gallery')}</h2>
             <EventGallery media={data.talent.media} />
         </section>
     {/if}

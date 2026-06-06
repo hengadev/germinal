@@ -184,7 +184,7 @@
 			<div class="flex justify-center">
 				<CheckCircle2 size={64} class="text-green-500" />
 			</div>
-			<h1 class="text-3xl font-bold">{$t('booking.title')}</h1>
+			<h1 class="text-3xl font-serif">{$t('booking.title')}</h1>
 			<p class="text-dark-500">
 				{data.isMockMode
 					? 'Demo mode: your booking would be confirmed here. A confirmation email would be sent to ' +
@@ -193,14 +193,14 @@
 			</p>
 			<a
 				href="/events/{data.event.slug}"
-				class="inline-flex items-center justify-center gap-2 px-6 py-3 border border-dark-300 text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium"
+				class="inline-flex items-center justify-center gap-2 px-6 py-3 border border-dark-300 text-dark-700 rounded-none hover:bg-dark-50 transition-colors font-medium"
 			>
 				<ArrowLeft size={18} />
 				Back to event
 			</a>
 		</div>
 	{:else}
-		<h1 class="text-3xl font-bold mb-2">{$t('booking.title')}</h1>
+		<h1 class="text-3xl font-serif mb-2">{$t('booking.title')}</h1>
 		<p class="text-dark-500 mb-8">{$t('booking.description')}</p>
 
 		{#if data.isMockMode}
@@ -380,7 +380,7 @@
 							type="button"
 							onclick={applyPromoCode}
 							disabled={!promoCodeInput.trim() || promoCodeApplying || isSubmitting}
-							class="px-4 py-2.5 border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap inline-flex items-center gap-1.5"
+							class="px-4 py-2.5 border border-border-dark text-dark-700 rounded-none hover:bg-dark-50 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap inline-flex items-center gap-1.5"
 						>
 							{#if promoCodeApplying}
 								<Loader2 size={15} class="animate-spin" />
@@ -413,7 +413,7 @@
 				{/if}
 				<div class="border-t border-border-card pt-2 mt-2 flex items-center justify-between">
 					<span class="font-semibold text-dark-900">{$t('booking.total')}</span>
-					<span class="font-bold text-xl text-dark-900">
+					<span class="font-medium text-xl text-dark-900">
 						{formatCurrency(totalAmount, data.session.currency)}
 					</span>
 				</div>
@@ -423,14 +423,14 @@
 			<div class="flex items-center justify-end gap-3 pt-2">
 				<a
 					href="/events/{data.event.slug}"
-					class="px-6 py-2.5 border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium"
+					class="px-6 py-2.5 border border-border-dark text-dark-700 rounded-none hover:bg-dark-50 transition-colors font-medium"
 				>
 					{$t('booking.cancel')}
 				</a>
 				<button
 					type="submit"
 					disabled={!isFormValid || isSubmitting}
-					class="inline-flex items-center gap-2 px-6 py-2.5 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors font-medium disabled:bg-dark-300 disabled:cursor-not-allowed"
+					class="inline-flex items-center gap-2 px-6 py-2.5 bg-dark-900 text-white rounded-none hover:bg-dark-800 transition-colors font-medium disabled:bg-dark-300 disabled:cursor-not-allowed"
 				>
 					{#if isSubmitting}
 						<Loader2 size={18} class="animate-spin" />

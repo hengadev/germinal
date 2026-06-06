@@ -100,7 +100,7 @@
 
 <div class="container mx-auto px-4 py-32 max-w-8xl">
     <div class="mb-8 lg:mb-16 grid gap-4" use:reveal={{ preset: "fade-down" }}>
-        <h1 class="text-3xl lg:text-4xl font-normal">{$t("contact.title")}</h1>
+        <h1 class="text-3xl lg:text-4xl font-serif">{$t("contact.title")}</h1>
         <p class="text-dark-400 text-base lg:text-lg max-w-160">
             {$t("contact.description")}
         </p>
@@ -334,7 +334,7 @@
                     <button
                         type="submit"
                         disabled={isSubmitting}
-                        class="flex gap-3 md:gap-4 items-center justify-center bg-dark-900 text-white py-3 md:py-4 px-6 md:px-8 rounded-full hover:bg-dark-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed w-full md:w-auto"
+                        class="flex gap-3 md:gap-4 items-center justify-center bg-dark-900 text-white py-3 md:py-4 px-6 md:px-8 rounded-none hover:bg-dark-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed w-full md:w-auto"
                     >
                         <p class="text-sm md:text-base">
                             {isSubmitting
