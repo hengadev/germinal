@@ -80,7 +80,7 @@
 
 <div class="container mx-auto px-4 py-32">
     <div class="mb-16 grid gap-4" use:reveal={{ preset: 'fade-down' }}>
-        <h1 class="text-4xl font-normal">{$t('talents.title')}</h1>
+        <h1 class="text-4xl font-serif">{$t('talents.title')}</h1>
         <p class="text-dark-400 max-w-2xl">
             {$t('talents.description')}
         </p>
@@ -96,7 +96,7 @@
                     onclick={() => (selectedCategoryId = null)}
                     class={getFilterButtonClass(selectedCategoryId === null)}
                 >
-                    All
+                    {$t('talents.filterAll')}
                 </button>
                 {#each filters as filter}
                     <button
@@ -153,8 +153,8 @@
     {/if}
 
     {#if filteredTalents.length === 0}
-        <p class="text-gray-500">
-            {selectedCategoryId ? 'No talents found in this category.' : $t('talents.noTalents')}
+        <p class="text-dark-400">
+            {selectedCategoryId ? $t('talents.noTalentsInCategory') : $t('talents.noTalents')}
         </p>
     {:else if viewMode === VIEW_MODE.GRID}
         <div
@@ -180,7 +180,7 @@
                         preset: "fade-up",
                         delay: Math.min(index * 60, 300),
                     }}
-                    class="flex flex-col sm:flex-row gap-6 bg-white p-4 rounded-lg hover:shadow-md transition-shadow"
+                    class="flex flex-col sm:flex-row gap-6 bg-white p-4 hover:shadow-md transition-shadow group"
                 >
                     {#if talent.profileMedia}
                         <div
@@ -189,14 +189,14 @@
                             <img
                                 src={talent.profileMedia.url}
                                 alt="{talent.firstName} {talent.lastName}"
-                                class="w-full h-full object-cover grayscale hover:scale-105 transition-transform"
+                                class="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-[filter] duration-500"
                             />
                         </div>
                     {:else}
                         <div
-                            class="sm:w-48 sm:flex-shrink-0 aspect-[3/4] bg-gray-200 flex items-center justify-center rounded"
+                            class="sm:w-48 sm:flex-shrink-0 aspect-[3/4] bg-dark-100 flex items-center justify-center rounded"
                         >
-                            <span class="text-gray-400 text-4xl"></span>
+                            <span class="text-dark-300 text-4xl"></span>
                         </div>
                     {/if}
                     <div class="flex flex-col justify-between flex-1">
@@ -219,7 +219,7 @@
                         ></div>
                         <div class="mt-4 flex items-center gap-4">
                             <span class="text-sm text-dark-600"
-                                >View Details</span
+                                >{$t('talents.viewDetails')}</span
                             >
                             <ArrowRight size={16} />
                         </div>
@@ -240,7 +240,7 @@
             <button
                 onclick={loadMoreTalents}
                 disabled={isLoading}
-                class="flex items-center gap-3 text-dark-600 px-6 py-3 rounded-full border border-border-dark disabled:opacity-50"
+                class="flex items-center gap-3 text-dark-600 px-6 py-3 rounded-none border border-border-dark disabled:opacity-50"
             >
                 {#if isLoading}
                     <Loader2 size={16} class="animate-spin" />

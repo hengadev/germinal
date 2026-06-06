@@ -92,7 +92,7 @@
 
 <div class="container mx-auto px-4 py-32">
     <div class="mb-16 grid gap-4" use:reveal={{ preset: "fade-down" }}>
-        <h1 class="text-4xl font-normal">{$t("events.title")}</h1>
+        <h1 class="text-4xl font-serif">{$t("events.title")}</h1>
         <p class="text-dark-400 max-w-2xl">
             {$t("events.description")}
         </p>
@@ -107,7 +107,7 @@
                     onclick={() => (selectedCategoryId = null)}
                     class={getFilterButtonClass(selectedCategoryId === null)}
                 >
-                    All
+                    {$t('events.filterAll')}
                 </button>
                 {#each filters as filter}
                     <button
@@ -164,9 +164,9 @@
     {/if}
 
     {#if filteredEvents.length === 0}
-        <p class="text-gray-500">
+        <p class="text-dark-400">
             {selectedCategoryId
-                ? "No events found in this category."
+                ? $t("events.noEventsInCategory")
                 : $t("events.noEvents")}
         </p>
     {:else if viewMode === VIEW_MODE.GRID}
@@ -193,7 +193,7 @@
                         preset: "fade-up",
                         delay: Math.min(index * 60, 300),
                     }}
-                    class="flex flex-col sm:flex-row gap-6 bg-white p-4 rounded-lg hover:shadow-md transition-shadow"
+                    class="flex flex-col sm:flex-row gap-6 bg-white p-4 hover:shadow-md transition-shadow group"
                 >
                     {#if event.coverMedia}
                         <div
@@ -203,7 +203,7 @@
                                 <img
                                     src={event.coverMedia.url}
                                     alt={event.titleEn}
-                                    class="w-full h-full object-cover grayscale hover:scale-105 transition-transform"
+                                    class="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-[filter] duration-500"
                                 />
                             {:else}
                                 <video
@@ -215,9 +215,9 @@
                         </div>
                     {:else}
                         <div
-                            class="sm:w-64 sm:flex-shrink-0 aspect-4/3 bg-gray-200 flex items-center justify-center rounded"
+                            class="sm:w-64 sm:flex-shrink-0 aspect-4/3 bg-dark-100 flex items-center justify-center rounded"
                         >
-                            <span class="text-gray-400 text-4xl"></span>
+                            <span class="text-dark-300 text-4xl"></span>
                         </div>
                     {/if}
                     <div class="flex flex-col justify-between flex-1">
@@ -237,7 +237,7 @@
                         ></div>
                         <div class="mt-4 flex items-center gap-4">
                             <span class="text-sm text-dark-600"
-                                >View Details</span
+                                >{$t('events.viewDetails')}</span
                             >
                             <ArrowRight size={16} />
                         </div>
@@ -258,7 +258,7 @@
             <button
                 onclick={loadMoreEvents}
                 disabled={isLoading}
-                class="flex items-center gap-3 text-dark-600 px-6 py-3 rounded-full border border-border-dark disabled:opacity-50"
+                class="flex items-center gap-3 text-dark-600 px-6 py-3 rounded-none border border-border-dark disabled:opacity-50"
             >
                 {#if isLoading}
                     <Loader2 size={16} class="animate-spin" />

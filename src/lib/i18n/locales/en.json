@@ -98,7 +98,10 @@
     "materials": "materials",
     "admission": "admission",
     "gallery": "Gallery",
-    "bookTickets": "Book Tickets"
+    "bookTickets": "Book Tickets",
+    "filterAll": "All",
+    "viewDetails": "View Details",
+    "noEventsInCategory": "No events found in this category."
   },
   "talents": {
     "pageTitle": "Talents | Germinal",
@@ -115,7 +118,15 @@
     "basedIn": "Based in",
     "specialization": "Specialization",
     "category": "Category",
-    "gallery": "Gallery"
+    "gallery": "Gallery",
+    "filterAll": "All",
+    "viewDetails": "View Details",
+    "noTalentsInCategory": "No talents found in this category."
+  },
+  "spotlight": {
+    "noEventTitle": "No Spotlight Event",
+    "noEventDescription": "There is currently no spotlight event. Check back soon for featured events.",
+    "viewAllEvents": "View All Events"
   },
   "contact": {
     "pageTitle": "Contact | Germinal",
