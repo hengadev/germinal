@@ -16,7 +16,7 @@
         <p class="uppercase text-dark-300 text-xxs tracking-widest mb-6">
             {$t("manifesto.eyebrow")}
         </p>
-        <h1 class="text-4xl lg:text-7xl font-normal max-w-3xl leading-tight">
+        <h1 class="text-4xl lg:text-7xl font-serif max-w-3xl leading-tight">
             {$t("manifesto.title")}
         </h1>
     </div>
@@ -48,7 +48,7 @@
         </div>
         <div class="grid lg:grid-cols-2 gap-16 lg:gap-24 items-start">
             <div use:reveal={{ preset: "fade-up" }}>
-                <h2 class="text-3xl lg:text-5xl font-normal mb-3">
+                <h2 class="text-3xl lg:text-5xl font-serif mb-3">
                     {$t("manifesto.artDirection.title")}
                 </h2>
                 <p class="text-dark-400 text-lg lg:text-xl mb-10">
@@ -88,7 +88,7 @@
         </div>
         <div class="grid lg:grid-cols-2 gap-16 lg:gap-24 items-start">
             <div use:reveal={{ preset: "fade-up" }}>
-                <h2 class="text-3xl lg:text-5xl font-normal mb-3">
+                <h2 class="text-3xl lg:text-5xl font-serif mb-3">
                     {$t("manifesto.scenography.title")}
                 </h2>
                 <p class="text-dark-400 text-lg lg:text-xl mb-10">
@@ -128,7 +128,7 @@
         </div>
         <div class="grid lg:grid-cols-2 gap-16 lg:gap-24 items-start">
             <div use:reveal={{ preset: "fade-up" }}>
-                <h2 class="text-3xl lg:text-5xl font-normal mb-3">
+                <h2 class="text-3xl lg:text-5xl font-serif mb-3">
                     {$t("manifesto.production.title")}
                 </h2>
                 <p class="text-dark-400 text-lg lg:text-xl mb-10">
@@ -157,7 +157,7 @@
     <section class="border-t border-dark-100 pt-16 lg:pt-24" use:reveal={{ preset: "fade-up" }}>
         <div class="grid lg:grid-cols-[1fr_2fr] gap-12 lg:gap-24">
             <div>
-                <h2 class="text-2xl lg:text-3xl font-normal">
+                <h2 class="text-2xl lg:text-3xl font-serif">
                     {$t("manifesto.approach.title")}
                 </h2>
             </div>

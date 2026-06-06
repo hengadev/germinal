@@ -7,7 +7,7 @@
 </svelte:head>
 
 <div>
-    <h1 class="text-3xl md:text-4xl font-normal mb-4">{$t("legal.privacy.title")}</h1>
+    <h1 class="text-3xl md:text-4xl font-serif mb-4">{$t("legal.privacy.title")}</h1>
     <p class="text-dark-400 text-sm mb-12">{$t("legal.lastUpdated", { date: "2026-05-23" })}</p>
 
     <div class="grid gap-10 text-dark-700 leading-relaxed">
@@ -16,7 +16,7 @@
 
         <!-- 1. Data Controller -->
         <section class="grid gap-3">
-            <h2 class="text-xl font-medium text-dark-900">{$t("legal.privacy.controllerTitle")}</h2>
+            <h2 class="text-xl font-serif text-dark-900">{$t("legal.privacy.controllerTitle")}</h2>
             <p>{$t("legal.privacy.controllerBody")}</p>
             <div class="pl-4 border-l-2 border-dark-200 grid gap-1">
                 <p class="font-medium text-dark-900">{$t("legal.privacy.controllerName")}</p>
@@ -27,7 +27,7 @@
 
         <!-- 2. Personal Data -->
         <section class="grid gap-3">
-            <h2 class="text-xl font-medium text-dark-900">{$t("legal.privacy.dataTitle")}</h2>
+            <h2 class="text-xl font-serif text-dark-900">{$t("legal.privacy.dataTitle")}</h2>
             <p>{$t("legal.privacy.dataIntro")}</p>
             <ul class="list-disc pl-6 grid gap-2">
                 <li>{$t("legal.privacy.dataReservation")}</li>
@@ -37,7 +37,7 @@
 
         <!-- 3. Legal Basis -->
         <section class="grid gap-3">
-            <h2 class="text-xl font-medium text-dark-900">{$t("legal.privacy.basisTitle")}</h2>
+            <h2 class="text-xl font-serif text-dark-900">{$t("legal.privacy.basisTitle")}</h2>
             <ul class="list-disc pl-6 grid gap-2">
                 <li>{$t("legal.privacy.basisContractual")}</li>
                 <li>{$t("legal.privacy.basisLegitimate")}</li>
@@ -46,13 +46,13 @@
 
         <!-- 4. Retention -->
         <section class="grid gap-3">
-            <h2 class="text-xl font-medium text-dark-900">{$t("legal.privacy.retentionTitle")}</h2>
+            <h2 class="text-xl font-serif text-dark-900">{$t("legal.privacy.retentionTitle")}</h2>
             <p>{$t("legal.privacy.retentionBody")}</p>
         </section>
 
         <!-- 5. Rights -->
         <section class="grid gap-3">
-            <h2 class="text-xl font-medium text-dark-900">{$t("legal.privacy.rightsTitle")}</h2>
+            <h2 class="text-xl font-serif text-dark-900">{$t("legal.privacy.rightsTitle")}</h2>
             <p>{$t("legal.privacy.rightsBody")}</p>
             <ul class="list-disc pl-6 grid gap-2">
                 <li>{$t("legal.privacy.rightAccess")}</li>
