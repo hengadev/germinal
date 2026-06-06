@@ -69,8 +69,8 @@
             />
         {/if}
 
-        <!-- Dark Overlay -->
-        <div class="absolute inset-0 bg-black/80"></div>
+        <!-- Gradient Overlay -->
+        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/60"></div>
 
         <!-- Content -->
         <div
@@ -79,7 +79,7 @@
         >
             <div class="grid gap-3">
                 <h1
-                    class="text-4xl md:text-5xl lg:text-8xl font-sans font-bold text-white mb-4 md:mb-6"
+                    class="text-4xl md:text-5xl lg:text-8xl font-serif font-bold text-white mb-4 md:mb-6"
                 >
                     {$t("home.heroTitle")}
                 </h1>
@@ -91,7 +91,7 @@
             </div>
             <a
                 href={hasSpotlightEvent ? "/spotlight" : "/events"}
-                class="mx-auto text-dark-900 font-medium px-6 py-3 bg-white flex items-center gap-2 rounded-full cursor-pointer"
+                class="mx-auto text-dark-900 font-medium px-6 py-3 bg-white flex items-center gap-2 rounded-none cursor-pointer"
             >
                 <p>{hasSpotlightEvent ? $t("home.viewUpcoming") : $t("home.viewCreations")}</p>
                 <ArrowUpRight size={20} />
@@ -110,7 +110,7 @@
         >
             <div class="grid gap-3">
                 <p class="text-dark-500 uppercase text-sm tracking-widest">{$t("home.aboutEyebrow")}</p>
-                <h2 class="text-2xl md:text-3xl lg:text-4xl font-base leading-snug">{$t("home.aboutTitle")}</h2>
+                <h2 class="text-2xl md:text-3xl lg:text-4xl font-serif leading-snug">{$t("home.aboutTitle")}</h2>
             </div>
             <p class="text-dark-500 leading-relaxed md:pt-10">{$t("home.aboutBody")}</p>
         </section>
@@ -131,7 +131,7 @@
                             class="w-full max-h-[25rem] md:max-h-[30rem] object-cover"
                         />
                     {:else}
-                        <div class="w-full max-h-[25rem] md:max-h-[30rem] aspect-video bg-gray-200"></div>
+                        <div class="w-full max-h-[25rem] md:max-h-[30rem] aspect-video bg-dark-100"></div>
                     {/if}
                 </div>
                 <div class="flex flex-col justify-between gap-6 md:gap-4">
@@ -139,10 +139,10 @@
                         <p class="text-dark-500 uppercase text-sm">
                             {$t("nav.upcomingEvent")}
                         </p>
-                        <h2 class="text-xl md:text-2xl lg:text-3xl font-base">
+                        <h2 class="text-xl md:text-2xl lg:text-3xl font-serif">
                             {getEventField(data.events[0], 'title')}
                         </h2>
-                        <p class="text-dark-500 font-base">
+                        <p class="text-dark-500 font-normal">
                             {$t("home.heroDescription")}
                         </p>
                     </div>
@@ -191,7 +191,7 @@
                     <div class="w-full border border-dark-50/80"></div>
                     <a
                         href="/spotlight"
-                        class="inline-flex w-fit items-center gap-2 px-6 py-3 rounded-lg bg-dark-900 hover:bg-dark-700 text-white"
+                        class="inline-flex w-fit items-center gap-2 px-6 py-3 rounded-none bg-dark-900 hover:bg-dark-700 text-white"
                     >
                         <p>{$t("home.reserveSeat")}</p>
                         <ArrowRight />
@@ -204,7 +204,7 @@
                 class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8"
                 use:reveal={{ preset: "fade-up", delay: 150 }}
             >
-                <h2 class="text-2xl md:text-3xl font-base">
+                <h2 class="text-2xl md:text-3xl font-serif">
                     {$t("home.selectedEvents")}
                 </h2>
                 <a
@@ -293,7 +293,7 @@
                 class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8"
                 use:reveal={{ preset: "fade-up", delay: 150 }}
             >
-                <h2 class="text-2xl md:text-3xl font-base">
+                <h2 class="text-2xl md:text-3xl font-serif">
                     {$t("home.featuredTalents")}
                 </h2>
                 <a
@@ -334,7 +334,7 @@
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
                 <div class="grid gap-2">
                     <p class="text-dark-500 uppercase text-sm tracking-widest">{$t("home.servicesEyebrow")}</p>
-                    <h2 class="text-2xl md:text-3xl font-base">{$t("home.servicesTitle")}</h2>
+                    <h2 class="text-2xl md:text-3xl font-serif">{$t("home.servicesTitle")}</h2>
                 </div>
                 <a href="/manifesto" class="flex items-center gap-2 text-dark-600 hover:text-dark-800 font-normal">
                     <p>{$t("home.viewServices")}</p>
@@ -360,16 +360,16 @@
         <!-- Stats -->
         <section use:reveal={{ preset: "fade-up", delay: 100 }}>
             <p class="text-dark-500 uppercase text-sm tracking-widest mb-8">{$t("home.statsEyebrow")}</p>
-            <div class="grid grid-cols-3">
+            <div class="grid grid-cols-1 md:grid-cols-3">
                 <div class="py-10 px-6 text-center grid gap-2">
                     <p class="text-6xl md:text-7xl font-bold">30+</p>
                     <p class="text-dark-400 text-xs uppercase tracking-widest">{$t("home.statsProductions")}</p>
                 </div>
-                <div class="py-10 px-6 text-center grid gap-2">
+                <div class="py-10 px-6 text-center grid gap-2 border-t border-dark-100 md:border-t-0 md:border-l">
                     <p class="text-6xl md:text-7xl font-bold">80+</p>
                     <p class="text-dark-400 text-xs uppercase tracking-widest">{$t("home.statsArtists")}</p>
                 </div>
-                <div class="py-10 px-6 text-center grid gap-2">
+                <div class="py-10 px-6 text-center grid gap-2 border-t border-dark-100 md:border-t-0 md:border-l">
                     <p class="text-6xl md:text-7xl font-bold">5</p>
                     <p class="text-dark-400 text-xs uppercase tracking-widest">{$t("home.statsYears")}</p>
                 </div>
@@ -381,7 +381,7 @@
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-12">
                 <div class="grid gap-2">
                     <p class="text-dark-500 uppercase text-sm tracking-widest">{$t("home.partnersEyebrow")}</p>
-                    <h2 class="text-2xl md:text-3xl font-base">{$t("home.partnersTitle")}</h2>
+                    <h2 class="text-2xl md:text-3xl font-serif">{$t("home.partnersTitle")}</h2>
                 </div>
             </div>
             <div class="grid grid-cols-2 md:grid-cols-4">
@@ -407,7 +407,7 @@
             <div class="max-w-lg mx-auto text-center grid gap-6">
                 <div class="grid gap-3">
                     <p class="text-dark-500 uppercase text-sm tracking-widest">{$t("home.newsletter.eyebrow")}</p>
-                    <h2 class="text-2xl md:text-3xl font-base">{$t("home.newsletter.title")}</h2>
+                    <h2 class="text-2xl md:text-3xl font-serif">{$t("home.newsletter.title")}</h2>
                     <p class="text-dark-500">{$t("home.newsletter.subtitle")}</p>
                 </div>
                 {#if newsletterSubmitted}
@@ -436,10 +436,10 @@
         >
             <div class="grid gap-6 max-w-2xl mx-auto">
                 <p class="text-dark-500 uppercase text-sm tracking-widest">{$t("home.cta.eyebrow")}</p>
-                <h2 class="text-3xl md:text-4xl lg:text-5xl font-base leading-tight">{$t("home.cta.title")}</h2>
+                <h2 class="text-3xl md:text-4xl lg:text-5xl font-serif leading-tight">{$t("home.cta.title")}</h2>
                 <a
                     href="/contact"
-                    class="mx-auto inline-flex items-center gap-2 px-8 py-4 bg-dark-900 text-white hover:bg-dark-700 transition-colors rounded-full"
+                    class="mx-auto inline-flex items-center gap-2 px-8 py-4 bg-dark-900 text-white hover:bg-dark-700 transition-colors rounded-none"
                 >
                     <p>{$t("home.cta.button")}</p>
                     <ArrowUpRight size={20} />
