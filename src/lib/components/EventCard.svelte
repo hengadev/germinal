@@ -7,16 +7,24 @@
     }
 
     let { event }: Props = $props();
+
+    const formattedDate = $derived(
+        new Date(event.startDate).toLocaleDateString($locale === 'fr' ? 'fr-FR' : 'en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+        })
+    );
 </script>
 
-<a href="/events/{event.slug}" class="block bg-white overflow-hidden">
+<a href="/events/{event.slug}" class="block bg-white overflow-hidden group">
     {#if event.coverMedia}
         <div class="aspect-video overflow-hidden">
             {#if event.coverMedia.type === "image"}
                 <img
                     src={event.coverMedia.url}
                     alt={event.titleEn}
-                    class="w-full h-full object-cover grayscale hover:scale-105 transition-transform"
+                    class="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-[filter] duration-500"
                 />
             {:else}
                 <video
@@ -27,8 +35,8 @@
             {/if}
         </div>
     {:else}
-        <div class="aspect-4/3 bg-gray-200 flex items-center justify-center">
-            <span class="text-gray-400 text-4xl"></span>
+        <div class="aspect-4/3 bg-dark-100 flex items-center justify-center">
+            <span class="text-dark-300 text-4xl"></span>
         </div>
     {/if}
     <div class="w-full border border-border-card/40 mt-6"></div>
@@ -36,6 +44,7 @@
     <div class="mt-4">
         <h3 class="text-lg font-medium">{event.titleEn}</h3>
         <p class="text-dark-500 text-sm line-clamp-2">{$locale === "en" ? event.locationEn : event.locationFr}</p>
+        <p class="text-xs text-dark-400 uppercase tracking-widest mt-1">{formattedDate}</p>
     </div>
 </a>
 

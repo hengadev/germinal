@@ -17,23 +17,23 @@
             <img
                 src={talent.profileMedia.url}
                 alt="{talent.firstName} {talent.lastName}"
-                class="w-full h-full grayscale object-cover hover:scale-105 transition-transform"
+                class="w-full h-full grayscale object-cover group-hover:grayscale-0 transition-[filter] duration-500"
             />
         {:else}
             <div
-                class="w-full h-full bg-gray-200 flex items-center justify-center"
+                class="w-full h-full bg-dark-100 flex items-center justify-center"
             >
-                <span class="text-gray-400 text-6xl"></span>
+                <span class="text-dark-300 text-6xl"></span>
             </div>
         {/if}
     </div>
 
     <div class="grid gap-1 mt-4">
-        <h3 class="text-lg font-bold">
+        <h3 class="text-lg font-medium">
             {talent.firstName}
             {talent.lastName?.[0]}.
         </h3>
-        <p class="text-dark-400 font-base text-xs uppercase">
+        <p class="text-dark-400 font-normal text-xs uppercase">
             {talent.roleEn}
         </p>
     </div>
