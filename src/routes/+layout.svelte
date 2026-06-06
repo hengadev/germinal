@@ -48,7 +48,7 @@
 
 {#if $isLoading}
     <div class="flex items-center justify-center min-h-screen">
-        <div class="text-lg">Loading...</div>
+        <span class="text-xl font-medium font-serif uppercase animate-fade-pulse">Germinal</span>
     </div>
 {:else}
     {@render children()}
@@ -61,7 +61,7 @@
 
 {#if browser}
 <div
-    class="fixed bottom-4 right-4 left-4 sm:left-auto z-50 flex items-center gap-3 rounded-lg bg-gray-900 px-4 py-3 text-sm text-white shadow-lg pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:pb-3"
+    class="fixed bottom-4 right-4 left-4 sm:left-auto z-50 flex items-center gap-3 rounded-lg bg-dark-900 px-4 py-3 text-sm text-white shadow-lg pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:pb-3"
     style="transition: opacity 300ms; opacity: {showBanner ? 1 : 0}; pointer-events: {showBanner ? 'auto' : 'none'};"
     aria-hidden={!showBanner}
 >
@@ -69,7 +69,7 @@
     {#if needRefreshValue}
         <button
             onclick={() => updateServiceWorker?.(true)}
-            class="rounded bg-white px-2 py-0.5 text-xs font-medium text-gray-900 hover:bg-gray-100"
+            class="rounded bg-white px-2 py-0.5 text-xs font-medium text-dark-900 hover:bg-dark-50"
         >
             {$t('pwa.reload')}
         </button>
