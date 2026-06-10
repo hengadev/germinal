@@ -164,24 +164,24 @@
 	<title>Checkout - {reservationData?.eventTitle || 'Event'}</title>
 </svelte:head>
 
-<div class="min-h-screen bg-dark-50/30 py-12">
+<div class="min-h-screen bg-surface/30 py-12">
 	<div class="container mx-auto px-4 max-w-2xl">
 		{#if error && !reservationData}
 			<div class="bg-white rounded-lg border border-border-card p-12 text-center">
 				<AlertCircle size={48} class="mx-auto mb-4 text-red-400" />
-				<h3 class="text-xl font-semibold text-dark-900 mb-2">Unable to Load Checkout</h3>
+				<h3 class="text-xl font-semibold text-foreground mb-2">Unable to Load Checkout</h3>
 				<p class="text-red-600 text-sm">{error}</p>
 			</div>
 		{:else if !reservationData}
 			<div class="bg-white rounded-lg border border-border-card p-12 text-center">
-				<Loader2 size={48} class="mx-auto mb-4 text-dark-300 animate-spin" />
-				<h3 class="text-xl font-semibold text-dark-900">Loading...</h3>
+				<Loader2 size={48} class="mx-auto mb-4 text-muted-foreground animate-spin" />
+				<h3 class="text-xl font-semibold text-foreground">Loading...</h3>
 			</div>
 		{:else}
 			<!-- Header -->
 			<div class="mb-8">
-				<h1 class="text-3xl font-serif text-dark-900 mb-2">Complete Your Booking</h1>
-				<p class="text-dark-500">Secure payment powered by Stripe</p>
+				<h1 class="text-3xl font-serif text-foreground mb-2">Complete Your Booking</h1>
+				<p class="text-muted-foreground">Secure payment powered by Stripe</p>
 			</div>
 
 			<!-- Timer Warning -->
@@ -200,23 +200,23 @@
 
 			<!-- Order Summary -->
 			<div class="bg-white rounded-lg border border-border-card p-6 mb-6">
-				<h2 class="text-lg font-serif text-dark-900 mb-4">Order Summary</h2>
+				<h2 class="text-lg font-serif text-foreground mb-4">Order Summary</h2>
 
 				<div class="space-y-3">
 					<div>
-						<div class="text-sm text-dark-500">Event</div>
-						<div class="font-medium text-dark-900">{reservationData.eventTitle}</div>
+						<div class="text-sm text-muted-foreground">Event</div>
+						<div class="font-medium text-foreground">{reservationData.eventTitle}</div>
 					</div>
 
 					<div>
-						<div class="text-sm text-dark-500">Session</div>
-						<div class="font-medium text-dark-900">{reservationData.sessionTitle}</div>
+						<div class="text-sm text-muted-foreground">Session</div>
+						<div class="font-medium text-foreground">{reservationData.sessionTitle}</div>
 					</div>
 
 					<div class="border-t border-border-card pt-3 mt-3">
 						<div class="flex items-center justify-between mb-2">
-							<span class="text-dark-600">Tickets ({reservationData.quantity}x)</span>
-							<span class="text-dark-900">
+							<span class="text-muted-foreground">Tickets ({reservationData.quantity}x)</span>
+							<span class="text-foreground">
 								{formatCurrency(
 									reservationData.originalAmount ?? reservationData.totalAmount,
 									reservationData.currency
@@ -235,8 +235,8 @@
 						{/if}
 
 						<div class="flex items-center justify-between font-semibold text-lg pt-2 border-t border-border-card">
-							<span class="text-dark-900">Total</span>
-							<span class="text-dark-900">
+							<span class="text-foreground">Total</span>
+							<span class="text-foreground">
 								{formatCurrency(reservationData.totalAmount, reservationData.currency)}
 							</span>
 						</div>
@@ -246,7 +246,7 @@
 
 			<!-- Payment Form -->
 			<div class="bg-white rounded-lg border border-border-card p-6">
-				<h2 class="text-lg font-serif text-dark-900 mb-4">Payment Details</h2>
+				<h2 class="text-lg font-serif text-foreground mb-4">Payment Details</h2>
 
 				{#if error}
 					<div class="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3 mb-6">
@@ -263,14 +263,14 @@
 					<div id="payment-element" class="min-h-[200px]">
 						{#if !stripeLoaded}
 							<div class="flex items-center justify-center py-12">
-								<Loader2 size={32} class="text-dark-300 animate-spin" />
+								<Loader2 size={32} class="text-muted-foreground animate-spin" />
 							</div>
 						{/if}
 					</div>
 
 					<!-- Security Notice -->
-					<div class="flex items-center gap-2 text-sm text-dark-500 bg-dark-50 rounded-lg p-3">
-						<Lock size={16} class="text-dark-400" />
+					<div class="flex items-center gap-2 text-sm text-muted-foreground bg-surface rounded-lg p-3">
+						<Lock size={16} class="text-muted-foreground" />
 						<span>Your payment information is secure and encrypted</span>
 					</div>
 
@@ -278,7 +278,7 @@
 					<button
 						type="submit"
 						disabled={!stripeLoaded || isProcessing || timeRemaining === 'Expired'}
-						class="w-full inline-flex items-center justify-center gap-2 px-6 py-3 bg-dark-900 text-white rounded-none hover:bg-dark-800 transition-colors font-medium disabled:bg-dark-300 disabled:cursor-not-allowed"
+						class="w-full inline-flex items-center justify-center gap-2 px-6 py-3 bg-foreground text-white rounded-none hover:bg-foreground-alt transition-colors font-medium disabled:bg-muted-foreground disabled:cursor-not-allowed"
 					>
 						{#if isProcessing}
 							<Loader2 size={20} class="animate-spin" />

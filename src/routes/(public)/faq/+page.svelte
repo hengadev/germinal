@@ -13,11 +13,11 @@
 
     <div class="grid gap-0">
         {#each faqKeys as key, i}
-            <details class="group border-t border-dark-100 py-8 first:border-t-0" open={i === 0}>
-                <summary class="flex items-center justify-between cursor-pointer list-none text-lg font-serif text-dark-900 [&::-webkit-details-marker]:hidden">
+            <details class="group border-t border-border-input-hover py-8 first:border-t-0" open={i === 0}>
+                <summary class="flex items-center justify-between cursor-pointer list-none text-lg font-serif text-foreground [&::-webkit-details-marker]:hidden">
                     <span>{$t(`faq.${key}.question`)}</span>
                     <svg
-                        class="faq-chevron w-5 h-5 shrink-0 ml-4 text-dark-400 transition-transform duration-200"
+                        class="faq-chevron w-5 h-5 shrink-0 ml-4 text-muted-foreground transition-transform duration-200"
                         viewBox="0 0 24 24"
                         fill="none"
                         stroke="currentColor"
@@ -28,7 +28,7 @@
                         <polyline points="6 9 12 15 18 9" />
                     </svg>
                 </summary>
-                <p class="text-dark-600 leading-relaxed pt-3">
+                <p class="text-muted-foreground leading-relaxed pt-3">
                     {$t(`faq.${key}.answer`)}
                 </p>
             </details>

@@ -149,7 +149,7 @@ END:VCALENDAR`;
 	<title>{$t('tickets.pageTitle', { values: { eventTitle: data.reservation.session.event.title } })}</title>
 </svelte:head>
 
-<div class="min-h-screen bg-dark-50/30 py-12">
+<div class="min-h-screen bg-surface/30 py-12">
 	<div class="container mx-auto px-4 max-w-2xl">
 		<!-- Success Banner -->
 		{#if showSuccess}
@@ -165,7 +165,7 @@ END:VCALENDAR`;
 				</div>
 				<a
 					href="/events"
-					class="inline-flex items-center gap-2 px-4 py-2.5 bg-dark-900 text-white rounded-none hover:bg-dark-800 transition-colors font-medium text-sm whitespace-nowrap"
+					class="inline-flex items-center gap-2 px-4 py-2.5 bg-foreground text-white rounded-none hover:bg-foreground-alt transition-colors font-medium text-sm whitespace-nowrap"
 				>
 					{$t('tickets.success.browseMore')}
 				</a>
@@ -183,13 +183,13 @@ END:VCALENDAR`;
 						<div class="flex items-center gap-3">
 							<a
 								href="/events"
-								class="inline-flex items-center gap-2 px-4 py-2 bg-dark-900 text-white rounded-none hover:bg-dark-800 transition-colors font-medium text-sm"
+								class="inline-flex items-center gap-2 px-4 py-2 bg-foreground text-white rounded-none hover:bg-foreground-alt transition-colors font-medium text-sm"
 							>
 								{$t('tickets.paymentFailed.browseOther')}
 							</a>
 							<button
 								onclick={dismissFailure}
-								class="text-dark-600 hover:text-dark-900 font-medium text-sm"
+								class="text-muted-foreground hover:text-foreground font-medium text-sm"
 							>
 								{$t('tickets.paymentFailed.dismiss')}
 							</button>
@@ -203,15 +203,15 @@ END:VCALENDAR`;
 		{/if}
 
 		<!-- Ticket Card -->
-		<div class="bg-white rounded-xl border border-border-card shadow-sm overflow-hidden print:break-inside-avoid" use:reveal={{ preset: 'fade-up' }}>
+		<div class="bg-white rounded-xl border border-border-card shadow-mini overflow-hidden print:break-inside-avoid" use:reveal={{ preset: 'fade-up' }}>
 
 			<!-- Header -->
-			<div class="bg-dark-900 text-white px-6 py-7">
+			<div class="bg-foreground text-white px-6 py-7">
 				<div class="flex items-start justify-between gap-4 mb-5">
 					<div>
-						<p class="text-xs font-semibold uppercase tracking-widest text-dark-400 mb-1.5">{$t('tickets.ticketLabel')}</p>
+						<p class="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-1.5">{$t('tickets.ticketLabel')}</p>
 						<h1 class="text-3xl font-serif leading-tight">{data.reservation.session.event.title}</h1>
-						<p class="text-dark-300 mt-1 text-sm">{isFr ? data.reservation.session.titleFr : data.reservation.session.titleEn}</p>
+						<p class="text-muted-foreground mt-1 text-sm">{isFr ? data.reservation.session.titleFr : data.reservation.session.titleEn}</p>
 					</div>
 					<span class={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold flex-shrink-0 ${statusBadge.class}`}>
 						{#if statusBadge.icon}
@@ -221,13 +221,13 @@ END:VCALENDAR`;
 					</span>
 				</div>
 
-				<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-sm text-dark-200">
+				<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-sm text-muted-foreground">
 					<div class="flex items-center gap-2">
-						<Calendar size={15} class="text-dark-400 flex-shrink-0" />
+						<Calendar size={15} class="text-muted-foreground flex-shrink-0" />
 						<span>{formatDateTime(data.reservation.session.startTime)}</span>
 					</div>
 					<div class="flex items-center gap-2">
-						<MapPin size={15} class="text-dark-400 flex-shrink-0" />
+						<MapPin size={15} class="text-muted-foreground flex-shrink-0" />
 						<span>{locationFallback}</span>
 					</div>
 				</div>
@@ -235,8 +235,8 @@ END:VCALENDAR`;
 
 			<!-- Tear line separator -->
 			<div class="relative flex items-center bg-white border-y border-dashed border-border-card">
-				<div class="absolute -left-3.5 w-7 h-7 rounded-full bg-dark-50/30 border border-border-card"></div>
-				<div class="absolute -right-3.5 w-7 h-7 rounded-full bg-dark-50/30 border border-border-card"></div>
+				<div class="absolute -left-3.5 w-7 h-7 rounded-full bg-surface/30 border border-border-card"></div>
+				<div class="absolute -right-3.5 w-7 h-7 rounded-full bg-surface/30 border border-border-card"></div>
 			</div>
 
 			<!-- QR Code -->
@@ -248,21 +248,21 @@ END:VCALENDAR`;
 						class="w-full h-full object-contain"
 					/>
 				</div>
-				<p class="text-center text-xs text-dark-400 mt-3 max-w-xs">
+				<p class="text-center text-xs text-muted-foreground mt-3 max-w-xs">
 					{$t('tickets.qrCodeHint')}
 				</p>
-				<p class="mt-2 text-xs font-mono font-semibold text-dark-500 tracking-wider">
+				<p class="mt-2 text-xs font-mono font-semibold text-muted-foreground tracking-wider">
 					{data.reservation.id.substring(0, 8).toUpperCase()}
 				</p>
-				<p class="hidden print:block mt-1 text-xs font-mono text-dark-400 tracking-wide">
+				<p class="hidden print:block mt-1 text-xs font-mono text-muted-foreground tracking-wide">
 					{data.reservation.id}
 				</p>
 			</div>
 
 			<!-- Tear line separator -->
 			<div class="relative flex items-center bg-white border-y border-dashed border-border-card">
-				<div class="absolute -left-3.5 w-7 h-7 rounded-full bg-dark-50/30 border border-border-card"></div>
-				<div class="absolute -right-3.5 w-7 h-7 rounded-full bg-dark-50/30 border border-border-card"></div>
+				<div class="absolute -left-3.5 w-7 h-7 rounded-full bg-surface/30 border border-border-card"></div>
+				<div class="absolute -right-3.5 w-7 h-7 rounded-full bg-surface/30 border border-border-card"></div>
 			</div>
 
 			<!-- Details -->
@@ -270,30 +270,30 @@ END:VCALENDAR`;
 
 				<!-- Guest Information -->
 				<div>
-					<h3 class="text-xs font-semibold text-dark-400 uppercase tracking-widest mb-3">
+					<h3 class="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">
 						{$t('tickets.guestInfo')}
 					</h3>
 					<dl class="divide-y divide-border-card">
 						<div class="flex items-center justify-between py-2.5 gap-4">
-							<dt class="flex items-center gap-2 text-sm text-dark-500 flex-shrink-0">
-								<User size={15} class="text-dark-400" />
+							<dt class="flex items-center gap-2 text-sm text-muted-foreground flex-shrink-0">
+								<User size={15} class="text-muted-foreground" />
 								{$t('tickets.guestName')}
 							</dt>
-							<dd class="text-sm font-medium text-dark-900 text-right">{data.reservation.guestName}</dd>
+							<dd class="text-sm font-medium text-foreground text-right">{data.reservation.guestName}</dd>
 						</div>
 						<div class="flex items-center justify-between py-2.5 gap-4">
-							<dt class="flex items-center gap-2 text-sm text-dark-500 flex-shrink-0">
-								<Mail size={15} class="text-dark-400" />
+							<dt class="flex items-center gap-2 text-sm text-muted-foreground flex-shrink-0">
+								<Mail size={15} class="text-muted-foreground" />
 								{$t('tickets.guestEmail')}
 							</dt>
-							<dd class="text-sm font-medium text-dark-900 text-right break-all">{data.reservation.guestEmail}</dd>
+							<dd class="text-sm font-medium text-foreground text-right break-all">{data.reservation.guestEmail}</dd>
 						</div>
 						<div class="flex items-center justify-between py-2.5 gap-4">
-							<dt class="flex items-center gap-2 text-sm text-dark-500 flex-shrink-0">
-								<Ticket size={15} class="text-dark-400" />
+							<dt class="flex items-center gap-2 text-sm text-muted-foreground flex-shrink-0">
+								<Ticket size={15} class="text-muted-foreground" />
 								{$t('tickets.quantity')}
 							</dt>
-							<dd class="text-sm font-medium text-dark-900 text-right">
+							<dd class="text-sm font-medium text-foreground text-right">
 								{$t('tickets.ticketCount', { values: { count: data.reservation.quantity } })}
 							</dd>
 						</div>
@@ -302,16 +302,16 @@ END:VCALENDAR`;
 
 				<!-- Payment Information -->
 				<div class="border-t border-border-card pt-6">
-					<h3 class="text-xs font-semibold text-dark-400 uppercase tracking-widest mb-3">
+					<h3 class="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">
 						{$t('tickets.paymentDetails')}
 					</h3>
 					<dl class="divide-y divide-border-card">
 						<div class="flex items-center justify-between py-2.5 gap-4">
-							<dt class="flex items-center gap-2 text-sm text-dark-500">
-								<CreditCard size={15} class="text-dark-400" />
+							<dt class="flex items-center gap-2 text-sm text-muted-foreground">
+								<CreditCard size={15} class="text-muted-foreground" />
 								{$t('tickets.totalPaid')}
 							</dt>
-							<dd class="text-sm font-semibold text-dark-900">
+							<dd class="text-sm font-semibold text-foreground">
 								{formatCurrency(data.reservation.totalAmount, data.reservation.currency)}
 							</dd>
 						</div>
@@ -321,7 +321,7 @@ END:VCALENDAR`;
 							href={data.reservation.payment.receiptUrl}
 							target="_blank"
 							rel="noopener noreferrer"
-							class="inline-flex items-center gap-1.5 text-xs text-dark-500 hover:text-dark-900 transition-colors mt-2"
+							class="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors mt-2"
 						>
 							<CreditCard size={13} />
 							{$t('tickets.viewReceipt')}
@@ -331,14 +331,14 @@ END:VCALENDAR`;
 
 				<!-- Event Location -->
 				<div class="border-t border-border-card pt-6">
-					<h3 class="text-xs font-semibold text-dark-400 uppercase tracking-widest mb-3">
+					<h3 class="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">
 						{$t('tickets.eventLocation')}
 					</h3>
-					<div class="flex items-start gap-2 text-sm text-dark-700">
-						<MapPin size={15} class="text-dark-400 flex-shrink-0 mt-0.5" />
+					<div class="flex items-start gap-2 text-sm text-foreground-alt">
+						<MapPin size={15} class="text-muted-foreground flex-shrink-0 mt-0.5" />
 						<address class="not-italic leading-relaxed">
 							{#if venueName}
-								<span class="font-semibold text-dark-900 block">{venueName}</span>
+								<span class="font-semibold text-foreground block">{venueName}</span>
 							{/if}
 							{#if streetAddress}
 								<span class="block">{streetAddress}</span>
@@ -355,20 +355,20 @@ END:VCALENDAR`;
 
 				<!-- Actions -->
 				<div class="border-t border-border-card pt-6 space-y-3 print:hidden">
-					<p class="text-xs font-semibold text-dark-400 uppercase tracking-widest">{$t('tickets.addToCalendar')}</p>
+					<p class="text-xs font-semibold text-muted-foreground uppercase tracking-widest">{$t('tickets.addToCalendar')}</p>
 					<div class="flex gap-3">
 						<a
 							href={googleCalendarUrl}
 							target="_blank"
 							rel="noopener noreferrer"
-							class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 border border-border-dark text-dark-700 rounded-none hover:bg-dark-50 transition-colors font-medium text-sm"
+							class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 border border-border-input text-foreground-alt rounded-none hover:bg-surface transition-colors font-medium text-sm"
 						>
 							<Download size={16} />
 							Google Calendar
 						</a>
 						<button
 							onclick={downloadCalendar}
-							class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 border border-border-dark text-dark-700 rounded-none hover:bg-dark-50 transition-colors font-medium text-sm"
+							class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 border border-border-input text-foreground-alt rounded-none hover:bg-surface transition-colors font-medium text-sm"
 						>
 							<Download size={16} />
 							{$t('tickets.appleOutlook')}
@@ -376,7 +376,7 @@ END:VCALENDAR`;
 					</div>
 					<button
 						onclick={() => window.print()}
-						class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-dark-900 text-white rounded-none hover:bg-dark-800 transition-colors font-medium text-sm"
+						class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-foreground text-white rounded-none hover:bg-foreground-alt transition-colors font-medium text-sm"
 					>
 						<Printer size={16} />
 						{$t('tickets.printTicket')}
@@ -428,16 +428,16 @@ END:VCALENDAR`;
 		}
 
 		/* Header: black text on white, no background colour */
-		.bg-dark-900 {
+		.bg-foreground {
 			background: white !important;
 			color: black !important;
 			border-bottom: 2px solid black;
 		}
-		.bg-dark-900 h1 {
+		.bg-foreground h1 {
 			color: black !important;
 		}
-		.bg-dark-900 p,
-		.bg-dark-900 span {
+		.bg-foreground p,
+		.bg-foreground span {
 			color: #333 !important;
 		}
 
@@ -470,14 +470,14 @@ END:VCALENDAR`;
 		}
 
 		/* ---- Black-on-white text ---- */
-		.text-dark-900 {
+		.text-foreground {
 			color: black !important;
 		}
-		.text-dark-500,
-		.text-dark-700 {
+		.text-muted-foreground,
+		.text-foreground-alt {
 			color: #333 !important;
 		}
-		.text-dark-400 {
+		.text-muted-foreground {
 			color: #555 !important;
 		}
 

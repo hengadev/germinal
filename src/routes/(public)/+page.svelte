@@ -84,14 +84,14 @@
                     {$t("home.heroTitle")}
                 </h1>
                 <p
-                    class="text-base md:text-lg lg:text-xl text-dark-300 leading-relaxed"
+                    class="text-base md:text-lg lg:text-xl text-muted-foreground leading-relaxed"
                 >
                     {$t("home.heroSubtitle")}
                 </p>
             </div>
             <a
                 href={hasSpotlightEvent ? "/spotlight" : "/events"}
-                class="mx-auto text-dark-900 font-medium px-6 py-3 bg-white flex items-center gap-2 rounded-none cursor-pointer"
+                class="mx-auto text-foreground font-medium px-6 py-3 bg-white flex items-center gap-2 rounded-none cursor-pointer"
             >
                 <p>{hasSpotlightEvent ? $t("home.viewUpcoming") : $t("home.viewCreations")}</p>
                 <ArrowUpRight size={20} />
@@ -109,10 +109,10 @@
             use:reveal={{ preset: "fade-up", delay: 100 }}
         >
             <div class="grid gap-3">
-                <p class="text-dark-500 uppercase text-sm tracking-widest">{$t("home.aboutEyebrow")}</p>
+                <p class="text-muted-foreground uppercase text-sm tracking-widest">{$t("home.aboutEyebrow")}</p>
                 <h2 class="text-2xl md:text-3xl lg:text-4xl font-serif leading-snug">{$t("home.aboutTitle")}</h2>
             </div>
-            <p class="text-dark-500 leading-relaxed md:pt-10">{$t("home.aboutBody")}</p>
+            <p class="text-muted-foreground leading-relaxed md:pt-10">{$t("home.aboutBody")}</p>
         </section>
 
         <!-- Upcoming event -->
@@ -131,22 +131,22 @@
                             class="w-full max-h-[25rem] md:max-h-[30rem] object-cover"
                         />
                     {:else}
-                        <div class="w-full max-h-[25rem] md:max-h-[30rem] aspect-video bg-dark-100"></div>
+                        <div class="w-full max-h-[25rem] md:max-h-[30rem] aspect-video bg-surface-hover"></div>
                     {/if}
                 </div>
                 <div class="flex flex-col justify-between gap-6 md:gap-4">
                     <div class="grid gap-2">
-                        <p class="text-dark-500 uppercase text-sm">
+                        <p class="text-muted-foreground uppercase text-sm">
                             {$t("nav.upcomingEvent")}
                         </p>
                         <h2 class="text-xl md:text-2xl lg:text-3xl font-serif">
                             {getEventField(data.events[0], 'title')}
                         </h2>
-                        <p class="text-dark-500 font-normal">
+                        <p class="text-muted-foreground font-normal">
                             {$t("home.heroDescription")}
                         </p>
                     </div>
-                    <div class="w-full border border-dark-50/80"></div>
+                    <div class="w-full border border-border-input/80"></div>
                     {#if data.events[0]}
                         {@const event = data.events[0]}
                         {@const start = new Date(event.startDate)}
@@ -157,8 +157,8 @@
                         <div class="grid grid-cols-2 grid-rows-2 gap-y-8">
                             <!-- Date range -->
                             <div class="grid gap-0.5">
-                                <p class="uppercase text-xs text-dark-300">{$t("home.date")}</p>
-                                <p class="text-dark-900 text-sm font-medium">
+                                <p class="uppercase text-xs text-muted-foreground">{$t("home.date")}</p>
+                                <p class="text-foreground text-sm font-medium">
                                     {isSameDay
                                         ? start.toLocaleDateString($locale === 'en' ? 'en-US' : 'fr-FR', { month: 'short', day: 'numeric', year: 'numeric' })
                                         : `${start.toLocaleDateString($locale === 'en' ? 'en-US' : 'fr-FR', { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString($locale === 'en' ? 'en-US' : 'fr-FR', { month: 'short', day: 'numeric', year: 'numeric' })}`}
@@ -167,31 +167,31 @@
 
                             <!-- Time -->
                             <div class="grid gap-0.5">
-                                <p class="uppercase text-xs text-dark-300">{$t("home.time")}</p>
-                                <p class="text-dark-900 text-sm font-medium">
+                                <p class="uppercase text-xs text-muted-foreground">{$t("home.time")}</p>
+                                <p class="text-foreground text-sm font-medium">
                                     {start.toLocaleTimeString($locale === 'en' ? 'en-US' : 'fr-FR', { hour: '2-digit', minute: '2-digit' })}
                                 </p>
                             </div>
 
                             <!-- Location -->
                             <div class="grid gap-0.5">
-                                <p class="uppercase text-xs text-dark-300">{$t("home.location")}</p>
-                                <p class="text-dark-900 text-sm font-medium">{$locale === 'en' ? event.locationEn : event.locationFr}</p>
+                                <p class="uppercase text-xs text-muted-foreground">{$t("home.location")}</p>
+                                <p class="text-foreground text-sm font-medium">{$locale === 'en' ? event.locationEn : event.locationFr}</p>
                             </div>
 
                             <!-- Admission info -->
                             {#if admissionInfo}
                                 <div class="grid gap-0.5">
-                                    <p class="uppercase text-xs text-dark-300">{$t("home.admission")}</p>
-                                    <p class="text-dark-900 text-sm font-medium">{admissionInfo}</p>
+                                    <p class="uppercase text-xs text-muted-foreground">{$t("home.admission")}</p>
+                                    <p class="text-foreground text-sm font-medium">{admissionInfo}</p>
                                 </div>
                             {/if}
                         </div>
                     {/if}
-                    <div class="w-full border border-dark-50/80"></div>
+                    <div class="w-full border border-border-input/80"></div>
                     <a
                         href="/spotlight"
-                        class="inline-flex w-fit items-center gap-2 px-6 py-3 rounded-none bg-dark-900 hover:bg-dark-700 text-white"
+                        class="inline-flex w-fit items-center gap-2 px-6 py-3 rounded-none bg-foreground hover:bg-foreground-alt text-white"
                     >
                         <p>{$t("home.reserveSeat")}</p>
                         <ArrowRight />
@@ -209,7 +209,7 @@
                 </h2>
                 <a
                     href="/events"
-                    class="flex items-center gap-2 text-dark-600 hover:text-dark-800 font-normal"
+                    class="flex items-center gap-2 text-muted-foreground hover:text-foreground-alt font-normal"
                 >
                     <p>{$t("home.viewEvents")}</p>
                     <ArrowRight />
@@ -222,8 +222,8 @@
                     <PortfolioGallery events={portfolioEvents} />
                 </div>
             {:else if data.events.filter(e => !e.isSpotlight).length === 0}
-                <div class="hidden md:flex items-center justify-center py-16 border-t border-dark-100 mt-6">
-                    <p class="text-dark-500 text-center">{$t("home.noEvents")}</p>
+                <div class="hidden md:flex items-center justify-center py-16 border-t border-border-input-hover mt-6">
+                    <p class="text-muted-foreground text-center">{$t("home.noEvents")}</p>
                 </div>
             {:else}
                 <div class="hidden md:block">
@@ -237,16 +237,16 @@
                             {:else if event.coverMedia}
                                 <img src={event.coverMedia.url} alt={title} class="w-full aspect-[16/9] object-cover mb-6" loading="lazy" />
                             {:else}
-                                <div class="w-full aspect-[16/9] bg-dark-50 mb-6"></div>
+                                <div class="w-full aspect-[16/9] bg-surface mb-6"></div>
                             {/if}
                             <div class="flex items-center justify-between gap-6">
                                 <div class="flex items-center gap-4 min-w-0">
-                                    <p class="uppercase text-dark-300 text-xxs tracking-widest shrink-0">{String(index + 1).padStart(2, '0')}</p>
-                                    <h3 class="text-xl md:text-2xl font-normal truncate group-hover:text-dark-500 transition-colors">{title}</h3>
+                                    <p class="uppercase text-muted-foreground text-xxs tracking-widest shrink-0">{String(index + 1).padStart(2, '0')}</p>
+                                    <h3 class="text-xl md:text-2xl font-normal truncate group-hover:text-muted-foreground transition-colors">{title}</h3>
                                 </div>
                                 <div class="flex items-center gap-4 shrink-0">
-                                    <p class="text-dark-400 text-sm">{start.toLocaleDateString($locale === 'en' ? 'en-US' : 'fr-FR', { month: 'long', day: 'numeric', year: 'numeric' })}{#if location}<span class="mx-2 text-dark-200">·</span>{location}{/if}</p>
-                                    <ArrowUpRight size={20} class="text-dark-300 group-hover:text-dark-900 transition-colors" />
+                                    <p class="text-muted-foreground text-sm">{start.toLocaleDateString($locale === 'en' ? 'en-US' : 'fr-FR', { month: 'long', day: 'numeric', year: 'numeric' })}{#if location}<span class="mx-2 text-muted-foreground">·</span>{location}{/if}</p>
+                                    <ArrowUpRight size={20} class="text-muted-foreground group-hover:text-foreground transition-colors" />
                                 </div>
                             </div>
                         </a>
@@ -256,8 +256,8 @@
 
             <!-- Mobile: always use the standard list -->
             {#if data.events.filter(e => !e.isSpotlight).length === 0}
-                <div class="md:hidden flex items-center justify-center py-16 border-t border-dark-100 mt-6">
-                    <p class="text-dark-500 text-center">{$t("home.noEvents")}</p>
+                <div class="md:hidden flex items-center justify-center py-16 border-t border-border-input-hover mt-6">
+                    <p class="text-muted-foreground text-center">{$t("home.noEvents")}</p>
                 </div>
             {:else}
                 <div class="md:hidden">
@@ -271,15 +271,15 @@
                             {:else if event.coverMedia}
                                 <img src={event.coverMedia.url} alt={title} class="w-full aspect-[16/9] object-cover mb-6" loading="lazy" />
                             {:else}
-                                <div class="w-full aspect-[16/9] bg-dark-50 mb-6"></div>
+                                <div class="w-full aspect-[16/9] bg-surface mb-6"></div>
                             {/if}
                             <div class="flex items-center justify-between gap-6">
                                 <div class="flex items-center gap-4 min-w-0">
-                                    <p class="uppercase text-dark-300 text-xxs tracking-widest shrink-0">{String(index + 1).padStart(2, '0')}</p>
-                                    <h3 class="text-xl font-normal truncate group-hover:text-dark-500 transition-colors">{title}</h3>
+                                    <p class="uppercase text-muted-foreground text-xxs tracking-widest shrink-0">{String(index + 1).padStart(2, '0')}</p>
+                                    <h3 class="text-xl font-normal truncate group-hover:text-muted-foreground transition-colors">{title}</h3>
                                 </div>
                                 <div class="flex items-center gap-4 shrink-0">
-                                    <ArrowUpRight size={20} class="text-dark-300 group-hover:text-dark-900 transition-colors" />
+                                    <ArrowUpRight size={20} class="text-muted-foreground group-hover:text-foreground transition-colors" />
                                 </div>
                             </div>
                         </a>
@@ -298,7 +298,7 @@
                 </h2>
                 <a
                     href="/talents"
-                    class="flex items-center gap-2 text-dark-600 hover:text-dark-800 font-normal"
+                    class="flex items-center gap-2 text-muted-foreground hover:text-foreground-alt font-normal"
                 >
                     <p>{$t("home.viewTalents")}</p>
                     <ArrowRight />
@@ -307,7 +307,7 @@
 
             {#if data.talents.length === 0}
                 <div class="flex items-center justify-center py-16">
-                    <p class="text-dark-500 text-center">
+                    <p class="text-muted-foreground text-center">
                         {$t("home.noTalents")}
                     </p>
                 </div>
@@ -333,25 +333,25 @@
         <section use:reveal={{ preset: "fade-up", delay: 100 }}>
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
                 <div class="grid gap-2">
-                    <p class="text-dark-500 uppercase text-sm tracking-widest">{$t("home.servicesEyebrow")}</p>
+                    <p class="text-muted-foreground uppercase text-sm tracking-widest">{$t("home.servicesEyebrow")}</p>
                     <h2 class="text-2xl md:text-3xl font-serif">{$t("home.servicesTitle")}</h2>
                 </div>
-                <a href="/manifesto" class="flex items-center gap-2 text-dark-600 hover:text-dark-800 font-normal">
+                <a href="/manifesto" class="flex items-center gap-2 text-muted-foreground hover:text-foreground-alt font-normal">
                     <p>{$t("home.viewServices")}</p>
                     <ArrowRight />
                 </a>
             </div>
             {#each serviceKeys as key, index}
                 <div
-                    class="flex items-start gap-6 md:gap-16 py-8 border-t border-dark-100 last:border-b last:border-dark-100"
+                    class="flex items-start gap-6 md:gap-16 py-8 border-t border-border-input-hover last:border-b last:border-border-input-hover"
                     use:reveal={{ preset: "fade-up", delay: 100 + index * 80 }}
                 >
-                    <p class="text-dark-300 text-xs uppercase tracking-widest shrink-0 pt-1">
+                    <p class="text-muted-foreground text-xs uppercase tracking-widest shrink-0 pt-1">
                         {$t(`manifesto.${key}.number`)}
                     </p>
                     <div class="grid gap-1 flex-1 min-w-0">
                         <h3 class="text-lg font-medium">{$t(`manifesto.${key}.title`)}</h3>
-                        <p class="text-dark-500 text-sm">{$t(`manifesto.${key}.tagline`)}</p>
+                        <p class="text-muted-foreground text-sm">{$t(`manifesto.${key}.tagline`)}</p>
                     </div>
                 </div>
             {/each}
@@ -359,19 +359,19 @@
 
         <!-- Stats -->
         <section use:reveal={{ preset: "fade-up", delay: 100 }}>
-            <p class="text-dark-500 uppercase text-sm tracking-widest mb-8">{$t("home.statsEyebrow")}</p>
+            <p class="text-muted-foreground uppercase text-sm tracking-widest mb-8">{$t("home.statsEyebrow")}</p>
             <div class="grid grid-cols-1 md:grid-cols-3">
                 <div class="py-10 px-6 text-center grid gap-2">
                     <p class="text-6xl md:text-7xl font-bold">30+</p>
-                    <p class="text-dark-400 text-xs uppercase tracking-widest">{$t("home.statsProductions")}</p>
+                    <p class="text-muted-foreground text-xs uppercase tracking-widest">{$t("home.statsProductions")}</p>
                 </div>
-                <div class="py-10 px-6 text-center grid gap-2 border-t border-dark-100 md:border-t-0 md:border-l">
+                <div class="py-10 px-6 text-center grid gap-2 border-t border-border-input-hover md:border-t-0 md:border-l">
                     <p class="text-6xl md:text-7xl font-bold">80+</p>
-                    <p class="text-dark-400 text-xs uppercase tracking-widest">{$t("home.statsArtists")}</p>
+                    <p class="text-muted-foreground text-xs uppercase tracking-widest">{$t("home.statsArtists")}</p>
                 </div>
-                <div class="py-10 px-6 text-center grid gap-2 border-t border-dark-100 md:border-t-0 md:border-l">
+                <div class="py-10 px-6 text-center grid gap-2 border-t border-border-input-hover md:border-t-0 md:border-l">
                     <p class="text-6xl md:text-7xl font-bold">5</p>
-                    <p class="text-dark-400 text-xs uppercase tracking-widest">{$t("home.statsYears")}</p>
+                    <p class="text-muted-foreground text-xs uppercase tracking-widest">{$t("home.statsYears")}</p>
                 </div>
             </div>
         </section>
@@ -380,7 +380,7 @@
         <!-- <section use:reveal={{ preset: "fade-up", delay: 100 }}>
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-12">
                 <div class="grid gap-2">
-                    <p class="text-dark-500 uppercase text-sm tracking-widest">{$t("home.partnersEyebrow")}</p>
+                    <p class="text-muted-foreground uppercase text-sm tracking-widest">{$t("home.partnersEyebrow")}</p>
                     <h2 class="text-2xl md:text-3xl font-serif">{$t("home.partnersTitle")}</h2>
                 </div>
             </div>
@@ -390,8 +390,8 @@
                         class="group relative h-32 flex items-center justify-center px-8 overflow-hidden"
                         use:reveal={{ preset: "fade-up", delay: 80 + index * 40 }}
                     >
-                        <div class="absolute inset-0 bg-dark-900 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                        <p class="relative z-10 text-dark-400 text-xs font-medium uppercase tracking-widest text-center group-hover:text-white transition-colors duration-300">
+                        <div class="absolute inset-0 bg-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        <p class="relative z-10 text-muted-foreground text-xs font-medium uppercase tracking-widest text-center group-hover:text-white transition-colors duration-300">
                             {partner}
                         </p>
                     </div>
@@ -401,27 +401,27 @@
 
         <!-- Newsletter -->
         <section
-            class="border border-dark-100 px-8 py-12 md:px-16 md:py-16"
+            class="border border-border-input-hover px-8 py-12 md:px-16 md:py-16"
             use:reveal={{ preset: "fade-up", delay: 100 }}
         >
             <div class="max-w-lg mx-auto text-center grid gap-6">
                 <div class="grid gap-3">
-                    <p class="text-dark-500 uppercase text-sm tracking-widest">{$t("home.newsletter.eyebrow")}</p>
+                    <p class="text-muted-foreground uppercase text-sm tracking-widest">{$t("home.newsletter.eyebrow")}</p>
                     <h2 class="text-2xl md:text-3xl font-serif">{$t("home.newsletter.title")}</h2>
-                    <p class="text-dark-500">{$t("home.newsletter.subtitle")}</p>
+                    <p class="text-muted-foreground">{$t("home.newsletter.subtitle")}</p>
                 </div>
                 {#if newsletterSubmitted}
-                    <p class="text-dark-900 font-medium">{$t("home.newsletter.success")}</p>
+                    <p class="text-foreground font-medium">{$t("home.newsletter.success")}</p>
                 {:else}
                     <form class="flex" onsubmit={handleNewsletter}>
                         <input
                             type="email"
                             placeholder={$t("home.newsletter.placeholder")}
-                            class="flex-1 border border-dark-200 px-4 py-3 text-sm focus:outline-none focus:border-dark-900 min-w-0"
+                            class="flex-1 border border-border-input px-4 py-3 text-sm focus:outline-none focus:border-foreground min-w-0"
                             bind:value={newsletterEmail}
                             required
                         />
-                        <button type="submit" class="px-6 py-3 bg-dark-900 text-white text-sm hover:bg-dark-700 transition-colors shrink-0">
+                        <button type="submit" class="px-6 py-3 bg-foreground text-white text-sm hover:bg-foreground-alt transition-colors shrink-0">
                             {$t("home.newsletter.button")}
                         </button>
                     </form>
@@ -435,11 +435,11 @@
             use:reveal={{ preset: "fade-up", delay: 100 }}
         >
             <div class="grid gap-6 max-w-2xl mx-auto">
-                <p class="text-dark-500 uppercase text-sm tracking-widest">{$t("home.cta.eyebrow")}</p>
+                <p class="text-muted-foreground uppercase text-sm tracking-widest">{$t("home.cta.eyebrow")}</p>
                 <h2 class="text-3xl md:text-4xl lg:text-5xl font-serif leading-tight">{$t("home.cta.title")}</h2>
                 <a
                     href="/contact"
-                    class="mx-auto inline-flex items-center gap-2 px-8 py-4 bg-dark-900 text-white hover:bg-dark-700 transition-colors rounded-none"
+                    class="mx-auto inline-flex items-center gap-2 px-8 py-4 bg-foreground text-white hover:bg-foreground-alt transition-colors rounded-none"
                 >
                     <p>{$t("home.cta.button")}</p>
                     <ArrowUpRight size={20} />

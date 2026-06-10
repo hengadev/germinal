@@ -71,8 +71,8 @@
     function getFilterButtonClass(isSelected: boolean): string {
         return `px-3 py-1.5 md:px-4 md:py-2 text-sm md:text-base cursor-pointer border rounded-full touch-action-manipulation ${
             isSelected
-                ? "bg-dark-900 text-white border-dark-900"
-                : "text-dark-500 border-dark-300"
+                ? "bg-foreground text-white border-foreground"
+                : "text-muted-foreground border-border-input"
         }`;
     }
 </script>
@@ -83,8 +83,8 @@
 
 {#snippet asidePart(title: string, content: string)}
     <div>
-        <p class="uppercase text-dark-300 text-xxs md:text-xs">{title}</p>
-        <p class="text-dark-800 font-bold text-sm md:text-base">{content}</p>
+        <p class="uppercase text-muted-foreground text-xxs md:text-xs">{title}</p>
+        <p class="text-foreground-alt font-bold text-sm md:text-base">{content}</p>
     </div>
 {/snippet}
 
@@ -101,7 +101,7 @@
 <div class="container mx-auto px-4 py-32 max-w-8xl">
     <div class="mb-8 lg:mb-16 grid gap-4" use:reveal={{ preset: "fade-down" }}>
         <h1 class="text-3xl lg:text-4xl font-serif">{$t("contact.title")}</h1>
-        <p class="text-dark-400 text-base lg:text-lg max-w-160">
+        <p class="text-muted-foreground text-base lg:text-lg max-w-160">
             {$t("contact.description")}
         </p>
     </div>
@@ -123,7 +123,7 @@
                     "contact@germinalstudio.co",
                 )}
                 <div class="grid gap-2">
-                    <p class="uppercase text-dark-300 text-xxs md:text-xs">
+                    <p class="uppercase text-muted-foreground text-xxs md:text-xs">
                         {$t("contact.sidebar.followUs")}
                     </p>
                     <div class="flex items-center gap-3 md:gap-4">
@@ -131,7 +131,7 @@
                             <a
                                 href={link.href}
                                 target="_blank"
-                                class="rounded-full p-1.5 md:p-2 border border-dark-100"
+                                class="rounded-full p-1.5 md:p-2 border border-border-input-hover"
                                 rel="noopener noreferrer"
                             >
                                 <link.Icon class="w-3.5 h-3.5 md:w-4 md:h-4" />
@@ -226,7 +226,7 @@
                     <div class="grid gap-2">
                         <label
                             for="name"
-                            class="block text-xs md:text-sm font-medium text-dark-700 mb-2"
+                            class="block text-xs md:text-sm font-medium text-foreground-alt mb-2"
                         >
                             {$t("contact.form.name")}
                             <span class="text-red-500">*</span>
@@ -237,7 +237,7 @@
                             name="name"
                             required
                             value={getFormDataValue("name")}
-                            class="w-full px-3 md:px-4 py-2 text-base md:text-sm border-b border-b-dark-100 focus:outline-none focus:ring-0 focus:shadow-none focus:border-b-dark-200/80 {hasFieldError(
+                            class="w-full px-3 md:px-4 py-2 text-base md:text-sm border-b border-b-border-input-hover focus:outline-none focus:ring-0 focus:shadow-none focus:border-b-border {hasFieldError(
                                 'name',
                             )
                                 ? 'border-b-red-500'
@@ -253,7 +253,7 @@
                     <div class="grid gap-2">
                         <label
                             for="email"
-                            class="block text-xs md:text-sm font-medium text-dark-700 mb-2"
+                            class="block text-xs md:text-sm font-medium text-foreground-alt mb-2"
                         >
                             {$t("contact.form.email")}
                             <span class="text-red-500">*</span>
@@ -264,7 +264,7 @@
                             name="email"
                             required
                             value={getFormDataValue("email")}
-                            class="w-full px-3 md:px-4 py-2 text-base md:text-sm border-b border-b-dark-100 focus:outline-none focus:ring-0 focus:shadow-none focus:border-b-dark-200/80 {hasFieldError(
+                            class="w-full px-3 md:px-4 py-2 text-base md:text-sm border-b border-b-border-input-hover focus:outline-none focus:ring-0 focus:shadow-none focus:border-b-border {hasFieldError(
                                 'email',
                             )
                                 ? 'border-b-red-500'
@@ -281,7 +281,7 @@
                 <div use:reveal={{ preset: "fade-up", delay: 250 }}>
                     <label
                         for="company"
-                        class="block text-xs md:text-sm font-medium text-dark-700 mb-2"
+                        class="block text-xs md:text-sm font-medium text-foreground-alt mb-2"
                     >
                         {$t("contact.form.company")}
                     </label>
@@ -290,7 +290,7 @@
                         id="company"
                         name="company"
                         value={getFormDataValue("company")}
-                        class="w-full px-3 md:px-4 py-2 text-base md:text-sm border-b border-b-dark-100 focus:outline-none focus:ring-0 focus:shadow-none focus:border-b-dark-200/80 {hasFieldError(
+                        class="w-full px-3 md:px-4 py-2 text-base md:text-sm border-b border-b-border-input-hover focus:outline-none focus:ring-0 focus:shadow-none focus:border-b-border {hasFieldError(
                             'company',
                         )
                             ? 'border-b-red-500'
@@ -306,7 +306,7 @@
                 <div use:reveal={{ preset: "fade-up", delay: 300 }}>
                     <label
                         for="message"
-                        class="block text-xs md:text-sm font-medium text-dark-700 mb-2"
+                        class="block text-xs md:text-sm font-medium text-foreground-alt mb-2"
                     >
                         {$t("contact.form.message")}
                         <span class="text-red-500">*</span>
@@ -317,7 +317,7 @@
                         rows="5"
                         required
                         value={getFormDataValue("message")}
-                        class="w-full px-3 md:px-4 py-2 text-base md:text-sm border-b border-b-dark-100 focus:outline-none focus:ring-0 focus:shadow-none focus:border-b-dark-200/80 {hasFieldError(
+                        class="w-full px-3 md:px-4 py-2 text-base md:text-sm border-b border-b-border-input-hover focus:outline-none focus:ring-0 focus:shadow-none focus:border-b-border {hasFieldError(
                             'message',
                         )
                             ? 'border-b-red-500'
@@ -334,7 +334,7 @@
                     <button
                         type="submit"
                         disabled={isSubmitting}
-                        class="flex gap-3 md:gap-4 items-center justify-center bg-dark-900 text-white py-3 md:py-4 px-6 md:px-8 rounded-none hover:bg-dark-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed w-full md:w-auto"
+                        class="flex gap-3 md:gap-4 items-center justify-center bg-foreground text-white py-3 md:py-4 px-6 md:px-8 rounded-none hover:bg-foreground-alt transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed w-full md:w-auto"
                     >
                         <p class="text-sm md:text-base">
                             {isSubmitting

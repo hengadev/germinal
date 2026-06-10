@@ -32,7 +32,7 @@ import type {Component} from "svelte"
 </svelte:head>
 
 {#snippet socialLinksIcon(href: string, Icon: Component)}
-    <div class="text-dark-400 hover:text-dark-700 rounded-full border border-dark-300 hover:border-dark-700 p-2">
+    <div class="text-muted-foreground hover:text-foreground-alt rounded-full border border-border-input hover:border-foreground-alt p-2">
         <a
             href={href}
             target="_blank"
@@ -56,9 +56,9 @@ import type {Component} from "svelte"
                 </div>
             {:else}
                 <div
-                    class="w-full md:w-96 aspect-3/4 flex-shrink-0 bg-dark-200 rounded-lg flex items-center justify-center"
+                    class="w-full md:w-96 aspect-3/4 flex-shrink-0 bg-muted rounded-lg flex items-center justify-center"
                 >
-                    <span class="text-dark-400 text-6xl">👤</span>
+                    <span class="text-muted-foreground text-6xl">👤</span>
                 </div>
             {/if}
             {#if Object.keys(socialLinks).length > 0}
@@ -82,12 +82,12 @@ import type {Component} from "svelte"
                         {data.talent.firstName}
                         {data.talent.lastName}
                     </h1>
-                    <p class="text-xl text-dark-500 mb-4">{getTalentField('role')}</p>
+                    <p class="text-xl text-muted-foreground mb-4">{getTalentField('role')}</p>
                 </div>
                 {#if data.talent.city || data.talent.country}
                     <div>
-                        <p class="text-dark-300">{$t('talents.basedIn')}</p>
-                        <p class="text-dark-800">
+                        <p class="text-muted-foreground">{$t('talents.basedIn')}</p>
+                        <p class="text-foreground-alt">
                             {#if data.talent.city && data.talent.country}
                                 {data.talent.city}, {data.talent.country}
                             {:else if data.talent.city}
@@ -99,21 +99,21 @@ import type {Component} from "svelte"
                     </div>
                 {/if}
             </div>
-            <div class="my-8 border border-dark-50/60 w-full"></div>
+            <div class="my-8 border border-border-input/60 w-full"></div>
             <div class="grid gap-6">
                 {#if getTalentField('quote')}
-                    <p class="text-lg text-dark-900 leading-relaxed font-medium">"{getTalentField('quote')}"</p>
+                    <p class="text-lg text-foreground leading-relaxed font-medium">"{getTalentField('quote')}"</p>
                 {/if}
-                <p class="font-normal text-dark-500 leading-relaxed">
+                <p class="font-normal text-muted-foreground leading-relaxed">
                     {getTalentField('bio')}
                 </p>
                 {#if data.talent.category || specializations().length > 0}
-                    <div class="my-8 border border-dark-50/60 w-full"></div>
+                    <div class="my-8 border border-border-input/60 w-full"></div>
                     <div class="grid gap-4">
                         {#if data.talent.category}
                             <div class="flex flex-wrap items-center gap-2">
-                                <span class="text-dark-400 uppercase text-sm">{$t('talents.category')}:</span>
-                                <span class="text-dark-900 text-sm font-medium">
+                                <span class="text-muted-foreground uppercase text-sm">{$t('talents.category')}:</span>
+                                <span class="text-foreground text-sm font-medium">
                                     {$locale === 'en' ? data.talent.category.displayNameEn : data.talent.category.displayNameFr}
                                 </span>
                             </div>
@@ -121,7 +121,7 @@ import type {Component} from "svelte"
                         {#if specializations().length > 0}
                             <div class="flex flex-wrap gap-2">
                                 {#each specializations() as spec}
-                                    <span class="px-3 py-1 bg-dark-100 text-dark-800 rounded-full text-sm">
+                                    <span class="px-3 py-1 bg-surface-hover text-foreground-alt rounded-full text-sm">
                                         {spec}
                                     </span>
                                 {/each}

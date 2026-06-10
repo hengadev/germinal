@@ -49,13 +49,13 @@
     function getFilterButtonClass(isSelected: boolean): string {
         const base = "px-4 py-2 rounded-full text-sm font-medium transition-colors";
         if (isSelected) {
-            return `${base} bg-dark-900 text-white`;
+            return `${base} bg-foreground text-white`;
         }
-        return `${base} bg-transparent text-dark-600 border border-dark-600 hover:border-dark-900 cursor-pointer`;
+        return `${base} bg-transparent text-muted-foreground border border-foreground-alt hover:border-foreground cursor-pointer`;
     }
 
     function getViewModeButtonClass(isActive: boolean): string {
-        return `cursor-pointer p-1 ${isActive ? 'text-dark-900' : 'text-dark-300'}`;
+        return `cursor-pointer p-1 ${isActive ? 'text-foreground' : 'text-muted-foreground'}`;
     }
 
     async function loadMoreEvents() {
@@ -93,7 +93,7 @@
 <div class="container mx-auto px-4 py-32">
     <div class="mb-16 grid gap-4" use:reveal={{ preset: "fade-down" }}>
         <h1 class="text-4xl font-serif">{$t("events.title")}</h1>
-        <p class="text-dark-400 max-w-2xl">
+        <p class="text-muted-foreground max-w-2xl">
             {$t("events.description")}
         </p>
     </div>
@@ -164,7 +164,7 @@
     {/if}
 
     {#if filteredEvents.length === 0}
-        <p class="text-dark-400">
+        <p class="text-muted-foreground">
             {selectedCategoryId
                 ? $t("events.noEventsInCategory")
                 : $t("events.noEvents")}
@@ -193,7 +193,7 @@
                         preset: "fade-up",
                         delay: Math.min(index * 60, 300),
                     }}
-                    class="flex flex-col sm:flex-row gap-6 bg-white p-4 hover:shadow-md transition-shadow group"
+                    class="flex flex-col sm:flex-row gap-6 bg-white p-4 hover:shadow-popover transition-shadow group"
                 >
                     {#if event.coverMedia}
                         <div
@@ -215,9 +215,9 @@
                         </div>
                     {:else}
                         <div
-                            class="sm:w-64 sm:flex-shrink-0 aspect-4/3 bg-dark-100 flex items-center justify-center rounded"
+                            class="sm:w-64 sm:flex-shrink-0 aspect-4/3 bg-surface-hover flex items-center justify-center rounded"
                         >
-                            <span class="text-dark-300 text-4xl"></span>
+                            <span class="text-muted-foreground text-4xl"></span>
                         </div>
                     {/if}
                     <div class="flex flex-col justify-between flex-1">
@@ -225,10 +225,10 @@
                             <h3 class="text-xl font-medium mb-2">
                                 {event.titleEn}
                             </h3>
-                            <p class="text-dark-500 text-sm line-clamp-2 mb-4">
+                            <p class="text-muted-foreground text-sm line-clamp-2 mb-4">
                                 {event.location}
                             </p>
-                            <p class="text-dark-400 text-sm line-clamp-3">
+                            <p class="text-muted-foreground text-sm line-clamp-3">
                                 {event.descriptionEn}
                             </p>
                         </div>
@@ -236,7 +236,7 @@
                             class="w-full border border-border-card/20 mt-4"
                         ></div>
                         <div class="mt-4 flex items-center gap-4">
-                            <span class="text-sm text-dark-600"
+                            <span class="text-sm text-muted-foreground"
                                 >{$t('events.viewDetails')}</span
                             >
                             <ArrowRight size={16} />
@@ -258,7 +258,7 @@
             <button
                 onclick={loadMoreEvents}
                 disabled={isLoading}
-                class="flex items-center gap-3 text-dark-600 px-6 py-3 rounded-none border border-border-dark disabled:opacity-50"
+                class="flex items-center gap-3 text-muted-foreground px-6 py-3 rounded-none border border-border-input disabled:opacity-50"
             >
                 {#if isLoading}
                     <Loader2 size={16} class="animate-spin" />

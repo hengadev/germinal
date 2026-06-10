@@ -40,13 +40,13 @@
     function getFilterButtonClass(isSelected: boolean): string {
         const base = "px-4 py-2 rounded-full text-sm font-medium transition-colors";
         if (isSelected) {
-            return `${base} bg-dark-900 text-white`;
+            return `${base} bg-foreground text-white`;
         }
-        return `${base} bg-transparent text-dark-600 border border-dark-600 hover:border-dark-900 cursor-pointer`;
+        return `${base} bg-transparent text-muted-foreground border border-foreground-alt hover:border-foreground cursor-pointer`;
     }
 
     function getViewModeButtonClass(isActive: boolean): string {
-        return `cursor-pointer p-1 ${isActive ? 'text-dark-900' : 'text-dark-300'}`;
+        return `cursor-pointer p-1 ${isActive ? 'text-foreground' : 'text-muted-foreground'}`;
     }
 
     async function loadMoreTalents() {
@@ -81,7 +81,7 @@
 <div class="container mx-auto px-4 py-32">
     <div class="mb-16 grid gap-4" use:reveal={{ preset: 'fade-down' }}>
         <h1 class="text-4xl font-serif">{$t('talents.title')}</h1>
-        <p class="text-dark-400 max-w-2xl">
+        <p class="text-muted-foreground max-w-2xl">
             {$t('talents.description')}
         </p>
     </div>
@@ -153,7 +153,7 @@
     {/if}
 
     {#if filteredTalents.length === 0}
-        <p class="text-dark-400">
+        <p class="text-muted-foreground">
             {selectedCategoryId ? $t('talents.noTalentsInCategory') : $t('talents.noTalents')}
         </p>
     {:else if viewMode === VIEW_MODE.GRID}
@@ -180,7 +180,7 @@
                         preset: "fade-up",
                         delay: Math.min(index * 60, 300),
                     }}
-                    class="flex flex-col sm:flex-row gap-6 bg-white p-4 hover:shadow-md transition-shadow group"
+                    class="flex flex-col sm:flex-row gap-6 bg-white p-4 hover:shadow-popover transition-shadow group"
                 >
                     {#if talent.profileMedia}
                         <div
@@ -194,9 +194,9 @@
                         </div>
                     {:else}
                         <div
-                            class="sm:w-48 sm:flex-shrink-0 aspect-[3/4] bg-dark-100 flex items-center justify-center rounded"
+                            class="sm:w-48 sm:flex-shrink-0 aspect-[3/4] bg-surface-hover flex items-center justify-center rounded"
                         >
-                            <span class="text-dark-300 text-4xl"></span>
+                            <span class="text-muted-foreground text-4xl"></span>
                         </div>
                     {/if}
                     <div class="flex flex-col justify-between flex-1">
@@ -204,13 +204,13 @@
                             <h3 class="text-xl font-medium mb-2">
                                 {talent.firstName} {talent.lastName}
                             </h3>
-                            <p class="text-dark-500 text-sm line-clamp-2 mb-4">
+                            <p class="text-muted-foreground text-sm line-clamp-2 mb-4">
                                 {talent.roleEn}
                             </p>
-                            <p class="text-dark-400 text-sm line-clamp-3">
+                            <p class="text-muted-foreground text-sm line-clamp-3">
                                 {talent.bioEn}
                             </p>
-                            <p class="text-dark-600 text-sm mt-2">
+                            <p class="text-muted-foreground text-sm mt-2">
                                 {talent.city}, {talent.country}
                             </p>
                         </div>
@@ -218,7 +218,7 @@
                             class="w-full border border-border-card/20 mt-4"
                         ></div>
                         <div class="mt-4 flex items-center gap-4">
-                            <span class="text-sm text-dark-600"
+                            <span class="text-sm text-muted-foreground"
                                 >{$t('talents.viewDetails')}</span
                             >
                             <ArrowRight size={16} />
@@ -240,7 +240,7 @@
             <button
                 onclick={loadMoreTalents}
                 disabled={isLoading}
-                class="flex items-center gap-3 text-dark-600 px-6 py-3 rounded-none border border-border-dark disabled:opacity-50"
+                class="flex items-center gap-3 text-muted-foreground px-6 py-3 rounded-none border border-border-input disabled:opacity-50"
             >
                 {#if isLoading}
                     <Loader2 size={16} class="animate-spin" />

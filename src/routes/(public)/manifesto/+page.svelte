@@ -13,7 +13,7 @@
 
     <!-- Header -->
     <div class="mb-24 lg:mb-40" use:reveal={{ preset: "fade-down" }}>
-        <p class="uppercase text-dark-300 text-xxs tracking-widest mb-6">
+        <p class="uppercase text-muted-foreground text-xxs tracking-widest mb-6">
             {$t("manifesto.eyebrow")}
         </p>
         <h1 class="text-4xl lg:text-7xl font-serif max-w-3xl leading-tight">
@@ -24,11 +24,11 @@
     <!-- Intro -->
     <div class="grid lg:grid-cols-[1fr_2fr] gap-12 mb-32 lg:mb-56" use:reveal={{ preset: "fade-up" }}>
         <div>
-            <p class="uppercase text-dark-300 text-xxs tracking-widest">
+            <p class="uppercase text-muted-foreground text-xxs tracking-widest">
                 {$t("manifesto.introLabel")}
             </p>
         </div>
-        <p class="text-dark-700 text-xl lg:text-2xl leading-relaxed">
+        <p class="text-foreground-alt text-xl lg:text-2xl leading-relaxed">
             {$t("manifesto.intro")}
         </p>
     </div>
@@ -36,7 +36,7 @@
     <!-- Service 01: Art Direction -->
     <section class="mb-32 lg:mb-56">
         <div use:reveal={{ preset: "fade-up" }}>
-            <p class="uppercase text-dark-300 text-xxs tracking-widest mb-6">
+            <p class="uppercase text-muted-foreground text-xxs tracking-widest mb-6">
                 {$t("manifesto.artDirection.number")}
             </p>
             <img
@@ -51,19 +51,19 @@
                 <h2 class="text-3xl lg:text-5xl font-serif mb-3">
                     {$t("manifesto.artDirection.title")}
                 </h2>
-                <p class="text-dark-400 text-lg lg:text-xl mb-10">
+                <p class="text-muted-foreground text-lg lg:text-xl mb-10">
                     {$t("manifesto.artDirection.tagline")}
                 </p>
-                <p class="text-dark-700 text-base lg:text-lg leading-relaxed max-w-prose">
+                <p class="text-foreground-alt text-base lg:text-lg leading-relaxed max-w-prose">
                     {$t("manifesto.artDirection.body")}
                 </p>
             </div>
             <div use:reveal={{ preset: "fade-up", delay: 150 }}>
                 <ul class="flex flex-col gap-0">
                     {#each servicePoints as i}
-                        <li class="flex items-start gap-5 border-t border-dark-100 py-5">
-                            <span class="text-dark-300 mt-0.5 shrink-0">—</span>
-                            <span class="text-dark-700 text-sm lg:text-base">
+                        <li class="flex items-start gap-5 border-t border-border-input-hover py-5">
+                            <span class="text-muted-foreground mt-0.5 shrink-0">—</span>
+                            <span class="text-foreground-alt text-sm lg:text-base">
                                 {$t(`manifesto.artDirection.point${i}`)}
                             </span>
                         </li>
@@ -76,7 +76,7 @@
     <!-- Service 02: Scenography -->
     <section class="mb-32 lg:mb-56">
         <div use:reveal={{ preset: "fade-up" }}>
-            <p class="uppercase text-dark-300 text-xxs tracking-widest mb-6">
+            <p class="uppercase text-muted-foreground text-xxs tracking-widest mb-6">
                 {$t("manifesto.scenography.number")}
             </p>
             <img
@@ -91,19 +91,19 @@
                 <h2 class="text-3xl lg:text-5xl font-serif mb-3">
                     {$t("manifesto.scenography.title")}
                 </h2>
-                <p class="text-dark-400 text-lg lg:text-xl mb-10">
+                <p class="text-muted-foreground text-lg lg:text-xl mb-10">
                     {$t("manifesto.scenography.tagline")}
                 </p>
-                <p class="text-dark-700 text-base lg:text-lg leading-relaxed max-w-prose">
+                <p class="text-foreground-alt text-base lg:text-lg leading-relaxed max-w-prose">
                     {$t("manifesto.scenography.body")}
                 </p>
             </div>
             <div use:reveal={{ preset: "fade-up", delay: 150 }}>
                 <ul class="flex flex-col gap-0">
                     {#each servicePoints as i}
-                        <li class="flex items-start gap-5 border-t border-dark-100 py-5">
-                            <span class="text-dark-300 mt-0.5 shrink-0">—</span>
-                            <span class="text-dark-700 text-sm lg:text-base">
+                        <li class="flex items-start gap-5 border-t border-border-input-hover py-5">
+                            <span class="text-muted-foreground mt-0.5 shrink-0">—</span>
+                            <span class="text-foreground-alt text-sm lg:text-base">
                                 {$t(`manifesto.scenography.point${i}`)}
                             </span>
                         </li>
@@ -116,7 +116,7 @@
     <!-- Service 03: Creative Production -->
     <section class="mb-32 lg:mb-56">
         <div use:reveal={{ preset: "fade-up" }}>
-            <p class="uppercase text-dark-300 text-xxs tracking-widest mb-6">
+            <p class="uppercase text-muted-foreground text-xxs tracking-widest mb-6">
                 {$t("manifesto.production.number")}
             </p>
             <img
@@ -131,19 +131,19 @@
                 <h2 class="text-3xl lg:text-5xl font-serif mb-3">
                     {$t("manifesto.production.title")}
                 </h2>
-                <p class="text-dark-400 text-lg lg:text-xl mb-10">
+                <p class="text-muted-foreground text-lg lg:text-xl mb-10">
                     {$t("manifesto.production.tagline")}
                 </p>
-                <p class="text-dark-700 text-base lg:text-lg leading-relaxed max-w-prose">
+                <p class="text-foreground-alt text-base lg:text-lg leading-relaxed max-w-prose">
                     {$t("manifesto.production.body")}
                 </p>
             </div>
             <div use:reveal={{ preset: "fade-up", delay: 150 }}>
                 <ul class="flex flex-col gap-0">
                     {#each servicePoints as i}
-                        <li class="flex items-start gap-5 border-t border-dark-100 py-5">
-                            <span class="text-dark-300 mt-0.5 shrink-0">—</span>
-                            <span class="text-dark-700 text-sm lg:text-base">
+                        <li class="flex items-start gap-5 border-t border-border-input-hover py-5">
+                            <span class="text-muted-foreground mt-0.5 shrink-0">—</span>
+                            <span class="text-foreground-alt text-sm lg:text-base">
                                 {$t(`manifesto.production.point${i}`)}
                             </span>
                         </li>
@@ -154,14 +154,14 @@
     </section>
 
     <!-- Approach / closing -->
-    <section class="border-t border-dark-100 pt-16 lg:pt-24" use:reveal={{ preset: "fade-up" }}>
+    <section class="border-t border-border-input-hover pt-16 lg:pt-24" use:reveal={{ preset: "fade-up" }}>
         <div class="grid lg:grid-cols-[1fr_2fr] gap-12 lg:gap-24">
             <div>
                 <h2 class="text-2xl lg:text-3xl font-serif">
                     {$t("manifesto.approach.title")}
                 </h2>
             </div>
-            <p class="text-dark-700 text-base lg:text-lg leading-relaxed max-w-prose">
+            <p class="text-foreground-alt text-base lg:text-lg leading-relaxed max-w-prose">
                 {$t("manifesto.approach.body")}
             </p>
         </div>

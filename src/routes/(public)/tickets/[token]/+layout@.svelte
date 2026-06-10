@@ -13,7 +13,7 @@
 
 {#if showSuccess}
 	<!-- Minimal layout for success page - no nav/footer -->
-	<div class="min-h-screen flex flex-col bg-dark-50/30">
+	<div class="min-h-screen flex flex-col bg-surface/30">
 		<main class="flex-1">
 			{@render children()}
 		</main>
@@ -27,7 +27,7 @@
 			{@render children()}
 		</main>
 
-		<footer class="bg-dark-900 text-white/80 py-6 mt-12">
+		<footer class="bg-foreground text-white/80 py-6 mt-12">
 			<div class="container mx-auto px-4 flex items-center justify-between text-xs sm:text-sm">
 				<p>
 					&copy; {new Date().getFullYear()} Germinal. {$t('footer.allRightsReserved')}
