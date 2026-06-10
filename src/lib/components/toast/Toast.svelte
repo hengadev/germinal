@@ -22,18 +22,18 @@
 </script>
 
 <div
-	class="flex items-start gap-3 border-2 {config.borderColor} {config.bgColor} rounded-lg p-4 shadow-lg min-w-[320px] max-w-[420px]"
+	class="flex items-start gap-3 border-2 {config.borderColor} {config.bgColor} rounded-lg p-4 shadow-popover min-w-[320px] max-w-[420px]"
 	transition:fly={{ y: 10, duration: 400, easing: quintOut }}
 >
 	<Icon size={24} class="{config.color} flex-shrink-0 mt-0.5" />
 	<div class="flex-1 min-w-0">
-		<p class="font-semibold text-sm text-dark-900 dark:text-dark-100">{toast.title}</p>
-		<p class="text-sm text-dark-700 dark:text-dark-300">{toast.message}</p>
+		<p class="font-semibold text-sm text-foreground">{toast.title}</p>
+		<p class="text-sm text-foreground-alt">{toast.message}</p>
 	</div>
 	<button
 		type="button"
 		onclick={() => toastState.remove(toast.id)}
-		class="flex-shrink-0 text-dark-400 hover:text-dark-600 dark:text-dark-500 dark:hover:text-dark-300 transition-colors p-1 rounded hover:bg-black/5 dark:hover:bg-white/10"
+		class="flex-shrink-0 text-muted-foreground hover:text-muted-foreground transition-colors p-1 rounded hover:bg-black/5 dark:hover:bg-white/10"
 		aria-label="Close"
 	>
 		<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

@@ -134,17 +134,17 @@
 		>
 			<div class="grid gap-6 lg:gap-8">
 				<div use:reveal={{ preset: 'fade-up', delay: 100 }}>
-					<p class="text-base lg:text-lg text-dark-500 leading-relaxed">
+					<p class="text-base lg:text-lg text-muted-foreground leading-relaxed">
 						{getEventField('description')}
 					</p>
 				</div>
 				{#if collaborators.length > 0}
 					<div
-						class="bg-dark-50/60 p-4 lg:p-8 grid gap-3 lg:gap-4"
+						class="bg-surface/60 p-4 lg:p-8 grid gap-3 lg:gap-4"
 						use:reveal={{ preset: 'fade-up', delay: 150 }}
 					>
 						<p
-							class="text-xs text-dark-300 font-semibold leading-relaxed uppercase"
+							class="text-xs text-muted-foreground font-semibold leading-relaxed uppercase"
 						>
 							{$t('events.inCollaborationWith')}
 						</p>
@@ -152,13 +152,13 @@
 							{#each collaborators as collab}
 								<div class="flex gap-2 items-center">
 									<div
-										class="rounded-full bg-dark-400 w-10 h-10 lg:w-12 lg:h-12"
+										class="rounded-full bg-muted-foreground w-10 h-10 lg:w-12 lg:h-12"
 									></div>
 									<div>
-										<p class="text-dark-900 font-bold text-sm lg:text-base">
+										<p class="text-foreground font-bold text-sm lg:text-base">
 											{collab.name}
 										</p>
-										<p class="text-dark-500 text-xs lg:text-sm">
+										<p class="text-muted-foreground text-xs lg:text-sm">
 											{collab.role}
 										</p>
 									</div>
@@ -174,7 +174,7 @@
 			>
 				<div class="grid gap-3 lg:gap-4">
 					{@render asideTitle($t('events.location'), MapPin)}
-					<div class="text-dark-500 text-sm lg:text-base">
+					<div class="text-muted-foreground text-sm lg:text-base">
 						{#if getEventField('venueName')}
 							<p>{getEventField('venueName')}</p>
 						{/if}
@@ -197,7 +197,7 @@
 				</div>
 				<div class="grid gap-3 lg:gap-4">
 					{@render asideTitle($t('events.timings'), Clock)}
-					<div class="text-dark-500 text-sm lg:text-base">
+					<div class="text-muted-foreground text-sm lg:text-base">
 						{#if timings.length > 0}
 							{#each timings as timing}
 								<p>{timing.label}: {timing.time}</p>
@@ -228,16 +228,16 @@
 {#snippet asideTitle(title: string, AsideIcon: typeof Icon)}
 	<div class="flex items-center gap-2">
 		<AsideIcon size={14} class="lg:size-[16px]" />
-		<p class="capitalize text-dark-900 text-sm lg:text-base">{title}</p>
+		<p class="capitalize text-foreground text-sm lg:text-base">{title}</p>
 	</div>
 {/snippet}
 
 {#snippet asideLastPart(title: string, value: string)}
 	<div class="grid gap-2">
 		<div class="flex items-center justify-between gap-4">
-			<p class="text-dark-500 capitalize text-sm lg:text-base">{title}</p>
-			<p class="text-dark-700 text-sm lg:text-base text-right">{value}</p>
+			<p class="text-muted-foreground capitalize text-sm lg:text-base">{title}</p>
+			<p class="text-foreground-alt text-sm lg:text-base text-right">{value}</p>
 		</div>
-		<div class="border border-dark-50 w-full"></div>
+		<div class="border border-border-input w-full"></div>
 	</div>
 {/snippet}

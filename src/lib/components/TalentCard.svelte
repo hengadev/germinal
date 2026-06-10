@@ -21,9 +21,9 @@
             />
         {:else}
             <div
-                class="w-full h-full bg-dark-100 flex items-center justify-center"
+                class="w-full h-full bg-surface-hover flex items-center justify-center"
             >
-                <span class="text-dark-300 text-6xl"></span>
+                <span class="text-muted-foreground text-6xl"></span>
             </div>
         {/if}
     </div>
@@ -33,7 +33,7 @@
             {talent.firstName}
             {talent.lastName?.[0]}.
         </h3>
-        <p class="text-dark-400 font-normal text-xs uppercase">
+        <p class="text-muted-foreground font-normal text-xs uppercase">
             {talent.roleEn}
         </p>
     </div>

@@ -23,7 +23,7 @@
 <button
     onclick={switchLanguage}
     class="flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors {scrolled
-        ? 'border-dark-200 hover:border-dark-400 text-dark-700 hover:text-dark-900'
+        ? 'border-border-input hover:border-border-input-hover text-foreground-alt hover:text-foreground'
         : 'border-white/30 text-white/80 hover:text-white hover:border-white'}"
     title="Switch language / Changer de langue"
 >

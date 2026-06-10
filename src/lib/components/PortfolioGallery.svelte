@@ -35,7 +35,7 @@
             onmouseleave={() => hoveredIndex = null}
         >
             {#if !loadedImages.has(index)}
-                <div class="absolute inset-0 bg-dark-100 animate-pulse"></div>
+                <div class="absolute inset-0 bg-surface-hover animate-pulse"></div>
             {/if}
 
             {#if event.coverMedia}
@@ -47,7 +47,7 @@
                     onload={() => handleImageLoad(index)}
                 />
             {:else}
-                <div class="absolute inset-0 bg-dark-100"></div>
+                <div class="absolute inset-0 bg-surface-hover"></div>
             {/if}
 
             <div class="absolute inset-0 bg-black/20"></div>

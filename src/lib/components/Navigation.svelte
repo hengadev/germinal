@@ -90,14 +90,14 @@
     >
         <Menu
             size={24}
-            class={showScrolledState ? "text-dark-900" : "text-white"}
+            class={showScrolledState ? "text-foreground" : "text-white"}
         />
     </button>
 
     <a
         href="/"
         class="text-xl font-medium font-serif uppercase {showScrolledState
-            ? `text-dark-900`
+            ? `text-foreground`
             : `text-white`} xl:justify-start"
     >
         Germinal
@@ -110,12 +110,12 @@
                     <a
                         href={item.href}
                         class="font-medium transition-colors {showScrolledState
-                            ? `text-dark-500 hover:text-dark-900`
+                            ? `text-muted-foreground hover:text-foreground`
                             : `text-white/80 hover:text-white`} {isActive(
                             item.href,
                         )
                             ? showScrolledState
-                                ? `text-dark-900`
+                                ? `text-foreground`
                                 : `text-white`
                             : ``} {isActive(item.href) ? `font-bold` : ``}"
                     >
@@ -133,7 +133,7 @@
             <!--     <a -->
             <!--         href="/upcoming" -->
             <!--         class="text-sm px-4 py-2 border rounded-md transition-colors {showScrolledState -->
-            <!--             ? `border-dark-300 text-dark-600 hover:text-dark-900 hover:border-dark-600` -->
+            <!--             ? `border-border-input-hover text-muted-foreground hover:text-foreground hover:border-border-input-hover` -->
             <!--             : `border-white/30 text-white/80 hover:text-white hover:border-white`}" -->
             <!--     > -->
             <!--         Reserve ta place -->
@@ -164,8 +164,8 @@
                             class="block py-3 px-6 rounded-lg min-h-[44px] transition-colors {isActive(
                                 item.href,
                             )
-                                ? 'bg-dark-100 text-dark-900 font-semibold'
-                                : 'text-dark-500 hover:bg-dark-50 hover:text-dark-900'}"
+                                ? 'bg-surface-hover text-foreground font-semibold'
+                                : 'text-muted-foreground hover:bg-surface hover:text-foreground'}"
                         >
                             {item.label}
                         </a>
@@ -174,7 +174,7 @@
             </ul>
         </nav>
 
-        <div class="h-px bg-dark-200 my-6"></div>
+        <div class="h-px bg-muted my-6"></div>
 
         <div class="flex flex-col gap-3">
             <LanguageSwitcher scrolled={true} />

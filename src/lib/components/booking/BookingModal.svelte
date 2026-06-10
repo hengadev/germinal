@@ -139,10 +139,10 @@
 {#snippet formContent()}
 	<form onsubmit={(e) => { e.preventDefault(); handleSubmit(); }} class="grid gap-6">
 		<!-- Session Info -->
-		<div class="bg-dark-50 rounded-lg p-4">
-			<div class="text-sm text-dark-600 mb-1">{eventTitle}</div>
-			<div class="font-semibold text-dark-900">{getSessionTitle(session)}</div>
-			<div class="text-sm text-dark-500 mt-1">
+		<div class="bg-surface rounded-lg p-4">
+			<div class="text-sm text-muted-foreground mb-1">{eventTitle}</div>
+			<div class="font-semibold text-foreground">{getSessionTitle(session)}</div>
+			<div class="text-sm text-muted-foreground mt-1">
 				{new Date(session.startTime).toLocaleString($locale ?? undefined, {
 					weekday: 'short',
 					month: 'short',
@@ -166,11 +166,11 @@
 
 		<!-- Name Field -->
 		<div>
-			<label for="name" class="block text-sm font-medium text-dark-700 mb-2">
+			<label for="name" class="block text-sm font-medium text-foreground-alt mb-2">
 				{$t('booking.fullName')} <span class="text-red-500">*</span>
 			</label>
 			<div class="relative">
-				<User size={18} class="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400" />
+				<User size={18} class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
 				<input
 					id="name"
 					type="text"
@@ -178,18 +178,18 @@
 					required
 					placeholder="Jean Dupont"
 					disabled={isSubmitting}
-					class="w-full pl-10 pr-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm disabled:bg-dark-50 disabled:cursor-not-allowed"
+					class="w-full pl-10 pr-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm disabled:bg-surface disabled:cursor-not-allowed"
 				/>
 			</div>
 		</div>
 
 		<!-- Email Field -->
 		<div>
-			<label for="email" class="block text-sm font-medium text-dark-700 mb-2">
+			<label for="email" class="block text-sm font-medium text-foreground-alt mb-2">
 				{$t('booking.email')} <span class="text-red-500">*</span>
 			</label>
 			<div class="relative">
-				<Mail size={18} class="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400" />
+				<Mail size={18} class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
 				<input
 					id="email"
 					type="email"
@@ -197,33 +197,33 @@
 					required
 					placeholder="jean@exemple.com"
 					disabled={isSubmitting}
-					class="w-full pl-10 pr-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm disabled:bg-dark-50 disabled:cursor-not-allowed"
+					class="w-full pl-10 pr-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm disabled:bg-surface disabled:cursor-not-allowed"
 				/>
 			</div>
-			<p class="text-xs text-dark-500 mt-1">{$t('booking.emailHint')}</p>
+			<p class="text-xs text-muted-foreground mt-1">{$t('booking.emailHint')}</p>
 		</div>
 
 		<!-- Phone Field (Optional) -->
 		<div>
-			<label for="phone" class="block text-sm font-medium text-dark-700 mb-2">
-				{$t('booking.phone')} <span class="text-dark-400 text-xs">{$t('booking.optional')}</span>
+			<label for="phone" class="block text-sm font-medium text-foreground-alt mb-2">
+				{$t('booking.phone')} <span class="text-muted-foreground text-xs">{$t('booking.optional')}</span>
 			</label>
 			<div class="relative">
-				<Phone size={18} class="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400" />
+				<Phone size={18} class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
 				<input
 					id="phone"
 					type="tel"
 					bind:value={phone}
 					placeholder="+33 6 12 34 56 78"
 					disabled={isSubmitting}
-					class="w-full pl-10 pr-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm disabled:bg-dark-50 disabled:cursor-not-allowed"
+					class="w-full pl-10 pr-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm disabled:bg-surface disabled:cursor-not-allowed"
 				/>
 			</div>
 		</div>
 
 		<!-- Notification Preference -->
 		<div>
-			<label class="block text-sm font-medium text-dark-700 mb-2">
+			<label class="block text-sm font-medium text-foreground-alt mb-2">
 				{$t('booking.notificationsLabel')}
 			</label>
 			<div class="grid grid-cols-3 gap-2">
@@ -232,8 +232,8 @@
 					onclick={() => notificationPreference = 'email'}
 					class="px-3 py-2 text-sm border rounded-lg transition-colors {
 						notificationPreference === 'email'
-							? 'bg-dark-900 text-white border-dark-900'
-							: 'border-border-dark text-dark-700 hover:bg-dark-50'
+							? 'bg-foreground text-white border-foreground'
+							: 'border-border-input text-foreground-alt hover:bg-surface'
 					}"
 					disabled={isSubmitting}
 				>
@@ -244,8 +244,8 @@
 					onclick={() => notificationPreference = 'sms'}
 					class="px-3 py-2 text-sm border rounded-lg transition-colors {
 						notificationPreference === 'sms'
-							? 'bg-dark-900 text-white border-dark-900'
-							: 'border-border-dark text-dark-700 hover:bg-dark-50'
+							? 'bg-foreground text-white border-foreground'
+							: 'border-border-input text-foreground-alt hover:bg-surface'
 					}"
 					disabled={isSubmitting}
 				>
@@ -256,24 +256,24 @@
 					onclick={() => notificationPreference = 'both'}
 					class="px-3 py-2 text-sm border rounded-lg transition-colors {
 						notificationPreference === 'both'
-							? 'bg-dark-900 text-white border-dark-900'
-							: 'border-border-dark text-dark-700 hover:bg-dark-50'
+							? 'bg-foreground text-white border-foreground'
+							: 'border-border-input text-foreground-alt hover:bg-surface'
 					}"
 					disabled={isSubmitting}
 				>
 					{$t('booking.notifBoth')}
 				</button>
 			</div>
-			<p class="text-xs text-dark-500 mt-1">{$t('booking.notifHint')}</p>
+			<p class="text-xs text-muted-foreground mt-1">{$t('booking.notifHint')}</p>
 		</div>
 
 		<!-- Quantity Field -->
 		<div>
-			<label for="quantity" class="block text-sm font-medium text-dark-700 mb-2">
+			<label for="quantity" class="block text-sm font-medium text-foreground-alt mb-2">
 				{$t('booking.numberOfTickets')} <span class="text-red-500">*</span>
 			</label>
 			<div class="relative">
-				<Ticket size={18} class="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400" />
+				<Ticket size={18} class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
 				<input
 					id="quantity"
 					type="number"
@@ -282,23 +282,23 @@
 					max={Math.min(session.availableCapacity, 10)}
 					required
 					disabled={isSubmitting}
-					class="w-full pl-10 pr-4 py-2.5 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent text-sm disabled:bg-dark-50 disabled:cursor-not-allowed"
+					class="w-full pl-10 pr-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm disabled:bg-surface disabled:cursor-not-allowed"
 				/>
 			</div>
-			<p class="text-xs text-dark-500 mt-1">
+			<p class="text-xs text-muted-foreground mt-1">
 				{$t('booking.maxTickets', { values: { max: Math.min(session.availableCapacity, 10) } })}
 			</p>
 		</div>
 
 		<!-- Total -->
-		<div class="bg-dark-50 rounded-lg p-4">
+		<div class="bg-surface rounded-lg p-4">
 			<div class="flex items-center justify-between mb-2">
-				<span class="text-dark-600">{$t('booking.tickets', { values: { qty: quantity } })}</span>
-				<span class="text-dark-900">{formatCurrency(totalAmount, session.currency)}</span>
+				<span class="text-muted-foreground">{$t('booking.tickets', { values: { qty: quantity } })}</span>
+				<span class="text-foreground">{formatCurrency(totalAmount, session.currency)}</span>
 			</div>
 			<div class="border-t border-border-card pt-2 mt-2 flex items-center justify-between">
-				<span class="font-semibold text-dark-900">{$t('booking.total')}</span>
-				<span class="font-bold text-xl text-dark-900">
+				<span class="font-semibold text-foreground">{$t('booking.total')}</span>
+				<span class="font-bold text-xl text-foreground">
 					{formatCurrency(totalAmount, session.currency)}
 				</span>
 			</div>
@@ -310,14 +310,14 @@
 				type="button"
 				onclick={close}
 				disabled={isSubmitting}
-				class="px-6 py-2.5 border border-border-dark text-dark-700 rounded-lg hover:bg-dark-50 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+				class="px-6 py-2.5 border border-border-input text-foreground-alt rounded-lg hover:bg-surface transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
 			>
 				{$t('booking.cancel')}
 			</button>
 			<button
 				type="submit"
 				disabled={!isFormValid || isSubmitting}
-				class="inline-flex items-center gap-2 px-6 py-2.5 bg-dark-900 text-white rounded-lg hover:bg-dark-800 transition-colors font-medium disabled:bg-dark-300 disabled:cursor-not-allowed"
+				class="inline-flex items-center gap-2 px-6 py-2.5 bg-foreground text-white rounded-lg hover:bg-foreground-alt transition-colors font-medium disabled:bg-muted-foreground disabled:cursor-not-allowed"
 			>
 				{#if isSubmitting}
 					<Loader2 size={18} class="animate-spin" />
@@ -339,12 +339,12 @@
 					type="button"
 					onclick={close}
 					disabled={isSubmitting}
-					class="p-2 hover:bg-dark-100 rounded-md transition-colors disabled:opacity-50"
+					class="p-2 hover:bg-surface-hover rounded-md transition-colors disabled:opacity-50"
 				>
 					<X size={20} />
 				</button>
 			</div>
-			<p class="text-dark-400 text-sm">{$t('booking.description')}</p>
+			<p class="text-muted-foreground text-sm">{$t('booking.description')}</p>
 		</div>
 		<div class="pt-4">
 			{@render formContent()}

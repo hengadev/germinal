@@ -35,16 +35,16 @@
             {/if}
         </div>
     {:else}
-        <div class="aspect-4/3 bg-dark-100 flex items-center justify-center">
-            <span class="text-dark-300 text-4xl"></span>
+        <div class="aspect-4/3 bg-surface-hover flex items-center justify-center">
+            <span class="text-muted-foreground text-4xl"></span>
         </div>
     {/if}
     <div class="w-full border border-border-card/40 mt-6"></div>
 
     <div class="mt-4">
         <h3 class="text-lg font-medium">{event.titleEn}</h3>
-        <p class="text-dark-500 text-sm line-clamp-2">{$locale === "en" ? event.locationEn : event.locationFr}</p>
-        <p class="text-xs text-dark-400 uppercase tracking-widest mt-1">{formattedDate}</p>
+        <p class="text-muted-foreground text-sm line-clamp-2">{$locale === "en" ? event.locationEn : event.locationFr}</p>
+        <p class="text-xs text-muted-foreground uppercase tracking-widest mt-1">{formattedDate}</p>
     </div>
 </a>
 
