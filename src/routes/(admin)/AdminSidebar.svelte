@@ -92,7 +92,7 @@
  <!-- Collapse Toggle Button -->
  <button
  onclick={toggleSidebar}
- class="absolute -right-4 bottom-24 z-10 w-8 h-8 rounded-full bg-background flex items-center justify-center text-foreground-alt hover:text-foreground hover:bg-muted transition-all duration-200 border border-border-card shadow-sm"
+ class="absolute -right-4 bottom-24 z-10 w-8 h-8 rounded-full bg-background flex items-center justify-center text-foreground-alt hover:text-foreground hover:bg-muted transition-all duration-200 border border-border-card shadow-mini"
  aria-label={isCollapsed ? "Agrandir la barre latérale" : "Réduire la barre latérale"}
  title={isCollapsed ? "Agrandir la barre latérale" : "Réduire la barre latérale"}
  >
@@ -162,8 +162,8 @@
  class="flex items-center text-sm font-medium transition-all duration-200 rounded-lg {isCollapsed
  ? 'justify-center px-3 py-3'
  : 'gap-3 px-3 py-2.5'} {active
- ? 'text-foreground bg-muted'
- : 'text-foreground-alt hover:text-foreground hover:bg-muted'}"
+ ? 'text-foreground bg-surface-hover'
+ : 'text-foreground-alt hover:text-foreground hover:bg-surface-active'}"
                         aria-current={active ? "page" : undefined}
                         title={isCollapsed ? item.label : undefined}
                     >
@@ -193,7 +193,7 @@
                     ></div>
                     <!-- Dropdown (opens upward) -->
                     <div
-                        class="absolute bottom-full left-0 right-0 mb-2 z-20 bg-background border border-border-card rounded-lg shadow-lg py-1 overflow-hidden"
+                        class="absolute bottom-full left-0 right-0 mb-2 z-20 bg-background border border-border-card rounded-lg shadow-popover py-1 overflow-hidden"
                     >
                         <a
                             href="https://germinalstudio.co"

@@ -288,7 +288,7 @@
                             type="text"
                             bind:value={newStaffFirstName}
                             placeholder="Jean"
-                            class="w-full px-3 py-2 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                            class="w-full px-3 py-2 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                             disabled={processingAction === 'create'}
                         />
                     </div>
@@ -301,7 +301,7 @@
                             type="text"
                             bind:value={newStaffLastName}
                             placeholder="Dupont"
-                            class="w-full px-3 py-2 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                            class="w-full px-3 py-2 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                             disabled={processingAction === 'create'}
                         />
                     </div>
@@ -316,7 +316,7 @@
                         type="email"
                         bind:value={newStaffEmail}
                         placeholder="staff@exemple.com"
-                        class="w-full px-3 py-2 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                        class="w-full px-3 py-2 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                         disabled={processingAction === 'create'}
                     />
                 </div>
@@ -335,7 +335,7 @@
                         type="tel"
                         bind:value={newStaffPhone}
                         placeholder="+33 6 12 34 56 78"
-                        class="w-full px-3 py-2 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                        class="w-full px-3 py-2 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                         disabled={processingAction === 'create'}
                     />
                 </div>
@@ -350,7 +350,7 @@
                                 type="radio"
                                 bind:group={inviteMethod}
                                 value="email"
-                                class="w-4 h-4 text-primary border-border-dark focus:ring-primary"
+                                class="w-4 h-4 text-primary border-border-input focus:ring-primary"
                                 disabled={processingAction === 'create'}
                             />
                             <Mail size={16} class="text-muted-foreground" />
@@ -361,7 +361,7 @@
                                 type="radio"
                                 bind:group={inviteMethod}
                                 value="sms"
-                                class="w-4 h-4 text-primary border-border-dark focus:ring-primary"
+                                class="w-4 h-4 text-primary border-border-input focus:ring-primary"
                                 disabled={processingAction === 'create'}
                             />
                             <MessageSquare size={16} class="text-muted-foreground" />
@@ -381,7 +381,7 @@
                                 type={showPassword ? "text" : "password"}
                                 bind:value={newStaffPassword}
                                 placeholder="Génération..."
-                                class="w-full px-3 py-2 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary pr-10"
+                                class="w-full px-3 py-2 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary pr-10"
                                 disabled={processingAction === 'create'}
                                 readonly
                             />
@@ -401,7 +401,7 @@
                         <button
                             type="button"
                             onclick={generatePassword}
-                            class="inline-flex items-center gap-2 px-3 py-2 border border-border-dark text-foreground rounded-lg hover:bg-muted transition-colors"
+                            class="inline-flex items-center gap-2 px-3 py-2 border border-border-input text-foreground rounded-lg hover:bg-muted transition-colors"
                             title="Régénérer le mot de passe"
                             disabled={processingAction === 'create'}
                         >
@@ -446,7 +446,7 @@
                             inviteMethod = 'email';
                             createFormError = null;
                         }}
-                        class="inline-flex items-center gap-2 px-4 py-2 border border-border-dark text-foreground rounded-lg hover:bg-muted transition-colors"
+                        class="inline-flex items-center gap-2 px-4 py-2 border border-border-input text-foreground rounded-lg hover:bg-muted transition-colors"
                         disabled={processingAction === 'create'}
                     >
                         <XCircle size={16} />

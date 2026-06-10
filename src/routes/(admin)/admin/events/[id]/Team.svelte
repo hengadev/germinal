@@ -183,7 +183,7 @@
                     <select
                         id="staff-select"
                         bind:value={selectedStaffId}
-                        class="w-full px-3 py-2 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                        class="w-full px-3 py-2 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                         disabled={processing}
                     >
                         <option value="">Sélectionner un membre du staff...</option>
@@ -202,7 +202,7 @@
                         type="text"
                         bind:value={roleLabel}
                         placeholder="ex. Son, Porte, Photographie"
-                        class="w-full px-3 py-2 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                        class="w-full px-3 py-2 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                         disabled={processing}
                     />
                     <p class="text-xs text-muted-foreground mt-1">
@@ -234,7 +234,7 @@
                             selectedStaffId = '';
                             roleLabel = '';
                         }}
-                        class="inline-flex items-center gap-2 px-4 py-2 border border-border-dark text-foreground rounded-lg hover:bg-muted transition-colors"
+                        class="inline-flex items-center gap-2 px-4 py-2 border border-border-input text-foreground rounded-lg hover:bg-muted transition-colors"
                         disabled={processing}
                     >
                         <X size={16} />

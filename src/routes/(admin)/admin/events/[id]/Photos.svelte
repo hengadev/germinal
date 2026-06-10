@@ -158,7 +158,7 @@
 		<button
 			type="button"
 			onclick={closeDeleteModal}
-			class="px-4 py-2 text-sm font-medium text-foreground-alt bg-background border border-border-card rounded-lg hover:bg-gray-50 transition-colors"
+			class="px-4 py-2 text-sm font-medium text-foreground-alt bg-background border border-border-card rounded-lg hover:bg-surface transition-colors"
 		>
 			Annuler
 		</button>

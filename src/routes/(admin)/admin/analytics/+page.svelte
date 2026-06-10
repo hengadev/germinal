@@ -175,7 +175,7 @@
 	<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
 		{#each metrics as metric}
 			{@const Icon = metric.icon}
-			<div class="bg-background rounded-lg border border-border-card p-6 hover:shadow-sm transition-shadow">
+			<div class="bg-background rounded-lg border border-border-card p-6 hover:shadow-mini transition-shadow">
 				<div class="flex items-center justify-between mb-4">
 					<div class="p-2 bg-muted rounded-lg">
 						<Icon size={18} class="text-foreground-alt" />

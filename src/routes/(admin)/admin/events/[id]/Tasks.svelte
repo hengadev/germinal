@@ -264,9 +264,9 @@
             case 'in_progress':
                 return { class: 'bg-blue-100 text-blue-800', icon: Clock, label: 'En cours' };
             case 'pending':
-                return { class: 'bg-gray-100 text-gray-800', icon: Circle, label: 'En attente' };
+                return { class: 'bg-muted text-foreground-alt', icon: Circle, label: 'En attente' };
             default:
-                return { class: 'bg-gray-100 text-gray-800', icon: AlertCircle, label: status };
+                return { class: 'bg-muted text-foreground-alt', icon: AlertCircle, label: status };
         }
     }
 
@@ -279,7 +279,7 @@
             case 'low':
                 return 'bg-green-100 text-green-800';
             default:
-                return 'bg-gray-100 text-gray-800';
+                return 'bg-muted text-foreground-alt';
         }
     }
 
@@ -302,7 +302,7 @@
             <p class="text-sm text-muted-foreground">Total des tâches</p>
         </div>
         <div class="bg-background border border-border-card rounded-lg p-4">
-            <p class="text-2xl font-bold text-gray-600">{taskSummary.pending}</p>
+            <p class="text-2xl font-bold text-muted-foreground">{taskSummary.pending}</p>
             <p class="text-sm text-muted-foreground">En attente</p>
         </div>
         <div class="bg-background border border-border-card rounded-lg p-4">
@@ -343,7 +343,7 @@
                         type="text"
                         bind:value={taskTitle}
                         placeholder="Entrez le titre de la tâche..."
-                        class="w-full px-3 py-2 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                        class="w-full px-3 py-2 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                         disabled={processing}
                     />
                 </div>
@@ -357,7 +357,7 @@
                         bind:value={taskDescription}
                         placeholder="Entrez la description de la tâche..."
                         rows="3"
-                        class="w-full px-3 py-2 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                        class="w-full px-3 py-2 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                         disabled={processing}
                     ></textarea>
                 </div>
@@ -370,7 +370,7 @@
                         <select
                             id="task-assignee"
                             bind:value={taskAssignedTo}
-                            class="w-full px-3 py-2 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                            class="w-full px-3 py-2 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                             disabled={processing}
                         >
                             <option value="">Non assigné</option>
@@ -387,7 +387,7 @@
                         <select
                             id="task-priority"
                             bind:value={taskPriority}
-                            class="w-full px-3 py-2 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                            class="w-full px-3 py-2 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                             disabled={processing}
                         >
                             <option value="low">Faible</option>
@@ -405,7 +405,7 @@
                         id="task-due-date"
                         type="datetime-local"
                         bind:value={taskDueDate}
-                        class="w-full px-3 py-2 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                        class="w-full px-3 py-2 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                         disabled={processing}
                     />
                 </div>
@@ -437,7 +437,7 @@
                             taskDueDate = '';
                             taskPriority = 'medium';
                         }}
-                        class="inline-flex items-center gap-2 px-4 py-2 border border-border-dark text-foreground rounded-lg hover:bg-muted transition-colors"
+                        class="inline-flex items-center gap-2 px-4 py-2 border border-border-input text-foreground rounded-lg hover:bg-muted transition-colors"
                         disabled={processing}
                     >
                         <X size={16} />
@@ -598,7 +598,7 @@
                     type="text"
                     bind:value={editTitle}
                     placeholder="Entrez le titre de la tâche..."
-                    class="w-full px-3 py-2 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    class="w-full px-3 py-2 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                     disabled={processing}
                 />
             </div>
@@ -612,7 +612,7 @@
                     bind:value={editDescription}
                     placeholder="Entrez la description de la tâche..."
                     rows="3"
-                    class="w-full px-3 py-2 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    class="w-full px-3 py-2 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                     disabled={processing}
                 ></textarea>
             </div>
@@ -624,7 +624,7 @@
                 <select
                     id="edit-task-assignee"
                     bind:value={editAssignedTo}
-                    class="w-full px-3 py-2 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    class="w-full px-3 py-2 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                     disabled={processing}
                 >
                     <option value="">Non assigné</option>
@@ -641,7 +641,7 @@
                 <select
                     id="edit-task-status"
                     bind:value={editStatus}
-                    class="w-full px-3 py-2 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    class="w-full px-3 py-2 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                     disabled={processing}
                 >
                     <option value="pending">En attente</option>
@@ -657,7 +657,7 @@
                 <select
                     id="edit-task-priority"
                     bind:value={editPriority}
-                    class="w-full px-3 py-2 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    class="w-full px-3 py-2 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                     disabled={processing}
                 >
                     <option value="low">Faible</option>
@@ -674,7 +674,7 @@
                     id="edit-task-due-date"
                     type="datetime-local"
                     bind:value={editDueDate}
-                    class="w-full px-3 py-2 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    class="w-full px-3 py-2 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                     disabled={processing}
                 />
             </div>
@@ -715,7 +715,7 @@
                     type="text"
                     bind:value={editTitle}
                     placeholder="Entrez le titre de la tâche..."
-                    class="w-full px-3 py-2 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    class="w-full px-3 py-2 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                     disabled={processing}
                 />
             </div>
@@ -729,7 +729,7 @@
                     bind:value={editDescription}
                     placeholder="Entrez la description de la tâche..."
                     rows="3"
-                    class="w-full px-3 py-2 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    class="w-full px-3 py-2 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                     disabled={processing}
                 ></textarea>
             </div>
@@ -741,7 +741,7 @@
                 <select
                     id="edit-task-assignee-d"
                     bind:value={editAssignedTo}
-                    class="w-full px-3 py-2 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    class="w-full px-3 py-2 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                     disabled={processing}
                 >
                     <option value="">Non assigné</option>
@@ -758,7 +758,7 @@
                 <select
                     id="edit-task-status-d"
                     bind:value={editStatus}
-                    class="w-full px-3 py-2 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    class="w-full px-3 py-2 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                     disabled={processing}
                 >
                     <option value="pending">En attente</option>
@@ -774,7 +774,7 @@
                 <select
                     id="edit-task-priority-d"
                     bind:value={editPriority}
-                    class="w-full px-3 py-2 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    class="w-full px-3 py-2 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                     disabled={processing}
                 >
                     <option value="low">Faible</option>
@@ -791,7 +791,7 @@
                     id="edit-task-due-date-d"
                     type="datetime-local"
                     bind:value={editDueDate}
-                    class="w-full px-3 py-2 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    class="w-full px-3 py-2 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                     disabled={processing}
                 />
             </div>
