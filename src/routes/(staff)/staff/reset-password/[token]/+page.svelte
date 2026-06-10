@@ -54,7 +54,7 @@
 
 <div class="min-h-screen flex items-center justify-center bg-muted/30 py-12 px-4">
     <div class="max-w-md w-full">
-        <div class="bg-background border border-border-card rounded-lg shadow-sm p-8">
+        <div class="bg-background border border-border-card rounded-lg shadow-mini p-8">
             <div class="text-center mb-8">
                 <h1 class="text-2xl font-bold text-foreground">Définir votre mot de passe</h1>
                 <p class="text-muted-foreground mt-2">
@@ -110,7 +110,7 @@
                                 type={showPassword ? "text" : "password"}
                                 bind:value={newPassword}
                                 placeholder="••••••••"
-                                class="w-full px-3 py-2 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary pr-10"
+                                class="w-full px-3 py-2 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary pr-10"
                                 autocomplete="new-password"
                             />
                             <button
@@ -141,7 +141,7 @@
                                 type={showConfirmPassword ? "text" : "password"}
                                 bind:value={confirmPassword}
                                 placeholder="••••••••"
-                                class="w-full px-3 py-2 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary pr-10"
+                                class="w-full px-3 py-2 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary pr-10"
                                 autocomplete="new-password"
                             />
                             <button

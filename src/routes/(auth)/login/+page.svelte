@@ -21,7 +21,7 @@
 	<div class="max-w-md w-full">
 		<div class="text-center mb-12">
 			<h1 class="text-4xl font-bold mb-4">{$t('admin.login.title')}</h1>
-			<p class="text-dark-400">
+			<p class="text-muted-foreground">
 				{$t('admin.login.description')}
 			</p>
 		</div>
@@ -36,7 +36,7 @@
 
 			<div class="space-y-4">
 				<div>
-					<label for="email" class="block text-sm font-medium text-dark-700 mb-2">
+					<label for="email" class="block text-sm font-medium text-foreground-alt mb-2">
 						{$t('admin.login.email')}
 					</label>
 					<input
@@ -46,12 +46,12 @@
 					 autocomplete="email"
 						required
 						placeholder="you@example.com"
-						class="w-full px-4 py-3 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent"
+						class="w-full px-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent"
 					/>
 				</div>
 
 				<div>
-					<label for="password" class="block text-sm font-medium text-dark-700 mb-2">
+					<label for="password" class="block text-sm font-medium text-foreground-alt mb-2">
 						{$t('admin.login.password')}
 					</label>
 					<div class="relative">
@@ -62,12 +62,12 @@
 							autocomplete="current-password"
 							required
 							placeholder="••••••••"
-							class="w-full px-4 py-3 pr-12 border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-900 focus:border-transparent"
+							class="w-full px-4 py-3 pr-12 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent"
 						/>
 						<button
 							type="button"
 							onclick={() => (showPassword = !showPassword)}
-							class="absolute right-3 top-1/2 -translate-y-1/2 text-dark-400 hover:text-dark-700 transition-colors"
+							class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground-alt transition-colors"
 							aria-label={showPassword ? $t('admin.login.hidePassword') : $t('admin.login.showPassword')}
 						>
 							{#if showPassword}
@@ -83,14 +83,14 @@
 			<button
 				type="submit"
 				disabled={form?.rateLimited}
-				class="w-full bg-dark-900 text-white py-3 px-4 rounded-lg hover:bg-dark-800 focus:outline-none focus:ring-2 focus:ring-dark-900 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-dark-900"
+				class="w-full bg-foreground text-background py-3 px-4 rounded-lg hover:bg-foreground/80 focus:outline-none focus:ring-2 focus:ring-foreground focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-foreground"
 			>
 				{form?.rateLimited ? $t('admin.login.rateLimited') : $t('admin.login.signIn')}
 			</button>
 		</form>
 
 		{#if data.showMockCredentials && data.mockCredentials.length > 0}
-			<div class="mt-6 text-center text-sm text-dark-400">
+			<div class="mt-6 text-center text-sm text-muted-foreground">
 				<p>{$t('admin.login.mockCredentials')}</p>
 				{#each data.mockCredentials as cred}
 					<p class="font-mono mt-1">[{cred.role}] {cred.email} / {$t('admin.login.mockPasswordHint')}</p>

@@ -76,9 +76,9 @@
             case 'in_progress':
                 return { class: 'bg-blue-100 text-blue-800', icon: Clock, label: 'In Progress' };
             case 'pending':
-                return { class: 'bg-gray-100 text-gray-800', icon: Circle, label: 'Pending' };
+                return { class: 'bg-muted text-foreground-alt', icon: Circle, label: 'Pending' };
             default:
-                return { class: 'bg-gray-100 text-gray-800', icon: AlertCircle, label: status };
+                return { class: 'bg-muted text-foreground-alt', icon: AlertCircle, label: status };
         }
     }
 
@@ -91,7 +91,7 @@
             case 'low':
                 return 'bg-green-100 text-green-800';
             default:
-                return 'bg-gray-100 text-gray-800';
+                return 'bg-muted text-foreground-alt';
         }
     }
 
@@ -275,7 +275,7 @@
                                     <select
                                         value={task.status}
                                         onchange={(e) => updateTaskStatus(task.id, e.target.value)}
-                                        class="px-2 py-1 text-sm border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                                        class="px-2 py-1 text-sm border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                                     >
                                         <option value="pending">Pending</option>
                                         <option value="in_progress">In Progress</option>
@@ -324,7 +324,7 @@
                                     <select
                                         value={task.status}
                                         onchange={(e) => updateTaskStatus(task.id, e.target.value)}
-                                        class="px-2 py-1 text-xs border border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                                        class="px-2 py-1 text-xs border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                                     >
                                         <option value="pending">Pending</option>
                                         <option value="in_progress">In Progress</option>

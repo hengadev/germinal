@@ -5,9 +5,9 @@
     <meta http-equiv="Pragma" content="no-cache" />
 </svelte:head>
 
-<div class="min-h-screen bg-dark-900 flex items-center justify-center px-4">
-    <div class="text-center text-white">
+<div class="min-h-screen bg-foreground flex items-center justify-center px-4">
+    <div class="text-center text-background">
         <h1 class="text-5xl md:text-6xl font-bold tracking-widest uppercase mb-6">Germinal</h1>
-        <p class="text-dark-300 text-sm tracking-widest uppercase">An experience is being prepared &mdash; Spring 2026</p>
+        <p class="text-background/60 text-sm tracking-widest uppercase">An experience is being prepared &mdash; Spring 2026</p>
     </div>
 </div>
