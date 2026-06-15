@@ -13,6 +13,11 @@ export default defineConfig({
 	use: {
 		trace: 'on-first-retry',
 		baseURL: 'http://localhost:5173',
+		// Lock tests to English so translated text assertions are predictable.
+		locale: 'en-US',
+		// Disable reveal animations so intersection-observer-gated elements are
+		// always visible without waiting for scroll/intersection triggers.
+		reducedMotion: 'reduce',
 	},
 
 	projects: [
@@ -34,5 +39,11 @@ export default defineConfig({
 		command: 'pnpm dev',
 		url: 'http://localhost:5173',
 		reuseExistingServer: !process.env.CI,
+		timeout: 60_000,
+		env: {
+			USE_MOCK_DATA: 'true',
+			MOCK_ADMIN_EMAIL: process.env.MOCK_ADMIN_EMAIL || 'playwright@test.dev',
+			MOCK_ADMIN_PASSWORD: process.env.MOCK_ADMIN_PASSWORD || 'playwright123',
+		},
 	},
 });
