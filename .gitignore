@@ -41,6 +41,7 @@ vite.config.ts.timestamp-*
 coverage/
 .nyc_output/
 playwright-report/
+test-results/
 
 # Terraform
 *.tfstate
