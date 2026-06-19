@@ -8,7 +8,7 @@ A web application for showcasing events and talents, with bookings, payments, an
 - 👥 **Talent Profiles** - Showcase talented individuals with bios and portfolios
 - 🎫 **Reservations & Booking** - Time-limited reservations with QR code tickets
 - 💳 **Payments** - Stripe checkout and webhooks
-- ✉️ **Notifications** - Email (SMTP) and SMS (Twilio) notifications
+- ✉️ **Notifications** - Email (AWS SES) and SMS (Twilio) notifications
 - 🔐 **Role-Based Access** - Separate admin, staff, and public route groups with argon2-based auth
 - 🖼️ **Media Galleries** - Support for images and videos stored in S3
 - 📱 **PWA Support** - Installable, with generated icons and a web manifest
@@ -85,7 +85,8 @@ Visit **http://localhost:3000**
 - **Storage:** Amazon S3 (or MinIO for local development)
 - **Auth:** argon2 password hashing, role-based route groups (admin/staff/public)
 - **Payments:** Stripe
-- **Notifications:** SMTP email, Twilio SMS
+- **Notifications:** AWS SES email, Twilio SMS
+- **Background jobs:** pg-boss (scheduled cleanup, reminders, email queue)
 - **Rate limiting:** Redis
 - **Styling:** Tailwind CSS 4
 - **Language:** TypeScript
@@ -141,4 +142,4 @@ The app works out of the box with minimal configuration. Only `DATABASE_URL` is 
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/germinal
 ```
 
-Additional integrations (S3 uploads, Stripe payments, SMTP/Twilio notifications, Redis rate limiting, Sentry monitoring) each have their own variables — see [.env.example](./.env.example) and [DEV_SETUP.md](./DEV_SETUP.md) for full details.
+Additional integrations (S3 uploads, Stripe payments, SES/Twilio notifications, Redis rate limiting, Sentry monitoring) each have their own variables — see [.env.example](./.env.example) and [DEV_SETUP.md](./DEV_SETUP.md) for full details.
