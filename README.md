@@ -73,7 +73,6 @@ Visit **http://localhost:3000**
 - **[QUICKSTART.md](./QUICKSTART.md)** - ⚡ Get running in 1 minute with mock data
 - **[DEV_SETUP.md](./DEV_SETUP.md)** - Comprehensive local development guide
 - **[MOCK_DATA_GUIDE.md](./MOCK_DATA_GUIDE.md)** - Working with mock data mode
-- **[PLAN.md](./PLAN.md)** - Architecture and implementation details
 - **[DOCKER.md](./DOCKER.md)** - Docker deployment guide
 - **[DEPLOYMENT.md](./DEPLOYMENT.md)** - VPS deployment guide (Caddy, prod/dev environments)
 - **[CONTEXT.md](./CONTEXT.md)** - Domain language and project context

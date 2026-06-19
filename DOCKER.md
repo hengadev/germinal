@@ -309,6 +309,6 @@ jobs:
 ## Support
 
 For issues related to:
-- **Application**: Check `PLAN.md`
+- **Application**: Check `CONTEXT.md`
 - **Docker setup**: Review this guide
 - **Database**: See Drizzle documentation

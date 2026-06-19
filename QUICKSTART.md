@@ -101,7 +101,7 @@ pnpm install
 
 ## Next Steps
 
-- 📖 Read [PLAN.md](./PLAN.md) for architecture details
+- 📖 Read [CONTEXT.md](./CONTEXT.md) for architecture details
 - 🐳 See [DOCKER.md](./DOCKER.md) for production deployment
 - 🔧 Check [DEV_SETUP.md](./DEV_SETUP.md) for full development guide
 

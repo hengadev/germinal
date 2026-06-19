@@ -359,7 +359,7 @@ docker-compose up
 
 ## Next Steps
 
-- See [PLAN.md](./PLAN.md) for architecture details
+- See [CONTEXT.md](./CONTEXT.md) for architecture details
 - See [DOCKER.md](./DOCKER.md) for production deployment
 - Check [README.md](./README.md) for project overview
 
