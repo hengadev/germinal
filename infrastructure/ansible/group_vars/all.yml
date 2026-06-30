@@ -172,6 +172,9 @@ backup_s3_storage_class: "STANDARD_IA"
 # ============================================
 # Monitoring (Optional)
 # ============================================
-monitoring_enabled: false
+monitoring_enabled: true
 monitoring_cadvisor_port: 8081
 monitoring_node_exporter_port: 9100
+monitoring_prometheus_port: 9090
+monitoring_grafana_port: 3001
+grafana_admin_password: "{{ vault_grafana_admin_password | default('changeme-set-in-secrets') }}"
