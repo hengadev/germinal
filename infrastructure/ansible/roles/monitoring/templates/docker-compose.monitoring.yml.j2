@@ -6,6 +6,7 @@ services:
     image: gcr.io/cadvisor/cadvisor:latest
     container_name: {{ app_name }}_cadvisor
     restart: unless-stopped
+    mem_limit: 128m
     ports:
       - "127.0.0.1:{{ monitoring_cadvisor_port }}:8080"
     volumes:
@@ -17,11 +18,14 @@ services:
     privileged: true
     devices:
       - /dev/kmsg:/dev/kmsg
+    networks:
+      - monitoring
 
   node-exporter:
     image: prom/node-exporter:latest
     container_name: {{ app_name }}_node_exporter
     restart: unless-stopped
+    mem_limit: 64m
     ports:
       - "127.0.0.1:{{ monitoring_node_exporter_port }}:9100"
     volumes:
@@ -33,3 +37,44 @@ services:
       - '--path.rootfs=/rootfs'
       - '--path.sysfs=/host/sys'
       - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    networks:
+      - monitoring
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: {{ app_name }}_prometheus
+    restart: unless-stopped
+    mem_limit: 256m
+    ports:
+      - "127.0.0.1:{{ monitoring_prometheus_port }}:9090"
+    volumes:
+      - {{ app_base_dir }}/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - {{ app_base_dir }}/monitoring/prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+    networks:
+      - monitoring
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: {{ app_name }}_grafana
+    restart: unless-stopped
+    mem_limit: 128m
+    ports:
+      - "127.0.0.1:{{ monitoring_grafana_port }}:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: "{{ grafana_admin_password }}"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_SERVER_ROOT_URL: "http://localhost:{{ monitoring_grafana_port }}"
+    volumes:
+      - {{ app_base_dir }}/monitoring/grafana_data:/var/lib/grafana
+    networks:
+      - monitoring
+
+networks:
+  monitoring:
+    driver: bridge

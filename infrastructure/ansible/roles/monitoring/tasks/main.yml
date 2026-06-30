@@ -1,7 +1,8 @@
 ---
 # Monitoring Stack Tasks
-# - Deploy cAdvisor for container metrics
-# - Deploy node-exporter for host metrics
+# - Deploy cAdvisor and node-exporter for metrics collection
+# - Deploy Prometheus for metrics storage
+# - Deploy Grafana for metrics visualisation
 # - Manage via systemd service
 
 - name: Create monitoring directory
@@ -11,6 +12,31 @@
     owner: "{{ deploy_user }}"
     group: "{{ deploy_user }}"
     mode: '0750'
+
+- name: Create prometheus data directory
+  ansible.builtin.file:
+    path: "{{ app_base_dir }}/monitoring/prometheus_data"
+    state: directory
+    owner: "65534"
+    group: "65534"
+    mode: '0755'
+
+- name: Create grafana data directory
+  ansible.builtin.file:
+    path: "{{ app_base_dir }}/monitoring/grafana_data"
+    state: directory
+    owner: "472"
+    group: "472"
+    mode: '0755'
+
+- name: Deploy Prometheus scrape configuration
+  ansible.builtin.template:
+    src: prometheus.yml.j2
+    dest: "{{ app_base_dir }}/monitoring/prometheus.yml"
+    owner: "{{ deploy_user }}"
+    group: "{{ deploy_user }}"
+    mode: '0640'
+  notify: restart monitoring
 
 - name: Deploy monitoring Docker Compose configuration
   ansible.builtin.template:
@@ -43,9 +69,11 @@
       - "==========================================="
       - "Monitoring Stack Deployed"
       - "==========================================="
-      - "cAdvisor: 127.0.0.1:{{ monitoring_cadvisor_port }}"
+      - "cAdvisor:      127.0.0.1:{{ monitoring_cadvisor_port }}"
       - "Node Exporter: 127.0.0.1:{{ monitoring_node_exporter_port }}"
+      - "Prometheus:    127.0.0.1:{{ monitoring_prometheus_port }}"
+      - "Grafana:       127.0.0.1:{{ monitoring_grafana_port }}"
       - ""
-      - "These endpoints are bound to localhost only."
-      - "Use SSH tunneling or a reverse proxy to access them."
+      - "All endpoints are bound to localhost only."
+      - "Use SSH tunneling to access them remotely."
       - "==========================================="
