@@ -1,0 +1,140 @@
+---
+# Uptime Monitoring Role
+# Registers the germinal /api/health endpoint on UptimeRobot (free tier).
+#
+# Required variables (set in group_vars/all.vault.yml or extra-vars):
+#   uptimerobot_api_key  — UptimeRobot API key (Main or Monitor-specific)
+#   app_domain           — e.g. germinalstudio.co
+#   vault_contact_email   — Alert contact email (already used for fail2ban/auto-updates)
+#
+# Optional variables:
+#   uptimerobot_monitor_interval — Check interval in seconds (default 300 = 5 min)
+#   uptimerobot_monitor_friendly_name — Display name (default "Germinal /api/health")
+
+- name: Validate required variables
+  ansible.builtin.assert:
+    that:
+      - uptimerobot_api_key is defined
+      - uptimerobot_api_key | length > 0
+      - app_domain is defined
+      - vault_contact_email is defined
+    fail_msg: "uptimerobot_api_key, app_domain, and vault_contact_email must be defined"
+    success_msg: "Required variables present"
+  tags: uptime
+
+- name: Set default variables
+  ansible.builtin.set_fact:
+    _uptime_interval: "{{ uptimerobot_monitor_interval | default(300) }}"
+    _uptime_friendly_name: "{{ uptimerobot_monitor_friendly_name | default('Germinal /api/health') }}"
+    _uptime_health_url: "https://{{ app_domain }}/api/health"
+  tags: uptime
+
+- name: Check if monitor already exists for the /api/health endpoint
+  ansible.builtin.uri:
+    url: https://api.uptimerobot.com/v2/getMonitors
+    method: POST
+    body_format: json
+    body:
+      api_key: "{{ uptimerobot_api_key }}"
+      format: json
+      search: "{{ _uptime_health_url }}"
+    headers:
+      Content-Type: application/json
+    status_code: 200
+  register: _existing_monitors
+  tags: uptime
+
+- name: Extract existing monitor ID (if any)
+  ansible.builtin.set_fact:
+    _existing_monitor_id: >-
+      {{ (_existing_monitors.json.monitors | selectattr('url', 'equalto', _uptime_health_url) | map(attribute='id') | first) | default('') }}
+  tags: uptime
+
+- name: Create UptimeRobot monitor
+  when: _existing_monitor_id | length == 0
+  block:
+    - name: Create UptimeRobot monitor via API
+      ansible.builtin.uri:
+        url: https://api.uptimerobot.com/v2/newMonitor
+        method: POST
+        body_format: json
+        body:
+          api_key: "{{ uptimerobot_api_key }}"
+          format: json
+          type: 1              # HTTP(s)
+          url: "{{ _uptime_health_url }}"
+          friendly_name: "{{ _uptime_friendly_name }}"
+          interval: "{{ _uptime_interval }}"
+          http_method: "GET"
+          alert_type: 2        # Down alert only
+        headers:
+          Content-Type: application/json
+        status_code: 200
+      register: _create_monitor
+      tags: uptime
+
+    - name: Store new monitor ID
+      ansible.builtin.set_fact:
+        _monitor_id: "{{ _create_monitor.json.monitor.id }}"
+      when: _create_monitor.json.stat == 'ok'
+      tags: uptime
+
+    - name: Fail if monitor creation was rejected
+      ansible.builtin.fail:
+        msg: "UptimeRobot monitor creation failed: {{ _create_monitor.json.error | default('unknown error') }}"
+      when: _create_monitor.json.stat != 'ok'
+      tags: uptime
+  rescue:
+    - name: Display API error
+      ansible.builtin.debug:
+        msg: "Monitor creation failed. Check API key and rate limits."
+      tags: uptime
+
+- name: Store existing monitor ID
+  ansible.builtin.set_fact:
+    _monitor_id: "{{ _existing_monitor_id }}"
+  when: _existing_monitor_id | length > 0
+  tags: uptime
+
+- name: Create UptimeRobot infrastructure documentation
+  ansible.builtin.copy:
+    content: |
+      # Uptime Monitoring Configuration
+      # Managed by Ansible — do not edit manually
+
+      Monitor ID:        {{ _monitor_id | default('PENDING') }}
+      Friendly Name:     {{ _uptime_friendly_name }}
+      URL:               {{ _uptime_health_url }}
+      Type:              HTTP(S)
+      Method:            GET
+      Check Interval:    {{ _uptime_interval }} seconds ({{ (_uptime_interval | int // 60) }} min)
+      Alert Type:        Down only
+      Alert Contact:     {{ vault_contact_email }}
+      Created:           {{ ansible_date_time.iso8601 }}
+      Created By:        Ansible role uptime_monitoring
+
+      # Recovery instructions
+      #
+      # If the UptimeRobot account is lost:
+      #   1. Create a new free account at uptimerobot.com
+      #   2. Re-run: ansible-playbook site.yml --tags uptime
+      #      (with uptimerobot_api_key set to the new account's API key)
+      #   3. This will recreate the monitor and update this file.
+    dest: "{{ app_base_dir }}/UPTIME_MONITOR.txt"
+    owner: "{{ deploy_user }}"
+    group: "{{ deploy_user }}"
+    mode: "0640"
+  tags: uptime
+
+- name: Display monitor summary
+  ansible.builtin.debug:
+    msg:
+      - "==========================================="
+      - " Uptime Monitor Configured"
+      - "==========================================="
+      - "Monitor ID:     {{ _monitor_id | default('PENDING') }}"
+      - "URL:            {{ _uptime_health_url }}"
+      - "Interval:       {{ _uptime_interval }}s"
+      - "Alert Contact:  {{ vault_contact_email }}"
+      - "==========================================="
+  tags: uptime

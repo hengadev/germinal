@@ -32,6 +32,12 @@ vault_smtp_from_name: "Germinal"
 vault_contact_email: "you@yourdomain.com"
 
 # ============================================
+# UptimeRobot (uptime monitoring)
+# ============================================
+# https://uptimerobot.com/dashboard#mySettings -> API Settings -> Main API Key
+uptimerobot_api_key: ""
+
+# ============================================
 # Backup AWS Credentials (if different from S3)
 # ============================================
 vault_backup_aws_access_key: ""

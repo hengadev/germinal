@@ -58,6 +58,10 @@
       tags: ['monitoring', 'setup']
       when: monitoring_enabled | default(false)
 
+    - role: uptime_monitoring
+      tags: ['uptime', 'setup']
+      when: uptimerobot_api_key is defined
+
   post_tasks:
     - name: Display setup completion message
       ansible.builtin.debug:
