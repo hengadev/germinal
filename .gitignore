@@ -31,6 +31,9 @@ vite.config.ts.timestamp-*
 *.md
 !README.md
 !CONTEXT.md
+!PRODUCT.md
+!DESIGN.md
+!CLAUDE.md
 !docs/**/*.md
 !infrastructure/terraform/README.md
 !infrastructure/ansible/README.md
@@ -38,6 +41,9 @@ vite.config.ts.timestamp-*
 !infrastructure/ansible/SETUP_GUIDE.md
 !infrastructure/ansible/MONITORING.md
 docs/issues/
+
+# impeccable design skill local state
+.impeccable/
 docs/prd/
 
 # Test Coverage
