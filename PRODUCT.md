@@ -30,7 +30,9 @@ Germinal curates bespoke, intimately-scaled cultural experiences end-to-end — 
 
 ## Brand Personality
 
-Refined, restrained, editorial — with an edge. Quiet confidence rather than salesmanship — the voice of a magazine profiling a studio, not a platform pitching a service — but not purely calm: Germinal is professional and precise, with real cultural currency, and comfortable being selective. Access isn't uniform — some sessions are open to everyone, others (VIP-badged, or carrying restrictive Admission Info like "Members only" or "By invitation") are for a smaller circle — and the brand should let that distinction show rather than flattening every event into the same welcoming tone. Generous whitespace, serif display type carrying the emotional weight, muted uppercase eyebrows for structure. No specific external references were named; the existing manifesto and public pages (large serif headings, `text-foreground-alt` body copy, numbered service sections, `fade-up`/`fade-down` reveal motion) are themselves the anchor going forward — new work should extend that voice, not reinvent it.
+Refined, restrained, editorial — with an edge. Quiet confidence rather than salesmanship — the voice of a magazine profiling a studio, not a platform pitching a service — but not purely calm: Germinal is professional and precise, with real cultural currency, and comfortable being selective. Generous whitespace, serif display type carrying the emotional weight, muted uppercase eyebrows for structure. No specific external references were named; the existing manifesto and public pages (large serif headings, `text-foreground-alt` body copy, numbered service sections, `fade-up`/`fade-down` reveal motion) are themselves the anchor going forward — new work should extend that voice, not reinvent it.
+
+> **Deferred:** an access-tiering treatment (making VIP-badged or "Members only"/"By invitation" sessions visually read as more exclusive than open ones) was explored during init and parked — not active guidance for current work. See DESIGN.md §4 Elevation for the parked spec if this gets revived.
 
 ## Anti-references
 
@@ -41,7 +43,6 @@ Not a generic ticketing/events platform: no thumbnail card grids, no marketplace
 - Curation over cataloguing: every list (Events, Talents) should read as hand-picked, not browsed — resist the pull toward dense, scannable marketplace grids.
 - Show, don't badge: taste is demonstrated through editorial writing and imagery (manifesto's art direction/scenography sections), not through trust badges or metric callouts.
 - Scarcity is structural, not decorative: capacity limits and the single-Spotlight rule are real constraints (Sessions always have capacity; only one Spotlight at a time) — let the design reflect genuine intimacy rather than manufacturing urgency with countdown-timer tropes.
-- Access is not uniform: some Sessions (VIP-badged, or carrying restrictive Admission Info such as "Members only") are for a smaller circle than others — these are currently editorial labels, not enforced access rules. The design should let that distinction be visible and deliberate rather than presenting every event with identical, universally-welcoming treatment.
 - One voice across the funnel: the same restrained, serif-led editorial register that carries the manifesto should carry through discovery, booking, and confirmation (tickets) — a guest shouldn't feel like they've left the magazine and entered a checkout app.
 - Practice what you preach: since the site itself is the primary proof of curatorial taste, its own execution (typography, spacing, motion) is not decoration — it is the argument.
 

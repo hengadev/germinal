@@ -1,6 +1,6 @@
 ---
 name: Germinal
-description: Editorial cultural-studio site for curated events and a standing artist roster, with a new threshold system marking access-gated sessions.
+description: Editorial cultural-studio site for curated events and a standing artist roster — near-monochrome, serif-forward, flat by default.
 colors:
   ink: "#171717"
   ink-soft: "#525252"
@@ -66,11 +66,6 @@ components:
     backgroundColor: "{colors.paper}"
     textColor: "{colors.ink}"
     rounded: "{rounded.none}"
-  threshold-block:
-    backgroundColor: "{colors.ink}"
-    textColor: "{colors.paper}"
-    rounded: "{rounded.none}"
-    padding: "24px"
 ---
 
 # Design System: Germinal
@@ -81,7 +76,7 @@ components:
 
 Germinal reads like a magazine profiling a studio, not a platform selling tickets. The default register is calm and restrained: near-black ink on white paper, a display serif carrying the emotional weight of headlines, generous whitespace, and thin dividers standing in for card chrome. Nothing about the resting state raises its voice — no shadows, no rounded softness, no color noise. That calm is deliberate, not timid: the confidence is in what's left out.
 
-Against that calm baseline, one deliberate break exists: not every Session is for everyone. Some are open to the public; others — VIP-badged, or carrying Admission Info like "Members only" — are for a smaller circle. Rather than presenting every event with identical, universally-welcoming treatment, gated content earns the one moment of real visual contrast in the system: it inverts. See **§4 Elevation, The Threshold Rule**.
+> **Deferred:** an access-tiering treatment (an inverted block marking VIP/"Members only" sessions as behind a threshold) was explored during init and parked — not active guidance. The parked spec lives in §4 Elevation and §5 Components, clearly marked, in case this gets revived later.
 
 This system explicitly rejects two things named in PRODUCT.md: the generic ticketing-platform look (thumbnail card grids, marketplace density, badges scattered everywhere) and the corporate SaaS aesthetic (startup-cream backgrounds, hero-metric sections, dashboard chrome bleeding into public pages). Germinal is a cultural brand being read, not a product being adopted.
 
@@ -89,7 +84,6 @@ This system explicitly rejects two things named in PRODUCT.md: the generic ticke
 - Near-monochrome palette (ink / paper / grayscale surfaces) with two functional accents (amber, crimson) held in reserve, not decorative
 - Serif-forward typography pairing a display serif (headlines) with a text serif (body) — no grotesque/geometric sans anywhere in the core voice
 - Flat by default: no shadows, no rounded corners, depth conveyed by whitespace and a single grayscale→color image treatment on hover
-- One deliberate inversion (ink-on-paper flips to paper-on-ink) reserved exclusively for access-gated content — the system's only "loud" gesture, and it's earned by meaning, not decoration
 
 ## 2. Colors
 
@@ -138,12 +132,10 @@ Almost monochrome: ink and paper carry the entire resting-state palette, with gr
 
 The resting system is flat by default: no box-shadows, no rounded corners on interactive elements, no card chrome. Structure is conveyed through whitespace, thin 1px dividers (`border-border-card` at 10% opacity), and — for imagery — a grayscale-to-full-color transition on hover, which is the system's only "reveal" gesture at rest.
 
-Against that flatness, one deliberate exception now exists, introduced to carry the access-tiering the brand needs: gated content inverts.
-
 ### Named Rules
-**The Threshold Rule.** Open, publicly-bookable content always stays flat: paper background, ink text, no border, no shadow. Content behind a threshold — a VIP-badged Session, or one carrying restrictive Admission Info ("Members only," "By invitation") — flips to an inverted block: ink background (#171717), paper text, generous internal padding (24px+), still flat (no shadow, no gradient, no glow). The inversion itself is the signal; nothing else about the component vocabulary changes. This is the system's only permitted "loud" gesture, and it means something specific — it must never be used decoratively for emphasis on open content.
+**The Flat-By-Default Rule.** No component may introduce a shadow or non-zero border-radius on public pages without a specific, stated reason (the ticket confirmation card's `rounded-xl`/`shadow-mini` is the one existing exception, justified by its receipt-like, physical-object framing — not a precedent for general use).
 
-**The Flat-Everywhere-Else Rule.** Outside the Threshold Rule, no component may introduce a shadow or non-zero border-radius on public pages without a specific, stated reason (the ticket confirmation card's `rounded-xl`/`shadow-mini` is the one existing exception, justified by its receipt-like, physical-object framing — not a precedent for general use).
+> **Deferred — The Threshold Rule (parked, not active).** An access-tiering treatment was explored: content behind a threshold (a VIP-badged Session, or one carrying restrictive Admission Info like "Members only") would flip to an inverted block — ink background (#171717), paper text, generous internal padding (24px+), still flat. The idea was tabled because "VIP"/"Members only" are currently editorial-only labels with no actual access enforcement behind them (see `CONTEXT.md`) — the visual signal would have implied a gate that doesn't exist. Revisit if/when real access tiering is built. Until then, this rule is not in effect: nothing should invert.
 
 ## 5. Components
 
@@ -161,11 +153,8 @@ Against that flatness, one deliberate exception now exists, introduced to carry 
 - **Divider:** a single 1px horizontal rule (`border-border-card` at ~40% opacity) between image and text block, standing in for a card boundary.
 - **Internal spacing:** text block sits 16–24px below the divider; title (medium weight body), location (small, muted), date (label style, uppercase, tracked).
 
-### Threshold Block (new — for gated content)
-- **Background:** ink (#171717); text: paper (#ffffff).
-- **Use:** wraps a Session's booking panel, price, or summary when the Session is VIP-badged or carries restrictive Admission Info. Not used for entire Event pages — only the specific gated element (pricing panel, CTA block), so the surrounding page stays in its normal flat-paper register.
-- **Padding:** generous, 24px minimum — this block should feel deliberate and considered, not cramped.
-- **Label:** the eyebrow/label style still applies inside the block, just recolored (paper text at reduced opacity for the label, full paper for the value).
+### Threshold Block (deferred — not built, not in use)
+Parked spec, kept for reference only: an inverted block (ink background, paper text) wrapping a Session's booking panel when access-gated. See §4 Elevation for why this was tabled. Do not implement until access tiering is a real, revisited decision.
 
 ### Inputs / Fields
 - **Style:** flat, bordered with `border-input` (ink at 17% opacity), no fill color change at rest.
@@ -181,7 +170,6 @@ Against that flatness, one deliberate exception now exists, introduced to carry 
 
 ### Do:
 - **Do** keep the resting state flat: paper background, ink text, thin dividers, zero shadow, zero radius on primary buttons and cards.
-- **Do** reserve the inverted ink block exclusively for access-gated content (VIP Sessions, restrictive Admission Info) per the Threshold Rule — it must keep meaning what it means.
 - **Do** use the grayscale→color image hover as the primary "alive" moment in listings, rather than introducing shadow-lift or scale-up hover effects.
 - **Do** cap body copy at 65–75ch and keep the display heading ceiling at 6rem, per the house type scale.
 - **Do** use Source Code Pro exclusively for real data values (prices, codes, timers) so its appearance itself signals "this number is exact."
@@ -190,6 +178,5 @@ Against that flatness, one deliberate exception now exists, introduced to carry 
 - **Don't** build generic ticketing/events-platform layouts: no dense thumbnail card grids, no marketplace-style badge clutter, no promotional ribbons on every listing (per PRODUCT.md's anti-references).
 - **Don't** introduce the corporate SaaS aesthetic anywhere on public pages: no startup-cream backgrounds, no hero-metric stat blocks, no dashboard-style chrome.
 - **Don't** add shadows or rounded corners to buttons or event cards outside the one stated ticket-confirmation exception — flatness is the default, not a placeholder waiting to be "finished."
-- **Don't** use the inverted Threshold block for emphasis on open, non-gated content — that collapses the one signal that currently distinguishes access tiers.
 - **Don't** use amber or crimson decoratively (section accents, badge fills, hover glows) — they are reserved, single-purpose functional colors.
 - **Don't** substitute a sans-serif into the display or body role; Inter stays confined to non-brand system UI (e.g. the iOS install prompt).
