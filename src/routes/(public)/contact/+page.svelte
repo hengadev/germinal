@@ -142,47 +142,50 @@
             </div>
         </section>
 
-        <section class="grid gap-6 lg:gap-8">
-            {#if form?.success}
-                <div
-                    class="flex items-start gap-3 p-3 md:p-4 bg-green-50 border border-green-200 rounded-lg text-sm md:text-base"
-                >
-                    <CheckCircle
-                        class="text-green-600 shrink-0 w-4.5 h-4.5 md:w-5 md:h-5"
-                    />
-                    <p class="text-green-800">{form.message}</p>
-                </div>
+        <div class="grid gap-6 lg:gap-8">
+            {#if form?.success || form?.error}
+                <section class="grid gap-6 lg:gap-8">
+                    {#if form?.success}
+                        <div
+                            class="flex items-start gap-3 p-3 md:p-4 bg-green-50 border border-green-200 rounded-lg text-sm md:text-base"
+                        >
+                            <CheckCircle
+                                class="text-green-600 shrink-0 w-4.5 h-4.5 md:w-5 md:h-5"
+                            />
+                            <p class="text-green-800">{form.message}</p>
+                        </div>
+                    {/if}
+
+                    {#if form?.error}
+                        <div
+                            class="flex items-start gap-3 p-3 md:p-4 bg-red-50 border border-red-200 rounded-lg text-sm md:text-base"
+                        >
+                            <AlertCircle
+                                class="text-red-600 shrink-0 w-4.5 h-4.5 md:w-5 md:h-5"
+                            />
+                            <p class="text-red-800">{form.error}</p>
+                        </div>
+                    {/if}
+                </section>
             {/if}
 
-            {#if form?.error}
-                <div
-                    class="flex items-start gap-3 p-3 md:p-4 bg-red-50 border border-red-200 rounded-lg text-sm md:text-base"
-                >
-                    <AlertCircle
-                        class="text-red-600 shrink-0 w-4.5 h-4.5 md:w-5 md:h-5"
-                    />
-                    <p class="text-red-800">{form.error}</p>
+            <section class="grid gap-4">
+                <p class="text-sm lg:text-base">{$t("contact.regarding")}</p>
+                <div class="flex flex-wrap items-center gap-3" on:click={(e) => {
+                    const button = e.target.closest('button[data-filter-index]');
+                    if (button) {
+                        const index = parseInt(button.getAttribute('data-filter-index')!);
+                        selectedIndex = index;
+                    }
+                }}>
+                    {#each filters as filter, index}
+                        {@render tag(filter, index)}
+                    {/each}
                 </div>
-            {/if}
-        </section>
+            </section>
 
-        <section class="grid gap-4">
-            <p class="text-sm lg:text-base">{$t("contact.regarding")}</p>
-            <div class="flex flex-wrap items-center gap-3" on:click={(e) => {
-                const button = e.target.closest('button[data-filter-index]');
-                if (button) {
-                    const index = parseInt(button.getAttribute('data-filter-index')!);
-                    selectedIndex = index;
-                }
-            }}>
-                {#each filters as filter, index}
-                    {@render tag(filter, index)}
-                {/each}
-            </div>
-        </section>
-
-        <section>
-            <form
+            <section>
+                <form
                 method="POST"
                 class="space-y-8 md:space-y-12 mt-6 md:mt-8"
                 novalidate
@@ -344,7 +347,8 @@
                         <ArrowRight class="w-4 h-4" />
                     </button>
                 </div>
-            </form>
-        </section>
+                </form>
+            </section>
+        </div>
     </div>
 </div>
