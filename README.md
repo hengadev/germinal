@@ -57,24 +57,16 @@ Visit **http://localhost:5173**
 
 > **Note:** See [DEV_SETUP.md](./DEV_SETUP.md) for comprehensive setup guide.
 
-### Production (Docker)
+### Staging & Production (VPS)
 
-```bash
-# Build and run with Docker Compose
-docker-compose up -d
-```
-
-Visit **http://localhost:3000**
-
-> For VPS deployment with Caddy, separate prod/dev environments, and Terraform-managed infrastructure, see [DEPLOYMENT.md](./DEPLOYMENT.md) and the `Makefile` targets (`make help`).
+Staging and production run on a VPS provisioned by Terraform and deployed via Ansible, with staging sharing prod's Postgres/Redis/Caddy but using its own database and app container. See `infrastructure/ansible/README.md` for the architecture and `make help` for the deploy commands (`make image-release`, `make deploy-staging`, `make deploy`, etc.).
 
 ## Documentation
 
 - **[QUICKSTART.md](./QUICKSTART.md)** - ⚡ Get running in 1 minute with mock data
 - **[DEV_SETUP.md](./DEV_SETUP.md)** - Comprehensive local development guide
 - **[MOCK_DATA_GUIDE.md](./MOCK_DATA_GUIDE.md)** - Working with mock data mode
-- **[DOCKER.md](./DOCKER.md)** - Docker deployment guide
-- **[DEPLOYMENT.md](./DEPLOYMENT.md)** - VPS deployment guide (Caddy, prod/dev environments)
+- **[infrastructure/ansible/README.md](./infrastructure/ansible/README.md)** - Staging/production deployment (Terraform + Ansible)
 - **[CONTEXT.md](./CONTEXT.md)** - Domain language and project context
 
 ## Tech Stack
@@ -90,7 +82,7 @@ Visit **http://localhost:3000**
 - **Styling:** Tailwind CSS 4
 - **Language:** TypeScript
 - **Testing:** Vitest (unit/integration), Playwright (e2e)
-- **Deployment:** Docker + Node.js, Caddy reverse proxy, Terraform-managed infrastructure
+- **Deployment:** Docker + Node.js, Caddy reverse proxy, Terraform-provisioned VPS, Ansible-managed staging/production
 
 ## Project Structure
 
@@ -110,9 +102,10 @@ germinal/
 │       └── api/            # API endpoints (incl. webhooks, cron)
 ├── drizzle/migrations/     # Database migrations (generated, never hand-written)
 ├── scripts/                # Migration, seeding, and admin-creation scripts
-├── infrastructure/terraform/ # VPS/cloud infrastructure
+├── infrastructure/terraform/ # VPS/cloud infrastructure (provisioning)
+├── infrastructure/ansible/   # Staging/production deployment
 ├── static/                 # Static assets
-└── docker-compose*.yml     # Docker configuration (local, dev, prod)
+└── docker-compose.yml      # Local Postgres + Drizzle Studio for `pnpm dev`
 ```
 
 ## Development Commands

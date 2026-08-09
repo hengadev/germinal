@@ -340,19 +340,19 @@ pnpm drizzle-kit push
 
 ---
 
-## Running with Docker Compose (Alternative)
+## Running Postgres via Docker Compose
 
-If you prefer to run everything in Docker:
+`docker-compose.yml` only runs local dependencies (Postgres, and optionally Drizzle Studio) — the app itself always runs on your machine with `pnpm dev` for fast HMR:
 
 ```bash
-# Start database only
+# Start Postgres
 docker-compose up -d db
 
-# Run app locally, database in Docker
+# Run the app locally
 pnpm dev
 
-# Or run everything in Docker
-docker-compose up
+# Optional: Drizzle Studio GUI, in Docker instead of `pnpm drizzle-kit studio`
+docker-compose --profile tools up -d drizzle-studio
 ```
 
 ---
@@ -360,7 +360,7 @@ docker-compose up
 ## Next Steps
 
 - See [CONTEXT.md](./CONTEXT.md) for architecture details
-- See [DOCKER.md](./DOCKER.md) for production deployment
+- See [infrastructure/ansible/README.md](./infrastructure/ansible/README.md) for staging/production deployment
 - Check [README.md](./README.md) for project overview
 
 ---

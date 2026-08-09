@@ -15,11 +15,17 @@ The app runs with mock data - **no database, no S3, no complex setup required!**
 
 ---
 
-## Option 2: Docker 🐳
+## Option 2: Real Database 🐳
+
+Want a real Postgres instead of mock data? Run it in Docker and keep the app on your machine for hot reload:
 
 ```bash
-# 1. Start with docker-compose
-docker-compose -f docker-compose.dev.yml up
+# 1. Start Postgres
+docker-compose up -d db
+
+# 2. Push the schema and start the app
+pnpm drizzle-kit push
+pnpm dev
 ```
 
 Visit **http://localhost:5173**
@@ -102,7 +108,7 @@ pnpm install
 ## Next Steps
 
 - 📖 Read [CONTEXT.md](./CONTEXT.md) for architecture details
-- 🐳 See [DOCKER.md](./DOCKER.md) for production deployment
+- 🚀 See [infrastructure/ansible/README.md](./infrastructure/ansible/README.md) for staging/production deployment
 - 🔧 Check [DEV_SETUP.md](./DEV_SETUP.md) for full development guide
 
 Happy coding! 🎉
