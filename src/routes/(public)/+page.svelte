@@ -69,8 +69,8 @@
             />
         {/if}
 
-        <!-- Gradient Overlay -->
-        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/60"></div>
+        <!-- Dark Overlay -->
+        <div class="absolute inset-0 bg-black/80"></div>
 
         <!-- Content -->
         <div
@@ -84,7 +84,7 @@
                     {$t("home.heroTitle")}
                 </h1>
                 <p
-                    class="text-base md:text-lg lg:text-xl text-muted-foreground leading-relaxed"
+                    class="text-base md:text-lg lg:text-xl text-white leading-relaxed"
                 >
                     {$t("home.heroSubtitle")}
                 </p>
