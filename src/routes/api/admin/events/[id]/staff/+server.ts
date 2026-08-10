@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { requireStaff } from '$lib/server/auth-guards';
+import { requireAdmin } from '$lib/server/auth-guards';
 import {
 	getStaffForEvent,
 	assignStaff,
@@ -11,7 +11,7 @@ import { isAppError } from '$lib/server/errors';
 
 // GET /api/admin/events/[id]/staff - Get all staff assigned to an event
 export const GET: RequestHandler = async ({ locals, params }) => {
-	requireStaff(locals);
+	requireAdmin(locals);
 
 	try {
 		const staff = await getStaffForEvent(params.id);
@@ -24,7 +24,7 @@ export const GET: RequestHandler = async ({ locals, params }) => {
 
 // POST /api/admin/events/[id]/staff - Assign a staff member to an event
 export const POST: RequestHandler = async ({ locals, params, request }) => {
-	requireStaff(locals);
+	requireAdmin(locals);
 
 	try {
 		const body = await request.json();

@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { requireStaff } from '$lib/server/auth-guards';
+import { requireAdmin } from '$lib/server/auth-guards';
 import { hashPassword } from '$lib/server/auth';
 import { db } from '$lib/server/db';
 import { users } from '$lib/server/db/schema';
@@ -9,7 +9,7 @@ import { isAppError } from '$lib/server/errors';
 
 // GET /api/admin/team/staff - Get all staff users
 export const GET: RequestHandler = async ({ locals }) => {
-    requireStaff(locals);
+    requireAdmin(locals);
 
     try {
         const staff = await db
@@ -34,7 +34,7 @@ export const GET: RequestHandler = async ({ locals }) => {
 
 // POST /api/admin/team/staff - Create a new staff user
 export const POST: RequestHandler = async ({ locals, request }) => {
-    requireStaff(locals);
+    requireAdmin(locals);
 
     try {
         const formData = await request.formData();

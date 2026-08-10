@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { requireStaff } from '$lib/server/auth-guards';
+import { requireAdmin } from '$lib/server/auth-guards';
 import { db } from '$lib/server/db';
 import { users } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
@@ -8,7 +8,7 @@ import { isAppError } from '$lib/server/errors';
 
 // POST /api/admin/team/staff/deactivate - Deactivate a staff member
 export const POST: RequestHandler = async ({ locals, request }) => {
-    requireStaff(locals);
+    requireAdmin(locals);
 
     try {
         const formData = await request.formData();

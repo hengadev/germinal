@@ -1,6 +1,6 @@
 import { error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { requireStaff } from '$lib/server/auth-guards';
+import { requireAdmin } from '$lib/server/auth-guards';
 import { exportReservationsToCSV } from '$lib/server/services/export';
 import { db } from '$lib/server/db';
 import { reservations } from '$lib/server/db/schema';
@@ -8,7 +8,7 @@ import { eq, and } from 'drizzle-orm';
 
 // GET /api/admin/export/reservations - Export reservations to CSV
 export const GET: RequestHandler = async ({ locals, url }) => {
-	requireStaff(locals);
+	requireAdmin(locals);
 
 	try {
 		// Parse query parameters

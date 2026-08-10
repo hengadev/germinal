@@ -1,12 +1,12 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { requireStaff } from '$lib/server/auth-guards';
+import { requireAdmin } from '$lib/server/auth-guards';
 import { removeStaff } from '$lib/server/services/event-staff';
 import { isAppError } from '$lib/server/errors';
 
 // DELETE /api/admin/events/[id]/staff/[userId] - Remove a staff member from an event
 export const DELETE: RequestHandler = async ({ locals, params }) => {
-	requireStaff(locals);
+	requireAdmin(locals);
 
 	try {
 		await removeStaff(params.id, params.userId);

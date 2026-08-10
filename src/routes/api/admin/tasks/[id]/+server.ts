@@ -1,12 +1,12 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { requireStaff } from '$lib/server/auth-guards';
+import { requireAdmin } from '$lib/server/auth-guards';
 import { updateTask, deleteTask } from '$lib/server/services/tasks';
 import { isAppError } from '$lib/server/errors';
 
 // PUT /api/admin/tasks/[id] - Update a task
 export const PUT: RequestHandler = async ({ locals, params, request }) => {
-	requireStaff(locals);
+	requireAdmin(locals);
 
 	try {
 		const body = await request.json();
@@ -30,7 +30,7 @@ export const PUT: RequestHandler = async ({ locals, params, request }) => {
 
 // DELETE /api/admin/tasks/[id] - Delete a task
 export const DELETE: RequestHandler = async ({ locals, params }) => {
-	requireStaff(locals);
+	requireAdmin(locals);
 
 	try {
 		await deleteTask(params.id);
