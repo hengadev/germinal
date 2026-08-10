@@ -115,6 +115,16 @@ describe('team-management and task-assignment admin APIs — staff is no longer 
 		);
 	});
 
+	// --- Dead duplicate reservations export endpoint (leftover requireStaff usage) ---
+
+	it('duplicate reservations export (GET /api/admin/export/reservations) rejects a staff-role session', async () => {
+		const { GET } = await import('../../../src/routes/api/admin/export/reservations/+server');
+		await expectRejectedWith(
+			GET!({ locals: { user: staffUser }, url: new URL('http://x/api/admin/export/reservations') } as any),
+			403,
+		);
+	});
+
 	// --- Unauthenticated ---
 
 	it('unauthenticated request is still rejected with 401', async () => {
