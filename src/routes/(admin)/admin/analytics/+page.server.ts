@@ -15,6 +15,7 @@ interface AnalyticsMetrics {
 	successRate: number;
 	averageOrderValue: number;
 	totalTicketsSold: number;
+	compReservations: number;
 }
 
 interface DailyRevenue {
@@ -109,7 +110,10 @@ async function getMockAnalyticsData(range: DateRange): Promise<AnalyticsData> {
 			: 0,
 		totalTicketsSold: filteredReservations
 			.filter((r) => r.status === 'confirmed')
-			.reduce((sum, r) => sum + r.quantity, 0)
+			.reduce((sum, r) => sum + r.quantity, 0),
+		// Comp Reservations are not modeled in mock data yet (no isComp field on
+		// MOCK_RESERVATIONS); defaults to 0 in mock mode.
+		compReservations: filteredReservations.filter((r) => (r as { isComp?: boolean }).isComp === true).length
 	};
 
 	// Calculate daily revenue
@@ -227,6 +231,16 @@ async function getDbAnalyticsData(range: DateRange): Promise<AnalyticsData> {
 		partiallyRefundedPayments.reduce((sum: number, p: typeof partiallyRefundedPayments[number]) => sum + (p.refundedAmount || 0), 0);
 	const netRevenue = totalRevenue - totalRefunds;
 
+	// Comp Reservations have no Payment record, so they're counted directly
+	// off `reservations.isComp` (keyed on the Reservation's own createdAt,
+	// since there is no Payment date to filter on).
+	const compDateFilter = startDate ? gte(reservations.createdAt, startDate) : undefined;
+	const [compRow] = await db
+		.select({ count: sql<number>`count(*)::int` })
+		.from(reservations)
+		.where(compDateFilter ? and(eq(reservations.isComp, true), compDateFilter) : eq(reservations.isComp, true));
+	const compReservationsCount = compRow?.count ?? 0;
+
 	const metrics: AnalyticsMetrics = {
 		totalRevenue: netRevenue,
 		totalPayments: allPayments.length,
@@ -240,7 +254,8 @@ async function getDbAnalyticsData(range: DateRange): Promise<AnalyticsData> {
 		totalTicketsSold: successfulPayments.reduce(
 			(sum: number, p: typeof successfulPayments[number]) => sum + (p.reservation?.quantity || 0),
 			0
-		)
+		),
+		compReservations: compReservationsCount
 	};
 
 	// Calculate daily revenue

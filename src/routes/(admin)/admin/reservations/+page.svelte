@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Eye, CheckCircle2, Clock, XCircle, AlertCircle, Search, Calendar, User, Mail, Ticket, CreditCard, ArrowRight, Download } from 'lucide-svelte';
+	import { Eye, CheckCircle2, Clock, XCircle, AlertCircle, Search, Calendar, User, Mail, Ticket, CreditCard, ArrowRight, Download, Gift } from 'lucide-svelte';
 	import type { PageData } from './$types';
 	import { formatCurrency } from '$lib/utils/currency';
 
@@ -102,15 +102,24 @@
 			<h1 class="text-3xl lg:text-4xl font-bold mb-2">Réservations</h1>
 			<p class="text-muted-foreground">Gérer toutes les réservations d'événements</p>
 		</div>
-		<a
-			href={exportUrl}
-			target="_blank"
-			rel="noopener noreferrer"
-			class="inline-flex items-center gap-2 px-4 py-2 bg-foreground text-background rounded-lg hover:opacity-90 transition-colors font-medium text-sm"
-		>
-			<Download size={16} />
-			Exporter CSV
-		</a>
+		<div class="flex items-center gap-3">
+			<a
+				href="/admin/reservations/new"
+				class="inline-flex items-center gap-2 px-4 py-2 border border-border-input text-foreground rounded-lg hover:bg-muted transition-colors font-medium text-sm"
+			>
+				<Gift size={16} />
+				Réservation Comp
+			</a>
+			<a
+				href={exportUrl}
+				target="_blank"
+				rel="noopener noreferrer"
+				class="inline-flex items-center gap-2 px-4 py-2 bg-foreground text-background rounded-lg hover:opacity-90 transition-colors font-medium text-sm"
+			>
+				<Download size={16} />
+				Exporter CSV
+			</a>
+		</div>
 	</div>
 
 	<!-- Filters and Search -->
@@ -237,17 +246,25 @@
 								</div>
 							</td>
 							<td class="px-6 py-4">
-								<span class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium {statusBadge.class} rounded-full">
-									{#if statusBadge.icon}
-										<svelte:component this={statusBadge.icon} size={12} />
+								<div class="flex items-center gap-2">
+									<span class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium {statusBadge.class} rounded-full">
+										{#if statusBadge.icon}
+											<svelte:component this={statusBadge.icon} size={12} />
+										{/if}
+										{statusBadge.text}
+									</span>
+									{#if reservation.isComp}
+										<span class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-purple-50 text-purple-700 rounded-full">
+											<Gift size={12} />
+											Comp
+										</span>
 									{/if}
-									{statusBadge.text}
-								</span>
+								</div>
 							</td>
 							<td class="px-6 py-4">
 								<div class="flex items-center gap-2">
 									<span class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium {paymentBadge.class} rounded-full">
-										{paymentBadge.text}
+										{reservation.isComp ? 'Comp' : paymentBadge.text}
 									</span>
 								</div>
 							</td>
@@ -288,12 +305,20 @@
 								<h3 class="font-semibold text-foreground truncate">
 									{reservation.guestName}
 								</h3>
-								<span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium {statusBadge.class} rounded-full flex-shrink-0">
-									{#if statusBadge.icon}
-										<svelte:component this={statusBadge.icon} size={10} />
+								<div class="flex items-center gap-1 flex-shrink-0">
+									<span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium {statusBadge.class} rounded-full">
+										{#if statusBadge.icon}
+											<svelte:component this={statusBadge.icon} size={10} />
+										{/if}
+										{statusBadge.text}
+									</span>
+									{#if reservation.isComp}
+										<span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-purple-50 text-purple-700 rounded-full">
+											<Gift size={10} />
+											Comp
+										</span>
 									{/if}
-									{statusBadge.text}
-								</span>
+								</div>
 							</div>
 							<p class="text-sm text-muted-foreground truncate">{reservation.guestEmail}</p>
 						</div>
@@ -317,7 +342,7 @@
 						<div>
 							<div class="text-xs text-muted-foreground">Paiement</div>
 							<span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium {paymentBadge.class} rounded-full">
-								{paymentBadge.text}
+								{reservation.isComp ? 'Comp' : paymentBadge.text}
 							</span>
 						</div>
 					</div>

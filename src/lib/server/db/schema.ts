@@ -536,6 +536,7 @@ export const reservations = pgTable('reservations', {
     cancelledAt: timestamp('cancelled_at', { withTimezone: true }),
     reminderSent1Week: boolean('reminder_sent_1_week').default(false).notNull(),
     reminderSent1Day: boolean('reminder_sent_1_day').default(false).notNull(),
+    isComp: boolean('is_comp').default(false).notNull(),
     paymentId: uuid('payment_id').references(() => payments.id, { onDelete: 'set null' }),
     promotionCodeId: uuid('promotion_code_id').references(() => promotionCodes.id, { onDelete: 'set null' }),
     discountAmount: integer('discount_amount').default(0).notNull(),
@@ -554,6 +555,7 @@ export const reservations = pgTable('reservations', {
         .on(table.status, table.expiresAt),
     statusCreatedAtIdx: index('reservations_status_created_at_idx')
         .on(table.status, table.createdAt),
+    isCompIdx: index('reservations_is_comp_idx').on(table.isComp),
     quantityCheck: check('reservations_quantity_check', sql`quantity > 0`),
     amountCheck: check('reservations_amount_check', sql`total_amount >= 0`),
     discountCheck: check('reservations_discount_check', sql`discount_amount >= 0`),
