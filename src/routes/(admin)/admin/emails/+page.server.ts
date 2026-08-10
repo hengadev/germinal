@@ -1,5 +1,6 @@
 import { env } from '$lib/server/env';
 import { fail } from '@sveltejs/kit';
+import { requireAdmin } from '$lib/server/auth-guards';
 import type { PageServerLoad, Actions } from './$types';
 
 export const load: PageServerLoad = async ({ url }) => {
@@ -67,7 +68,8 @@ export const load: PageServerLoad = async ({ url }) => {
 };
 
 export const actions: Actions = {
-	retry: async ({ request }) => {
+	retry: async ({ request, locals }) => {
+		requireAdmin(locals);
 		if (env.USE_MOCK_DATA) {
 			return { success: true, message: 'Email queued for retry (mock)' };
 		}
@@ -100,7 +102,8 @@ export const actions: Actions = {
 		}
 	},
 
-	delete: async ({ request }) => {
+	delete: async ({ request, locals }) => {
+		requireAdmin(locals);
 		if (env.USE_MOCK_DATA) {
 			return { success: true, message: 'Email deleted (mock)' };
 		}
@@ -126,7 +129,8 @@ export const actions: Actions = {
 		}
 	},
 
-	deleteOld: async () => {
+	deleteOld: async ({ locals }) => {
+		requireAdmin(locals);
 		if (env.USE_MOCK_DATA) {
 			return { success: true, message: 'Old emails deleted (mock)' };
 		}

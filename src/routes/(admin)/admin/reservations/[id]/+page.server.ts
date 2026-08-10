@@ -1,6 +1,7 @@
 import { env } from '$lib/server/env';
 import { MOCK_EVENTS, MOCK_SESSIONS, MOCK_RESERVATIONS } from '$lib/mock-data';
 import { error, fail, redirect } from '@sveltejs/kit';
+import { requireAdmin } from '$lib/server/auth-guards';
 import type { PageServerLoad, Actions } from './$types';
 
 export const load: PageServerLoad = async ({ params }) => {
@@ -113,7 +114,8 @@ export const load: PageServerLoad = async ({ params }) => {
 };
 
 export const actions: Actions = {
-	cancel: async ({ params, request }) => {
+	cancel: async ({ params, request, locals }) => {
+		requireAdmin(locals);
 		if (env.USE_MOCK_DATA) {
 			// Mock mode - just return success
 			return { success: true, message: 'Reservation cancelled (mock)' };
@@ -128,7 +130,8 @@ export const actions: Actions = {
 		}
 	},
 
-	refund: async ({ params, request }) => {
+	refund: async ({ params, request, locals }) => {
+		requireAdmin(locals);
 		if (env.USE_MOCK_DATA) {
 			// Mock mode - just return success
 			return { success: true, message: 'Refund processed (mock)' };
@@ -143,7 +146,8 @@ export const actions: Actions = {
 		}
 	},
 
-	reminder: async ({ params, request }) => {
+	reminder: async ({ params, request, locals }) => {
+		requireAdmin(locals);
 		if (env.USE_MOCK_DATA) {
 			// Mock mode - just return success
 			return { success: true, message: 'Reminder sent (mock)' };
