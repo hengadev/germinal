@@ -69,6 +69,65 @@
 
 	let statusBadge = $derived(getStatusBadge(data.reservation.status));
 
+	// Payment status label (payment statuses use snake_case internally,
+	// e.g. "partially_refunded" — map to readable French labels)
+	function getPaymentStatusLabel(status: string) {
+		switch (status) {
+			case 'succeeded':
+				return 'Payé';
+			case 'pending':
+				return 'En attente';
+			case 'processing':
+				return 'En cours';
+			case 'failed':
+				return 'Échoué';
+			case 'refunded':
+				return 'Remboursé';
+			case 'partially_refunded':
+				return 'Partiellement remboursé';
+			default:
+				return status;
+		}
+	}
+
+	// Remaining refundable balance, in cents. Used to default/limit the
+	// partial refund amount input and to decide whether the refund action
+	// should still be offered (payment can be "succeeded" or already
+	// "partially_refunded" with balance left).
+	let remainingRefundable = $derived(
+		data.reservation.payment
+			? data.reservation.payment.amount - (data.reservation.payment.refundedAmount || 0)
+			: 0
+	);
+
+	let canRefund = $derived(
+		!!data.reservation.payment &&
+		(data.reservation.payment.status === 'succeeded' || data.reservation.payment.status === 'partially_refunded') &&
+		remainingRefundable > 0
+	);
+
+	let refundAmountInput = $state('');
+	let refundAmountError = $state('');
+
+	function validateRefundAmount(): boolean {
+		refundAmountError = '';
+		const trimmed = refundAmountInput.trim();
+		if (trimmed === '') {
+			// Empty means "refund the full remaining balance" - always valid.
+			return true;
+		}
+		const parsed = Number(trimmed);
+		if (!Number.isFinite(parsed) || parsed <= 0) {
+			refundAmountError = 'Le montant doit être supérieur à zéro.';
+			return false;
+		}
+		if (Math.round(parsed * 100) > remainingRefundable) {
+			refundAmountError = `Le montant dépasse le solde remboursable de ${formatCurrency(remainingRefundable, data.reservation.currency)}.`;
+			return false;
+		}
+		return true;
+	}
+
 	// Format date and time
 	function formatDateTime(dateString: string): string {
 		return new Date(dateString).toLocaleString('en-US', {
@@ -263,7 +322,7 @@ END:VCALENDAR`;
 					<div class="space-y-3">
 						<div class="flex items-center justify-between">
 							<span class="text-foreground-alt">Statut</span>
-							<span class="font-medium text-foreground capitalize">{data.reservation.payment.status}</span>
+							<span class="font-medium text-foreground">{getPaymentStatusLabel(data.reservation.payment.status)}</span>
 						</div>
 						<div class="flex items-center justify-between">
 							<span class="text-foreground-alt">Montant Payé</span>
@@ -410,18 +469,49 @@ END:VCALENDAR`;
 							</button>
 						</form>
 
-						{#if data.reservation.payment?.status === 'succeeded' && (!data.reservation.payment.refundedAmount || data.reservation.payment.refundedAmount < data.reservation.payment.amount)}
-							<form method="POST" action="?/refund" use:enhance={({ formElement }) => {
+						{#if canRefund}
+							<form method="POST" action="?/refund" use:enhance={({ cancel }) => {
+								if (!validateRefundAmount()) {
+									cancel();
+									return;
+								}
 								isSubmitting = true;
 								return async ({ result }) => {
 									isSubmitting = false;
 									if (result.type === 'success' && result.data) {
+										refundAmountInput = '';
 										form = { success: (result.data as { message: string }).message };
 									} else if (result.type === 'failure' && result.data) {
 										form = { error: (result.data as { error?: string }).error || 'Action échouée' };
 									}
 								};
 							}}>
+								<label for="refund-amount" class="block text-xs text-foreground-alt mb-1">
+									Montant à rembourser (laisser vide pour la totalité)
+								</label>
+								<div class="text-xs text-muted-foreground mb-2">
+									Solde remboursable : {formatCurrency(remainingRefundable, data.reservation.currency)}
+								</div>
+								<input
+									id="refund-amount"
+									name="amount"
+									type="number"
+									step="0.01"
+									min="0.01"
+									max={(remainingRefundable / 100).toFixed(2)}
+									placeholder={(remainingRefundable / 100).toFixed(2)}
+									bind:value={refundAmountInput}
+									oninput={() => { refundAmountError = ''; }}
+									class="w-full mb-1 px-3 py-2 border border-border-input rounded-lg text-sm bg-background text-foreground"
+								/>
+								{#if refundAmountError}
+									<div class="flex items-center gap-1.5 text-xs text-red-600 mb-2">
+										<AlertCircle size={14} />
+										<span>{refundAmountError}</span>
+									</div>
+								{:else}
+									<div class="mb-2"></div>
+								{/if}
 								<button
 									type="submit"
 									disabled={isSubmitting}
