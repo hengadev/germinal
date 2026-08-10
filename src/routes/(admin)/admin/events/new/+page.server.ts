@@ -2,6 +2,7 @@ import { fail, redirect, type Actions } from '@sveltejs/kit';
 import { env } from '$lib/server/env';
 import { MOCK_EVENTS, MOCK_CATEGORIES, MOCK_TALENTS } from '$lib/mock-data';
 import type { PageServerLoad } from './$types';
+import { requireAdmin } from '$lib/server/auth-guards';
 
 export const load: PageServerLoad = async () => {
 	if (env.USE_MOCK_DATA) {
@@ -17,7 +18,8 @@ export const load: PageServerLoad = async () => {
 };
 
 export const actions: Actions = {
-	default: async ({ request }) => {
+	default: async ({ request, locals }) => {
+		requireAdmin(locals);
 		const formData = await request.formData();
 		const titleEn = formData.get('titleEn');
 		const titleFr = formData.get('titleFr');

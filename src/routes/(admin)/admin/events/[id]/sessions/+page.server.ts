@@ -3,6 +3,7 @@ import { logger } from '$lib/server/logger';
 import { getEventById } from '$lib/server/services/events';
 import { error, fail } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
+import { requireAdmin } from '$lib/server/auth-guards';
 
 export const load: PageServerLoad = async ({ params }) => {
 	const event = await getEventById(params.id);
@@ -31,7 +32,8 @@ export const load: PageServerLoad = async ({ params }) => {
 };
 
 export const actions: Actions = {
-	createSession: async ({ request, params }) => {
+	createSession: async ({ request, params, locals }) => {
+		requireAdmin(locals);
 		if (!params.id) {
 			return fail(400, { error: 'Event ID is required' });
 		}
@@ -68,7 +70,8 @@ export const actions: Actions = {
 		}
 	},
 
-	updateSession: async ({ request }) => {
+	updateSession: async ({ request, locals }) => {
+		requireAdmin(locals);
 		const formData = await request.formData();
 		const id = formData.get('id') as string;
 		const titleEn = formData.get('titleEn') as string;
@@ -102,7 +105,8 @@ export const actions: Actions = {
 		}
 	},
 
-	deleteSession: async ({ request }) => {
+	deleteSession: async ({ request, locals }) => {
+		requireAdmin(locals);
 		const formData = await request.formData();
 		const id = formData.get('id') as string;
 
