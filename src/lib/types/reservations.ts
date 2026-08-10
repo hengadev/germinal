@@ -1,7 +1,8 @@
-import type { reservations, eventSessions, payments } from '$lib/server/db/schema';
+import type { reservations, eventSessions, payments, media } from '$lib/server/db/schema';
 
 export type Reservation = typeof reservations.$inferSelect;
 export type Payment = typeof payments.$inferSelect;
+export type Media = typeof media.$inferSelect;
 
 export type CreateReservationInput = {
 	sessionId: string;
@@ -32,6 +33,7 @@ export type ReservationWithDetails = Reservation & {
 			cityFr: string | null;
 			countryEn: string | null;
 			countryFr: string | null;
+			coverMedia: Media | null;
 		};
 	};
 	payment: Payment | null;

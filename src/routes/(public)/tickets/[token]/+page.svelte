@@ -143,10 +143,49 @@ END:VCALENDAR`;
 		});
 		return `https://calendar.google.com/calendar/render?${params.toString()}`;
 	});
+
+	let ogTitle = $derived(
+		$t('tickets.pageTitle', { values: { eventTitle: data.reservation.session.event.title } })
+	);
+	let ogDescription = $derived(
+		$t('tickets.ogDescription', {
+			values: {
+				eventTitle: data.reservation.session.event.title,
+				date: formatDateTime(data.reservation.session.startTime),
+				quantity: data.reservation.quantity
+			}
+		})
+	);
+	let ogImage = $derived(
+		data.reservation.session.event.coverMedia?.type === 'image'
+			? data.reservation.session.event.coverMedia.url
+			: undefined
+	);
+	let ogUrl = $derived(page.url.href);
 </script>
 
 <svelte:head>
-	<title>{$t('tickets.pageTitle', { values: { eventTitle: data.reservation.session.event.title } })}</title>
+	<title>{ogTitle}</title>
+	<meta name="description" content={ogDescription} />
+
+	<!-- Open Graph -->
+	<meta property="og:type" content="website" />
+	<meta property="og:site_name" content="Germinal" />
+	<meta property="og:title" content={ogTitle} />
+	<meta property="og:description" content={ogDescription} />
+	<meta property="og:url" content={ogUrl} />
+	{#if ogImage}
+		<meta property="og:image" content={ogImage} />
+		<meta property="og:image:alt" content={data.reservation.session.event.title} />
+	{/if}
+
+	<!-- Twitter Card -->
+	<meta name="twitter:card" content={ogImage ? 'summary_large_image' : 'summary'} />
+	<meta name="twitter:title" content={ogTitle} />
+	<meta name="twitter:description" content={ogDescription} />
+	{#if ogImage}
+		<meta name="twitter:image" content={ogImage} />
+	{/if}
 </svelte:head>
 
 <div class="min-h-screen bg-surface/30 py-12">

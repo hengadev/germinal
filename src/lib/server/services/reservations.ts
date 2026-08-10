@@ -206,6 +206,9 @@ export async function getReservationByToken(token: string): Promise<ReservationW
 							countryEn: true,
 							countryFr: true,
 						},
+						with: {
+							coverMedia: true,
+						},
 					},
 				},
 			},

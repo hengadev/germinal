@@ -5,6 +5,7 @@ import type {Component} from "svelte"
     import type { PageData } from "./$types";
     import { t, locale } from 'svelte-i18n';
     import { reveal } from '$lib/actions/reveal';
+    import { page } from '$app/state';
 
     let { data }: { data: PageData } = $props();
 
@@ -24,11 +25,35 @@ import type {Component} from "svelte"
         const frField = (field + 'Fr') as 'roleFr' | 'bioFr' | 'quoteFr';
         return $locale === 'en' ? (data.talent[enField] || '') : (data.talent[frField] || '');
     }
+
+    let ogTitle = $derived(`${data.talent.firstName} ${data.talent.lastName} | Germinal`);
+    let ogDescription = $derived(getTalentField('bio').slice(0, 200));
+    let ogImage = $derived(data.talent.profileMedia?.url);
+    let ogUrl = $derived(page.url.href);
 </script>
 
 <svelte:head>
-    <title>{data.talent.firstName} {data.talent.lastName} | Germinal</title>
+    <title>{ogTitle}</title>
     <meta name="description" content={getTalentField('bio').slice(0, 160)} />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="profile" />
+    <meta property="og:site_name" content="Germinal" />
+    <meta property="og:title" content={ogTitle} />
+    <meta property="og:description" content={ogDescription} />
+    <meta property="og:url" content={ogUrl} />
+    {#if ogImage}
+        <meta property="og:image" content={ogImage} />
+        <meta property="og:image:alt" content="{data.talent.firstName} {data.talent.lastName}" />
+    {/if}
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content={ogImage ? 'summary_large_image' : 'summary'} />
+    <meta name="twitter:title" content={ogTitle} />
+    <meta name="twitter:description" content={ogDescription} />
+    {#if ogImage}
+        <meta name="twitter:image" content={ogImage} />
+    {/if}
 </svelte:head>
 
 {#snippet socialLinksIcon(href: string, Icon: Component)}
