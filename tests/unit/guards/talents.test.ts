@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest';
 import { isHttpError } from '@sveltejs/kit';
 
-async function expectRejectedWith(promise: Promise<unknown>, status: number) {
+async function expectRejectedWith(promise: unknown, status: number) {
 	try {
 		await promise;
 		expect.unreachable('expected action to throw');
