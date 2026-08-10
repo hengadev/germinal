@@ -1,5 +1,6 @@
 import { env } from '$lib/server/env';
 import { fail } from '@sveltejs/kit';
+import { requireAdmin } from '$lib/server/auth-guards';
 import type { PageServerLoad, Actions } from './$types';
 
 export const load: PageServerLoad = async () => {
@@ -76,7 +77,8 @@ export const load: PageServerLoad = async () => {
 };
 
 export const actions: Actions = {
-	retry: async ({ request }) => {
+	retry: async ({ request, locals }) => {
+		requireAdmin(locals);
 		if (env.USE_MOCK_DATA) {
 			return { success: true, message: 'Webhook retried (mock)' };
 		}

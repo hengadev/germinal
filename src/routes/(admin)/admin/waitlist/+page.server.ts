@@ -1,5 +1,6 @@
 import { env } from '$lib/server/env';
 import { fail } from '@sveltejs/kit';
+import { requireAdmin } from '$lib/server/auth-guards';
 import type { PageServerLoad, Actions } from './$types';
 
 export const load: PageServerLoad = async ({ url }) => {
@@ -113,7 +114,8 @@ export const load: PageServerLoad = async ({ url }) => {
 };
 
 export const actions: Actions = {
-	notify: async ({ request }) => {
+	notify: async ({ request, locals }) => {
+		requireAdmin(locals);
 		if (env.USE_MOCK_DATA) {
 			return { success: true, message: 'Waitlist entries notified (mock)' };
 		}
@@ -177,7 +179,8 @@ export const actions: Actions = {
 		}
 	},
 
-	markNotified: async ({ request }) => {
+	markNotified: async ({ request, locals }) => {
+		requireAdmin(locals);
 		if (env.USE_MOCK_DATA) {
 			return { success: true, message: 'Entries marked as notified (mock)' };
 		}
@@ -207,7 +210,8 @@ export const actions: Actions = {
 		}
 	},
 
-	delete: async ({ request }) => {
+	delete: async ({ request, locals }) => {
+		requireAdmin(locals);
 		if (env.USE_MOCK_DATA) {
 			return { success: true, message: 'Entries deleted (mock)' };
 		}
@@ -233,7 +237,8 @@ export const actions: Actions = {
 		}
 	},
 
-	deleteExpired: async () => {
+	deleteExpired: async ({ locals }) => {
+		requireAdmin(locals);
 		if (env.USE_MOCK_DATA) {
 			return { success: true, message: 'Expired entries deleted (mock)' };
 		}

@@ -2,6 +2,7 @@ import { fail, error } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import { env } from '$lib/server/env';
 import { logger } from '$lib/server/logger';
+import { requireAdmin } from '$lib/server/auth-guards';
 
 export const load: PageServerLoad = async () => {
     if (env.USE_MOCK_DATA) {
@@ -14,7 +15,8 @@ export const load: PageServerLoad = async () => {
 };
 
 export const actions: Actions = {
-    uploadHeroImage: async ({ request }) => {
+    uploadHeroImage: async ({ request, locals }) => {
+        requireAdmin(locals);
         if (env.USE_MOCK_DATA) return fail(400, { error: 'Not available in mock mode' });
 
         const formData = await request.formData();
@@ -42,7 +44,8 @@ export const actions: Actions = {
         }
     },
 
-    uploadHeroVideo: async ({ request }) => {
+    uploadHeroVideo: async ({ request, locals }) => {
+        requireAdmin(locals);
         if (env.USE_MOCK_DATA) return fail(400, { error: 'Not available in mock mode' });
 
         const formData = await request.formData();
@@ -70,7 +73,8 @@ export const actions: Actions = {
         }
     },
 
-    clearHeroImage: async () => {
+    clearHeroImage: async ({ locals }) => {
+        requireAdmin(locals);
         if (env.USE_MOCK_DATA) return fail(400, { error: 'Not available in mock mode' });
 
         try {
@@ -83,7 +87,8 @@ export const actions: Actions = {
         }
     },
 
-    clearHeroVideo: async () => {
+    clearHeroVideo: async ({ locals }) => {
+        requireAdmin(locals);
         if (env.USE_MOCK_DATA) return fail(400, { error: 'Not available in mock mode' });
 
         try {
