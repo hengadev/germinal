@@ -18,7 +18,8 @@
     "events": "Our portfolio",
     "talents": "Our talents",
     "manifesto": "Our manifesto",
-    "contact": "Contact"
+    "contact": "Contact",
+    "findTicket": "Find my ticket"
   },
   "footer": {
     "allRightsReserved": "All rights reserved.",
@@ -272,6 +273,24 @@
     "printTicket": "Print Ticket",
     "confirmationId": "Confirmation ID",
     "ticketCount": "{count, plural, one {# Ticket} other {# Tickets}}"
+  },
+  "findTicket": {
+    "pageTitle": "Find My Ticket | Germinal",
+    "title": "Lost your ticket?",
+    "description": "Enter the email address you booked with, and we'll send your ticket link(s) again.",
+    "form": {
+      "email": "Email",
+      "emailPlaceholder": "you@example.com",
+      "emailRequired": "Please enter your email address.",
+      "send": "Send my ticket link",
+      "sending": "Sending...",
+      "error": "Something went wrong. Please try again.",
+      "rateLimited": "Too many attempts. Please try again later."
+    },
+    "success": {
+      "message": "If that email has any confirmed reservations, we've sent the ticket link(s) to it. Please check your inbox (and spam folder).",
+      "tryAnother": "Try a different email"
+    }
   },
   "legal": {
     "lastUpdated": "Last updated: {date}",
