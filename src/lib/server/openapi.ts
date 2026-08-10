@@ -65,6 +65,12 @@ export const openApiSpec = {
 						in: 'query',
 						schema: { type: 'integer', minimum: 1, maximum: 100, default: 20 },
 						description: 'Number of events per page'
+					},
+					{
+						name: 'q',
+						in: 'query',
+						schema: { type: 'string' },
+						description: 'Keyword search across Event titles and descriptions, in both languages'
 					}
 				],
 				responses: {

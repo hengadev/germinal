@@ -10,13 +10,25 @@ import type { RequestHandler } from './$types';
 export const GET: RequestHandler = async ({ url, setHeaders }) => {
   const publishedOnly = url.searchParams.get('published') !== 'false';
   const excludeSpotlight = url.searchParams.get('excludeSpotlight') === 'true';
+  const search = url.searchParams.get('q') || undefined;
   const pagination = parsePagination(url.searchParams);
 
   // Use mock data if enabled (no database required!)
   if (USE_MOCK_DATA) {
     const page = pagination.page ?? 1;
     const limit = pagination.limit ?? 20;
-    const mockEvents = excludeSpotlight ? MOCK_EVENTS.filter(e => !e.isSpotlight) : MOCK_EVENTS;
+    let mockEvents = excludeSpotlight ? MOCK_EVENTS.filter(e => !e.isSpotlight) : MOCK_EVENTS;
+
+    if (search && search.trim()) {
+      const query = search.trim().toLowerCase();
+      mockEvents = mockEvents.filter(e =>
+        e.titleEn.toLowerCase().includes(query) ||
+        e.titleFr.toLowerCase().includes(query) ||
+        e.descriptionEn.toLowerCase().includes(query) ||
+        e.descriptionFr.toLowerCase().includes(query)
+      );
+    }
+
     const totalEvents = mockEvents.length;
     const startIndex = (page - 1) * limit;
     const endIndex = startIndex + limit;
@@ -24,6 +36,13 @@ export const GET: RequestHandler = async ({ url, setHeaders }) => {
 
     const paginationMetadata = calculatePagination(page, limit, totalEvents);
     return json(createPaginatedResponse(paginatedEvents, paginationMetadata));
+  }
+
+  // Search results aren't cached — keyword queries are too varied to be worth caching,
+  // and skipping the cache keeps `q` from bloating the events cache key space.
+  if (search) {
+    const result = await getAllEvents({ publishedOnly, excludeSpotlight, search, ...pagination });
+    return json(result);
   }
 
   const result = await getCached(
