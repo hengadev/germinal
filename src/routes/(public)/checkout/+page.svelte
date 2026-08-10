@@ -5,6 +5,7 @@
 	import { browser } from '$app/environment';
 	import { loadStripe, type Stripe, type StripeElements } from '@stripe/stripe-js';
 	import { Lock, Clock, AlertCircle, CheckCircle2, Loader2, Tag } from 'lucide-svelte';
+	import { locale } from 'svelte-i18n';
 	import { formatCurrency } from '$lib/utils/currency';
 	import { env } from '$env/dynamic/public';
 
@@ -219,7 +220,8 @@
 							<span class="text-foreground">
 								{formatCurrency(
 									reservationData.originalAmount ?? reservationData.totalAmount,
-									reservationData.currency
+									reservationData.currency,
+									$locale ?? undefined
 								)}
 							</span>
 						</div>
@@ -230,14 +232,14 @@
 									<Tag size={14} />
 									Code {reservationData.promoCode}
 								</span>
-								<span>−{formatCurrency(reservationData.discountAmount, reservationData.currency)}</span>
+								<span>−{formatCurrency(reservationData.discountAmount, reservationData.currency, $locale ?? undefined)}</span>
 							</div>
 						{/if}
 
 						<div class="flex items-center justify-between font-semibold text-lg pt-2 border-t border-border-card">
 							<span class="text-foreground">Total</span>
 							<span class="text-foreground">
-								{formatCurrency(reservationData.totalAmount, reservationData.currency)}
+								{formatCurrency(reservationData.totalAmount, reservationData.currency, $locale ?? undefined)}
 							</span>
 						</div>
 					</div>
@@ -286,7 +288,7 @@
 						{:else if timeRemaining === 'Expired'}
 							Reservation Expired
 						{:else}
-							Pay {formatCurrency(reservationData.totalAmount ?? 0, reservationData.currency)}
+							Pay {formatCurrency(reservationData.totalAmount ?? 0, reservationData.currency, $locale ?? undefined)}
 						{/if}
 					</button>
 				</form>

@@ -86,10 +86,10 @@
 					discountValue: result.discountValue,
 				};
 			} else {
-				promoCodeError = result.error ?? 'Invalid promotion code';
+				promoCodeError = result.error ?? $t('booking.promoCode.invalidCode');
 			}
 		} catch {
-			promoCodeError = 'Unable to validate code. Please try again.';
+			promoCodeError = $t('booking.promoCode.validationError');
 		} finally {
 			promoCodeApplying = false;
 		}
@@ -144,13 +144,13 @@
 			const result = await response.json();
 
 			if (!response.ok) {
-				throw new Error(result.error || 'Failed to create reservation');
+				throw new Error(result.error || $t('booking.createError'));
 			}
 
 			// Redirect to Stripe's hosted checkout page
 			window.location.href = result.checkoutUrl;
 		} catch (err) {
-			error = err instanceof Error ? err.message : 'Failed to create reservation';
+			error = err instanceof Error ? err.message : $t('booking.createError');
 			isSubmitting = false;
 		}
 	}
@@ -187,8 +187,7 @@
 			<h1 class="text-3xl font-serif">{$t('booking.title')}</h1>
 			<p class="text-muted-foreground">
 				{data.isMockMode
-					? 'Demo mode: your booking would be confirmed here. A confirmation email would be sent to ' +
-						email
+					? $t('booking.demoSuccessMessage', { values: { email } })
 					: $t('booking.emailHint')}
 			</p>
 			<a
@@ -196,7 +195,7 @@
 				class="inline-flex items-center justify-center gap-2 px-6 py-3 border border-border-input text-foreground-alt rounded-none hover:bg-surface transition-colors font-medium"
 			>
 				<ArrowLeft size={18} />
-				Back to event
+				{$t('booking.backToEvent')}
 			</a>
 		</div>
 	{:else}
@@ -208,7 +207,7 @@
 				class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6 flex items-start gap-3"
 			>
 				<AlertCircle size={20} class="text-amber-600 flex-shrink-0 mt-0.5" />
-				<p class="text-amber-800 text-sm">Demo mode — fill in the form to preview the booking experience. No real reservation will be created.</p>
+				<p class="text-amber-800 text-sm">{$t('booking.demoNotice')}</p>
 			</div>
 		{/if}
 
@@ -338,8 +337,8 @@
 			<!-- Promo code -->
 			<div>
 				<label class="block text-sm font-medium text-foreground-alt mb-2">
-					Code promotionnel
-					<span class="text-muted-foreground text-xs">(optionnel)</span>
+					{$t('booking.promoCode.label')}
+					<span class="text-muted-foreground text-xs">{$t('booking.optional')}</span>
 				</label>
 
 				{#if appliedPromoCode}
@@ -349,15 +348,15 @@
 							<span class="font-mono">{appliedPromoCode.code}</span>
 							<span class="font-normal text-green-600">
 								— {appliedPromoCode.discountType === 'percent'
-									? `${appliedPromoCode.discountValue}% off`
-									: '−' + formatCurrency(appliedPromoCode.discountValue, data.session.currency)}
+									? $t('booking.promoCode.discountOff', { values: { value: appliedPromoCode.discountValue } })
+									: '−' + formatCurrency(appliedPromoCode.discountValue, data.session.currency, $locale ?? undefined)}
 							</span>
 						</div>
 						<button
 							type="button"
 							onclick={removePromoCode}
 							class="text-green-500 hover:text-green-700 transition-colors ml-2"
-							aria-label="Remove promo code"
+							aria-label={$t('booking.promoCode.removeAria')}
 						>
 							<X size={16} />
 						</button>
@@ -369,7 +368,7 @@
 							<input
 								type="text"
 								bind:value={promoCodeInput}
-								placeholder="Ex: SUMMER20"
+								placeholder={$t('booking.promoCode.placeholder')}
 								disabled={isSubmitting}
 								class="w-full pl-9 pr-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm font-mono uppercase disabled:bg-surface disabled:cursor-not-allowed {promoCodeError ? 'border-red-300' : 'border-border-input'}"
 								oninput={(e) => { promoCodeInput = (e.target as HTMLInputElement).value.toUpperCase(); promoCodeError = null; }}
@@ -385,7 +384,7 @@
 							{#if promoCodeApplying}
 								<Loader2 size={15} class="animate-spin" />
 							{/if}
-							Appliquer
+							{$t('booking.promoCode.apply')}
 						</button>
 					</div>
 					{#if promoCodeError}
@@ -400,21 +399,21 @@
 					<span class="text-muted-foreground"
 						>{$t('booking.tickets', { values: { qty: quantity } })}</span
 					>
-					<span class="text-foreground">{formatCurrency(baseAmount, data.session.currency)}</span>
+					<span class="text-foreground">{formatCurrency(baseAmount, data.session.currency, $locale ?? undefined)}</span>
 				</div>
 				{#if discountAmount > 0}
 					<div class="flex items-center justify-between mb-2 text-green-600 text-sm">
 						<span class="flex items-center gap-1">
 							<Tag size={13} />
-							Code {appliedPromoCode?.code}
+							{$t('booking.promoCode.appliedLabel')} {appliedPromoCode?.code}
 						</span>
-						<span>−{formatCurrency(discountAmount, data.session.currency)}</span>
+						<span>−{formatCurrency(discountAmount, data.session.currency, $locale ?? undefined)}</span>
 					</div>
 				{/if}
 				<div class="border-t border-border-card pt-2 mt-2 flex items-center justify-between">
 					<span class="font-semibold text-foreground">{$t('booking.total')}</span>
 					<span class="font-medium text-xl text-foreground">
-						{formatCurrency(totalAmount, data.session.currency)}
+						{formatCurrency(totalAmount, data.session.currency, $locale ?? undefined)}
 					</span>
 				</div>
 			</div>
@@ -436,7 +435,7 @@
 						<Loader2 size={18} class="animate-spin" />
 						{$t('booking.processing')}
 					{:else}
-						{data.isMockMode ? 'Book (Demo)' : $t('booking.continueToPay')}
+						{data.isMockMode ? $t('booking.bookDemo') : $t('booking.continueToPay')}
 					{/if}
 				</button>
 			</div>

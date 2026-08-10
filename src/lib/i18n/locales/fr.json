@@ -230,6 +230,21 @@
     "notAvailable": "Non disponible",
     "joinWaitlist": "Rejoindre la liste d'attente",
     "bookNow": "Réserver",
+    "backToEvent": "Retour à l'événement",
+    "demoNotice": "Mode démo — remplissez le formulaire pour prévisualiser le parcours de réservation. Aucune réservation réelle ne sera créée.",
+    "demoSuccessMessage": "Mode démo : votre réservation serait confirmée ici. Un email de confirmation serait envoyé à {email}",
+    "bookDemo": "Réserver (Démo)",
+    "createError": "Échec de la création de la réservation",
+    "promoCode": {
+      "label": "Code promotionnel",
+      "placeholder": "Ex. SUMMER20",
+      "apply": "Appliquer",
+      "invalidCode": "Code promotionnel invalide",
+      "validationError": "Impossible de valider le code. Veuillez réessayer.",
+      "removeAria": "Retirer le code promotionnel",
+      "discountOff": "{value}% de réduction",
+      "appliedLabel": "Code"
+    },
     "errors": {
       "soldOut": "Cette session est complète.",
       "sessionStarted": "Cette session a déjà commencé.",
@@ -237,6 +252,19 @@
       "rateLimit": "Trop de tentatives. Veuillez patienter quelques minutes avant de réessayer.",
       "generic": "Une erreur est survenue. Veuillez réessayer ou nous contacter si le problème persiste."
     }
+  },
+  "waitlist": {
+    "description": "Soyez averti dès que des billets sont disponibles",
+    "successTitle": "Vous êtes sur liste d'attente !",
+    "successMessage": "Nous vous préviendrons à {email} dès que des billets seront disponibles.",
+    "done": "Terminé",
+    "currentlySoldOut": "Actuellement complet",
+    "infoTitle": "Rejoignez la liste d'attente",
+    "infoMessage": "Nous vous enverrons un email si des billets se libèrent. Vous aurez 24 heures pour finaliser votre achat.",
+    "errorTitle": "Échec de l'inscription à la liste d'attente",
+    "genericError": "Échec de l'inscription à la liste d'attente",
+    "emailHint": "Nous vous informerons ici dès que des billets seront disponibles",
+    "joining": "Inscription en cours..."
   },
   "tickets": {
     "pageTitle": "Vos billets - {eventTitle}",

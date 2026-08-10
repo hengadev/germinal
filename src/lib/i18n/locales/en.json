@@ -230,6 +230,21 @@
     "notAvailable": "Not Available",
     "joinWaitlist": "Join Waitlist",
     "bookNow": "Book Now",
+    "backToEvent": "Back to event",
+    "demoNotice": "Demo mode — fill in the form to preview the booking experience. No real reservation will be created.",
+    "demoSuccessMessage": "Demo mode: your booking would be confirmed here. A confirmation email would be sent to {email}",
+    "bookDemo": "Book (Demo)",
+    "createError": "Failed to create reservation",
+    "promoCode": {
+      "label": "Promotion code",
+      "placeholder": "e.g. SUMMER20",
+      "apply": "Apply",
+      "invalidCode": "Invalid promotion code",
+      "validationError": "Unable to validate code. Please try again.",
+      "removeAria": "Remove promo code",
+      "discountOff": "{value}% off",
+      "appliedLabel": "Code"
+    },
     "errors": {
       "soldOut": "This session is sold out.",
       "sessionStarted": "This session has already started.",
@@ -237,6 +252,19 @@
       "rateLimit": "Too many attempts. Please wait a few minutes and try again.",
       "generic": "Something went wrong. Please try again or contact us if the problem persists."
     }
+  },
+  "waitlist": {
+    "description": "Get notified when tickets become available",
+    "successTitle": "You're on the Waitlist!",
+    "successMessage": "We'll notify you at {email} when tickets become available.",
+    "done": "Done",
+    "currentlySoldOut": "Currently Sold Out",
+    "infoTitle": "Join the Waitlist",
+    "infoMessage": "We'll email you if tickets become available. You'll have 24 hours to complete your purchase.",
+    "errorTitle": "Failed to Join Waitlist",
+    "genericError": "Failed to join waitlist",
+    "emailHint": "We'll notify you here when tickets are available",
+    "joining": "Joining..."
   },
   "tickets": {
     "pageTitle": "Your Tickets - {eventTitle}",
