@@ -54,6 +54,18 @@ export const badgeTypeEnum = pgEnum('badge_type', [
 
 export const discountTypeEnum = pgEnum('discount_type', ['percent', 'amount'] as const);
 
+// Mirrors Stripe.Dispute.Status from the installed stripe SDK (apiVersion 2025-12-15.clover)
+export const disputeStatusEnum = pgEnum('dispute_status', [
+    'warning_needs_response',
+    'warning_under_review',
+    'warning_closed',
+    'needs_response',
+    'under_review',
+    'won',
+    'lost',
+    'prevented'
+]);
+
 // ============================================
 // EVENT CATEGORIES
 // ============================================
@@ -594,6 +606,32 @@ export const payments = pgTable('payments', {
 }));
 
 // ============================================
+// DISPUTES TABLE
+// ============================================
+
+export const disputes = pgTable('disputes', {
+    id: uuid('id').defaultRandom().primaryKey(),
+    paymentId: uuid('payment_id')
+        .notNull()
+        .references(() => payments.id, { onDelete: 'restrict' }),
+    stripeDisputeId: varchar('stripe_dispute_id', { length: 255 }).notNull().unique(),
+    stripeChargeId: varchar('stripe_charge_id', { length: 255 }),
+    status: disputeStatusEnum('status').notNull(),
+    reason: varchar('reason', { length: 100 }),
+    amount: integer('amount').notNull(),
+    currency: varchar('currency', { length: 3 }).notNull().default('EUR'),
+    evidenceDueBy: timestamp('evidence_due_by', { withTimezone: true }),
+    adminNotifiedAt: timestamp('admin_notified_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+    paymentIdIdx: index('disputes_payment_id_idx').on(table.paymentId),
+    stripeDisputeIdIdx: index('disputes_stripe_dispute_id_idx').on(table.stripeDisputeId),
+    statusIdx: index('disputes_status_idx').on(table.status),
+    amountCheck: check('disputes_amount_check', sql`amount >= 0`),
+}));
+
+// ============================================
 // RESERVATION AND TICKETING RELATIONS
 // ============================================
 
@@ -625,10 +663,18 @@ export const reservationsRelations = relations(reservations, ({ one }) => ({
     }),
 }));
 
-export const paymentsRelations = relations(payments, ({ one }) => ({
+export const paymentsRelations = relations(payments, ({ one, many }) => ({
     reservation: one(reservations, {
         fields: [payments.reservationId],
         references: [reservations.id],
+    }),
+    disputes: many(disputes),
+}));
+
+export const disputesRelations = relations(disputes, ({ one }) => ({
+    payment: one(payments, {
+        fields: [disputes.paymentId],
+        references: [payments.id],
     }),
 }));
 

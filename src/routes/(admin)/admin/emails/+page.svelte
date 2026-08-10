@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Mail, CheckCircle2, Clock, XCircle, AlertCircle, Search, RotateCcw, Trash2, Eye, Filter, Calendar, Send } from 'lucide-svelte';
+	import { Mail, CheckCircle2, Clock, XCircle, AlertCircle, Search, RotateCcw, Trash2, Eye, Filter, Calendar, Send, AlertTriangle } from 'lucide-svelte';
 	import type { PageData } from './$types';
 	import { enhance } from '$app/forms';
 	import { getToastContext } from '$lib/components/toast/state.svelte';
@@ -59,6 +59,8 @@
 				return { text: 'Notification de Contact', class: 'bg-purple-50 text-purple-700', icon: Send };
 			case 'event_reminder':
 				return { text: 'Rappel d\'Événement', class: 'bg-orange-50 text-orange-700', icon: Calendar };
+			case 'dispute_alert':
+				return { text: 'Alerte Litige', class: 'bg-red-50 text-red-700', icon: AlertTriangle };
 			default:
 				return { text: type, class: 'bg-muted text-foreground-alt', icon: Mail };
 		}
@@ -149,6 +151,7 @@
 					<option value="ticket_confirmation">Confirmation de Billet</option>
 					<option value="contact_notification">Notification de Contact</option>
 					<option value="event_reminder">Rappel d'Événement</option>
+					<option value="dispute_alert">Alerte Litige</option>
 				</select>
 			</div>
 
