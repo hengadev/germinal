@@ -3,6 +3,7 @@ import { logger } from '$lib/server/logger';
 import { env } from '$lib/server/env';
 import { MOCK_EVENTS, MOCK_SESSIONS, MOCK_RESERVATIONS, MOCK_TALENTS } from '$lib/mock-data';
 import type { PageServerLoad } from './$types';
+import { requireAdmin } from '$lib/server/auth-guards';
 
 export const load: PageServerLoad = async ({ params }) => {
 	const { id } = params;
@@ -159,7 +160,8 @@ export const load: PageServerLoad = async ({ params }) => {
 
 export const actions: Actions = {
 	// Update event action
-	updateEvent: async ({ request, params }) => {
+	updateEvent: async ({ request, params, locals }) => {
+		requireAdmin(locals);
 		const { id } = params;
 
 		// Validate id
@@ -368,7 +370,8 @@ export const actions: Actions = {
 	},
 
 	// Update media action (Photos tab)
-	updateMedia: async ({ request, params }) => {
+	updateMedia: async ({ request, params, locals }) => {
+		requireAdmin(locals);
 		const { id } = params;
 		if (!id) return fail(400, { error: 'Event ID is required' });
 
@@ -422,7 +425,8 @@ export const actions: Actions = {
 	},
 
 	// Delete a single photo immediately
-	deletePhoto: async ({ request, params }) => {
+	deletePhoto: async ({ request, params, locals }) => {
+		requireAdmin(locals);
 		const { id } = params;
 		if (!id) return fail(400, { error: 'Event ID is required' });
 
@@ -454,7 +458,8 @@ export const actions: Actions = {
 	},
 
 	// Create session action
-	createSession: async ({ request, params }) => {
+	createSession: async ({ request, params, locals }) => {
+		requireAdmin(locals);
 		if (!params.id) {
 			return fail(400, { error: 'Event ID is required' });
 		}
@@ -486,7 +491,8 @@ export const actions: Actions = {
 	},
 
 	// Update session action
-	updateSession: async ({ request }) => {
+	updateSession: async ({ request, locals }) => {
+		requireAdmin(locals);
 		const formData = await request.formData();
 		const id = formData.get('id') as string;
 
@@ -515,7 +521,8 @@ export const actions: Actions = {
 	},
 
 	// Delete session action
-	deleteSession: async ({ request }) => {
+	deleteSession: async ({ request, locals }) => {
+		requireAdmin(locals);
 		const formData = await request.formData();
 		const id = formData.get('id') as string;
 
@@ -531,7 +538,8 @@ export const actions: Actions = {
 	},
 
 	// Create promotion code action
-	createPromoCode: async ({ request, params }) => {
+	createPromoCode: async ({ request, params, locals }) => {
+		requireAdmin(locals);
 		const { id: eventId } = params;
 		if (!eventId) return fail(400, { error: 'Event ID is required' });
 
@@ -585,7 +593,8 @@ export const actions: Actions = {
 	},
 
 	// Deactivate promotion code action
-	deactivatePromoCode: async ({ request }) => {
+	deactivatePromoCode: async ({ request, locals }) => {
+		requireAdmin(locals);
 		if (env.USE_MOCK_DATA) {
 			return { success: 'Code promo désactivé (mode démo — non persisté)' };
 		}

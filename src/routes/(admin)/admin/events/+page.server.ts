@@ -3,6 +3,7 @@ import { logger } from '$lib/server/logger';
 import type { Actions } from '@sveltejs/kit';
 import { fail } from '@sveltejs/kit';
 import { env } from '$lib/server/env';
+import { requireAdmin } from '$lib/server/auth-guards';
 import { MOCK_EVENTS, MOCK_CATEGORIES } from '$lib/mock-data';
 import type { EventWithMedia } from '$lib/types/events';
 
@@ -49,7 +50,8 @@ export const actions: Actions = {
     /**
      * Update an existing event
      */
-    updateEvent: async ({ request }) => {
+    updateEvent: async ({ request, locals }) => {
+        requireAdmin(locals);
         const formData = await request.formData();
         const id = formData.get('id');
         const titleEnRaw = formData.get('titleEn') ?? formData.get('title');
@@ -193,7 +195,8 @@ export const actions: Actions = {
     /**
      * Create a new event category
      */
-    createCategory: async ({ request }) => {
+    createCategory: async ({ request, locals }) => {
+        requireAdmin(locals);
         const formData = await request.formData();
         const name = formData.get('name');
         const displayNameEn = formData.get('displayNameEn');
@@ -254,7 +257,8 @@ export const actions: Actions = {
     /**
      * Update an existing event category
      */
-    updateCategory: async ({ request }) => {
+    updateCategory: async ({ request, locals }) => {
+        requireAdmin(locals);
         const formData = await request.formData();
         const id = formData.get('id');
         const name = formData.get('name');
@@ -316,7 +320,8 @@ export const actions: Actions = {
     /**
      * Delete an event category
      */
-    deleteCategory: async ({ request }) => {
+    deleteCategory: async ({ request, locals }) => {
+        requireAdmin(locals);
         const formData = await request.formData();
         const id = formData.get('id');
 
@@ -347,7 +352,8 @@ export const actions: Actions = {
     /**
      * Delete an event
      */
-    deleteEvent: async ({ request }) => {
+    deleteEvent: async ({ request, locals }) => {
+        requireAdmin(locals);
         const formData = await request.formData();
         const id = formData.get('id');
 
