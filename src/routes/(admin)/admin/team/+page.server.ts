@@ -30,7 +30,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 };
 
 export const actions: Actions = {
-	deleteTalent: async ({ request }) => {
+	deleteTalent: async ({ request, locals }) => {
+		requireAdmin(locals);
 		const formData = await request.formData();
 		const id = formData.get('id');
 
@@ -56,7 +57,8 @@ export const actions: Actions = {
 		}
 	},
 
-	createCategory: async ({ request }) => {
+	createCategory: async ({ request, locals }) => {
+		requireAdmin(locals);
 		const formData = await request.formData();
 		const name = formData.get('name');
 		const displayNameEn = formData.get('displayNameEn');
@@ -108,7 +110,8 @@ export const actions: Actions = {
 		}
 	},
 
-	updateCategory: async ({ request }) => {
+	updateCategory: async ({ request, locals }) => {
+		requireAdmin(locals);
 		const formData = await request.formData();
 		const id = formData.get('id');
 		const name = formData.get('name');
@@ -161,7 +164,8 @@ export const actions: Actions = {
 		}
 	},
 
-	deleteCategory: async ({ request }) => {
+	deleteCategory: async ({ request, locals }) => {
+		requireAdmin(locals);
 		const formData = await request.formData();
 		const id = formData.get('id');
 

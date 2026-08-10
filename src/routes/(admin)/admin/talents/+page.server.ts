@@ -3,6 +3,7 @@ import { redirect } from '@sveltejs/kit';
 import { logger } from '$lib/server/logger';
 import type { Actions } from '@sveltejs/kit';
 import { fail } from '@sveltejs/kit';
+import { requireAdmin } from '$lib/server/auth-guards';
 import { env } from '$lib/server/env';
 import { MOCK_TALENTS, MOCK_TALENT_CATEGORIES } from '$lib/mock-data';
 import type { TalentWithMedia } from '$lib/types/talents';
@@ -35,7 +36,8 @@ export const actions: Actions = {
 	/**
 	 * Update an existing talent
 	 */
-	updateTalent: async ({ request }) => {
+	updateTalent: async ({ request, locals }) => {
+		requireAdmin(locals);
 		const formData = await request.formData();
 		const id = formData.get('id');
 		const firstName = formData.get('firstName');
@@ -146,7 +148,8 @@ export const actions: Actions = {
 	/**
 	 * Create a new talent category
 	 */
-	createCategory: async ({ request }) => {
+	createCategory: async ({ request, locals }) => {
+		requireAdmin(locals);
 		const formData = await request.formData();
 		const name = formData.get('name');
 		const displayNameEn = formData.get('displayNameEn');
@@ -204,7 +207,8 @@ export const actions: Actions = {
 	/**
 	 * Update an existing talent category
 	 */
-	updateCategory: async ({ request }) => {
+	updateCategory: async ({ request, locals }) => {
+		requireAdmin(locals);
 		const formData = await request.formData();
 		const id = formData.get('id');
 		const name = formData.get('name');
@@ -260,7 +264,8 @@ export const actions: Actions = {
 	/**
 	 * Delete a talent category
 	 */
-	deleteCategory: async ({ request }) => {
+	deleteCategory: async ({ request, locals }) => {
+		requireAdmin(locals);
 		const formData = await request.formData();
 		const id = formData.get('id');
 
@@ -291,7 +296,8 @@ export const actions: Actions = {
 	/**
 	 * Delete a talent
 	 */
-	deleteTalent: async ({ request }) => {
+	deleteTalent: async ({ request, locals }) => {
+		requireAdmin(locals);
 		const formData = await request.formData();
 		const id = formData.get('id');
 
