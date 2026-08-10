@@ -38,8 +38,6 @@ const devEnvSchema = z.object({
     // Sentry monitoring - optional
     SENTRY_DSN: z.string().optional().default(''),
     USE_SCHEDULER: z.string().optional().default('false').transform(v => v === 'true'),
-    // Cron security
-    CRON_SECRET: z.string().optional().default('change-me-in-production'),
     // Twilio SMS - optional
     TWILIO_ACCOUNT_SID: z.string().optional().default(''),
     TWILIO_API_KEY_SID: z.string().optional().default(''),
@@ -81,8 +79,6 @@ const prodEnvSchema = z.object({
     // Sentry monitoring - optional but recommended in production
     SENTRY_DSN: z.string().optional(),
     USE_SCHEDULER: z.string().optional().default('false').transform(v => v === 'true'),
-    // Cron security - required in production
-    CRON_SECRET: z.string().min(32, 'CRON_SECRET must be at least 32 characters'),
     // Twilio SMS - optional in production
     TWILIO_ACCOUNT_SID: z.string().optional(),
     TWILIO_API_KEY_SID: z.string().optional(),
