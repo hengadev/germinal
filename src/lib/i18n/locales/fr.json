@@ -271,7 +271,25 @@
     "appleOutlook": "Apple / Outlook",
     "printTicket": "Imprimer le billet",
     "confirmationId": "Numéro de confirmation",
-    "ticketCount": "{count, plural, one {# Billet} other {# Billets}}"
+    "ticketCount": "{count, plural, one {# Billet} other {# Billets}}",
+    "cancellation": {
+      "sectionTitle": "Besoin d'annuler ?",
+      "checking": "Vérification de l'éligibilité à l'annulation...",
+      "cta": "Annuler ma réservation",
+      "windowClosed": "L'annulation n'est possible que jusqu'à 24 heures avant l'événement. Pour toute urgence, veuillez nous contacter directement.",
+      "genericNotEligible": "Cette réservation n'est plus éligible à l'annulation en libre-service. Veuillez nous contacter si vous avez besoin d'aide.",
+      "checkError": "Nous n'avons pas pu vérifier votre éligibilité à l'annulation. Veuillez rafraîchir la page.",
+      "modalTitle": "Annuler cette réservation ?",
+      "modalDescription": "Cette action annulera votre réservation pour {eventTitle} et est irréversible.",
+      "keep": "Conserver ma réservation",
+      "confirmCta": "Oui, annuler la réservation",
+      "cancelling": "Annulation en cours...",
+      "errorTitle": "Échec de l'annulation",
+      "errorGeneric": "Une erreur est survenue lors de l'annulation de votre réservation. Veuillez réessayer ou nous contacter.",
+      "successTitle": "Réservation annulée",
+      "successWithRefund": "Votre réservation a été annulée et un remboursement de {amount} a été émis vers votre moyen de paiement d'origine. Le délai peut être de 5 à 10 jours ouvrés.",
+      "successNoRefund": "Votre réservation a été annulée."
+    }
   },
   "legal": {
     "lastUpdated": "Dernière mise à jour : {date}",

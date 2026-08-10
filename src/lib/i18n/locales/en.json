@@ -271,7 +271,25 @@
     "appleOutlook": "Apple / Outlook",
     "printTicket": "Print Ticket",
     "confirmationId": "Confirmation ID",
-    "ticketCount": "{count, plural, one {# Ticket} other {# Tickets}}"
+    "ticketCount": "{count, plural, one {# Ticket} other {# Tickets}}",
+    "cancellation": {
+      "sectionTitle": "Need to Cancel?",
+      "checking": "Checking cancellation eligibility...",
+      "cta": "Cancel My Reservation",
+      "windowClosed": "Cancellation is only available up to 24 hours before the event. If you have an urgent issue, please contact us directly.",
+      "genericNotEligible": "This reservation is no longer eligible for self-service cancellation. Please contact us if you need help.",
+      "checkError": "We couldn't check your cancellation eligibility right now. Please try refreshing the page.",
+      "modalTitle": "Cancel this reservation?",
+      "modalDescription": "This will cancel your reservation for {eventTitle} and cannot be undone.",
+      "keep": "Keep My Reservation",
+      "confirmCta": "Yes, Cancel Reservation",
+      "cancelling": "Cancelling...",
+      "errorTitle": "Cancellation Failed",
+      "errorGeneric": "Something went wrong while cancelling your reservation. Please try again or contact us.",
+      "successTitle": "Reservation Cancelled",
+      "successWithRefund": "Your reservation has been cancelled and a refund of {amount} has been issued to your original payment method. It may take 5–10 business days to appear.",
+      "successNoRefund": "Your reservation has been cancelled."
+    }
   },
   "legal": {
     "lastUpdated": "Last updated: {date}",
