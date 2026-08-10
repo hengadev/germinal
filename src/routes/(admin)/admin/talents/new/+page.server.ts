@@ -1,4 +1,5 @@
 import { fail, type Actions } from '@sveltejs/kit';
+import { requireAdmin } from '$lib/server/auth-guards';
 import { logger } from '$lib/server/logger';
 import { env } from '$lib/server/env';
 import { MOCK_TALENTS, MOCK_TALENT_CATEGORIES } from '$lib/mock-data';
@@ -14,7 +15,8 @@ export const load: PageServerLoad = async () => {
 };
 
 export const actions: Actions = {
-	default: async ({ request }) => {
+	default: async ({ request, locals }) => {
+		requireAdmin(locals);
 		const formData = await request.formData();
 		const firstName = formData.get('firstName');
 		const lastName = formData.get('lastName');

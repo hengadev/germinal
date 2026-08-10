@@ -1,4 +1,5 @@
 import { fail, type Actions } from '@sveltejs/kit';
+import { requireAdmin } from '$lib/server/auth-guards';
 import { logger } from '$lib/server/logger';
 import { env } from '$lib/server/env';
 import { MOCK_TALENTS, MOCK_TALENT_CATEGORIES } from '$lib/mock-data';
@@ -55,7 +56,8 @@ export const load: PageServerLoad = async ({ params }) => {
 };
 
 export const actions: Actions = {
-	default: async ({ request, params }) => {
+	default: async ({ request, params, locals }) => {
+		requireAdmin(locals);
 		const { id } = params;
 
 		// Validate id
