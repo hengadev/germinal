@@ -2,12 +2,14 @@ import { text } from '@sveltejs/kit';
 import { logger } from '$lib/server/logger';
 import { exportReservationsToCSV, exportPaymentsToCSV, exportWaitlistToCSV, exportAnalyticsToCSV } from '$lib/server/services/export';
 import { env } from '$lib/server/env';
+import { requireAdmin } from '$lib/server/auth-guards';
 import type { RequestHandler } from './$types';
 
 /**
  * Export reservations to CSV
  */
-export const GET: RequestHandler = async ({ url }) => {
+export const GET: RequestHandler = async ({ url, locals }) => {
+	requireAdmin(locals);
 	const status = url.searchParams.get('status');
 	const limit = parseInt(url.searchParams.get('limit') || '1000');
 	const search = url.searchParams.get('search') || undefined;

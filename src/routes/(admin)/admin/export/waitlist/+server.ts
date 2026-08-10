@@ -1,12 +1,14 @@
 import { text } from '@sveltejs/kit';
 import { logger } from '$lib/server/logger';
 import { exportWaitlistToCSV } from '$lib/server/services/export';
+import { requireAdmin } from '$lib/server/auth-guards';
 import type { RequestHandler } from './$types';
 
 /**
  * Export waitlist to CSV
  */
-export const GET: RequestHandler = async ({ url }) => {
+export const GET: RequestHandler = async ({ url, locals }) => {
+	requireAdmin(locals);
 	const limit = parseInt(url.searchParams.get('limit') || '1000');
 
 	try {
