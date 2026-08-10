@@ -1,12 +1,12 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { requireStaff } from '$lib/server/auth-guards';
+import { requireAdmin } from '$lib/server/auth-guards';
 import { createTask } from '$lib/server/services/tasks';
 import { isAppError } from '$lib/server/errors';
 
 // POST /api/admin/tasks - Create a new task
 export const POST: RequestHandler = async ({ locals, request }) => {
-	requireStaff(locals);
+	requireAdmin(locals);
 
 	try {
 		const body = await request.json();
