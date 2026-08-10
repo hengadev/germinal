@@ -204,7 +204,7 @@ async function getDbAnalyticsData(range: DateRange): Promise<AnalyticsData> {
 							event: {
 								columns: {
 									id: true,
-									title: true
+									titleEn: true
 								}
 							}
 						}
@@ -266,7 +266,7 @@ async function getDbAnalyticsData(range: DateRange): Promise<AnalyticsData> {
 		const event = p.reservation?.eventSession?.event;
 		if (event) {
 			const current = eventMap.get(event.id) || {
-				eventTitle: event.title,
+				eventTitle: event.titleEn,
 				revenue: 0,
 				ticketsSold: 0,
 				payments: 0
