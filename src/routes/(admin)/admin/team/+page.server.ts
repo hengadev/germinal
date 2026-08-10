@@ -9,10 +9,14 @@ import type { TalentWithMedia } from '$lib/types/talents';
 export const load: PageServerLoad = async ({ locals }) => {
 	requireAdmin(locals);
 
+	// Non-null: requireAdmin throws above if locals.user is missing.
+	const currentUserId = locals.user!.id;
+
 	if (env.USE_MOCK_DATA) {
 		return {
 			talents: MOCK_TALENTS as unknown as TalentWithMedia[],
 			categories: MOCK_TALENT_CATEGORIES,
+			currentUserId,
 		};
 	}
 
@@ -26,6 +30,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 	return {
 		talents: result.data as TalentWithMedia[],
 		categories,
+		currentUserId,
 	};
 };
 
