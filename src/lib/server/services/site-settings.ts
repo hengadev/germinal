@@ -6,6 +6,10 @@ import { createMedia, deleteMedia } from './media';
 import { randomUUID } from 'node:crypto';
 import { env } from '../env';
 import { logger } from '$lib/server/logger';
+import { getCached, invalidateCacheTags, CACHE_TAGS } from '../cache';
+
+const SETTINGS_CACHE_KEY = 'site-settings';
+const SETTINGS_CACHE_TTL_MS = 30 * 1000; // 30 seconds
 
 function getExtension(mimeType: string): string {
     const map: Record<string, string> = {
@@ -28,6 +32,18 @@ export async function getSiteSettings() {
         },
     });
     return row ?? null;
+}
+
+/**
+ * Cached read of site settings, intended for high-frequency call sites (e.g. hooks.server.ts,
+ * which runs on every request) where hitting Postgres per-request would be wasteful.
+ * Invalidated by invalidateCacheTags([CACHE_TAGS.SETTINGS]) whenever settings are mutated.
+ */
+export async function getCachedSiteSettings() {
+    return getCached(SETTINGS_CACHE_KEY, getSiteSettings, {
+        ttl: SETTINGS_CACHE_TTL_MS,
+        tags: [CACHE_TAGS.SETTINGS],
+    });
 }
 
 async function uploadSiteMedia(file: File, siteRole: 'hero_image' | 'hero_video') {
@@ -62,6 +78,7 @@ export async function updateHeroImage(file: File) {
     await db.update(siteSettings)
         .set({ heroImageId: newMedia.id, updatedAt: new Date() })
         .where(eq(siteSettings.id, 1));
+    invalidateCacheTags([CACHE_TAGS.SETTINGS]);
 
     if (current.heroImageId) {
         try {
@@ -82,6 +99,7 @@ export async function updateHeroVideo(file: File) {
     await db.update(siteSettings)
         .set({ heroVideoId: newMedia.id, updatedAt: new Date() })
         .where(eq(siteSettings.id, 1));
+    invalidateCacheTags([CACHE_TAGS.SETTINGS]);
 
     if (current.heroVideoId) {
         try {
@@ -100,6 +118,7 @@ export async function clearHeroImage() {
     await db.update(siteSettings)
         .set({ heroImageId: null, updatedAt: new Date() })
         .where(eq(siteSettings.id, 1));
+    invalidateCacheTags([CACHE_TAGS.SETTINGS]);
 
     if (current.heroImageId) {
         try {
@@ -116,6 +135,7 @@ export async function clearHeroVideo() {
     await db.update(siteSettings)
         .set({ heroVideoId: null, updatedAt: new Date() })
         .where(eq(siteSettings.id, 1));
+    invalidateCacheTags([CACHE_TAGS.SETTINGS]);
 
     if (current.heroVideoId) {
         try {
@@ -124,4 +144,31 @@ export async function clearHeroVideo() {
             logger.warn({ err }, '[SiteSettings] Failed to delete hero video on clear');
         }
     }
+}
+
+/**
+ * Update the sender/contact email address used as the From address for outgoing
+ * Guest-facing notifications (ticket confirmations, event reminders, waitlist alerts).
+ * Pass null to clear it and fall back to the SMTP_FROM_EMAIL env var.
+ */
+export async function updateSenderEmail(senderEmail: string | null) {
+    await getOrCreateSettings();
+
+    await db.update(siteSettings)
+        .set({ senderEmail, updatedAt: new Date() })
+        .where(eq(siteSettings.id, 1));
+    invalidateCacheTags([CACHE_TAGS.SETTINGS]);
+}
+
+/**
+ * Enable/disable maintenance mode. When enabled, hooks.server.ts shows a maintenance
+ * page to non-admin/staff traffic and blocks new Guest bookings.
+ */
+export async function setMaintenanceMode(enabled: boolean) {
+    await getOrCreateSettings();
+
+    await db.update(siteSettings)
+        .set({ maintenanceMode: enabled, updatedAt: new Date() })
+        .where(eq(siteSettings.id, 1));
+    invalidateCacheTags([CACHE_TAGS.SETTINGS]);
 }

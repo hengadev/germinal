@@ -3,6 +3,7 @@ import type { PageServerLoad, Actions } from './$types';
 import { env } from '$lib/server/env';
 import { logger } from '$lib/server/logger';
 import { requireAdmin } from '$lib/server/auth-guards';
+import { senderEmailSchema } from '$lib/server/validators/site-settings';
 
 export const load: PageServerLoad = async () => {
     if (env.USE_MOCK_DATA) {
@@ -98,6 +99,46 @@ export const actions: Actions = {
         } catch (err) {
             logger.error({ err }, '[Settings] Failed to clear hero video');
             return fail(500, { error: 'Clear failed' });
+        }
+    },
+
+    updateSenderEmail: async ({ request, locals }) => {
+        requireAdmin(locals);
+        if (env.USE_MOCK_DATA) return fail(400, { error: 'Not available in mock mode' });
+
+        const formData = await request.formData();
+        const validated = senderEmailSchema.safeParse({
+            senderEmail: formData.get('senderEmail'),
+        });
+
+        if (!validated.success) {
+            return fail(400, { error: validated.error.issues[0]?.message ?? 'Adresse email invalide' });
+        }
+
+        try {
+            const { updateSenderEmail } = await import('$lib/server/services/site-settings');
+            await updateSenderEmail(validated.data.senderEmail);
+            return { success: true };
+        } catch (err) {
+            logger.error({ err }, '[Settings] Failed to update sender email');
+            return fail(500, { error: 'Update failed' });
+        }
+    },
+
+    toggleMaintenanceMode: async ({ request, locals }) => {
+        requireAdmin(locals);
+        if (env.USE_MOCK_DATA) return fail(400, { error: 'Not available in mock mode' });
+
+        const formData = await request.formData();
+        const enabled = formData.get('maintenanceMode') === 'true';
+
+        try {
+            const { setMaintenanceMode } = await import('$lib/server/services/site-settings');
+            await setMaintenanceMode(enabled);
+            return { success: true };
+        } catch (err) {
+            logger.error({ err }, '[Settings] Failed to toggle maintenance mode');
+            return fail(500, { error: 'Update failed' });
         }
     },
 };

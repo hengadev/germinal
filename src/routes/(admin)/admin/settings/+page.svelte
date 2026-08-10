@@ -1,6 +1,6 @@
 <script lang="ts">
     import { enhance } from '$app/forms';
-    import { ArrowLeft, Upload, Trash2, Image, Video } from 'lucide-svelte';
+    import { ArrowLeft, Upload, Trash2, Image, Video, Mail, AlertTriangle } from 'lucide-svelte';
     import { getToastContext } from '$lib/components/toast/state.svelte';
     import type { PageData } from './$types';
 
@@ -42,6 +42,35 @@
 
     const settings = $derived(data.settings);
     const hasBoth = $derived(!!(settings?.heroImageId && settings?.heroVideoId));
+
+    let senderEmail = $state(settings?.senderEmail ?? '');
+    let maintenanceMode = $state(settings?.maintenanceMode ?? false);
+    let maintenanceForm: HTMLFormElement;
+
+    function handleSenderEmailResult() {
+        return async ({ result, update }: { result: import('@sveltejs/kit').ActionResult; update: () => Promise<void> }) => {
+            if (result.type === 'success') {
+                toast.success('Succès', 'Adresse expéditeur mise à jour');
+                await update();
+            } else if (result.type === 'failure') {
+                const err = (result.data as { error?: string })?.error ?? 'Une erreur est survenue';
+                toast.error('Erreur', err);
+            }
+        };
+    }
+
+    function handleMaintenanceResult() {
+        return async ({ result, update }: { result: import('@sveltejs/kit').ActionResult; update: () => Promise<void> }) => {
+            if (result.type === 'success') {
+                toast.success('Succès', maintenanceMode ? 'Mode maintenance activé' : 'Mode maintenance désactivé');
+                await update();
+            } else if (result.type === 'failure') {
+                maintenanceMode = !maintenanceMode; // revert optimistic toggle
+                const err = (result.data as { error?: string })?.error ?? 'Une erreur est survenue';
+                toast.error('Erreur', err);
+            }
+        };
+    }
 </script>
 
 <svelte:head>
@@ -67,7 +96,7 @@
         <div class="max-w-2xl mx-auto grid gap-8">
             <div>
                 <h1 class="text-2xl font-bold">Paramètres du Site</h1>
-                <p class="text-muted-foreground mt-1 text-sm">Configurez les médias de la page d'accueil.</p>
+                <p class="text-muted-foreground mt-1 text-sm">Configurez les médias de la page d'accueil, l'adresse expéditeur des emails et le mode maintenance.</p>
             </div>
 
             {#if hasBoth}
@@ -231,6 +260,75 @@
                                 Enregistrer
                             </button>
                         {/if}
+                    </div>
+                </form>
+            </div>
+
+            <!-- Sender / contact email -->
+            <div class="bg-background rounded-lg border border-border-card p-6 grid gap-5">
+                <div class="flex items-center gap-3">
+                    <Mail size={20} class="text-muted-foreground" />
+                    <div>
+                        <h2 class="font-semibold">Adresse expéditeur</h2>
+                        <p class="text-xs text-muted-foreground">Utilisée comme adresse d'envoi pour les emails aux invités (confirmations, rappels, liste d'attente)</p>
+                    </div>
+                </div>
+
+                <form
+                    method="POST"
+                    action="?/updateSenderEmail"
+                    use:enhance={handleSenderEmailResult}
+                    class="grid gap-3"
+                >
+                    <label for="senderEmail" class="sr-only">Adresse expéditeur</label>
+                    <input
+                        id="senderEmail"
+                        name="senderEmail"
+                        type="email"
+                        bind:value={senderEmail}
+                        placeholder="ex: noreply@germinal.com"
+                        class="w-full px-4 py-2 text-sm border border-border-input rounded-lg bg-background focus:ring-foreground focus:outline-none focus:ring-2"
+                    />
+                    <div>
+                        <button
+                            type="submit"
+                            class="flex items-center gap-2 px-4 py-2 text-sm bg-foreground text-background rounded-lg hover:opacity-80 transition-opacity"
+                        >
+                            Enregistrer
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Maintenance mode -->
+            <div class="bg-background rounded-lg border border-border-card p-6 grid gap-5">
+                <div class="flex items-center gap-3">
+                    <AlertTriangle size={20} class="text-muted-foreground" />
+                    <div>
+                        <h2 class="font-semibold">Mode maintenance</h2>
+                        <p class="text-xs text-muted-foreground">Affiche une page de maintenance aux visiteurs et bloque les nouvelles réservations. L'accès admin reste disponible.</p>
+                    </div>
+                </div>
+
+                <form
+                    bind:this={maintenanceForm}
+                    method="POST"
+                    action="?/toggleMaintenanceMode"
+                    use:enhance={handleMaintenanceResult}
+                >
+                    <input type="hidden" name="maintenanceMode" value={maintenanceMode ? 'true' : 'false'} />
+                    <div class="flex items-center gap-3 p-4 bg-muted rounded-lg">
+                        <input
+                            id="maintenanceMode"
+                            type="checkbox"
+                            bind:checked={maintenanceMode}
+                            class="w-5 h-5 text-foreground border-border-input rounded focus:ring-foreground"
+                            onchange={() => maintenanceForm.requestSubmit()}
+                        />
+                        <div>
+                            <label for="maintenanceMode" class="block text-sm font-medium text-foreground cursor-pointer">Activer le mode maintenance</label>
+                            <p class="text-xs text-muted-foreground">{maintenanceMode ? 'Activé — le site est actuellement en maintenance' : 'Désactivé — le site est accessible normalement'}</p>
+                        </div>
                     </div>
                 </form>
             </div>

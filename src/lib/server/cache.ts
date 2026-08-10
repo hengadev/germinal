@@ -130,4 +130,5 @@ export const CACHE_TAGS = {
 	TALENTS: 'talents',
 	EVENT_SESSIONS: 'event_sessions',
 	RESERVATIONS: 'reservations',
+	SETTINGS: 'settings',
 } as const;

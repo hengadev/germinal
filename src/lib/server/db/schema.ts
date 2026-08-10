@@ -209,6 +209,8 @@ export const siteSettings = pgTable('site_settings', {
     id: integer('id').primaryKey().default(1),
     heroImageId: uuid('hero_image_id').references(() => media.id, { onDelete: 'set null' }),
     heroVideoId: uuid('hero_video_id').references(() => media.id, { onDelete: 'set null' }),
+    senderEmail: varchar('sender_email', { length: 255 }),
+    maintenanceMode: boolean('maintenance_mode').default(false).notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
