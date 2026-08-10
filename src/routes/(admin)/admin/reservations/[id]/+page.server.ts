@@ -124,6 +124,15 @@ export const actions: Actions = {
 		try {
 			const { cancelReservation } = await import('$lib/server/services/reservations');
 			await cancelReservation(params.id);
+
+			const { recordAuditLog } = await import('$lib/server/services/audit-log');
+			await recordAuditLog({
+				adminId: locals.user!.id,
+				action: 'reservation.cancel',
+				entityType: 'reservation',
+				entityId: params.id,
+			});
+
 			return { success: true, message: 'Reservation cancelled successfully' };
 		} catch (err) {
 			return fail(400, { error: err instanceof Error ? err.message : 'Failed to cancel reservation' });
@@ -140,6 +149,15 @@ export const actions: Actions = {
 		try {
 			const { processRefund } = await import('$lib/server/services/reservations');
 			await processRefund(params.id);
+
+			const { recordAuditLog } = await import('$lib/server/services/audit-log');
+			await recordAuditLog({
+				adminId: locals.user!.id,
+				action: 'reservation.refund',
+				entityType: 'reservation',
+				entityId: params.id,
+			});
+
 			return { success: true, message: 'Refund processed successfully' };
 		} catch (err) {
 			return fail(400, { error: err instanceof Error ? err.message : 'Failed to process refund' });

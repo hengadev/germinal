@@ -1,7 +1,7 @@
 <script lang="ts">
     import { page } from "$app/state";
 
-    import { LayoutDashboard, Calendar, Users, Ticket, BarChart3, ExternalLink, Settings2 } from "lucide-svelte";
+    import { LayoutDashboard, Calendar, Users, Ticket, BarChart3, ExternalLink, Settings2, ScrollText } from "lucide-svelte";
     import ThemeToggle from "$lib/components/admin/ThemeToggle.svelte";
 
     interface SidebarProps {
@@ -71,6 +71,11 @@
             href: "/admin/settings",
             label: "Paramètres",
             icon: Settings2,
+        },
+        {
+            href: "/admin/audit-log",
+            label: "Journal d'Audit",
+            icon: ScrollText,
         },
     ];
 

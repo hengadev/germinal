@@ -380,6 +380,15 @@ export const actions: Actions = {
 
         try {
             await deleteEvent(id);
+
+            const { recordAuditLog } = await import('$lib/server/services/audit-log');
+            await recordAuditLog({
+                adminId: locals.user!.id,
+                action: 'event.delete',
+                entityType: 'event',
+                entityId: id,
+            });
+
             return { success: 'Event deleted successfully' };
         } catch (error) {
             logger.error({ err: error }, 'Error deleting event');

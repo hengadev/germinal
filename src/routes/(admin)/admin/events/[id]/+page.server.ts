@@ -530,6 +530,15 @@ export const actions: Actions = {
 			const { deleteEventSession } = await import('$lib/server/services/event-sessions');
 
 			await deleteEventSession(id);
+
+			const { recordAuditLog } = await import('$lib/server/services/audit-log');
+			await recordAuditLog({
+				adminId: locals.user!.id,
+				action: 'session.delete',
+				entityType: 'session',
+				entityId: id,
+			});
+
 			return { success: 'Séance supprimée avec succès' };
 		} catch (err) {
 			logger.error({ err }, 'Delete session error');
