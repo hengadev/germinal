@@ -4,7 +4,7 @@ import { users } from '$lib/server/db/schema';
 import { eq, and, gt } from 'drizzle-orm';
 import { hashPassword } from '$lib/server/auth';
 
-export const load: PageServerLoad = async ({ params }) => {
+export const load: PageServerLoad = async ({ params, locals }) => {
     const { token } = params;
 
     // Verify token exists and is not expired
@@ -27,6 +27,7 @@ export const load: PageServerLoad = async ({ params }) => {
     if (!user) {
         return {
             valid: false,
+            csrfToken: locals.csrfToken,
         };
     }
 
@@ -35,6 +36,7 @@ export const load: PageServerLoad = async ({ params }) => {
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
+        csrfToken: locals.csrfToken,
     };
 };
 

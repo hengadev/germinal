@@ -11,7 +11,7 @@
         EyeOff,
         ShieldAlert,
     } from "lucide-svelte";
-    import type { ActionData } from "../+page.server";
+    import type { ActionData } from "./$types";
     import { getToastContext } from "$lib/components/toast/state.svelte";
     import Modal from "$lib/components/ui/Modal.svelte";
 
