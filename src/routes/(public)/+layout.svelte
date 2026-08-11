@@ -84,6 +84,9 @@
                         <a href="/contact" class="text-white/60 hover:text-white text-sm transition-colors w-fit">
                             {$t('nav.contact')}
                         </a>
+                        <a href="/find-ticket" class="text-white/60 hover:text-white text-sm transition-colors w-fit">
+                            {$t('nav.findTicket')}
+                        </a>
                     </nav>
                 </div>
 

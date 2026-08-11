@@ -217,6 +217,81 @@ export async function getReservationByToken(token: string): Promise<ReservationW
 }
 
 /**
+ * Look up a Guest's confirmed Reservations by email and re-send the Ticket
+ * confirmation email for each one found.
+ *
+ * Deliberately returns void — callers must NOT branch on whether any
+ * Reservations were found, since this powers the public "find my ticket"
+ * lookup and revealing that would turn it into an email-enumeration oracle.
+ * Any Reservation lookup/send failures are logged and swallowed for the
+ * same reason.
+ */
+export async function resendTicketsForEmail(email: string): Promise<void> {
+	let matches: ReservationWithDetails[] = [];
+
+	try {
+		matches = await db.query.reservations.findMany({
+			where: and(
+				eq(reservations.guestEmail, email),
+				eq(reservations.status, 'confirmed')
+			),
+			with: {
+				eventSession: {
+					with: {
+						event: {
+							columns: {
+								id: true,
+								title: true,
+								slug: true,
+								locationEn: true,
+								locationFr: true,
+								venueNameEn: true,
+								venueNameFr: true,
+								streetAddressEn: true,
+								streetAddressFr: true,
+								cityEn: true,
+								cityFr: true,
+								countryEn: true,
+								countryFr: true,
+							},
+						},
+					},
+				},
+				payment: true,
+			},
+		});
+	} catch (error) {
+		logger.error({ err: error }, '[FindTicket] Failed to look up reservations by email');
+		return;
+	}
+
+	const { sendTicketConfirmationEmail } = await import('./email');
+
+	for (const reservation of matches) {
+		try {
+			await sendTicketConfirmationEmail({
+				reservation: reservation as any,
+				session: reservation.eventSession as any,
+				event: {
+					title: reservation.eventSession.event.title,
+					slug: reservation.eventSession.event.slug,
+					locationEn: reservation.eventSession.event.locationEn,
+				},
+				guestName: reservation.guestName,
+				guestEmail: reservation.guestEmail,
+				accessToken: reservation.accessToken,
+			});
+		} catch (error) {
+			logger.error(
+				{ err: error, reservationId: reservation.id },
+				'[FindTicket] Failed to resend ticket confirmation email'
+			);
+			// Continue with any other matching reservations rather than aborting the batch
+		}
+	}
+}
+
+/**
  * Get reservation by ID (for admin or status checks)
  */
 export async function getReservationById(id: string): Promise<ReservationWithDetails> {

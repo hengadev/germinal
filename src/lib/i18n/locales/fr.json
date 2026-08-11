@@ -18,7 +18,8 @@
     "events": "Notre portfolio",
     "talents": "Nos talents",
     "manifesto": "Notre manifesto",
-    "contact": "Contact"
+    "contact": "Contact",
+    "findTicket": "Retrouver mon billet"
   },
   "footer": {
     "allRightsReserved": "Tous droits réservés.",
@@ -292,6 +293,24 @@
       "successTitle": "Réservation annulée",
       "successWithRefund": "Votre réservation a été annulée et un remboursement de {amount} a été émis vers votre moyen de paiement d'origine. Le délai peut être de 5 à 10 jours ouvrés.",
       "successNoRefund": "Votre réservation a été annulée."
+    }
+  },
+  "findTicket": {
+    "pageTitle": "Retrouver mon billet | Germinal",
+    "title": "Billet perdu ?",
+    "description": "Indiquez l'adresse email utilisée lors de votre réservation, et nous vous renverrons vos billets.",
+    "form": {
+      "email": "Email",
+      "emailPlaceholder": "vous@exemple.com",
+      "emailRequired": "Veuillez indiquer votre adresse email.",
+      "send": "Envoyer mon billet",
+      "sending": "Envoi en cours...",
+      "error": "Une erreur est survenue. Veuillez réessayer.",
+      "rateLimited": "Trop de tentatives. Veuillez réessayer plus tard."
+    },
+    "success": {
+      "message": "Si cette adresse email correspond à des réservations confirmées, nous lui avons envoyé les billets. Vérifiez votre boîte de réception (et vos courriers indésirables).",
+      "tryAnother": "Essayer une autre adresse"
     }
   },
   "legal": {
