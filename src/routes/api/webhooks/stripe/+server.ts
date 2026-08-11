@@ -2,6 +2,7 @@ import { json, error } from '@sveltejs/kit';
 import { env } from '$lib/server/env';
 import { verifyWebhookSignature } from '$lib/server/services/stripe';
 import { handlePaymentSuccess, handlePaymentFailure, handleRefund, handleCheckoutSuccess } from '$lib/server/services/payments';
+import { handleDisputeCreated, handleDisputeUpdated, handleDisputeClosed } from '$lib/server/services/disputes';
 import { logger } from '$lib/server/logger';
 import type { RequestHandler } from './$types';
 import type Stripe from 'stripe';
@@ -44,6 +45,18 @@ export const POST: RequestHandler = async ({ request }) => {
 
 			case 'charge.refunded':
 				await handleRefund(event.data.object as Stripe.Charge);
+				break;
+
+			case 'charge.dispute.created':
+				await handleDisputeCreated(event.data.object as Stripe.Dispute);
+				break;
+
+			case 'charge.dispute.updated':
+				await handleDisputeUpdated(event.data.object as Stripe.Dispute);
+				break;
+
+			case 'charge.dispute.closed':
+				await handleDisputeClosed(event.data.object as Stripe.Dispute);
 				break;
 
 			default:

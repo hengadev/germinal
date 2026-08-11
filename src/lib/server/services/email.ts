@@ -515,6 +515,156 @@ export async function sendEventReminderEmail(data: TicketEmailData & { daysUntil
 }
 
 // ============================================
+// ADMIN DISPUTE ALERT EMAIL
+// ============================================
+
+export interface DisputeAlertEmailData {
+	stripeDisputeId: string;
+	paymentId: string;
+	reservationId: string;
+	guestName: string;
+	guestEmail: string;
+	eventTitle: string;
+	amount: number;
+	currency: string;
+	reason: string | null;
+	status: string;
+	evidenceDueBy: Date | null;
+}
+
+function formatDisputeReason(reason: string | null): string {
+	if (!reason) return 'Not specified';
+	return reason.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function formatDisputeStatus(status: string): string {
+	return status.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function generateDisputeAlertTextTemplate(data: DisputeAlertEmailData): string {
+	return `
+Stripe Dispute Alert
+
+A payment has been disputed and requires your attention.
+
+Dispute ID: ${data.stripeDisputeId}
+Status: ${formatDisputeStatus(data.status)}
+Reason: ${formatDisputeReason(data.reason)}
+Amount: ${formatCurrency(data.amount, data.currency)}
+${data.evidenceDueBy ? `Evidence due by: ${data.evidenceDueBy.toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })}\n` : ''}
+Event: ${data.eventTitle}
+Guest: ${data.guestName} (${data.guestEmail})
+
+Payment ID: ${data.paymentId}
+Reservation ID: ${data.reservationId}
+
+Please review this dispute in your Stripe dashboard.
+
+---
+This is an automated notification from Germinal.
+  `.trim();
+}
+
+function generateDisputeAlertHtmlTemplate(data: DisputeAlertEmailData): string {
+	return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stripe Dispute Alert</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background-color: #fdf2f2; border-radius: 8px; padding: 24px; margin-bottom: 24px;">
+    <h2 style="margin: 0 0 8px 0; color: #991b1b; font-size: 24px;">⚠️ Stripe Dispute Alert</h2>
+    <p style="margin: 0; color: #6c757d; font-size: 14px;">A payment has been disputed and requires your attention.</p>
+  </div>
+
+  <div style="background-color: #ffffff; border: 1px solid #e9ecef; border-radius: 8px; padding: 24px; margin-bottom: 16px;">
+    <table style="width: 100%; border-collapse: collapse;">
+      <tr>
+        <td style="padding: 8px 0; border-bottom: 1px solid #e9ecef;"><strong style="color: #495057;">Dispute ID:</strong></td>
+        <td style="padding: 8px 0; border-bottom: 1px solid #e9ecef; color: #212529;">${escapeHtml(data.stripeDisputeId)}</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0; border-bottom: 1px solid #e9ecef;"><strong style="color: #495057;">Status:</strong></td>
+        <td style="padding: 8px 0; border-bottom: 1px solid #e9ecef; color: #212529;">${escapeHtml(formatDisputeStatus(data.status))}</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0; border-bottom: 1px solid #e9ecef;"><strong style="color: #495057;">Reason:</strong></td>
+        <td style="padding: 8px 0; border-bottom: 1px solid #e9ecef; color: #212529;">${escapeHtml(formatDisputeReason(data.reason))}</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0; border-bottom: 1px solid #e9ecef;"><strong style="color: #495057;">Amount:</strong></td>
+        <td style="padding: 8px 0; border-bottom: 1px solid #e9ecef; color: #212529;">${escapeHtml(formatCurrency(data.amount, data.currency))}</td>
+      </tr>
+      ${data.evidenceDueBy ? `
+      <tr>
+        <td style="padding: 8px 0; border-bottom: 1px solid #e9ecef;"><strong style="color: #495057;">Evidence due by:</strong></td>
+        <td style="padding: 8px 0; border-bottom: 1px solid #e9ecef; color: #212529;">${data.evidenceDueBy.toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })}</td>
+      </tr>
+      ` : ''}
+      <tr>
+        <td style="padding: 8px 0; border-bottom: 1px solid #e9ecef;"><strong style="color: #495057;">Event:</strong></td>
+        <td style="padding: 8px 0; border-bottom: 1px solid #e9ecef; color: #212529;">${escapeHtml(data.eventTitle)}</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0; border-bottom: 1px solid #e9ecef;"><strong style="color: #495057;">Guest:</strong></td>
+        <td style="padding: 8px 0; border-bottom: 1px solid #e9ecef; color: #212529;">${escapeHtml(data.guestName)} (${escapeHtml(data.guestEmail)})</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0;"><strong style="color: #495057;">Payment ID:</strong></td>
+        <td style="padding: 8px 0; color: #212529;">${escapeHtml(data.paymentId)}</td>
+      </tr>
+    </table>
+  </div>
+
+  <div style="border-top: 1px solid #e9ecef; padding-top: 16px;">
+    <p style="margin: 0; color: #6c757d; font-size: 12px;">
+      Please review this dispute in your Stripe dashboard.<br>
+      This is an automated notification from Germinal.
+    </p>
+  </div>
+</body>
+</html>
+  `.trim();
+}
+
+/**
+ * Notify the Admin (via CONTACT_EMAIL) that a Stripe dispute needs attention.
+ * Uses the same reliable queue-with-retry infrastructure as other transactional emails.
+ */
+export async function sendDisputeAlertEmail(data: DisputeAlertEmailData): Promise<void> {
+	const textBody = generateDisputeAlertTextTemplate(data);
+	const htmlBody = generateDisputeAlertHtmlTemplate(data);
+
+	if (!isAWSConfigured()) {
+		logger.info({
+			to: env.CONTACT_EMAIL,
+			disputeId: data.stripeDisputeId,
+			paymentId: data.paymentId,
+		}, '⚠️ AWS not configured - dispute alert email would be sent');
+		return;
+	}
+
+	// Always queue for delivery with automatic retry
+	const { queueEmail } = await import('../jobs/process-email-queue');
+	await queueEmail({
+		type: 'dispute_alert',
+		recipient: env.CONTACT_EMAIL,
+		subject: `⚠️ Stripe Dispute: ${formatCurrency(data.amount, data.currency)} — ${data.eventTitle}`,
+		textBody,
+		htmlBody,
+		metadata: {
+			stripeDisputeId: data.stripeDisputeId,
+			paymentId: data.paymentId,
+			reservationId: data.reservationId,
+		},
+	});
+	logger.info({ disputeId: data.stripeDisputeId }, '📋 Dispute alert email queued');
+}
+
+// ============================================
 // STAFF INVITE EMAIL
 // ============================================
 
