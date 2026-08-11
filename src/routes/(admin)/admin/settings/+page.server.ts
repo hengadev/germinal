@@ -158,6 +158,16 @@ export const actions: Actions = {
         try {
             const { updateSenderEmail } = await import('$lib/server/services/site-settings');
             await updateSenderEmail(validated.data.senderEmail);
+
+            const { recordAuditLog } = await import('$lib/server/services/audit-log');
+            await recordAuditLog({
+                adminId: locals.user!.id,
+                action: 'settings.update',
+                entityType: 'settings',
+                entityId: 'site_settings',
+                metadata: { field: 'senderEmail' },
+            });
+
             return { success: true };
         } catch (err) {
             logger.error({ err }, '[Settings] Failed to update sender email');
@@ -175,6 +185,16 @@ export const actions: Actions = {
         try {
             const { setMaintenanceMode } = await import('$lib/server/services/site-settings');
             await setMaintenanceMode(enabled);
+
+            const { recordAuditLog } = await import('$lib/server/services/audit-log');
+            await recordAuditLog({
+                adminId: locals.user!.id,
+                action: 'settings.update',
+                entityType: 'settings',
+                entityId: 'site_settings',
+                metadata: { field: 'maintenanceMode', enabled },
+            });
+
             return { success: true };
         } catch (err) {
             logger.error({ err }, '[Settings] Failed to toggle maintenance mode');
