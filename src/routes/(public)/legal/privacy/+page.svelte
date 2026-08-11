@@ -64,5 +64,16 @@
             </ul>
             <p>{$t("legal.privacy.rightsExercice")}</p>
         </section>
+
+        <!-- 6. Cookies -->
+        <section class="grid gap-3">
+            <h2 class="text-xl font-serif text-foreground">{$t("legal.privacy.cookiesTitle")}</h2>
+            <p>{$t("legal.privacy.cookiesIntro")}</p>
+            <ul class="list-disc pl-6 grid gap-2">
+                <li>{$t("legal.privacy.cookiesEssential")}</li>
+                <li>{$t("legal.privacy.cookiesNonEssential")}</li>
+            </ul>
+            <p>{$t("legal.privacy.cookiesChoice")}</p>
+        </section>
     </div>
 </div>

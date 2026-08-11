@@ -13,6 +13,13 @@
     "iosStep1": "Appuyez sur le bouton <strong>Partager</strong>",
     "iosStep2": "Faites défiler et appuyez sur <strong>Ajouter à l'écran d'accueil</strong>"
   },
+  "cookieConsent": {
+    "title": "Nous utilisons des cookies",
+    "description": "Nous utilisons des cookies strictement nécessaires au bon fonctionnement et à la sécurité de Germinal (votre session de connexion, la prévention de la fraude). Avec votre consentement, nous pouvons également utiliser des cookies supplémentaires pour améliorer votre expérience. Consultez notre",
+    "privacyLink": "Politique de confidentialité",
+    "essentialOnly": "Essentiels uniquement",
+    "acceptAll": "Tout accepter"
+  },
   "nav": {
     "upcomingEvent": "Prochain événement",
     "events": "Notre portfolio",
@@ -370,7 +377,12 @@
       "rightPortability": "Recevoir vos données dans un format portable",
       "rightObject": "Vous opposer au traitement fondé sur l'intérêt légitime",
       "rightWithdraw": "Retirer votre consentement à tout moment",
-      "rightsExercice": "Pour exercer l'un de ces droits, contactez-nous à privacy@germinalstudio.co."
+      "rightsExercice": "Pour exercer l'un de ces droits, contactez-nous à privacy@germinalstudio.co.",
+      "cookiesTitle": "6. Cookies",
+      "cookiesIntro": "Nous utilisons les catégories de cookies suivantes :",
+      "cookiesEssential": "Cookies strictement nécessaires : utilisés pour vous maintenir connecté(e) et protéger le site contre les requêtes frauduleuses (cookie de session, jeton de sécurité CSRF). Ces cookies sont indispensables au fonctionnement du site et ne sont pas soumis au consentement.",
+      "cookiesNonEssential": "Cookies non essentiels (ex. : mesure d'audience, analyse) : déposés uniquement avec votre consentement préalable, recueilli via la bannière de cookies affichée lors de votre première visite. Germinal n'utilise actuellement aucun cookie de ce type.",
+      "cookiesChoice": "Vous pouvez accepter ou refuser les cookies non essentiels à tout moment depuis la bannière de cookies, ou en effaçant le stockage local de votre navigateur pour ce site afin que la bannière s'affiche à nouveau."
     },
     "mentions": {
       "pageTitle": "Mentions légales | Germinal",

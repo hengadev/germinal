@@ -13,6 +13,13 @@
     "iosStep1": "Tap the <strong>Share</strong> button",
     "iosStep2": "Scroll and tap <strong>Add to Home Screen</strong>"
   },
+  "cookieConsent": {
+    "title": "We use cookies",
+    "description": "We use cookies that are strictly necessary to keep Germinal secure and working (your login session, fraud prevention). With your consent, we may also use additional cookies to improve your experience. Read our",
+    "privacyLink": "Privacy Policy",
+    "essentialOnly": "Essential only",
+    "acceptAll": "Accept all"
+  },
   "nav": {
     "upcomingEvent": "Upcoming event",
     "events": "Our portfolio",
@@ -370,7 +377,12 @@
       "rightPortability": "Receive your data in a portable format",
       "rightObject": "Object to processing based on legitimate interest",
       "rightWithdraw": "Withdraw your consent at any time",
-      "rightsExercice": "To exercise any of these rights, contact us at privacy@germinalstudio.co."
+      "rightsExercice": "To exercise any of these rights, contact us at privacy@germinalstudio.co.",
+      "cookiesTitle": "6. Cookies",
+      "cookiesIntro": "We use the following categories of cookies:",
+      "cookiesEssential": "Strictly necessary cookies: used to keep you logged in and to protect the site against fraudulent requests (session cookie, CSRF security token). These are required for the site to function and are not subject to consent.",
+      "cookiesNonEssential": "Non-essential cookies (e.g. analytics, audience measurement): only set with your prior consent, given via the cookie banner shown on your first visit. Germinal does not currently use any such cookies.",
+      "cookiesChoice": "You can accept or decline non-essential cookies at any time from the cookie banner, or by clearing your browser's local storage for this site to be prompted again."
     },
     "mentions": {
       "pageTitle": "Legal Notice | Germinal",

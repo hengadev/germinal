@@ -1,5 +1,6 @@
 <script lang="ts">
     import Navigation from "$lib/components/Navigation.svelte";
+    import CookieConsentBanner from "$lib/components/CookieConsentBanner.svelte";
     import type { LayoutData } from "./$types";
     import { Instagram } from "lucide-svelte";
     import { t } from 'svelte-i18n';
@@ -117,3 +118,7 @@
         </div>
     </footer>
 </div>
+
+{#if browser}
+    <CookieConsentBanner />
+{/if}
