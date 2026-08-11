@@ -336,6 +336,7 @@ export const usersRelations = relations(users, ({ many }) => ({
     eventAssignments: many(eventStaff),
     createdTasks: many(tasks),
     assignedTasks: many(tasks),
+    auditLogEntries: many(auditLog),
 }));
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({
@@ -705,6 +706,37 @@ export const tasks = pgTable('tasks', {
     assignedToIdx: index('tasks_assigned_to_idx').on(table.assignedTo),
     createdByIdx: index('tasks_created_by_idx').on(table.createdBy),
     statusIdx: index('tasks_status_idx').on(table.status),
+}));
+
+// ============================================
+// AUDIT LOG TABLE
+// ============================================
+
+// Records who performed a destructive/sensitive admin action, what the
+// action was, which entity it affected, and when. Kept intentionally
+// lightweight (single table, single insert helper) for v1 - no
+// filtering/search UI is required yet.
+export const auditLog = pgTable('audit_log', {
+    id: uuid('id').defaultRandom().primaryKey(),
+    // Nullable + set-null on delete so the audit trail survives the
+    // acting admin's user record being removed later.
+    adminId: uuid('admin_id').references(() => users.id, { onDelete: 'set null' }),
+    action: varchar('action', { length: 100 }).notNull(),
+    entityType: varchar('entity_type', { length: 50 }).notNull(),
+    entityId: varchar('entity_id', { length: 255 }),
+    metadata: jsonb('metadata'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+    createdAtIdx: index('audit_log_created_at_idx').on(table.createdAt),
+    adminIdIdx: index('audit_log_admin_id_idx').on(table.adminId),
+    entityIdx: index('audit_log_entity_idx').on(table.entityType, table.entityId),
+}));
+
+export const auditLogRelations = relations(auditLog, ({ one }) => ({
+    admin: one(users, {
+        fields: [auditLog.adminId],
+        references: [users.id],
+    }),
 }));
 
 // ============================================

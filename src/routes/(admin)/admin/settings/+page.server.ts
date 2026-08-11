@@ -38,6 +38,16 @@ export const actions: Actions = {
         try {
             const { updateHeroImage } = await import('$lib/server/services/site-settings');
             await updateHeroImage(file);
+
+            const { recordAuditLog } = await import('$lib/server/services/audit-log');
+            await recordAuditLog({
+                adminId: locals.user!.id,
+                action: 'settings.update',
+                entityType: 'settings',
+                entityId: 'site_settings',
+                metadata: { field: 'heroImage' },
+            });
+
             return { success: true };
         } catch (err) {
             logger.error({ err }, '[Settings] Failed to upload hero image');
@@ -67,6 +77,16 @@ export const actions: Actions = {
         try {
             const { updateHeroVideo } = await import('$lib/server/services/site-settings');
             await updateHeroVideo(file);
+
+            const { recordAuditLog } = await import('$lib/server/services/audit-log');
+            await recordAuditLog({
+                adminId: locals.user!.id,
+                action: 'settings.update',
+                entityType: 'settings',
+                entityId: 'site_settings',
+                metadata: { field: 'heroVideo' },
+            });
+
             return { success: true };
         } catch (err) {
             logger.error({ err }, '[Settings] Failed to upload hero video');
@@ -81,6 +101,16 @@ export const actions: Actions = {
         try {
             const { clearHeroImage } = await import('$lib/server/services/site-settings');
             await clearHeroImage();
+
+            const { recordAuditLog } = await import('$lib/server/services/audit-log');
+            await recordAuditLog({
+                adminId: locals.user!.id,
+                action: 'settings.update',
+                entityType: 'settings',
+                entityId: 'site_settings',
+                metadata: { field: 'heroImage', cleared: true },
+            });
+
             return { success: true };
         } catch (err) {
             logger.error({ err }, '[Settings] Failed to clear hero image');
@@ -95,6 +125,16 @@ export const actions: Actions = {
         try {
             const { clearHeroVideo } = await import('$lib/server/services/site-settings');
             await clearHeroVideo();
+
+            const { recordAuditLog } = await import('$lib/server/services/audit-log');
+            await recordAuditLog({
+                adminId: locals.user!.id,
+                action: 'settings.update',
+                entityType: 'settings',
+                entityId: 'site_settings',
+                metadata: { field: 'heroVideo', cleared: true },
+            });
+
             return { success: true };
         } catch (err) {
             logger.error({ err }, '[Settings] Failed to clear hero video');
