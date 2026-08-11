@@ -3,6 +3,7 @@
 	import type { Icon } from 'lucide-svelte';
 	import { t, locale } from 'svelte-i18n';
 	import { reveal } from '$lib/actions/reveal';
+	import { page } from '$app/state';
 
 	type LocalizedField =
 		| 'title'
@@ -68,11 +69,37 @@
 		const frField = (field + 'Fr') as FrField;
 		return $locale === 'en' ? event[enField] || '' : event[frField] || '';
 	}
+
+	let ogTitle = $derived(`${getEventField('title')} | Germinal`);
+	let ogDescription = $derived(getEventField('description').slice(0, 200));
+	let ogImage = $derived(
+		event.coverMedia?.type === 'image' ? event.coverMedia.url : undefined
+	);
+	let ogUrl = $derived(page.url.href);
 </script>
 
 <svelte:head>
-	<title>{getEventField('title')} | Germinal</title>
+	<title>{ogTitle}</title>
 	<meta name="description" content={getEventField('description').slice(0, 160)} />
+
+	<!-- Open Graph -->
+	<meta property="og:type" content="website" />
+	<meta property="og:site_name" content="Germinal" />
+	<meta property="og:title" content={ogTitle} />
+	<meta property="og:description" content={ogDescription} />
+	<meta property="og:url" content={ogUrl} />
+	{#if ogImage}
+		<meta property="og:image" content={ogImage} />
+		<meta property="og:image:alt" content={getEventField('title')} />
+	{/if}
+
+	<!-- Twitter Card -->
+	<meta name="twitter:card" content={ogImage ? 'summary_large_image' : 'summary'} />
+	<meta name="twitter:title" content={ogTitle} />
+	<meta name="twitter:description" content={ogDescription} />
+	{#if ogImage}
+		<meta name="twitter:image" content={ogImage} />
+	{/if}
 </svelte:head>
 
 <!-- Full-height hero -->

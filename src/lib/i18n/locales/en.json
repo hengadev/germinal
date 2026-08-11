@@ -244,6 +244,7 @@
   },
   "tickets": {
     "pageTitle": "Your Tickets - {eventTitle}",
+    "ogDescription": "Ticket for {eventTitle} on {date}. {quantity, plural, one {# seat} other {# seats}} reserved.",
     "status": {
       "confirmed": "Confirmed",
       "pendingPayment": "Pending Payment",
