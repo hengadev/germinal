@@ -75,9 +75,6 @@ app_env_vars:
   STRIPE_WEBHOOK_SECRET: "{{ vault_staging_stripe_webhook_secret | default('') }}"
   PUBLIC_STRIPE_PUBLISHABLE_KEY: "{{ vault_staging_stripe_publishable_key | default('') }}"
 
-  # Cron secret - staging-specific
-  CRON_SECRET: "{{ vault_staging_cron_secret | default('change-me-staging-cron-secret-min-32-chars') }}"
-
   # Public URL points to the staging domain
   PUBLIC_URL: "https://staging.{{ app_domain }}"
 

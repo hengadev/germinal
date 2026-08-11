@@ -127,9 +127,6 @@ app_env_vars:
   PUBLIC_STRIPE_PUBLISHABLE_KEY: "{{ vault_stripe_publishable_key | default('') }}"
   STRIPE_WEBHOOK_SECRET: "{{ vault_stripe_webhook_secret | default('') }}"
 
-  # Cron Security
-  CRON_SECRET: "{{ vault_cron_secret | default('change-me-to-a-secure-random-string-min-32-chars') }}"
-
   # Public URL
   PUBLIC_URL: "{{ vault_public_url | default('https://' + app_domain) }}"
 
