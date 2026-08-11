@@ -26,6 +26,7 @@
 
     import TalentsTab from "./TalentsTab.svelte";
     import StaffTab from "./StaffTab.svelte";
+    import AdminTab from "./AdminTab.svelte";
 
     interface Trigger {
         value: string;
@@ -35,6 +36,7 @@
     let triggers: Trigger[] = [
         { value: "talents", name: "Talents" },
         { value: "staff", name: "Staff" },
+        { value: "admin", name: "Admin" },
     ];
 </script>
 
@@ -45,7 +47,7 @@
 <div class="container mx-auto px-4 py-8 lg:py-12">
     <div class="mb-8">
         <h1 class="text-3xl lg:text-4xl font-bold mb-2">Équipe</h1>
-        <p class="text-muted-foreground">Gérer les talents et les membres du staff</p>
+        <p class="text-muted-foreground">Gérer les talents, le staff et les comptes admin</p>
     </div>
 
     {#if form?.error}
@@ -83,6 +85,9 @@
         </TabsContent>
         <TabsContent value="staff" class="p-6">
             <StaffTab {form} />
+        </TabsContent>
+        <TabsContent value="admin" class="p-6">
+            <AdminTab {form} currentUserId={data.currentUserId} />
         </TabsContent>
     </Tabs>
 </div>

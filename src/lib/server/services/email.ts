@@ -738,3 +738,125 @@ export async function sendStaffPasswordResetEmail(data: StaffPasswordResetEmailD
 	});
 	logger.info({ to: data.email }, '📋 Staff password reset email queued');
 }
+
+// ============================================
+// ADMIN INVITE EMAIL
+// ============================================
+
+interface AdminInviteEmailData {
+	firstName: string;
+	lastName: string;
+	email: string;
+	resetToken: string;
+}
+
+function generateAdminInviteTextTemplate(data: AdminInviteEmailData): string {
+	const resetUrl = `${env.PUBLIC_URL}/admin/reset-password/${data.resetToken}`;
+
+	return `
+Welcome to the Germinal Admin Team!
+
+Hi ${data.firstName},
+
+You have been invited to join the Germinal admin back office. Your account has been created and you can now set your password to get started.
+
+SET YOUR PASSWORD:
+${resetUrl}
+
+This link will expire in 24 hours. If you need a new link, please contact another administrator.
+
+Once you've set your password, you can access the admin back office at:
+${env.PUBLIC_URL}/admin
+
+We're excited to have you on the team!
+
+---
+This is an automated invitation from Germinal.
+	`.trim();
+}
+
+function generateAdminInviteHtmlTemplate(data: AdminInviteEmailData): string {
+	const resetUrl = `${env.PUBLIC_URL}/admin/reset-password/${data.resetToken}`;
+
+	return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome to the Germinal Admin Team</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background-color: #f8f9fa; border-radius: 8px; padding: 24px; margin-bottom: 24px;">
+    <h2 style="margin: 0 0 8px 0; color: #1a1a1a; font-size: 24px;">Welcome to the Team!</h2>
+    <p style="margin: 0; color: #6c757d; font-size: 14px;">You've been invited to join the Germinal admin back office</p>
+  </div>
+
+  <div style="background-color: #ffffff; border: 1px solid #e9ecef; border-radius: 8px; padding: 24px; margin-bottom: 16px;">
+    <p style="margin: 0 0 16px 0; font-size: 16px;">Hi ${escapeHtml(data.firstName)},</p>
+    <p style="margin: 0 0 16px 0; font-size: 16px;">You have been invited to join the <strong>Germinal admin back office</strong>. Your account has been created and you can now set your password to get started.</p>
+
+    <h3 style="margin: 24px 0 12px 0; color: #495057; font-size: 16px; font-weight: 600;">Set Your Password</h3>
+    <p style="margin: 0 0 16px 0; font-size: 14px; color: #6c757d;">Click the button below to create your password. This link will expire in 24 hours.</p>
+
+    <div style="margin: 24px 0; text-align: center;">
+      <a href="${escapeHtmlAttr(resetUrl)}"
+         style="display: inline-block; background-color: #007bff; color: white; text-decoration: none; padding: 12px 32px; border-radius: 6px; font-weight: 600;">
+        Set Your Password
+      </a>
+    </div>
+
+    <p style="margin: 24px 0 0 0; font-size: 12px; color: #6c757d; text-align: center;">
+      Or copy this link: ${resetUrl}
+    </p>
+
+    <p style="margin: 24px 0 0 0; font-size: 14px;">
+      Once you've set your password, you can access the admin back office at:<br>
+      <a href="${env.PUBLIC_URL}/admin" style="color: #007bff; text-decoration: none;">${env.PUBLIC_URL}/admin</a>
+    </p>
+
+    <p style="margin: 24px 0 0 0; font-size: 14px;">
+      If you need a new link, please contact another administrator.
+    </p>
+  </div>
+
+  <div style="border-top: 1px solid #e9ecef; padding-top: 16px;">
+    <p style="margin: 0; color: #6c757d; font-size: 12px; text-align: center;">
+      We're excited to have you on the team!<br>
+      This is an automated invitation from Germinal.
+    </p>
+  </div>
+</body>
+</html>
+	`.trim();
+}
+
+export async function sendAdminInviteEmail(data: AdminInviteEmailData): Promise<void> {
+	const textBody = generateAdminInviteTextTemplate(data);
+	const htmlBody = generateAdminInviteHtmlTemplate(data);
+
+	if (!isAWSConfigured()) {
+		logger.info({
+			to: data.email,
+			resetToken: data.resetToken,
+			resetUrl: `${env.PUBLIC_URL}/admin/reset-password/${data.resetToken}`,
+		}, '📧 AWS not configured - admin invite email would have been sent');
+		return;
+	}
+
+	// Always queue for delivery with automatic retry
+	const { queueEmail } = await import('../jobs/process-email-queue');
+	await queueEmail({
+		type: 'admin_invite',
+		recipient: data.email,
+		subject: `Welcome to the Germinal Admin Team`,
+		textBody,
+		htmlBody,
+		metadata: {
+			adminEmail: data.email,
+			adminName: `${data.firstName} ${data.lastName}`,
+			resetToken: data.resetToken,
+		},
+	});
+	logger.info({ to: data.email }, '📋 Admin invite email queued');
+}
