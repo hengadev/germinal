@@ -101,6 +101,12 @@ export async function assignStaff(
 		}
 
 		logger.info(`Assigned staff ${userId} to event ${eventId} with role ${roleLabel || 'default'}`);
+
+		// Notify the assigned staff member (non-blocking — must not fail the assignment)
+		notifyStaffOfAssignment(fullStaff.user, eventId, roleLabel).catch((err) => {
+			logger.error({ err }, 'Failed to send staff assignment notification');
+		});
+
 		return {
 			...fullStaff,
 			user: {
@@ -244,4 +250,47 @@ export async function isUserAssignedToEvent(userId: string, eventId: string): Pr
 		logger.error({ err: error }, 'Failed to check user assignment');
 		throw error;
 	}
+}
+
+/**
+ * Notify a staff member that they've been assigned to an event.
+ * Always sends email; sends SMS too if the staff member has a phone on file.
+ * Non-fatal by design — callers should catch and log, never let this block the assignment.
+ */
+async function notifyStaffOfAssignment(
+	user: { email: string; firstName: string; lastName: string; phone: string | null },
+	eventId: string,
+	roleLabel?: string
+): Promise<void> {
+	const [event] = await db
+		.select({ titleEn: events.titleEn })
+		.from(events)
+		.where(eq(events.id, eventId))
+		.limit(1);
+
+	const eventTitle = event?.titleEn ?? 'an event';
+
+	const { sendStaffAssignmentEmail } = await import('./email');
+	const emailPromise = sendStaffAssignmentEmail({
+		firstName: user.firstName,
+		lastName: user.lastName,
+		email: user.email,
+		eventTitle,
+		roleLabel: roleLabel || null,
+	}).catch((err) => logger.error({ err }, 'Failed to send staff assignment email'));
+
+	const smsPromise = user.phone
+		? import('./sms')
+				.then(({ sendStaffAssignmentSMS }) =>
+					sendStaffAssignmentSMS({
+						phone: user.phone as string,
+						firstName: user.firstName,
+						eventTitle,
+						roleLabel: roleLabel || null,
+					})
+				)
+				.catch((err) => logger.error({ err }, 'Failed to send staff assignment SMS'))
+		: Promise.resolve();
+
+	await Promise.all([emailPromise, smsPromise]);
 }

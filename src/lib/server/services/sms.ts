@@ -314,3 +314,52 @@ If you didn't request this, please contact your administrator.`;
         message,
     });
 }
+
+/**
+ * Send staff event assignment SMS
+ */
+export async function sendStaffAssignmentSMS(options: {
+    phone: string;
+    firstName: string;
+    eventTitle: string;
+    roleLabel?: string | null;
+}): Promise<void> {
+    const roleText = options.roleLabel ? ` as ${options.roleLabel}` : '';
+
+    const message = `📋 New Assignment
+
+Hi ${options.firstName}! You've been assigned to "${options.eventTitle}"${roleText}.
+
+View details: ${env.PUBLIC_URL}/staff`;
+
+    await sendSMS({
+        to: formatPhoneNumber(options.phone),
+        message,
+    });
+}
+
+/**
+ * Send staff task assignment SMS
+ */
+export async function sendTaskAssignmentSMS(options: {
+    phone: string;
+    firstName: string;
+    taskTitle: string;
+    eventTitle: string;
+    dueDate?: Date | null;
+}): Promise<void> {
+    const dueText = options.dueDate
+        ? ` (due ${options.dueDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})`
+        : '';
+
+    const message = `✅ New Task
+
+Hi ${options.firstName}! You've been given a new task for "${options.eventTitle}": "${options.taskTitle}"${dueText}.
+
+View your tasks: ${env.PUBLIC_URL}/staff`;
+
+    await sendSMS({
+        to: formatPhoneNumber(options.phone),
+        message,
+    });
+}
