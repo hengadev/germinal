@@ -260,3 +260,26 @@ If you didn't request this, please contact your administrator.`;
         message,
     });
 }
+
+/**
+ * Send staff event assignment SMS
+ */
+export async function sendStaffAssignmentSMS(options: {
+    phone: string;
+    firstName: string;
+    eventTitle: string;
+    roleLabel?: string | null;
+}): Promise<void> {
+    const roleText = options.roleLabel ? ` as ${options.roleLabel}` : '';
+
+    const message = `📋 New Assignment
+
+Hi ${options.firstName}! You've been assigned to "${options.eventTitle}"${roleText}.
+
+View details: ${env.PUBLIC_URL}/staff`;
+
+    await sendSMS({
+        to: formatPhoneNumber(options.phone),
+        message,
+    });
+}

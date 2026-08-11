@@ -1010,3 +1010,104 @@ export async function sendAdminInviteEmail(data: AdminInviteEmailData): Promise<
 	});
 	logger.info({ to: data.email }, '📋 Admin invite email queued');
 }
+
+// ============================================
+// STAFF ASSIGNMENT EMAIL
+// ============================================
+
+interface StaffAssignmentEmailData {
+	firstName: string;
+	lastName: string;
+	email: string;
+	eventTitle: string;
+	roleLabel?: string | null;
+}
+
+function generateStaffAssignmentTextTemplate(data: StaffAssignmentEmailData): string {
+	const portalUrl = `${env.PUBLIC_URL}/staff`;
+
+	return `
+You've Been Assigned to an Event
+
+Hi ${data.firstName},
+
+You have been assigned to "${data.eventTitle}"${data.roleLabel ? ` as ${data.roleLabel}` : ''} on the Germinal staff portal.
+
+View the event and your tasks:
+${portalUrl}
+
+---
+This is an automated notification from Germinal.
+	`.trim();
+}
+
+function generateStaffAssignmentHtmlTemplate(data: StaffAssignmentEmailData): string {
+	const portalUrl = `${env.PUBLIC_URL}/staff`;
+
+	return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>You've Been Assigned to an Event</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background-color: #f8f9fa; border-radius: 8px; padding: 24px; margin-bottom: 24px;">
+    <h2 style="margin: 0 0 8px 0; color: #1a1a1a; font-size: 24px;">You've Been Assigned to an Event</h2>
+    <p style="margin: 0; color: #6c757d; font-size: 14px;">Germinal Staff Portal</p>
+  </div>
+
+  <div style="background-color: #ffffff; border: 1px solid #e9ecef; border-radius: 8px; padding: 24px; margin-bottom: 16px;">
+    <p style="margin: 0 0 16px 0; font-size: 16px;">Hi ${escapeHtml(data.firstName)},</p>
+    <p style="margin: 0 0 16px 0; font-size: 16px;">You have been assigned to <strong>${escapeHtml(data.eventTitle)}</strong>${data.roleLabel ? ` as <strong>${escapeHtml(data.roleLabel)}</strong>` : ''} on the Germinal staff portal.</p>
+
+    <div style="margin: 24px 0; text-align: center;">
+      <a href="${escapeHtmlAttr(portalUrl)}"
+         style="display: inline-block; background-color: #007bff; color: white; text-decoration: none; padding: 12px 32px; border-radius: 6px; font-weight: 600;">
+        View Event Details
+      </a>
+    </div>
+
+    <p style="margin: 24px 0 0 0; font-size: 12px; color: #6c757d; text-align: center;">
+      Or copy this link: ${portalUrl}
+    </p>
+  </div>
+
+  <div style="border-top: 1px solid #e9ecef; padding-top: 16px;">
+    <p style="margin: 0; color: #6c757d; font-size: 12px; text-align: center;">
+      This is an automated notification from Germinal.
+    </p>
+  </div>
+</body>
+</html>
+	`.trim();
+}
+
+export async function sendStaffAssignmentEmail(data: StaffAssignmentEmailData): Promise<void> {
+	const textBody = generateStaffAssignmentTextTemplate(data);
+	const htmlBody = generateStaffAssignmentHtmlTemplate(data);
+
+	if (!isAWSConfigured()) {
+		logger.info({
+			to: data.email,
+			eventTitle: data.eventTitle,
+		}, '📧 AWS not configured - staff assignment email would have been sent');
+		return;
+	}
+
+	const { queueEmail } = await import('../jobs/process-email-queue');
+	await queueEmail({
+		type: 'staff_assignment',
+		recipient: data.email,
+		subject: `You've been assigned to ${data.eventTitle}`,
+		textBody,
+		htmlBody,
+		metadata: {
+			staffEmail: data.email,
+			staffName: `${data.firstName} ${data.lastName}`,
+			eventTitle: data.eventTitle,
+		},
+	});
+	logger.info({ to: data.email }, '📋 Staff assignment email queued');
+}
