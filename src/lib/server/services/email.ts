@@ -515,6 +515,253 @@ export async function sendEventReminderEmail(data: TicketEmailData & { daysUntil
 }
 
 // ============================================
+// GUEST CANCELLATION / REFUND EMAILS
+// ============================================
+
+export interface CancellationEmailData {
+	guestEmail: string;
+	guestName: string;
+	eventTitle: string;
+	sessionTitle: string;
+	sessionStartTime: Date;
+	reservationId: string;
+}
+
+export interface RefundEmailData {
+	guestEmail: string;
+	guestName: string;
+	eventTitle: string;
+	sessionTitle: string;
+	sessionStartTime: Date;
+	reservationId: string;
+	amount: number;
+	currency: string;
+	isPartialRefund: boolean;
+}
+
+function generateCancellationTextTemplate(data: CancellationEmailData): string {
+	return `
+Reservation Cancelled
+
+Hi ${data.guestName},
+
+Your reservation for ${data.eventTitle} has been cancelled.
+
+RESERVATION DETAILS:
+${data.sessionTitle}
+${data.sessionStartTime.toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })}
+
+Reservation ID: ${data.reservationId.substring(0, 8)}
+
+If you didn't request this cancellation or have any questions, please contact us.
+
+---
+This is an automated notification from Germinal.
+  `.trim();
+}
+
+function generateCancellationHtmlTemplate(data: CancellationEmailData): string {
+	return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reservation Cancelled</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background-color: #f8f9fa; border-radius: 8px; padding: 24px; margin-bottom: 24px;">
+    <h2 style="margin: 0 0 8px 0; color: #1a1a1a; font-size: 24px;">Reservation Cancelled</h2>
+    <p style="margin: 0; color: #6c757d; font-size: 14px;">Reservation #${escapeHtml(data.reservationId.substring(0, 8))}</p>
+  </div>
+
+  <div style="background-color: #ffffff; border: 1px solid #e9ecef; border-radius: 8px; padding: 24px; margin-bottom: 16px;">
+    <p style="margin: 0 0 16px 0; font-size: 16px;">Hi ${escapeHtml(data.guestName)},</p>
+    <p style="margin: 0 0 16px 0; font-size: 16px;">Your reservation for <strong>${escapeHtml(data.eventTitle)}</strong> has been cancelled.</p>
+
+    <h3 style="margin: 24px 0 12px 0; color: #495057; font-size: 16px; font-weight: 600;">Reservation Details</h3>
+    <table style="width: 100%; border-collapse: collapse;">
+      <tr>
+        <td style="padding: 8px 0; color: #212529;"><strong>${escapeHtml(data.sessionTitle)}</strong></td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0; color: #6c757d;">
+          ${data.sessionStartTime.toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })}
+        </td>
+      </tr>
+    </table>
+
+    <p style="margin: 24px 0 0 0; font-size: 14px; color: #6c757d;">
+      If you didn't request this cancellation or have any questions, please contact us.
+    </p>
+  </div>
+
+  <div style="border-top: 1px solid #e9ecef; padding-top: 16px;">
+    <p style="margin: 0; color: #6c757d; font-size: 12px; text-align: center;">
+      This is an automated notification from Germinal.
+    </p>
+  </div>
+</body>
+</html>
+  `.trim();
+}
+
+/**
+ * Notify a Guest that their Reservation has been cancelled, with no money
+ * changing hands (e.g. a comp Reservation, or an Admin cancellation that
+ * doesn't involve a refund). For cancellations that also involve a refund,
+ * use `sendRefundEmail` instead — it covers both in one notification.
+ */
+export async function sendCancellationEmail(data: CancellationEmailData): Promise<void> {
+	const textBody = generateCancellationTextTemplate(data);
+	const htmlBody = generateCancellationHtmlTemplate(data);
+
+	if (!isAWSConfigured()) {
+		logger.info({
+			to: data.guestEmail,
+			reservationId: data.reservationId,
+		}, '📧 AWS not configured - cancellation email would be sent');
+		return;
+	}
+
+	const { queueEmail } = await import('../jobs/process-email-queue');
+	await queueEmail({
+		type: 'reservation_cancelled',
+		recipient: data.guestEmail,
+		subject: `Reservation Cancelled - ${data.eventTitle}`,
+		textBody,
+		htmlBody,
+		metadata: {
+			reservationId: data.reservationId,
+			guestName: data.guestName,
+		},
+	});
+	logger.info({ to: data.guestEmail }, '📋 Cancellation email queued');
+}
+
+function generateRefundTextTemplate(data: RefundEmailData): string {
+	const refundLabel = data.isPartialRefund ? 'Partial Refund Processed' : 'Refund Processed';
+
+	return `
+${refundLabel}
+
+Hi ${data.guestName},
+
+Your reservation for ${data.eventTitle} has been cancelled and ${data.isPartialRefund ? 'a partial refund' : 'a refund'} of ${formatCurrency(data.amount, data.currency)} has been processed.
+
+RESERVATION DETAILS:
+${data.sessionTitle}
+${data.sessionStartTime.toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })}
+
+Reservation ID: ${data.reservationId.substring(0, 8)}
+Refund Amount: ${formatCurrency(data.amount, data.currency)}
+
+Refunds typically appear on your statement within 5-10 business days, depending on your bank.
+
+---
+This is an automated notification from Germinal.
+  `.trim();
+}
+
+function generateRefundHtmlTemplate(data: RefundEmailData): string {
+	const refundLabel = data.isPartialRefund ? 'Partial Refund Processed' : 'Refund Processed';
+
+	return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${refundLabel}</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background-color: #f8f9fa; border-radius: 8px; padding: 24px; margin-bottom: 24px;">
+    <h2 style="margin: 0 0 8px 0; color: #1a1a1a; font-size: 24px;">💳 ${escapeHtml(refundLabel)}</h2>
+    <p style="margin: 0; color: #6c757d; font-size: 14px;">Reservation #${escapeHtml(data.reservationId.substring(0, 8))}</p>
+  </div>
+
+  <div style="background-color: #ffffff; border: 1px solid #e9ecef; border-radius: 8px; padding: 24px; margin-bottom: 16px;">
+    <p style="margin: 0 0 16px 0; font-size: 16px;">Hi ${escapeHtml(data.guestName)},</p>
+    <p style="margin: 0 0 16px 0; font-size: 16px;">
+      Your reservation for <strong>${escapeHtml(data.eventTitle)}</strong> has been cancelled and
+      ${data.isPartialRefund ? 'a partial refund' : 'a refund'} of <strong>${escapeHtml(formatCurrency(data.amount, data.currency))}</strong> has been processed.
+    </p>
+
+    <h3 style="margin: 24px 0 12px 0; color: #495057; font-size: 16px; font-weight: 600;">Reservation Details</h3>
+    <table style="width: 100%; border-collapse: collapse;">
+      <tr>
+        <td style="padding: 8px 0; color: #212529;"><strong>${escapeHtml(data.sessionTitle)}</strong></td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0; color: #6c757d;">
+          ${data.sessionStartTime.toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })}
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 12px 0 0 0; font-weight: 600;">Refund Amount</td>
+      </tr>
+      <tr>
+        <td style="padding: 0 0 8px 0;">${escapeHtml(formatCurrency(data.amount, data.currency))}</td>
+      </tr>
+    </table>
+
+    <p style="margin: 24px 0 0 0; font-size: 14px; color: #6c757d;">
+      Refunds typically appear on your statement within 5-10 business days, depending on your bank.
+    </p>
+  </div>
+
+  <div style="border-top: 1px solid #e9ecef; padding-top: 16px;">
+    <p style="margin: 0; color: #6c757d; font-size: 12px; text-align: center;">
+      This is an automated notification from Germinal.
+    </p>
+  </div>
+</body>
+</html>
+  `.trim();
+}
+
+/**
+ * Notify a Guest that their Reservation has been cancelled and (fully or
+ * partially) refunded. Covers Admin-initiated refunds, the Guest
+ * self-service cancellation flow when a refund is issued, and refunds that
+ * arrive via the Stripe webhook (disputes, or refunds issued directly in
+ * the Stripe dashboard).
+ */
+export async function sendRefundEmail(data: RefundEmailData): Promise<void> {
+	const textBody = generateRefundTextTemplate(data);
+	const htmlBody = generateRefundHtmlTemplate(data);
+
+	if (!isAWSConfigured()) {
+		logger.info({
+			to: data.guestEmail,
+			reservationId: data.reservationId,
+			amount: data.amount,
+			currency: data.currency,
+		}, '📧 AWS not configured - refund email would be sent');
+		return;
+	}
+
+	const { queueEmail } = await import('../jobs/process-email-queue');
+	await queueEmail({
+		type: 'reservation_refunded',
+		recipient: data.guestEmail,
+		subject: data.isPartialRefund
+			? `Partial Refund Processed - ${data.eventTitle}`
+			: `Refund Processed - ${data.eventTitle}`,
+		textBody,
+		htmlBody,
+		metadata: {
+			reservationId: data.reservationId,
+			guestName: data.guestName,
+			amount: data.amount.toString(),
+			currency: data.currency,
+			isPartialRefund: data.isPartialRefund.toString(),
+		},
+	});
+	logger.info({ to: data.guestEmail }, '📋 Refund email queued');
+}
+
+// ============================================
 // ADMIN DISPUTE ALERT EMAIL
 // ============================================
 

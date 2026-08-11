@@ -1,5 +1,6 @@
 import { env } from '../env';
 import { logger } from '$lib/server/logger';
+import { formatCurrency } from '$lib/utils/currency';
 
 let twilioClient: any = null;
 
@@ -203,6 +204,59 @@ Hi ${options.name}! Here's a reminder for your upcoming event.
 📅 ${formattedDate} at ${formattedTime}
 
 Don't forget to bring your tickets! See you there.`;
+
+	await sendSMS({
+		to: formatPhoneNumber(options.phone),
+		message,
+	});
+}
+
+/**
+ * Send cancellation SMS (no refund involved, e.g. a comp Reservation or an
+ * Admin cancellation with no payment attached)
+ */
+export async function sendCancellationSMS(options: {
+	phone: string;
+	name: string;
+	eventTitle: string;
+	sessionStartTime: Date;
+}): Promise<void> {
+	const formattedDate = options.sessionStartTime.toLocaleDateString('en-US', {
+		month: 'short',
+		day: 'numeric',
+	});
+	const formattedTime = options.sessionStartTime.toLocaleTimeString('en-US', {
+		hour: '2-digit',
+		minute: '2-digit',
+	});
+
+	const message = `Reservation Cancelled: ${options.eventTitle}
+
+Hi ${options.name}, your reservation for ${formattedDate} at ${formattedTime} has been cancelled.
+
+Questions? Contact us.`;
+
+	await sendSMS({
+		to: formatPhoneNumber(options.phone),
+		message,
+	});
+}
+
+/**
+ * Send refund SMS (Reservation cancelled and fully or partially refunded)
+ */
+export async function sendRefundSMS(options: {
+	phone: string;
+	name: string;
+	eventTitle: string;
+	amount: number;
+	currency: string;
+}): Promise<void> {
+	const message = `💳 Refund Processed: ${options.eventTitle}
+
+Hi ${options.name}, your reservation has been cancelled and ${formatCurrency(options.amount, options.currency)} has been refunded.
+
+It may take 5-10 business days to appear on your statement.`;
 
 	await sendSMS({
 		to: formatPhoneNumber(options.phone),
