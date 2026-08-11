@@ -4,7 +4,7 @@
 	import Drawer from '$lib/components/ui/Drawer.svelte';
 	import { browser } from '$app/environment';
 	import { page } from '$app/state';
-	import { locale } from 'svelte-i18n';
+	import { t, locale } from 'svelte-i18n';
 
 	type NotificationPreference = 'email' | 'sms' | 'both';
 
@@ -101,14 +101,14 @@
 			const data = await response.json();
 
 			if (!response.ok) {
-				throw new Error(data.error || 'Failed to join waitlist');
+				throw new Error(data.error || $t('waitlist.genericError'));
 			}
 
 			success = true;
 
 		} catch (err) {
 			console.error('Waitlist error:', err);
-			error = err instanceof Error ? err.message : 'Failed to join waitlist';
+			error = err instanceof Error ? err.message : $t('waitlist.genericError');
 		} finally {
 			isSubmitting = false;
 		}
@@ -134,15 +134,15 @@
 	{#if success}
 		<div class="text-center py-8">
 			<CheckCircle2 size={64} class="mx-auto mb-4 text-green-600" />
-			<h3 class="text-2xl font-bold text-foreground mb-2">You're on the Waitlist!</h3>
+			<h3 class="text-2xl font-bold text-foreground mb-2">{$t('waitlist.successTitle')}</h3>
 			<p class="text-muted-foreground mb-6">
-				We'll notify you at <strong>{email}</strong> when tickets become available.
+				{$t('waitlist.successMessage', { values: { email: `<strong>${email}</strong>` } })}
 			</p>
 			<button
 				onclick={close}
 				class="px-6 py-2.5 bg-foreground text-white rounded-lg hover:bg-foreground-alt transition-colors font-medium"
 			>
-				Done
+				{$t('waitlist.done')}
 			</button>
 		</div>
 	{:else}
@@ -151,16 +151,16 @@
 			<div class="bg-surface rounded-lg p-4">
 				<div class="text-sm text-muted-foreground mb-1">{eventTitle}</div>
 				<div class="font-semibold text-foreground">{getSessionTitle(session)}</div>
-				<div class="text-sm text-red-600 mt-1 font-medium">Currently Sold Out</div>
+				<div class="text-sm text-red-600 mt-1 font-medium">{$t('waitlist.currentlySoldOut')}</div>
 			</div>
 
 			<!-- Info Message -->
 			<div class="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
 				<AlertCircle size={20} class="text-blue-600 flex-shrink-0 mt-0.5" />
 				<div class="text-sm text-blue-900">
-					<p class="font-medium mb-1">Join the Waitlist</p>
+					<p class="font-medium mb-1">{$t('waitlist.infoTitle')}</p>
 					<p class="text-blue-700">
-						We'll email you if tickets become available. You'll have 24 hours to complete your purchase.
+						{$t('waitlist.infoMessage')}
 					</p>
 				</div>
 			</div>
@@ -170,7 +170,7 @@
 				<div class="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
 					<AlertCircle size={20} class="text-red-600 flex-shrink-0 mt-0.5" />
 					<div>
-						<div class="font-medium text-red-900 text-sm">Failed to Join Waitlist</div>
+						<div class="font-medium text-red-900 text-sm">{$t('waitlist.errorTitle')}</div>
 						<div class="text-red-700 text-sm mt-1">{error}</div>
 					</div>
 				</div>
@@ -179,7 +179,7 @@
 			<!-- Name Field -->
 			<div>
 				<label for="name" class="block text-sm font-medium text-foreground-alt mb-2">
-					Full Name <span class="text-red-500">*</span>
+					{$t('booking.fullName')} <span class="text-red-500">*</span>
 				</label>
 				<div class="relative">
 					<User size={18} class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -198,7 +198,7 @@
 			<!-- Email Field -->
 			<div>
 				<label for="email" class="block text-sm font-medium text-foreground-alt mb-2">
-					Email <span class="text-red-500">*</span>
+					{$t('booking.email')} <span class="text-red-500">*</span>
 				</label>
 				<div class="relative">
 					<Mail size={18} class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -212,13 +212,13 @@
 						class="w-full pl-10 pr-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm disabled:bg-surface disabled:cursor-not-allowed"
 					/>
 				</div>
-				<p class="text-xs text-muted-foreground mt-1">We'll notify you here when tickets are available</p>
+				<p class="text-xs text-muted-foreground mt-1">{$t('waitlist.emailHint')}</p>
 			</div>
 
 			<!-- Phone Field (Optional) -->
 			<div>
 				<label for="phone" class="block text-sm font-medium text-foreground-alt mb-2">
-					Phone Number <span class="text-muted-foreground text-xs">(optional)</span>
+					{$t('booking.phone')} <span class="text-muted-foreground text-xs">{$t('booking.optional')}</span>
 				</label>
 				<div class="relative">
 					<Phone size={18} class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -236,7 +236,7 @@
 			<!-- Notification Preference -->
 			<div>
 				<label class="block text-sm font-medium text-foreground-alt mb-2">
-					How would you like to be notified?
+					{$t('booking.notificationsLabel')}
 				</label>
 				<div class="grid grid-cols-3 gap-2">
 					<button
@@ -249,7 +249,7 @@
 						}"
 						disabled={isSubmitting}
 					>
-						Email
+						{$t('booking.notifEmail')}
 					</button>
 					<button
 						type="button"
@@ -261,7 +261,7 @@
 						}"
 						disabled={isSubmitting}
 					>
-						SMS
+						{$t('booking.notifSms')}
 					</button>
 					<button
 						type="button"
@@ -273,7 +273,7 @@
 						}"
 						disabled={isSubmitting}
 					>
-						Both
+						{$t('booking.notifBoth')}
 					</button>
 				</div>
 			</div>
@@ -281,7 +281,7 @@
 			<!-- Quantity Field -->
 			<div>
 				<label for="quantity" class="block text-sm font-medium text-foreground-alt mb-2">
-					Number of Tickets <span class="text-red-500">*</span>
+					{$t('booking.numberOfTickets')} <span class="text-red-500">*</span>
 				</label>
 				<div class="relative">
 					<Ticket size={18} class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -306,7 +306,7 @@
 					disabled={isSubmitting}
 					class="px-6 py-2.5 border border-border-input text-foreground-alt rounded-lg hover:bg-surface transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
 				>
-					Cancel
+					{$t('booking.cancel')}
 				</button>
 				<button
 					type="submit"
@@ -315,9 +315,9 @@
 				>
 					{#if isSubmitting}
 						<Loader2 size={18} class="animate-spin" />
-						Joining...
+						{$t('waitlist.joining')}
 					{:else}
-						Join Waitlist
+						{$t('booking.joinWaitlist')}
 					{/if}
 				</button>
 			</div>
@@ -329,7 +329,7 @@
 	<Drawer bind:isOpen>
 		<div class="sticky top-0 bg-white pb-4 border-b border-border-card -mx-4 px-4 -mt-4 pt-4 z-10">
 			<div class="flex items-center justify-between mb-2">
-				<h2 class="text-xl font-semibold">Join Waitlist</h2>
+				<h2 class="text-xl font-semibold">{$t('booking.joinWaitlist')}</h2>
 				<button
 					type="button"
 					onclick={close}
@@ -339,7 +339,7 @@
 					<X size={20} />
 				</button>
 			</div>
-			<p class="text-muted-foreground text-sm">Get notified when tickets become available</p>
+			<p class="text-muted-foreground text-sm">{$t('waitlist.description')}</p>
 		</div>
 		<div class="pt-4">
 			{@render formContent()}
@@ -348,8 +348,8 @@
 {:else}
 	<Modal
 		bind:isOpen
-		title="Join Waitlist"
-		description="Get notified when tickets become available"
+		title={$t('booking.joinWaitlist')}
+		description={$t('waitlist.description')}
 	>
 		{@render formContent()}
 	</Modal>

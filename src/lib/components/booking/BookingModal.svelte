@@ -294,12 +294,12 @@
 		<div class="bg-surface rounded-lg p-4">
 			<div class="flex items-center justify-between mb-2">
 				<span class="text-muted-foreground">{$t('booking.tickets', { values: { qty: quantity } })}</span>
-				<span class="text-foreground">{formatCurrency(totalAmount, session.currency)}</span>
+				<span class="text-foreground">{formatCurrency(totalAmount, session.currency, $locale ?? undefined)}</span>
 			</div>
 			<div class="border-t border-border-card pt-2 mt-2 flex items-center justify-between">
 				<span class="font-semibold text-foreground">{$t('booking.total')}</span>
 				<span class="font-bold text-xl text-foreground">
-					{formatCurrency(totalAmount, session.currency)}
+					{formatCurrency(totalAmount, session.currency, $locale ?? undefined)}
 				</span>
 			</div>
 		</div>

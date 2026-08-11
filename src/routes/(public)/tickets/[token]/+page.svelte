@@ -445,7 +445,7 @@ END:VCALENDAR`;
 								{$t('tickets.totalPaid')}
 							</dt>
 							<dd class="text-sm font-semibold text-foreground">
-								{formatCurrency(data.reservation.totalAmount, data.reservation.currency)}
+								{formatCurrency(data.reservation.totalAmount, data.reservation.currency, $locale ?? undefined)}
 							</dd>
 						</div>
 					</dl>
