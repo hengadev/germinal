@@ -73,11 +73,15 @@ let cancelReservationWithRefund: Awaited<
 let expireReservation: Awaited<
 	typeof import('../../src/lib/server/services/reservations')
 >['expireReservation'];
+let processRefund: Awaited<
+	typeof import('../../src/lib/server/services/reservations')
+>['processRefund'];
 
 beforeAll(async () => {
 	const mod = await import('../../src/lib/server/services/reservations');
 	cancelReservationWithRefund = mod.cancelReservationWithRefund;
 	expireReservation = mod.expireReservation;
+	processRefund = mod.processRefund;
 });
 
 afterAll(async () => {
@@ -322,6 +326,152 @@ describe('cancelReservationWithRefund', () => {
 			.from(eventSessions)
 			.where(eq(eventSessions.id, session.id));
 		expect(unchanged.availableCapacity).toBe(90);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// processRefund tests (admin refund action — supports full and partial
+// refunds; see docs/issues/016-partial-refund-ui.md)
+// ---------------------------------------------------------------------------
+
+describe('processRefund', () => {
+	beforeEach(async () => {
+		vi.clearAllMocks();
+		await setupTestDatabase();
+	});
+
+	it('full refund (no amount) — payment marked refunded, reservation cancelled, capacity restored', async () => {
+		const { session } = await seedPublishedSession({ availableCapacity: 90 });
+		const { reservation, payment } = await seedConfirmedReservation(session.id, {
+			quantity: 2,
+			totalAmount: 5000,
+		});
+
+		await testDb
+			.update(eventSessions)
+			.set({ availableCapacity: 88 })
+			.where(eq(eventSessions.id, session.id));
+
+		vi.mocked(createRefund).mockResolvedValueOnce({
+			id: 're_test_full',
+			amount: 5000,
+			status: 'succeeded',
+		} as any);
+
+		await processRefund(reservation.id);
+
+		// Refunded for the full remaining balance
+		expect(vi.mocked(createRefund)).toHaveBeenCalledWith(payment.stripePaymentIntentId, 5000);
+
+		const [updatedPay] = await testDb
+			.select()
+			.from(payments)
+			.where(eq(payments.reservationId, reservation.id));
+		expect(updatedPay.status).toBe('refunded');
+		expect(updatedPay.refundedAmount).toBe(5000);
+
+		const [updatedRes] = await testDb
+			.select()
+			.from(reservations)
+			.where(eq(reservations.id, reservation.id));
+		expect(updatedRes.status).toBe('cancelled');
+
+		const [updatedSession] = await testDb
+			.select()
+			.from(eventSessions)
+			.where(eq(eventSessions.id, session.id));
+		expect(updatedSession.availableCapacity).toBe(90); // 88 + 2
+	});
+
+	it('partial refund (amount specified) — payment marked partially_refunded for the exact amount', async () => {
+		const { session } = await seedPublishedSession({ availableCapacity: 90 });
+		const { reservation, payment } = await seedConfirmedReservation(session.id, {
+			quantity: 2,
+			totalAmount: 5000,
+		});
+
+		vi.mocked(createRefund).mockResolvedValueOnce({
+			id: 're_test_partial',
+			amount: 2000,
+			status: 'succeeded',
+		} as any);
+
+		await processRefund(reservation.id, 2000);
+
+		// Refunded for exactly the requested partial amount
+		expect(vi.mocked(createRefund)).toHaveBeenCalledWith(payment.stripePaymentIntentId, 2000);
+
+		const [updatedPay] = await testDb
+			.select()
+			.from(payments)
+			.where(eq(payments.reservationId, reservation.id));
+		expect(updatedPay.status).toBe('partially_refunded');
+		expect(updatedPay.refundedAmount).toBe(2000);
+	});
+
+	it('amount exceeding remaining refundable balance — rejected, nothing changed', async () => {
+		const { session } = await seedPublishedSession({ availableCapacity: 90 });
+		const { reservation } = await seedConfirmedReservation(session.id, {
+			quantity: 2,
+			totalAmount: 5000,
+		});
+
+		await expect(processRefund(reservation.id, 6000)).rejects.toThrow(
+			'Refund amount exceeds the remaining refundable balance'
+		);
+
+		expect(vi.mocked(createRefund)).not.toHaveBeenCalled();
+
+		const [unchangedPay] = await testDb
+			.select()
+			.from(payments)
+			.where(eq(payments.reservationId, reservation.id));
+		expect(unchangedPay.status).toBe('succeeded');
+		expect(unchangedPay.refundedAmount).toBe(0);
+
+		const [unchangedRes] = await testDb
+			.select()
+			.from(reservations)
+			.where(eq(reservations.id, reservation.id));
+		expect(unchangedRes.status).toBe('confirmed');
+
+		const [unchangedSession] = await testDb
+			.select()
+			.from(eventSessions)
+			.where(eq(eventSessions.id, session.id));
+		expect(unchangedSession.availableCapacity).toBe(90);
+	});
+
+	it('second partial refund after a first — remaining balance shrinks and status stays partially_refunded until fully refunded', async () => {
+		const { session } = await seedPublishedSession({ availableCapacity: 90 });
+		const { reservation, payment } = await seedConfirmedReservation(session.id, {
+			quantity: 2,
+			totalAmount: 5000,
+		});
+
+		vi.mocked(createRefund).mockResolvedValueOnce({
+			id: 're_test_partial_1',
+			amount: 2000,
+			status: 'succeeded',
+		} as any);
+		await processRefund(reservation.id, 2000);
+
+		vi.mocked(createRefund).mockResolvedValueOnce({
+			id: 're_test_partial_2',
+			amount: 3000,
+			status: 'succeeded',
+		} as any);
+		await processRefund(reservation.id, 3000);
+
+		// Second call refunds the rest of the remaining balance (3000)
+		expect(vi.mocked(createRefund)).toHaveBeenLastCalledWith(payment.stripePaymentIntentId, 3000);
+
+		const [updatedPay] = await testDb
+			.select()
+			.from(payments)
+			.where(eq(payments.reservationId, reservation.id));
+		expect(updatedPay.status).toBe('refunded');
+		expect(updatedPay.refundedAmount).toBe(5000);
 	});
 });
 

@@ -132,6 +132,26 @@ export const actions: Actions = {
 
 	refund: async ({ params, request, locals }) => {
 		requireAdmin(locals);
+
+		// Optional partial refund amount, submitted as major currency units
+		// (e.g. "25.00") and converted to cents. Omitted/blank means "refund
+		// the full remaining balance" — the existing full-refund behavior.
+		const formData = await request.formData();
+		const amountRaw = formData.get('amount');
+
+		let amount: number | undefined;
+		if (typeof amountRaw === 'string' && amountRaw.trim() !== '') {
+			const { parseCurrency } = await import('$lib/utils/currency');
+			try {
+				amount = parseCurrency(amountRaw);
+			} catch {
+				return fail(400, { error: 'Invalid refund amount' });
+			}
+			if (!Number.isFinite(amount) || amount <= 0) {
+				return fail(400, { error: 'Refund amount must be greater than zero' });
+			}
+		}
+
 		if (env.USE_MOCK_DATA) {
 			// Mock mode - just return success
 			return { success: true, message: 'Refund processed (mock)' };
@@ -139,8 +159,13 @@ export const actions: Actions = {
 
 		try {
 			const { processRefund } = await import('$lib/server/services/reservations');
-			await processRefund(params.id);
-			return { success: true, message: 'Refund processed successfully' };
+			await processRefund(params.id, amount);
+			return {
+				success: true,
+				message: amount
+					? `Partial refund of ${(amount / 100).toFixed(2)} processed successfully`
+					: 'Refund processed successfully'
+			};
 		} catch (err) {
 			return fail(400, { error: err instanceof Error ? err.message : 'Failed to process refund' });
 		}

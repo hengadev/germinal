@@ -550,9 +550,13 @@ export async function cancelReservation(reservationId: string) {
 }
 
 /**
- * Process refund for a reservation - admin action
+ * Process refund for a reservation - admin action.
+ *
+ * By default refunds the full remaining refundable balance. Pass `amount`
+ * (in cents) to issue a partial refund instead; it must be greater than
+ * zero and no more than the remaining refundable balance.
  */
-export async function processRefund(reservationId: string) {
+export async function processRefund(reservationId: string, amount?: number) {
 	const { createRefund } = await import('./stripe');
 
 	const sessionData = await db.transaction(async (tx: typeof db) => {
@@ -569,27 +573,40 @@ export async function processRefund(reservationId: string) {
 			throw new Error('Payment not found for this reservation');
 		}
 
-		if (reservation.payment.status !== 'succeeded') {
+		if (reservation.payment.status !== 'succeeded' && reservation.payment.status !== 'partially_refunded') {
 			throw new Error('Can only refund successful payments');
 		}
 
 		// Check if already fully refunded
 		const alreadyRefunded = reservation.payment.refundedAmount || 0;
-		if (alreadyRefunded >= reservation.payment.amount) {
+		const remainingBalance = reservation.payment.amount - alreadyRefunded;
+		if (remainingBalance <= 0) {
 			throw new Error('Payment has already been fully refunded');
 		}
 
-		// Calculate refund amount (partial refund if partially refunded)
-		const refundAmount = reservation.payment.amount - alreadyRefunded;
+		if (amount !== undefined) {
+			if (!Number.isFinite(amount) || amount <= 0) {
+				throw new Error('Refund amount must be greater than zero');
+			}
+			if (amount > remainingBalance) {
+				throw new Error('Refund amount exceeds the remaining refundable balance');
+			}
+		}
+
+		// Default to refunding the full remaining balance; otherwise refund
+		// exactly the requested (already-validated) partial amount.
+		const refundAmount = amount ?? remainingBalance;
 
 		// Process refund via Stripe
 		const refund = await createRefund(reservation.payment.stripePaymentIntentId, refundAmount);
 
+		const newRefundedTotal = alreadyRefunded + refund.amount;
+
 		// Update payment status
 		await tx.update(payments)
 			.set({
-				status: refundAmount >= reservation.payment.amount ? 'refunded' : 'partial_refund',
-				refundedAmount: alreadyRefunded + refund.amount,
+				status: newRefundedTotal >= reservation.payment.amount ? 'refunded' : 'partially_refunded',
+				refundedAmount: newRefundedTotal,
 				updatedAt: new Date(),
 			})
 			.where(eq(payments.id, reservation.payment.id));
