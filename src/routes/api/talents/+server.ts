@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { getAllTalents, createTalent } from '$lib/server/services/talents';
 import { createTalentSchema } from '$lib/server/validators/talents';
-import { requireAdmin } from '$lib/server/guards';
+import { requireAdmin } from '$lib/server/auth-guards';
 import { parsePagination, calculatePagination, createPaginatedResponse } from '$lib/utils/pagination';
 import { getCached, CACHE_TAGS } from '$lib/server/cache';
 import { MOCK_TALENTS, USE_MOCK_DATA } from '$lib/mock-data';
@@ -42,7 +42,7 @@ export const GET: RequestHandler = async ({ url, setHeaders }) => {
 };
 
 export const POST: RequestHandler = async (event) => {
-  requireAdmin(event);
+  requireAdmin(event.locals);
 
   const data = await event.request.json();
   const parsed = createTalentSchema.safeParse(data);

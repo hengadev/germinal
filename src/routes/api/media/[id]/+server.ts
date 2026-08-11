@@ -1,6 +1,6 @@
 import { json, error } from '@sveltejs/kit';
 import { getMediaById, deleteMedia } from '$lib/server/services/media';
-import { requireAdmin } from '$lib/server/guards';
+import { requireAdmin } from '$lib/server/auth-guards';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ params }) => {
@@ -13,7 +13,7 @@ export const GET: RequestHandler = async ({ params }) => {
 };
 
 export const DELETE: RequestHandler = async (event) => {
-  requireAdmin(event);
+  requireAdmin(event.locals);
 
   try {
     await deleteMedia(event.params.id);

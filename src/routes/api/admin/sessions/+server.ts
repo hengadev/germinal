@@ -1,13 +1,13 @@
 import { json } from '@sveltejs/kit';
 import { logger } from '$lib/server/logger';
-import { requireAdmin } from '$lib/server/guards';
+import { requireAdmin } from '$lib/server/auth-guards';
 import { createEventSession, getAllSessionsByEventId } from '$lib/server/services/event-sessions';
 import { createEventSessionSchema } from '$lib/server/validators/event-sessions';
 import { isAppError } from '$lib/server/errors';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async (event) => {
-	requireAdmin(event);
+	requireAdmin(event.locals);
 
 	const eventId = event.url.searchParams.get('eventId');
 
@@ -25,7 +25,7 @@ export const GET: RequestHandler = async (event) => {
 };
 
 export const POST: RequestHandler = async (event) => {
-	requireAdmin(event);
+	requireAdmin(event.locals);
 
 	const data = await event.request.json();
 	const validated = createEventSessionSchema.safeParse(data);
