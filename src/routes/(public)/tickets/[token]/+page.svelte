@@ -1,12 +1,106 @@
 <script lang="ts">
-	import { Download, Printer, CheckCircle2, Clock, MapPin, Calendar, User, Mail, Ticket, CreditCard, AlertCircle, X } from 'lucide-svelte';
+	import { Download, Printer, CheckCircle2, Clock, MapPin, Calendar, User, Mail, Ticket, CreditCard, AlertCircle, X, XCircle, Loader2 } from 'lucide-svelte';
 	import { locale, t } from 'svelte-i18n';
 	import type { PageData } from './$types';
 	import { formatCurrency } from '$lib/utils/currency';
 	import { page } from '$app/state';
 	import { reveal } from '$lib/actions/reveal';
+	import { onMount } from 'svelte';
+	import { invalidateAll } from '$app/navigation';
+	import Modal from '$lib/components/ui/Modal.svelte';
 
 	let { data }: { data: PageData } = $props();
+
+	// --- Self-service cancellation ---
+	type CancellationCheckState = 'idle' | 'loading' | 'eligible' | 'ineligible' | 'error';
+
+	let cancellationState = $state<CancellationCheckState>('idle');
+	let cancellationReason = $state<string | null>(null);
+	let showCancelModal = $state(false);
+	let isCancelling = $state(false);
+	let cancelError = $state<string | null>(null);
+	let cancelSuccess = $state(false);
+	let refundAmount = $state<number | null>(null);
+
+	let hasPayment = $derived(data.reservation.payment !== null && data.reservation.totalAmount > 0);
+
+	// The backend only returns a reason once the confirmed-status check has already passed,
+	// so in practice the remaining failure case is the 24h window — but fall back to a
+	// generic message for anything else so we never show a misleading explanation.
+	let ineligibleMessageKey = $derived.by(() => {
+		if (cancellationReason && /24\s*hours?/i.test(cancellationReason)) {
+			return 'tickets.cancellation.windowClosed';
+		}
+		return 'tickets.cancellation.genericNotEligible';
+	});
+
+	onMount(() => {
+		if (data.reservation.status === 'confirmed') {
+			checkCancellationEligibility();
+		}
+	});
+
+	async function checkCancellationEligibility() {
+		cancellationState = 'loading';
+		try {
+			const response = await fetch(`/api/reservations/${data.reservation.accessToken}/cancel`);
+			const result = await response.json();
+
+			if (!response.ok) {
+				cancellationState = 'error';
+				return;
+			}
+
+			cancellationReason = result.reason ?? null;
+			cancellationState = result.canCancel ? 'eligible' : 'ineligible';
+		} catch (err) {
+			console.error('Failed to check cancellation eligibility:', err);
+			cancellationState = 'error';
+		}
+	}
+
+	function openCancelModal() {
+		cancelError = null;
+		showCancelModal = true;
+	}
+
+	function closeCancelModal() {
+		if (!isCancelling) {
+			showCancelModal = false;
+		}
+	}
+
+	async function confirmCancellation() {
+		isCancelling = true;
+		cancelError = null;
+
+		try {
+			const response = await fetch(`/api/reservations/${data.reservation.accessToken}/cancel`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'X-CSRF-Token': page.data.csrfToken
+				}
+			});
+			const result = await response.json();
+
+			if (!response.ok) {
+				throw new Error(result.error || $t('tickets.cancellation.errorGeneric'));
+			}
+
+			// Capture refund details before invalidateAll refreshes `data`.
+			refundAmount = hasPayment ? data.reservation.totalAmount : null;
+			showCancelModal = false;
+			cancelSuccess = true;
+			cancellationState = 'idle';
+
+			await invalidateAll();
+		} catch (err) {
+			cancelError = err instanceof Error ? err.message : $t('tickets.cancellation.errorGeneric');
+		} finally {
+			isCancelling = false;
+		}
+	}
 
 	const showSuccess = page.url.searchParams.get('success') === 'true';
 	const paymentFailed = page.url.searchParams.get('payment_failed') === 'true';
@@ -382,9 +476,101 @@ END:VCALENDAR`;
 						{$t('tickets.printTicket')}
 					</button>
 				</div>
+
+				<!-- Cancellation -->
+				{#if cancelSuccess}
+					<div class="border-t border-border-card pt-6 print:hidden">
+						<div class="bg-green-50 border border-green-200 rounded-lg p-4 flex items-start gap-3" use:reveal={{ preset: 'fade-up' }}>
+							<CheckCircle2 size={20} class="text-green-600 flex-shrink-0 mt-0.5" />
+							<div>
+								<div class="font-medium text-green-900 text-sm">{$t('tickets.cancellation.successTitle')}</div>
+								<p class="text-green-700 text-sm mt-1">
+									{#if refundAmount !== null}
+										{$t('tickets.cancellation.successWithRefund', { values: { amount: formatCurrency(refundAmount, data.reservation.currency) } })}
+									{:else}
+										{$t('tickets.cancellation.successNoRefund')}
+									{/if}
+								</p>
+							</div>
+						</div>
+					</div>
+				{:else if data.reservation.status === 'confirmed'}
+					<div class="border-t border-border-card pt-6 print:hidden">
+						<p class="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">
+							{$t('tickets.cancellation.sectionTitle')}
+						</p>
+
+						{#if cancellationState === 'idle' || cancellationState === 'loading'}
+							<div class="flex items-center gap-2 text-sm text-muted-foreground">
+								<Loader2 size={16} class="animate-spin" />
+								{$t('tickets.cancellation.checking')}
+							</div>
+						{:else if cancellationState === 'eligible'}
+							<button
+								onclick={openCancelModal}
+								class="inline-flex items-center justify-center gap-2 px-4 py-2.5 border border-red-300 text-red-700 rounded-none hover:bg-red-50 transition-colors font-medium text-sm"
+							>
+								<XCircle size={16} />
+								{$t('tickets.cancellation.cta')}
+							</button>
+						{:else if cancellationState === 'ineligible'}
+							<div class="flex items-start gap-2 text-sm text-muted-foreground">
+								<AlertCircle size={16} class="flex-shrink-0 mt-0.5" />
+								<p>{$t(ineligibleMessageKey)}</p>
+							</div>
+						{:else}
+							<div class="flex items-start gap-2 text-sm text-muted-foreground">
+								<AlertCircle size={16} class="flex-shrink-0 mt-0.5" />
+								<p>{$t('tickets.cancellation.checkError')}</p>
+							</div>
+						{/if}
+					</div>
+				{/if}
 			</div>
 		</div>
 	</div>
+
+	<!-- Cancellation confirmation modal -->
+	<Modal
+		bind:isOpen={showCancelModal}
+		title={$t('tickets.cancellation.modalTitle')}
+		description={$t('tickets.cancellation.modalDescription', { values: { eventTitle: data.reservation.session.event.title } })}
+	>
+		{#if cancelError}
+			<div class="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3 mb-4">
+				<AlertCircle size={20} class="text-red-600 flex-shrink-0 mt-0.5" />
+				<div>
+					<div class="font-medium text-red-900 text-sm">{$t('tickets.cancellation.errorTitle')}</div>
+					<div class="text-red-700 text-sm mt-1">{cancelError}</div>
+				</div>
+			</div>
+		{/if}
+
+		<div class="flex items-center justify-end gap-3">
+			<button
+				type="button"
+				onclick={closeCancelModal}
+				disabled={isCancelling}
+				class="px-6 py-2.5 border border-border-input text-foreground-alt rounded-lg hover:bg-surface transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+			>
+				{$t('tickets.cancellation.keep')}
+			</button>
+			<button
+				type="button"
+				onclick={confirmCancellation}
+				disabled={isCancelling}
+				class="inline-flex items-center gap-2 px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium disabled:bg-muted-foreground disabled:cursor-not-allowed"
+			>
+				{#if isCancelling}
+					<Loader2 size={18} class="animate-spin" />
+					{$t('tickets.cancellation.cancelling')}
+				{:else}
+					<XCircle size={18} />
+					{$t('tickets.cancellation.confirmCta')}
+				{/if}
+			</button>
+		</div>
+	</Modal>
 </div>
 
 <style>
