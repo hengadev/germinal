@@ -86,7 +86,7 @@ function fakePayment(overrides?: Record<string, unknown>) {
 			guestName: 'Jane Doe',
 			guestEmail: 'jane@example.com',
 			eventSession: {
-				event: { title: 'Chef Dinner' },
+				event: { titleEn: 'Chef Dinner', titleFr: 'Dîner du Chef' },
 			},
 		},
 		...overrides,
