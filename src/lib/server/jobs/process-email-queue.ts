@@ -3,6 +3,7 @@ import { emailQueue } from '../db/schema';
 import { eq } from 'drizzle-orm';
 import { env, isAWSConfigured } from '../env';
 import { emailLogger } from '../logger';
+import { getCachedSiteSettings } from '../services/site-settings';
 import {
 	SESClient,
 	SendEmailCommand,
@@ -76,10 +77,22 @@ export async function processEmailQueue() {
 
 	const client = getSESClient();
 
+	// The sender/contact email is configurable from the admin settings page; fall back to the
+	// env-configured default when no override has been set.
+	let senderEmail: string = env.SMTP_FROM_EMAIL;
+	try {
+		const settings = await getCachedSiteSettings();
+		if (settings?.senderEmail) {
+			senderEmail = settings.senderEmail;
+		}
+	} catch (err) {
+		emailLogger.warn({ err }, '[Email Queue] Failed to read sender email setting, falling back to env default');
+	}
+
 	for (const email of pendingEmails) {
 		try {
 			const mailOptions: SendEmailCommandInput = {
-				Source: `"${env.SMTP_FROM_NAME}" <${env.SMTP_FROM_EMAIL}>`,
+				Source: `"${env.SMTP_FROM_NAME}" <${senderEmail}>`,
 				Destination: {
 					ToAddresses: [email.recipient],
 				},

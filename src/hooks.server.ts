@@ -7,6 +7,8 @@ import { runMigrations } from '$lib/server/db';
 import { initMonitoring, captureException } from '$lib/server/monitoring';
 import { logger } from '$lib/server/logger';
 import { generateToken } from '$lib/server/csrf';
+import { env } from '$lib/server/env';
+import { getCachedSiteSettings } from '$lib/server/services/site-settings';
 
 // Initialize monitoring
 initMonitoring();
@@ -61,8 +63,21 @@ export const handle: Handle = async ({ event, resolve }) => {
 		throw redirect(302, '/staff');
 	}
 
-	// Maintenance mode: redirect all public traffic to the maintenance page
-	const maintenanceMode = process.env.MAINTENANCE_MODE === 'true';
+	// Maintenance mode: redirect all public (non-admin, non-staff) traffic to the maintenance
+	// page and block new Guest bookings (API routes are covered by this same catch-all redirect).
+	// Driven by the DB-backed site settings toggle (admin settings page), not an env var, so it
+	// can be flipped without a redeploy. Reads go through a short-lived cache since this runs on
+	// every request. In mock-data mode there is no DB to read from, so maintenance mode is
+	// always considered off; if the settings read fails for any other reason, fail open (don't
+	// take the whole site down over a settings-read hiccup).
+	let maintenanceMode = false;
+	if (!env.USE_MOCK_DATA) {
+		try {
+			maintenanceMode = (await getCachedSiteSettings())?.maintenanceMode === true;
+		} catch (err) {
+			logger.error({ err }, '[Maintenance Mode] Failed to read site settings, failing open');
+		}
+	}
 	if (maintenanceMode && !event.locals.isAdminDomain && !event.locals.isStaffDomain && event.url.pathname !== '/maintenance') {
 		throw redirect(302, '/maintenance');
 	}
