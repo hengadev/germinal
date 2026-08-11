@@ -32,6 +32,9 @@ export interface TaskWithUser {
 		id: string;
 		email: string;
 		role: string;
+		firstName: string;
+		lastName: string;
+		phone: string | null;
 	} | null;
 }
 
@@ -84,6 +87,14 @@ export async function createTask(data: CreateTaskInput): Promise<TaskWithUser> {
 		}
 
 		logger.info(`Created task ${task.id} for event ${data.eventId}`);
+
+		// Notify the assigned staff member, if any (non-blocking — must not fail task creation)
+		if (fullTask.assignedToUser) {
+			notifyStaffOfTaskAssignment(fullTask.assignedToUser, fullTask.eventId, fullTask.title, fullTask.dueDate).catch((err) => {
+				logger.error({ err }, 'Failed to send task assignment notification');
+			});
+		}
+
 		return fullTask;
 	} catch (error) {
 		const cause = error instanceof Error ? (error as any).cause : undefined;
@@ -163,6 +174,9 @@ async function getTaskById(id: string): Promise<TaskWithUser | null> {
 				id: task.assignedTo.id,
 				email: task.assignedTo.email,
 				role: task.assignedTo.role,
+				firstName: task.assignedTo.firstName,
+				lastName: task.assignedTo.lastName,
+				phone: task.assignedTo.phone,
 			} : null,
 		};
 	} catch (error) {
@@ -265,4 +279,50 @@ export async function getTaskSummary(eventId: string): Promise<{
 		logger.error({ err: error }, 'Failed to get task summary');
 		throw error;
 	}
+}
+
+/**
+ * Notify a staff member that they've been given a new task.
+ * Always sends email; sends SMS too if the staff member has a phone on file.
+ * Non-fatal by design — callers should catch and log, never let this block task creation.
+ */
+async function notifyStaffOfTaskAssignment(
+	assignedToUser: { email: string; firstName: string; lastName: string; phone: string | null },
+	eventId: string,
+	taskTitle: string,
+	dueDate: Date | null
+): Promise<void> {
+	const [event] = await db
+		.select({ titleEn: events.titleEn })
+		.from(events)
+		.where(eq(events.id, eventId))
+		.limit(1);
+
+	const eventTitle = event?.titleEn ?? 'an event';
+
+	const { sendTaskAssignmentEmail } = await import('./email');
+	const emailPromise = sendTaskAssignmentEmail({
+		firstName: assignedToUser.firstName,
+		lastName: assignedToUser.lastName,
+		email: assignedToUser.email,
+		taskTitle,
+		eventTitle,
+		dueDate,
+	}).catch((err) => logger.error({ err }, 'Failed to send task assignment email'));
+
+	const smsPromise = assignedToUser.phone
+		? import('./sms')
+				.then(({ sendTaskAssignmentSMS }) =>
+					sendTaskAssignmentSMS({
+						phone: assignedToUser.phone as string,
+						firstName: assignedToUser.firstName,
+						taskTitle,
+						eventTitle,
+						dueDate,
+					})
+				)
+				.catch((err) => logger.error({ err }, 'Failed to send task assignment SMS'))
+		: Promise.resolve();
+
+	await Promise.all([emailPromise, smsPromise]);
 }

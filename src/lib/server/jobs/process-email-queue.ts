@@ -159,7 +159,7 @@ export async function processEmailQueue() {
  * Queue an email for sending (with automatic retry)
  */
 export async function queueEmail(data: {
-	type: 'ticket_confirmation' | 'contact_notification' | 'event_reminder' | 'admin_invite' | 'dispute_alert' | 'staff_assignment';
+	type: 'ticket_confirmation' | 'contact_notification' | 'event_reminder' | 'admin_invite' | 'dispute_alert' | 'staff_assignment' | 'task_assignment';
 	recipient: string;
 	subject: string;
 	textBody: string;
