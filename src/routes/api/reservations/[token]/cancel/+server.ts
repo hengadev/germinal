@@ -62,8 +62,11 @@ export const POST: RequestHandler = async ({ params }) => {
 			return json({ error: reason || 'Cannot cancel reservation' }, { status: 400 });
 		}
 
-		// Use transaction to update reservation and process refund
-		await db.transaction(async (tx) => {
+		// Use transaction to update reservation and process refund. Returns
+		// refund info (or null) so we know afterward whether to send the guest
+		// a plain cancellation notification or a refund notification.
+		const refundResult: { amount: number; currency: string } | null = await db.transaction(async (tx) => {
+			let refund: { amount: number; currency: string } | null = null;
 			// Update reservation status
 			await tx
 				.update(reservations)
@@ -132,6 +135,8 @@ export const POST: RequestHandler = async ({ params }) => {
 								updatedAt: new Date(),
 							})
 							.where(eq(payments.id, payment.id));
+
+						refund = { amount: payment.amount, currency: payment.currency };
 					} catch (stripeError) {
 						logger.error({ err: stripeError }, 'Failed to process Stripe refund');
 						// Don't fail the cancellation if refund fails
@@ -139,23 +144,69 @@ export const POST: RequestHandler = async ({ params }) => {
 					}
 				}
 			}
+
+			return refund;
 		});
 
 		logger.info(`Reservation ${reservation.id} cancelled by user`);
 
-		// Send cancellation confirmation email
+		// Send cancellation/refund confirmation email — a refund notification if
+		// a refund actually went through, otherwise a plain cancellation notice
+		// (e.g. no payment attached, or the Stripe refund failed above).
 		try {
-			const { sendCancellationConfirmationEmail } = await import('$lib/server/services/email');
-			await sendCancellationConfirmationEmail({
-				guestEmail: reservation.guestEmail,
-				guestName: reservation.guestName,
-				eventTitle: reservation.eventSession.event.titleEn,
-				sessionTitle: reservation.eventSession.titleEn,
-				sessionStartTime: reservation.eventSession.startTime,
-				reservationId: reservation.id,
-			});
+			if (refundResult) {
+				const { sendRefundEmail } = await import('$lib/server/services/email');
+				await sendRefundEmail({
+					guestEmail: reservation.guestEmail,
+					guestName: reservation.guestName,
+					eventTitle: reservation.eventSession.event.titleEn,
+					sessionTitle: reservation.eventSession.titleEn,
+					sessionStartTime: reservation.eventSession.startTime,
+					reservationId: reservation.id,
+					amount: refundResult.amount,
+					currency: refundResult.currency,
+					isPartialRefund: false,
+				});
+			} else {
+				const { sendCancellationEmail } = await import('$lib/server/services/email');
+				await sendCancellationEmail({
+					guestEmail: reservation.guestEmail,
+					guestName: reservation.guestName,
+					eventTitle: reservation.eventSession.event.titleEn,
+					sessionTitle: reservation.eventSession.titleEn,
+					sessionStartTime: reservation.eventSession.startTime,
+					reservationId: reservation.id,
+				});
+			}
 		} catch (emailError) {
 			logger.error({ err: emailError }, 'Failed to send cancellation email');
+		}
+
+		// Send SMS if the guest opted in and has a phone number on file
+		if (reservation.guestPhone && reservation.notificationPreference !== 'email') {
+			try {
+				if (refundResult) {
+					const { sendRefundSMS } = await import('$lib/server/services/sms');
+					await sendRefundSMS({
+						phone: reservation.guestPhone,
+						name: reservation.guestName,
+						eventTitle: reservation.eventSession.event.titleEn,
+						amount: refundResult.amount,
+						currency: refundResult.currency,
+					});
+				} else {
+					const { sendCancellationSMS } = await import('$lib/server/services/sms');
+					await sendCancellationSMS({
+						phone: reservation.guestPhone,
+						name: reservation.guestName,
+						eventTitle: reservation.eventSession.event.titleEn,
+						sessionStartTime: reservation.eventSession.startTime,
+					});
+				}
+			} catch (smsError) {
+				logger.error({ err: smsError }, 'Failed to send cancellation SMS');
+				// Don't throw - email might have been sent
+			}
 		}
 
 		return json({ success: true });

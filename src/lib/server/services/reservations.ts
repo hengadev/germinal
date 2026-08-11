@@ -443,7 +443,10 @@ export async function cancelReservationWithRefund(reservationId: string) {
 		// Load reservation with payment
 		const reservation = await tx.query.reservations.findFirst({
 			where: eq(reservations.id, reservationId),
-			with: { payment: true },
+			with: {
+				payment: true,
+				eventSession: { with: { event: true } },
+			},
 		});
 
 		if (!reservation) {
@@ -493,7 +496,21 @@ export async function cancelReservationWithRefund(reservationId: string) {
 			})
 			.where(eq(reservations.id, reservationId));
 
-		return { success: true, refund, sessionId: session!.id, quantity: reservation.quantity, allowWaitlist: session!.allowWaitlist };
+		return {
+			success: true,
+			refund,
+			sessionId: session!.id,
+			quantity: reservation.quantity,
+			allowWaitlist: session!.allowWaitlist,
+			guestEmail: reservation.guestEmail,
+			guestName: reservation.guestName,
+			guestPhone: reservation.guestPhone,
+			notificationPreference: reservation.notificationPreference,
+			eventTitle: reservation.eventSession.event.titleEn,
+			sessionTitle: reservation.eventSession.titleEn,
+			sessionStartTime: reservation.eventSession.startTime,
+			refundCurrency: reservation.payment.currency,
+		};
 	});
 
 	// Notify waitlist after transaction commits (if waitlist is enabled)
@@ -505,6 +522,44 @@ export async function cancelReservationWithRefund(reservationId: string) {
 		} catch (error) {
 			logger.error({ err: error }, '[Waitlist] Failed to notify');
 			// Don't throw - cancellation was successful
+		}
+	}
+
+	// Notify the guest after the transaction commits — never notify from
+	// inside a transaction that might still roll back. This is always a
+	// full refund (createRefund is called with no amount above), so the
+	// guest gets the combined cancellation + refund notification.
+	try {
+		const { sendRefundEmail } = await import('./email');
+		await sendRefundEmail({
+			guestEmail: sessionData.guestEmail,
+			guestName: sessionData.guestName,
+			eventTitle: sessionData.eventTitle,
+			sessionTitle: sessionData.sessionTitle,
+			sessionStartTime: sessionData.sessionStartTime,
+			reservationId,
+			amount: sessionData.refund.amount,
+			currency: sessionData.refundCurrency,
+			isPartialRefund: false,
+		});
+	} catch (error) {
+		logger.error({ err: error }, 'Failed to send refund email');
+		// Don't throw - refund was successful
+	}
+
+	if (sessionData.guestPhone && sessionData.notificationPreference !== 'email') {
+		try {
+			const { sendRefundSMS } = await import('./sms');
+			await sendRefundSMS({
+				phone: sessionData.guestPhone,
+				name: sessionData.guestName,
+				eventTitle: sessionData.eventTitle,
+				amount: sessionData.refund.amount,
+				currency: sessionData.refundCurrency,
+			});
+		} catch (error) {
+			logger.error({ err: error }, 'Failed to send refund SMS');
+			// Don't throw - email might have been sent
 		}
 	}
 
@@ -605,7 +660,7 @@ export async function expireReservation(reservationId: string) {
  * Cancel reservation (without refund) - admin action
  */
 export async function cancelReservation(reservationId: string) {
-	return await db.transaction(async (tx: typeof db) => {
+	const result = await db.transaction(async (tx: typeof db) => {
 		const reservation = await tx.query.reservations.findFirst({
 			where: eq(reservations.id, reservationId),
 		});
@@ -645,8 +700,60 @@ export async function cancelReservation(reservationId: string) {
 			})
 			.where(eq(reservations.id, reservationId));
 
-		return { success: true, sessionId: session.id, quantity: reservation.quantity, allowWaitlist: session.allowWaitlist };
+		// Look up the event title for the cancellation notification
+		const [event] = await tx
+			.select({ titleEn: events.titleEn })
+			.from(events)
+			.where(eq(events.id, session.eventId));
+
+		return {
+			success: true,
+			sessionId: session.id,
+			quantity: reservation.quantity,
+			allowWaitlist: session.allowWaitlist,
+			guestEmail: reservation.guestEmail,
+			guestName: reservation.guestName,
+			guestPhone: reservation.guestPhone,
+			notificationPreference: reservation.notificationPreference,
+			eventTitle: event?.titleEn ?? '',
+			sessionTitle: session.titleEn,
+			sessionStartTime: session.startTime,
+		};
 	});
+
+	// Notify the guest after the transaction commits — never notify from
+	// inside a transaction that might still roll back.
+	try {
+		const { sendCancellationEmail } = await import('./email');
+		await sendCancellationEmail({
+			guestEmail: result.guestEmail,
+			guestName: result.guestName,
+			eventTitle: result.eventTitle,
+			sessionTitle: result.sessionTitle,
+			sessionStartTime: result.sessionStartTime,
+			reservationId,
+		});
+	} catch (error) {
+		logger.error({ err: error }, 'Failed to send cancellation email');
+		// Don't throw - cancellation was successful
+	}
+
+	if (result.guestPhone && result.notificationPreference !== 'email') {
+		try {
+			const { sendCancellationSMS } = await import('./sms');
+			await sendCancellationSMS({
+				phone: result.guestPhone,
+				name: result.guestName,
+				eventTitle: result.eventTitle,
+				sessionStartTime: result.sessionStartTime,
+			});
+		} catch (error) {
+			logger.error({ err: error }, 'Failed to send cancellation SMS');
+			// Don't throw - email might have been sent
+		}
+	}
+
+	return { success: true, sessionId: result.sessionId, quantity: result.quantity, allowWaitlist: result.allowWaitlist };
 }
 
 /**
@@ -662,7 +769,10 @@ export async function processRefund(reservationId: string, amount?: number) {
 	const sessionData = await db.transaction(async (tx: typeof db) => {
 		const reservation = await tx.query.reservations.findFirst({
 			where: eq(reservations.id, reservationId),
-			with: { payment: true },
+			with: {
+				payment: true,
+				eventSession: { with: { event: true } },
+			},
 		});
 
 		if (!reservation) {
@@ -744,7 +854,17 @@ export async function processRefund(reservationId: string, amount?: number) {
 			refund,
 			sessionId: reservation.eventSessionId,
 			quantity: reservation.quantity,
-			allowWaitlist: true // Will check below
+			allowWaitlist: true, // Will check below
+			guestEmail: reservation.guestEmail,
+			guestName: reservation.guestName,
+			guestPhone: reservation.guestPhone,
+			notificationPreference: reservation.notificationPreference,
+			eventTitle: reservation.eventSession.event.titleEn,
+			sessionTitle: reservation.eventSession.titleEn,
+			sessionStartTime: reservation.eventSession.startTime,
+			refundCurrency: reservation.payment.currency,
+			newRefundedTotal,
+			paymentAmount: reservation.payment.amount,
 		};
 	});
 
@@ -762,6 +882,42 @@ export async function processRefund(reservationId: string, amount?: number) {
 		} catch (error) {
 			logger.error({ err: error }, '[Waitlist] Failed to notify');
 			// Don't throw - refund was successful
+		}
+	}
+
+	// Notify the guest after the transaction commits — never notify from
+	// inside a transaction that might still roll back.
+	try {
+		const { sendRefundEmail } = await import('./email');
+		await sendRefundEmail({
+			guestEmail: sessionData.guestEmail,
+			guestName: sessionData.guestName,
+			eventTitle: sessionData.eventTitle,
+			sessionTitle: sessionData.sessionTitle,
+			sessionStartTime: sessionData.sessionStartTime,
+			reservationId,
+			amount: sessionData.refund.amount,
+			currency: sessionData.refundCurrency,
+			isPartialRefund: sessionData.newRefundedTotal < sessionData.paymentAmount,
+		});
+	} catch (error) {
+		logger.error({ err: error }, 'Failed to send refund email');
+		// Don't throw - refund was successful
+	}
+
+	if (sessionData.guestPhone && sessionData.notificationPreference !== 'email') {
+		try {
+			const { sendRefundSMS } = await import('./sms');
+			await sendRefundSMS({
+				phone: sessionData.guestPhone,
+				name: sessionData.guestName,
+				eventTitle: sessionData.eventTitle,
+				amount: sessionData.refund.amount,
+				currency: sessionData.refundCurrency,
+			});
+		} catch (error) {
+			logger.error({ err: error }, 'Failed to send refund SMS');
+			// Don't throw - email might have been sent
 		}
 	}
 
