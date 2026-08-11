@@ -234,7 +234,12 @@ export async function handlePaymentFailure(paymentIntent: Stripe.PaymentIntent) 
 }
 
 /**
- * Handle refund from Stripe webhook
+ * Handle refund from Stripe webhook.
+ *
+ * Covers refunds that don't go through the app's own admin refund action —
+ * e.g. a dispute/chargeback, or a refund issued directly in the Stripe
+ * dashboard — so this is the one refund path where we're finding out about
+ * the refund after the fact, and where it may be partial or full.
  */
 export async function handleRefund(charge: Stripe.Charge) {
 	if (!charge.payment_intent) {
@@ -243,6 +248,15 @@ export async function handleRefund(charge: Stripe.Charge) {
 
 	const payment = await db.query.payments.findFirst({
 		where: eq(payments.stripePaymentIntentId, charge.payment_intent as string),
+		with: {
+			reservation: {
+				with: {
+					eventSession: {
+						with: { event: true },
+					},
+				},
+			},
+		},
 	});
 
 	if (!payment) {
@@ -259,4 +273,42 @@ export async function handleRefund(charge: Stripe.Charge) {
 			updatedAt: new Date(),
 		})
 		.where(eq(payments.id, payment.id));
+
+	// Notify the guest — best-effort, never blocks the webhook response
+	const reservation = payment.reservation;
+	if (reservation) {
+		try {
+			const { sendRefundEmail } = await import('./email');
+			await sendRefundEmail({
+				guestEmail: reservation.guestEmail,
+				guestName: reservation.guestName,
+				eventTitle: reservation.eventSession.event.titleEn,
+				sessionTitle: reservation.eventSession.titleEn,
+				sessionStartTime: reservation.eventSession.startTime,
+				reservationId: reservation.id,
+				amount: refundedAmount,
+				currency: payment.currency,
+				isPartialRefund: !isFullyRefunded,
+			});
+		} catch (error) {
+			logger.error({ err: error }, 'Failed to send refund email');
+			// Don't throw - the payment/refund was already recorded successfully
+		}
+
+		if (reservation.guestPhone && reservation.notificationPreference !== 'email') {
+			try {
+				const { sendRefundSMS } = await import('./sms');
+				await sendRefundSMS({
+					phone: reservation.guestPhone,
+					name: reservation.guestName,
+					eventTitle: reservation.eventSession.event.titleEn,
+					amount: refundedAmount,
+					currency: payment.currency,
+				});
+			} catch (error) {
+				logger.error({ err: error }, 'Failed to send refund SMS');
+				// Don't throw - email might have been sent
+			}
+		}
+	}
 }
