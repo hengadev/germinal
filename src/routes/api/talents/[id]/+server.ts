@@ -1,7 +1,7 @@
 import { json, error } from '@sveltejs/kit';
 import { getTalentById, updateTalent, deleteTalent } from '$lib/server/services/talents';
 import { updateTalentSchema } from '$lib/server/validators/talents';
-import { requireAdmin } from '$lib/server/guards';
+import { requireAdmin } from '$lib/server/auth-guards';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ params }) => {
@@ -14,7 +14,7 @@ export const GET: RequestHandler = async ({ params }) => {
 };
 
 export const PUT: RequestHandler = async (event) => {
-  requireAdmin(event);
+  requireAdmin(event.locals);
 
   const data = await event.request.json();
   const parsed = updateTalentSchema.safeParse(data);
@@ -32,7 +32,7 @@ export const PUT: RequestHandler = async (event) => {
 };
 
 export const DELETE: RequestHandler = async (event) => {
-  requireAdmin(event);
+  requireAdmin(event.locals);
 
   try {
     await deleteTalent(event.params.id);

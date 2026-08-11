@@ -3,12 +3,12 @@ import { logger } from '$lib/server/logger';
 import { uploadStreamToS3, deleteFromS3 } from '$lib/server/services/s3';
 import { createMedia } from '$lib/server/services/media';
 import { randomUUID } from 'node:crypto';
-import { requireAdmin } from '$lib/server/guards';
+import { requireAdmin } from '$lib/server/auth-guards';
 import { env } from '$lib/server/env';
 import type { RequestHandler } from './$types';
 
 export const POST: RequestHandler = async (event) => {
-  requireAdmin(event);
+  requireAdmin(event.locals);
 
   logger.info('Upload request received');
 
