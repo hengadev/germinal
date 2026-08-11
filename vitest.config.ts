@@ -8,7 +8,12 @@ export default defineConfig({
 		globals: true,
 		environment: 'jsdom',
 		setupFiles: ['./tests/setup.ts'],
-		exclude: ['tests/e2e/**', 'node_modules/**', '.svelte-kit/**', '.opencode/**'],
+		// `.claude/**` covers git worktrees the Claude Code harness sometimes
+		// creates inside the repo (e.g. .claude/worktrees/<issue>/) — without
+		// this, vitest's default include glob picks up that worktree's own
+		// tests/ directory too, double-running (and double-counting failures
+		// from) the whole suite.
+		exclude: ['tests/e2e/**', 'node_modules/**', '.svelte-kit/**', '.opencode/**', '.claude/**'],
 		// Integration tests share a single germinal_test database — parallel file
 		// execution causes TRUNCATE races.  Unit tests are fast enough that
 		// sequential execution is not a meaningful slowdown.
@@ -24,6 +29,7 @@ export default defineConfig({
 				'src/**/*.test.ts',
 				'src/**/*.spec.ts',
 				'.svelte-kit/**',
+				'.claude/**',
 			],
 		},
 	},
