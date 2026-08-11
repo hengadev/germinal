@@ -77,7 +77,7 @@ export async function handlePaymentSuccess(paymentIntent: Stripe.PaymentIntent) 
 			await sendTicketConfirmationSMS({
 				phone: payment.reservation.guestPhone,
 				guestName: payment.reservation.guestName,
-				eventTitle: payment.reservation.eventSession.event.title,
+				eventTitle: payment.reservation.eventSession.event.titleEn,
 				sessionStartTime: payment.reservation.eventSession.startTime,
 				accessToken: payment.reservation.accessToken,
 			});
@@ -162,7 +162,7 @@ export async function handleCheckoutSuccess(session: Stripe.Checkout.Session) {
 			await sendTicketConfirmationSMS({
 				phone: payment.reservation.guestPhone,
 				guestName: payment.reservation.guestName,
-				eventTitle: payment.reservation.eventSession.event.title,
+				eventTitle: payment.reservation.eventSession.event.titleEn,
 				sessionStartTime: payment.reservation.eventSession.startTime,
 				accessToken: payment.reservation.accessToken,
 			});

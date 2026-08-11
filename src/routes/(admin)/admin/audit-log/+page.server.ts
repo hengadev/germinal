@@ -14,7 +14,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 	const entries = await listAuditLog();
 
 	return {
-		entries: entries.map((entry) => ({
+		entries: entries.map((entry: typeof entries[number]) => ({
 			id: entry.id,
 			action: entry.action,
 			entityType: entry.entityType,

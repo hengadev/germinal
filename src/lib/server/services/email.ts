@@ -179,7 +179,7 @@ Your Ticket Confirmation
 
 Hi ${data.guestName},
 
-Your tickets for ${data.event.title} are confirmed!
+Your tickets for ${data.event.titleEn} are confirmed!
 
 EVENT DETAILS:
 ${data.session.titleEn}
@@ -220,7 +220,7 @@ function generateTicketHtmlTemplate(data: TicketEmailData): string {
 
   <div style="background-color: #ffffff; border: 1px solid #e9ecef; border-radius: 8px; padding: 24px; margin-bottom: 16px;">
     <p style="margin: 0 0 16px 0; font-size: 16px;">Hi ${escapeHtml(data.guestName)},</p>
-    <p style="margin: 0 0 16px 0; font-size: 16px;">Your tickets for <strong>${escapeHtml(data.event.title)}</strong> are confirmed!</p>
+    <p style="margin: 0 0 16px 0; font-size: 16px;">Your tickets for <strong>${escapeHtml(data.event.titleEn)}</strong> are confirmed!</p>
 
     <h3 style="margin: 24px 0 12px 0; color: #495057; font-size: 16px; font-weight: 600;">Event Details</h3>
     <table style="width: 100%; border-collapse: collapse;">
@@ -346,7 +346,7 @@ export async function sendTicketConfirmationEmail(data: TicketEmailData): Promis
 	await queueEmail({
 		type: 'ticket_confirmation',
 		recipient: data.guestEmail,
-		subject: `Your Tickets - ${data.event.title}`,
+		subject: `Your Tickets - ${data.event.titleEn}`,
 		textBody,
 		htmlBody,
 		metadata: {
@@ -383,7 +383,7 @@ function generateEventReminderTextTemplate(data: TicketEmailData & { daysUntil: 
 	const timePhrase = data.daysUntil === 1 ? 'tomorrow' : `in ${data.daysUntil} days`;
 
 	return `
-Event Reminder: ${data.event.title}
+Event Reminder: ${data.event.titleEn}
 
 Hi ${data.guestName},
 
@@ -429,7 +429,7 @@ function generateEventReminderHtmlTemplate(data: TicketEmailData & { daysUntil: 
 
   <div style="background-color: #ffffff; border: 1px solid #e9ecef; border-radius: 8px; padding: 24px; margin-bottom: 16px;">
     <p style="margin: 0 0 16px 0; font-size: 16px;">Hi ${escapeHtml(data.guestName)},</p>
-    <p style="margin: 0 0 16px 0; font-size: 16px;">This is a friendly reminder that <strong>${escapeHtml(data.event.title)}</strong> is coming up ${timePhrase}.</p>
+    <p style="margin: 0 0 16px 0; font-size: 16px;">This is a friendly reminder that <strong>${escapeHtml(data.event.titleEn)}</strong> is coming up ${timePhrase}.</p>
 
     <h3 style="margin: 24px 0 12px 0; color: #495057; font-size: 16px; font-weight: 600;">Event Details</h3>
     <table style="width: 100%; border-collapse: collapse;">
@@ -490,7 +490,7 @@ export async function sendEventReminderEmail(data: TicketEmailData & { daysUntil
 	if (!isAWSConfigured()) {
 		logger.info({
 			to: data.guestEmail,
-			event: data.event.title,
+			event: data.event.titleEn,
 			daysUntil: data.daysUntil,
 		}, '🔔 AWS not configured - event reminder email would be sent');
 		return;
@@ -501,7 +501,7 @@ export async function sendEventReminderEmail(data: TicketEmailData & { daysUntil
 	await queueEmail({
 		type: 'event_reminder',
 		recipient: data.guestEmail,
-		subject: `Reminder: ${data.event.title} is coming up ${data.daysUntil === 1 ? 'tomorrow' : `in ${data.daysUntil} days`}`,
+		subject: `Reminder: ${data.event.titleEn} is coming up ${data.daysUntil === 1 ? 'tomorrow' : `in ${data.daysUntil} days`}`,
 		textBody,
 		htmlBody,
 		metadata: {

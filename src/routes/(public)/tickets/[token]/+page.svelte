@@ -157,7 +157,7 @@
 			? (event.event.locationFr ?? event.event.locationEn ?? '')
 			: (event.event.locationEn ?? event.event.locationFr ?? '');
 
-		const description = `Your ticket for ${event.event.title}\\nQuantity: ${data.reservation.quantity}\\nConfirmation: ${data.reservation.id}`;
+		const description = `Your ticket for ${isFr ? event.event.titleFr : event.event.titleEn}\\nQuantity: ${data.reservation.quantity}\\nConfirmation: ${data.reservation.id}`;
 
 		return `BEGIN:VCALENDAR
 VERSION:2.0
@@ -167,7 +167,7 @@ UID:${data.reservation.id}@germinal.com
 DTSTAMP:${formatICSDate(new Date())}
 DTSTART:${formatICSDate(startDate)}
 DTEND:${formatICSDate(endDate)}
-SUMMARY:${escapeICS(`${event.event.title} - ${isFr ? event.titleFr : event.titleEn}`)}
+SUMMARY:${escapeICS(`${isFr ? event.event.titleFr : event.event.titleEn} - ${isFr ? event.titleFr : event.titleEn}`)}
 DESCRIPTION:${escapeICS(description)}
 LOCATION:${escapeICS(locationStr)}
 STATUS:CONFIRMED
@@ -230,21 +230,21 @@ END:VCALENDAR`;
 			: (session.event.locationEn ?? session.event.locationFr ?? '');
 		const params = new URLSearchParams({
 			action: 'TEMPLATE',
-			text: `${session.event.title} — ${isFr ? session.titleFr : session.titleEn}`,
+			text: `${isFr ? session.event.titleFr : session.event.titleEn} — ${isFr ? session.titleFr : session.titleEn}`,
 			dates: `${formatDate(startDate)}/${formatDate(endDate)}`,
-			details: `${isFr ? 'Billet pour' : 'Ticket for'} ${session.event.title}\n${isFr ? 'Quantité' : 'Quantity'}: ${data.reservation.quantity}\n${isFr ? 'Confirmation' : 'Confirmation'}: ${data.reservation.id}`,
+			details: `${isFr ? 'Billet pour' : 'Ticket for'} ${isFr ? session.event.titleFr : session.event.titleEn}\n${isFr ? 'Quantité' : 'Quantity'}: ${data.reservation.quantity}\n${isFr ? 'Confirmation' : 'Confirmation'}: ${data.reservation.id}`,
 			location
 		});
 		return `https://calendar.google.com/calendar/render?${params.toString()}`;
 	});
 
 	let ogTitle = $derived(
-		$t('tickets.pageTitle', { values: { eventTitle: data.reservation.session.event.title } })
+		$t('tickets.pageTitle', { values: { eventTitle: isFr ? data.reservation.session.event.titleFr : data.reservation.session.event.titleEn } })
 	);
 	let ogDescription = $derived(
 		$t('tickets.ogDescription', {
 			values: {
-				eventTitle: data.reservation.session.event.title,
+				eventTitle: isFr ? data.reservation.session.event.titleFr : data.reservation.session.event.titleEn,
 				date: formatDateTime(data.reservation.session.startTime),
 				quantity: data.reservation.quantity
 			}
@@ -270,7 +270,7 @@ END:VCALENDAR`;
 	<meta property="og:url" content={ogUrl} />
 	{#if ogImage}
 		<meta property="og:image" content={ogImage} />
-		<meta property="og:image:alt" content={data.reservation.session.event.title} />
+		<meta property="og:image:alt" content={isFr ? data.reservation.session.event.titleFr : data.reservation.session.event.titleEn} />
 	{/if}
 
 	<!-- Twitter Card -->
@@ -343,7 +343,7 @@ END:VCALENDAR`;
 				<div class="flex items-start justify-between gap-4 mb-5">
 					<div>
 						<p class="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-1.5">{$t('tickets.ticketLabel')}</p>
-						<h1 class="text-3xl font-serif leading-tight">{data.reservation.session.event.title}</h1>
+						<h1 class="text-3xl font-serif leading-tight">{isFr ? data.reservation.session.event.titleFr : data.reservation.session.event.titleEn}</h1>
 						<p class="text-muted-foreground mt-1 text-sm">{isFr ? data.reservation.session.titleFr : data.reservation.session.titleEn}</p>
 					</div>
 					<span class={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold flex-shrink-0 ${statusBadge.class}`}>
@@ -573,7 +573,7 @@ END:VCALENDAR`;
 	<Modal
 		bind:isOpen={showCancelModal}
 		title={$t('tickets.cancellation.modalTitle')}
-		description={$t('tickets.cancellation.modalDescription', { values: { eventTitle: data.reservation.session.event.title } })}
+		description={$t('tickets.cancellation.modalDescription', { values: { eventTitle: isFr ? data.reservation.session.event.titleFr : data.reservation.session.event.titleEn } })}
 	>
 		{#if cancelError}
 			<div class="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3 mb-4">

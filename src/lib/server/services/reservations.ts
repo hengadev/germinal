@@ -243,7 +243,7 @@ export async function createCompReservation(input: CreateCompReservationInput) {
 		}).returning();
 
 		const [event] = await tx
-			.select({ titleEn: events.titleEn, slug: events.slug, locationEn: events.locationEn })
+			.select({ titleEn: events.titleEn, titleFr: events.titleFr, slug: events.slug, locationEn: events.locationEn })
 			.from(events)
 			.where(eq(events.id, session.eventId));
 
@@ -262,7 +262,8 @@ export async function createCompReservation(input: CreateCompReservationInput) {
 			reservation: created.reservation,
 			session: created.session,
 			event: {
-				title: created.event?.titleEn ?? '',
+				titleEn: created.event?.titleEn ?? '',
+				titleFr: created.event?.titleFr ?? '',
 				slug: created.event?.slug ?? '',
 				locationEn: created.event?.locationEn ?? '',
 			},
@@ -288,7 +289,8 @@ export async function getReservationByToken(token: string): Promise<ReservationW
 					event: {
 						columns: {
 							id: true,
-							title: true,
+							titleEn: true,
+							titleFr: true,
 							slug: true,
 							locationEn: true,
 							locationFr: true,
@@ -339,7 +341,8 @@ export async function resendTicketsForEmail(email: string): Promise<void> {
 						event: {
 							columns: {
 								id: true,
-								title: true,
+								titleEn: true,
+								titleFr: true,
 								slug: true,
 								locationEn: true,
 								locationFr: true,
@@ -371,7 +374,8 @@ export async function resendTicketsForEmail(email: string): Promise<void> {
 				reservation: reservation as any,
 				session: reservation.eventSession as any,
 				event: {
-					title: reservation.eventSession.event.title,
+					titleEn: reservation.eventSession.event.titleEn,
+					titleFr: reservation.eventSession.event.titleFr,
 					slug: reservation.eventSession.event.slug,
 					locationEn: reservation.eventSession.event.locationEn,
 				},
@@ -401,7 +405,8 @@ export async function getReservationById(id: string): Promise<ReservationWithDet
 					event: {
 						columns: {
 							id: true,
-							title: true,
+							titleEn: true,
+							titleFr: true,
 							slug: true,
 							locationEn: true,
 							locationFr: true,
@@ -779,7 +784,9 @@ export async function sendReservationReminder(reservationId: string) {
 		reservation: reservation as any,
 		session: reservation.eventSession as any,
 		event: {
-			title: reservation.eventSession.event.title,
+			titleEn: reservation.eventSession.event.titleEn,
+			titleFr: reservation.eventSession.event.titleFr,
+			slug: reservation.eventSession.event.slug,
 			locationEn: reservation.eventSession.event.locationEn,
 		},
 		guestName: reservation.guestName,
@@ -794,7 +801,7 @@ export async function sendReservationReminder(reservationId: string) {
 			await sendTicketReminderSMS({
 				phone: reservation.guestPhone,
 				name: reservation.guestName,
-				eventTitle: reservation.eventSession.event.title,
+				eventTitle: reservation.eventSession.event.titleEn,
 				eventTime: reservation.eventSession.startTime,
 			});
 		} catch (error) {

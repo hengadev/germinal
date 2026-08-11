@@ -136,7 +136,9 @@ async function sendReminder(
 		reservation: reservation as any,
 		session: reservation.eventSession as any,
 		event: {
-			title: reservation.eventSession.event?.title || 'Event',
+			titleEn: reservation.eventSession.event?.titleEn || 'Event',
+			titleFr: reservation.eventSession.event?.titleFr || 'Événement',
+			slug: reservation.eventSession.event?.slug || '',
 			locationEn: reservation.eventSession.event?.locationEn || '',
 		},
 		guestName: reservation.guestName,
@@ -152,7 +154,7 @@ async function sendReminder(
 			await sendEventReminderSMS({
 				phone: reservation.guestPhone,
 				guestName: reservation.guestName,
-				eventTitle: reservation.eventSession.event?.title || 'Event',
+				eventTitle: reservation.eventSession.event?.titleEn || 'Event',
 				sessionStartTime: reservation.eventSession.startTime,
 				accessToken: reservation.accessToken,
 				daysUntil,

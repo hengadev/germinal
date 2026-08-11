@@ -137,7 +137,7 @@ async function upsertDispute(dispute: Stripe.Dispute, eventType: string): Promis
 			reservationId: payment.reservationId,
 			guestName: payment.reservation.guestName,
 			guestEmail: payment.reservation.guestEmail,
-			eventTitle: payment.reservation.eventSession.event.title,
+			eventTitle: payment.reservation.eventSession.event.titleEn,
 			amount: dispute.amount,
 			currency: created.currency,
 			reason: dispute.reason ?? null,

@@ -173,8 +173,8 @@ UID:${data.reservation.id}@germinal.com
 DTSTAMP:${formatICSDate(new Date())}
 DTSTART:${formatICSDate(startDate)}
 DTEND:${formatICSDate(endDate)}
-SUMMARY:${event.event.title} - ${event.title}
-DESCRIPTION:Your ticket for ${event.event.title}\\nQuantity: ${data.reservation.quantity}\\nConfirmation: ${data.reservation.id}
+SUMMARY:${event.event.titleEn} - ${event.titleEn}
+DESCRIPTION:Your ticket for ${event.event.titleEn}\\nQuantity: ${data.reservation.quantity}\\nConfirmation: ${data.reservation.id}
 LOCATION:${event.event.location}
 STATUS:CONFIRMED
 END:VEVENT
@@ -292,7 +292,7 @@ END:VCALENDAR`;
 				<div class="space-y-4">
 					<div>
 						<div class="text-sm text-muted-foreground mb-1">Événement</div>
-						<div class="font-semibold text-foreground text-lg">{data.reservation.session.event.title}</div>
+						<div class="font-semibold text-foreground text-lg">{data.reservation.session.event.titleEn}</div>
 						<div class="text-foreground-alt">{data.reservation.session.titleEn}</div>
 					</div>
 					<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">

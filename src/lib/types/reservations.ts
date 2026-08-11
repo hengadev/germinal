@@ -36,7 +36,8 @@ export type ReservationWithDetails = Reservation & {
 	eventSession: typeof eventSessions.$inferSelect & {
 		event: {
 			id: string;
-			title: string;
+			titleEn: string;
+			titleFr: string;
 			slug: string;
 			locationEn: string;
 			locationFr: string;
@@ -61,7 +62,8 @@ export type TicketEmailData = {
 	reservation: Reservation;
 	session: typeof eventSessions.$inferSelect;
 	event: {
-		title: string;
+		titleEn: string;
+		titleFr: string;
 		slug: string;
 		locationEn: string;
 	};
