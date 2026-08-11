@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { ArrowLeft, User, Mail, Phone, Ticket, Calendar, Clock, MapPin, CreditCard, CheckCircle2, ExternalLink, Download, Printer, XCircle, MailCheck, RotateCcw, AlertCircle } from 'lucide-svelte';
+	import { ArrowLeft, User, Mail, Phone, Ticket, Calendar, Clock, MapPin, CreditCard, CheckCircle2, ExternalLink, Download, Printer, XCircle, MailCheck, RotateCcw, AlertCircle, Gift } from 'lucide-svelte';
 	import type { PageData, ActionData } from './$types';
 	import { formatCurrency } from '$lib/utils/currency';
 	import QRCode from 'qrcode';
@@ -221,12 +221,20 @@ END:VCALENDAR`;
 					ID de Confirmation : {data.reservation.id.substring(0, 8).toUpperCase()}
 				</p>
 			</div>
-			<span class={`inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium ${statusBadge.class} rounded-full`}>
-				{#if statusBadge.icon}
-					<svelte:component this={statusBadge.icon} size={16} />
+			<div class="flex items-center gap-2">
+				<span class={`inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium ${statusBadge.class} rounded-full`}>
+					{#if statusBadge.icon}
+						<svelte:component this={statusBadge.icon} size={16} />
+					{/if}
+					{statusBadge.text}
+				</span>
+				{#if data.reservation.isComp}
+					<span class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium bg-purple-50 text-purple-700 rounded-full">
+						<Gift size={16} />
+						Comp
+					</span>
 				{/if}
-				{statusBadge.text}
-			</span>
+			</div>
 		</div>
 	</div>
 
@@ -318,7 +326,15 @@ END:VCALENDAR`;
 			<!-- Payment Information -->
 			<div class="bg-background rounded-lg border border-border-card p-6">
 				<h2 class="text-lg font-semibold text-foreground mb-4">Informations de Paiement</h2>
-				{#if data.reservation.payment}
+				{#if data.reservation.isComp}
+					<div class="flex items-center gap-3 text-purple-700 bg-purple-50 rounded-lg px-4 py-3">
+						<Gift size={20} />
+						<div>
+							<div class="font-medium">Réservation comp — aucun paiement collecté</div>
+							<div class="text-sm text-purple-700/80">Cette réservation a été créée directement par un Admin, sans passer par le paiement.</div>
+						</div>
+					</div>
+				{:else if data.reservation.payment}
 					<div class="space-y-3">
 						<div class="flex items-center justify-between">
 							<span class="text-foreground-alt">Statut</span>

@@ -25,7 +25,8 @@ export const load: PageServerLoad = async ({ url }) => {
 				eventTitle: event?.titleEn || '',
 				sessionTitle: (session as any)?.titleEn || (session as any)?.title || '',
 				sessionStartTime: session?.startTime?.toISOString() || '',
-				paymentStatus: r.paymentStatus
+				paymentStatus: r.paymentStatus,
+				isComp: (r as { isComp?: boolean }).isComp ?? false
 			};
 		});
 
@@ -94,7 +95,8 @@ export const load: PageServerLoad = async ({ url }) => {
 			eventTitle: r.eventSession.event.titleEn,
 			sessionTitle: r.eventSession.titleEn,
 			sessionStartTime: r.eventSession.startTime.toISOString(),
-			paymentStatus: r.payment?.status || 'none'
+			paymentStatus: r.payment?.status || 'none',
+			isComp: r.isComp
 		})),
 		searchQuery,
 	};

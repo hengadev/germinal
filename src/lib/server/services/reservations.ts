@@ -6,8 +6,67 @@ import { generateAccessToken } from '$lib/utils/tokens';
 import { createCheckoutSession } from './stripe';
 import { events } from '../db/schema';
 import { env } from '../env';
-import type { CreateReservationInput, ReservationWithDetails } from '$lib/types/reservations';
+import type { CreateReservationInput, CreateCompReservationInput, ReservationWithDetails } from '$lib/types/reservations';
 import { validatePromoCode, calculateDiscountAmount, incrementRedemption } from './promo-codes';
+
+/**
+ * Lock a Session row and atomically decrement its available capacity.
+ *
+ * This is the single source of truth for capacity accounting: both paid
+ * (Guest checkout) and comp (Admin-initiated) Reservations MUST go through
+ * this helper so capacity can never be oversold by paid and comp bookings
+ * racing independently against the same Session.
+ *
+ * Must be called from within a `db.transaction`.
+ */
+async function lockAndDecrementSessionCapacity(
+	tx: typeof db,
+	sessionId: string,
+	quantity: number
+) {
+	// Step 1: Lock session row and check availability
+	const [session] = await tx
+		.select()
+		.from(eventSessions)
+		.where(and(
+			eq(eventSessions.id, sessionId),
+			eq(eventSessions.published, true)
+		))
+		.for('update'); // CRITICAL: Row-level lock prevents concurrent modifications
+
+	if (!session) {
+		throw new Error('Session not found or not published');
+	}
+
+	// Check if session has already started
+	if (session.startTime <= new Date()) {
+		throw new Error('Cannot book tickets for a session that has already started');
+	}
+
+	// Step 2: Check availability
+	if (session.availableCapacity < quantity) {
+		throw new Error('Not enough tickets available');
+	}
+
+	// Step 3: Decrement capacity atomically
+	const [updatedSession] = await tx
+		.update(eventSessions)
+		.set({
+			availableCapacity: sql`${eventSessions.availableCapacity} - ${quantity}`,
+			updatedAt: new Date(),
+		})
+		.where(and(
+			eq(eventSessions.id, sessionId),
+			sql`${eventSessions.availableCapacity} >= ${quantity}` // Double-check in UPDATE
+		))
+		.returning();
+
+	if (!updatedSession) {
+		throw new Error('Failed to reserve tickets (race condition)');
+	}
+
+	return session;
+}
 
 /**
  * Create a reservation with atomic capacity locking
@@ -24,46 +83,7 @@ export async function createReservation(input: CreateReservationInput) {
 
 	try {
 		return await db.transaction(async (tx: typeof db) => {
-		// Step 1: Lock session row and check availability
-		const [session] = await tx
-			.select()
-			.from(eventSessions)
-			.where(and(
-				eq(eventSessions.id, input.sessionId),
-				eq(eventSessions.published, true)
-			))
-			.for('update'); // CRITICAL: Row-level lock prevents concurrent modifications
-
-		if (!session) {
-			throw new Error('Session not found or not published');
-		}
-
-		// Check if session has already started
-		if (session.startTime <= new Date()) {
-			throw new Error('Cannot book tickets for a session that has already started');
-		}
-
-		// Step 2: Check availability
-		if (session.availableCapacity < input.quantity) {
-			throw new Error('Not enough tickets available');
-		}
-
-		// Step 3: Decrement capacity atomically
-		const [updatedSession] = await tx
-			.update(eventSessions)
-			.set({
-				availableCapacity: sql`${eventSessions.availableCapacity} - ${input.quantity}`,
-				updatedAt: new Date(),
-			})
-			.where(and(
-				eq(eventSessions.id, input.sessionId),
-				sql`${eventSessions.availableCapacity} >= ${input.quantity}` // Double-check in UPDATE
-			))
-			.returning();
-
-		if (!updatedSession) {
-			throw new Error('Failed to reserve tickets (race condition)');
-		}
+		const session = await lockAndDecrementSessionCapacity(tx, input.sessionId, input.quantity);
 
 		// Step 4: Calculate total amount (snapshot price at booking time)
 		const baseAmount = session.priceAmount * input.quantity;
@@ -179,6 +199,81 @@ export async function createReservation(input: CreateReservationInput) {
 		}
 		throw error;
 	}
+}
+
+/**
+ * Create a comp (complimentary) Reservation directly from the admin UI.
+ *
+ * Reuses the exact same capacity-locking transaction as a paying Guest's
+ * checkout (`lockAndDecrementSessionCapacity`) so a comp booking and a
+ * paid booking can never race each other into overselling a Session.
+ *
+ * Unlike a paid booking, no Stripe Checkout Session and no Payment record
+ * are created — the Reservation is created directly with status
+ * `confirmed` and `isComp: true`, which keeps it consistent with paid
+ * Reservations for Ticket generation and capacity accounting, while
+ * remaining distinguishable in admin views, CSV exports, and analytics.
+ */
+export async function createCompReservation(input: CreateCompReservationInput) {
+	const created = await db.transaction(async (tx: typeof db) => {
+		// Same capacity lock + decrement as a paid Guest booking.
+		const session = await lockAndDecrementSessionCapacity(tx, input.sessionId, input.quantity);
+
+		const accessToken = generateAccessToken();
+		const now = new Date();
+
+		// Comp reservations skip the pending -> Stripe Checkout -> webhook
+		// confirmation flow entirely: created already `confirmed`, with no
+		// Payment record (no money is ever collected) and no expiry countdown
+		// (expiresAt only gates cleanup of `pending` reservations).
+		const [reservation] = await tx.insert(reservations).values({
+			eventSessionId: input.sessionId,
+			guestEmail: input.email,
+			guestName: input.name,
+			guestPhone: input.phone ?? null,
+			notificationPreference: input.notificationPreference ?? 'both',
+			quantity: input.quantity,
+			totalAmount: 0,
+			currency: session.currency,
+			status: 'confirmed',
+			accessToken,
+			expiresAt: now,
+			confirmedAt: now,
+			isComp: true,
+		}).returning();
+
+		const [event] = await tx
+			.select({ titleEn: events.titleEn, slug: events.slug, locationEn: events.locationEn })
+			.from(events)
+			.where(eq(events.id, session.eventId));
+
+		return { reservation, session, event };
+	});
+
+	// Issue the Ticket the same way a paying Guest's checkout success webhook
+	// does — reusing the same email/QR-code path (handleCheckoutSuccess /
+	// handlePaymentSuccess in ./payments.ts call this exact function).
+	try {
+		const { sendTicketConfirmationEmail } = await import('./email');
+		await sendTicketConfirmationEmail({
+			guestEmail: created.reservation.guestEmail,
+			guestName: created.reservation.guestName,
+			accessToken: created.reservation.accessToken,
+			reservation: created.reservation,
+			session: created.session,
+			event: {
+				title: created.event?.titleEn ?? '',
+				slug: created.event?.slug ?? '',
+				locationEn: created.event?.locationEn ?? '',
+			},
+		});
+	} catch (error) {
+		logger.error({ err: error }, 'Failed to send comp ticket confirmation email');
+		// Don't throw - the reservation was created successfully; the ticket
+		// is still reachable via its access token even if the email failed.
+	}
+
+	return { reservation: created.reservation };
 }
 
 /**

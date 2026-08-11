@@ -117,11 +117,12 @@ export async function exportReservationsToCSV(options: {
 		'Total Amount': r.totalAmount / 100,
 		'Currency': r.currency,
 		'Status': r.status,
+		'Is Comp': r.isComp,
 		'Event': r.eventSession.event.titleEn,
 		'Session': r.eventSession.titleEn,
 		'Session Start': r.eventSession.startTime,
 		'Session End': r.eventSession.endTime,
-		'Payment Status': r.payment?.status || '',
+		'Payment Status': r.payment?.status || (r.isComp ? 'comp' : ''),
 		'Payment Method': r.payment?.stripePaymentMethodId || '',
 		'Confirmed At': r.confirmedAt,
 		'Created At': r.createdAt,
@@ -137,6 +138,7 @@ export async function exportReservationsToCSV(options: {
 		'Total Amount',
 		'Currency',
 		'Status',
+		'Is Comp',
 		'Event',
 		'Session',
 		'Session Start',
@@ -300,6 +302,18 @@ export async function exportAnalyticsToCSV(options: {
 	const totalRevenue = succeededPayments.reduce((sum: number, p: typeof succeededPayments[number]) => sum + p.amount, 0);
 	const totalTicketsSold = succeededPayments.reduce((sum: number, p: typeof succeededPayments[number]) => sum + ((p as any).reservation?.quantity || 0), 0);
 
+	// Comp Reservations have no Payment record, so they're counted separately
+	// off `reservations.isComp` rather than derived from the payments query above.
+	const [compRow] = await db
+		.select({ count: sql<number>`count(*)::int` })
+		.from(reservations)
+		.where(
+			options.startDate
+				? and(eq(reservations.isComp, true), sql`${reservations.createdAt} >= ${options.startDate}`)
+				: eq(reservations.isComp, true)
+		);
+	const compReservationsCount = compRow?.count ?? 0;
+
 	const csvData = [
 		{
 			'Metric': 'Total Revenue',
@@ -328,6 +342,10 @@ export async function exportAnalyticsToCSV(options: {
 		{
 			'Metric': 'Average Order Value',
 			'Value': succeededPayments.length > 0 ? formatCurrency(totalRevenue / succeededPayments.length) : '€0.00',
+		},
+		{
+			'Metric': 'Comp Reservations',
+			'Value': compReservationsCount.toString(),
 		},
 		{
 			'Metric': 'Export Date',

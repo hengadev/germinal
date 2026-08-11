@@ -10,7 +10,8 @@
 		BarChart3,
 		Calendar,
 		Users,
-		Download
+		Download,
+		Gift
 	} from 'lucide-svelte';
 	import type { PageData } from './$types';
 
@@ -130,6 +131,12 @@
 			value: avgTicketsPerOrder.toFixed(1),
 			icon: Users,
 			sub: 'en moyenne'
+		},
+		{
+			label: 'Réservations Comp',
+			value: data.metrics.compReservations.toString(),
+			icon: Gift,
+			sub: 'billets offerts, hors paiement'
 		}
 	];
 </script>

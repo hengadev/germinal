@@ -17,6 +17,21 @@ export type CreateReservationInput = {
 	userAgent?: string | null;
 };
 
+/**
+ * Input for an Admin-initiated comp (complimentary) Reservation.
+ * Deliberately excludes payment/checkout-only fields (promoCode, honeypot,
+ * ipAddress, userAgent) since comp Reservations skip the public checkout
+ * flow entirely.
+ */
+export type CreateCompReservationInput = {
+	sessionId: string;
+	email: string;
+	name: string;
+	phone?: string;
+	quantity: number;
+	notificationPreference?: 'email' | 'sms' | 'both';
+};
+
 export type ReservationWithDetails = Reservation & {
 	eventSession: typeof eventSessions.$inferSelect & {
 		event: {

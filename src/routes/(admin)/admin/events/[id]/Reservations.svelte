@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Eye, CheckCircle2, Clock, XCircle, AlertCircle, Search, Calendar, User, Mail, Ticket, CreditCard, ArrowRight } from 'lucide-svelte';
+	import { Eye, CheckCircle2, Clock, XCircle, AlertCircle, Search, Calendar, User, Mail, Ticket, CreditCard, ArrowRight, Gift } from 'lucide-svelte';
 	import { formatCurrency } from '$lib/utils/currency';
 
 	interface Props {
@@ -212,17 +212,25 @@
 							</div>
 						</td>
 						<td class="px-6 py-4">
-							<span class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium {statusBadge.class} rounded-full">
-								{#if statusBadge.icon}
-									<svelte:component this={statusBadge.icon} size={12} />
+							<div class="flex items-center gap-2">
+								<span class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium {statusBadge.class} rounded-full">
+									{#if statusBadge.icon}
+										<svelte:component this={statusBadge.icon} size={12} />
+									{/if}
+									{statusBadge.text}
+								</span>
+								{#if reservation.isComp}
+									<span class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-purple-50 text-purple-700 rounded-full">
+										<Gift size={12} />
+										Comp
+									</span>
 								{/if}
-								{statusBadge.text}
-							</span>
+							</div>
 						</td>
 						<td class="px-6 py-4">
 							<div class="flex items-center gap-2">
 								<span class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium {paymentBadge.class} rounded-full">
-									{paymentBadge.text}
+									{reservation.isComp ? 'Comp' : paymentBadge.text}
 								</span>
 							</div>
 						</td>
@@ -263,12 +271,20 @@
 							<h3 class="font-semibold text-foreground truncate">
 								{reservation.guestName}
 							</h3>
-							<span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium {statusBadge.class} rounded-full flex-shrink-0">
-								{#if statusBadge.icon}
-									<svelte:component this={statusBadge.icon} size={10} />
+							<div class="flex items-center gap-1 flex-shrink-0">
+								<span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium {statusBadge.class} rounded-full">
+									{#if statusBadge.icon}
+										<svelte:component this={statusBadge.icon} size={10} />
+									{/if}
+									{statusBadge.text}
+								</span>
+								{#if reservation.isComp}
+									<span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-purple-50 text-purple-700 rounded-full">
+										<Gift size={10} />
+										Comp
+									</span>
 								{/if}
-								{statusBadge.text}
-							</span>
+							</div>
 						</div>
 						<p class="text-sm text-muted-foreground truncate">{reservation.guestEmail}</p>
 					</div>
