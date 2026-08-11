@@ -100,8 +100,10 @@ export async function exportReservationsToCSV(options: {
 		filtered = reservations_data.filter((r: typeof reservations_data[number]) =>
 			r.guestName.toLowerCase().includes(query) ||
 			r.guestEmail.toLowerCase().includes(query) ||
-			r.eventSession.event.title.toLowerCase().includes(query) ||
-			r.eventSession.title.toLowerCase().includes(query)
+			r.eventSession.event.titleEn.toLowerCase().includes(query) ||
+			r.eventSession.event.titleFr.toLowerCase().includes(query) ||
+			r.eventSession.titleEn.toLowerCase().includes(query) ||
+			r.eventSession.titleFr.toLowerCase().includes(query)
 		);
 	}
 
@@ -115,8 +117,8 @@ export async function exportReservationsToCSV(options: {
 		'Total Amount': r.totalAmount / 100,
 		'Currency': r.currency,
 		'Status': r.status,
-		'Event': r.eventSession.event.title,
-		'Session': r.eventSession.title,
+		'Event': r.eventSession.event.titleEn,
+		'Session': r.eventSession.titleEn,
 		'Session Start': r.eventSession.startTime,
 		'Session End': r.eventSession.endTime,
 		'Payment Status': r.payment?.status || '',
@@ -257,8 +259,8 @@ export async function exportWaitlistToCSV(options: { limit?: number } = {}) {
 		'Notified': w.notified,
 		'Notified At': w.notifiedAt,
 		'Expires At': w.expiresAt,
-		'Event': w.eventSession.event.title,
-		'Session': w.eventSession.title,
+		'Event': w.eventSession.event.titleEn,
+		'Session': w.eventSession.titleEn,
 		'Session Start': w.eventSession.startTime,
 		'Created At': w.createdAt,
 	}));

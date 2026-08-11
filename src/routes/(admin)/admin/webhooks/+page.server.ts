@@ -34,13 +34,13 @@ export const load: PageServerLoad = async () => {
 				with: {
 					eventSession: {
 						columns: {
-							title: true,
+							titleEn: true,
 							startTime: true
 						},
 						with: {
 							event: {
 								columns: {
-									title: true
+									titleEn: true
 								}
 							}
 						}
