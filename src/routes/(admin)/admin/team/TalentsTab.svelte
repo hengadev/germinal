@@ -14,7 +14,7 @@
     } from "lucide-svelte";
     import Drawer from "$lib/components/ui/Drawer.svelte";
     import Modal from "$lib/components/ui/Modal.svelte";
-    import TalentCategoriesTab from "../talents/TalentCategoriesTab.svelte";
+    import TalentCategoriesTab from "$lib/components/admin/TalentCategoriesTab.svelte";
     import { getToastContext } from "$lib/components/toast/state.svelte";
 
     interface Talent {

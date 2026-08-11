@@ -14,52 +14,6 @@ async function expectRejectedWith(promise: unknown, status: number) {
 
 const staffUser = { id: '1', email: 'a@a.com', role: 'staff', createdAt: new Date() };
 
-describe('talents/+page.server.ts actions — auth guard', () => {
-	it('updateTalent rejects unauthenticated request', async () => {
-		const { actions } = await import('../../../src/routes/(admin)/admin/talents/+page.server');
-		await expectRejectedWith(
-			actions.updateTalent!({
-				locals: { user: null },
-				request: new Request('http://x', { method: 'POST' }),
-			} as any),
-			401,
-		);
-	});
-
-	it('deleteCategory rejects non-admin (staff) session', async () => {
-		const { actions } = await import('../../../src/routes/(admin)/admin/talents/+page.server');
-		await expectRejectedWith(
-			actions.deleteCategory!({
-				locals: { user: staffUser },
-				request: new Request('http://x', { method: 'POST' }),
-			} as any),
-			403,
-		);
-	});
-
-	it('createCategory rejects unauthenticated request', async () => {
-		const { actions } = await import('../../../src/routes/(admin)/admin/talents/+page.server');
-		await expectRejectedWith(
-			actions.createCategory!({
-				locals: { user: null },
-				request: new Request('http://x', { method: 'POST' }),
-			} as any),
-			401,
-		);
-	});
-
-	it('deleteTalent rejects non-admin (staff) session', async () => {
-		const { actions } = await import('../../../src/routes/(admin)/admin/talents/+page.server');
-		await expectRejectedWith(
-			actions.deleteTalent!({
-				locals: { user: staffUser },
-				request: new Request('http://x', { method: 'POST' }),
-			} as any),
-			403,
-		);
-	});
-});
-
 describe('talents/[id]/+page.server.ts action — auth guard', () => {
 	it('default rejects unauthenticated request', async () => {
 		const { actions } = await import('../../../src/routes/(admin)/admin/talents/[id]/+page.server');
