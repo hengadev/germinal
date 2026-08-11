@@ -101,7 +101,10 @@
     "bookTickets": "Book Tickets",
     "filterAll": "All",
     "viewDetails": "View Details",
-    "noEventsInCategory": "No events found in this category."
+    "noEventsInCategory": "No events found in this category.",
+    "searchPlaceholder": "Search events…",
+    "clearSearch": "Clear search",
+    "noSearchResults": "No events found for \"{query}\"."
   },
   "talents": {
     "pageTitle": "Talents | Germinal",
