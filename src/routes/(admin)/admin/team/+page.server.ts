@@ -55,6 +55,15 @@ export const actions: Actions = {
 		const { deleteTalent } = await import('$lib/server/services/talents');
 		try {
 			await deleteTalent(id);
+
+			const { recordAuditLog } = await import('$lib/server/services/audit-log');
+			await recordAuditLog({
+				adminId: locals.user!.id,
+				action: 'talent.delete',
+				entityType: 'talent',
+				entityId: id,
+			});
+
 			return { success: 'Talent supprimé avec succès' };
 		} catch (error) {
 			logger.error({ err: error }, 'Error deleting talent');

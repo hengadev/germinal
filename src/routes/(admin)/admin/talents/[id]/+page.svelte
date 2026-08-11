@@ -15,7 +15,7 @@
 		return async ({ result }: { result: import('@sveltejs/kit').ActionResult }) => {
 			if (result.type === 'success') {
 				toast.success('Succès', (result.data as { success?: string })?.success ?? 'Talent mis à jour');
-				goto('/admin/talents');
+				goto('/admin/team');
 			} else if (result.type === 'failure') {
 				toast.error('Erreur', (result.data as { error?: string })?.error ?? 'Une erreur est survenue');
 			}
@@ -75,7 +75,7 @@
 <div class="px-4 py-8 lg:py-12">
 		<div class="mb-8">
 			<a
-				href="/admin/talents"
+				href="/admin/team"
 				class="inline-flex items-center gap-2 text-foreground-alt hover:text-foreground transition-colors mb-4"
 			>
 				<ArrowLeft size={20} />
@@ -529,7 +529,7 @@
 						Mettre à jour le Talent
 					</button>
 					<a
-						href="/admin/talents"
+						href="/admin/team"
 						class="flex-1 px-6 py-3 bg-background border border-border-input text-foreground-alt rounded-lg hover:bg-muted focus:outline-none focus:ring-2 focus:ring-foreground focus:ring-offset-2 transition-colors font-medium text-center"
 					>
 						Annuler

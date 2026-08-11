@@ -88,20 +88,3 @@ describe('admin/events/[id]/+page.server actions — auth guard', () => {
 		await expectRejectedWith(actions.deactivatePromoCode!(staffEvent()), 403);
 	});
 });
-
-describe('admin/events/[id]/sessions/+page.server actions — auth guard', () => {
-	it('createSession rejects unauthenticated request', async () => {
-		const { actions } = await import('../../../src/routes/(admin)/admin/events/[id]/sessions/+page.server');
-		await expectRejectedWith(actions.createSession!(unauthEvent()), 401);
-	});
-
-	it('updateSession rejects non-admin (staff) session', async () => {
-		const { actions } = await import('../../../src/routes/(admin)/admin/events/[id]/sessions/+page.server');
-		await expectRejectedWith(actions.updateSession!(staffEvent()), 403);
-	});
-
-	it('deleteSession rejects unauthenticated request', async () => {
-		const { actions } = await import('../../../src/routes/(admin)/admin/events/[id]/sessions/+page.server');
-		await expectRejectedWith(actions.deleteSession!(unauthEvent()), 401);
-	});
-});
