@@ -482,7 +482,8 @@ export const actions: Actions = {
 				priceAmount: parseInt(formData.get('priceAmount') as string),
 				currency: formData.get('currency') as string || 'EUR',
 				published: formData.get('published') === 'on',
-				allowWaitlist: formData.get('allowWaitlist') === 'on'
+				allowWaitlist: formData.get('allowWaitlist') === 'on',
+				badgeType: (formData.get('badgeType') as string || 'none') as 'none' | 'featured' | 'vip' | 'popular' | 'best_value' | 'limited'
 			});
 
 			return { success: `Séance "${session.titleEn}" créée avec succès` };
@@ -512,7 +513,8 @@ export const actions: Actions = {
 				priceAmount: parseInt(formData.get('priceAmount') as string),
 				currency: formData.get('currency') as string,
 				published: formData.get('published') === 'on',
-				allowWaitlist: formData.get('allowWaitlist') === 'on'
+				allowWaitlist: formData.get('allowWaitlist') === 'on',
+				badgeType: (formData.get('badgeType') as string || 'none') as 'none' | 'featured' | 'vip' | 'popular' | 'best_value' | 'limited'
 			});
 
 			return { success: 'Séance mise à jour avec succès' };
