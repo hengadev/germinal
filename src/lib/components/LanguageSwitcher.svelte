@@ -11,7 +11,7 @@
     let currentLocale = $state<string>("fr");
 
     locale.subscribe((value) => {
-        if (value) currentLocale = value;
+        if (value) currentLocale = value.startsWith("en") ? "en" : "fr";
     });
 
     function switchLanguage() {
