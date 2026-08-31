@@ -175,7 +175,7 @@ DTSTART:${formatICSDate(startDate)}
 DTEND:${formatICSDate(endDate)}
 SUMMARY:${event.event.titleEn} - ${event.titleEn}
 DESCRIPTION:Your ticket for ${event.event.titleEn}\\nQuantity: ${data.reservation.quantity}\\nConfirmation: ${data.reservation.id}
-LOCATION:${event.event.location}
+LOCATION:${event.event.locationEn}
 STATUS:CONFIRMED
 END:VEVENT
 END:VCALENDAR`;
@@ -317,7 +317,7 @@ END:VCALENDAR`;
 						<MapPin size={18} class="text-muted-foreground" />
 						<div>
 							<div class="text-sm text-muted-foreground">Lieu</div>
-							<div class="font-medium text-foreground">{data.reservation.session.event.location}</div>
+							<div class="font-medium text-foreground">{data.reservation.session.event.locationEn}</div>
 						</div>
 					</div>
 				</div>

@@ -53,11 +53,11 @@ export const load: PageServerLoad = async ({ params }) => {
 						titleEn: event.titleEn,
 						titleFr: (event as { titleFr?: string }).titleFr ?? event.titleEn,
 						slug: event.slug,
-						location: event.location,
-						venueName: event.venueName,
-						streetAddress: event.streetAddress,
-						city: event.city,
-						country: event.country
+						locationEn: event.locationEn,
+						venueNameEn: event.venueNameEn,
+						streetAddressEn: event.streetAddressEn,
+						cityEn: event.cityEn,
+						countryEn: event.countryEn
 					}
 				},
 				payment: {
