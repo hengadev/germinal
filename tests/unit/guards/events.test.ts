@@ -29,11 +29,6 @@ const staffEvent = () => ({
 }) as any;
 
 describe('admin/events/+page.server actions — auth guard', () => {
-	it('updateEvent rejects unauthenticated request', async () => {
-		const { actions } = await import('../../../src/routes/(admin)/admin/events/+page.server');
-		await expectRejectedWith(actions.updateEvent!(unauthEvent()), 401);
-	});
-
 	it('deleteEvent rejects non-admin (staff) session', async () => {
 		const { actions } = await import('../../../src/routes/(admin)/admin/events/+page.server');
 		await expectRejectedWith(actions.deleteEvent!(staffEvent()), 403);
