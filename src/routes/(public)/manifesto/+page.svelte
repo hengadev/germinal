@@ -40,7 +40,7 @@
                 {$t("manifesto.artDirection.number")}
             </p>
             <img
-                src="https://picsum.photos/seed/germinal-artdirection/1600/700"
+                src="https://images.unsplash.com/photo-1493246507139-91e8fad9978e?w=1600&h=700&fit=crop&q=80"
                 alt={$t("manifesto.artDirection.imageAlt")}
                 class="w-full aspect-[4/3] lg:aspect-[21/9] object-cover mb-12 lg:mb-16"
                 loading="lazy"
@@ -80,7 +80,7 @@
                 {$t("manifesto.scenography.number")}
             </p>
             <img
-                src="https://picsum.photos/seed/germinal-scenography/1600/700"
+                src="https://images.unsplash.com/photo-1503095396549-807759245b35?w=1600&h=700&fit=crop&q=80"
                 alt={$t("manifesto.scenography.imageAlt")}
                 class="w-full aspect-[4/3] lg:aspect-[21/9] object-cover mb-12 lg:mb-16"
                 loading="lazy"
@@ -120,7 +120,7 @@
                 {$t("manifesto.production.number")}
             </p>
             <img
-                src="https://picsum.photos/seed/germinal-production/1600/700"
+                src="https://images.unsplash.com/photo-1492619375914-88005aa9e8fb?w=1600&h=700&fit=crop&q=80"
                 alt={$t("manifesto.production.imageAlt")}
                 class="w-full aspect-[4/3] lg:aspect-[21/9] object-cover mb-12 lg:mb-16"
                 loading="lazy"
