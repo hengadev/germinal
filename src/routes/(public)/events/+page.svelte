@@ -324,7 +324,7 @@
                                 {event.titleEn}
                             </h3>
                             <p class="text-muted-foreground text-sm line-clamp-2 mb-4">
-                                {event.location}
+                                {event.locationEn}
                             </p>
                             <p class="text-muted-foreground text-sm line-clamp-3">
                                 {event.descriptionEn}
