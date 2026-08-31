@@ -229,7 +229,7 @@
  <td class="px-6 py-4">
  <div class="flex items-center gap-1 text-sm text-foreground-alt">
  <MapPin size={16} class="flex-shrink-0" />
- <span class="truncate">{event.location}</span>
+ <span class="truncate">{event.locationEn}</span>
  </div>
  </td>
  <td class="px-6 py-4">
@@ -315,7 +315,7 @@
  </p>
  <div class="flex items-center gap-1 text-sm text-foreground-alt mt-1">
  <MapPin size={14} class="flex-shrink-0" />
- <span class="truncate">{event.location}</span>
+ <span class="truncate">{event.locationEn}</span>
  </div>
  </div>
  </div>
