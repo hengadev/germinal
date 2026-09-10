@@ -30,7 +30,7 @@ docker run -d \
   -e POSTGRES_USER=postgres \
   -e POSTGRES_PASSWORD=postgres \
   -p 5432:5432 \
-  postgres:15-alpine
+  postgres:16-alpine
 ```
 
 **Option B: Using Local PostgreSQL**
@@ -342,11 +342,11 @@ pnpm drizzle-kit push
 
 ## Running Postgres via Docker Compose
 
-`docker-compose.yml` only runs local dependencies (Postgres, and optionally Drizzle Studio) — the app itself always runs on your machine with `pnpm dev` for fast HMR:
+`docker-compose.yml` only runs local dependencies (Postgres, Redis, and optionally Drizzle Studio) — the app itself always runs on your machine with `pnpm dev` for fast HMR:
 
 ```bash
-# Start Postgres
-docker-compose up -d db
+# Start Postgres and Redis
+docker-compose up -d db redis
 
 # Run the app locally
 pnpm dev
