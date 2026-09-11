@@ -6,6 +6,8 @@ const isDevelopment = process.env.NODE_ENV !== 'production';
 // Development schema - only DATABASE_URL required
 const devEnvSchema = z.object({
     DATABASE_URL: z.string().default('postgresql://postgres:postgres@localhost:5432/germinal'),
+    REDIS_HOST: z.string().default('localhost'),
+    REDIS_PORT: z.string().default('6379').transform(Number),
     USE_MOCK_DATA: z.string().default('false').transform(v => v === 'true'),
     MOCK_ADMIN_EMAIL: z.string().optional().default(''),
     MOCK_ADMIN_PASSWORD: z.string().optional().default(''),
@@ -48,6 +50,8 @@ const devEnvSchema = z.object({
 // Production schema - all fields required
 const prodEnvSchema = z.object({
     DATABASE_URL: z.string().url(),
+    REDIS_HOST: z.string().min(1),
+    REDIS_PORT: z.string().transform(Number),
     USE_MOCK_DATA: z.string().default('false').transform(v => v === 'true'),
     MOCK_ADMIN_EMAIL: z.string().optional().default(''),
     MOCK_ADMIN_PASSWORD: z.string().optional().default(''),
