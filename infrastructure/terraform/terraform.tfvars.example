@@ -38,9 +38,13 @@ server_location = "nbg1"
 # Server OS image
 server_image = "ubuntu-24.04"
 
-# SSH public key for server access
-# Get your public key with: cat ~/.ssh/id_rsa.pub
-ssh_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC... your_email@example.com"
+# SSH key: hetzner.tf references an EXISTING key already uploaded to your
+# Hetzner Cloud project (data "hcloud_ssh_key" "default", name =
+# "terraform-germinal") — there is no ssh_public_key Terraform variable;
+# `terraform apply` fails with "ssh key not found" until this exists. Upload
+# it once, before the first apply:
+#   hcloud ssh-key create --name terraform-germinal --public-key-from-file ~/.ssh/germinal.pub
+# or via the console: https://console.hetzner.cloud -> Security -> SSH Keys
 
 # Enable automatic backups (additional 20% of server price)
 enable_backups = true
