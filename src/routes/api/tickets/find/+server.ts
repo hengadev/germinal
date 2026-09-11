@@ -2,7 +2,7 @@ import { json } from '@sveltejs/kit';
 import { logger } from '$lib/server/logger';
 import { findTicketSchema } from '$lib/server/validators/find-ticket';
 import { resendTicketsForEmail } from '$lib/server/services/reservations';
-import { strictRateLimiter } from '$lib/server/rate-limit';
+import { strictRateLimiter, RateLimitUnavailableError } from '$lib/server/rate-limit';
 import { validateCsrfToken } from '$lib/server/csrf';
 import type { RequestHandler } from './$types';
 
@@ -27,7 +27,17 @@ export const POST: RequestHandler = async ({ request, getClientAddress, locals }
 
 	// Rate limiting — same limiter/config used by the other public
 	// Guest-facing endpoints (contact form, waitlist join): 3 attempts/hour/IP.
-	if (!strictRateLimiter.check(ip)) {
+	let allowed: boolean;
+	try {
+		allowed = await strictRateLimiter.check(ip);
+	} catch (err) {
+		if (err instanceof RateLimitUnavailableError) {
+			logger.error({ err }, 'Rate limiter unavailable, rejecting find-ticket lookup');
+			return json({ error: 'Service temporarily unavailable. Please try again shortly.' }, { status: 503 });
+		}
+		throw err;
+	}
+	if (!allowed) {
 		return json({ error: 'Too many attempts. Please try again later.' }, { status: 429 });
 	}
 

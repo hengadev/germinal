@@ -5,7 +5,13 @@ import { eq } from 'drizzle-orm';
 import { verifyPassword, verifyPasswordMock, getMockCredentials } from '$lib/server/auth';
 import { createSession } from '$lib/server/session';
 import { env } from '$lib/server/env';
-import { checkRateLimit, resetRateLimit, getRateLimitReset } from '$lib/server/rate-limit';
+import { logger } from '$lib/server/logger';
+import {
+	checkRateLimit,
+	resetRateLimit,
+	getRateLimitReset,
+	RateLimitUnavailableError
+} from '$lib/server/rate-limit';
 import { getCookieDomain, getSessionCookieName } from '$lib/server/hostname';
 import type { PageServerLoad } from './$types';
 
@@ -44,8 +50,20 @@ export const actions: Actions = {
 		const sessionCookieName = getSessionCookieName(url.hostname);
 
 		// Check rate limit
-		if (!checkRateLimit(ip)) {
-			const resetTime = getRateLimitReset(ip);
+		let allowed: boolean;
+		try {
+			allowed = await checkRateLimit(ip);
+		} catch (err) {
+			if (err instanceof RateLimitUnavailableError) {
+				logger.error({ err }, 'Rate limiter unavailable, rejecting login attempt');
+				return fail(503, {
+					error: 'Service temporairement indisponible. Veuillez réessayer dans un instant.'
+				});
+			}
+			throw err;
+		}
+		if (!allowed) {
+			const resetTime = await getRateLimitReset(ip);
 			return fail(429, {
 				error: `Trop de tentatives de connexion. Réessayez dans ${resetTime} secondes.`,
 				rateLimited: true
@@ -72,7 +90,7 @@ export const actions: Actions = {
 				return fail(400, { error: "Email ou mot de passe invalide" });
 			}
 
-			resetRateLimit(ip);
+			await resetRateLimit(ip);
 
 			const session = await createSession(email, role);
 
@@ -103,7 +121,7 @@ export const actions: Actions = {
 		}
 
 		// Reset rate limit on successful login
-		resetRateLimit(ip);
+		await resetRateLimit(ip);
 
 		// Create session
 		const session = await createSession(user.id);
