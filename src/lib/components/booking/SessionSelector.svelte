@@ -2,6 +2,7 @@
 	import BookingModal from './BookingModal.svelte';
 	import WaitlistForm from './WaitlistForm.svelte';
 	import { t, locale } from 'svelte-i18n';
+	import { formatCurrencyAmount, getCurrencySymbol } from '$lib/utils/currency';
 
 	interface Session {
 		id: string;
@@ -88,17 +89,6 @@
 		});
 	}
 
-	function getCurrencySymbol(currency: string): string {
-		try {
-			return (0)
-				.toLocaleString('en', { style: 'currency', currency, minimumFractionDigits: 0, maximumFractionDigits: 0 })
-				.replace(/[\d\s,.]/g, '')
-				.trim();
-		} catch {
-			return currency;
-		}
-	}
-
 	function openBooking(s: Session) { selectedSession = s; bookingModalOpen = true; }
 	function openWaitlist(s: Session) { selectedSession = s; waitlistModalOpen = true; }
 
@@ -115,8 +105,8 @@
 		{@const muted = state === 'past' || state === 'unavailable'}
 		{@const badge = getBadgeLabel(session)}
 		{@const dp = getDateParts(session.startTime)}
-		{@const symbol = getCurrencySymbol(session.currency)}
-		{@const price = session.priceAmount / 100}
+		{@const symbol = getCurrencySymbol(session.currency, $locale ?? 'en')}
+		{@const price = formatCurrencyAmount(session.priceAmount, $locale ?? 'en')}
 		{@const pct = Math.max(0, Math.min(100, ((session.totalCapacity - session.availableCapacity) / session.totalCapacity) * 100))}
 
 		<div

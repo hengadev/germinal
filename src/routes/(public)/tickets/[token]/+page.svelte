@@ -525,7 +525,7 @@ END:VCALENDAR`;
 								<div class="font-medium text-green-900 text-sm">{$t('tickets.cancellation.successTitle')}</div>
 								<p class="text-green-700 text-sm mt-1">
 									{#if refundAmount !== null}
-										{$t('tickets.cancellation.successWithRefund', { values: { amount: formatCurrency(refundAmount, data.reservation.currency) } })}
+										{$t('tickets.cancellation.successWithRefund', { values: { amount: formatCurrency(refundAmount, data.reservation.currency, $locale ?? undefined) } })}
 									{:else}
 										{$t('tickets.cancellation.successNoRefund')}
 									{/if}

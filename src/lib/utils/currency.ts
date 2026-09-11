@@ -23,6 +23,49 @@ export function formatCurrency(
 }
 
 /**
+ * Format only the numeric portion of a currency amount (no symbol), using the
+ * given locale's number-formatting conventions (decimal/thousands separators).
+ * Example: formatCurrencyAmount(123455, 'fr') => '1\u202F234,55'
+ *
+ * Trailing zero decimals are dropped so whole amounts stay compact
+ * (2500 => '25') — pairs with getCurrencySymbol() for split symbol/amount
+ * typography like the SessionSelector price display.
+ */
+export function formatCurrencyAmount(
+	amountInCents: number,
+	locale: string = 'en-US'
+): string {
+	return new Intl.NumberFormat(locale, {
+		minimumFractionDigits: 0,
+		maximumFractionDigits: 2
+	}).format(amountInCents / 100);
+}
+
+/**
+ * Extract the currency symbol (e.g. '€', '$') as rendered by the given
+ * locale. Falls back to the raw currency code when Intl rejects it.
+ * Example: getCurrencySymbol('EUR', 'en') => '€'
+ */
+export function getCurrencySymbol(
+	currency: string,
+	locale: string = 'en-US'
+): string {
+	try {
+		return (0)
+			.toLocaleString(locale, {
+				style: 'currency',
+				currency: currency.toUpperCase(),
+				minimumFractionDigits: 0,
+				maximumFractionDigits: 0
+			})
+			.replace(/[\d\s,.]/g, '')
+			.trim();
+	} catch {
+		return currency;
+	}
+}
+
+/**
  * Parse currency string to cents
  * Example: parseCurrency('25.00') => 2500
  */
