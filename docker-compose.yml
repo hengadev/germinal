@@ -18,7 +18,7 @@ services:
       retries: 5
     restart: unless-stopped
 
-  # Redis - local development cache (parity with prod; no app code consumes it yet)
+  # Redis - local development cache (parity with prod; backs the rate limiter, see src/lib/server/rate-limit.ts)
   redis:
     image: redis:7-alpine
     command: redis-server --appendonly yes
@@ -32,22 +32,6 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
-
-  # Optional: Drizzle Studio for database management
-  drizzle-studio:
-    image: node:20-alpine
-    working_dir: /app
-    command: sh -c "corepack enable && corepack prepare pnpm@latest --activate && pnpm install && pnpm drizzle-kit studio --port 4983 --host 0.0.0.0"
-    ports:
-      - "4983:4983"
-    environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/germinal
-    volumes:
-      - ./:/app
-    depends_on:
-      - db
-    profiles:
-      - tools
 
 volumes:
   postgres_data:

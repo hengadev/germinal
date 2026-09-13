@@ -266,10 +266,8 @@ dev-logs:
 dev: dev-migrate
 	pnpm dev
 
-# Runs Drizzle Studio directly via pnpm rather than the docker-compose
-# drizzle-studio service — that service reinstalls the whole workspace in a
-# fresh container on every start; since pnpm is already required on the host
-# to run `pnpm dev`, this is instant instead.
+# Runs Drizzle Studio via pnpm on the host — pnpm is already required to
+# run `pnpm dev`, so this starts instantly with no separate container.
 studio: dev-up
 	pnpm drizzle-kit studio --port 4983
 
