@@ -18,7 +18,7 @@ STAGING_DIR = /opt/germinal-staging
 .PHONY: help pull \
         prod-start prod-stop prod-restart prod-logs prod-logs-app prod-shell prod-migrate prod-create-admin prod-db-shell \
         staging-start staging-stop staging-restart staging-logs staging-shell staging-migrate staging-create-admin \
-        dev-mock \
+        dev-mock dev-up dev-down dev-reset dev-migrate dev dev-logs studio \
         image-build image-push image-pull image-release \
         image-build-staging image-push-staging image-release-staging \
         deploy deploy-staging release \
@@ -65,8 +65,15 @@ help:
 	@echo "  make staging-migrate    - Run database migrations (staging)"
 	@echo "  make staging-create-admin - Create admin user (staging)"
 	@echo ""
-	@echo "Local Development:"
-	@echo "  make dev-mock           - Start local dev server with mock data"
+	@echo "Local Development (docker-compose db+redis, app runs natively for fast HMR):"
+	@echo "  make dev                - Start db+redis, migrate, then run the dev server (all-in-one)"
+	@echo "  make dev-up             - Start db+redis in the background (idempotent)"
+	@echo "  make dev-down           - Stop db+redis (keeps data)"
+	@echo "  make dev-reset          - Stop db+redis and WIPE their local data volumes"
+	@echo "  make dev-migrate        - Apply schema to the local dev database"
+	@echo "  make dev-logs           - Follow db+redis container logs"
+	@echo "  make studio             - Open Drizzle Studio (DB browser) at localhost:4983"
+	@echo "  make dev-mock           - Start local dev server with mock data (no DB required)"
 	@echo ""
 	@echo "Quick workflows:"
 	@echo "  make release            - Build and push production image (then deploy from VPS)"
@@ -227,8 +234,44 @@ staging-create-admin:
 	$(VPS_SSH) "cd $(STAGING_DIR) && docker compose exec germinal_staging_app npx tsx scripts/create-admin.ts"
 
 # ===========================================
-# Local Development Commands (run dev.sh directly)
+# Local Development Commands
 # ===========================================
+#
+# db+redis run via docker-compose; the app runs natively (`pnpm dev`) for
+# fast HMR — bind-mount HMR inside a container buys nothing on a single-dev
+# machine and adds file-watch overhead. Leave db/redis running in the
+# background across sessions (restart: unless-stopped) rather than
+# stopping/starting them each time; `make dev-up` is idempotent.
+
+dev-up:
+	@echo "Starting local db+redis..."
+	docker-compose up -d db redis
+
+dev-down:
+	@echo "Stopping local db+redis (data preserved)..."
+	docker-compose down
+
+dev-reset:
+	@echo "Stopping local db+redis and WIPING their data volumes..."
+	docker-compose down -v
+
+dev-migrate: dev-up
+	@echo "Applying schema to local dev database..."
+	pnpm drizzle-kit push
+
+dev-logs:
+	docker-compose logs -f db redis
+
+# All-in-one: ensure services are up and migrated, then run the dev server.
+dev: dev-migrate
+	pnpm dev
+
+# Runs Drizzle Studio directly via pnpm rather than the docker-compose
+# drizzle-studio service — that service reinstalls the whole workspace in a
+# fresh container on every start; since pnpm is already required on the host
+# to run `pnpm dev`, this is instant instead.
+studio: dev-up
+	pnpm drizzle-kit studio --port 4983
 
 dev-mock:
 	@echo "Starting local development with mock data..."
