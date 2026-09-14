@@ -1,6 +1,6 @@
 <script lang="ts">
     import { enhance } from '$app/forms';
-    import { ArrowLeft, Upload, Trash2, Image, Video, Mail, AlertTriangle } from 'lucide-svelte';
+    import { Upload, Trash2, Image, Video, Mail, AlertTriangle } from 'lucide-svelte';
     import { getToastContext } from '$lib/components/toast/state.svelte';
     import type { PageData } from './$types';
 
@@ -78,20 +78,6 @@
 </svelte:head>
 
 <div class="min-h-screen bg-muted">
-    <nav class="bg-background border-b border-border-card">
-        <div class="container mx-auto px-4">
-            <div class="flex items-center h-16">
-                <a
-                    href="/admin"
-                    class="flex items-center gap-2 text-foreground-alt hover:text-foreground transition-colors"
-                >
-                    <ArrowLeft size={20} />
-                    <span>Retour au Tableau de Bord</span>
-                </a>
-            </div>
-        </div>
-    </nav>
-
     <main class="container mx-auto px-4 py-12">
         <div class="max-w-2xl mx-auto grid gap-8">
             <div>
