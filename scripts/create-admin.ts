@@ -5,6 +5,8 @@ import { eq } from 'drizzle-orm';
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? 'admin@germinal.com';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? 'changeme123';
+const ADMIN_FIRST_NAME = process.env.ADMIN_FIRST_NAME ?? 'Admin';
+const ADMIN_LAST_NAME = process.env.ADMIN_LAST_NAME ?? 'User';
 
 async function createAdmin() {
 	console.log('Creating admin user...');
@@ -25,6 +27,8 @@ async function createAdmin() {
 		.insert(users)
 		.values({
 			email: ADMIN_EMAIL,
+			firstName: ADMIN_FIRST_NAME,
+			lastName: ADMIN_LAST_NAME,
 			passwordHash,
 			role: 'admin'
 		})
