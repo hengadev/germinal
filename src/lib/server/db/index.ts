@@ -35,6 +35,7 @@ function initDb() {
 			max: 10,
 			idle_timeout: 20,
 			connect_timeout: 10,
+			prepare: false,
 			debug: (connectionId, query, parameters) => {
 				const startTime = Date.now();
 				queryStartTimes.set(startTime, connectionId);
@@ -125,7 +126,7 @@ export async function runMigrations() {
 	}
 
 	const migrationsFolder = resolve(process.cwd(), 'drizzle/migrations');
-	const migrationClient = postgres(env.DATABASE_URL, { max: 1 }) as any;
+	const migrationClient = postgres(env.DATABASE_URL, { max: 1, prepare: false }) as any;
 	const migrationDb = drizzle(migrationClient);
 
 	try {
@@ -153,6 +154,7 @@ export async function withTimeout<T>(
 	const timeoutClient = postgres(env.DATABASE_URL, {
 		max: 1,
 		connect_timeout: 10,
+		prepare: false,
 	}) as any;
 
 	const timeoutDb = drizzle(timeoutClient, { schema });
