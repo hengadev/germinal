@@ -11,9 +11,11 @@
 		role="region"
 		aria-label={$t('cookieConsent.title')}
 	>
-		<div class="container mx-auto flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-			<div class="max-w-2xl">
-				<p class="text-sm font-medium text-foreground">{$t('cookieConsent.title')}</p>
+		<div
+			class="container mx-auto flex max-w-5xl flex-col items-start gap-4 md:flex-row md:items-center md:justify-center md:gap-10"
+		>
+			<div class="md:max-w-xl">
+				<p class="text-sm font-semibold text-foreground">{$t('cookieConsent.title')}</p>
 				<p class="mt-1 text-xs text-muted-foreground leading-relaxed">
 					{$t('cookieConsent.description')}
 					<a
