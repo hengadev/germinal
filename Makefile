@@ -65,7 +65,7 @@ help:
 	@echo "  make staging-migrate    - Run database migrations (staging)"
 	@echo "  make staging-create-admin - Create admin user (staging)"
 	@echo ""
-	@echo "Local Development (docker-compose db+redis, app runs natively for fast HMR):"
+	@echo "Local Development (docker compose db+redis, app runs natively for fast HMR):"
 	@echo "  make dev                - Start db+redis, migrate, then run the dev server (all-in-one)"
 	@echo "  make dev-up             - Start db+redis in the background (idempotent)"
 	@echo "  make dev-down           - Stop db+redis (keeps data)"
@@ -245,22 +245,22 @@ staging-create-admin:
 
 dev-up:
 	@echo "Starting local db+redis..."
-	docker-compose up -d db redis
+	docker compose up -d db redis
 
 dev-down:
 	@echo "Stopping local db+redis (data preserved)..."
-	docker-compose down
+	docker compose down
 
 dev-reset:
 	@echo "Stopping local db+redis and WIPING their data volumes..."
-	docker-compose down -v
+	docker compose down -v
 
 dev-migrate: dev-up
 	@echo "Applying schema to local dev database..."
 	pnpm drizzle-kit push
 
 dev-logs:
-	docker-compose logs -f db redis
+	docker compose logs -f db redis
 
 # All-in-one: ensure services are up and migrated, then run the dev server.
 dev: dev-migrate
