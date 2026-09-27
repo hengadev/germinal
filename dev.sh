@@ -6,15 +6,16 @@ echo "📦 Using mock data - no database required!"
 echo "🔥 Hot reload enabled"
 echo ""
 
-# Set environment variable to use mock data
-export USE_MOCK_DATA=true
-
-# Load .env file if it exists
+# Load .env file if it exists (sourced BEFORE the mock-data override below,
+# so `export USE_MOCK_DATA=true` always wins over a `USE_MOCK_DATA=false` in .env)
 if [ -f ".env" ]; then
   set -a
   source .env
   set +a
 fi
+
+# Set environment variable to use mock data
+export USE_MOCK_DATA=true
 
 # Check if mock admin credentials are set
 if [ -z "$MOCK_ADMIN_EMAIL" ] || [ -z "$MOCK_ADMIN_PASSWORD" ]; then
