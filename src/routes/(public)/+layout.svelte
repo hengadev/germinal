@@ -6,9 +6,33 @@
     import { t } from 'svelte-i18n';
     import { onMount } from 'svelte';
     import { browser } from '$app/environment';
-    import { invalidateAll } from '$app/navigation';
+    import { invalidateAll, onNavigate } from '$app/navigation';
 
     let { data, children }: { data: LayoutData; children: any } = $props();
+
+    // SvelteKit's post-navigation hash scroll double-counts scroll-margin-top
+    // (it restores y = pageYOffset + rect.top, which assumes rect.top === 0), so
+    // deep links land flush under the fixed nav. Scroll ourselves, after kit's
+    // sequence settles, with native scrollIntoView — it honours scroll-margin-top.
+    function scrollToHashTarget(hash: string) {
+        requestAnimationFrame(() => {
+            setTimeout(() => {
+                document
+                    .getElementById(decodeURIComponent(hash.slice(1)))
+                    ?.scrollIntoView({ block: 'start' });
+            }, 0);
+        });
+    }
+
+    onNavigate((navigation) => {
+        const hash = navigation.to?.url.hash;
+        if (hash) scrollToHashTarget(hash);
+    });
+
+    // Direct loads with a fragment never scroll after hydration either.
+    onMount(() => {
+        if (browser && location.hash) scrollToHashTarget(location.hash);
+    });
 
     // Handle bfcache (back-forward cache) to ensure fresh data when returning from admin subdomain
     onMount(() => {
