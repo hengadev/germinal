@@ -338,9 +338,12 @@
             {/if}
         </section>
 
-        <!-- Services -->
-        <section use:reveal={{ preset: "fade-up", delay: 100 }}>
-            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+        <!-- Services — ruled index: hairlines draw in on scroll, rows are links to each discipline -->
+        <section>
+            <div
+                class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8"
+                use:reveal={{ preset: "fade-up", delay: 100 }}
+            >
                 <div class="grid gap-2">
                     <p class="text-muted-foreground uppercase text-sm tracking-widest">{$t("home.servicesEyebrow")}</p>
                     <h2 class="text-2xl md:text-3xl font-serif">{$t("home.servicesTitle")}</h2>
@@ -351,19 +354,48 @@
                 </a>
             </div>
             {#each serviceKeys as key, index}
-                <div
-                    class="flex items-start gap-6 md:gap-16 py-8 border-t border-border-input-hover last:border-b last:border-border-input-hover"
-                    use:reveal={{ preset: "fade-up", delay: 100 + index * 80 }}
-                >
-                    <p class="text-muted-foreground text-xs uppercase tracking-widest shrink-0 pt-1">
-                        {$t(`manifesto.${key}.number`)}
-                    </p>
-                    <div class="grid gap-1 flex-1 min-w-0">
-                        <h3 class="text-lg font-medium">{$t(`manifesto.${key}.title`)}</h3>
-                        <p class="text-muted-foreground text-sm">{$t(`manifesto.${key}.tagline`)}</p>
+                {@const anchor = key.replace(/([A-Z])/g, '-$1').toLowerCase()}
+                <a href="/manifesto#{anchor}" class="group relative block">
+                    <div
+                        class="h-px w-full bg-border-input-hover origin-left"
+                        use:reveal={{ preset: "line-draw", delay: 60 + index * 140 }}
+                    ></div>
+                    <!-- Hover sweep: a foreground rule redraws the line in reading direction -->
+                    <div
+                        class="absolute left-0 top-0 h-px w-full bg-foreground origin-left scale-x-0 transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-x-100 group-focus-visible:scale-x-100 motion-reduce:transition-none"
+                        aria-hidden="true"
+                    ></div>
+                    <div
+                        class="flex items-start gap-6 md:gap-16 py-8"
+                        use:reveal={{ preset: "fade-up", delay: 160 + index * 140 }}
+                    >
+                        <p
+                            class="text-muted-foreground text-xs uppercase tracking-widest shrink-0 pt-1 transition-colors duration-300 group-hover:text-foreground group-focus-visible:text-foreground motion-reduce:transition-none"
+                        >
+                            {$t(`manifesto.${key}.number`)}
+                        </p>
+                        <div
+                            class="grid gap-1 flex-1 min-w-0 transition-transform duration-300 ease-out group-hover:translate-x-1.5 group-focus-visible:translate-x-1.5 motion-reduce:transition-none"
+                        >
+                            <h3 class="text-lg font-medium">{$t(`manifesto.${key}.title`)}</h3>
+                            <p
+                                class="text-muted-foreground text-sm transition-colors duration-300 group-hover:text-foreground-alt group-focus-visible:text-foreground-alt motion-reduce:transition-none"
+                            >
+                                {$t(`manifesto.${key}.tagline`)}
+                            </p>
+                        </div>
+                        <ArrowUpRight
+                            size={20}
+                            aria-hidden="true"
+                            class="mt-1 shrink-0 -translate-x-1 translate-y-1 opacity-0 transition-all duration-300 ease-out group-hover:translate-x-0 group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:translate-y-0 group-focus-visible:opacity-100 motion-reduce:transition-none"
+                        />
                     </div>
-                </div>
+                </a>
             {/each}
+            <div
+                class="h-px w-full bg-border-input-hover origin-left"
+                use:reveal={{ preset: "line-draw", delay: 60 + serviceKeys.length * 140 }}
+            ></div>
         </section>
 
         <!-- Stats -->
