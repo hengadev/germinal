@@ -115,90 +115,86 @@
             <p class="text-muted-foreground leading-relaxed md:pt-10">{$t("home.aboutBody")}</p>
         </section>
 
-        <!-- Upcoming event -->
-        <section
-            class="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12"
-            use:reveal={{ preset: "fade-up", delay: 100 }}
-        >
-            {#if data.events.length === 0}
-                <div></div>
-            {:else}
+        <!-- Upcoming event (Spotlight) -->
+        {#if data.events.length > 0}
+            {@const event = data.events.find(e => e.isSpotlight) ?? data.events[0]}
+            {@const start = new Date(event.startDate)}
+            {@const end = new Date(event.endDate)}
+            {@const isSameDay = start.toDateString() === end.toDateString()}
+            {@const admissionInfo = $locale === 'en' ? event.admissionInfoEn : event.admissionInfoFr}
+            {@const description = getEventField(event, 'description')}
+            <section
+                class="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12"
+                use:reveal={{ preset: "fade-up", delay: 100 }}
+            >
                 <div>
-                    {#if data.events[0].coverMedia}
+                    {#if event.coverMedia}
                         <img
-                            src={data.events[0].coverMedia.url}
-                            alt={getEventField(data.events[0], 'title')}
+                            src={event.coverMedia.url}
+                            alt={getEventField(event, 'title')}
                             class="w-full max-h-[25rem] md:max-h-[30rem] object-cover"
                         />
                     {:else}
                         <div class="w-full max-h-[25rem] md:max-h-[30rem] aspect-video bg-surface-hover"></div>
                     {/if}
                 </div>
-                <div class="flex flex-col justify-between gap-6 md:gap-4">
+                <div class="flex flex-col justify-between gap-6 md:gap-8">
                     <div class="grid gap-2">
-                        <p class="text-muted-foreground uppercase text-sm">
+                        <p class="text-muted-foreground uppercase text-sm tracking-widest">
                             {$t("nav.upcomingEvent")}
                         </p>
                         <h2 class="text-xl md:text-2xl lg:text-3xl font-serif">
-                            {getEventField(data.events[0], 'title')}
+                            {getEventField(event, 'title')}
                         </h2>
-                        <p class="text-muted-foreground font-normal">
-                            {$t("home.heroDescription")}
-                        </p>
+                        {#if description}
+                            <p class="text-muted-foreground leading-relaxed line-clamp-3">
+                                {description}
+                            </p>
+                        {/if}
                     </div>
-                    <div class="w-full border border-border-input/80"></div>
-                    {#if data.events[0]}
-                        {@const event = data.events[0]}
-                        {@const start = new Date(event.startDate)}
-                        {@const end = new Date(event.endDate)}
-                        {@const isSameDay = start.toDateString() === end.toDateString()}
-                        {@const admissionInfo = $locale === 'en' ? event.admissionInfoEn : event.admissionInfoFr}
-
-                        <div class="grid grid-cols-2 grid-rows-2 gap-y-8">
-                            <!-- Date range -->
-                            <div class="grid gap-0.5">
-                                <p class="uppercase text-xs text-muted-foreground">{$t("home.date")}</p>
-                                <p class="text-foreground text-sm font-medium">
-                                    {isSameDay
-                                        ? start.toLocaleDateString($locale === 'en' ? 'en-US' : 'fr-FR', { month: 'short', day: 'numeric', year: 'numeric' })
-                                        : `${start.toLocaleDateString($locale === 'en' ? 'en-US' : 'fr-FR', { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString($locale === 'en' ? 'en-US' : 'fr-FR', { month: 'short', day: 'numeric', year: 'numeric' })}`}
-                                </p>
-                            </div>
-
-                            <!-- Time -->
-                            <div class="grid gap-0.5">
-                                <p class="uppercase text-xs text-muted-foreground">{$t("home.time")}</p>
-                                <p class="text-foreground text-sm font-medium">
-                                    {start.toLocaleTimeString($locale === 'en' ? 'en-US' : 'fr-FR', { hour: '2-digit', minute: '2-digit' })}
-                                </p>
-                            </div>
-
-                            <!-- Location -->
-                            <div class="grid gap-0.5">
-                                <p class="uppercase text-xs text-muted-foreground">{$t("home.location")}</p>
-                                <p class="text-foreground text-sm font-medium">{$locale === 'en' ? event.locationEn : event.locationFr}</p>
-                            </div>
-
-                            <!-- Admission info -->
-                            {#if admissionInfo}
-                                <div class="grid gap-0.5">
-                                    <p class="uppercase text-xs text-muted-foreground">{$t("home.admission")}</p>
-                                    <p class="text-foreground text-sm font-medium">{admissionInfo}</p>
-                                </div>
-                            {/if}
+                    <dl class="grid grid-cols-2 gap-x-6 md:gap-x-12 gap-y-6 border-t border-border-input-hover pt-6">
+                        <!-- Date range -->
+                        <div class="grid gap-0.5">
+                            <dt class="uppercase text-xxs tracking-widest text-muted-foreground">{$t("home.date")}</dt>
+                            <dd class="text-foreground text-sm font-medium">
+                                {isSameDay
+                                    ? start.toLocaleDateString($locale === 'en' ? 'en-US' : 'fr-FR', { month: 'short', day: 'numeric', year: 'numeric' })
+                                    : `${start.toLocaleDateString($locale === 'en' ? 'en-US' : 'fr-FR', { month: 'short', day: 'numeric' })} – ${end.toLocaleDateString($locale === 'en' ? 'en-US' : 'fr-FR', { month: 'short', day: 'numeric', year: 'numeric' })}`}
+                            </dd>
                         </div>
-                    {/if}
-                    <div class="w-full border border-border-input/80"></div>
+
+                        <!-- Time -->
+                        <div class="grid gap-0.5">
+                            <dt class="uppercase text-xxs tracking-widest text-muted-foreground">{$t("home.time")}</dt>
+                            <dd class="text-foreground text-sm font-medium">
+                                {start.toLocaleTimeString($locale === 'en' ? 'en-US' : 'fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                            </dd>
+                        </div>
+
+                        <!-- Location -->
+                        <div class="grid gap-0.5">
+                            <dt class="uppercase text-xxs tracking-widest text-muted-foreground">{$t("home.location")}</dt>
+                            <dd class="text-foreground text-sm font-medium">{$locale === 'en' ? event.locationEn : event.locationFr}</dd>
+                        </div>
+
+                        <!-- Admission info -->
+                        {#if admissionInfo}
+                            <div class="grid gap-0.5">
+                                <dt class="uppercase text-xxs tracking-widest text-muted-foreground">{$t("home.admission")}</dt>
+                                <dd class="text-foreground text-sm font-medium">{admissionInfo}</dd>
+                            </div>
+                        {/if}
+                    </dl>
                     <a
                         href="/spotlight"
-                        class="inline-flex w-fit items-center gap-2 px-6 py-3 rounded-none bg-foreground hover:bg-foreground-alt text-white"
+                        class="inline-flex w-fit items-center gap-2 px-6 py-3 rounded-none bg-foreground hover:bg-foreground-alt text-white transition-colors"
                     >
                         <p>{$t("home.reserveSeat")}</p>
                         <ArrowRight />
                     </a>
                 </div>
-            {/if}
-        </section>
+            </section>
+        {/if}
         <section>
             <div
                 class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8"

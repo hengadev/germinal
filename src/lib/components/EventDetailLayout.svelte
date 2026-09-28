@@ -236,14 +236,14 @@
 				</div>
 				<div class="grid gap-3 lg:gap-4">
 					{@render asideTitle($t('events.details'), Info)}
-					<div class="grid gap-2">
+					<dl class="grid gap-3 lg:gap-4 border-t border-border-input-hover pt-3 lg:pt-4">
 						{#if getEventField('curator')}
 							{@render asideLastPart($t('events.curator'), getEventField('curator'))}
 						{/if}
 						{#if getEventField('admissionInfo')}
 							{@render asideLastPart($t('events.admission'), getEventField('admissionInfo'))}
 						{/if}
-					</div>
+					</dl>
 				</div>
 			</div>
 		</section>
@@ -260,11 +260,8 @@
 {/snippet}
 
 {#snippet asideLastPart(title: string, value: string)}
-	<div class="grid gap-2">
-		<div class="flex items-center justify-between gap-4">
-			<p class="text-muted-foreground capitalize text-sm lg:text-base">{title}</p>
-			<p class="text-foreground-alt text-sm lg:text-base text-right">{value}</p>
-		</div>
-		<div class="border border-border-input w-full"></div>
+	<div class="flex items-center justify-between gap-4">
+		<dt class="text-muted-foreground capitalize text-sm lg:text-base">{title}</dt>
+		<dd class="text-foreground-alt text-sm lg:text-base text-right">{value}</dd>
 	</div>
 {/snippet}
