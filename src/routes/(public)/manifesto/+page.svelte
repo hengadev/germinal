@@ -34,7 +34,7 @@
     </div>
 
     <!-- Service 01: Art Direction -->
-    <section class="mb-32 lg:mb-56">
+    <section id="art-direction" class="mb-32 lg:mb-56 scroll-mt-24">
         <div use:reveal={{ preset: "fade-up" }}>
             <p class="uppercase text-muted-foreground text-xxs tracking-widest mb-6">
                 {$t("manifesto.artDirection.number")}
@@ -74,7 +74,7 @@
     </section>
 
     <!-- Service 02: Scenography -->
-    <section class="mb-32 lg:mb-56">
+    <section id="scenography" class="mb-32 lg:mb-56 scroll-mt-24">
         <div use:reveal={{ preset: "fade-up" }}>
             <p class="uppercase text-muted-foreground text-xxs tracking-widest mb-6">
                 {$t("manifesto.scenography.number")}
@@ -114,7 +114,7 @@
     </section>
 
     <!-- Service 03: Creative Production -->
-    <section class="mb-32 lg:mb-56">
+    <section id="production" class="mb-32 lg:mb-56 scroll-mt-24">
         <div use:reveal={{ preset: "fade-up" }}>
             <p class="uppercase text-muted-foreground text-xxs tracking-widest mb-6">
                 {$t("manifesto.production.number")}
