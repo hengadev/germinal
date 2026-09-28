@@ -22,9 +22,9 @@
   },
   "nav": {
     "upcomingEvent": "Prochain événement",
-    "events": "Notre portfolio",
-    "talents": "Nos talents",
-    "manifesto": "Notre manifesto",
+    "events": "Projets",
+    "talents": "Talents",
+    "manifesto": "Manifeste",
     "contact": "Contact",
     "findTicket": "Retrouver mon billet"
   },
