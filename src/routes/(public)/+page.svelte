@@ -101,7 +101,7 @@
 
     <!-- Content Sections -->
     <div
-        class="container mx-auto mb-32 px-4 grid gap-y-24 md:gap-y-40 pt-24 md:pt-32"
+        class="container mx-auto px-4 grid gap-y-24 md:gap-y-40 pt-24 md:pt-32 pb-16 md:pb-24"
     >
         <!-- About block -->
         <section
@@ -395,36 +395,42 @@
             </div>
         </section> -->
 
-        <!-- Newsletter -->
-        <section
-            class="border border-border-input-hover px-8 py-12 md:px-16 md:py-16"
+    </div>
+
+    <!-- Newsletter — full-bleed dark band -->
+    <section class="bg-foreground text-white">
+        <div
+            class="max-w-lg mx-auto text-center grid gap-6 px-4 py-24 md:py-32"
             use:reveal={{ preset: "fade-up", delay: 100 }}
         >
-            <div class="max-w-lg mx-auto text-center grid gap-6">
-                <div class="grid gap-3">
-                    <p class="text-muted-foreground uppercase text-sm tracking-widest">{$t("home.newsletter.eyebrow")}</p>
-                    <h2 class="text-2xl md:text-3xl font-serif">{$t("home.newsletter.title")}</h2>
-                    <p class="text-muted-foreground">{$t("home.newsletter.subtitle")}</p>
-                </div>
-                {#if newsletterSubmitted}
-                    <p class="text-foreground font-medium">{$t("home.newsletter.success")}</p>
-                {:else}
-                    <form class="flex" onsubmit={handleNewsletter}>
-                        <input
-                            type="email"
-                            placeholder={$t("home.newsletter.placeholder")}
-                            class="flex-1 border border-border-input px-4 py-3 text-sm focus:outline-none focus:border-foreground min-w-0"
-                            bind:value={newsletterEmail}
-                            required
-                        />
-                        <button type="submit" class="px-6 py-3 bg-foreground text-white text-sm hover:bg-foreground-alt transition-colors shrink-0">
-                            {$t("home.newsletter.button")}
-                        </button>
-                    </form>
-                {/if}
+            <div class="grid gap-3">
+                <p class="text-white/60 uppercase text-sm tracking-widest">{$t("home.newsletter.eyebrow")}</p>
+                <h2 class="text-2xl md:text-3xl font-serif">{$t("home.newsletter.title")}</h2>
+                <p class="text-white/60">{$t("home.newsletter.subtitle")}</p>
             </div>
-        </section>
+            {#if newsletterSubmitted}
+                <p class="text-white font-medium" role="status">{$t("home.newsletter.success")}</p>
+            {:else}
+                <form class="flex" onsubmit={handleNewsletter}>
+                    <input
+                        type="email"
+                        placeholder={$t("home.newsletter.placeholder")}
+                        class="flex-1 border border-white/30 bg-transparent px-4 py-3 text-sm text-white placeholder:text-white/50 focus:outline-none focus:border-white focus-visible:ring-white/70 focus-visible:ring-offset-foreground min-w-0"
+                        bind:value={newsletterEmail}
+                        required
+                    />
+                    <button
+                        type="submit"
+                        class="px-6 py-3 bg-white text-foreground text-sm font-medium hover:bg-white/90 focus-visible:ring-offset-foreground transition-colors shrink-0"
+                    >
+                        {$t("home.newsletter.button")}
+                    </button>
+                </form>
+            {/if}
+        </div>
+    </section>
 
+    <div class="container mx-auto mb-32 px-4 pt-20 md:pt-28">
         <!-- CTA -->
         <section
             class="text-center py-8 md:py-16"
