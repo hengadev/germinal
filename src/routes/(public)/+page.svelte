@@ -100,19 +100,32 @@
     </section>
 
     <!-- Content Sections -->
-    <div
-        class="container mx-auto px-4 grid grid-cols-1 gap-y-24 md:gap-y-40 pt-24 md:pt-32 pb-16 md:pb-24"
-    >
-        <!-- About block -->
-        <section
-            class="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16 items-start mb-16 md:mb-24"
-            use:reveal={{ preset: "fade-up", delay: 100 }}
-        >
-            <div class="grid gap-3">
-                <p class="text-muted-foreground uppercase text-sm tracking-widest">{$t("home.aboutEyebrow")}</p>
-                <h2 class="text-2xl md:text-3xl lg:text-4xl font-serif leading-snug">{$t("home.aboutTitle")}</h2>
+    <div class="container mx-auto px-4 grid grid-cols-1 gap-y-24 md:gap-y-40 pt-24 md:pt-32 pb-16 md:pb-24">
+        <!-- About — statement with the brand line set as a vertical spine -->
+        <section class="grid md:grid-cols-[minmax(0,1fr)_auto] gap-8 md:gap-12 items-stretch">
+            <div class="grid gap-10 md:gap-14 content-start">
+                <h2
+                    class="text-4xl md:text-6xl lg:text-7xl font-serif max-w-5xl leading-tight text-balance"
+                    use:reveal={{ preset: "fade-up", delay: 100 }}
+                >
+                    {$t("home.aboutTitle")}
+                </h2>
+                <div class="grid gap-6" use:reveal={{ preset: "fade-up", delay: 200 }}>
+                    <p class="text-foreground-alt text-base md:text-lg leading-relaxed max-w-[65ch]">{$t("home.aboutBody")}</p>
+                    <a
+                        href="/manifesto"
+                        class="flex items-center gap-2 text-muted-foreground hover:text-foreground-alt font-normal w-fit"
+                    >
+                        <p>{$t("home.aboutManifestoLink")}</p>
+                        <ArrowRight />
+                    </a>
+                </div>
             </div>
-            <p class="text-muted-foreground leading-relaxed md:pt-10">{$t("home.aboutBody")}</p>
+            <div class="hidden md:flex items-center" use:reveal={{ preset: "fade-in", delay: 250 }}>
+                <p class="[writing-mode:vertical-rl] rotate-180 font-sans italic text-2xl lg:text-3xl text-foreground-alt tracking-wide whitespace-nowrap">
+                    {$t("home.heroTitle")}
+                </p>
+            </div>
         </section>
 
         <!-- Upcoming event (Spotlight) -->
