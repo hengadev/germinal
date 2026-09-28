@@ -23,6 +23,14 @@ export const ANIMATION_PRESETS = {
 		duration: 600,
 		easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
 	},
+	'line-draw': {
+		// Hairlines that draw in from the left (pair with an `origin-left` class).
+		// Note: the reveal action always fades opacity in from 0 alongside the draw.
+		initial: { opacity: 0, transform: 'scaleX(0)' },
+		animate: { opacity: 1, transform: 'scaleX(1)' },
+		duration: 700,
+		easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
+	},
 } as const;
 
 export const STAGGER_DELAY = 60; // 60ms between items
