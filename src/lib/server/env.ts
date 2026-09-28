@@ -29,9 +29,9 @@ const devEnvSchema = z.object({
     SMTP_SECURE: z.string().optional().default('false').transform(v => v === 'true'),
     SMTP_USER: z.string().optional().default(''),
     SMTP_PASSWORD: z.string().optional().default(''),
-    SMTP_FROM_EMAIL: z.string().email().optional().default('noreply@germinal.com'),
+    SMTP_FROM_EMAIL: z.string().email().optional().default('noreply@germinalstudio.co'),
     SMTP_FROM_NAME: z.string().optional().default('Germinal'),
-    CONTACT_EMAIL: z.string().email().optional().default('hello@germinal.com'),
+    CONTACT_EMAIL: z.string().email().optional().default('contact@germinalstudio.co'),
     // Stripe Configuration - optional in dev
     STRIPE_SECRET_KEY: z.string().optional().default(''),
     STRIPE_WEBHOOK_SECRET: z.string().optional().default(''),

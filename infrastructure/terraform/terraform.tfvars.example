@@ -81,7 +81,7 @@ google_site_verification = ""
 #   - Only manual step: request SES production access in AWS Console
 #
 # RECEIVING: Hostinger Business Email
-#   - Create mailbox in hPanel (e.g., support@yourdomain.com)
+#   - Create mailbox in hPanel (e.g., contact@yourdomain.com)
 #   - Get DKIM records from hPanel > Emails > Email DNS Records
 
 # MX servers (Hostinger defaults)

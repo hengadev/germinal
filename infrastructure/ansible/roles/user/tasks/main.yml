@@ -31,9 +31,8 @@
       # Docker commands
       {{ deploy_user }} ALL=(ALL) NOPASSWD: /usr/bin/docker, /usr/bin/docker-compose, /usr/local/bin/docker-compose
 
-      # Systemd service management for application services
-      {{ deploy_user }} ALL=(ALL) NOPASSWD: /bin/systemctl status docker, /bin/systemctl restart docker, /bin/systemctl reload nginx
-      {{ deploy_user }} ALL=(ALL) NOPASSWD: /bin/systemctl status nginx, /bin/systemctl restart nginx, /bin/systemctl reload nginx
+      # Systemd service management for Docker (Caddy runs as a container)
+      {{ deploy_user }} ALL=(ALL) NOPASSWD: /bin/systemctl status docker, /bin/systemctl restart docker
 
       # Service management via docker compose
       {{ deploy_user }} ALL=(ALL) NOPASSWD: /usr/bin/docker *
@@ -176,7 +175,7 @@
       - ""
       - "Allowed commands (no password):"
       - "  - docker, docker-compose"
-      - "  - systemctl (docker, nginx)"
+      - "  - systemctl (docker)"
       - "  - Application scripts in {{ app_base_dir }}/scripts/"
       - "  - Other commands (with password): {{ deploy_sudo_password_fallback | default(false) }}"
       - ""

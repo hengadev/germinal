@@ -163,7 +163,7 @@
 VERSION:2.0
 PRODID:-//Germinal//Ticket//EN
 BEGIN:VEVENT
-UID:${data.reservation.id}@germinal.com
+UID:${data.reservation.id}@germinalstudio.co
 DTSTAMP:${formatICSDate(new Date())}
 DTSTART:${formatICSDate(startDate)}
 DTEND:${formatICSDate(endDate)}

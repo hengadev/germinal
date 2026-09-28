@@ -201,13 +201,13 @@ output "email_setup_status" {
     Application .env:
       AWS_ACCESS_KEY_ID=<from terraform output>
       AWS_SECRET_ACCESS_KEY=<from terraform output>
-      SES_FROM_EMAIL=noreply@${var.domain_name}
+      SMTP_FROM_EMAIL=noreply@${var.domain_name}
       SES_FROM_NAME=Germinal
       SES_REGION=${var.aws_region}
 
     RECEIVING: Hostinger Business Email
     ----------------------------------------
-    Mailbox: support@${var.domain_name}
+    Mailbox: contact@${var.domain_name}
     MX Records (configured):
       1. ${var.email_mx_primary} (priority ${var.email_mx_primary_priority})
       2. ${var.email_mx_secondary} (priority ${var.email_mx_secondary_priority})
@@ -217,7 +217,7 @@ output "email_setup_status" {
 
     REMAINING MANUAL STEPS:
       1. Request SES production access in AWS Console
-      2. Configure Hostinger mailbox (support@${var.domain_name})
+      2. Configure Hostinger mailbox (contact@${var.domain_name})
       3. Add Hostinger DKIM to terraform.tfvars (see terraform.tfvars.example)
 
     See: infrastructure/terraform/ses.tf for details

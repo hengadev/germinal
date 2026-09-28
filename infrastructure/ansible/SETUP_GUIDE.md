@@ -38,6 +38,7 @@ nano group_vars/all.vault.yml
 ```
 
 Fill in the required values:
+
 ```yaml
 # Generate strong passwords
 vault_db_password: "your_secure_postgres_password"
@@ -47,18 +48,19 @@ vault_session_secret: "your_random_32_character_string"
 vault_aws_access_key_id: "<from terraform>"
 vault_aws_secret_access_key: "<from terraform>"
 vault_aws_region: "eu-west-3"
-vault_s3_bucket: "development-germinal-media"
+vault_s3_bucket: "<from terraform output media_bucket_name>"
 vault_s3_region: "eu-west-3"
 
 # Email (Amazon SES API - uses AWS credentials above)
-vault_smtp_from_email: "noreply@germinalstudio.co"
+vault_smtp_from_email: "noreply@yourdomain.com"
 vault_smtp_from_name: "Germinal"
-vault_contact_email: "you@germinalstudio.co"
+vault_contact_email: "contact@yourdomain.com"
 
 # Optional: OAuth, Backup AWS credentials
 ```
 
 Encrypt the vault:
+
 ```bash
 ansible-vault encrypt group_vars/all.vault.yml
 ```
@@ -87,14 +89,14 @@ make backup
 
 ## What `make setup` Does
 
-| Task | Description |
-|------|-------------|
-| **System** | Base hardening, automatic updates, kernel parameters |
-| **SSH** | Key-only auth, root login disabled, fail2ban |
-| **Firewall** | UFW with ports 22, 80, 443 only |
-| **User** | Creates `deploy` user with restricted sudo |
-| **Docker** | Installs Docker & Docker Compose |
-| **Nginx** | Reverse proxy with TLS, security headers |
+| Task         | Description                                          |
+| ------------ | ---------------------------------------------------- |
+| **System**   | Base hardening, automatic updates, kernel parameters |
+| **SSH**      | Key-only auth, root login disabled, fail2ban         |
+| **Firewall** | UFW with ports 22, 80, 443 only                      |
+| **User**     | Creates `deploy` user with restricted sudo           |
+| **Docker**   | Installs Docker & Docker Compose                     |
+| **Caddy**    | Reverse proxy (Docker) with TLS, security headers        |
 
 ---
 
@@ -105,9 +107,9 @@ make backup
 ```bash
 ansible-playbook -i inventory/hosts.yml playbooks/site.yml \
   --ask-vault-pass \
-  -e "ansible_host=46.225.25.238" \
+  -e "ansible_host=<server-ip>" \
   -e "deploy_ssh_public_key=$(cat ~/.ssh/germinal.pub)" \
-  -e "app_domain=germinalstudio.co"
+  -e "app_domain=yourdomain.com"
 ```
 
 ### Deploy Application
@@ -115,7 +117,7 @@ ansible-playbook -i inventory/hosts.yml playbooks/site.yml \
 ```bash
 ansible-playbook -i inventory/hosts.yml playbooks/deploy.yml \
   --ask-vault-pass \
-  -e "ansible_host=46.225.25.238"
+  -e "ansible_host=<server-ip>"
 ```
 
 ### Configure Backups
@@ -123,8 +125,8 @@ ansible-playbook -i inventory/hosts.yml playbooks/deploy.yml \
 ```bash
 ansible-playbook -i inventory/hosts.yml playbooks/backup.yml \
   --ask-vault-pass \
-  -e "ansible_host=46.225.25.238" \
-  -e "backup_s3_bucket=development-germinal-backups" \
+  -e "ansible_host=<server-ip>" \
+  -e "backup_s3_bucket=<backup_bucket_name>" \
   -e "backup_aws_access_key=<key>" \
   -e "backup_aws_secret_key=<secret>"
 ```
@@ -133,18 +135,18 @@ ansible-playbook -i inventory/hosts.yml playbooks/backup.yml \
 
 ## Useful Makefile Commands
 
-| Command | Description |
-|---------|-------------|
-| `make help` | Show all available commands |
-| `make setup` | Complete VPS setup (first time) |
-| `make deploy` | Deploy/update application |
-| `make backup` | Configure database backups |
-| `make ssh-info` | Display SSH connection details |
-| `make status` | Check service status on server |
-| `make logs` | Stream application logs |
-| `make health-check` | Run health check |
-| `make check-clean` | Check playbooks for syntax errors |
-| `make install-deps` | Install Ansible dependencies |
+| Command             | Description                       |
+| ------------------- | --------------------------------- |
+| `make help`         | Show all available commands       |
+| `make setup`        | Complete VPS setup (first time)   |
+| `make deploy`       | Deploy/update application         |
+| `make backup`       | Configure database backups        |
+| `make ssh-info`     | Display SSH connection details    |
+| `make status`       | Check service status on server    |
+| `make logs`         | Stream application logs           |
+| `make health-check` | Run health check                  |
+| `make check-clean`  | Check playbooks for syntax errors |
+| `make install-deps` | Install Ansible dependencies      |
 
 ---
 
@@ -157,7 +159,7 @@ After setup, connect as the `deploy` user:
 make ssh-info
 
 # Connect
-ssh deploy@46.225.25.238
+ssh deploy@<server-ip>
 ```
 
 Root login is **disabled** for security. Use `deploy` with sudo.
@@ -187,14 +189,14 @@ ansible-playbook playbooks/site.yml -vvv
 ### Check Service Status
 
 ```bash
-ssh deploy@46.225.25.238
+ssh deploy@<server-ip>
 docker compose -f /opt/germinal/docker-compose.yml ps
 ```
 
 ### View Logs
 
 ```bash
-ssh deploy@46.225.25.238
+ssh deploy@<server-ip>
 docker compose -f /opt/germinal/docker-compose.yml logs -f
 ```
 
@@ -215,13 +217,13 @@ After setup, verify:
 
 ## Terraform Outputs Reference
 
-| Output | Example | Usage |
-|--------|---------|-------|
-| `server_ipv4_address` | `46.225.25.238` | Ansible `ansible_host` |
-| `domain_name` | `germinalstudio.co` | Ansible `app_domain` |
-| `iam_access_key_id` | `AKIA...` | Vault `vault_aws_access_key_id` |
-| `iam_access_key_secret` | `...` | Vault `vault_aws_secret_access_key` |
-| `backup_bucket_name` | `development-germinal-backups` | Backup playbook |
+| Output                  | Example                        | Usage                               |
+| ----------------------- | ------------------------------ | ----------------------------------- |
+| `server_ipv4_address`   | `xxx.xxx.xxx.xxx`              | Ansible `ansible_host`              |
+| `domain_name`           | `yourdomain.com`               | Ansible `app_domain`                |
+| `iam_access_key_id`     | `AKIA...`                      | Vault `vault_aws_access_key_id`     |
+| `iam_access_key_secret` | `...`                          | Vault `vault_aws_secret_access_key` |
+| `backup_bucket_name`    | `<your-backup-bucket>`         | Backup playbook                     |
 
 ---
 
@@ -243,6 +245,7 @@ infrastructure/ansible/
 ├── playbooks/
 │   ├── site.yml                  # Complete setup
 │   ├── deploy.yml                # Application deployment
+│   ├── deploy-staging.yml        # Staging deployment
 │   └── backup.yml                # Backup configuration
 └── roles/
     ├── system/                   # Base hardening
@@ -250,7 +253,8 @@ infrastructure/ansible/
     ├── firewall/                 # UFW setup
     ├── docker/                   # Docker installation
     ├── user/                     # Deploy user
-    ├── nginx/                    # Reverse proxy
+    ├── caddy/                    # Reverse proxy (Docker, TLS via Cloudflare DNS-01)
     ├── fail2ban/                 # Brute-force protection
-    └── app/                      # Application deployment
+    ├── app/                      # Application deployment
+    └── monitoring/               # Optional monitoring
 ```

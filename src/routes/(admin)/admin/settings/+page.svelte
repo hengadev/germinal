@@ -272,7 +272,7 @@
                         name="senderEmail"
                         type="email"
                         bind:value={senderEmail}
-                        placeholder="ex: noreply@germinal.com"
+                        placeholder="ex: noreply@germinalstudio.co"
                         class="w-full px-4 py-2 text-sm border border-border-input rounded-lg bg-background focus:ring-foreground focus:outline-none focus:ring-2"
                     />
                     <div>

@@ -46,7 +46,7 @@ export function generateICS(event: Event, session: EventSession): string {
 	};
 
 	// Generate UID for the event
-	const uid = `${session.id}@germinal.com`;
+	const uid = `${session.id}@germinalstudio.co`;
 
 	// Build ICS content
 	const icsContent = [

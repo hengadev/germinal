@@ -29,7 +29,7 @@ vault_smtp_from_name: "Germinal"
 # ============================================
 # Contact Email
 # ============================================
-vault_contact_email: "you@yourdomain.com"
+vault_contact_email: "contact@yourdomain.com"
 
 # ============================================
 # UptimeRobot (uptime monitoring)

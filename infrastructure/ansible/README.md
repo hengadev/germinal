@@ -13,21 +13,21 @@ Automated VPS provisioning and application deployment using Ansible.
 - Kernel hardening (sysctl, secure shared memory)
 - Modern cryptographic algorithms only (Curve25519, ChaCha20)
 - **Restricted sudo** - deploy user can only run specific commands
-- **Nginx reverse proxy** - application bound to localhost, nginx handles TLS
+- **Caddy reverse proxy (Docker)** - app reachable only on the Docker network, Caddy handles TLS
 - **Docker metrics** - bound to localhost only (127.0.0.1:9323)
 - **Ansible Vault** - encrypted secrets management
 
 ### System Setup
 - Docker & Docker Compose installation
 - Non-root deploy user with **restricted sudo**
-- Nginx reverse proxy with SSL/TLS and security headers
+- Caddy reverse proxy (Docker container) with automatic SSL/TLS and security headers
 - Application directory structure
 - Logrotate configuration
 
 ### SSL/TLS Configuration
-- Nginx reverse proxy with TLS termination
-- Security headers (HSTS, X-Frame-Options, CSP)
-- Cloudflare Origin Certificate support
+- Caddy reverse proxy with TLS termination
+- Automatic certificates via Let's Encrypt DNS-01 challenge (Cloudflare API token)
+- Security headers (HSTS, X-Frame-Options, etc.)
 - OCSP stapling enabled
 
 ### Application Deployment
@@ -136,7 +136,7 @@ SMTP_FROM_EMAIL=noreply@yourdomain.com
 SMTP_FROM_NAME=Germinal
 
 # Contact
-CONTACT_EMAIL=you@yourdomain.com
+CONTACT_EMAIL=contact@yourdomain.com
 ```
 
 ### 3. Deploy Application
@@ -290,7 +290,7 @@ infrastructure/ansible/
 ### Restricted Sudo
 - Deploy user can only run specific commands without password:
   - `docker`, `docker-compose`
-  - `systemctl` (docker, nginx)
+  - `systemctl` (docker)
   - Application scripts in `/opt/germinal/scripts/`
 - Optional password-based sudo for other commands
 - See `/opt/germinal/scripts/test-sudo.sh` to verify
@@ -300,12 +300,12 @@ infrastructure/ansible/
 - Allow SSH (port 22), HTTP (80), HTTPS (443) only
 - Rate limit SSH connections
 
-### Nginx Reverse Proxy
-- Application bound to localhost (127.0.0.1) only
-- Nginx handles external connections with TLS
-- Security headers: HSTS, X-Frame-Options, CSP
-- Rate limiting per IP address
-- Large file upload support (configurable)
+### Caddy Reverse Proxy
+- Caddy runs as a Docker container on the app network
+- Application containers are not exposed to the host (Docker network only)
+- Automatic TLS via Let's Encrypt DNS-01 challenge (Cloudflare API token)
+- Security headers: HSTS, X-Content-Type-Options, X-Frame-Options, Referrer-Policy
+- Large file upload support (configurable via `request_body`)
 
 ### Docker Security
 - Metrics endpoint bound to localhost only (127.0.0.1:9323)

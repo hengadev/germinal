@@ -95,7 +95,7 @@ resource "cloudflare_dns_record" "staff_staging" {
 # Hostinger Business Email (receiving) + Amazon SES API (sending)
 #
 # SENDING: Amazon SES via AWS SDK (uses existing IAM credentials)
-# RECEIVING: Hostinger Business Email (support@ mailbox)
+# RECEIVING: Hostinger Business Email (contact@ mailbox)
 #
 # MX records route inbound mail to Hostinger.
 # SPF authorizes all providers in var.email_spf_includes.

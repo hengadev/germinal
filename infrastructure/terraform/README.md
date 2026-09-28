@@ -375,13 +375,13 @@ Before running Terraform, ensure your domain is set up on Cloudflare:
 
 This project uses a two-provider email setup:
 - **Sending**: Amazon SES API (`noreply@`) — uses existing IAM credentials, no SMTP
-- **Receiving**: Hostinger Business Email (`support@`) — dedicated mailbox
+- **Receiving**: Hostinger Business Email (`contact@`) — dedicated mailbox
 
 #### Step 1: Configure Hostinger Business Email (Receiving)
 
 1. **Create Mailbox in Hostinger**
    - Go to hPanel → Emails → Set up email
-   - Create `support@yourdomain.com` mailbox
+   - Create `contact@yourdomain.com` mailbox
 
 2. **Add Hostinger DKIM records** to `terraform.tfvars`:
    ```hcl
@@ -429,10 +429,10 @@ No SMTP credentials are needed. Add to your `.env`:
 # SES API Configuration (uses existing AWS credentials)
 AWS_ACCESS_KEY_ID=AKIA...                    # From terraform output
 AWS_SECRET_ACCESS_KEY=...                    # From terraform output
-SES_FROM_EMAIL=noreply@yourdomain.com
-SES_FROM_NAME=Germinal
-SES_REGION=eu-central-1                      # Your AWS region
-CONTACT_EMAIL=support@yourdomain.com         # Hostinger mailbox
+SMTP_FROM_EMAIL=noreply@yourdomain.com
+SMTP_FROM_NAME=Germinal
+AWS_REGION=eu-central-1                      # Your AWS region
+CONTACT_EMAIL=contact@yourdomain.com         # Hostinger mailbox
 ```
 
 #### Test Email Configuration

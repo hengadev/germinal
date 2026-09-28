@@ -3,6 +3,9 @@ import { users } from '../src/lib/server/db/schema';
 import { hashPassword } from '../src/lib/server/auth';
 import { eq } from 'drizzle-orm';
 
+// NOTE: germinal.com is a fake domain reserved for system/bootstrap accounts.
+// Team-creation endpoints reject it (src/routes/api/admin/team/*), so it can
+// never be confused with a real staff account. Real staff use their own address.
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? 'admin@germinal.com';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? 'changeme123';
 const ADMIN_FIRST_NAME = process.env.ADMIN_FIRST_NAME ?? 'Admin';

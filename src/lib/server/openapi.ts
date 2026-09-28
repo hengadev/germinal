@@ -11,8 +11,8 @@ export const openApiSpec = {
 		description: 'Event and talent management API with reservations, payments, and media',
 		contact: {
 			name: 'Germinal Support',
-			email: 'hello@germinal.com',
-			url: 'https://germinal.com'
+			email: 'contact@germinalstudio.co',
+			url: 'https://germinalstudio.co'
 		},
 		license: {
 			name: 'MIT',
@@ -25,7 +25,7 @@ export const openApiSpec = {
 			description: 'Development server'
 		},
 		{
-			url: 'https://api.germinal.com',
+			url: 'https://germinalstudio.co',
 			description: 'Production server'
 		}
 	],
