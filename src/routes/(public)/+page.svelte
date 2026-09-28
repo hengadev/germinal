@@ -101,7 +101,7 @@
 
     <!-- Content Sections -->
     <div
-        class="container mx-auto px-4 grid gap-y-24 md:gap-y-40 pt-24 md:pt-32 pb-16 md:pb-24"
+        class="container mx-auto px-4 grid grid-cols-1 gap-y-24 md:gap-y-40 pt-24 md:pt-32 pb-16 md:pb-24"
     >
         <!-- About block -->
         <section
