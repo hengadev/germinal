@@ -13,3 +13,4 @@ Germinal is deployed from more than one machine, so no secret or environment val
 - Changing a value in Infisical reaches `app`/`caddy` within the Agent's polling interval by recreating the container (`docker compose up -d <svc>`); `restart` does not reload `env_file`.
 - `postgres.env` changes are never applied automatically: `POSTGRES_PASSWORD` only takes effect at first init, so rotating it requires a manual `ALTER USER` before updating Infisical.
 - A bad value edited in `prod` goes live without passing through staging.
+- On Infisical's free plan the Agent's credential cannot be IP-restricted: a leaked client secret reads `staging` and `prod` from anywhere. It is therefore kept in one root-only file, excluded from backups and logs, and rotated on a schedule; upgrading to a plan with trusted IPs would add that layer back.
