@@ -18,7 +18,7 @@ STAGING_DIR = /opt/germinal-staging
 .PHONY: help pull \
         prod-start prod-stop prod-restart prod-logs prod-logs-app prod-shell prod-migrate prod-create-admin prod-db-shell \
         staging-start staging-stop staging-restart staging-logs staging-shell staging-migrate staging-create-admin \
-        dev-mock dev-up dev-down dev-reset dev-migrate dev dev-logs studio \
+        dev-mock dev-up dev-down dev-reset dev-migrate dev dev-logs studio try try-setup \
         image-build image-push image-pull image-release \
         image-build-staging image-push-staging image-release-staging \
         deploy deploy-staging release \
@@ -66,6 +66,7 @@ help:
 	@echo "  make staging-create-admin - Create admin user (staging)"
 	@echo ""
 	@echo "Local Development (docker compose db+redis, app runs natively for fast HMR):"
+	@echo "  make try                - Zero-account run: cp .env.example .env, then seeded app + dev server"
 	@echo "  make dev                - Start db+redis, migrate, then run the dev server (all-in-one)"
 	@echo "  make dev-up             - Start db+redis in the background (idempotent)"
 	@echo "  make dev-down           - Stop db+redis (keeps data)"
@@ -274,6 +275,34 @@ studio: dev-up
 dev-mock:
 	@echo "Starting local development with mock data..."
 	./dev.sh
+
+# ===========================================
+# "Try it" path (zero-account, see README)
+# ===========================================
+#
+# The portfolio-visitor entry point: everything a fresh clone needs to see
+# the app with seeded content, with no third-party account. Everything
+# except the dev server lives in try-setup so CI can exercise the exact
+# same path non-interactively (`make try-setup && pnpm build`).
+
+try-setup:
+	@test -f .env || { echo "No .env found. Run: cp .env.example .env"; exit 1; }
+	@test -d node_modules || { echo "Installing dependencies..."; pnpm install; }
+	@echo "Starting local db+redis (Docker)..."
+	docker compose up -d --wait db redis
+	@echo "Applying migrations..."
+	node scripts/migrate.js
+	@echo "Creating demo admin (skipped if it already exists)..."
+	pnpm tsx scripts/create-admin.ts
+	@echo "Seeding events, sessions and talents..."
+	pnpm tsx scripts/seed.ts
+
+try: try-setup
+	@echo ""
+	@echo "Germinal is starting at http://localhost:5173"
+	@echo "  Public site: seeded events and talents"
+	@echo "  Admin back-office: log in at /login with ADMIN_EMAIL/ADMIN_PASSWORD from .env"
+	pnpm dev
 
 # ===========================================
 # Quick Workflows
