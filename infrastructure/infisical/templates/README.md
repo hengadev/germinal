@@ -7,7 +7,7 @@ development cannot differ from the server in how values are assembled.
 
 | Template | Folders | Consumed by |
 | --- | --- | --- |
-| `app.env.tmpl` | `/redis`, `/stripe`, `/s3`, `/smtp`, `/twilio`, `/sentry`, `/db` (→ `DATABASE_URL`), `/app` | the app container (each stack) |
+| `app.env.tmpl` | `/app`, `/redis`, `/stripe`, `/s3`, `/smtp`, `/twilio`, `/sentry`, `/db` (→ `DATABASE_URL` only) | the app container (each stack) |
 | `postgres.env.tmpl` | `/db` | the Postgres container (bootstrap) |
 | `caddy.env.tmpl` | `/caddy` | the Caddy container |
 | `backup.env.tmpl` | `/db` (two atoms), `/backup` | the backup job (issue 013) |
@@ -19,11 +19,11 @@ Templates get Go built-ins plus `listSecrets` / `getSecretByName` /
 `listSecretsByProjectSlug` / `dynamicSecret`, and nothing else — in
 particular **no `env` function**. Two consequences:
 
-1. **A folder's values must come from a single `listSecrets` call per
-   template.** Every secret call overwrites the ETag the Agent monitors, so
-   a folder read through two calls is invisible to change detection. Where
-   atoms are needed (`DATABASE_URL` from `/db`, the two `pg_dump` values in
-   `backup.env`), they are picked out of that folder's own `range`.
+1. **Each template makes exactly one `listSecrets` call.** Every secret
+   call overwrites the ETag the Agent monitors, so with several calls only
+   the last one is change-detected. Atoms (`DATABASE_URL` from `/db`, the
+   two `pg_dump` values in `backup.env`) are picked out of that same
+   `range`, never fetched separately.
 2. **The environment slug cannot be computed.** Each `listSecrets` call
    carries the `__GERMINAL_ENV__` placeholder, and
    [`render-template.sh`](../render-template.sh) substitutes it to produce a
@@ -34,38 +34,27 @@ Rendering a whole folder (rather than naming keys) is deliberate: a key
 added in Infisical appears in the rendered file on the next poll with no
 template change.
 
-## Several folders in one template: the consequence and the choice
+## Several folders in one template: one recursive call
 
-The Agent's change detection tracks only the **last** secret call of a
-template. `app.env.tmpl` and `backup.env.tmpl` need more than one folder
-(`listSecrets` does not recurse, so one root call cannot cover them), so for
-those two files only the last-listed folder triggers a re-render and the
-template's command.
+`app.env.tmpl` and `backup.env.tmpl` need several folders. They make **one**
+recursive call over the whole environment
+(`` listSecrets "<project>" "<env>" "/" `{"recursive": true}` ``) and keep only
+the folders they need by testing `.SecretPath`. One call means one ETag, so
+a change in **any** of those folders (a Stripe key rotation, a new S3 bucket,
+`MAINTENANCE_MODE`) reaches the consumer within one poll.
 
-The choice made here:
+Consequences:
 
-- **`app.env.tmpl` ends with `/app`.** Everything in `/app`
-  (`MAINTENANCE_MODE`, `RESERVATION_EXPIRY_MINUTES`, upload limits, mock and
-  scheduler flags) is the volatile, operationally urgent set — PRD stories 6
-  and 35 promise those reach the running app within about a minute. Changes
-  in `/redis`, `/stripe`, `/s3`, `/smtp`, `/twilio`, `/sentry` or `/db` do
-  **not** propagate on their own: they land on the next deploy (every deploy
-  recreates the app with a fresh `env_file`), after an Agent restart (the
-  file re-renders, the command does not run), or whenever an `/app` value
-  changes next. Credential rotation is rare, deliberate and naturally paired
-  with a deploy, so this is the accepted trade-off.
-- **`backup.env.tmpl` ends with `/backup`.** The backup job reads the file
-  fresh on each run and the template has no command (issue 008), so what
-  matters is that rotations in `/backup` rewrite the file. The `/db` atoms
-  it also carries (`POSTGRES_USER`, `POSTGRES_DB`) never change on a live
-  server.
+- The filter is the security boundary: `/admin`, `/caddy`, `/backup`, `/host`
+  and the raw `/db` keys are never printed into `app.env`. The unit test
+  `tests/unit/infrastructure/agent-templates.test.ts` pins that list.
+- A change in a folder the consumer does not use still changes the ETag, so
+  the Agent may recreate the app with identical values. That is harmless.
 - `postgres.env.tmpl`, `caddy.env.tmpl` and `admin.env.tmpl` read a single
-  folder and are unaffected.
+  folder directly.
 
-If this trade-off ever needs to change, the alternatives are splitting a
-consumer's file into per-folder templates (each with its own ETag and
-command) or merging folders in Infisical — both ripple into issues 007 and
-008, which currently expect exactly the five files above.
+Issue 008 should confirm on the server that the Agent's change detection
+follows a recursive call (edit a `/stripe` value, check `app` is recreated).
 
 ## `DATABASE_URL`
 
