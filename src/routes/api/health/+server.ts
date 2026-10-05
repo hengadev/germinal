@@ -7,7 +7,11 @@ import type { RequestHandler } from './$types';
 interface HealthStatus {
 	status: 'healthy' | 'degraded' | 'unhealthy';
 	timestamp: string;
-	version: string;
+	// Commit SHA this build was made from, so deploys can verify what is
+	// actually serving. Baked into the image as COMMIT_SHA at build time
+	// (see Dockerfile); `dev` when no SHA was provided (pnpm dev, ad-hoc
+	// builds) — never a fake version.
+	sha: string;
 	checks: {
 		database: { status: 'healthy' | 'degraded' | 'unhealthy'; message?: string; latency?: number };
 		smtp: { status: 'healthy' | 'unhealthy' | 'disabled'; message?: string };
@@ -44,7 +48,7 @@ export const GET: RequestHandler = async () => {
 	const health: HealthStatus = {
 		status: overallStatus,
 		timestamp: new Date().toISOString(),
-		version: process.env.npm_package_version || '1.0.0',
+		sha: process.env.COMMIT_SHA || 'dev',
 		checks,
 		metrics: {
 			totalQueries: metrics.totalQueries,
