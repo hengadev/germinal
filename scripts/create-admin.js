@@ -20,11 +20,16 @@
  *   or a password shorter than the app's minimum exit non-zero and create
  *   nothing. The insecure defaults remain only for local development.
  */
-import 'dotenv/config'; // no-op inside the image (no .env there); local dev reads .env
+import { config as loadDotenv } from 'dotenv';
 import * as argon2 from 'argon2';
 import postgres from 'postgres';
-import { resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+
+// Repo-root .env, from any working directory (`cd scripts && ./create-admin.js`
+// included). No-op inside the image (no .env there); never overrides exported
+// variables.
+loadDotenv({ path: process.env.DOTENV_CONFIG_PATH ?? resolve(dirname(fileURLToPath(import.meta.url)), '../.env') });
 
 // Must stay in sync with the app's minimum (admin team endpoints, change-
 // and reset-password pages all enforce 8).
