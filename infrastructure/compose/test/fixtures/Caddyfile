@@ -1,0 +1,19 @@
+# Harness-only Caddyfile (issue 007 fixture).
+#
+# The real Caddyfile is rendered by the Ansible caddy role (Cloudflare DNS-01,
+# real domains). This fixture keeps the one thing the harness checks: the
+# upstream container names must match the compose files' container_name
+# values (germinal_app / germinal_staging_app). Plain HTTP + host matching —
+# no ACME, no Cloudflare token use — so the fake caddy.env stays unused.
+{
+	auto_https off
+	admin off
+}
+
+harness.germinal.test {
+	reverse_proxy germinal_app:3001
+}
+
+harness-staging.germinal.test {
+	reverse_proxy germinal_staging_app:3001
+}
