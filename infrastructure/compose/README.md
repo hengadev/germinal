@@ -144,7 +144,8 @@ containers:
 
 The harness runs the deploy with `GERMINAL_SKIP_PULL=1` and locally built,
 locally tagged images (`henga/germinal:<fake-sha>` — never pushed); the
-production pull path stays the untouched default.
+production pull path stays the untouched default. `KEEP=1` keeps the temp
+layout (printed at the end) for inspection and skips image removal.
 
 ## What belongs to other issues
 

@@ -97,7 +97,8 @@ container_ip() { docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddr
 psql_prod() { docker exec germinal_postgres psql -U germinal -d germinal -q -tAc "$1"; }
 psql_staging() { docker exec germinal_postgres psql -U germinal -d germinal_staging -q -tAc "$1"; }
 
-# Resolve a DNS name from inside a container (node is in the app image).
+# Resolve a DNS name from inside an app container (node is in the app
+# image; embedded DNS is identical from every container on the network).
 resolve() { # $1 container, $2 name -> prints "ip ip ..."
 	docker exec "$1" node -e '
 		require("dns").lookup(process.argv[1], { all: true }, (err, addrs) => {
@@ -110,7 +111,8 @@ resolve() { # $1 container, $2 name -> prints "ip ip ..."
 # GET /api/health through Caddy (as the real site would be reached), from
 # inside the app container. Proves: Caddy reachable by container name, site
 # block matches the Host header, reverse_proxy upstream resolves, and the
-# serving app reports the expected SHA.
+# serving app reports the expected SHA. Prints what Caddy actually answered
+# on failure, for debugging.
 health_via_caddy() { # $1 exec-container, $2 Host header, $3 expected sha
 	docker exec "$1" node -e '
 		const http = require("http");
@@ -120,12 +122,16 @@ health_via_caddy() { # $1 exec-container, $2 Host header, $3 expected sha
 				let body = "";
 				res.on("data", (c) => (body += c));
 				res.on("end", () => {
-					try { process.exit(JSON.parse(body).sha === process.argv[2] ? 0 : 1); }
-					catch { process.exit(1); }
+					let ok = false;
+					try { ok = JSON.parse(body).sha === process.argv[2]; } catch {}
+					if (!ok) {
+						console.error(`[health_via_caddy] status=${res.statusCode} body=${body.slice(0, 300)}`);
+					}
+					process.exit(ok ? 0 : 1);
 				});
 			}
 		);
-		req.on("error", () => process.exit(1));
+		req.on("error", (e) => { console.error(`[health_via_caddy] ${e.message}`); process.exit(1); });
 		req.end();
 	' "$2" "$3"
 }
@@ -139,8 +145,19 @@ teardown() {
 		dc_staging down --remove-orphans -v >/dev/null 2>&1 || true
 	fi
 	docker network rm "$NETWORK" >/dev/null 2>&1 || true
-	docker image rm "$REPO:$SHA1" "$REPO:$SHA2" "$REPO:$SHA_BAD" >/dev/null 2>&1 || true
-	[ -n "$TMP" ] && rm -rf "$TMP"
+	if [ "${KEEP:-0}" != 1 ]; then
+		docker image rm "$REPO:$SHA1" "$REPO:$SHA2" "$REPO:$SHA_BAD" >/dev/null 2>&1 || true
+		if [ -n "$TMP" ]; then
+			# Postgres/Redis/Caddy write into the bind mounts as their in-container
+			# users, so the temp dir holds root-owned files the developer cannot
+			# unlink. Wipe it with a throwaway privileged container, then rmdir.
+			docker run --rm -v "$TMP:/wipe" busybox:latest \
+				sh -c 'rm -rf /wipe/* /wipe/.[!.]* 2>/dev/null; exit 0' >/dev/null 2>&1 || true
+			rmdir "$TMP" 2>/dev/null || true
+		fi
+	elif [ -n "$TMP" ]; then
+		echo "    KEEP=1 — layout kept at $TMP for inspection" >&2
+	fi
 }
 trap teardown EXIT
 
@@ -200,7 +217,10 @@ networks:
     external: true
 EOF
 
-	docker network create "$NETWORK" >/dev/null
+	if ! docker network create "$NETWORK" >/dev/null; then
+		echo "could not create harness network $NETWORK" >&2
+		exit 1
+	fi
 	echo "    layout at $TMP"
 }
 
