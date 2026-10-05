@@ -178,7 +178,7 @@ ansible-playbook playbooks/backup.yml \
 | `ansible_host` | VPS IP address | Required |
 | `app_domain` | Your domain name | `your-domain.com` |
 
-### Group Variables (`group_vars/all.yml`)
+### Group Variables (`playbooks/group_vars/all.yml`)
 
 | Variable | Description | Default |
 |----------|-------------|---------|
@@ -199,9 +199,9 @@ infrastructure/ansible/
 ├── ansible.cfg                 # Ansible configuration
 ├── inventory/
 │   └── hosts.yml              # Inventory file
-├── group_vars/
-│   └── all.yml                # Global variables (no secrets)
 ├── playbooks/
+│   ├── group_vars/
+│   │   └── all.yml           # Global variables (no secrets)
 │   ├── site.yml               # Complete setup
 │   ├── infisical-agent.yml    # Agent install / rotation
 │   ├── backup.yml             # Backup configuration

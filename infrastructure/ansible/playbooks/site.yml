@@ -7,8 +7,12 @@
 #
 #   ansible-playbook -i inventory/hosts.yml playbooks/site.yml \
 #     -e "ansible_host=1.2.3.4" \
-#     -e "deploy_ssh_public_keys=[$(cat ~/.ssh/germinal-workstation.pub)]" \
+#     -e "deploy_ssh_public_key=$(cat ~/.ssh/germinal-workstation.pub)" \
 #     -e "app_domain=yourdomain.com"
+#
+# For several keys (one per operator computer plus the CI deploy key), use a
+# vars file instead of an inline list (see playbooks/group_vars/all.yml):
+#   ansible-playbook … -e @deploy-keys.yml   # { deploy_ssh_public_keys: […] }
 #
 # Using Terraform outputs:
 #   ansible-playbook -i inventory/hosts.yml playbooks/site.yml \
