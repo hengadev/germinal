@@ -40,8 +40,10 @@
       # Log viewing
       {{ deploy_user }} ALL=(ALL) NOPASSWD: /usr/bin/journalctl, /bin/cat /var/log/*
 
-      # Application restart scripts (if they exist)
-      {{ deploy_user }} ALL=(ALL) NOPASSWD: {{ app_base_dir }}/prod-start.sh, {{ app_base_dir }}/scripts/*.sh
+      # Application scripts (backup/restore helpers installed by
+      # playbooks/backup.yml; prod-start.sh is gone with the old release
+      # paths — CI's deploy script lives in /usr/local/bin)
+      {{ deploy_user }} ALL=(ALL) NOPASSWD: {{ app_base_dir }}/scripts/*.sh
 
       # Backup operations
       {{ deploy_user }} ALL=(ALL) NOPASSWD: /usr/bin/aws s3 *

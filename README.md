@@ -101,7 +101,7 @@ Visit **http://localhost:5173**
 
 ### Staging & Production (VPS)
 
-Staging and production run on a VPS provisioned by Terraform and deployed via Ansible, with staging sharing prod's Postgres/Redis/Caddy but using its own database and app container. See `infrastructure/ansible/README.md` for the architecture and `make help` for the deploy commands (`make image-release`, `make deploy-staging`, `make deploy`, etc.).
+Staging and production run on a VPS provisioned by Terraform and set up with Ansible. Configuration values live only in Infisical, rendered on the server by the Infisical Agent; releases go through CI (`.github/workflows`): a push to `main` deploys staging automatically, and the manual **Promote to production** workflow ships the exact SHA staging is serving. See `infrastructure/ansible/README.md` and `infrastructure/compose/README.md`.
 
 ## Documentation
 
