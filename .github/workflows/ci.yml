@@ -39,3 +39,38 @@ jobs:
 
       - name: Run tests
         run: pnpm test
+
+  # Proves the zero-account onboarding path on every PR: copy .env.example,
+  # bring up the dev containers, migrate, seed, build — the same path a
+  # portfolio visitor runs via `cp .env.example .env && make try`, minus the
+  # never-exiting dev server (try-setup stops after seeding).
+  try-path:
+    name: Try path (cp .env.example && make try)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Copy .env.example
+        run: cp .env.example .env
+
+      - name: Start containers, migrate and seed
+        run: make try-setup
+
+      - name: Build
+        run: pnpm build
