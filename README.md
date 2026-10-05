@@ -16,9 +16,37 @@ A web application for showcasing events and talents, with bookings, payments, an
 - 🐳 **Docker Ready** - Production-ready containerization
 - 🔒 **Type-Safe** - Full TypeScript coverage with Drizzle ORM
 
-## ⚡ Quickstart - Try it NOW!
+## 🌱 Try it locally
 
-Want to see the app running with sample data in 30 seconds?
+Run the real app — database, seeded content, admin back-office — with **no accounts and no configuration** beyond one copy-paste:
+
+```bash
+cp .env.example .env
+make try
+```
+
+`make try` starts local Postgres and Redis containers (Docker), applies the migrations, seeds demo events, sessions and talents, creates a demo admin account (`ADMIN_EMAIL` / `ADMIN_PASSWORD` from `.env`), and starts the dev server at **http://localhost:5173**. To explore the back-office, sign in at `/login` with those demo credentials.
+
+**Prerequisites:** Docker, Node.js 20+, and pnpm.
+
+### What is disabled in try mode
+
+`.env.example` deliberately leaves every third-party integration unset — leaving a value empty disables that integration, so nothing ever runs against placeholder credentials. The following features are therefore off; their absence is expected, not a bug:
+
+| Feature | Behaviour in try mode |
+| --- | --- |
+| 💳 Payments (Stripe) | Disabled — the checkout step reports that Stripe is not configured |
+| 🖼️ Media uploads (S3) | Disabled — admin uploads report that S3 is not configured |
+| ✉️ Email notifications (SES) | Disabled — no confirmation or ticket emails are sent |
+| 📱 SMS notifications (Twilio) | Disabled — no SMS is sent |
+
+To enable an integration, fill in its values in `.env` (each one is listed, commented out, in [.env.example](./.env.example)). Invited contributors can instead render a complete `.env` from the team's Infisical `dev` environment with `make env` (requires `infisical login`).
+
+---
+
+## ⚡ Quickstart - Mock data (no database)
+
+Want to see the app running with sample data in 30 seconds, without even a database?
 
 ```bash
 ./dev.sh
