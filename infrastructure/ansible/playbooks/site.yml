@@ -80,6 +80,20 @@
         - germinal_host_notify_lookup.stdout is match('NOTIFY_EMAIL=\S+')
       no_log: true
 
+    # A real run stops here instead of silently falling back to a placeholder
+    # address (issue 011); --check only warns, so it works without a login.
+    - name: Stop when the notification email could not be read from Infisical
+      ansible.builtin.fail:
+        msg: >-
+          Could not read NOTIFY_EMAIL from Infisical /host (infisical exited
+          with {{ germinal_host_notify_lookup.rc }}). Install the Infisical
+          CLI, run `infisical login`, and re-run the setup.
+      when:
+        - not ansible_check_mode
+        - >-
+          germinal_host_notify_lookup.rc != 0
+          or not (germinal_host_notify_lookup.stdout is match('NOTIFY_EMAIL=\S+'))
+
     - name: Warn when the notification email could not be read from Infisical
       ansible.builtin.debug:
         msg: >-
