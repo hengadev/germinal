@@ -44,6 +44,7 @@ COPY --from=builder --chown=nodejs:nodejs /app/build ./build
 COPY --from=builder --chown=nodejs:nodejs /app/package.json ./
 COPY --from=builder --chown=nodejs:nodejs /app/drizzle/migrations ./drizzle/migrations
 COPY --from=builder --chown=nodejs:nodejs /app/scripts/migrate.js ./scripts/migrate.js
+COPY --from=builder --chown=nodejs:nodejs /app/scripts/create-admin.js ./scripts/create-admin.js
 
 # Switch to non-root user
 USER nodejs
