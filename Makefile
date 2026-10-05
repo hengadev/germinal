@@ -198,7 +198,7 @@ prod-migrate:
 
 prod-create-admin:
 	@echo "Creating admin user (production)..."
-	$(VPS_SSH) "cd $(PROD_DIR) && docker compose exec app npx tsx scripts/create-admin.ts"
+	$(VPS_SSH) "cd $(PROD_DIR) && docker compose run --rm --no-deps app node scripts/create-admin.js"
 
 prod-db-shell:
 	$(VPS_SSH) -t "cd $(PROD_DIR) && docker compose exec postgres psql -U germinal -d germinal"
@@ -231,7 +231,7 @@ staging-migrate:
 
 staging-create-admin:
 	@echo "Creating admin user (staging)..."
-	$(VPS_SSH) "cd $(STAGING_DIR) && docker compose exec germinal_staging_app npx tsx scripts/create-admin.ts"
+	$(VPS_SSH) "cd $(STAGING_DIR) && docker compose run --rm --no-deps germinal_staging_app node scripts/create-admin.js"
 
 # ===========================================
 # Local Development Commands
