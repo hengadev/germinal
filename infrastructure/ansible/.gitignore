@@ -4,7 +4,7 @@
 
 # Local-only files (never commit)
 inventory/hosts.local.yml
-group_vars/all.local.yml
+playbooks/group_vars/*.local.yml
 
 # Local inventory overrides
 inventory/local*

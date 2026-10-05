@@ -66,11 +66,14 @@
       no_log: true
 
     - name: Apply the notification email from Infisical /host
+      # The when guard below has already checked the output is exactly one
+      # NOTIFY_EMAIL=<value> line, so a split is enough — regex escapes are a
+      # quoting trap inside a double-quoted YAML scalar.
       ansible.builtin.set_fact:
-        host_notify_email: "{{ germinal_host_notify_lookup.stdout | regex_search('NOTIFY_EMAIL=(\\S+)', '\\1') | first }}"
+        host_notify_email: "{{ germinal_host_notify_lookup.stdout.split('=', 1)[1] | trim }}"
       when:
         - germinal_host_notify_lookup.rc == 0
-        - germinal_host_notify_lookup.stdout is match('NOTIFY_EMAIL=\\S+')
+        - germinal_host_notify_lookup.stdout is match('NOTIFY_EMAIL=\S+')
       no_log: true
 
     - name: Warn when the notification email could not be read from Infisical
@@ -83,7 +86,7 @@
           `infisical login`, and re-run the setup to fix this.
       when: >-
         germinal_host_notify_lookup.rc != 0
-        or not (germinal_host_notify_lookup.stdout is match('NOTIFY_EMAIL=\\S+'))
+        or not (germinal_host_notify_lookup.stdout is match('NOTIFY_EMAIL=\S+'))
 
     - name: Check if running as root
       ansible.builtin.assert:

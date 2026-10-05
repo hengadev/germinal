@@ -95,8 +95,10 @@
       - "==========================================="
       - "Docker Installation Complete"
       - "==========================================="
-      - "Docker: {{ docker_version.stdout_lines | first }}"
-      - "Docker Compose: {{ docker_compose_version.stdout_lines | first }}"
+      # 'or': in --check the verify commands above are skipped and their
+      # stdout_lines exist but are empty.
+      - "Docker: {{ docker_version.stdout_lines | default([], true) | join(' ') or 'skipped (check mode)' }}"
+      - "Docker Compose: {{ docker_compose_version.stdout_lines | default([], true) | join(' ') or 'skipped (check mode)' }}"
       - ""
       - "SECURITY NOTES:"
       - "  - Metrics endpoint: {{ docker_daemon_options['metrics-addr'] | default('disabled') }}"
