@@ -35,6 +35,7 @@ vite.config.ts.timestamp-*
 !DESIGN.md
 !CLAUDE.md
 !docs/**/*.md
+!infrastructure/infisical/templates/README.md
 docs/issues/*.md
 !infrastructure/terraform/README.md
 !infrastructure/ansible/README.md

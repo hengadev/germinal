@@ -40,7 +40,22 @@ make try
 | ✉️ Email notifications (SES) | Disabled — no confirmation or ticket emails are sent |
 | 📱 SMS notifications (Twilio) | Disabled — no SMS is sent |
 
-To enable an integration, fill in its values in `.env` (each one is listed, commented out, in [.env.example](./.env.example)). Invited contributors can instead render a complete `.env` from the team's Infisical `dev` environment with `make env` (requires `infisical login`).
+To enable an integration, fill in its values in `.env` (each one is listed, commented out, in [.env.example](./.env.example)). Invited contributors can instead render a complete `.env` from the team's Infisical `dev` environment — see the next section.
+
+---
+
+## 👥 Contributing (invited contributors)
+
+If you've been invited to the team's Infisical project, setup is two commands — no copying values by hand:
+
+```bash
+infisical login   # pick the team's instance when prompted
+make env
+```
+
+`make env` renders `.env` from the Infisical `dev` environment using the **same templates the server's Infisical Agent renders** ([infrastructure/infisical/templates/](./infrastructure/infisical/templates/)), including the local admin account and the assembled `DATABASE_URL`, so local development can't drift from the server in how values are assembled. It fails with a clear message if the Infisical CLI is missing or you're not logged in, and it never overwrites an existing `.env` silently (the old one is backed up next to it).
+
+With `.env` in place, `make dev` starts everything (database, Redis, migrations, dev server), and `pnpm test` / `node scripts/create-admin.js` work out of the box. The `dev` environment holds only credentials that can't spend money or reach real data.
 
 ---
 

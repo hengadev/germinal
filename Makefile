@@ -18,7 +18,7 @@ STAGING_DIR = /opt/germinal-staging
 .PHONY: help pull \
         prod-start prod-stop prod-restart prod-logs prod-logs-app prod-shell prod-migrate prod-create-admin prod-db-shell \
         staging-start staging-stop staging-restart staging-logs staging-shell staging-migrate staging-create-admin \
-        dev-mock dev-up dev-down dev-reset dev-migrate dev dev-logs studio try try-setup \
+        dev-mock dev-up dev-down dev-reset dev-migrate dev dev-logs studio try try-setup env \
         image-build image-push image-pull image-release \
         image-build-staging image-push-staging image-release-staging \
         deploy deploy-staging release \
@@ -67,6 +67,7 @@ help:
 	@echo ""
 	@echo "Local Development (docker compose db+redis, app runs natively for fast HMR):"
 	@echo "  make try                - Zero-account run: cp .env.example .env, then seeded app + dev server"
+	@echo "  make env                - Render .env from Infisical dev (invited contributors; needs infisical login)"
 	@echo "  make dev                - Start db+redis, migrate, then run the dev server (all-in-one)"
 	@echo "  make dev-up             - Start db+redis in the background (idempotent)"
 	@echo "  make dev-down           - Stop db+redis (keeps data)"
@@ -303,6 +304,20 @@ try: try-setup
 	@echo "  Public site: seeded events and talents"
 	@echo "  Admin back-office: log in at /login with ADMIN_EMAIL/ADMIN_PASSWORD from .env"
 	pnpm dev
+
+# ===========================================
+# Infisical env (invited contributors)
+# ===========================================
+#
+# Renders .env from the team's Infisical dev environment using the SAME
+# templates the server's Infisical Agent renders (issue 006), so local
+# development can't differ from the server in how values are assembled.
+# Requires the Infisical CLI and `infisical login`; an existing .env is
+# backed up, never overwritten silently.
+# See infrastructure/infisical/templates/README.md.
+
+env:
+	@sh infrastructure/infisical/make-env.sh
 
 # ===========================================
 # Quick Workflows
