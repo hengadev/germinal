@@ -208,14 +208,16 @@ resource "cloudflare_dns_record" "google_site_verification" {
 }
 
 # ============================================
-# Media CDN DNS Record (CloudFront)
+# Media CDN DNS Records (CloudFront, one per environment)
 # ============================================
 
 resource "cloudflare_dns_record" "media" {
+  for_each = local.environments
+
   zone_id = var.cloudflare_zone_id
-  name    = "media"
+  name    = local.media_domains[each.key]
   type    = "CNAME"
-  content = aws_cloudfront_distribution.media.domain_name
+  content = aws_cloudfront_distribution.media[each.key].domain_name
   proxied = false # Cannot proxy CloudFront
   ttl     = 3600
 }

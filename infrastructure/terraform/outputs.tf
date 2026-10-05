@@ -117,17 +117,12 @@ output "cloudflare_zone_info" {
 # CloudFront Outputs
 # ============================================
 
-output "cloudfront_distribution_id" {
-  value       = aws_cloudfront_distribution.media.id
-  description = "CloudFront distribution ID for cache invalidation"
+output "cloudfront_distribution_ids" {
+  value       = { for env, distribution in aws_cloudfront_distribution.media : env => distribution.id }
+  description = "CloudFront distribution ID per environment, for cache invalidation"
 }
 
-output "cloudfront_domain_name" {
-  value       = aws_cloudfront_distribution.media.domain_name
-  description = "CloudFront distribution domain name"
-}
-
-output "media_url" {
-  value       = "https://media.${var.domain_name}"
-  description = "Media CDN URL (serves the media bucket of local.cdn_env)"
+output "media_urls" {
+  value       = { for env, domain in local.media_domains : env => "https://${domain}" }
+  description = "Media CDN URL per environment (MEDIA_URL)"
 }

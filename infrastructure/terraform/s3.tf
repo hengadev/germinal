@@ -158,9 +158,10 @@ resource "aws_iam_access_key" "app_user" {
 # S3 Bucket Policy for CloudFront OAC
 # ============================================
 
-# Only the bucket behind media.<domain> (local.cdn_env) is served by CloudFront.
+# Lets each environment's CloudFront distribution (cloudfront.tf) read its bucket.
 resource "aws_s3_bucket_policy" "media_cloudfront" {
-  bucket = aws_s3_bucket.media[local.cdn_env].id
+  for_each = local.environments
+  bucket   = aws_s3_bucket.media[each.key].id
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -168,10 +169,10 @@ resource "aws_s3_bucket_policy" "media_cloudfront" {
       Effect    = "Allow"
       Principal = { Service = "cloudfront.amazonaws.com" }
       Action    = "s3:GetObject"
-      Resource  = "${aws_s3_bucket.media[local.cdn_env].arn}/*"
+      Resource  = "${aws_s3_bucket.media[each.key].arn}/*"
       Condition = {
         StringEquals = {
-          "AWS:SourceArn" = aws_cloudfront_distribution.media.arn
+          "AWS:SourceArn" = aws_cloudfront_distribution.media[each.key].arn
         }
       }
     }]

@@ -105,8 +105,8 @@ moved {
 #   AWS never returns a key's secret, so an imported key could not be written
 #   to Infisical. Terraform creates new keys instead (a rotation); delete the
 #   old ones by hand after the apply (README.md, "After the first apply").
-# - aws_acm_certificate.media / aws_cloudfront_origin_access_control.media of
-#   the production workspace: unused duplicates of the shared ones.
+# - the production workspace's aws_acm_certificate.media: an unused duplicate of
+#   the media.<domain> certificate, which moves to ["production"] below.
 # --------------------------------------------------------------------------
 
 import {
@@ -192,6 +192,44 @@ import {
 }
 
 # --------------------------------------------------------------------------
+# Media CDN: one per environment. The existing distribution, certificate and
+# DNS record (media.<domain>) become production's, and the distribution is
+# repointed at the production bucket. The existing OAC (named staging-...)
+# stays staging's; production reuses the OAC the production workspace made.
+# Staging gets a new distribution at media-staging.<domain>.
+# --------------------------------------------------------------------------
+
+moved {
+  from = aws_cloudfront_distribution.media
+  to   = aws_cloudfront_distribution.media["production"]
+}
+moved {
+  from = aws_acm_certificate.media
+  to   = aws_acm_certificate.media["production"]
+}
+moved {
+  from = aws_acm_certificate_validation.media
+  to   = aws_acm_certificate_validation.media["production"]
+}
+moved {
+  from = cloudflare_dns_record.media
+  to   = cloudflare_dns_record.media["production"]
+}
+moved {
+  from = aws_cloudfront_origin_access_control.media
+  to   = aws_cloudfront_origin_access_control.media["staging"]
+}
+moved {
+  from = aws_s3_bucket_policy.media_cloudfront
+  to   = aws_s3_bucket_policy.media_cloudfront["staging"]
+}
+
+import {
+  to = aws_cloudfront_origin_access_control.media["production"]
+  id = "E31DOGWPKF8093" # production-germinal-media-oac
+}
+
+# --------------------------------------------------------------------------
 # Cloudflare: the mailbox moved from Hostinger to Zoho Mail by hand. The
 # Hostinger MX/SPF records in the state no longer exist in Cloudflare, so
 # they are forgotten (not destroyed) and the live Zoho records are imported.
@@ -239,12 +277,12 @@ import {
 }
 
 # --------------------------------------------------------------------------
-# Infisical: the AWS credentials were pasted into `germinal` by hand
+# Infisical: these `/s3` values were pasted into `germinal` by hand
 # (checklist Phase 1). Import them so Terraform overwrites them in place.
 # --------------------------------------------------------------------------
 
 import {
-  for_each = local.aws_credential_secrets
-  to       = infisical_secret.aws_credentials[each.key]
+  for_each = local.infisical_s3_secrets
+  to       = infisical_secret.s3[each.key]
   id       = "${var.infisical_germinal_project_id}:${each.value.env}:/s3:${each.value.name}"
 }
