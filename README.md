@@ -25,18 +25,17 @@ cp .env.example .env
 make try
 ```
 
-`make try` starts local Postgres and Redis containers (Docker), applies the migrations, seeds demo events, sessions and talents, creates a demo admin account (`ADMIN_EMAIL` / `ADMIN_PASSWORD` from `.env`), and starts the dev server at **http://localhost:5173**. To explore the back-office, sign in at `/login` with those demo credentials.
+`make try` starts local Postgres, Redis and MinIO (local S3) containers (Docker), applies the migrations, seeds demo events, sessions and talents, creates a demo admin account (`ADMIN_EMAIL` / `ADMIN_PASSWORD` from `.env`), and starts the dev server at **http://localhost:5173**. To explore the back-office, sign in at `/login` with those demo credentials.
 
 **Prerequisites:** Docker, Node.js 22.12+, and pnpm.
 
 ### What is disabled in try mode
 
-`.env.example` deliberately leaves every third-party integration unset — leaving a value empty disables that integration, so nothing ever runs against placeholder credentials. The following features are therefore off; their absence is expected, not a bug:
+`.env.example` configures only the local containers and deliberately leaves every third-party integration unset — leaving a value empty disables that integration, so nothing ever runs against placeholder credentials. Media uploads work: they go to the local MinIO bucket (console at http://localhost:9001). The following features are off; their absence is expected, not a bug:
 
 | Feature | Behaviour in try mode |
 | --- | --- |
 | 💳 Payments (Stripe) | Disabled — the checkout step reports that Stripe is not configured |
-| 🖼️ Media uploads (S3) | Disabled — admin uploads report that S3 is not configured |
 | ✉️ Email notifications (SES) | Disabled — no confirmation or ticket emails are sent |
 | 📱 SMS notifications (Twilio) | Disabled — no SMS is sent |
 
@@ -55,7 +54,7 @@ make env
 
 `make env` renders `.env` from the Infisical `dev` environment using the **same templates the server's Infisical Agent renders** ([infrastructure/infisical/templates/](./infrastructure/infisical/templates/)), including the local admin account and the assembled `DATABASE_URL`, so local development can't drift from the server in how values are assembled. It fails with a clear message if the Infisical CLI is missing or you're not logged in, and it never overwrites an existing `.env` silently (the old one is backed up next to it).
 
-With `.env` in place, `make dev` starts everything (database, Redis, migrations, dev server), and `pnpm test` / `node scripts/create-admin.js` work out of the box. The `dev` environment holds only credentials that can't spend money or reach real data.
+With `.env` in place, `make dev` starts everything (database, Redis, MinIO for media uploads, migrations, dev server), and `pnpm test` / `node scripts/create-admin.js` work out of the box. The `dev` environment holds only credentials that can't spend money or reach real data: S3 points at the local MinIO (`S3_ENDPOINT`, `S3_*` credentials) and `AWS_*` stays empty, so email (SES) is off.
 
 ---
 

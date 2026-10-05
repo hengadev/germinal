@@ -15,11 +15,19 @@ import { parse } from 'dotenv';
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 const envExamplePath = join(repoRoot, '.env.example');
 
-/** Keys .env.example may set: exactly what `make try` needs, nothing more. */
+/**
+ * Keys .env.example may set: exactly what `make try` needs, nothing more.
+ * Only local containers qualify (S3_* is the docker-compose MinIO).
+ */
 const TRY_MODE_KEYS = new Set([
 	'DATABASE_URL',
 	'REDIS_HOST',
 	'REDIS_PORT',
+	'S3_ENDPOINT',
+	'S3_ACCESS_KEY_ID',
+	'S3_SECRET_ACCESS_KEY',
+	'S3_BUCKET_NAME',
+	'S3_PUBLIC_URL',
 	'ADMIN_EMAIL',
 	'ADMIN_PASSWORD',
 	'ADMIN_FIRST_NAME',
@@ -39,6 +47,9 @@ const SCHEMA_KEYS = [
 	'AWS_REGION',
 	'AWS_ACCESS_KEY_ID',
 	'AWS_SECRET_ACCESS_KEY',
+	'S3_ENDPOINT',
+	'S3_ACCESS_KEY_ID',
+	'S3_SECRET_ACCESS_KEY',
 	'S3_BUCKET_NAME',
 	'S3_PUBLIC_URL',
 	'MEDIA_URL',
@@ -121,9 +132,14 @@ describe('.env.example (try mode)', () => {
 		}
 	});
 
-	it('keeps S3, Stripe and AWS disabled with the unmodified file', () => {
-		expect(envModule.isS3Enabled()).toBe(false);
+	it('keeps Stripe and AWS (SES) disabled with the unmodified file', () => {
 		expect(envModule.isStripeEnabled()).toBe(false);
 		expect(envModule.isAWSConfigured()).toBe(false);
+	});
+
+	it('enables S3 against the local MinIO only', () => {
+		expect(envModule.isS3Enabled()).toBe(true);
+		expect(envModule.env.S3_ENDPOINT).toBe('http://localhost:9000');
+		expect(envModule.getMediaBaseUrl()).toMatch(/^http:\/\/localhost:9000\//);
 	});
 });

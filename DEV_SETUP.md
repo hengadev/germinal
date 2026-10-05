@@ -108,34 +108,12 @@ S3_PUBLIC_URL=https://your-bucket-name.s3.amazonaws.com
 
 ### Option 2: Use MinIO (Local S3-Compatible Storage)
 
-MinIO provides S3-compatible storage that runs locally:
-
-```bash
-# Run MinIO in Docker
-docker run -d \
-  --name germinal-minio \
-  -p 9000:9000 \
-  -p 9001:9001 \
-  -e MINIO_ROOT_USER=minioadmin \
-  -e MINIO_ROOT_PASSWORD=minioadmin \
-  minio/minio server /data --console-address ":9001"
-```
-
-Then update `.env`:
-
-```bash
-AWS_REGION=us-east-1
-AWS_ACCESS_KEY_ID=minioadmin
-AWS_SECRET_ACCESS_KEY=minioadmin
-S3_BUCKET_NAME=germinal-media
-S3_PUBLIC_URL=http://localhost:9000
-```
-
-Create the bucket:
-- Visit http://localhost:9001
-- Login with minioadmin/minioadmin
-- Create bucket named `germinal-media`
-- Set it to public
+> **Note:** this guide is being rewritten. MinIO is now part of `docker-compose.yml`:
+> `make dev-up` / `make try` start it and create the public `germinal-media-dev`
+> bucket. `.env.example` already points at it (`S3_ENDPOINT`, `S3_ACCESS_KEY_ID`,
+> `S3_SECRET_ACCESS_KEY`, `S3_PUBLIC_URL=http://localhost:9000/germinal-media-dev`).
+> Use the `S3_*` credentials, not `AWS_*`: `AWS_*` also switches SES email on.
+> Console: http://localhost:9001 (login in `docker-compose.yml`).
 
 ---
 
