@@ -40,6 +40,73 @@ jobs:
       - name: Run tests
         run: pnpm test
 
+  # Proves the database layer on every PR before it reaches a real database:
+  # apply every migration to an empty Postgres 16 (the same scripts/migrate.js
+  # entry point production runs before recreating the app container), fail on
+  # schema drift (regenerating migrations from the current schema must produce
+  # no diff), then run the integration tests against that migrated database.
+  migrations:
+    name: Migrations & integration tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: germinal_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      # One database plays both roles: it receives every migration, then the
+      # integration tests run against exactly what was migrated.
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/germinal_test
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/germinal_test
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Apply all migrations to the empty database
+        run: node scripts/migrate.js
+
+      - name: Check for schema drift
+        run: |
+          pnpm drizzle-kit generate --name ci_drift_check
+          if [ -n "$(git status --porcelain -- drizzle/migrations)" ]; then
+            echo "::error::Schema drift: the committed migrations no longer match src/lib/server/db/schema.ts."
+            echo "Generate and commit the missing migration locally:"
+            echo "  pnpm drizzle-kit generate"
+            echo "Files drizzle-kit would add or change:"
+            git status --porcelain -- drizzle/migrations
+            exit 1
+          fi
+          echo "No schema drift: committed migrations match the current schema."
+
+      - name: Run integration tests
+        run: pnpm test:integration
+
   # Proves the zero-account onboarding path on every PR: copy .env.example,
   # bring up the dev containers, migrate, seed, build — the same path a
   # portfolio visitor runs via `cp .env.example .env && make try`, minus the
