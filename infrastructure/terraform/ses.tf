@@ -32,7 +32,7 @@ resource "aws_ses_domain_dkim" "main" {
 # ============================================
 
 resource "aws_ses_configuration_set" "main" {
-  name = "${var.environment}-${var.project_name}-config"
+  name = "${local.shared_env}-${var.project_name}-config"
 
   sending_enabled = true
 
@@ -44,8 +44,9 @@ resource "aws_ses_configuration_set" "main" {
 # ============================================
 
 resource "aws_iam_policy" "ses_send" {
-  name        = "${var.environment}-${var.project_name}-ses-send"
-  description = "Policy for ${var.environment} ${var.project_name} to send emails via SES"
+  for_each    = local.environments
+  name        = "${each.key}-${var.project_name}-ses-send"
+  description = "Policy for ${each.key} ${var.project_name} to send emails via SES"
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -74,8 +75,9 @@ resource "aws_iam_policy" "ses_send" {
 }
 
 resource "aws_iam_user_policy_attachment" "ses_send_attach" {
-  user       = aws_iam_user.app_user.name
-  policy_arn = aws_iam_policy.ses_send.arn
+  for_each   = local.environments
+  user       = aws_iam_user.app_user[each.key].name
+  policy_arn = aws_iam_policy.ses_send[each.key].arn
 }
 
 # ============================================

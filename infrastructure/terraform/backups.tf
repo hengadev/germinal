@@ -6,11 +6,12 @@
 # ============================================
 
 resource "aws_s3_bucket" "backups" {
-  bucket = "${var.environment}-${var.project_name}-backups"
+  for_each = local.environments
+  bucket   = "${each.key}-${var.project_name}-backups"
 
   tags = {
     Name        = "${var.project_name} Database Backups"
-    Environment = var.environment
+    Environment = each.key
     ManagedBy   = "Terraform"
     Purpose     = "Database Backups"
   }
@@ -18,7 +19,8 @@ resource "aws_s3_bucket" "backups" {
 
 # Enable versioning for backup bucket (recover from accidental overwrites)
 resource "aws_s3_bucket_versioning" "backups_versioning" {
-  bucket = aws_s3_bucket.backups.id
+  for_each = local.environments
+  bucket   = aws_s3_bucket.backups[each.key].id
 
   versioning_configuration {
     status = "Enabled"
@@ -27,7 +29,8 @@ resource "aws_s3_bucket_versioning" "backups_versioning" {
 
 # Server-side encryption for backup bucket
 resource "aws_s3_bucket_server_side_encryption_configuration" "backups_encryption" {
-  bucket = aws_s3_bucket.backups.id
+  for_each = local.environments
+  bucket   = aws_s3_bucket.backups[each.key].id
 
   rule {
     apply_server_side_encryption_by_default {
@@ -38,7 +41,8 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "backups_encryptio
 
 # Block all public access - backups should never be public
 resource "aws_s3_bucket_public_access_block" "backups_block" {
-  bucket = aws_s3_bucket.backups.id
+  for_each = local.environments
+  bucket   = aws_s3_bucket.backups[each.key].id
 
   block_public_acls       = true
   block_public_policy     = true
@@ -48,7 +52,8 @@ resource "aws_s3_bucket_public_access_block" "backups_block" {
 
 # Lifecycle configuration for backup retention
 resource "aws_s3_bucket_lifecycle_configuration" "backups_lifecycle" {
-  bucket = aws_s3_bucket.backups.id
+  for_each = local.environments
+  bucket   = aws_s3_bucket.backups[each.key].id
 
   # Daily backups - standard retention
   rule {
@@ -162,8 +167,9 @@ resource "aws_s3_bucket_lifecycle_configuration" "backups_lifecycle" {
 # ============================================
 
 resource "aws_iam_policy" "backup_access" {
-  name        = "${var.environment}-${var.project_name}-backup-access"
-  description = "Policy for ${var.environment} ${var.project_name} to manage database backups in S3"
+  for_each    = local.environments
+  name        = "${each.key}-${var.project_name}-backup-access"
+  description = "Policy for ${each.key} ${var.project_name} to manage database backups in S3"
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -178,8 +184,8 @@ resource "aws_iam_policy" "backup_access" {
           "s3:ListBucket"
         ]
         Resource = [
-          aws_s3_bucket.backups.arn,
-          "${aws_s3_bucket.backups.arn}/*"
+          aws_s3_bucket.backups[each.key].arn,
+          "${aws_s3_bucket.backups[each.key].arn}/*"
         ]
       }
     ]
@@ -188,6 +194,7 @@ resource "aws_iam_policy" "backup_access" {
 
 # Attach backup policy to the application IAM user
 resource "aws_iam_user_policy_attachment" "backup_access_attach" {
-  user       = aws_iam_user.app_user.name
-  policy_arn = aws_iam_policy.backup_access.arn
+  for_each   = local.environments
+  user       = aws_iam_user.app_user[each.key].name
+  policy_arn = aws_iam_policy.backup_access[each.key].arn
 }
