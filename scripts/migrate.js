@@ -12,6 +12,9 @@ import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import postgres from 'postgres';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
+// Loads .env when present (never overrides already-exported variables), so
+// `cp .env.example .env && make try` works without exporting DATABASE_URL.
+import 'dotenv/config';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
