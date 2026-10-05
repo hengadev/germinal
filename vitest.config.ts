@@ -13,10 +13,12 @@ export default defineConfig({
 		// this, vitest's default include glob picks up that worktree's own
 		// tests/ directory too, double-running (and double-counting failures
 		// from) the whole suite.
-		exclude: ['tests/e2e/**', 'node_modules/**', '.svelte-kit/**', '.opencode/**', '.claude/**'],
-		// Integration tests share a single germinal_test database — parallel file
-		// execution causes TRUNCATE races.  Unit tests are fast enough that
-		// sequential execution is not a meaningful slowdown.
+		exclude: ['tests/e2e/**', 'tests/integration/**', 'node_modules/**', '.svelte-kit/**', '.opencode/**', '.claude/**'],
+		// Integration tests need a real database and run through their own
+		// config (`pnpm test:integration`, vitest.integration.config.ts) where
+		// they share a single germinal_test database — parallel file execution
+		// causes TRUNCATE races.  Unit tests are fast enough that sequential
+		// execution is not a meaningful slowdown.
 		fileParallelism: false,
 
 		coverage: {
