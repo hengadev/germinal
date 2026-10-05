@@ -6,26 +6,33 @@ import {
   talentCategories,
   eventSessions
 } from '../src/lib/server/db/schema.js';
+import { checkSeedGuard } from './seed-guard.js';
 
 // ============================================================
-// 🚨 PRODUCTION & STAGING GUARD - Prevent accidental data loss
+// 🚨 DESTRUCTIVE SCRIPT GUARD - local development databases only
 // ============================================================
 // This seed script deletes ALL events, talents, and categories before seeding.
-// It should NEVER be run in production or staging as it will wipe all data.
-const isProduction = process.env.NODE_ENV === 'production';
-const isStaging = process.env.NODE_ENV === 'staging';
-const isProductionOrStagingDatabase = process.env.DATABASE_URL?.includes('germinal') ||
-                                      process.env.DATABASE_URL?.includes('46.225.25.238');
+// It may only run against a local database: the guard requires a loopback
+// DATABASE_URL host and a NODE_ENV that is neither "production" nor
+// "staging" (see scripts/seed-guard.ts, covered by unit tests).
+const seedGuard = checkSeedGuard({
+  nodeEnv: process.env.NODE_ENV,
+  databaseUrl: process.env.DATABASE_URL,
+});
 
-if (isProduction || isStaging || isProductionOrStagingDatabase) {
-  const envType = isProduction ? 'PRODUCTION' : (isStaging ? 'STAGING' : 'PRODUCTION/STAGING');
-  console.error(`🚨 ERROR: Seed script cannot be run in ${envType}!`);
+if (!seedGuard.allowed) {
+  console.error(`🚨 ERROR: Seed script refused to run (${seedGuard.reason === 'node-env' ? 'environment' : 'database'})!`);
   console.error('   This script deletes ALL events, talents, and categories data.');
+  if (seedGuard.reason === 'node-env') {
+    console.error(`   NODE_ENV is set to "${process.env.NODE_ENV}".`);
+  } else {
+    console.error('   DATABASE_URL does not point at a loopback host (localhost, 127.0.0.1 or ::1).');
+  }
   console.error('   NODE_ENV:', process.env.NODE_ENV || 'not set');
   console.error('   DATABASE_URL:', process.env.DATABASE_URL?.replace(/:[^:@]+@/, ':****@') || 'not set');
   console.error('');
-  console.error('   To seed data, run this script in a development environment only.');
-  console.error('   Use NODE_ENV=development or a local database.');
+  console.error('   To seed data, run this script with NODE_ENV unset (or "development")');
+  console.error('   against a local database, e.g. via `make try` or `make try-setup`.');
   process.exit(1);
 }
 
@@ -552,8 +559,7 @@ async function seed() {
     // Visual Artists for Urban Canvas
     await db.insert(talents).values([
       {
-        firstNameEn: 'Maya',
-        firstNameFr: 'Maya',
+        firstName: 'Maya',
         lastName: 'Fontaine',
         roleEn: 'Street Artist & Muralist',
         roleFr: 'Artiste de Rue & Muraliste',
@@ -573,8 +579,7 @@ async function seed() {
         published: true,
       },
       {
-        firstNameEn: 'Marcus',
-        firstNameFr: 'Marcus',
+        firstName: 'Marcus',
         lastName: 'Dubois',
         roleEn: 'Mixed Media Artist',
         roleFr: 'Artiste Multimédia',
@@ -598,8 +603,7 @@ async function seed() {
     // DJs for Sunset Beats
     await db.insert(talents).values([
       {
-        firstNameEn: 'Aurora',
-        firstNameFr: 'Aurora',
+        firstName: 'Aurora',
         lastName: 'Pulse',
         roleEn: 'DJ & Producer',
         roleFr: 'DJ & Productrice',
@@ -619,8 +623,7 @@ async function seed() {
         published: true,
       },
       {
-        firstNameEn: 'DJ',
-        firstNameFr: 'DJ',
+        firstName: 'DJ',
         lastName: 'Neon',
         roleEn: 'Electronic Music Producer',
         roleFr: 'Producteur de Musique Électronique',
@@ -644,8 +647,7 @@ async function seed() {
     // Theater talent for Echoes of Tomorrow
     await db.insert(talents).values([
       {
-        firstNameEn: 'Sophie',
-        firstNameFr: 'Sophie',
+        firstName: 'Sophie',
         lastName: 'Mercier',
         roleEn: 'Theater Director',
         roleFr: 'Metteur en Scène',
@@ -665,8 +667,7 @@ async function seed() {
         published: true,
       },
       {
-        firstNameEn: 'Lucas',
-        firstNameFr: 'Lucas',
+        firstName: 'Lucas',
         lastName: 'Moreau',
         roleEn: 'Actor',
         roleFr: 'Acteur',
@@ -690,8 +691,7 @@ async function seed() {
     // Additional musicians
     await db.insert(talents).values([
       {
-        firstNameEn: 'Zoe',
-        firstNameFr: 'Zoé',
+        firstName: 'Zoé',
         lastName: 'Lambert',
         roleEn: 'Musician & Composer',
         roleFr: 'Musicienne & Compositrice',
