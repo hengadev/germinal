@@ -8,6 +8,8 @@
 # - polling-interval has a 60s minimum; shorter values shut the Agent down.
 # - a config error makes the Agent exit with status 0: the unit uses
 #   Restart=always.
+# - no inline Jinja block tags on content lines in this file: with Ansible's
+#   trim_blocks they swallow the newline and corrupt the YAML.
 
 infisical:
   address: {{ infisical_agent_host }}
@@ -26,8 +28,7 @@ sinks:
 
 templates:
 {% for t in infisical_agent_templates %}
-  # {{ t.env }} / {{ t.name }}{% if t.recreate %} — recreate the {{ t.name }} service when the file changes
-  # (`restart` does not reload env_file){% else %} — rewrite the file only, no command{% if t.name == 'postgres' %} (POSTGRES_PASSWORD applies at first init; rotation is manual, ADR 0004){% endif %}{% endif %}
+  # {{ t.env }}/{{ t.name }} — {{ 'recreate the service when the rendered file changes (restart does not reload env_file)' if t.recreate else 'rewrite the file only, no command' }}{{ ' — POSTGRES_PASSWORD applies at first init only; rotation is manual (ADR 0004)' if t.name == 'postgres' else '' }}
   - source-path: {{ infisical_agent_templates_dir }}/{{ t.env }}-{{ t.name }}.env.tmpl
     destination-path: {{ infisical_agent_stack_roots[t.env] }}/{{ infisical_agent_env_dir_name }}/{{ t.name }}.env
     config:

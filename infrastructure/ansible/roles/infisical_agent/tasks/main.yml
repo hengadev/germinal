@@ -31,27 +31,33 @@
       make the Agent shut down (issue 005).
     quiet: true
 
-- name: Check that the env templates from issue 006 exist
-  ansible.builtin.stat:
-    path: "{{ infisical_agent_templates_src_dir }}/{{ item.name }}.env.tmpl"
-  loop: "{{ infisical_agent_templates | map(attribute='name') | unique | list }}"
-  loop_control:
-    label: "{{ item }}.env.tmpl"
-  register: infisical_agent_src_templates
+- name: Compute which issue 006 templates are missing on the control node
+  ansible.builtin.set_fact:
+    infisical_agent_missing_templates: >-
+      {{ infisical_agent_templates | map(attribute='name') | unique | list
+         | difference(lookup('ansible.builtin.fileglob', infisical_agent_templates_src_dir ~ '/*.env.tmpl', wantlist=true)
+                      | map('regex_replace', '^.*/(.*)\.env\.tmpl$', '\1') | list) }}
 
 - name: Fail with the missing template names
   ansible.builtin.assert:
     that:
-      - infisical_agent_src_templates.results | map(attribute='stat.exists') | select('equalto', false) | list | length == 0
+      - infisical_agent_missing_templates | length == 0
     fail_msg: >-
       Missing Agent env templates under {{ infisical_agent_templates_src_dir }}:
-      {{ infisical_agent_src_templates.results | selectattr('stat.exists', 'equalto', false) | map(attribute='item') | list | join(', ') }}.
+      {{ infisical_agent_missing_templates | join(', ') }}.
       They come from issue 006 (infrastructure/infisical/templates/).
     quiet: true
 
 # ---------------------------------------------------------------------------
 # Install the Infisical CLI (ships the Agent binary)
 # ---------------------------------------------------------------------------
+
+- name: Ensure gpg is present (needed to dearmor the apt key)
+  ansible.builtin.apt:
+    name: gpg
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
 
 - name: Add the Infisical CLI apt repository key
   ansible.builtin.apt_key:
@@ -138,7 +144,10 @@
 
 - name: Install the Agent env templates for each stack
   ansible.builtin.copy:
-    content: "{{ lookup('ansible.builtin.file', infisical_agent_src_template) | replace('__GERMINAL_ENV__', item.env) }}"
+    # The trailing '\n' compensates for Jinja stripping exactly one trailing
+    # newline from the rendered value, so the installed file is byte-identical
+    # to what render-template.sh produces for `make env`.
+    content: "{{ lookup('ansible.builtin.file', infisical_agent_src_template) | replace('__GERMINAL_ENV__', item.env) }}\n"
     dest: "{{ infisical_agent_templates_dir }}/{{ item.env }}-{{ item.name }}.env.tmpl"
     owner: root
     group: root

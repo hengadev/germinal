@@ -71,15 +71,16 @@
     group: "{{ deploy_user }}"
     mode: '0700'
 
-- name: Assemble the deploy user's public keys
+- name: Collect the deploy user's public keys (list plus legacy single key)
   # One key per operator computer plus the CI deploy key (issue 008): a list
   # is the only shape that can hold several keys without wiping the others.
-  # The legacy single deploy_ssh_public_key is still honoured.
+  # The legacy single deploy_ssh_public_key is still honoured alongside it.
   ansible.builtin.set_fact:
-    deploy_user_public_keys: >-
-      {{ (deploy_ssh_public_keys | default([])
-          + (deploy_ssh_public_key | default('') | ternary([deploy_ssh_public_key], [])))
-         | unique }}
+    deploy_user_key_candidates: "{{ (deploy_ssh_public_keys | default([])) + [deploy_ssh_public_key | default('')] }}"
+
+- name: Assemble the deploy user's public keys (drop empties, deduplicate)
+  ansible.builtin.set_fact:
+    deploy_user_public_keys: "{{ deploy_user_key_candidates | select('match', '.+') | unique | list }}"
 
 - name: Manage the deploy user's authorized_keys as a list
   # exclusive: the list is the source of truth — a key removed from the list
@@ -100,12 +101,12 @@
 - name: Ensure root SSH access is maintained (for subsequent playbook runs)
   ansible.builtin.lineinfile:
     path: /root/.ssh/authorized_keys
-    line: "{{ deploy_ssh_public_key }}"
+    line: "{{ deploy_ssh_public_key | default('') }}"
     create: true
     mode: '0600'
     owner: root
     group: root
-  when: deploy_ssh_public_key | length > 0
+  when: deploy_ssh_public_key | default('') | length > 0
 
 - name: Ensure proper permissions on authorized_keys
   ansible.builtin.file:
