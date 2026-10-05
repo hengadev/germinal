@@ -33,8 +33,50 @@ services:
       retries: 5
     restart: unless-stopped
 
+  # MinIO - local S3 for media uploads (stands in for the AWS bucket; see
+  # src/lib/server/services/s3.ts, S3_ENDPOINT). Upstream MinIO stopped
+  # publishing images in Oct 2025; pgsty/minio is the maintained community
+  # fork. Login is local-only, like the postgres one above.
+  # API http://localhost:9000, console http://localhost:9001
+  minio:
+    image: pgsty/minio:RELEASE.2026-08-04T00-00-00Z
+    command: server /data --console-address ":9001"
+    environment:
+      - MINIO_ROOT_USER=germinal
+      - MINIO_ROOT_PASSWORD=germinal-minio-local
+      # Mirrors the production bucket CORS (infrastructure/terraform/s3.tf)
+      - MINIO_API_CORS_ALLOW_ORIGIN=http://localhost:5173
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # One-shot: create the media bucket with anonymous read (production serves
+  # objects publicly through CloudFront). Idempotent, safe on every `up`.
+  minio-init:
+    image: pgsty/mc:RELEASE.2026-09-16T00-00-00Z
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        mc alias set local http://minio:9000 germinal germinal-minio-local &&
+        mc mb --ignore-existing local/germinal-media-dev &&
+        mc anonymous set download local/germinal-media-dev
+    restart: "no"
+
 volumes:
   postgres_data:
     driver: local
   redis_data:
+    driver: local
+  minio_data:
     driver: local

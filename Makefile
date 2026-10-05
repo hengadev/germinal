@@ -65,15 +65,15 @@ help:
 	@echo "  make staging-migrate    - Run database migrations (staging)"
 	@echo "  make staging-create-admin - Create admin user (staging)"
 	@echo ""
-	@echo "Local Development (docker compose db+redis, app runs natively for fast HMR):"
+	@echo "Local Development (docker compose db+redis+minio, app runs natively for fast HMR):"
 	@echo "  make try                - Zero-account run: cp .env.example .env, then seeded app + dev server"
 	@echo "  make env                - Render .env from Infisical dev (invited contributors; needs infisical login)"
-	@echo "  make dev                - Start db+redis, migrate, then run the dev server (all-in-one)"
-	@echo "  make dev-up             - Start db+redis in the background (idempotent)"
-	@echo "  make dev-down           - Stop db+redis (keeps data)"
-	@echo "  make dev-reset          - Stop db+redis and WIPE their local data volumes"
+	@echo "  make dev                - Start db+redis+minio, migrate, then run the dev server (all-in-one)"
+	@echo "  make dev-up             - Start db+redis+minio in the background (idempotent)"
+	@echo "  make dev-down           - Stop db+redis+minio (keeps data)"
+	@echo "  make dev-reset          - Stop db+redis+minio and WIPE their local data volumes"
 	@echo "  make dev-migrate        - Apply schema to the local dev database"
-	@echo "  make dev-logs           - Follow db+redis container logs"
+	@echo "  make dev-logs           - Follow db+redis+minio container logs"
 	@echo "  make studio             - Open Drizzle Studio (DB browser) at localhost:4983"
 	@echo "  make dev-mock           - Start local dev server with mock data (no DB required)"
 	@echo ""
@@ -239,22 +239,25 @@ staging-create-admin:
 # Local Development Commands
 # ===========================================
 #
-# db+redis run via docker-compose; the app runs natively (`pnpm dev`) for
+# db+redis+minio run via docker-compose; the app runs natively (`pnpm dev`) for
 # fast HMR — bind-mount HMR inside a container buys nothing on a single-dev
-# machine and adds file-watch overhead. Leave db/redis running in the
+# machine and adds file-watch overhead. Leave them running in the
 # background across sessions (restart: unless-stopped) rather than
 # stopping/starting them each time; `make dev-up` is idempotent.
 
+# minio-init is a one-shot (creates the media bucket) and `up --wait` fails
+# on any exited container, even with code 0, so it gets its own `run`.
 dev-up:
-	@echo "Starting local db+redis (waits until healthy)..."
-	docker compose up -d --wait db redis
+	@echo "Starting local db+redis+minio (waits until healthy)..."
+	docker compose up -d --wait db redis minio
+	docker compose run --rm minio-init
 
 dev-down:
-	@echo "Stopping local db+redis (data preserved)..."
+	@echo "Stopping local db+redis+minio (data preserved)..."
 	docker compose down
 
 dev-reset:
-	@echo "Stopping local db+redis and WIPING their data volumes..."
+	@echo "Stopping local db+redis+minio and WIPING their data volumes..."
 	docker compose down -v
 
 # Same migration files and entry point as production and `make try`, so the
@@ -264,7 +267,7 @@ dev-migrate: dev-up
 	node scripts/migrate.js
 
 dev-logs:
-	docker compose logs -f db redis
+	docker compose logs -f db redis minio
 
 # All-in-one: ensure services are up and migrated, then run the dev server.
 dev: dev-migrate
@@ -291,8 +294,9 @@ dev-mock:
 try-setup:
 	@test -f .env || { echo "No .env found. Run: cp .env.example .env"; exit 1; }
 	@test -d node_modules || { echo "Installing dependencies..."; pnpm install; }
-	@echo "Starting local db+redis (Docker)..."
-	docker compose up -d --wait db redis
+	@echo "Starting local db+redis+minio (Docker)..."
+	docker compose up -d --wait db redis minio
+	docker compose run --rm minio-init
 	@echo "Applying migrations..."
 	node scripts/migrate.js
 	@echo "Creating demo admin (skipped if it already exists)..."
