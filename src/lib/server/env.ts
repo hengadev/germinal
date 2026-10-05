@@ -20,6 +20,11 @@ const devEnvSchema = z.object({
     AWS_REGION: z.string().optional().default('us-east-1'),
     AWS_ACCESS_KEY_ID: z.string().optional().default(''),
     AWS_SECRET_ACCESS_KEY: z.string().optional().default(''),
+    // S3-compatible endpoint (MinIO locally) - unset means real AWS S3
+    S3_ENDPOINT: z.string().url().optional(),
+    // S3-only credentials, falling back to AWS_* - keeps a MinIO login out of SES
+    S3_ACCESS_KEY_ID: z.string().optional().default(''),
+    S3_SECRET_ACCESS_KEY: z.string().optional().default(''),
     S3_BUCKET_NAME: z.string().optional().default('germinal-media-dev'),
     S3_PUBLIC_URL: z.string().optional().default('http://localhost:9000'),
     MEDIA_URL: z.string().url().optional(), // CloudFront URL, falls back to S3_PUBLIC_URL
@@ -68,6 +73,10 @@ const prodEnvSchema = z.object({
     AWS_REGION: z.string().min(1),
     AWS_ACCESS_KEY_ID: z.string().min(1),
     AWS_SECRET_ACCESS_KEY: z.string().min(1),
+    // S3-compatible endpoint and S3-only credentials - unset in production (real S3, AWS_* keys)
+    S3_ENDPOINT: z.string().url().optional(),
+    S3_ACCESS_KEY_ID: z.string().optional().default(''),
+    S3_SECRET_ACCESS_KEY: z.string().optional().default(''),
     S3_BUCKET_NAME: z.string().min(1),
     S3_PUBLIC_URL: z.string().url(),
     MEDIA_URL: z.string().url().optional(), // CloudFront URL, falls back to S3_PUBLIC_URL
@@ -121,6 +130,22 @@ export function withoutEmptyValues(source: NodeJS.ProcessEnv): NodeJS.ProcessEnv
     return Object.fromEntries(Object.entries(source).filter(([, value]) => value !== ''));
 }
 
+type S3CredentialSource = Pick<
+    z.infer<typeof devEnvSchema>,
+    'S3_ACCESS_KEY_ID' | 'S3_SECRET_ACCESS_KEY' | 'AWS_ACCESS_KEY_ID' | 'AWS_SECRET_ACCESS_KEY'
+>;
+
+/** S3_* pair if both are set, else the AWS_* pair, else null. Never mixes the two. */
+function s3CredentialsFrom(source: S3CredentialSource) {
+    if (source.S3_ACCESS_KEY_ID && source.S3_SECRET_ACCESS_KEY) {
+        return { accessKeyId: source.S3_ACCESS_KEY_ID, secretAccessKey: source.S3_SECRET_ACCESS_KEY };
+    }
+    if (source.AWS_ACCESS_KEY_ID && source.AWS_SECRET_ACCESS_KEY) {
+        return { accessKeyId: source.AWS_ACCESS_KEY_ID, secretAccessKey: source.AWS_SECRET_ACCESS_KEY };
+    }
+    return null;
+}
+
 function validateEnv() {
     // Skip validation during build - env vars will be validated at runtime
     if (isBuildTime) {
@@ -169,7 +194,8 @@ function validateEnv() {
     } else if (isDevelopment) {
         bootstrapLog.info('🔧 Development mode - using environment:', {
             DATABASE_URL: data.DATABASE_URL.replace(/:[^:]*@/, ':***@'), // Hide password
-            S3_ENABLED: !!(data.AWS_ACCESS_KEY_ID && data.AWS_SECRET_ACCESS_KEY),
+            S3_ENABLED: s3CredentialsFrom(data) !== null,
+            S3_ENDPOINT: data.S3_ENDPOINT ?? 'AWS',
         });
     }
 
@@ -178,9 +204,12 @@ function validateEnv() {
 
 export const env = validateEnv();
 
+// Credentials for S3: S3_* (e.g. local MinIO), falling back to AWS_*
+export const getS3Credentials = () => s3CredentialsFrom(env);
+
 // Helper to check if S3 is configured
 export const isS3Enabled = () => {
-    return !!(env.AWS_ACCESS_KEY_ID && env.AWS_SECRET_ACCESS_KEY);
+    return getS3Credentials() !== null;
 };
 
 // Helper to check if SMTP is configured
@@ -321,7 +350,7 @@ export function validateConfig() {
 
     // Validate S3 configuration (only if not in dev mode)
     if (!isDevelopment && !isS3Enabled()) {
-        errors.push('S3 configuration is required in production (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, S3_BUCKET_NAME)');
+        errors.push('S3 configuration is required in production (S3_ACCESS_KEY_ID/S3_SECRET_ACCESS_KEY or AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY, S3_BUCKET_NAME)');
     }
 
     if (errors.length > 0) {

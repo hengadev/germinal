@@ -1,27 +1,34 @@
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, DeleteObjectCommand, type S3ClientConfig } from '@aws-sdk/client-s3';
 import { Readable } from 'node:stream';
 import { randomUUID } from 'node:crypto';
-import { env, isS3Enabled, getMediaBaseUrl } from '../env';
+import { env, getS3Credentials, getMediaBaseUrl } from '../env';
+
+/**
+ * Client config: real AWS S3 by default; any S3-compatible endpoint (local
+ * MinIO) when S3_ENDPOINT is set, addressed path-style (endpoint/bucket/key).
+ */
+export function getS3ClientConfig(): S3ClientConfig {
+  const credentials = getS3Credentials();
+  if (!credentials) {
+    throw new Error(
+      'S3 is not configured. Please set S3_ACCESS_KEY_ID and S3_SECRET_ACCESS_KEY (or AWS_ACCESS_KEY_ID and ' +
+      'AWS_SECRET_ACCESS_KEY) in your .env file. File uploads are disabled in development mode without S3 credentials.'
+    );
+  }
+
+  return {
+    region: env.AWS_REGION,
+    credentials,
+    ...(env.S3_ENDPOINT && { endpoint: env.S3_ENDPOINT, forcePathStyle: true }),
+  };
+}
 
 // Lazy initialization - only create S3 client if credentials are provided
 let s3Client: S3Client | null = null;
 
 function getS3Client(): S3Client {
   if (!s3Client) {
-    if (!isS3Enabled()) {
-      throw new Error(
-        'S3 is not configured. Please set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY in your .env file. ' +
-        'File uploads are disabled in development mode without S3 credentials.'
-      );
-    }
-
-    s3Client = new S3Client({
-      region: env.AWS_REGION,
-      credentials: {
-        accessKeyId: env.AWS_ACCESS_KEY_ID!,
-        secretAccessKey: env.AWS_SECRET_ACCESS_KEY!,
-      },
-    });
+    s3Client = new S3Client(getS3ClientConfig());
   }
 
   return s3Client;
