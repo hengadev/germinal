@@ -317,7 +317,7 @@
                             <label for="maintenanceMode" class="block text-sm font-medium text-foreground" class:cursor-not-allowed={maintenanceForcedByEnv} class:cursor-pointer={!maintenanceForcedByEnv}>Activer le mode maintenance</label>
                             <p class="text-xs text-muted-foreground">
                                 {#if maintenanceForcedByEnv}
-                                    Forcé par l’environnement (MAINTENANCE_MODE=true) — le site est en maintenance tant que cette variable n’est pas retirée ou mise à false. Le réglage ci-dessus est sans effet.
+                                    Forcé par l’environnement (MAINTENANCE_MODE=true) — le site est en maintenance tant que cette variable n’est pas retirée ou mise à false. Ce réglage est sans effet.
                                 {:else if maintenanceMode}
                                     Activé — le site est actuellement en maintenance
                                 {:else}
