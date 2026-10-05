@@ -293,7 +293,7 @@ try-setup:
 	@echo "Applying migrations..."
 	node scripts/migrate.js
 	@echo "Creating demo admin (skipped if it already exists)..."
-	pnpm tsx scripts/create-admin.ts
+	node scripts/create-admin.js
 	@echo "Seeding events, sessions and talents..."
 	pnpm tsx scripts/seed.ts
 
