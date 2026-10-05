@@ -10,15 +10,10 @@
 # ============================================
 # Infisical
 # ============================================
-# The `germinal` project on the team's instance. The setup playbook reads
-# NOTIFY_EMAIL from its /host folder (prod) on the control node through the
-# operator's `infisical login`; the value never touches the repo.
-infisical_project_id: "78c404c2-a76c-4967-8ff0-e7544f1b6fff"
-
 # Notification email for host-level services (fail2ban, unattended-upgrades,
-# Let's Encrypt/ACME). Overridden by the /host lookup in site.yml when the
-# operator is logged in; this fallback (mail to the server's root, unread)
-# only applies when the lookup fails — site.yml warns loudly then.
+# Let's Encrypt/ACME). Overridden by the /host (NOTIFY_EMAIL) lookup in
+# site.yml when the operator is logged in; this fallback only applies when
+# that lookup fails — site.yml warns loudly then.
 host_notify_email: root@localhost
 
 # ============================================

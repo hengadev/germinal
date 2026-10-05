@@ -22,6 +22,14 @@
   hosts: germinal_servers
   gather_facts: true
 
+  vars:
+    # The `germinal` Infisical project. A play var (not group_vars) so it is
+    # also visible inside the delegated-to-localhost /host lookup below —
+    # delegated tasks resolve variables against the delegate host, and the
+    # implicit localhost has no group vars. Not a secret: it is already
+    # committed in the Agent templates (infrastructure/infisical/templates/).
+    infisical_project_id: "78c404c2-a76c-4967-8ff0-e7544f1b6fff"
+
   pre_tasks:
     - name: Display target host
       ansible.builtin.debug:
