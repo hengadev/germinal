@@ -44,6 +44,7 @@ return current
 const redis = new Redis({
 	host: env.REDIS_HOST,
 	port: env.REDIS_PORT,
+	db: env.REDIS_DB,
 	// Bound how long a command waits during a reconnect before failing, so a
 	// fail-closed rejection comes back quickly (~tens of ms) during a real
 	// outage — without disabling the offline queue outright, which would

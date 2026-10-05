@@ -8,6 +8,8 @@ const devEnvSchema = z.object({
     DATABASE_URL: z.string().default('postgresql://postgres:postgres@localhost:5432/germinal'),
     REDIS_HOST: z.string().default('localhost'),
     REDIS_PORT: z.string().default('6379').transform(Number),
+    // Redis database index: staging shares prod's Redis server on index 1
+    REDIS_DB: z.string().default('0').transform(Number),
     USE_MOCK_DATA: z.string().default('false').transform(v => v === 'true'),
     // Maintenance override - forces maintenance mode on before any database read
     MAINTENANCE_MODE: z.string().default('false').transform(v => v === 'true'),
@@ -54,6 +56,8 @@ const prodEnvSchema = z.object({
     DATABASE_URL: z.string().url(),
     REDIS_HOST: z.string().min(1),
     REDIS_PORT: z.string().transform(Number),
+    // Redis database index: staging shares prod's Redis server on index 1
+    REDIS_DB: z.string().default('0').transform(Number),
     USE_MOCK_DATA: z.string().default('false').transform(v => v === 'true'),
     // Maintenance override - forces maintenance mode on before any database read
     MAINTENANCE_MODE: z.string().default('false').transform(v => v === 'true'),
