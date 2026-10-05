@@ -1,576 +1,159 @@
-# Germinal Terraform Configuration
+# Germinal Terraform
 
-Infrastructure as Code for the Germinal project using Terraform.
+Infrastructure as code for Germinal: the Hetzner VPS, Cloudflare DNS, and the
+AWS side (S3 media and backup buckets, IAM, CloudFront, SES).
 
-## What This Manages
+One state, in S3, holds everything: the shared resources plus the
+per-environment resources for **staging** and **production**. It can be
+planned and applied from any computer with no flags, after `infisical login`.
 
-### AWS Resources
-- **S3 Bucket**: Media storage for images, videos, and other assets
-- **IAM User & Policy**: Programmatic access credentials for the VPS
-- **Terraform State**: S3 backend with DynamoDB locking for state management
+## What this manages
 
-### Hetzner Cloud Resources
-- **VPS Server**: Ubuntu 24.04 with Docker pre-installed
-- **SSH Key**: Automatic SSH key management for secure access
-- **Firewall**: UFW pre-configured (SSH, HTTP, HTTPS, app port)
-- **Backups**: Automatic daily backups enabled
+| Area | Resources |
+| --- | --- |
+| Hetzner | The VPS (`hcloud_server.main`) and its **primary IPs** (IPv4 + IPv6), which survive a server rebuild |
+| Cloudflare | App records (`@`, `www`, `admin`, `staff`, `staging`, ...), email records (Zoho Mail MX, SPF, DKIM, DMARC), SES and ACM validation records, `media` CNAME |
+| AWS, per environment | `<env>-germinal-media` and `<env>-germinal-backups` buckets, the `<env>-germinal-app` IAM user, its policies (S3, backups, SES) and access key |
+| AWS, shared | SES domain identity, DKIM and MAIL FROM; CloudFront + ACM for `media.<domain>` (serves the staging media bucket); the `app-germinal` IAM user (local development); the state bucket |
+| Infisical | The credentials Terraform creates, written into the `germinal` project (below) |
 
-### Cloudflare DNS
-- **DNS Records**: A/AAAA records pointing to VPS
-- **Email DNS**: MX records for Hostinger mailbox, SPF/DMARC for deliverability
-- **SES DNS**: Domain verification, DKIM, and MAIL FROM records for Amazon SES API
-- **SSL/TLS**: Automatic HTTPS via Cloudflare's Universal SSL
-- **DDoS Protection**: Cloudflare's proxy and protection services
+## Secrets and inputs
 
-## Prerequisites
+- **Non-secret inputs** are in the committed [`terraform.tfvars`](terraform.tfvars):
+  domain, zone ID, DNS and email records, server settings. Never put a secret in it.
+- **Secret inputs** are in the Infisical project **`germinal-infra`**
+  (environment `prod`, path `/`) and arrive as environment variables through
+  `infisical run`:
 
-### Install Terraform
+  | Infisical key | Used for |
+  | --- | --- |
+  | `TF_VAR_hcloud_token` | Hetzner provider |
+  | `TF_VAR_cloudflare_token` | Cloudflare provider |
+  | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | AWS provider **and** the S3 state backend (the `terraform-germinal` IAM user) |
 
-```bash
-# Check if already installed
-terraform --version
+  The server's `germinal-vps` identity has no access to `germinal-infra`.
 
-# Install on Ubuntu/Debian
-sudo apt-get update && sudo apt-get install -y gnupg software-properties-common
-wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor | sudo tee /usr/share/keyrings/hashicorp-archive-keyring.gpg
-echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
-sudo apt update && sudo apt install terraform
-```
+- **Outputs written to Infisical.** Terraform writes the credentials it
+  creates into the `germinal` project, so nobody copies them by hand:
 
-### Install AWS CLI
+  | Infisical `germinal` | Value |
+  | --- | --- |
+  | `staging` `/s3` `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | `staging-germinal-app` access key |
+  | `prod` `/s3` `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | `production-germinal-app` access key |
+  | `dev` `/s3` `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | `app-germinal` access key |
 
-```bash
-# Check if already installed
-aws --version
+  The Infisical Agent on the server renders them into each environment's env
+  file; `make env` renders dev's.
 
-# Install AWS CLI v2
-curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-unzip awscliv2.zip
-sudo ./aws/install
-rm -rf aws awscliv2.zip
+### How Terraform authenticates to Infisical
 
-# Configure credentials
-aws configure
-# Enter: Access Key ID, Secret Access Key, Region (eu-central-1), Output format (json)
-```
+`./tf.sh` (which every Makefile target uses) does two things:
 
-### AWS Credentials
+1. `infisical run --projectId=<germinal-infra> --env=prod` injects the secret inputs above.
+2. It hands the Infisical **provider** your own session token
+   (`infisical user get token`) as `INFISICAL_TOKEN` with
+   `INFISICAL_AUTH_METHOD=token`. There is no machine identity for Terraform,
+   so no extra long-lived credential exists. You need write access to the
+   `germinal` project's `/s3` folders.
 
-You need AWS credentials with permissions to create:
-- S3 buckets
-- IAM users and policies
-- DynamoDB tables
-- CloudFront distributions
-- ACM certificates
-- SES domain identities and configuration
+When your Infisical session expires, `tf.sh` stops with "run: infisical login".
 
-1. Go to [IAM Console](https://console.aws.amazon.com/iam/)
-2. Create a new user with programmatic access
-3. Attach `AdministratorAccess` policy (or a more restrictive custom policy)
-4. Save the Access Key ID and Secret Access Key
+## Usage
 
-### Hetzner Cloud
-
-1. **Hetzner Cloud Account**: Sign up at https://console.hetzner.cloud
-2. **API Token**: Create at https://console.hetzner.cloud/projects/YOUR_PROJECT_ID/security/tokens
-   - Select Read & Write permissions
-3. **SSH Key Pair**: Generate if you don't have one:
-   ```bash
-   ssh-keygen -t ed25519 -C "your_email@example.com"
-   cat ~/.ssh/germinal.pub
-   ```
-
-### Cloudflare
-1. **Cloudflare Account**: Sign up at https://dash.cloudflare.com/sign-up
-2. **Domain Added**: Add your domain to Cloudflare
-3. **Nameservers Updated**: Update your domain's nameservers to Cloudflare's
-4. **API Token**: Create at https://dash.cloudflare.com/profile/api-tokens
-   - Required permissions: **Zone - DNS - Edit**
-   - Zone resources: Include - Specific zone - Your domain
-5. **Zone ID**: Found in Cloudflare Dashboard → Your domain → Overview → API section
-
-## Initial Setup
-
-### Step 1: Configure Variables
-
-Copy the example variables file and customize:
-
-```bash
-cp terraform.tfvars.example terraform.tfvars
-# Edit terraform.tfvars with your values
-```
-
-### Step 2: Create Backend Resources (First Time Only)
-
-The backend S3 bucket and DynamoDB table need to be created before Terraform can use them.
-
-1. **Comment out the backend block** in `main.tf`:
-   ```hcl
-   # backend "s3" {
-   #   ...
-   # }
-   ```
-
-2. **Initialize and apply**:
-   ```bash
-   terraform init
-   terraform apply
-   ```
-
-3. **Uncomment the backend block** in `main.tf`
-
-4. **Reconfigure to use the new backend**:
-   ```bash
-   terraform init -reconfigure
-   ```
-
-5. **Optional**: Comment out the entire `backend.tf` file to prevent accidental recreation:
-   ```bash
-   mv backend.tf backend.tf.bak
-   ```
-
-### Step 3: Apply S3 Resources
-
-```bash
-terraform apply
-```
-
-## Daily Usage
-
-### View Planned Changes
-```bash
-terraform plan
-```
-
-### Apply Changes
-```bash
-terraform apply
-```
-
-### View Outputs (including credentials)
-```bash
-terraform output
-terraform output iam_access_key_secret  # Sensitive values
-```
-
-### View State
-```bash
-terraform show
-```
-
-## Getting the Credentials
-
-After running `terraform apply`, get your S3 credentials:
-
-```bash
-terraform output -raw iam_access_key_id
-terraform output -raw iam_access_key_secret
-```
-
-Or view all outputs at once:
-```bash
-terraform output
-```
-
-Add these to your project's `.env` file:
-```bash
-S3_BUCKET=staging-germinal-media
-S3_REGION=eu-west-3
-AWS_ACCESS_KEY_ID=AKIA...
-AWS_SECRET_ACCESS_KEY=...
-```
-
-## Makefile Commands
-
-```bash
-# Setup
-make init          # Initialize Terraform
-make validate      # Validate configuration files
-
-# Operations
-make plan          # Show planned changes
-make apply         # Apply changes
-make refresh       # Refresh state file
-make show          # Show current state
-
-# Outputs
-make output        # Show all outputs
-make credentials   # Show AWS S3 credentials
-make server-info   # Show VPS connection details
-make dns-info      # Show application URL and DNS records
-make dns-email     # Show email (Registrar + SES) setup
-make dns-verify    # Show Cloudflare dashboard link
-
-# Server
-make server-ssh    # SSH into the VPS
-make server-deploy # Show deployment guide
-
-# Destruction
-make destroy       # Destroy all resources
-make destroy-server # Destroy VPS only
-make destroy-backend # Destroy backend resources (careful!)
-```
-
-## Project Structure
-
-```
-infrastructure/
-└── terraform/
-    ├── main.tf                    # Provider and backend configuration
-    ├── backend.tf                 # S3 state backend resources (first time only)
-    ├── s3.tf                      # S3 media bucket and IAM resources
-    ├── backups.tf                 # S3 database backup bucket and lifecycle rules
-    ├── cloudfront.tf              # CloudFront CDN for media delivery
-    ├── hetzner.tf                 # Hetzner Cloud server resources
-    ├── cloudflare.tf              # Cloudflare DNS records
-    ├── ses.tf                     # Amazon SES configuration
-    ├── cloud-init.yml.tftpl       # Server initialization template
-    ├── variables.tf               # Input variables
-    ├── outputs.tf                 # Output values
-    ├── terraform.tfvars.example   # Example variable values
-    ├── terraform.tfvars           # Your actual values (not in git)
-    ├── Makefile                   # Convenience commands
-    └── README.md                  # This file
-```
-
-## VPS Deployment
-
-After Terraform creates the server, you can deploy the application:
-
-### Option 1: Manual Deployment
-
-```bash
-# SSH into the server
-make server-ssh
-# or: ssh root@<server-ip>
-
-# Clone the repository
-cd /opt/germinal
-git clone <your-repo-url> .
-
-# Configure environment
-cp .env.example .env
-nano .env  # Add your S3 credentials and other settings
-
-# Pull and start the Docker image
-make image-pull
-make prod-start
-```
-
-### Option 2: Using the Project Makefile (from local)
-
-```bash
-# Build and push the image locally
-make image-release
-
-# Then on the VPS:
-make deploy
-```
-
-### Server Details After Creation
-
-```bash
-make server-info
-# Output:
-# Server: development-germinal
-# IPv4: xxx.xxx.xxx.xxx
-# IPv6: xxxx:xxxx:xxxx::/64
-# Status: running
-#
-# SSH connection: ssh root@xxx.xxx.xxx.xxx
-```
-
-## Database Backups
-
-Terraform creates a dedicated S3 bucket for PostgreSQL database backups with tiered lifecycle rules.
-
-### Backup Retention
-
-| Prefix | → STANDARD_IA | → GLACIER | Delete |
-|--------|---------------|-----------|--------|
-| `daily/` | 7 days | 30 days | 90 days (configurable) |
-| `weekly/` | 14 days | 60 days | 180 days |
-| `monthly/` | 30 days | 90 days | 365 days |
-
-### Setup Backup Cron Jobs
-
-After deployment, add these to your VPS crontab (`crontab -e`):
-
-```bash
-# Daily backup at 2 AM
-0 2 * * * /opt/germinal/scripts/backup-db.sh daily
-
-# Weekly backup on Sunday at 3 AM
-0 3 * * 0 /opt/germinal/scripts/backup-db.sh weekly
-
-# Monthly backup on 1st at 4 AM
-0 4 1 * * /opt/germinal/scripts/backup-db.sh monthly
-```
-
-### Example Backup Script
-
-Create `/opt/germinal/scripts/backup-db.sh`:
-
-```bash
-#!/bin/bash
-set -e
-
-TYPE=${1:-daily}
-TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-FILENAME="germinal_${TYPE}_${TIMESTAMP}.sql.gz"
-
-# Dump and compress
-docker exec postgres pg_dump -U germinal germinal | gzip > /tmp/$FILENAME
-
-# Upload to S3
-aws s3 cp /tmp/$FILENAME s3://${BACKUP_S3_BUCKET}/$TYPE/$FILENAME
-
-# Cleanup
-rm /tmp/$FILENAME
-
-echo "Backup uploaded: s3://${BACKUP_S3_BUCKET}/$TYPE/$FILENAME"
-```
-
-Make it executable:
-```bash
-chmod +x /opt/germinal/scripts/backup-db.sh
-```
-
-### View Backup Information
-
-```bash
-terraform output backup_bucket_name
-terraform output backup_script_example
-```
-
-## DNS and Domain Setup
-
-### Cloudflare Setup
-
-Before running Terraform, ensure your domain is set up on Cloudflare:
-
-1. **Add Domain to Cloudflare**
-   - Go to https://dash.cloudflare.com
-   - Click "Add a Site" and enter your domain
-   - Select the free plan
-
-2. **Update Nameservers**
-   - Cloudflare will provide nameservers (e.g., `alice.ns.cloudflare.com`)
-   - Update your domain's nameservers at your registrar (Square)
-   - Wait for DNS propagation (can take 24-48 hours)
-
-3. **Get Zone ID**
-   - In Cloudflare dashboard, go to your domain
-   - Scroll to the bottom of the Overview page
-   - Copy the "Zone ID"
-
-4. **Create API Token**
-   - Go to https://dash.cloudflare.com/profile/api-tokens
-   - Click "Create Token"
-   - Use "Edit zone DNS" template or create custom with:
-     - Zone → DNS → Edit
-     - Include → Specific zone → Your domain
-
-### Email Setup (Hostinger Business Email + Amazon SES API)
-
-This project uses a two-provider email setup:
-- **Sending**: Amazon SES API (`noreply@`) — uses existing IAM credentials, no SMTP
-- **Receiving**: Hostinger Business Email (`contact@`) — dedicated mailbox
-
-#### Step 1: Configure Hostinger Business Email (Receiving)
-
-1. **Create Mailbox in Hostinger**
-   - Go to hPanel → Emails → Set up email
-   - Create `contact@yourdomain.com` mailbox
-
-2. **Add Hostinger DKIM records** to `terraform.tfvars`:
-   ```hcl
-   # Standard Hostinger DKIM (3 CNAME records)
-   email_dkim_records = {
-     "hostingermail-a._domainkey" = {
-       type    = "CNAME"
-       content = "hostingermail-a.dkim.mail.hostinger.com"
-     }
-     "hostingermail-b._domainkey" = {
-       type    = "CNAME"
-       content = "hostingermail-b.dkim.mail.hostinger.com"
-     }
-     "hostingermail-c._domainkey" = {
-       type    = "CNAME"
-       content = "hostingermail-c.dkim.mail.hostinger.com"
-     }
-   }
-   ```
-
-3. **Apply DNS Changes**
-   ```bash
-   terraform apply
-   ```
-
-#### Step 2: Set Up Amazon SES (Sending)
-
-Terraform automatically creates the SES domain identity, DKIM authentication,
-configuration set, MAIL FROM domain, and all related DNS records in Cloudflare.
-After running `terraform apply`, one manual step remains:
-
-1. **Request Production Access**
-   - Go to SES Console → Account dashboard
-   - Click "Request production access"
-   - Fill in use case (transactional), sending rate, and a brief description
-   - AWS reviews this (typically 1-2 business days)
-   - Required to send emails to non-verified addresses
-
-#### Step 3: Configure Application
-
-The app sends email via the SES API using the same AWS credentials used for S3.
-No SMTP credentials are needed. Add to your `.env`:
-
-```bash
-# SES API Configuration (uses existing AWS credentials)
-AWS_ACCESS_KEY_ID=AKIA...                    # From terraform output
-AWS_SECRET_ACCESS_KEY=...                    # From terraform output
-SMTP_FROM_EMAIL=noreply@yourdomain.com
-SMTP_FROM_NAME=Germinal
-AWS_REGION=eu-central-1                      # Your AWS region
-CONTACT_EMAIL=contact@yourdomain.com         # Hostinger mailbox
-```
-
-#### Test Email Configuration
-
-```bash
-make dns-email  # Shows email configuration summary
-```
-
-### DNS Records Created
-
-Terraform automatically creates:
-
-| Type | Name | Content | Proxied |
-|------|------|---------|---------|
-| A | `@` | VPS IPv4 | Yes |
-| AAAA | `@` | VPS IPv6 | Yes |
-| CNAME | `www` | `@` | Yes |
-| MX | `@` | Hostinger MX servers | No |
-| TXT | `@` | SPF (dynamic from `email_spf_includes`) | No |
-| TXT | `_dmarc` | DMARC (policy from `email_dmarc_policy`) | No |
-| TXT | `_amazonses` | SES verification token | No |
-| CNAME | `*._domainkey` | SES DKIM (3 records) | No |
-| TXT/CNAME | varies | Mailbox provider DKIM (from `email_dkim_records`) | No |
-| MX | `mail` | SES MAIL FROM feedback endpoint | No |
-| TXT | `mail` | SPF for MAIL FROM subdomain | No |
-
-### View DNS Information
-
-```bash
-make dns-info     # Show application URL and records
-make dns-email    # Show email configuration
-make dns-verify   # Open Cloudflare dashboard
-```
-
-## Security Notes
-
-- **Never commit** `terraform.tfvars` to git (add to `.gitignore`)
-- The IAM access key secret is only shown once after creation - save it securely
-- Rotate credentials periodically if needed:
-  ```bash
-  terraform apply -replace=aws_iam_access_key.app_user
-  ```
-
-## Troubleshooting
-
-### "No configuration files" Error
-You're running terraform from the wrong directory. Make sure you're in the terraform folder:
-```bash
-cd /path/to/germinal/infrastructure/terraform
-terraform init
-terraform apply
-```
-
-### Backend Already Configured Error
-If you see "Backend configuration changed", run:
-```bash
-terraform init -reconfigure
-```
-
-### State Lock Issues
-If a state is locked from a failed run:
-```bash
-terraform force-unlock <LOCK_ID>
-```
-
-### Provider Authentication Errors
-Verify your credentials are configured correctly:
-```bash
-# AWS
-aws sts get-caller-identity
-
-# Hetzner (test token)
-curl -H "Authorization: Bearer YOUR_TOKEN" https://api.hetzner.cloud/v1/servers
-
-# Cloudflare (test token)
-curl -H "Authorization: Bearer YOUR_TOKEN" https://api.cloudflare.com/client/v4/user/tokens/verify
-```
-
-### Import Existing Resources
-If you have existing AWS resources to manage:
-```bash
-terraform import aws_s3_bucket.media your-bucket-name
-```
-
-## Multi-Environment Setup
-
-For separate environments (development, staging, production):
-
-1. Use different directories:
-   ```
-   infrastructure/terraform/
-   ├── development/
-   ├── staging/
-   └── production/
-   ```
-
-2. Or use Terraform workspaces:
-   ```bash
-   terraform workspace new production
-   terraform apply
-   ```
-
-3. Update `terraform.tfvars` for each environment
-
-### Germinal Environment Architecture
-
-| Environment | Purpose | URL | AWS Resources | Server |
-|-------------|---------|-----|---------------|--------|
-| **Development** | Local coding only | `localhost:5173` | None (uses `USE_MOCK_DATA=true`) | Local machine |
-| **Staging** | Test before production | `staging.germinalstudio.co` | `staging-germinal-*` | `46.225.25.238` |
-| **Production** | Live site | `germinalstudio.co` | `production-germinal-*` | TBD |
-
-**Key Points:**
-- Development runs locally with mock data - no AWS resources needed
-- Staging uses `environment = "staging"` in terraform.tfvars
-- Production requires a separate workspace/tfvars with `environment = "production"`
-- Each environment has completely separate S3 buckets, IAM users, and credentials
-
-### Setting Up Production
-
-When ready to deploy production:
+Prerequisites: Terraform ≥ 1.7, the Infisical CLI, `infisical login`, and
+membership of both `germinal-infra` and `germinal`. No AWS profile, no local
+tfvars, no workspace.
 
 ```bash
 cd infrastructure/terraform
-
-# Option 1: Using workspaces (recommended)
-terraform workspace new production
-# Update terraform.tfvars with environment=production
-terraform apply
-
-# Option 2: Using separate tfvars file
-cp terraform.tfvars terraform.tfvars.staging
-cp terraform.tfvars terraform.tfvars.production
-# Edit terraform.tfvars.production with environment=production
-terraform apply -var-file=terraform.tfvars.production
+make init       # S3 backend + providers (versions pinned in .terraform.lock.hcl)
+make plan
+make apply      # also updates the credentials in Infisical
+make validate   # fmt -check + validate, offline
+./tf.sh <any terraform command>   # e.g. ./tf.sh state list
 ```
 
-After production deployment:
-1. Get production credentials: `terraform output -json iam_access_key_secret`
-2. Update production server `/opt/germinal/.env`
-3. Restart production containers: `docker compose up -d --force-recreate app`
+### Rebuilding the server
+
+```bash
+./tf.sh apply -replace=hcloud_server.main
+```
+
+The primary IPs are separate resources (with delete protection and
+`prevent_destroy`), so the new server gets the same addresses and the DNS
+records don't change. Then re-run the Ansible playbooks.
+
+### Rotating the app credentials
+
+```bash
+./tf.sh apply -replace='aws_iam_access_key.app_user["production"]'   # or "staging"
+./tf.sh apply -replace=aws_iam_access_key.app_germinal                # dev
+```
+
+The new key is written to Infisical in the same apply, and the Agent picks it up.
+
+### Twilio API keys (manual)
+
+Twilio API keys are **not** managed by Terraform: the Twilio provider cannot
+return a key's secret (twilio/terraform-provider-twilio#82), so Terraform
+could not write it to Infisical. Per environment:
+
+1. Twilio console → Account → API keys & tokens → **Create API key**
+   (Standard), named `<env>-germinal-app`.
+2. Put the SID and secret in Infisical `germinal/<env>/twilio` as
+   `TWILIO_API_KEY_SID` and `TWILIO_API_KEY_SECRET`.
+3. Delete the previous key in the Twilio console once the app runs with the new one.
+
+## After the first apply (one-time, issue 012)
+
+The first apply after the move to one state (Phase 6) imports the old
+`production` workspace's resources and creates **new** access keys for
+`production-germinal-app` and `app-germinal` (AWS never returns an existing
+key's secret, so the old keys could not be written to Infisical). Afterwards:
+
+1. Check `./tf.sh plan` shows no changes.
+2. Delete the **old** access key of `production-germinal-app` and of
+   `app-germinal` (IAM console → user → Security credentials; the one Terraform
+   did not just create). If your local `app-germinal` AWS profile uses the old
+   key, update it from `germinal/dev/s3` first.
+3. Retire the old workspace: `./tf.sh workspace delete -force production`
+   (drops that state only; its resources are all in `default` now).
+4. Optional: delete the `production` workspace's unused duplicates, which
+   Terraform no longer tracks: the ACM certificate for `media.<domain>` tagged
+   `Environment = production` (us-east-1) and the CloudFront OAC
+   `production-germinal-media-oac`.
+5. Delete `migration.tf`.
+
+## Files
+
+```
+main.tf            backend (S3, eu-west-3, lockfile) and providers
+locals.tf          environments, shared-resource naming
+variables.tf       inputs (secrets marked sensitive)
+terraform.tfvars   non-secret input values (committed)
+hetzner.tf         server + primary IPs
+cloudflare.tf      DNS records
+s3.tf, backups.tf  per-environment buckets, IAM user, policies, access key
+ses.tf             SES identity, DKIM, MAIL FROM, per-environment send policy
+cloudfront.tf      media CDN + ACM certificate
+app-germinal.tf    S3-only IAM user for local development
+infisical.tf       credentials written into the germinal project
+migration.tf       one-time move from two workspaces to one state (issue 012)
+backend.tf         the state bucket itself (and the old, unused DynamoDB lock table)
+tf.sh, Makefile    run Terraform through Infisical
+```
+
+## Email
+
+Sending goes through the Amazon SES API with each environment's app
+credentials; receiving is Zoho Mail. SES DNS records are created from
+`ses.tf`; the mailbox records (MX, SPF, DKIM) come from `terraform.tfvars`.
+The only manual SES step is requesting production access in the AWS console.
+`make dns-email` prints a summary.
+
+## Troubleshooting
+
+- **"no Infisical session"**: run `infisical login`.
+- **`No value for required variable "hcloud_token"`**: the key in
+  `germinal-infra` must be named exactly `TF_VAR_hcloud_token`.
+- **State lock held** after an interrupted run: `./tf.sh force-unlock <LOCK_ID>`.
