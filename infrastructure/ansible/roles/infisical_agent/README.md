@@ -38,7 +38,7 @@ Because the rendered env files are root-only `0600`, deploys that run `docker co
 
 ## The credential
 
-The `germinal-vps` client ID and secret are **read from the operator at run time only** — never from a file in the repo and never from the Ansible Vault (ADR 0004):
+The `germinal-vps` client ID and secret are **read from the operator at run time only** — never from a file in the repo (ADR 0004):
 
 - `INFISICAL_AGENT_CLIENT_ID` / `INFISICAL_AGENT_CLIENT_SECRET` exported on the control machine (the role's defaults pick them up), or
 - the prompts in [`playbooks/infisical-agent.yml`](../../playbooks/infisical-agent.yml) (the secret is not echoed).
@@ -73,4 +73,5 @@ INFISICAL_AGENT_CLIENT_ID=… INFISICAL_AGENT_CLIENT_SECRET=… \
 
 `playbooks/site.yml` also includes the role: it runs when the two environment variables are set on the control machine, and is skipped (with a note) otherwise.
 
-The role never reads the Ansible Vault (or any `vault_*` variable).
+The role reads no secret from the repo: its only inputs are the run-time
+credential and the committed templates.

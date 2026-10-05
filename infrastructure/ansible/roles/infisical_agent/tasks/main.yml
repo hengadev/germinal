@@ -17,7 +17,7 @@
     fail_msg: >-
       The germinal-vps machine-identity credential is missing. It is read
       from the operator at run time only — never from a file in this repo
-      and never from the Ansible Vault (ADR 0004). Export
+      (ADR 0004). Export
       INFISICAL_AGENT_CLIENT_ID and INFISICAL_AGENT_CLIENT_SECRET, or run
       playbooks/infisical-agent.yml and answer the prompts.
     quiet: true

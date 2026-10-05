@@ -2,20 +2,37 @@
 # Germinal VPS - Complete Setup
 # Usage: ansible-playbook -i inventory/hosts.yml playbooks/site.yml
 #
-# With custom variables:
+# Needs only an SSH key and `infisical login` on the control machine — no
+# local secret files, no local rendering (ADR 0004, issue 011):
+#
 #   ansible-playbook -i inventory/hosts.yml playbooks/site.yml \
 #     -e "ansible_host=1.2.3.4" \
-#     -e "deploy_ssh_public_key=$(cat ~/.ssh/germinal.pub)" \
+#     -e "deploy_ssh_public_key=$(cat ~/.ssh/germinal-workstation.pub)" \
 #     -e "app_domain=yourdomain.com"
+#
+# For several keys (one per operator computer plus the CI deploy key), use a
+# vars file instead of an inline list (see playbooks/group_vars/all.yml):
+#   ansible-playbook … -e @deploy-keys.yml   # { deploy_ssh_public_keys: […] }
 #
 # Using Terraform outputs:
 #   ansible-playbook -i inventory/hosts.yml playbooks/site.yml \
 #     -e "ansible_host=$(terraform output -raw server_ipv4_address)" \
 #     -e "app_domain=$(terraform output -raw domain_name)"
+#
+# With INFISICAL_AGENT_CLIENT_ID / INFISICAL_AGENT_CLIENT_SECRET exported,
+# the Infisical Agent is installed in the same run (roles/infisical_agent).
 
 - name: Germinal VPS - Complete Setup
   hosts: germinal_servers
   gather_facts: true
+
+  vars:
+    # The `germinal` Infisical project. A play var (not group_vars) so it is
+    # also visible inside the delegated-to-localhost /host lookup below —
+    # delegated tasks resolve variables against the delegate host, and the
+    # implicit localhost has no group vars. Not a secret: it is already
+    # committed in the Agent templates (infrastructure/infisical/templates/).
+    infisical_project_id: "78c404c2-a76c-4967-8ff0-e7544f1b6fff"
 
   pre_tasks:
     - name: Display target host
@@ -32,11 +49,68 @@
         (lookup('env', 'INFISICAL_AGENT_CLIENT_ID') | length == 0)
         or (lookup('env', 'INFISICAL_AGENT_CLIENT_SECRET') | length == 0)
 
+    # The notification email (fail2ban, unattended-upgrades, ACME) is the one
+    # value the setup still needs that is not a file on the target host. It is
+    # read from Infisical /host (env prod) on the control node through the
+    # operator's own `infisical login` — never from the repo and never from
+    # a local encrypted file (ADR 0004). Read-only, so it also
+    # runs in check mode; no_log because the value passes through.
+    - name: Look up NOTIFY_EMAIL in Infisical /host through the operator's login
+      ansible.builtin.command:
+        cmd: >-
+          infisical secrets get NOTIFY_EMAIL
+          --projectId={{ infisical_project_id }}
+          --env=prod --path=/host --output=dotenv --silent
+      delegate_to: localhost
+      become: false
+      register: germinal_host_notify_lookup
+      changed_when: false
+      check_mode: false
+      failed_when: false
+      no_log: true
+
+    - name: Apply the notification email from Infisical /host
+      # The when guard below has already checked the output is exactly one
+      # NOTIFY_EMAIL=<value> line, so a split is enough — regex escapes are a
+      # quoting trap inside a double-quoted YAML scalar.
+      ansible.builtin.set_fact:
+        host_notify_email: "{{ germinal_host_notify_lookup.stdout.split('=', 1)[1] | trim }}"
+      when:
+        - germinal_host_notify_lookup.rc == 0
+        - germinal_host_notify_lookup.stdout is match('NOTIFY_EMAIL=\S+')
+      no_log: true
+
+    # A real run stops here instead of silently falling back to a placeholder
+    # address (issue 011); --check only warns, so it works without a login.
+    - name: Stop when the notification email could not be read from Infisical
+      ansible.builtin.fail:
+        msg: >-
+          Could not read NOTIFY_EMAIL from Infisical /host (infisical exited
+          with {{ germinal_host_notify_lookup.rc }}). Install the Infisical
+          CLI, run `infisical login`, and re-run the setup.
+      when:
+        - not ansible_check_mode
+        - >-
+          germinal_host_notify_lookup.rc != 0
+          or not (germinal_host_notify_lookup.stdout is match('NOTIFY_EMAIL=\S+'))
+
+    - name: Warn when the notification email could not be read from Infisical
+      ansible.builtin.debug:
+        msg: >-
+          Could not read NOTIFY_EMAIL from Infisical /host (infisical exited
+          with {{ germinal_host_notify_lookup.rc }}). Using the fallback
+          '{{ host_notify_email }}' for fail2ban, unattended-upgrades and
+          ACME notifications. Install the Infisical CLI, run
+          `infisical login`, and re-run the setup to fix this.
+      when: >-
+        germinal_host_notify_lookup.rc != 0
+        or not (germinal_host_notify_lookup.stdout is match('NOTIFY_EMAIL=\S+'))
+
     - name: Check if running as root
       ansible.builtin.assert:
         that:
           - ansible_user == 'root'
-        fail_msg: "Initial setup must run as root. After first run, use deploy playbook."
+        fail_msg: "Initial setup must run as root. After first run, use the deploy user."
         quiet: true
 
   roles:
@@ -70,15 +144,7 @@
         and (lookup('env', 'INFISICAL_AGENT_CLIENT_SECRET') | length > 0)
 
     - role: app
-      tags: ['app', 'deploy']
-
-    - role: monitoring
-      tags: ['monitoring', 'setup']
-      when: monitoring_enabled | default(false)
-
-    - role: uptime_monitoring
-      tags: ['uptime', 'setup']
-      when: uptimerobot_api_key is defined
+      tags: ['app', 'setup']
 
   post_tasks:
     - name: Display setup completion message
@@ -92,10 +158,12 @@
           - "Domain: {{ app_domain }}"
           - "Deploy user: {{ deploy_user }}"
           - "Reverse proxy: {{ 'Caddy' if caddy_enabled | default(false) else 'None' }}"
+          - "Infisical Agent: {{ 'installed' if (lookup('env', 'INFISICAL_AGENT_CLIENT_ID') | length > 0) and (lookup('env', 'INFISICAL_AGENT_CLIENT_SECRET') | length > 0) else 'skipped (run playbooks/infisical-agent.yml)' }}"
           - ""
           - "Next steps:"
-          - "  1. Copy your .env file to {{ app_base_dir }}/.env"
-          - "  2. Run: ansible-playbook playbooks/deploy.yml"
-          - "  3. Or manually: ssh {{ deploy_user }}@{{ ansible_default_ipv4.address }}"
-          - ""
+          - "  1. Check the Agent: systemctl status infisical-agent, and the"
+          - "     env files under /opt/germinal{,-staging}/env (root, 0600)."
+          - "  2. Releases go through CI (.github/workflows): a push to main"
+          - "     deploys staging; Promote to production ships the SHA staging"
+          - "     serves. Nothing is deployed from this machine."
           - "==========================================="

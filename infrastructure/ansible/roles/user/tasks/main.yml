@@ -40,8 +40,10 @@
       # Log viewing
       {{ deploy_user }} ALL=(ALL) NOPASSWD: /usr/bin/journalctl, /bin/cat /var/log/*
 
-      # Application restart scripts (if they exist)
-      {{ deploy_user }} ALL=(ALL) NOPASSWD: {{ app_base_dir }}/prod-start.sh, {{ app_base_dir }}/scripts/*.sh
+      # Application scripts (backup/restore helpers installed by
+      # playbooks/backup.yml; prod-start.sh is gone with the old release
+      # paths — CI's deploy script lives in /usr/local/bin)
+      {{ deploy_user }} ALL=(ALL) NOPASSWD: {{ app_base_dir }}/scripts/*.sh
 
       # Backup operations
       {{ deploy_user }} ALL=(ALL) NOPASSWD: /usr/bin/aws s3 *
@@ -82,6 +84,15 @@
   ansible.builtin.set_fact:
     deploy_user_public_keys: "{{ deploy_user_key_candidates | select('match', '.+') | unique | list }}"
 
+- name: Check whether the deploy user exists yet
+  # In --check against a fresh host the user creation above is skipped, and
+  # the authorized_key module cannot operate on a user that does not exist
+  # yet. On a real run (or against a configured host) the home directory
+  # exists and key management proceeds normally.
+  ansible.builtin.stat:
+    path: "/home/{{ deploy_user }}"
+  register: deploy_user_home
+
 - name: Manage the deploy user's authorized_keys as a list
   # exclusive: the list is the source of truth — a key removed from the list
   # is removed from the server on the next run, and keys appended by hand do
@@ -91,7 +102,9 @@
     key: "{{ deploy_user_public_keys | join('\n') }}"
     exclusive: true
     state: present
-  when: deploy_user_public_keys | length > 0
+  when:
+    - deploy_user_public_keys | length > 0
+    - deploy_user_home.stat.exists
 
 # Root's authorized_keys is left alone (the operator's key is already there:
 # that is how the playbook was reached as root). The deploy user's
@@ -114,10 +127,14 @@
     owner: "{{ deploy_user }}"
     group: "{{ deploy_user }}"
     mode: '0600'
+  when: deploy_user_home.stat.exists
 
 - name: Grant deploy user ownership of app directories
+  # state: directory keeps this idempotent (and --check-friendly on a fresh
+  # host, where the system role's creation was only simulated).
   ansible.builtin.file:
     path: "{{ item }}"
+    state: directory
     owner: "{{ deploy_user }}"
     group: "{{ deploy_user }}"
     mode: '0750'

@@ -152,10 +152,5 @@ layout (printed at the end) for inspection and skips image removal.
 - **009 (staging CI)** and **010 (promote/rollback)**: copy these files from
   the deployed commit, run `deploy` over SSH with sudo, and wire the
   sudoers/SSH plumbing implied above.
-- **011 (Ansible cleanup)**: the old templated compose in `roles/app`, the
-  Vault and `make deploy`/`make deploy-staging` go away; Ansible keeps
-  creating the directories above, `germinal_network` and the
-  `germinal_staging` Postgres role/database (PRD M4 — the harness creates
-  them with the equivalent SQL).
 - **013 (backup)**: the backup job reads `/opt/germinal/env/backup.env` and
   the data directories above.

@@ -1,79 +1,19 @@
 ---
-# Application Deployment Tasks
-# - Create Docker network
-# - Create directory structure
-# - Setup environment file
-# - Create Docker Compose configuration
-# - Start application services
+# Application role tasks (issue 011, PRD module M4)
+#
+# This role creates directories — and nothing else. Everything that used to
+# be rendered here now belongs to another mechanism:
+#   env/*.env                        the Infisical Agent (roles/infisical_agent)
+#   docker-compose.yml, /usr/local/bin/deploy   copied by CI (issues 009/010)
+# Releases never go through Ansible: CI runs `deploy <stack> <sha>` on the
+# server (infrastructure/compose/). There is no .env template and no
+# templated compose file anymore (ADR 0004).
 
-- name: Create Docker network
-  community.docker.docker_network:
-    name: "{{ app_name }}_network"
-    state: present
-  become_user: "{{ deploy_user }}"
-  become: true
-
-- name: Create application subdirectories
+- name: Create the compose stack directories
   ansible.builtin.file:
-    path: "{{ item }}"
+    path: "{{ item.path }}"
     state: directory
-    owner: "{{ deploy_user }}"
-    group: "{{ deploy_user }}"
-    mode: '0750'
-  become: true
-  loop:
-    - "{{ app_base_dir }}/scripts"
-    - "{{ app_base_dir }}/config"
-
-- name: Create .env file from template
-  ansible.builtin.template:
-    src: env.j2
-    dest: "{{ app_base_dir }}/.env"
-    owner: "{{ deploy_user }}"
-    group: "{{ deploy_user }}"
-    mode: '0600'
-
-- name: Create Docker Compose configuration
-  ansible.builtin.template:
-    src: docker-compose.yml.j2
-    dest: "{{ app_base_dir }}/docker-compose.yml"
-    owner: "{{ deploy_user }}"
-    group: "{{ deploy_user }}"
-    mode: '0640'
-
-- name: Create production startup script
-  ansible.builtin.template:
-    src: prod-start.sh.j2
-    dest: "{{ app_base_dir }}/prod-start.sh"
-    owner: "{{ deploy_user }}"
-    group: "{{ deploy_user }}"
-    mode: '0750'
-
-- name: Create logrotate config for application logs
-  ansible.builtin.copy:
-    dest: /etc/logrotate.d/{{ app_name }}
-    content: |
-      {{ app_logs_dir }}/*.log {
-        daily
-        rotate 14
-        compress
-        delaycompress
-        missingok
-        notifempty
-        create 0640 {{ deploy_user }} {{ deploy_user }}
-      }
-    mode: '0644'
-  become: true
-  become_user: root
-
-- name: Create health check script
-  ansible.builtin.template:
-    src: health-check.sh.j2
-    dest: "{{ app_base_dir }}/scripts/health-check.sh"
-    owner: "{{ deploy_user }}"
-    group: "{{ deploy_user }}"
-    mode: '0750'
-
-- name: Mark application as deployed
-  ansible.builtin.set_fact:
-    app_deployed: true
+    owner: "{{ item.owner | default('root') }}"
+    group: "{{ item.group | default('root') }}"
+    mode: "{{ item.mode | default('0755') }}"
+  loop: "{{ app_stack_directories }}"

@@ -1,6 +1,9 @@
 # Germinal Ansible Configuration
 
-Automated VPS provisioning and application deployment using Ansible.
+Automated VPS provisioning using Ansible. The setup needs only an SSH key
+and `infisical login` on the control machine — no encrypted variable files,
+no local secrets (ADR 0004). Releases never go through Ansible: CI deploys
+(see "Releases" below).
 
 ## What This Does
 
@@ -15,32 +18,31 @@ Automated VPS provisioning and application deployment using Ansible.
 - **Restricted sudo** - deploy user can only run specific commands
 - **Caddy reverse proxy (Docker)** - app reachable only on the Docker network, Caddy handles TLS
 - **Docker metrics** - bound to localhost only (127.0.0.1:9323)
-- **Ansible Vault** - encrypted secrets management
 
 ### System Setup
 - Docker & Docker Compose installation
 - Non-root deploy user with **restricted sudo**
 - Caddy reverse proxy (Docker container) with automatic SSL/TLS and security headers
-- Application directory structure
+- Infisical Agent (systemd service) rendering one env file per consumer (see [the role README](roles/infisical_agent/README.md))
+- The compose directory layout under `/opt/germinal` and `/opt/germinal-staging`
 - Logrotate configuration
 
 ### SSL/TLS Configuration
 - Caddy reverse proxy with TLS termination
-- Automatic certificates via Let's Encrypt DNS-01 challenge (Cloudflare API token)
+- Automatic certificates via Let's Encrypt DNS-01 challenge — the Cloudflare
+  token reaches Caddy through its environment (`env/caddy.env`, rendered by
+  the Infisical Agent), never through Ansible
 - Security headers (HSTS, X-Frame-Options, etc.)
 - OCSP stapling enabled
 
-### Application Deployment
-- Docker Compose configuration
-- Environment file management
-- Health check scripts
-- Service management scripts
-
-### Database Backups
-- Automated PostgreSQL backups to S3
-- Tiered retention (daily/weekly/monthly)
-- S3 lifecycle integration
-- AWS CLI configuration
+### Configuration Values
+Every application and infrastructure value lives in Infisical (ADR 0004):
+the Agent renders `app.env`, `postgres.env`, `caddy.env`, `backup.env` and
+`admin.env` on the server. The one value Ansible still needs at setup time —
+the notification email for fail2ban, unattended-upgrades and ACME — is read
+from Infisical `/host` (`NOTIFY_EMAIL`, env `prod`) on the control node
+through the operator's own `infisical login`; if the lookup fails, the setup
+warns and falls back to `root@localhost`.
 
 ## Prerequisites
 
@@ -56,13 +58,17 @@ pip install ansible
 
 # Install required collections
 ansible-galaxy collection install community.docker community.general
+
+# Log in to the team's Infisical instance (for the /host lookup and the
+# Agent credential prompts)
+infisical login
 ```
 
 ### VPS Access
 
 You need:
 - Root SSH access to your VPS
-- Your public SSH key (`~/.ssh/germinal.pub`)
+- Your public SSH key(s)
 
 ### Terraform Outputs
 
@@ -82,7 +88,7 @@ terraform output domain_name
 cd infrastructure/ansible
 
 # Set your SSH public key
-export DEPLOY_SSH_PUBLIC_KEY="$(cat ~/.ssh/germinal.pub)"
+export DEPLOY_SSH_PUBLIC_KEY="$(cat ~/.ssh/germinal-workstation.pub)"
 
 # Set your domain
 export APP_DOMAIN="yourdomain.com"
@@ -97,80 +103,32 @@ ansible-playbook -i inventory/hosts.yml playbooks/site.yml \
   -e "app_domain=$APP_DOMAIN"
 ```
 
-### 2. Configure Environment Variables
+With `INFISICAL_AGENT_CLIENT_ID` / `INFISICAL_AGENT_CLIENT_SECRET` exported
+(or by answering the prompts of `playbooks/infisical-agent.yml`), the
+Infisical Agent is installed in the same run and renders the env files.
 
-After setup completes, SSH into the server and configure your `.env`:
+### 2. Deploy the Application
 
-```bash
-# SSH as deploy user
-ssh deploy@$(cd ../terraform && terraform output -raw server_ipv4_address)
+Releases go through CI, never from your machine:
 
-# Edit environment file
-cd /opt/germinal
-nano .env
-```
+- A push to `main` builds the image and deploys it to **staging**
+  automatically.
+- The manual **Promote to production** workflow ships the exact SHA staging
+  is serving (and rolls back the same way).
 
-Required variables:
-```bash
-# Database
-POSTGRES_USER=germinal
-POSTGRES_PASSWORD=<secure_password>
-POSTGRES_DB=germinal
-
-# Session
-SESSION_SECRET=<random_32_char_string>
-
-# AWS S3 (from Terraform outputs)
-S3_BUCKET=<from terraform>
-S3_REGION=eu-central-1
-AWS_ACCESS_KEY_ID=<from terraform>
-AWS_SECRET_ACCESS_KEY=<from terraform>
-
-# Email (Amazon SES)
-SMTP_HOST=email.eu-central-1.amazonaws.com
-SMTP_PORT=587
-SMTP_SECURE=false
-SMTP_USER=<SES_SMTP_user>
-SMTP_PASSWORD=<SES_SMTP_password>
-SMTP_FROM_EMAIL=noreply@yourdomain.com
-SMTP_FROM_NAME=Germinal
-
-# Contact
-CONTACT_EMAIL=contact@yourdomain.com
-```
-
-### 3. Deploy Application
-
-```bash
-# Using Ansible
-ansible-playbook playbooks/deploy.yml \
-  -e "ansible_host=$ANSIBLE_HOST"
-
-# Or manually on the server
-ssh deploy@<server-ip>
-cd /opt/germinal
-./prod-start.sh
-```
-
-### 4. Setup Database Backups
-
-```bash
-# Get backup bucket from Terraform
-BACKUP_BUCKET=$(cd ../terraform && terraform output -raw backup_bucket_name)
-
-# Run backup setup
-ansible-playbook playbooks/backup.yml \
-  -e "ansible_host=$ANSIBLE_HOST" \
-  -e "backup_s3_bucket=$BACKUP_BUCKET" \
-  -e "backup_aws_access_key=<your_key>" \
-  -e "backup_aws_secret_key=<your_secret>"
-```
+See `.github/workflows/` and `infrastructure/compose/README.md` for the
+`deploy <stack> <sha>` entry point those workflows run over SSH.
 
 ## Playbooks
 
 ### `site.yml` - Complete Setup
 
-Run this on a fresh VPS to set up everything. The `infisical_agent` role is included and runs when `INFISICAL_AGENT_CLIENT_ID` / `INFISICAL_AGENT_CLIENT_SECRET` are exported on the control machine (see [the role README](roles/infisical_agent/README.md)); without them it is skipped with a note.
+Run this on a fresh VPS to set up everything: hardening, Docker, the deploy
+user, Caddy, the Infisical Agent (when its credential is provided) and the
+compose directory layout. The `infisical_agent` role is included and runs
+when `INFISICAL_AGENT_CLIENT_ID` / `INFISICAL_AGENT_CLIENT_SECRET` are
+exported on the control machine (see [the role README](roles/infisical_agent/README.md));
+without them it is skipped with a note.
 
 ```bash
 ansible-playbook playbooks/site.yml \
@@ -185,26 +143,15 @@ Tags:
 - `firewall` - UFW firewall setup
 - `docker` - Docker installation
 - `user` - Deploy user setup
-- `app` - Application deployment
-
-### `deploy.yml` - Application Deployment
-
-Deploy or update the application only:
-
-```bash
-ansible-playbook playbooks/deploy.yml \
-  -e "ansible_host=<server-ip>" \
-  -e "app_repo=git@github.com:yourusername/germinal.git" \
-  -e "app_branch=main"
-```
+- `app` - Compose directory layout
 
 ### `infisical-agent.yml` - Install or rotate the Infisical Agent
 
 Installs the Infisical Agent that renders the server's env files from
 Infisical (ADR 0004). Prompts for the `germinal-vps` client ID and secret —
-they are never read from a file in the repo and never from the Ansible
-Vault. Re-running it with a new client secret is the rotation procedure.
-See [roles/infisical_agent/README.md](roles/infisical_agent/README.md).
+they are never read from a file in the repo. Re-running it with a new client
+secret is the rotation procedure. See
+[roles/infisical_agent/README.md](roles/infisical_agent/README.md).
 
 ```bash
 INFISICAL_AGENT_CLIENT_ID=… INFISICAL_AGENT_CLIENT_SECRET=… \
@@ -230,39 +177,20 @@ ansible-playbook playbooks/backup.yml \
 |----------|-------------|---------|
 | `ansible_host` | VPS IP address | Required |
 | `app_domain` | Your domain name | `your-domain.com` |
-| `app_port` | Application port | `3000` |
-| `ssh_port` | SSH port | `22` |
 
-### Group Variables (`group_vars/all.yml`)
+### Group Variables (`playbooks/group_vars/all.yml`)
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `deploy_user` | Deploy user name | `deploy` |
-| `deploy_ssh_public_key` | SSH public key | Required |
+| `deploy_user` | Deploy user name | `germinal` |
+| `deploy_ssh_public_keys` | Deploy user SSH keys (list) | `[]` |
+| `host_notify_email` | Notification email (overridden by the Infisical `/host` lookup) | `root@localhost` |
 | `auto_security_updates` | Enable auto updates | `true` |
 | `fail2ban_enabled` | Enable fail2ban | `true` |
 | `backup_enabled` | Enable backups | `true` |
 
-### Application Environment Variables
-
-**Use Ansible Vault for sensitive variables!** See [VAULT.md](VAULT.md) for details.
-
-```bash
-# Create and encrypt vault
-cp group_vars/all.vault.example.yml group_vars/all.vault.yml
-nano group_vars/all.vault.yml  # Add your actual values
-ansible-vault encrypt group_vars/all.vault.yml
-
-# Run playbooks with vault
-ansible-playbook playbooks/site.yml --ask-vault-pass
-```
-
-For non-sensitive variables, pass as extra vars:
-
-```bash
-ansible-playbook playbooks/site.yml \
-  -e "app_domain=yourdomain.com"
-```
+Sensitive values are **not** variables: they live in Infisical and reach the
+server through the Agent-rendered env files (ADR 0004).
 
 ## Directory Structure
 
@@ -271,22 +199,23 @@ infrastructure/ansible/
 ├── ansible.cfg                 # Ansible configuration
 ├── inventory/
 │   └── hosts.yml              # Inventory file
-├── group_vars/
-│   └── all.yml                # Global variables
 ├── playbooks/
+│   ├── group_vars/
+│   │   └── all.yml           # Global variables (no secrets)
 │   ├── site.yml               # Complete setup
-│   ├── deploy.yml             # Application deployment
+│   ├── infisical-agent.yml    # Agent install / rotation
 │   ├── backup.yml             # Backup configuration
 │   └── templates/             # Backup templates
 └── roles/
     ├── system/                # Base system hardening
     ├── ssh/                   # SSH hardening
     ├── firewall/              # UFW configuration
-    ├── docker/                # Docker installation
+    ├── docker/                # Docker installation (+ germinal_network)
     ├── user/                  # Deploy user setup (authorized_keys as a list)
+    ├── fail2ban/              # Brute-force protection
     ├── caddy/                 # Reverse proxy with retry window
     ├── infisical_agent/       # Infisical Agent (env files, 0600, rotation)
-    └── app/                   # Application deployment
+    └── app/                   # Compose directory layout (nothing else)
 ```
 
 ## Security Features
@@ -306,7 +235,6 @@ infrastructure/ansible/
 - Deploy user can only run specific commands without password:
   - `docker`, `docker-compose`
   - `systemctl` (docker)
-  - Application scripts in `/opt/germinal/scripts/`
 - Optional password-based sudo for other commands
 - See `/opt/germinal/scripts/test-sudo.sh` to verify
 
@@ -318,14 +246,14 @@ infrastructure/ansible/
 ### Caddy Reverse Proxy
 - Caddy runs as a Docker container on the app network
 - Application containers are not exposed to the host (Docker network only)
-- Automatic TLS via Let's Encrypt DNS-01 challenge (Cloudflare API token)
+- Automatic TLS via Let's Encrypt DNS-01 challenge (Cloudflare token from the environment)
 - Security headers: HSTS, X-Content-Type-Options, X-Frame-Options, Referrer-Policy
 - Large file upload support (configurable via `request_body`)
 
 ### Docker Security
 - Metrics endpoint bound to localhost only (127.0.0.1:9323)
 - Users in docker group have root-equivalent access
-- Only add trusted users to docker group
+- Only add trusted users to the docker group
 
 ### System Updates
 - Automatic security updates (unattended-upgrades)
@@ -334,34 +262,18 @@ infrastructure/ansible/
 
 ## Maintenance
 
-### Update Application
+### Check Service Status
 
 ```bash
-# Pull latest image and restart
-ansible-playbook playbooks/deploy.yml \
-  -e "ansible_host=<server-ip>"
-```
-
-### Manual Backup
-
-```bash
-ssh deploy@<server-ip>
-cd /opt/germinal
-./scripts/backup-db.sh daily
+ssh germinal@<server-ip>
+docker compose -f /opt/germinal/docker-compose.yml ps
 ```
 
 ### View Logs
 
 ```bash
-ssh deploy@<server-ip>
+ssh germinal@<server-ip>
 docker compose -f /opt/germinal/docker-compose.yml logs -f
-```
-
-### Check Service Status
-
-```bash
-ssh deploy@<server-ip>
-docker compose -f /opt/germinal/docker-compose.yml ps
 ```
 
 ## Troubleshooting
@@ -372,13 +284,6 @@ Make sure you can reach the server:
 ```bash
 ping <server-ip>
 ssh root@<server-ip>
-```
-
-### Permission Denied
-
-Check your SSH key is configured:
-```bash
-cat ~/.ssh/germinal.pub
 ```
 
 ### Playbook Fails
@@ -392,7 +297,7 @@ ansible-playbook playbooks/site.yml -vvv
 
 Check logs:
 ```bash
-ssh deploy@<server-ip>
+ssh germinal@<server-ip>
 docker compose -f /opt/germinal/docker-compose.yml logs
 ```
 
@@ -405,14 +310,5 @@ After initial setup, verify:
 - [ ] UFW firewall enabled
 - [ ] Fail2ban running
 - [ ] Deploy user has sudo access
-- [ ] Docker containers running as non-root
-- [ ] Environment files have correct permissions (0600)
+- [ ] Agent-rendered env files have correct permissions (0600, root-owned)
 - [ ] Backups configured
-
-## Next Steps
-
-1. Set up monitoring (optional)
-2. Configure SSL certificates (Cloudflare handles this)
-3. Set up CI/CD pipeline
-4. Configure log aggregation
-5. Set up staging environment

@@ -1,35 +1,37 @@
 # Germinal Ansible Makefile
 # Usage: make <target>
+#
+# This Makefile provisions the server; it never releases. Releases go
+# through CI (.github/workflows): a push to main deploys staging, and the
+# Promote-to-production workflow ships the SHA staging is serving.
 
-.PHONY: help setup deploy deploy-staging restart restart-staging backup check-clean lint \
-        ssh-info status staging-status logs staging-logs health-check \
-        install-deps vars-test
+.PHONY: help setup backup check-clean lint \
+        ssh-info status staging-status logs staging-logs \
+        install-deps vars-test terraform-outputs
 
 # Default target
 help:
 	@echo "Germinal Ansible Commands"
 	@echo "============================"
 	@echo ""
-	@echo "Setup:"
+	@echo "Setup (needs only an SSH key and 'infisical login' on this machine):"
 	@echo "  make setup           - Complete VPS setup (first time only)"
-	@echo "  make deploy          - Deploy/update production"
-	@echo "  make deploy-staging  - Deploy/update staging (+ update Caddy)"
-	@echo "  make restart         - Pull latest image and restart production (quick)"
-	@echo "  make restart-staging - Pull latest image and restart staging (quick)"
 	@echo "  make backup          - Configure database backups"
+	@echo ""
+	@echo "Releases: NOT here. CI deploys (.github/workflows): a push to main"
+	@echo "  deploys staging; 'Promote to production' ships the SHA staging serves."
 	@echo ""
 	@echo "Verification:"
 	@echo "  make check-clean  - Check for syntax errors"
 	@echo "  make lint         - Run ansible-lint"
 	@echo "  make vars-test    - Display effective variables"
 	@echo ""
-	@echo "Server Operations:"
+	@echo "Server Operations (read-only):"
 	@echo "  make ssh-info        - Display SSH connection details"
 	@echo "  make status          - Check production service status"
 	@echo "  make staging-status  - Check staging service status"
 	@echo "  make logs            - View production logs"
 	@echo "  make staging-logs    - View staging logs"
-	@echo "  make health-check    - Run health check on server"
 	@echo ""
 	@echo "Dependencies:"
 	@echo "  make install-deps - Install Ansible dependencies"
@@ -46,7 +48,7 @@ SSH_KEY=$(shell cat ~/.ssh/germinal.pub 2>/dev/null || cat ~/.ssh/id_rsa.pub 2>/
 # Setup Commands
 # ============================================
 
-# Complete VPS setup (run once on fresh server)
+# Complete VPS setup (run once on a fresh server)
 setup:
 	@echo "==========================================="
 	@echo "Germinal VPS Setup"
@@ -65,67 +67,9 @@ setup:
 	@echo ""
 	@echo "Running setup playbook..."
 	ansible-playbook -i inventory/hosts.yml playbooks/site.yml \
-		--ask-vault-pass \
 		-e "ansible_host=$(VPS_IP)" \
 		-e "deploy_ssh_public_key=$(SSH_KEY)" \
-		-e "app_domain=$(DOMAIN)" \
-		-e "@group_vars/all.yml" \
-		-e "@group_vars/all.vault.yml"
-
-# Deploy production application
-deploy:
-	@echo "==========================================="
-	@echo "Germinal Production Deployment"
-	@echo "==========================================="
-	@echo ""
-	@if [ -z "$(VPS_IP)" ]; then \
-		echo "Error: Could not get VPS IP from Terraform."; \
-		exit 1; \
-	fi
-	@echo "Deploying to: $(VPS_IP)"
-	@echo ""
-	ansible-playbook -i inventory/hosts.yml playbooks/deploy.yml \
-		--ask-vault-pass \
-		-e "ansible_host=$(VPS_IP)" \
-		-e "@group_vars/all.yml" \
-		-e "@group_vars/all.vault.yml"
-
-# Deploy staging application (also updates prod Caddy for staging domains)
-deploy-staging:
-	@echo "==========================================="
-	@echo "Germinal Staging Deployment"
-	@echo "==========================================="
-	@echo ""
-	@if [ -z "$(VPS_IP)" ]; then \
-		echo "Error: Could not get VPS IP from Terraform."; \
-		exit 1; \
-	fi
-	@if [ ! -f "group_vars/germinal_staging.vault.yml" ]; then \
-		echo "Error: group_vars/germinal_staging.vault.yml not found."; \
-		echo "Copy group_vars/germinal_staging.vault.example.yml and encrypt it:"; \
-		echo "  cp group_vars/germinal_staging.vault.example.yml group_vars/germinal_staging.vault.yml"; \
-		echo "  ansible-vault encrypt group_vars/germinal_staging.vault.yml"; \
-		exit 1; \
-	fi
-	@echo "Deploying staging to: $(VPS_IP)"
-	@echo ""
-	ansible-playbook -i inventory/hosts.yml playbooks/deploy-staging.yml \
-		--ask-vault-pass \
-		-e "ansible_host=$(VPS_IP)" \
-		-e "@group_vars/all.yml" \
-		-e "@group_vars/all.vault.yml" \
-		-e "@group_vars/germinal_staging.yml" \
-		-e "@group_vars/germinal_staging.vault.yml"
-
-# Quick restart: pull latest app image and restart only the app container
-restart:
-	@echo "Pulling latest prod image and restarting..."
-	@ssh -i ~/.ssh/germinal germinal@$(VPS_IP) "cd /opt/germinal && docker compose pull app && docker compose up -d app"
-
-# Quick restart for staging
-restart-staging:
-	@echo "Pulling latest staging image and restarting..."
-	@ssh -i ~/.ssh/germinal germinal@$(VPS_IP) "cd /opt/germinal-staging && docker compose pull germinal_staging_app && docker compose up -d germinal_staging_app"
+		-e "app_domain=$(DOMAIN)"
 
 # Configure database backups
 backup:
@@ -161,9 +105,8 @@ backup:
 check-clean:
 	@echo "Checking playbooks for syntax errors..."
 	@ansible-playbook playbooks/site.yml --syntax-check
-	@ansible-playbook playbooks/deploy.yml --syntax-check
-	@ansible-playbook playbooks/deploy-staging.yml --syntax-check
 	@ansible-playbook playbooks/backup.yml --syntax-check
+	@ansible-playbook playbooks/infisical-agent.yml --syntax-check
 	@echo "All playbooks are clean!"
 
 # Run ansible-lint (requires installation)
@@ -183,7 +126,7 @@ vars-test:
 	@echo "  ansible-inventory -i inventory/hosts.yml --list"
 
 # ============================================
-# Server Operations
+# Server Operations (read-only)
 # ============================================
 
 # Display SSH connection details
@@ -222,11 +165,6 @@ logs:
 staging-logs:
 	@echo "Streaming staging logs (Ctrl+C to exit)..."
 	@ssh -i ~/.ssh/germinal germinal@$(VPS_IP) "cd /opt/germinal-staging && docker compose logs -f"
-
-# Run health check
-health-check:
-	@echo "Running health check..."
-	@ssh -i ~/.ssh/germinal germinal@$(VPS_IP) "/opt/germinal/scripts/health-check.sh"
 
 # ============================================
 # Dependencies

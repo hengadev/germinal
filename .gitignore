@@ -18,12 +18,6 @@ Thumbs.db
 !.env.example
 !.env.test
 
-# Vault
-group_vars/all.vault.yml
-!group_vars/all.vault.example.yml
-infrastructure/ansible/group_vars/*.vault.yml
-!infrastructure/ansible/group_vars/*.vault.example.yml
-
 # Vite
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
@@ -39,9 +33,6 @@ vite.config.ts.timestamp-*
 docs/issues/*.md
 !infrastructure/terraform/README.md
 !infrastructure/ansible/README.md
-!infrastructure/ansible/VAULT.md
-!infrastructure/ansible/SETUP_GUIDE.md
-!infrastructure/ansible/MONITORING.md
 docs/issues/
 
 # impeccable design skill local state

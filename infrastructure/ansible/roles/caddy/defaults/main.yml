@@ -4,11 +4,14 @@
 # Caddy data directory (for config, data, and logs)
 caddy_data_dir: "{{ app_base_dir }}/caddy"
 
-# ACME email for Let's Encrypt certificate notifications
-caddy_acme_email: "{{ vault_contact_email | default('admin@' + app_domain) }}"
+# ACME email for Let's Encrypt certificate notifications: the /host
+# notification email, read from Infisical at setup time (site.yml).
+caddy_acme_email: "{{ host_notify_email | default('admin@' + app_domain) }}"
 
 # Client max body size for uploads
 caddy_client_max_body_size: "100M"
 
-# Cloudflare API token for DNS-01 challenge (sourced from vault)
-caddy_cloudflare_api_token: "{{ vault_caddy_cloudflare_api_token | default('') }}"
+# The Cloudflare API token for the DNS-01 challenge is deliberately NOT a
+# variable: the Caddyfile reads it from the container's environment
+# ({env.CLOUDFLARE_API_TOKEN}), fed by the Agent-rendered env/caddy.env
+# (ADR 0004, issue 008).

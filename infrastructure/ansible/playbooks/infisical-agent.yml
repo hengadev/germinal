@@ -2,8 +2,8 @@
 # Install or rotate the Infisical Agent on the Germinal VPS (issue 008).
 #
 # The germinal-vps machine-identity credential is read from the operator at
-# run time ONLY — never from a file in this repo and never from the Ansible
-# Vault (ADR 0004). Export INFISICAL_AGENT_CLIENT_ID and
+# run time ONLY — never from a file in this repo (ADR 0004). Export
+# INFISICAL_AGENT_CLIENT_ID and
 # INFISICAL_AGENT_CLIENT_SECRET and press Enter at both prompts, or type the
 # values (the secret prompt is private and is not echoed).
 #

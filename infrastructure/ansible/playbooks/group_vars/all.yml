@@ -1,0 +1,129 @@
+# Germinal - Group Variables
+# These variables apply to all hosts
+#
+# No secrets live here (ADR 0004): application and infrastructure values are
+# rendered on the server by the Infisical Agent (roles/infisical_agent), and
+# the one value Ansible still needs at setup time — the notification email —
+# is read from Infisical /host through the operator's login (see
+# playbooks/site.yml).
+
+# ============================================
+# Infisical
+# ============================================
+# Notification email for host-level services (fail2ban, unattended-upgrades,
+# Let's Encrypt/ACME). Overridden by the /host (NOTIFY_EMAIL) lookup in
+# site.yml when the operator is logged in; this fallback only applies when
+# that lookup fails — site.yml warns loudly then.
+host_notify_email: root@localhost
+
+# ============================================
+# Deploy User Configuration
+# ============================================
+deploy_user: germinal
+deploy_user_groups: ["sudo", "docker"]
+
+# SECURITY: Restrict sudo to specific commands (recommended: true)
+# Set to false for development/convenience, true for production
+deploy_sudo_restricted: true
+
+# SECURITY: Allow password-based sudo as fallback (requires deploy user password)
+# Set to true if you want to allow other commands with password
+deploy_sudo_password_fallback: false
+
+# Deploy user SSH public keys: one per operator computer plus the CI deploy
+# key (issue 008). This list is the source of truth for the deploy user's
+# authorized_keys (managed exclusively). Prefer a vars file
+#   ansible-playbook … -e @deploy-keys.yml   # { deploy_ssh_public_keys: ["…", "…"] }
+# or an inventory definition: recent ansible-core parses inline
+# -e 'deploy_ssh_public_keys=[…]' as a STRING, not a list.
+# The legacy single deploy_ssh_public_key below is still honoured alongside it.
+deploy_ssh_public_keys: []
+
+# Legacy single public SSH key (kept for the old one-key flow)
+# You can also set this via: ansible-playbook --extra-vars "deploy_ssh_public_key=$(cat ~/.ssh/germinal.pub)"
+deploy_ssh_public_key: "{{ lookup('env', 'DEPLOY_SSH_PUBLIC_KEY') | default('', true) }}"
+
+# ============================================
+# System Configuration
+# ============================================
+# System timezone
+system_timezone: Etc/UTC
+
+# Automatic security updates
+auto_security_updates: true
+auto_updates_reboot: false
+auto_updates_email: "{{ host_notify_email }}"
+auto_updates_blacklist:
+  - docker-ce
+  - docker-ce-cli
+  - containerd.io
+  - docker-buildx-plugin
+  - docker-compose-plugin
+
+# ============================================
+# Docker Configuration
+# ============================================
+docker_daemon_options:
+  log-driver: "json-file"
+  log-opts:
+    max-size: "10m"
+    max-file: "3"
+  # SECURITY: Metrics endpoint bound to localhost only
+  # Change to "0.0.0.0:9323" ONLY if using Prometheus with firewall rules
+  metrics-addr: "127.0.0.1:9323"
+  experimental: false
+
+# Docker Security Hardening
+# SECURITY: Disable inter-container communication on default bridge
+# User-defined networks (like germinal_network) are unaffected
+docker_daemon_icc: false
+docker_daemon_userland_proxy: false
+docker_daemon_no_new_privileges: true
+docker_daemon_live_restore: true
+docker_daemon_ulimit_nofile: 64000
+
+# ============================================
+# Fail2ban Configuration
+# ============================================
+fail2ban_enabled: true
+# IPs to never ban (localhost + your public IP)
+fail2ban_ignoreip: "127.0.0.1/8 ::1"
+fail2ban_maxretry: 5
+fail2ban_bantime: 3600
+fail2ban_findtime: 600
+fail2ban_ssh_maxretry: 3
+fail2ban_ssh_bantime: 7200
+fail2ban_ddos_maxretry: 2
+fail2ban_ddos_bantime: 86400
+fail2ban_caddy_maxretry: 5
+fail2ban_notify_email: "{{ host_notify_email }}"
+
+# ============================================
+# Caddy Reverse Proxy Configuration
+# ============================================
+# The Cloudflare DNS API token is NOT an Ansible variable: Caddy reads it
+# from its environment ({env.CLOUDFLARE_API_TOKEN} in the Caddyfile), fed by
+# the Agent-rendered env/caddy.env (ADR 0004).
+
+# Set to true once staging is deployed to include staging site blocks in Caddyfile
+staging_enabled: true
+
+# ============================================
+# Database
+# ============================================
+# Names only, used by the backup playbook's scripts. The real credentials
+# (user, password, database per stack) live in Infisical /db and reach the
+# containers through the Agent-rendered env files — never through Ansible.
+db_user: germinal
+db_name: germinal
+
+# ============================================
+# Backup Configuration
+# ============================================
+backup_enabled: true
+backup_schedule_daily: "0 2 * * *"
+backup_schedule_weekly: "0 3 * * 0"
+backup_schedule_monthly: "0 4 1 * *"
+backup_volumes_enabled: true
+backup_configs_enabled: true
+backup_s3_storage_class: "STANDARD_IA"

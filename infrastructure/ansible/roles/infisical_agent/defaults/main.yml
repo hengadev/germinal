@@ -15,9 +15,9 @@ infisical_agent_host: "https://secrets.henga.dev"
 infisical_agent_version: "0.43.138"
 
 # germinal-vps machine-identity credential. It is read from the operator at
-# run time ONLY — never from a file in this repo and never from the Ansible
-# Vault (ADR 0004): export INFISICAL_AGENT_CLIENT_ID / INFISICAL_AGENT_CLIENT_
-# SECRET on the control machine, or answer the prompts of
+# run time ONLY — never from a file in this repo (ADR 0004): export
+# INFISICAL_AGENT_CLIENT_ID / INFISICAL_AGENT_CLIENT_SECRET on the control
+# machine, or answer the prompts of
 # playbooks/infisical-agent.yml. Every task that touches these values runs
 # with no_log.
 infisical_agent_client_id: "{{ lookup('env', 'INFISICAL_AGENT_CLIENT_ID') }}"
