@@ -170,7 +170,7 @@ ansible-playbook playbooks/backup.yml \
 
 ### `site.yml` - Complete Setup
 
-Run this on a fresh VPS to set up everything:
+Run this on a fresh VPS to set up everything. The `infisical_agent` role is included and runs when `INFISICAL_AGENT_CLIENT_ID` / `INFISICAL_AGENT_CLIENT_SECRET` are exported on the control machine (see [the role README](roles/infisical_agent/README.md)); without them it is skipped with a note.
 
 ```bash
 ansible-playbook playbooks/site.yml \
@@ -196,6 +196,19 @@ ansible-playbook playbooks/deploy.yml \
   -e "ansible_host=<server-ip>" \
   -e "app_repo=git@github.com:yourusername/germinal.git" \
   -e "app_branch=main"
+```
+
+### `infisical-agent.yml` - Install or rotate the Infisical Agent
+
+Installs the Infisical Agent that renders the server's env files from
+Infisical (ADR 0004). Prompts for the `germinal-vps` client ID and secret —
+they are never read from a file in the repo and never from the Ansible
+Vault. Re-running it with a new client secret is the rotation procedure.
+See [roles/infisical_agent/README.md](roles/infisical_agent/README.md).
+
+```bash
+INFISICAL_AGENT_CLIENT_ID=… INFISICAL_AGENT_CLIENT_SECRET=… \
+  ansible-playbook playbooks/infisical-agent.yml -e "ansible_host=<server-ip>"
 ```
 
 ### `backup.yml` - Database Backups
@@ -270,7 +283,9 @@ infrastructure/ansible/
     ├── ssh/                   # SSH hardening
     ├── firewall/              # UFW configuration
     ├── docker/                # Docker installation
-    ├── user/                  # Deploy user setup
+    ├── user/                  # Deploy user setup (authorized_keys as a list)
+    ├── caddy/                 # Reverse proxy with retry window
+    ├── infisical_agent/       # Infisical Agent (env files, 0600, rotation)
     └── app/                   # Application deployment
 ```
 

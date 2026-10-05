@@ -15,7 +15,16 @@ deploy_sudo_restricted: true
 # Set to true if you want to allow other commands with password
 deploy_sudo_password_fallback: false
 
-# Your public SSH key for the deploy user
+# Deploy user SSH public keys: one per operator computer plus the CI deploy
+# key (issue 008). This list is the source of truth for the deploy user's
+# authorized_keys (managed exclusively). Prefer a vars file
+#   ansible-playbook … -e @deploy-keys.yml   # { deploy_ssh_public_keys: ["…", "…"] }
+# or an inventory definition: recent ansible-core parses inline
+# -e 'deploy_ssh_public_keys=[…]' as a STRING, not a list.
+# The legacy single deploy_ssh_public_key below is still honoured alongside it.
+deploy_ssh_public_keys: []
+
+# Legacy single public SSH key (kept for the old one-key flow)
 # You can also set this via: ansible-playbook --extra-vars "deploy_ssh_public_key=$(cat ~/.ssh/germinal.pub)"
 deploy_ssh_public_key: "{{ lookup('env', 'DEPLOY_SSH_PUBLIC_KEY') | default('', true) }}"
 

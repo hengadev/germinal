@@ -1,0 +1,14 @@
+---
+# infisical_agent role handlers
+
+- name: reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: restart infisical agent
+  ansible.builtin.systemd:
+    name: "{{ infisical_agent_unit_name }}"
+    state: restarted
+    # Covers a run where only the unit changed and reload systemd was not
+    # notified first.
+    daemon_reload: true
