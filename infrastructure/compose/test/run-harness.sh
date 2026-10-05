@@ -146,7 +146,8 @@ teardown() {
 	fi
 	docker network rm "$NETWORK" >/dev/null 2>&1 || true
 	if [ "${KEEP:-0}" != 1 ]; then
-		docker image rm "$REPO:$SHA1" "$REPO:$SHA2" "$REPO:$SHA_BAD" >/dev/null 2>&1 || true
+		docker image rm "$REPO:$SHA1" "$REPO:$SHA2" "$REPO:$SHA_BAD" \
+			"$REPO:prod" "$REPO:staging" >/dev/null 2>&1 || true
 		if [ -n "$TMP" ]; then
 			# Postgres/Redis/Caddy write into the bind mounts as their in-container
 			# users, so the temp dir holds root-owned files the developer cannot
@@ -304,7 +305,8 @@ case_failing_migration() {
 	app_id_before=$(docker inspect -f '{{.Id}}' germinal_app)
 	cp "$TMP/prod/env/app.env" "$TMP/prod/env/app.env.bak"
 	sed -i 's#^DATABASE_URL=.*#DATABASE_URL=postgresql://germinal:harness-fixture-prod-db@postgres:5432/harness_no_such_db#' "$TMP/prod/env/app.env"
-	if deploy_prod "$SHA2" >"$TMP/deploy3.log" 2>&1; then
+	# Deploy the OTHER image, so a pin left on it is detectable below.
+	if deploy_prod "$SHA1" >"$TMP/deploy3.log" 2>&1; then
 		bad "deploy exited 0 despite a failing migration"
 	else
 		ok "deploy exits non-zero on failing migration"
@@ -314,6 +316,10 @@ case_failing_migration() {
 		ok "failure message points at the migration step" || bad "no migration failure message"
 	[ "$(docker inspect -f '{{.Id}}' germinal_app)" = "$app_id_before" ] &&
 		ok "app container was NOT recreated" || bad "app container was recreated despite failure"
+	# The pin must point back at the running image, or the Agent's next
+	# recreate would start the image whose migration failed.
+	[ "$(docker image inspect -f '{{.Id}}' "$REPO:prod")" = "$(docker inspect -f '{{.Image}}' germinal_app)" ] &&
+		ok "pin $REPO:prod restored to the running image" || bad "pin $REPO:prod left on the failed deploy's image"
 	health_via_caddy germinal_app harness.germinal.test "$SHA2" &&
 		ok "previous container still serving $SHA2" || bad "previous container stopped serving"
 }

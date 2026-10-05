@@ -93,6 +93,19 @@ docker image inspect "$image" >/dev/null 2>&1 ||
 # ── 2. pin the stack's local tag ─────────────────────────────────────────────
 # The compose files reference $repo:$pinned_tag; pointing it here means the
 # one-offs below and the Agent's recreates all resolve this deploy's image.
+# Until the app is recreated (step 6), a failure moves the pin back to the
+# image the running container uses: otherwise the Agent's next recreate (an
+# env change) would start an image whose migration failed.
+previous_pin=$(docker image inspect --format '{{.Id}}' "$pinned" 2>/dev/null || true)
+restore_pin() {
+	if [ -n "$previous_pin" ]; then
+		docker tag "$previous_pin" "$pinned" &&
+			log "pin $pinned restored to the previous image"
+	else
+		docker image rm "$pinned" >/dev/null 2>&1 || true
+	fi
+}
+trap restore_pin EXIT
 docker tag "$image" "$pinned" || die "failed to pin $pinned"
 
 # ── 3. shared dependencies (prod only; idempotent) ──────────────────────────
@@ -116,6 +129,8 @@ log "running admin bootstrap ($admin_service, one-off)"
 	die "admin bootstrap failed — NOT recreating the app"
 
 # ── 6. recreate the app ──────────────────────────────────────────────────────
+# From here the new image is the stack's image, even if the checks below fail.
+trap - EXIT
 log "recreating $app_service"
 "${compose[@]}" up -d --no-deps --force-recreate --wait --wait-timeout 180 "$app_service" ||
 	die "app did not become healthy after recreate"
