@@ -15,6 +15,9 @@ admin-staging.{{ app_domain }} {
   }
 
   reverse_proxy germinal_staging_app:3001 {
+    # Hold requests while the app container is recreated (deploy or config
+    # change) instead of returning 502s (issue 008)
+    lb_try_duration 30s
     header_up X-Real-IP {remote_host}
     header_up X-Forwarded-For {remote_host}
     header_up X-Forwarded-Proto {scheme}
@@ -36,6 +39,9 @@ staff-staging.{{ app_domain }} {
   }
 
   reverse_proxy germinal_staging_app:3001 {
+    # Hold requests while the app container is recreated (deploy or config
+    # change) instead of returning 502s (issue 008)
+    lb_try_duration 30s
     header_up X-Real-IP {remote_host}
     header_up X-Forwarded-For {remote_host}
     header_up X-Forwarded-Proto {scheme}
@@ -57,6 +63,9 @@ staging.{{ app_domain }} {
   }
 
   reverse_proxy germinal_staging_app:3001 {
+    # Hold requests while the app container is recreated (deploy or config
+    # change) instead of returning 502s (issue 008)
+    lb_try_duration 30s
     header_up X-Real-IP {remote_host}
     header_up X-Forwarded-For {remote_host}
     header_up X-Forwarded-Proto {scheme}
@@ -95,6 +104,9 @@ admin.{{ app_domain }} {
   }
 
   reverse_proxy germinal_app:3001 {
+    # Hold requests while the app container is recreated (deploy or config
+    # change) instead of returning 502s (issue 008)
+    lb_try_duration 30s
     header_up X-Real-IP {remote_host}
     header_up X-Forwarded-For {remote_host}
     header_up X-Forwarded-Proto {scheme}
@@ -118,6 +130,9 @@ staff.{{ app_domain }} {
   }
 
   reverse_proxy germinal_app:3001 {
+    # Hold requests while the app container is recreated (deploy or config
+    # change) instead of returning 502s (issue 008)
+    lb_try_duration 30s
     header_up X-Real-IP {remote_host}
     header_up X-Forwarded-For {remote_host}
     header_up X-Forwarded-Proto {scheme}
@@ -151,6 +166,9 @@ www.{{ app_domain }} {
 
   # Reverse proxy to application container
   reverse_proxy germinal_app:3001 {
+    # Hold requests while the app container is recreated (deploy or config
+    # change) instead of returning 502s (issue 008)
+    lb_try_duration 30s
     header_up X-Real-IP {remote_host}
     header_up X-Forwarded-For {remote_host}
     header_up X-Forwarded-Proto {scheme}
