@@ -61,24 +61,31 @@ infisical_agent_polling_interval: "60s"
 infisical_agent_post_start_wait_seconds: 60
 infisical_agent_command_timeout_seconds: 60
 
-# One entry per rendered env file: name is the template stem, the rendered
-# file name AND (when recreate) the compose service to recreate. Per the
+# One entry per rendered env file: `name` is the template stem AND the
+# rendered file name; `service` is the compose service the file feeds (they
+# differ on staging: compose registers every service name as a DNS alias on
+# each network it joins, so a staging service named `app` would collide
+# with prod's `app` alias on the shared germinal_network — see
+# infrastructure/compose/docker-compose.staging.yml). `recreate: true`
+# means a rendered change also recreates that service with
+# `docker compose up -d` — `restart` does not reload env_file. Per the
 # issue table:
-# - app (both stacks) and caddy: recreate that service with
-#   `docker compose up -d` — `restart` does not reload env_file.
+# - app (both stacks) and caddy: recreate that service.
 # - postgres: rewrite only. POSTGRES_PASSWORD takes effect at first init
 #   only; rotation needs a manual ALTER USER (ADR 0004), never an automatic
 #   restart.
 # - backup: rewrite only. The backup job reads the file fresh on each run.
 # - admin: rewrite only. The next deploy's bootstrap reads admin.env.
+# The service names MUST stay in sync with the compose files installed by
+# issues 007/009 (infrastructure/compose/).
 infisical_agent_templates:
-  - { env: prod, name: app, recreate: true }
-  - { env: prod, name: postgres, recreate: false }
-  - { env: prod, name: caddy, recreate: true }
-  - { env: prod, name: backup, recreate: false }
-  - { env: prod, name: admin, recreate: false }
-  - { env: staging, name: app, recreate: true }
-  - { env: staging, name: admin, recreate: false }
+  - { env: prod, name: app, service: app, recreate: true }
+  - { env: prod, name: postgres, service: postgres, recreate: false }
+  - { env: prod, name: caddy, service: caddy, recreate: true }
+  - { env: prod, name: backup, service: backup, recreate: false }
+  - { env: prod, name: admin, service: admin, recreate: false }
+  - { env: staging, name: app, service: staging_app, recreate: true }
+  - { env: staging, name: admin, service: staging_admin, recreate: false }
 
 # Infisical CLI apt repository (the Cloudsmith repo moved here in 2026).
 infisical_agent_apt_baseurl: "https://artifacts-cli.infisical.com"

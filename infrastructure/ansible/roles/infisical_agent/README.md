@@ -20,21 +20,21 @@ Implements PRD module M3 (`docs/prd/deployment-infisical-compose.md`).
 
 ## Render matrix
 
-From `infisical_agent_templates` in `defaults/main.yml`:
+From `infisical_agent_templates` in `defaults/main.yml` (`name` = template and rendered file, `service` = the compose service it feeds — they differ on staging, where services carry a `staging_` prefix so their names never collide with prod's DNS aliases on the shared network):
 
-| Env | Template | Rendered to | On change |
+| Env | Template | Rendered to | Recreates (`up -d --no-deps …`) |
 | --- | --- | --- | --- |
-| prod | app | `/opt/germinal/env/app.env` | `docker compose --project-directory /opt/germinal up -d --no-deps app` |
+| prod | app | `/opt/germinal/env/app.env` | `app` in `/opt/germinal` |
 | prod | postgres | `/opt/germinal/env/postgres.env` | nothing — `POSTGRES_PASSWORD` applies at first init only (ADR 0004) |
-| prod | caddy | `/opt/germinal/env/caddy.env` | `… up -d --no-deps caddy` |
+| prod | caddy | `/opt/germinal/env/caddy.env` | `caddy` in `/opt/germinal` |
 | prod | backup | `/opt/germinal/env/backup.env` | nothing — the backup job reads it fresh each run |
 | prod | admin | `/opt/germinal/env/admin.env` | nothing — the next deploy's bootstrap reads it |
-| staging | app | `/opt/germinal-staging/env/app.env` | `docker compose --project-directory /opt/germinal-staging up -d --no-deps app` |
+| staging | app | `/opt/germinal-staging/env/app.env` | `staging_app` in `/opt/germinal-staging` |
 | staging | admin | `/opt/germinal-staging/env/admin.env` | nothing |
 
-Staging renders only `app` and `admin`: it shares prod's Postgres, Redis and Caddy (PRD M5). `--no-deps` guarantees a change can never bounce the shared services. The stack roots **must match** the compose layout installed by issues 007/009 — they are role variables (`infisical_agent_stack_roots`) so a layout change is one edit.
+Staging renders only `app` and `admin`: it shares prod's Postgres, Redis and Caddy (PRD M5). `--no-deps` guarantees a change can never bounce the shared services. The stack roots and service names **must match** the compose layout installed by issues 007/009 (`infrastructure/compose/`) — they are role variables (`infisical_agent_stack_roots`, the `service` field) so a layout change is one edit.
 
-Because the rendered env files are root-only `0600`, deploys that run `docker compose` must do so with root rights (e.g. `sudo docker compose …`; the deploy user already has passwordless `docker` sudo). Issues 007/009 must keep that in their deploy script.
+Because the rendered env files are root-only `0600`, deploys that run `docker compose` must do so with root rights (e.g. `sudo docker compose …`; the deploy user already has passwordless `docker` sudo). The `deploy` script from issue 007 (`infrastructure/compose/deploy`) documents its CI invocation accordingly.
 
 ## The credential
 

@@ -1,0 +1,81 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Germinal staging stack (issue 007, PRD module M5).
+#
+# App + its one-off admin bootstrap ONLY: staging shares production's
+# Postgres, Redis and Caddy by joining the external germinal_network. Its
+# app.env points DATABASE_URL at `postgres`/germinal_staging (a dedicated
+# role/database the Ansible setup creates — PRD M4) and REDIS_DB=1.
+#
+# CI copies this file from the deployed commit to
+# /opt/germinal-staging/docker-compose.yml (issues 009/010). Layout:
+#   /opt/germinal-staging/docker-compose.yml   this file
+#   /opt/germinal-staging/env/{app,admin}.env  Agent-rendered, root 0600
+#   /opt/germinal-staging/data/uploads/        persistent uploads
+#
+# SERVICE NAMES: compose registers every service name as a DNS alias on each
+# network it joins. Prod's app service is named `app`, so a staging service
+# also named `app` would register a second `app` alias on germinal_network
+# and round-robin prod's traffic between the two containers. Staging services
+# therefore carry the staging_ prefix; their container_names keep the names
+# Caddy proxies to (roles/caddy Caddyfile.j2: germinal_staging_app). The
+# infisical_agent role mirrors this with an explicit `service` field.
+#
+# The image tag `henga/germinal:staging` is a LOCAL pin, never pushed — see
+# the header of docker-compose.prod.yml.
+# ─────────────────────────────────────────────────────────────────────────────
+name: germinal_staging
+
+services:
+  staging_app:
+    image: henga/germinal:staging
+    container_name: germinal_staging_app # Caddy's upstream name (Caddyfile.j2)
+    restart: unless-stopped
+    mem_limit: 512m
+    expose:
+      - "3001"
+    env_file:
+      - env/app.env
+    # No depends_on: postgres/redis/caddy belong to prod's compose project.
+    # A staging deploy on a cold server fails its migration step instead —
+    # visibly, at the right place.
+    volumes:
+      - /opt/germinal-staging/data/uploads:/app/uploads
+    networks:
+      - germinal_network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/api/health',(r)=>{process.exit(r.statusCode===200?0:1)}).on('error',()=>process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # One-off admin bootstrap (issue 016) for the staging database — the
+  # profile-gated twin of prod's `admin` service. `deploy` runs it on every
+  # staging deploy:   docker compose --profile bootstrap run --rm staging_admin
+  staging_admin:
+    profiles: ["bootstrap"]
+    image: henga/germinal:staging
+    restart: "no"
+    command: ["node", "scripts/create-admin.js"]
+    env_file:
+      - env/app.env
+      - env/admin.env
+    networks:
+      - germinal_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# Prod's shared network (external: also declared in docker-compose.prod.yml,
+# created by Ansible). Referenced by its compose key so this file needs no
+# variables.
+networks:
+  germinal_network:
+    external: true

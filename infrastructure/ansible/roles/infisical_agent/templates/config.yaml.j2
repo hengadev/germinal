@@ -35,7 +35,10 @@ templates:
       polling-interval: {{ infisical_agent_polling_interval }}
 {% if t.recreate %}
       execute:
-        command: docker compose --project-directory {{ infisical_agent_stack_roots[t.env] }} up -d --no-deps {{ t.name }}
+        # t.service (not t.name): staging's services carry a staging_ prefix
+        # to avoid the `app` DNS-alias collision on the shared network —
+        # see defaults/main.yml and infrastructure/compose/.
+        command: docker compose --project-directory {{ infisical_agent_stack_roots[t.env] }} up -d --no-deps {{ t.service }}
         timeout: {{ infisical_agent_command_timeout_seconds }}
 {% endif %}
 {% endfor %}
