@@ -12,9 +12,9 @@ planned and applied from any computer with no flags, after `infisical login`.
 | Area | Resources |
 | --- | --- |
 | Hetzner | The VPS (`hcloud_server.main`) and its **primary IPs** (IPv4 + IPv6), which survive a server rebuild |
-| Cloudflare | App records (`@`, `www`, `admin`, `staff`, `staging`, ...), email records (Zoho Mail MX, SPF, DKIM, DMARC), SES and ACM validation records, `media` CNAME |
-| AWS, per environment | `<env>-germinal-media` and `<env>-germinal-backups` buckets, the `<env>-germinal-app` IAM user, its policies (S3, backups, SES) and access key |
-| AWS, shared | SES domain identity, DKIM and MAIL FROM; CloudFront + ACM for `media.<domain>` (serves the staging media bucket); the `app-germinal` IAM user (local development); the state bucket |
+| Cloudflare | App records (`@`, `www`, `admin`, `staff`, `staging`, ...), email records (Zoho Mail MX, SPF, DKIM, DMARC), SES and ACM validation records, `media` and `media-staging` CNAMEs |
+| AWS, per environment | `<env>-germinal-media` and `<env>-germinal-backups` buckets, the `<env>-germinal-app` IAM user, its policies (S3, backups, SES) and access key, and a media CDN (CloudFront + ACM): `media.<domain>` for production, `media-staging.<domain>` for staging |
+| AWS, shared | SES domain identity, DKIM and MAIL FROM; the `app-germinal` IAM user (local development); the state bucket |
 | Infisical | The credentials Terraform creates, written into the `germinal` project (below) |
 
 ## Secrets and inputs
@@ -34,12 +34,13 @@ planned and applied from any computer with no flags, after `infisical login`.
   The server's `germinal-vps` identity has no access to `germinal-infra`.
 
 - **Outputs written to Infisical.** Terraform writes the credentials it
-  creates into the `germinal` project, so nobody copies them by hand:
+  creates, and the `/s3` values it owns, into the `germinal` project, so
+  nobody copies them by hand:
 
   | Infisical `germinal` | Value |
   | --- | --- |
-  | `staging` `/s3` `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | `staging-germinal-app` access key |
-  | `prod` `/s3` `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | `production-germinal-app` access key |
+  | `staging`, `prod` `/s3` `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | that environment's `<env>-germinal-app` access key |
+  | `staging`, `prod` `/s3` `AWS_REGION`, `S3_BUCKET_NAME`, `MEDIA_URL` | region, media bucket, media CDN URL |
   | `dev` `/s3` `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | `app-germinal` access key |
 
   The Infisical Agent on the server renders them into each environment's env
@@ -118,10 +119,10 @@ key's secret, so the old keys could not be written to Infisical). Afterwards:
    key, update it from `germinal/dev/s3` first.
 3. Retire the old workspace: `./tf.sh workspace delete -force production`
    (drops that state only; its resources are all in `default` now).
-4. Optional: delete the `production` workspace's unused duplicates, which
+4. Optional: delete the `production` workspace's unused duplicate, which
    Terraform no longer tracks: the ACM certificate for `media.<domain>` tagged
-   `Environment = production` (us-east-1) and the CloudFront OAC
-   `production-germinal-media-oac`.
+   `Environment = production` in us-east-1 (the one **not** attached to the
+   production distribution).
 5. Delete `migration.tf`.
 
 ## Files
@@ -135,13 +136,22 @@ hetzner.tf         server + primary IPs
 cloudflare.tf      DNS records
 s3.tf, backups.tf  per-environment buckets, IAM user, policies, access key
 ses.tf             SES identity, DKIM, MAIL FROM, per-environment send policy
-cloudfront.tf      media CDN + ACM certificate
+cloudfront.tf      media CDN per environment (CloudFront + ACM)
 app-germinal.tf    S3-only IAM user for local development
 infisical.tf       credentials written into the germinal project
 migration.tf       one-time move from two workspaces to one state (issue 012)
 backend.tf         the state bucket itself (and the old, unused DynamoDB lock table)
 tf.sh, Makefile    run Terraform through Infisical
 ```
+
+## Media CDN
+
+Each environment's media bucket is private and served by its own CloudFront
+distribution: `https://media.<domain>` (production) and
+`https://media-staging.<domain>` (staging). Terraform writes the URL to
+`MEDIA_URL` in `germinal/<env>/s3`. The app stores **full** media URLs in the
+database at upload time, so never repoint an environment's media domain once
+it holds data.
 
 ## Email
 
