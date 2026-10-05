@@ -1,13 +1,15 @@
 # S3 Resources for Germinal
-# This file defines the S3 bucket and related resources for media storage
+# Media bucket and the application IAM user, one per environment
+# (local.environments).
 
 # Main S3 bucket for media assets (images, videos, etc.)
 resource "aws_s3_bucket" "media" {
-  bucket = "${var.environment}-${var.project_name}-media"
+  for_each = local.environments
+  bucket   = "${each.key}-${var.project_name}-media"
 
   tags = {
     Name        = "${var.project_name} Media Storage"
-    Environment = var.environment
+    Environment = each.key
     ManagedBy   = "Terraform"
     Purpose     = "Media Assets"
   }
@@ -15,7 +17,8 @@ resource "aws_s3_bucket" "media" {
 
 # Enable versioning for media bucket (recover from accidental deletions)
 resource "aws_s3_bucket_versioning" "media_versioning" {
-  bucket = aws_s3_bucket.media.id
+  for_each = local.environments
+  bucket   = aws_s3_bucket.media[each.key].id
 
   versioning_configuration {
     status = "Enabled"
@@ -24,7 +27,8 @@ resource "aws_s3_bucket_versioning" "media_versioning" {
 
 # Server-side encryption for media bucket
 resource "aws_s3_bucket_server_side_encryption_configuration" "media_encryption" {
-  bucket = aws_s3_bucket.media.id
+  for_each = local.environments
+  bucket   = aws_s3_bucket.media[each.key].id
 
   rule {
     apply_server_side_encryption_by_default {
@@ -35,7 +39,8 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "media_encryption"
 
 # Block public access - we'll use CloudFront or signed URLs for access
 resource "aws_s3_bucket_public_access_block" "media_block" {
-  bucket = aws_s3_bucket.media.id
+  for_each = local.environments
+  bucket   = aws_s3_bucket.media[each.key].id
 
   block_public_acls       = true
   block_public_policy     = true
@@ -45,7 +50,8 @@ resource "aws_s3_bucket_public_access_block" "media_block" {
 
 # Lifecycle configuration - move old files to cheaper storage
 resource "aws_s3_bucket_lifecycle_configuration" "media_lifecycle" {
-  bucket = aws_s3_bucket.media.id
+  for_each = local.environments
+  bucket   = aws_s3_bucket.media[each.key].id
 
   rule {
     id     = "transition-to-ia"
@@ -80,7 +86,8 @@ resource "aws_s3_bucket_lifecycle_configuration" "media_lifecycle" {
 
 # CORS configuration for direct browser uploads
 resource "aws_s3_bucket_cors_configuration" "media_cors" {
-  bucket = aws_s3_bucket.media.id
+  for_each = local.environments
+  bucket   = aws_s3_bucket.media[each.key].id
 
   cors_rule {
     allowed_headers = ["*"]
@@ -93,8 +100,9 @@ resource "aws_s3_bucket_cors_configuration" "media_cors" {
 
 # IAM policy for the application to access S3
 resource "aws_iam_policy" "s3_access" {
-  name        = "${var.environment}-${var.project_name}-s3-access"
-  description = "Policy for ${var.environment} ${var.project_name} to access media S3 bucket"
+  for_each    = local.environments
+  name        = "${each.key}-${var.project_name}-s3-access"
+  description = "Policy for ${each.key} ${var.project_name} to access media S3 bucket"
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -111,43 +119,48 @@ resource "aws_iam_policy" "s3_access" {
           "s3:PutObjectAcl"
         ]
         Resource = [
-          aws_s3_bucket.media.arn,
-          "${aws_s3_bucket.media.arn}/*"
+          aws_s3_bucket.media[each.key].arn,
+          "${aws_s3_bucket.media[each.key].arn}/*"
         ]
       }
     ]
   })
 }
 
-# IAM user for programmatic access (optional - for VPS deployment)
+# IAM user the application runs with in each environment
 resource "aws_iam_user" "app_user" {
-  name = "${var.environment}-${var.project_name}-app"
-  path = "/applications/"
+  for_each = local.environments
+  name     = "${each.key}-${var.project_name}-app"
+  path     = "/applications/"
 
   tags = {
     Name        = "${var.project_name} Application User"
-    Environment = var.environment
+    Environment = each.key
     ManagedBy   = "Terraform"
   }
 }
 
 # Attach policy to the IAM user
 resource "aws_iam_user_policy_attachment" "s3_access_attach" {
-  user       = aws_iam_user.app_user.name
-  policy_arn = aws_iam_policy.s3_access.arn
+  for_each   = local.environments
+  user       = aws_iam_user.app_user[each.key].name
+  policy_arn = aws_iam_policy.s3_access[each.key].arn
 }
 
-# Access key for the IAM user
+# Access key for the IAM user. Written to germinal/<env>/s3 in Infisical
+# (infisical.tf); never copied by hand.
 resource "aws_iam_access_key" "app_user" {
-  user = aws_iam_user.app_user.name
+  for_each = local.environments
+  user     = aws_iam_user.app_user[each.key].name
 }
 
 # ============================================
 # S3 Bucket Policy for CloudFront OAC
 # ============================================
 
+# Only the bucket behind media.<domain> (local.cdn_env) is served by CloudFront.
 resource "aws_s3_bucket_policy" "media_cloudfront" {
-  bucket = aws_s3_bucket.media.id
+  bucket = aws_s3_bucket.media[local.cdn_env].id
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -155,7 +168,7 @@ resource "aws_s3_bucket_policy" "media_cloudfront" {
       Effect    = "Allow"
       Principal = { Service = "cloudfront.amazonaws.com" }
       Action    = "s3:GetObject"
-      Resource  = "${aws_s3_bucket.media.arn}/*"
+      Resource  = "${aws_s3_bucket.media[local.cdn_env].arn}/*"
       Condition = {
         StringEquals = {
           "AWS:SourceArn" = aws_cloudfront_distribution.media.arn

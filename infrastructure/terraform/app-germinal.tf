@@ -1,14 +1,13 @@
 # =============================================================================
 # app-germinal IAM User
-# Least-privilege credential for germinal's running application — S3-only
-# access to germinal's own media and backup buckets in both environments.
+# Least-privilege, S3-only credential: access to germinal's own media and
+# backup buckets in both environments.
 # Distinct from terraform-germinal (the Terraform admin user) and from the
 # per-environment app_user resources in s3.tf/backups.tf.
 #
-# IAM users are account-global, but this config is applied across two
-# Terraform workspaces (default=staging, production=production) that share
-# these files. Gating on terraform.workspace ensures the user is created
-# exactly once instead of colliding when applied in the second workspace.
+# One user for all environments, declared once. It is used for local
+# development: its access key is written to germinal/dev/s3 in Infisical
+# (infisical.tf).
 # =============================================================================
 
 locals {
@@ -23,7 +22,6 @@ locals {
 }
 
 resource "aws_iam_policy" "app_germinal" {
-  count       = terraform.workspace == "production" ? 1 : 0
   name        = "app-germinal-policy"
   description = "S3-only access to germinal's own buckets (production + staging media and backups)"
 
@@ -51,9 +49,8 @@ resource "aws_iam_policy" "app_germinal" {
 }
 
 resource "aws_iam_user" "app_germinal" {
-  count = terraform.workspace == "production" ? 1 : 0
-  name  = "app-germinal"
-  path  = "/applications/"
+  name = "app-germinal"
+  path = "/applications/"
 
   tags = {
     Name      = "app-germinal"
@@ -63,24 +60,11 @@ resource "aws_iam_user" "app_germinal" {
 }
 
 resource "aws_iam_user_policy_attachment" "app_germinal" {
-  count      = terraform.workspace == "production" ? 1 : 0
-  user       = aws_iam_user.app_germinal[0].name
-  policy_arn = aws_iam_policy.app_germinal[0].arn
+  user       = aws_iam_user.app_germinal.name
+  policy_arn = aws_iam_policy.app_germinal.arn
 }
 
 resource "aws_iam_access_key" "app_germinal" {
-  count = terraform.workspace == "production" ? 1 : 0
-  user  = aws_iam_user.app_germinal[0].name
+  user = aws_iam_user.app_germinal.name
 }
 
-output "app_germinal_access_key_id" {
-  value       = try(aws_iam_access_key.app_germinal[0].id, null)
-  description = "Access key ID for app-germinal (only set when applied in the production workspace)"
-  sensitive   = true
-}
-
-output "app_germinal_access_key_secret" {
-  value       = try(aws_iam_access_key.app_germinal[0].secret, null)
-  description = "Secret access key for app-germinal (only set when applied in the production workspace)"
-  sensitive   = true
-}

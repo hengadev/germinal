@@ -19,7 +19,7 @@ resource "aws_s3_bucket" "terraform_state" {
 
   tags = {
     Name        = "Germinal Terraform State"
-    Environment = var.environment
+    Environment = local.shared_env
     ManagedBy   = "Terraform"
   }
 }
@@ -67,7 +67,7 @@ resource "aws_dynamodb_table" "terraform_locks" {
 
   tags = {
     Name        = "Germinal Terraform Locks"
-    Environment = var.environment
+    Environment = local.shared_env
     ManagedBy   = "Terraform"
   }
 }

@@ -1,10 +1,11 @@
 # Terraform files
 .terraform/
-.terraform.lock.hcl
 *.tfstate
 *.tfstate.*
+# Only the committed, secret-free terraform.tfvars is allowed; secrets come
+# from Infisical (germinal-infra), never from a tfvars file.
 *.tfvars
-!terraform.tfvars.example
+!terraform.tfvars
 .terraform-backup/
 terraform.tfbackup
 crash.log

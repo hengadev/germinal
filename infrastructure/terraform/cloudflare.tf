@@ -10,7 +10,7 @@ resource "cloudflare_dns_record" "main_a" {
   zone_id = var.cloudflare_zone_id
   name    = var.domain_name
   type    = "A"
-  content = hcloud_server.main.ipv4_address
+  content = hcloud_primary_ip.main["ipv4"].ip_address
   proxied = true
   ttl     = 1
 }
@@ -20,7 +20,7 @@ resource "cloudflare_dns_record" "main_aaaa" {
   zone_id = var.cloudflare_zone_id
   name    = var.domain_name
   type    = "AAAA"
-  content = hcloud_server.main.ipv6_address
+  content = cidrhost(hcloud_primary_ip.main["ipv6"].ip_network, 1) # the server answers on ::1
   proxied = true
   ttl     = 1
 }
@@ -92,39 +92,31 @@ resource "cloudflare_dns_record" "staff_staging" {
 # ============================================
 # Email DNS Records
 # ============================================
-# Hostinger Business Email (receiving) + Amazon SES API (sending)
+# Mailbox provider (receiving, e.g. Zoho Mail) + Amazon SES API (sending)
 #
 # SENDING: Amazon SES via AWS SDK (uses existing IAM credentials)
-# RECEIVING: Hostinger Business Email (contact@ mailbox)
+# RECEIVING: mailbox provider (contact@ mailbox)
 #
-# MX records route inbound mail to Hostinger.
+# MX records route inbound mail to the mailbox provider.
 # SPF authorizes all providers in var.email_spf_includes.
-# SES DKIM is automated; Hostinger DKIM added via var.email_dkim_records.
+# SES DKIM is automated; mailbox provider DKIM added via var.email_dkim_records.
 # ============================================
 
-# MX records - route inbound email to mailbox provider
-resource "cloudflare_dns_record" "mx1" {
-  zone_id  = var.cloudflare_zone_id
-  name     = var.domain_name
-  type     = "MX"
-  content  = var.email_mx_primary
-  priority = var.email_mx_primary_priority
-  proxied  = false
-  ttl      = 3600
-}
+# MX records - route inbound email to mailbox provider (host => priority)
+resource "cloudflare_dns_record" "mx" {
+  for_each = var.email_mx_records
 
-resource "cloudflare_dns_record" "mx2" {
   zone_id  = var.cloudflare_zone_id
   name     = var.domain_name
   type     = "MX"
-  content  = var.email_mx_secondary
-  priority = var.email_mx_secondary_priority
+  content  = each.key
+  priority = each.value
   proxied  = false
-  ttl      = 3600
+  ttl      = var.email_dns_ttl
 }
 
 # SPF record - authorizes sending providers (built from var.email_spf_includes)
-resource "cloudflare_dns_record" "spf" {
+resource "cloudflare_dns_record" "email_spf" {
   zone_id = var.cloudflare_zone_id
   name    = var.domain_name
   type    = "TXT"
@@ -190,7 +182,7 @@ resource "cloudflare_dns_record" "dmarc" {
   ttl     = 3600
 }
 
-# Mailbox provider DKIM records (e.g., from Hostinger hPanel)
+# Mailbox provider DKIM records (e.g., Zoho Mail's zmail._domainkey)
 resource "cloudflare_dns_record" "mailbox_dkim" {
   for_each = var.email_dkim_records
 
@@ -199,7 +191,7 @@ resource "cloudflare_dns_record" "mailbox_dkim" {
   type    = each.value.type
   content = each.value.type == "TXT" ? "\"${each.value.content}\"" : each.value.content
   proxied = false
-  ttl     = 3600
+  ttl     = var.email_dns_ttl
 }
 
 # Site verification record (optional - for Google Search Console, etc.)
@@ -210,7 +202,7 @@ resource "cloudflare_dns_record" "google_site_verification" {
   type    = "TXT"
   content = "\"google-site-verification=${var.google_site_verification}\""
   proxied = false
-  ttl     = 3600
+  ttl     = 1
 
   count = var.google_site_verification != "" ? 1 : 0
 }

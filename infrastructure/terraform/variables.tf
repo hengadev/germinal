@@ -3,24 +3,13 @@
 variable "aws_region" {
   description = "AWS region for resources"
   type        = string
-  default     = "eu-central-1"
+  default     = "eu-west-3"
 }
 
 variable "project_name" {
   description = "Project name used for resource naming"
   type        = string
   default     = "germinal"
-}
-
-variable "environment" {
-  description = "Deployment environment (development, staging, production)"
-  type        = string
-  default     = "development"
-
-  validation {
-    condition     = contains(["development", "staging", "production"], var.environment)
-    error_message = "Environment must be one of: development, staging, production."
-  }
 }
 
 variable "allowed_origins" {
@@ -32,18 +21,12 @@ variable "allowed_origins" {
   ]
 }
 
-variable "create_backend_resources" {
-  description = "Set to false after initial backend setup to avoid recreating state resources"
-  type        = bool
-  default     = true
-}
-
 # ============================================
 # Hetzner Cloud Variables
 # ============================================
 
 variable "hcloud_token" {
-  description = "Hetzner Cloud API token"
+  description = "Hetzner Cloud API token (secret: TF_VAR_hcloud_token from Infisical germinal-infra)"
   type        = string
   sensitive   = true
 }
@@ -88,7 +71,7 @@ variable "enable_backups" {
 # ============================================
 
 variable "cloudflare_token" {
-  description = "Cloudflare API token with Zone:Edit permissions"
+  description = "Cloudflare API token with Zone:Edit permissions (secret: TF_VAR_cloudflare_token from Infisical germinal-infra)"
   type        = string
   sensitive   = true
 }
@@ -130,28 +113,15 @@ variable "create_staging_dns" {
 # Email Configuration Variables
 # ============================================
 
-variable "email_mx_primary" {
-  description = "Primary MX server for your mailbox provider"
-  type        = string
-  default     = "mx1.hostinger.com"
+variable "email_mx_records" {
+  description = "Inbound MX hosts for the mailbox provider, mapped to their priority (lower = preferred)"
+  type        = map(number)
 }
 
-variable "email_mx_primary_priority" {
-  description = "Priority for primary MX server (lower = higher priority)"
+variable "email_dns_ttl" {
+  description = "TTL (seconds) of the mailbox provider records (MX, mailbox DKIM)"
   type        = number
-  default     = 10
-}
-
-variable "email_mx_secondary" {
-  description = "Secondary MX server for your mailbox provider"
-  type        = string
-  default     = "mx2.hostinger.com"
-}
-
-variable "email_mx_secondary_priority" {
-  description = "Priority for secondary MX server"
-  type        = number
-  default     = 20
+  default     = 600
 }
 
 variable "email_spf_includes" {
@@ -172,36 +142,25 @@ variable "email_dmarc_policy" {
 }
 
 variable "email_dkim_records" {
-  description = "Mailbox provider DKIM records (from Hostinger hPanel > Emails > Email DNS Records)"
+  description = "Mailbox provider DKIM records, keyed by record name (e.g. zmail._domainkey for Zoho Mail)"
   type        = map(object({ type = string, content = string }))
   default     = {}
 }
 
 # ============================================
-# Twilio Configuration Variables
+# Infisical Variables
 # ============================================
-# Used by infrastructure/scripts/update-twilio-vault.sh to create API keys.
-# Not consumed by any Terraform resource — stored here so credentials live
-# in one place alongside the rest of the infrastructure config.
 
-variable "twilio_account_sid" {
-  description = "Twilio Account SID (AC...). Use TEST credentials for the staging key."
+variable "infisical_host" {
+  description = "Infisical instance the provider writes to"
   type        = string
-  sensitive   = true
-  default     = ""
+  default     = "https://secrets.henga.dev"
 }
 
-variable "twilio_auth_token" {
-  description = "Twilio Auth Token — used only to create API keys, never written to the VPS."
+variable "infisical_germinal_project_id" {
+  description = "ID of the Infisical `germinal` project, where Terraform writes the credentials it creates"
   type        = string
-  sensitive   = true
-  default     = ""
-}
-
-variable "twilio_phone_number_production" {
-  description = "Production Twilio sender phone number in E.164 format (e.g., +33600000000)."
-  type        = string
-  default     = ""
+  default     = "78c404c2-a76c-4967-8ff0-e7544f1b6fff"
 }
 
 # ============================================
