@@ -55,6 +55,14 @@ EXPOSE 3001
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD node -e "require('http').get('http://localhost:3001/api/health',(r)=>{process.exit(r.statusCode===200?0:1)}).on('error',()=>process.exit(1))"
 
+# Commit SHA this image was built from, reported by /api/health so the
+# deploy script and the Promote workflow can verify what is actually
+# serving. Pass it with: docker build --build-arg COMMIT_SHA=<full-sha> ...
+# Builds without the argument (local, ad-hoc) keep the "dev" sentinel
+# instead of reporting a misleading version.
+ARG COMMIT_SHA=dev
+ENV COMMIT_SHA=${COMMIT_SHA}
+
 # Environment (can be overridden)
 ENV NODE_ENV=production \
     PORT=3001
