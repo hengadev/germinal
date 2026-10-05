@@ -1,5 +1,25 @@
 # Germinal - Group Variables
 # These variables apply to all hosts
+#
+# No secrets live here (ADR 0004): application and infrastructure values are
+# rendered on the server by the Infisical Agent (roles/infisical_agent), and
+# the one value Ansible still needs at setup time — the notification email —
+# is read from Infisical /host through the operator's login (see
+# playbooks/site.yml).
+
+# ============================================
+# Infisical
+# ============================================
+# The `germinal` project on the team's instance. The setup playbook reads
+# NOTIFY_EMAIL from its /host folder (prod) on the control node through the
+# operator's `infisical login`; the value never touches the repo.
+infisical_project_id: "78c404c2-a76c-4967-8ff0-e7544f1b6fff"
+
+# Notification email for host-level services (fail2ban, unattended-upgrades,
+# Let's Encrypt/ACME). Overridden by the /host lookup in site.yml when the
+# operator is logged in; this fallback (mail to the server's root, unread)
+# only applies when the lookup fails — site.yml warns loudly then.
+host_notify_email: root@localhost
 
 # ============================================
 # Deploy User Configuration
@@ -37,7 +57,7 @@ system_timezone: Etc/UTC
 # Automatic security updates
 auto_security_updates: true
 auto_updates_reboot: false
-auto_updates_email: "{{ vault_contact_email | default('root@localhost') }}"
+auto_updates_email: "{{ host_notify_email }}"
 auto_updates_blacklist:
   - docker-ce
   - docker-ce-cli
@@ -81,88 +101,26 @@ fail2ban_ssh_bantime: 7200
 fail2ban_ddos_maxretry: 2
 fail2ban_ddos_bantime: 86400
 fail2ban_caddy_maxretry: 5
-fail2ban_notify_email: "{{ vault_contact_email | default('root@localhost') }}"
+fail2ban_notify_email: "{{ host_notify_email }}"
 
 # ============================================
 # Caddy Reverse Proxy Configuration
 # ============================================
-# Cloudflare API token for DNS-01 challenge (stored in vault)
-caddy_cloudflare_api_token: "{{ vault_caddy_cloudflare_api_token | default('') }}"
+# The Cloudflare DNS API token is NOT an Ansible variable: Caddy reads it
+# from its environment ({env.CLOUDFLARE_API_TOKEN} in the Caddyfile), fed by
+# the Agent-rendered env/caddy.env (ADR 0004).
 
 # Set to true once staging is deployed to include staging site blocks in Caddyfile
 staging_enabled: true
 
 # ============================================
-# Shared Services (staging-only flag, default false)
+# Database
 # ============================================
-# When true, the app container joins the prod network instead of creating its own services.
-# Overridden to true via -e "@group_vars/germinal_staging.yml" for staging deploys.
-# Explicitly set here so production deploys never pick up the value from the
-# germinal_staging_servers inventory group (germinal_vps belongs to both groups).
-use_shared_services: false
-
-# ============================================
-# Database and Session Configuration
-# ============================================
-# These are populated from vault variables
-db_user: "{{ vault_db_user | default('germinal') }}"
-db_password: "{{ vault_db_password | default('change_me') }}"
-db_name: "{{ vault_db_name | default('germinal') }}"
-session_secret: "{{ vault_session_secret | default('change_me_to_random_string') }}"
-
-# ============================================
-# Application Environment Variables
-# ============================================
-# These are populated from vault variables
-app_env_vars:
-  # S3 Configuration
-  S3_BUCKET: "{{ vault_s3_bucket | default('') }}"
-  S3_REGION: "{{ vault_s3_region | default('eu-central-1') }}"
-  S3_PUBLIC_URL: "{{ vault_s3_public_url | default('') }}"
-  MEDIA_URL: "{{ vault_media_url | default('') }}"
-
-  # AWS Credentials
-  AWS_ACCESS_KEY_ID: "{{ vault_aws_access_key_id | default('') }}"
-  AWS_SECRET_ACCESS_KEY: "{{ vault_aws_secret_access_key | default('') }}"
-  AWS_REGION: "{{ vault_aws_region | default('eu-central-1') }}"
-
-  # Email Configuration
-  SMTP_FROM_EMAIL: "{{ vault_smtp_from_email | default('noreply@' + app_domain) }}"
-  SMTP_FROM_NAME: "{{ vault_smtp_from_name | default('Germinal') }}"
-  CONTACT_EMAIL: "{{ vault_contact_email | default('contact@' + app_domain) }}"
-
-  # Stripe Configuration
-  STRIPE_SECRET_KEY: "{{ vault_stripe_secret_key | default('') }}"
-  PUBLIC_STRIPE_PUBLISHABLE_KEY: "{{ vault_stripe_publishable_key | default('') }}"
-  STRIPE_WEBHOOK_SECRET: "{{ vault_stripe_webhook_secret | default('') }}"
-
-  # Public URL
-  PUBLIC_URL: "{{ vault_public_url | default('https://' + app_domain) }}"
-
-  # File Upload Configuration
-  MAX_FILE_SIZE: "{{ vault_max_file_size | default('10485760') }}"
-  ALLOWED_IMAGE_TYPES: "{{ vault_allowed_image_types | default('image/jpeg,image/png,image/webp,image/gif') }}"
-  ALLOWED_VIDEO_TYPES: "{{ vault_allowed_video_types | default('video/mp4,video/webm,video/quicktime') }}"
-  BODY_SIZE_LIMIT: "{{ vault_body_size_limit | default('15728640') }}"
-
-  # Reservation Configuration
-  RESERVATION_EXPIRY_MINUTES: "{{ vault_reservation_expiry_minutes | default('15') }}"
-
-  # Mock Data Mode
-  USE_MOCK_DATA: "{{ vault_use_mock_data | default('false') }}"
-
-  # Twilio SMS (Optional)
-  TWILIO_ACCOUNT_SID: "{{ vault_twilio_account_sid | default('') }}"
-  TWILIO_API_KEY_SID: "{{ vault_twilio_api_key_sid | default('') }}"
-  TWILIO_API_KEY_SECRET: "{{ vault_twilio_api_key_secret | default('') }}"
-  TWILIO_PHONE_NUMBER: "{{ vault_twilio_phone_number | default('') }}"
-
-  # Monitoring (Optional)
-  SENTRY_DSN: "{{ vault_sentry_dsn | default('') }}"
-  USE_SCHEDULER: "{{ vault_use_scheduler | default('false') }}"
-
-  # Maintenance Mode
-  MAINTENANCE_MODE: "{{ vault_maintenance_mode | default('false') }}"
+# Names only, used by the backup playbook's scripts. The real credentials
+# (user, password, database per stack) live in Infisical /db and reach the
+# containers through the Agent-rendered env files — never through Ansible.
+db_user: germinal
+db_name: germinal
 
 # ============================================
 # Backup Configuration
@@ -174,13 +132,3 @@ backup_schedule_monthly: "0 4 1 * *"
 backup_volumes_enabled: true
 backup_configs_enabled: true
 backup_s3_storage_class: "STANDARD_IA"
-
-# ============================================
-# Monitoring (Optional)
-# ============================================
-monitoring_enabled: true
-monitoring_cadvisor_port: 8081
-monitoring_node_exporter_port: 9100
-monitoring_prometheus_port: 9090
-monitoring_grafana_port: 3001
-grafana_admin_password: "{{ vault_grafana_admin_password | default('changeme-set-in-secrets') }}"

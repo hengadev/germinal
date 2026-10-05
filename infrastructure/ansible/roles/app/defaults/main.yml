@@ -1,5 +1,33 @@
 ---
-# App Role Default Variables
+# App role default variables
+
+# The directory layout the compose stacks need on the VPS. It MUST match
+# infrastructure/compose/README.md exactly (issue 007):
+#
+#   /opt/germinal/                        PROD
+#   ├── env/                              Agent-rendered, root 0600
+#   ├── data/postgres/  data/redis/  data/uploads/
+#   └── caddy/{config,data,logs}/         created by the caddy role
+#   /opt/germinal-staging/                STAGING
+#   ├── env/
+#   └── data/uploads/
+#
+# env/ is root-only (0700): the Infisical Agent writes its 0600 renderings
+# there. The infisical_agent role creates the same directories with the same
+# parameters, so both roles stay idempotent together.
+# data/uploads is owned by the app container's user (uid/gid 1001, the
+# `nodejs` user from the image's Dockerfile) so local uploads work even
+# when S3 is not configured.
+app_prod_root: /opt/germinal
+app_staging_root: /opt/germinal-staging
+app_container_uid: "1001"
+app_stack_directories:
+  - { path: "{{ app_prod_root }}/env", mode: "0700" }
+  - { path: "{{ app_prod_root }}/data/postgres" }
+  - { path: "{{ app_prod_root }}/data/redis" }
+  - { path: "{{ app_prod_root }}/data/uploads", owner: "{{ app_container_uid }}", group: "{{ app_container_uid }}", mode: "0750" }
+  - { path: "{{ app_staging_root }}/env", mode: "0700" }
+  - { path: "{{ app_staging_root }}/data/uploads", owner: "{{ app_container_uid }}", group: "{{ app_container_uid }}", mode: "0750" }
 
 # Caddy data directory (shared with caddy role)
 caddy_data_dir: "{{ app_base_dir }}/caddy"
