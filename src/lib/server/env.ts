@@ -9,6 +9,8 @@ const devEnvSchema = z.object({
     REDIS_HOST: z.string().default('localhost'),
     REDIS_PORT: z.string().default('6379').transform(Number),
     USE_MOCK_DATA: z.string().default('false').transform(v => v === 'true'),
+    // Maintenance override - forces maintenance mode on before any database read
+    MAINTENANCE_MODE: z.string().default('false').transform(v => v === 'true'),
     MOCK_ADMIN_EMAIL: z.string().optional().default(''),
     MOCK_ADMIN_PASSWORD: z.string().optional().default(''),
     MOCK_STAFF_EMAIL: z.string().optional().default(''),
@@ -53,6 +55,8 @@ const prodEnvSchema = z.object({
     REDIS_HOST: z.string().min(1),
     REDIS_PORT: z.string().transform(Number),
     USE_MOCK_DATA: z.string().default('false').transform(v => v === 'true'),
+    // Maintenance override - forces maintenance mode on before any database read
+    MAINTENANCE_MODE: z.string().default('false').transform(v => v === 'true'),
     MOCK_ADMIN_EMAIL: z.string().optional().default(''),
     MOCK_ADMIN_PASSWORD: z.string().optional().default(''),
     MOCK_STAFF_EMAIL: z.string().optional().default(''),

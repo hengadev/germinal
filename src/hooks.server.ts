@@ -7,8 +7,7 @@ import { runMigrations } from '$lib/server/db';
 import { initMonitoring, captureException } from '$lib/server/monitoring';
 import { logger } from '$lib/server/logger';
 import { generateToken } from '$lib/server/csrf';
-import { env } from '$lib/server/env';
-import { getCachedSiteSettings } from '$lib/server/services/site-settings';
+import { getMaintenanceState, isMaintenanceBypassPath } from '$lib/server/maintenance';
 
 // Initialize monitoring
 initMonitoring();
@@ -65,20 +64,19 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	// Maintenance mode: redirect all public (non-admin, non-staff) traffic to the maintenance
 	// page and block new Guest bookings (API routes are covered by this same catch-all redirect).
-	// Driven by the DB-backed site settings toggle (admin settings page), not an env var, so it
-	// can be flipped without a redeploy. Reads go through a short-lived cache since this runs on
-	// every request. In mock-data mode there is no DB to read from, so maintenance mode is
-	// always considered off; if the settings read fails for any other reason, fail open (don't
-	// take the whole site down over a settings-read hiccup).
-	let maintenanceMode = false;
-	if (!env.USE_MOCK_DATA) {
-		try {
-			maintenanceMode = (await getCachedSiteSettings())?.maintenanceMode === true;
-		} catch (err) {
-			logger.error({ err }, '[Maintenance Mode] Failed to read site settings, failing open');
-		}
-	}
-	if (maintenanceMode && !event.locals.isAdminDomain && !event.locals.isStaffDomain && event.url.pathname !== '/maintenance') {
+	// Effective state = MAINTENANCE_MODE env force OR the DB-backed site settings toggle (admin
+	// settings page). The env force is checked before any database read, so it holds with an
+	// empty, fresh or unreachable database and in mock-data mode; database reads go through a
+	// short-lived cache since this runs on every request, and if the read fails the site fails
+	// open (doesn't go down over a settings-read hiccup) unless the env forces maintenance.
+	// /maintenance itself and /api/health stay reachable on every domain.
+	const { effective: maintenanceMode } = await getMaintenanceState();
+	if (
+		maintenanceMode &&
+		!event.locals.isAdminDomain &&
+		!event.locals.isStaffDomain &&
+		!isMaintenanceBypassPath(event.url.pathname)
+	) {
 		throw redirect(302, '/maintenance');
 	}
 

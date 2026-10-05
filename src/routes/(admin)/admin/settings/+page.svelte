@@ -42,6 +42,7 @@
 
     const settings = $derived(data.settings);
     const hasBoth = $derived(!!(settings?.heroImageId && settings?.heroVideoId));
+    const maintenanceForcedByEnv = $derived(data.maintenanceForcedByEnv);
 
     let senderEmail = $state(settings?.senderEmail ?? '');
     let maintenanceMode = $state(settings?.maintenanceMode ?? false);
@@ -303,17 +304,26 @@
                     use:enhance={handleMaintenanceResult}
                 >
                     <input type="hidden" name="maintenanceMode" value={maintenanceMode ? 'true' : 'false'} />
-                    <div class="flex items-center gap-3 p-4 bg-muted rounded-lg">
+                    <div class="flex items-center gap-3 p-4 bg-muted rounded-lg" class:opacity-60={maintenanceForcedByEnv}>
                         <input
                             id="maintenanceMode"
                             type="checkbox"
                             bind:checked={maintenanceMode}
-                            class="w-5 h-5 text-foreground border-border-input rounded focus:ring-foreground"
+                            disabled={maintenanceForcedByEnv}
+                            class="w-5 h-5 text-foreground border-border-input rounded focus:ring-foreground disabled:cursor-not-allowed disabled:opacity-50"
                             onchange={() => maintenanceForm.requestSubmit()}
                         />
                         <div>
-                            <label for="maintenanceMode" class="block text-sm font-medium text-foreground cursor-pointer">Activer le mode maintenance</label>
-                            <p class="text-xs text-muted-foreground">{maintenanceMode ? 'Activé — le site est actuellement en maintenance' : 'Désactivé — le site est accessible normalement'}</p>
+                            <label for="maintenanceMode" class="block text-sm font-medium text-foreground" class:cursor-not-allowed={maintenanceForcedByEnv} class:cursor-pointer={!maintenanceForcedByEnv}>Activer le mode maintenance</label>
+                            <p class="text-xs text-muted-foreground">
+                                {#if maintenanceForcedByEnv}
+                                    Forcé par l’environnement (MAINTENANCE_MODE=true) — le site est en maintenance tant que cette variable n’est pas retirée ou mise à false. Ce réglage est sans effet.
+                                {:else if maintenanceMode}
+                                    Activé — le site est actuellement en maintenance
+                                {:else}
+                                    Désactivé — le site est accessible normalement
+                                {/if}
+                            </p>
                         </div>
                     </div>
                 </form>

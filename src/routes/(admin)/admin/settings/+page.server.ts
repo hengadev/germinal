@@ -6,13 +6,16 @@ import { requireAdmin } from '$lib/server/auth-guards';
 import { senderEmailSchema } from '$lib/server/validators/site-settings';
 
 export const load: PageServerLoad = async () => {
+    // The env override applies in mock mode too, so it is always surfaced.
+    const maintenanceForcedByEnv = env.MAINTENANCE_MODE;
+
     if (env.USE_MOCK_DATA) {
-        return { settings: null };
+        return { settings: null, maintenanceForcedByEnv };
     }
 
     const { getSiteSettings } = await import('$lib/server/services/site-settings');
     const settings = await getSiteSettings();
-    return { settings };
+    return { settings, maintenanceForcedByEnv };
 };
 
 export const actions: Actions = {
@@ -178,6 +181,12 @@ export const actions: Actions = {
     toggleMaintenanceMode: async ({ request, locals }) => {
         requireAdmin(locals);
         if (env.USE_MOCK_DATA) return fail(400, { error: 'Not available in mock mode' });
+
+        // When the environment forces maintenance, the database toggle has no effect —
+        // refuse rather than let the admin think flipping it did something.
+        if (env.MAINTENANCE_MODE) {
+            return fail(400, { error: 'Le mode maintenance est forcé par la variable d’environnement MAINTENANCE_MODE. Retirez-la ou passez-la à false (Infisical /app) pour reprendre le contrôle depuis cette page.' });
+        }
 
         const formData = await request.formData();
         const enabled = formData.get('maintenanceMode') === 'true';
