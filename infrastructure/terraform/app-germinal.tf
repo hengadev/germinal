@@ -5,9 +5,10 @@
 # Distinct from terraform-germinal (the Terraform admin user) and from the
 # per-environment app_user resources in s3.tf/backups.tf.
 #
-# One user for all environments, declared once. It is used for local
-# development: its access key is written to germinal/dev/s3 in Infisical
-# (infisical.tf).
+# One user for all environments, declared once. Its access key is not
+# managed here and is never written to Infisical: it can delete production
+# media and backups, and germinal/dev must reach no real data (dev uses the
+# local MinIO). Keys for it are created by hand, for operator use only.
 # =============================================================================
 
 locals {
@@ -63,8 +64,3 @@ resource "aws_iam_user_policy_attachment" "app_germinal" {
   user       = aws_iam_user.app_germinal.name
   policy_arn = aws_iam_policy.app_germinal.arn
 }
-
-resource "aws_iam_access_key" "app_germinal" {
-  user = aws_iam_user.app_germinal.name
-}
-

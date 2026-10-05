@@ -5,8 +5,9 @@
 #   germinal/staging/s3, germinal/prod/s3:
 #     AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY  <- aws_iam_access_key.app_user[<env>]
 #     AWS_REGION, S3_BUCKET_NAME, MEDIA_URL     <- region, media bucket, media CDN
-#   germinal/dev/s3:
-#     AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY  <- aws_iam_access_key.app_germinal
+#
+# Nothing is written to germinal/dev: dev uses the local MinIO and keeps its
+# AWS_* keys empty, so it can reach no real bucket and send no real email.
 #
 # Twilio API keys are not here: the Twilio provider cannot return a key's
 # secret, so they are created by hand (see README.md, "Twilio API keys").
@@ -19,33 +20,24 @@ locals {
   }
 
   # Value of each secret, keyed "<env-slug>/<NAME>"
-  infisical_s3_values = merge(concat(
-    [
-      for env, slug in local.infisical_env_slugs : {
-        "${slug}/AWS_ACCESS_KEY_ID"     = aws_iam_access_key.app_user[env].id
-        "${slug}/AWS_SECRET_ACCESS_KEY" = aws_iam_access_key.app_user[env].secret
-        "${slug}/AWS_REGION"            = var.aws_region
-        "${slug}/S3_BUCKET_NAME"        = aws_s3_bucket.media[env].bucket
-        "${slug}/MEDIA_URL"             = "https://${local.media_domains[env]}"
-      }
-    ],
-    [{
-      "dev/AWS_ACCESS_KEY_ID"     = aws_iam_access_key.app_germinal.id
-      "dev/AWS_SECRET_ACCESS_KEY" = aws_iam_access_key.app_germinal.secret
-    }],
-  )...)
+  infisical_s3_values = merge([
+    for env, slug in local.infisical_env_slugs : {
+      "${slug}/AWS_ACCESS_KEY_ID"     = aws_iam_access_key.app_user[env].id
+      "${slug}/AWS_SECRET_ACCESS_KEY" = aws_iam_access_key.app_user[env].secret
+      "${slug}/AWS_REGION"            = var.aws_region
+      "${slug}/S3_BUCKET_NAME"        = aws_s3_bucket.media[env].bucket
+      "${slug}/MEDIA_URL"             = "https://${local.media_domains[env]}"
+    }
+  ]...)
 
   # Same keys, split into env and name, with no resource attributes, so the
   # import blocks (migration.tf) can iterate it.
   infisical_s3_secrets = {
-    for key in concat(
-      flatten([
-        for slug in values(local.infisical_env_slugs) : [
-          for name in ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_REGION", "S3_BUCKET_NAME", "MEDIA_URL"] : "${slug}/${name}"
-        ]
-      ]),
-      ["dev/AWS_ACCESS_KEY_ID", "dev/AWS_SECRET_ACCESS_KEY"],
-    ) : key => { env = split("/", key)[0], name = split("/", key)[1] }
+    for key in flatten([
+      for slug in values(local.infisical_env_slugs) : [
+        for name in ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_REGION", "S3_BUCKET_NAME", "MEDIA_URL"] : "${slug}/${name}"
+      ]
+    ]) : key => { env = split("/", key)[0], name = split("/", key)[1] }
   }
 }
 

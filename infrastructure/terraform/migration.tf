@@ -101,10 +101,11 @@ moved {
 # `production` workspace: imported, since `moved` cannot cross states.
 #
 # Not imported, on purpose:
-# - aws_iam_access_key.app_user["production"] and aws_iam_access_key.app_germinal:
-#   AWS never returns a key's secret, so an imported key could not be written
-#   to Infisical. Terraform creates new keys instead (a rotation); delete the
-#   old ones by hand after the apply (README.md, "After the first apply").
+# - aws_iam_access_key.app_user["production"]: AWS never returns a key's
+#   secret, so an imported key could not be written to Infisical. Terraform
+#   creates a new key instead (a rotation); delete the old one by hand after
+#   the apply (README.md, "After the first apply").
+# - app-germinal's access keys: not managed by Terraform (app-germinal.tf).
 # - the production workspace's aws_acm_certificate.media: an unused duplicate of
 #   the media.<domain> certificate, which moves to ["production"] below.
 # --------------------------------------------------------------------------
