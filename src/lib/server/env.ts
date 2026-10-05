@@ -108,6 +108,15 @@ const bootstrapLog = {
     error: (...args: unknown[]) => console.error(...args),
 };
 
+/**
+ * An empty value means "unset" (.env.example and Infisical folders leave a
+ * key empty to disable it), so it falls back to the schema default or fails
+ * a required check, instead of failing format checks such as `.url()`.
+ */
+export function withoutEmptyValues(source: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+    return Object.fromEntries(Object.entries(source).filter(([, value]) => value !== ''));
+}
+
 function validateEnv() {
     // Skip validation during build - env vars will be validated at runtime
     if (isBuildTime) {
@@ -119,7 +128,7 @@ function validateEnv() {
     // Use dev schema (relaxed) when mock data is enabled, even in production
     const useRelaxedSchema = isDevelopment || useMockData;
     const schema = useRelaxedSchema ? devEnvSchema : prodEnvSchema;
-    const parsed = schema.safeParse(process.env);
+    const parsed = schema.safeParse(withoutEmptyValues(process.env));
 
     if (!parsed.success) {
         bootstrapLog.error('❌ Invalid environment variables:', parsed.error.flatten().fieldErrors);

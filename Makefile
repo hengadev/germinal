@@ -246,8 +246,8 @@ staging-create-admin:
 # stopping/starting them each time; `make dev-up` is idempotent.
 
 dev-up:
-	@echo "Starting local db+redis..."
-	docker compose up -d db redis
+	@echo "Starting local db+redis (waits until healthy)..."
+	docker compose up -d --wait db redis
 
 dev-down:
 	@echo "Stopping local db+redis (data preserved)..."
@@ -257,9 +257,11 @@ dev-reset:
 	@echo "Stopping local db+redis and WIPING their data volumes..."
 	docker compose down -v
 
+# Same migration files and entry point as production and `make try`, so the
+# local schema can't drift from what gets deployed.
 dev-migrate: dev-up
-	@echo "Applying schema to local dev database..."
-	pnpm drizzle-kit push
+	@echo "Applying migrations to local dev database..."
+	node scripts/migrate.js
 
 dev-logs:
 	docker compose logs -f db redis
