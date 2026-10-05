@@ -34,7 +34,9 @@ TimeoutStartSec=300
 
 NoNewPrivileges=true
 PrivateTmp=true
-ProtectHome=true
+# read-only, not true: the recreate commands run docker as root and may need
+# /root/.docker/config.json (registry login) if an image must be pulled.
+ProtectHome=read-only
 ProtectKernelTunables=true
 ProtectKernelModules=true
 ProtectControlGroups=true
