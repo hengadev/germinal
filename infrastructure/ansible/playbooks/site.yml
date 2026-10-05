@@ -146,6 +146,11 @@
     - role: app
       tags: ['app', 'setup']
 
+    # Postgres, Redis and Caddy from the production compose file, plus the
+    # germinal_staging database role (issue 009). Needs the Agent's env files.
+    - role: shared_services
+      tags: ['shared_services', 'setup']
+
   post_tasks:
     - name: Display setup completion message
       ansible.builtin.debug:

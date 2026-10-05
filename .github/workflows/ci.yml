@@ -141,3 +141,80 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+  # ── Staging deploy (issue 009): every push to main that passes the jobs
+  # above is built, pushed as henga/germinal:<sha> and deployed to staging.
+  # Secrets: Docker Hub token and an SSH deploy key with the server's host
+  # key pinned (SSH_KNOWN_HOSTS). No Infisical credential: the server's own
+  # Infisical Agent provides every runtime value.
+  build-image:
+    name: Build and push image
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [test, migrations, try-path]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build and push henga/germinal:${{ github.sha }}
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: true
+          tags: henga/germinal:${{ github.sha }}
+          # Reported by /api/health; deploy waits for it (issue 001).
+          build-args: COMMIT_SHA=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy-staging:
+    name: Deploy staging
+    needs: build-image
+    runs-on: ubuntu-latest
+    environment: staging
+    # One deploy at a time; a newer push waits rather than cancelling a
+    # deploy halfway.
+    concurrency:
+      group: deploy-staging
+      cancel-in-progress: false
+
+    env:
+      SSH_HOST: ${{ secrets.SSH_HOST }}
+      SSH_USER: ${{ secrets.SSH_USER }}
+      STACK_ROOT: /opt/germinal-staging
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Configure SSH (pinned host key)
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          printf 'Host target\n  HostName %s\n  User %s\n  StrictHostKeyChecking yes\n  BatchMode yes\n' \
+            "$SSH_HOST" "$SSH_USER" > ~/.ssh/config
+
+      # The compose file and deploy script come from the commit being deployed.
+      - name: Copy the compose file and deploy script
+        run: |
+          scp infrastructure/compose/docker-compose.staging.yml "target:$STACK_ROOT/docker-compose.yml"
+          scp infrastructure/compose/deploy "target:$STACK_ROOT/deploy"
+          ssh target "chmod 0755 $STACK_ROOT/deploy"
+
+      - name: deploy staging ${{ github.sha }}
+        run: ssh target "sudo $STACK_ROOT/deploy staging $GITHUB_SHA"

@@ -4,11 +4,11 @@
 # just `deploy prod <earlier-sha>`: every step is re-run and the old image
 # pinned back.
 #
-# CI (issues 009/010) copies this script and the compose files from the same
-# commit it deploys, then runs it over SSH. The Agent-rendered env files are
-# root-only 0600, so this must run docker as root or via sudo — the deploy
-# user already has passwordless docker sudo (infrastructure/ansible):
-#   ssh deploy@<host> 'sudo /usr/local/bin/deploy staging <sha>'
+# CI (issues 009/010) copies this script and the compose file from the same
+# commit it deploys into the stack root, then runs it over SSH. The
+# Agent-rendered env files are root-only 0600, so it runs through sudo (the
+# deploy user may run exactly <stack root>/deploy; roles/user):
+#   ssh germinal@<host> 'sudo /opt/germinal-staging/deploy staging <sha>'
 #
 # Sequence — every failed step exits non-zero BEFORE the next one runs:
 #   1. pull henga/germinal:<sha> from Docker Hub

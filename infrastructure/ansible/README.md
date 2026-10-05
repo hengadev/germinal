@@ -25,6 +25,7 @@ no local secrets (ADR 0004). Releases never go through Ansible: CI deploys
 - Caddy reverse proxy (Docker container) with automatic SSL/TLS and security headers
 - Infisical Agent (systemd service) rendering one env file per consumer (see [the role README](roles/infisical_agent/README.md))
 - The compose directory layout under `/opt/germinal` and `/opt/germinal-staging`
+- Production's shared services (Postgres, Redis, Caddy) started from `infrastructure/compose/docker-compose.prod.yml`, and the `germinal_staging` database role and database (its `/db` values read through your `infisical login`)
 - Logrotate configuration
 
 ### SSL/TLS Configuration
@@ -125,7 +126,9 @@ See `.github/workflows/` and `infrastructure/compose/README.md` for the
 
 Run this on a fresh VPS to set up everything: hardening, Docker, the deploy
 user, Caddy, the Infisical Agent (when its credential is provided) and the
-compose directory layout. The `infisical_agent` role is included and runs
+compose directory layout, then starts Postgres, Redis and Caddy and creates
+the `germinal_staging` database role (`roles/shared_services`, which needs the
+Agent's env files). The `infisical_agent` role is included and runs
 when `INFISICAL_AGENT_CLIENT_ID` / `INFISICAL_AGENT_CLIENT_SECRET` are
 exported on the control machine (see [the role README](roles/infisical_agent/README.md));
 without them it is skipped with a note.
@@ -215,7 +218,8 @@ infrastructure/ansible/
     ├── fail2ban/              # Brute-force protection
     ├── caddy/                 # Reverse proxy with retry window
     ├── infisical_agent/       # Infisical Agent (env files, 0600, rotation)
-    └── app/                   # Compose directory layout (nothing else)
+    ├── app/                   # Compose directory layout (nothing else)
+    └── shared_services/       # Postgres/Redis/Caddy up, germinal_staging DB role
 ```
 
 ## Security Features

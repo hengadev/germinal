@@ -1,0 +1,25 @@
+{# Fed to psql on stdin (roles/shared_services). The values are psql
+   variables, set from single-quoted literals (backslashes and quotes
+   escaped), and used through psql's own quoting (:'v' as a literal, :"v"
+   as an identifier), so no value is spliced into SQL text. #}
+{% macro psql_literal(value) %}'{{ value | replace('\\', '\\\\') | replace("'", "''") }}'{% endmacro %}
+\set role {{ psql_literal(shared_services_db.staging.POSTGRES_USER) }}
+\set password {{ psql_literal(shared_services_db.staging.POSTGRES_PASSWORD) }}
+\set db {{ psql_literal(shared_services_db.staging.POSTGRES_DB) }}
+\set proddb {{ psql_literal(shared_services_db.prod.POSTGRES_DB) }}
+
+-- Prints CREATED when this run creates something (the task's changed_when).
+SELECT 'CREATED' WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = :'role')
+   OR NOT EXISTS (SELECT FROM pg_database WHERE datname = :'db');
+
+SELECT format('CREATE ROLE %I LOGIN', :'role')
+WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = :'role') \gexec
+SELECT format('CREATE DATABASE %I OWNER %I', :'db', :'role')
+WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = :'db') \gexec
+
+ALTER ROLE :"role" WITH LOGIN PASSWORD :'password';
+
+-- Each role connects to its own database only.
+REVOKE CONNECT ON DATABASE :"proddb" FROM PUBLIC;
+REVOKE CONNECT ON DATABASE :"db" FROM PUBLIC;
+GRANT CONNECT ON DATABASE :"db" TO :"role";

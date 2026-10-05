@@ -1,0 +1,18 @@
+---
+# Shared services role defaults (issue 009, PRD M4/M5)
+
+# Production stack root (infrastructure/compose/README.md). The production
+# compose file is installed here from the control node's checkout so the
+# shared services (Postgres, Redis, Caddy) run before any deploy; CI's
+# production deploys (issue 010) overwrite it with the deployed commit's copy.
+shared_services_root: /opt/germinal
+shared_services_compose_src: "{{ playbook_dir }}/../../compose/docker-compose.prod.yml"
+shared_services: [postgres, redis, caddy]
+shared_services_wait_timeout: 180
+
+# The Postgres container (docker-compose.prod.yml container_name).
+shared_services_postgres_container: germinal_postgres
+
+# Infisical `germinal` project: the /db folders the database roles are read
+# from, through the operator's own `infisical login` on the control node.
+shared_services_infisical_project_id: "78c404c2-a76c-4967-8ff0-e7544f1b6fff"

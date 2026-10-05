@@ -8,7 +8,7 @@ of secrets, no top-level `.env` on the server (ADR 0003, ADR 0004):
 | --- | --- |
 | `docker-compose.prod.yml` | `/opt/germinal/docker-compose.yml` |
 | `docker-compose.staging.yml` | `/opt/germinal-staging/docker-compose.yml` |
-| `deploy` | `/usr/local/bin/deploy` (root-owned, 0755) |
+| `deploy` | `/opt/germinal/deploy` and `/opt/germinal-staging/deploy` (0755; the deploy user may run exactly these with sudo) |
 | `test/` | stays in the repo — the local harness (below) |
 
 ## Server layout
@@ -85,7 +85,7 @@ rollbacks. CI never deploys any other way (issues 009/010 copy the script
 and compose files from the deployed commit, then SSH in and run it):
 
 ```sh
-ssh deploy@<host> 'sudo /usr/local/bin/deploy staging <sha>'
+ssh germinal@<host> 'sudo /opt/germinal-staging/deploy staging <sha>'
 ```
 
 It runs as root (or via sudo — the deploy user has passwordless docker

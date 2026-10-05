@@ -1,0 +1,114 @@
+---
+# Shared services (issue 009)
+# - Install the production compose file and start Postgres, Redis and Caddy,
+#   so staging has something to join before production's first deploy (010)
+# - Create the germinal_staging database role and database (PRD M4): it owns
+#   only germinal_staging and cannot connect to production's database
+#
+# Needs the Agent-rendered env files (roles/infisical_agent) and the
+# operator's `infisical login` on the control node.
+
+- name: Check the Agent has rendered the production env files
+  ansible.builtin.stat:
+    path: "{{ shared_services_root }}/env/{{ item }}.env"
+  loop: [postgres, caddy, app]
+  register: shared_services_env_files
+
+- name: Fail when an env file is missing
+  ansible.builtin.fail:
+    msg: >-
+      {{ shared_services_root }}/env/{{ item.item }}.env is missing. The
+      Infisical Agent renders it: run the setup with
+      INFISICAL_AGENT_CLIENT_ID / INFISICAL_AGENT_CLIENT_SECRET exported
+      (or playbooks/infisical-agent.yml), then check
+      `systemctl status infisical-agent`.
+  loop: "{{ shared_services_env_files.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+  when:
+    - not ansible_check_mode
+    - not item.stat.exists
+
+- name: Install the production compose file
+  ansible.builtin.copy:
+    src: "{{ shared_services_compose_src }}"
+    dest: "{{ shared_services_root }}/docker-compose.yml"
+    owner: "{{ deploy_user }}"
+    group: "{{ deploy_user }}"
+    mode: "0640"
+
+# Runs as root: the env files are root-only 0600. Never touches the app
+# service (it is deployed by CI, issue 010).
+- name: Start the shared services
+  ansible.builtin.command:
+    cmd: >-
+      docker compose --project-directory {{ shared_services_root }}
+      up -d --wait --wait-timeout {{ shared_services_wait_timeout }}
+      {{ shared_services | join(' ') }}
+  register: shared_services_up
+  changed_when: shared_services_up.stderr is search('Creat|Recreat|Start')
+  when: not ansible_check_mode
+
+# ── germinal_staging role and database ──────────────────────────────────────
+# The /db values are read on the control node through the operator's login.
+# no_log on every task that holds them; the password reaches psql on stdin,
+# never on a command line.
+- name: Read the /db folders from Infisical
+  ansible.builtin.command:
+    cmd: >-
+      infisical secrets
+      --projectId={{ shared_services_infisical_project_id }}
+      --env={{ item }} --path=/db --output=json --silent
+  loop: [prod, staging]
+  delegate_to: localhost
+  become: false
+  register: shared_services_db_lookup
+  changed_when: false
+  check_mode: false
+  no_log: true
+
+- name: Parse the /db values
+  ansible.builtin.set_fact:
+    shared_services_db: >-
+      {{ shared_services_db | default({}) | combine({
+           item.item: dict(item.stdout | from_json
+                           | map(attribute='secretKey')
+                           | zip(item.stdout | from_json | map(attribute='secretValue')))
+         }) }}
+  loop: "{{ shared_services_db_lookup.results }}"
+  no_log: true
+
+- name: Check the /db folders hold what the roles need
+  ansible.builtin.assert:
+    that:
+      - shared_services_db[item].POSTGRES_USER | default('') | length > 0
+      - shared_services_db[item].POSTGRES_PASSWORD | default('') | length > 0
+      - shared_services_db[item].POSTGRES_DB | default('') | length > 0
+    fail_msg: "Infisical {{ item }}/db needs POSTGRES_USER, POSTGRES_PASSWORD and POSTGRES_DB."
+    quiet: true
+  loop: [prod, staging]
+  no_log: true
+
+- name: Check staging uses its own role and database
+  ansible.builtin.assert:
+    that:
+      - shared_services_db.staging.POSTGRES_USER != shared_services_db.prod.POSTGRES_USER
+      - shared_services_db.staging.POSTGRES_DB != shared_services_db.prod.POSTGRES_DB
+    fail_msg: "staging/db must name a different user and database than prod/db (PRD M4)."
+    quiet: true
+
+# Idempotent: creates the role and database only when missing (the only
+# output that reports a change), and re-applies the password from Infisical
+# on every run, so a rotation is one re-run.
+- name: Create the staging database role and database
+  ansible.builtin.command:
+    cmd: >-
+      docker exec -i {{ shared_services_postgres_container }}
+      psql -X -q -tA -v ON_ERROR_STOP=1
+      -U {{ shared_services_db.prod.POSTGRES_USER }}
+      -d {{ shared_services_db.prod.POSTGRES_DB }}
+    stdin: "{{ lookup('ansible.builtin.template', 'staging-db.sql.j2') }}"
+  register: shared_services_staging_db
+  changed_when: shared_services_staging_db.stdout is search('CREATED')
+  when: not ansible_check_mode
+  no_log: true

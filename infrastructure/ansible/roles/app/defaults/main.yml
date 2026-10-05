@@ -26,6 +26,9 @@ app_stack_directories:
   - { path: "{{ app_prod_root }}/data/postgres" }
   - { path: "{{ app_prod_root }}/data/redis" }
   - { path: "{{ app_prod_root }}/data/uploads", owner: "{{ app_container_uid }}", group: "{{ app_container_uid }}", mode: "0750" }
+  # Staging's root is the deploy user's, like prod's (roles/user): CI copies
+  # the compose file and the deploy script into it (issue 009).
+  - { path: "{{ app_staging_root }}", owner: "{{ deploy_user }}", group: "{{ deploy_user }}", mode: "0750" }
   - { path: "{{ app_staging_root }}/env", mode: "0700" }
   - { path: "{{ app_staging_root }}/data/uploads", owner: "{{ app_container_uid }}", group: "{{ app_container_uid }}", mode: "0750" }
 

@@ -1,16 +1,14 @@
 ---
 # Caddy Handlers
 #
-# not ansible_check_mode: both handlers switch to the deploy user and shell
-# out to docker compose — in --check against a fresh host the user does not
-# exist yet and the commands would be skipped anyway.
+# Run as root: docker compose reads every service's env_file, and the
+# Agent-rendered env files are root-only 0600. Skipped in --check, and until
+# roles/shared_services has started Caddy (failed_when: false covers that).
 
 - name: reload caddy
   ansible.builtin.command:
     cmd: docker compose exec caddy caddy reload --config /etc/caddy/Caddyfile
     chdir: "{{ app_base_dir }}"
-  become_user: "{{ deploy_user }}"
-  become: true
   failed_when: false
   when:
     - caddy_configured | default(false)
@@ -20,8 +18,6 @@
   ansible.builtin.command:
     cmd: docker compose restart caddy
     chdir: "{{ app_base_dir }}"
-  become_user: "{{ deploy_user }}"
-  become: true
   failed_when: false
   when:
     - caddy_configured | default(false)

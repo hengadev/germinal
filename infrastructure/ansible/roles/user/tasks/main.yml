@@ -45,6 +45,10 @@
       # paths — CI's deploy script lives in /usr/local/bin)
       {{ deploy_user }} ALL=(ALL) NOPASSWD: {{ app_base_dir }}/scripts/*.sh
 
+      # The deploy script CI copies into each stack root (issue 009). No new
+      # privilege: the docker entries above are already root-equivalent.
+      {{ deploy_user }} ALL=(root) NOPASSWD: /opt/germinal/deploy, /opt/germinal-staging/deploy
+
       # Backup operations
       {{ deploy_user }} ALL=(ALL) NOPASSWD: /usr/bin/aws s3 *
 
