@@ -1,0 +1,85 @@
+---
+# infisical_agent role defaults (issue 008, PRD module M3)
+#
+# Turns the server into an Infisical Agent host: the Agent renders one env
+# file per consumer from the `germinal` Infisical project (ADR 0004) and
+# recreates the affected container when a value changes.
+
+# The team's self-hosted Infisical instance. Not a secret: it is the public
+# login address. The Agent appends /api itself (v0.43.138 AppendAPIEndpoint).
+infisical_agent_host: "https://secrets.henga.dev"
+
+# Pin the CLI package: it ships the Agent (`infisical agent` subcommand) in
+# the same binary, and 0.43.138 is the version issue 005 verified against the
+# live instance.
+infisical_agent_version: "0.43.138"
+
+# germinal-vps machine-identity credential. It is read from the operator at
+# run time ONLY — never from a file in this repo and never from the Ansible
+# Vault (ADR 0004): export INFISICAL_AGENT_CLIENT_ID / INFISICAL_AGENT_CLIENT_
+# SECRET on the control machine, or answer the prompts of
+# playbooks/infisical-agent.yml. Every task that touches these values runs
+# with no_log.
+infisical_agent_client_id: "{{ lookup('env', 'INFISICAL_AGENT_CLIENT_ID') }}"
+infisical_agent_client_secret: "{{ lookup('env', 'INFISICAL_AGENT_CLIENT_SECRET') }}"
+
+# Filesystem layout
+infisical_agent_config_dir: /etc/infisical-agent
+infisical_agent_credentials_dir: "{{ infisical_agent_config_dir }}/credentials"
+infisical_agent_templates_dir: "{{ infisical_agent_config_dir }}/templates"
+# The Agent writes its (refreshable) access token here; root-only, like the
+# credential files, and recreated at every start.
+infisical_agent_token_sink: "{{ infisical_agent_credentials_dir }}/token-sink.json"
+infisical_agent_unit_name: infisical-agent
+
+# Source of the Go env templates (issue 006, deployed to the repo). The role
+# copies them after substituting __GERMINAL_ENV__ on the control node — the
+# same substitution infrastructure/infisical/render-template.sh performs for
+# `make env`. Never the Ansible template module: these files contain Go
+# {{ }} braces (issue 005).
+infisical_agent_templates_src_dir: "{{ role_path }}/../../../infisical/templates"
+
+# Per-stack roots on the server. These MUST match the compose layout that
+# issues 007/009 install: prod renders every consumer under /opt/germinal,
+# staging only app + admin under /opt/germinal-staging (it shares prod's
+# Postgres, Redis and Caddy).
+infisical_agent_stack_roots:
+  prod: /opt/germinal
+  staging: /opt/germinal-staging
+infisical_agent_env_dir_name: env
+infisical_agent_compose_file: docker-compose.yml
+
+# 60s is the Agent's minimum polling interval (issue 005); a shorter value
+# makes the Agent shut down (and it exits 0 doing so, which is why the unit
+# uses Restart=always).
+infisical_agent_polling_interval: "60s"
+
+# The post-start helper (first-render gap, issue 005) waits this long for the
+# Agent's first render after a start, and each recreate command is capped at
+# command_timeout seconds. TimeoutStartSec in the unit covers
+# wait + all commands, with margin.
+infisical_agent_post_start_wait_seconds: 60
+infisical_agent_command_timeout_seconds: 60
+
+# One entry per rendered env file: name is the template stem, the rendered
+# file name AND (when recreate) the compose service to recreate. Per the
+# issue table:
+# - app (both stacks) and caddy: recreate that service with
+#   `docker compose up -d` — `restart` does not reload env_file.
+# - postgres: rewrite only. POSTGRES_PASSWORD takes effect at first init
+#   only; rotation needs a manual ALTER USER (ADR 0004), never an automatic
+#   restart.
+# - backup: rewrite only. The backup job reads the file fresh on each run.
+# - admin: rewrite only. The next deploy's bootstrap reads admin.env.
+infisical_agent_templates:
+  - { env: prod, name: app, recreate: true }
+  - { env: prod, name: postgres, recreate: false }
+  - { env: prod, name: caddy, recreate: true }
+  - { env: prod, name: backup, recreate: false }
+  - { env: prod, name: admin, recreate: false }
+  - { env: staging, name: app, recreate: true }
+  - { env: staging, name: admin, recreate: false }
+
+# Infisical CLI apt repository (the Cloudsmith repo moved here in 2026).
+infisical_agent_apt_baseurl: "https://artifacts-cli.infisical.com"
+infisical_agent_apt_keyring: /usr/share/keyrings/infisical-archive-keyring.gpg

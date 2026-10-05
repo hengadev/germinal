@@ -1,0 +1,40 @@
+# {{ ansible_managed }}
+# Infisical Agent configuration — rendered by the Ansible infisical_agent
+# role (issue 008). Do not edit: re-run the role instead.
+#
+# Schema notes (verified against infisical 0.43.138, issue 005):
+# - auth.config.client-id / client-secret are PATHS to files, not values:
+#   the credential lives in root-only files under the credentials directory.
+# - polling-interval has a 60s minimum; shorter values shut the Agent down.
+# - a config error makes the Agent exit with status 0: the unit uses
+#   Restart=always.
+
+infisical:
+  address: {{ infisical_agent_host }}
+
+auth:
+  type: "universal-auth"
+  config:
+    client-id: {{ infisical_agent_credentials_dir }}/client-id
+    client-secret: {{ infisical_agent_credentials_dir }}/client-secret
+    remove_client_secret_on_read: false
+
+sinks:
+  - type: "file"
+    config:
+      path: {{ infisical_agent_token_sink }}
+
+templates:
+{% for t in infisical_agent_templates %}
+  # {{ t.env }} / {{ t.name }}{% if t.recreate %} — recreate the {{ t.name }} service when the file changes
+  # (`restart` does not reload env_file){% else %} — rewrite the file only, no command{% if t.name == 'postgres' %} (POSTGRES_PASSWORD applies at first init; rotation is manual, ADR 0004){% endif %}{% endif %}
+  - source-path: {{ infisical_agent_templates_dir }}/{{ t.env }}-{{ t.name }}.env.tmpl
+    destination-path: {{ infisical_agent_stack_roots[t.env] }}/{{ infisical_agent_env_dir_name }}/{{ t.name }}.env
+    config:
+      polling-interval: {{ infisical_agent_polling_interval }}
+{% if t.recreate %}
+      execute:
+        command: docker compose --project-directory {{ infisical_agent_stack_roots[t.env] }} up -d --no-deps {{ t.name }}
+        timeout: {{ infisical_agent_command_timeout_seconds }}
+{% endif %}
+{% endfor %}

@@ -1,0 +1,32 @@
+---
+# Install or rotate the Infisical Agent on the Germinal VPS (issue 008).
+#
+# The germinal-vps machine-identity credential is read from the operator at
+# run time ONLY — never from a file in this repo and never from the Ansible
+# Vault (ADR 0004). Export INFISICAL_AGENT_CLIENT_ID and
+# INFISICAL_AGENT_CLIENT_SECRET to answer the prompts automatically (the
+# secret prompt is private and is not echoed), or run interactively.
+#
+# Re-running this playbook with a NEW client secret is the rotation
+# procedure: the Agent restarts with it (no app container restarts; see the
+# role README), and the old secret is then revoked in Infisical (operator
+# checklist, Phase 9).
+
+- name: Install or rotate the Infisical Agent
+  hosts: germinal_servers
+  gather_facts: true
+
+  vars_prompt:
+    - name: infisical_agent_client_id
+      prompt: germinal-vps client ID (Infisical machine identity)
+      default: "{{ lookup('env', 'INFISICAL_AGENT_CLIENT_ID') }}"
+      private: false
+
+    - name: infisical_agent_client_secret
+      prompt: germinal-vps client secret
+      default: "{{ lookup('env', 'INFISICAL_AGENT_CLIENT_SECRET') }}"
+      private: true
+
+  roles:
+    - role: infisical_agent
+      tags: ['infisical', 'agent']

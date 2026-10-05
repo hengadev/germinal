@@ -22,6 +22,16 @@
       ansible.builtin.debug:
         msg: "Setting up {{ inventory_hostname }} ({{ ansible_default_ipv4.address }}) for {{ app_name }}"
 
+    - name: Note when the Infisical Agent role will be skipped
+      ansible.builtin.debug:
+        msg: >-
+          infisical_agent: no credential provided (INFISICAL_AGENT_CLIENT_ID /
+          INFISICAL_AGENT_CLIENT_SECRET), the role will be skipped. Run
+          playbooks/infisical-agent.yml to install or rotate the Agent.
+      when: >-
+        (lookup('env', 'INFISICAL_AGENT_CLIENT_ID') | length == 0)
+        or (lookup('env', 'INFISICAL_AGENT_CLIENT_SECRET') | length == 0)
+
     - name: Check if running as root
       ansible.builtin.assert:
         that:
@@ -50,6 +60,14 @@
 
     - role: caddy
       tags: ['caddy', 'web']
+
+    - role: infisical_agent
+      tags: ['infisical', 'agent']
+      # Role-level when cannot see role defaults, so the lookups are repeated
+      # here; they must stay in sync with infisical_agent/defaults/main.yml.
+      when: >-
+        (lookup('env', 'INFISICAL_AGENT_CLIENT_ID') | length > 0)
+        and (lookup('env', 'INFISICAL_AGENT_CLIENT_SECRET') | length > 0)
 
     - role: app
       tags: ['app', 'deploy']
