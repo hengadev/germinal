@@ -1,0 +1,162 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Germinal production stack (issue 007, PRD module M5).
+#
+# A plain file: no templating, no ${VAR} substitution of secrets, no
+# top-level .env. Every service gets its values through env_file: — the files
+# the Infisical Agent renders into ./env next to this file (ADR 0004; role
+# infrastructure/ansible/roles/infisical_agent). CI copies this file from the
+# deployed commit to /opt/germinal/docker-compose.yml (issues 009/010).
+#
+# Server layout (see infrastructure/compose/README.md):
+#   /opt/germinal/docker-compose.yml                        this file
+#   /opt/germinal/env/*.env                                 Agent-rendered, root 0600
+#   /opt/germinal/data/postgres/  data/redis/  data/uploads/ persistent data
+#   /opt/germinal/caddy/config|data|logs/                   Caddyfile, certs, logs
+#
+# The image tag `henga/germinal:prod` is a LOCAL pin, never pushed: the deploy
+# script pulls henga/germinal:<sha> from Docker Hub and re-points this tag at
+# it before any one-off runs, so this file needs no variables while the
+# Agent's recreates always resolve exactly the image production is running
+# (a shared :latest would let a staging deploy leak into a prod recreate).
+# ─────────────────────────────────────────────────────────────────────────────
+name: germinal
+
+services:
+  # The long-running app. Loads ONLY env/app.env (app values + DATABASE_URL).
+  # ADMIN_* values live in env/admin.env and reach the one-off `admin`
+  # bootstrap service alone — never this container.
+  app:
+    image: henga/germinal:prod
+    container_name: germinal_app # Caddy's upstream name (roles/caddy Caddyfile.j2)
+    restart: unless-stopped
+    mem_limit: 512m
+    # Caddy (on the shared network) handles external access — no host port.
+    expose:
+      - "3001"
+    env_file:
+      - env/app.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - /opt/germinal/data/uploads:/app/uploads
+    networks:
+      - germinal_network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/api/health',(r)=>{process.exit(r.statusCode===200?0:1)}).on('error',()=>process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # One-off admin bootstrap (issue 016), run by `deploy` after migrations:
+  #   docker compose --profile bootstrap run --rm admin
+  # The profile keeps it out of every plain `up` (including the Agent's
+  # recreate commands). DATABASE_URL comes from app.env, the ADMIN_* values
+  # from admin.env. No container_name: `run --rm` makes it ephemeral.
+  admin:
+    profiles: ["bootstrap"]
+    image: henga/germinal:prod
+    restart: "no"
+    command: ["node", "scripts/create-admin.js"]
+    env_file:
+      - env/app.env
+      - env/admin.env
+    networks:
+      - germinal_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # PostgreSQL. POSTGRES_USER/PASSWORD/DB come from env/postgres.env (the
+  # /db folder): they apply at first initdb only — rotation is a manual
+  # ALTER USER (ADR 0004), which is why the Agent never restarts this
+  # service on a rendered change.
+  postgres:
+    image: postgres:16-alpine
+    container_name: germinal_postgres
+    restart: unless-stopped
+    mem_limit: 512m
+    env_file:
+      - env/postgres.env
+    volumes:
+      - /opt/germinal/data/postgres:/var/lib/postgresql/data
+    networks:
+      - germinal_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Redis (rate limiter, sessions). Shared with staging (DB index 1). Needs
+  # no env file: its consumers (app.env) hold the REDIS_* connection values.
+  redis:
+    image: redis:7-alpine
+    container_name: germinal_redis
+    restart: unless-stopped
+    mem_limit: 128m
+    command: redis-server --appendonly yes
+    volumes:
+      - /opt/germinal/data/redis:/data
+    networks:
+      - germinal_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Caddy: TLS via Cloudflare DNS-01 (token from env/caddy.env) and the only
+  # container publishing host ports. The Caddyfile itself is rendered by the
+  # Ansible caddy role into the config mount.
+  caddy:
+    image: serfriz/caddy-cloudflare:latest
+    container_name: germinal_caddy
+    restart: unless-stopped
+    mem_limit: 128m
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp" # HTTP/3
+    env_file:
+      - env/caddy.env
+    volumes:
+      - /opt/germinal/caddy/config:/etc/caddy:ro
+      - /opt/germinal/caddy/data:/data
+      - /opt/germinal/caddy/logs:/var/log/caddy
+    networks:
+      - germinal_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# Created outside compose (Ansible, infrastructure/ansible/roles/docker) and
+# shared with the staging stack (docker-compose.staging.yml), so `down` here
+# can never drop the network staging depends on. On the shared network every
+# service name becomes a DNS alias — see the staging file for why its
+# services are not called `app`/`admin`.
+networks:
+  germinal_network:
+    external: true

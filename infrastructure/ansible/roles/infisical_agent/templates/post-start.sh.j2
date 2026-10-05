@@ -99,9 +99,9 @@ apply)
 	if [ ! -f "$root/{{ infisical_agent_compose_file }}" ]; then
 		log "$root/{{ infisical_agent_compose_file }} not present yet; skipping {{ t.env }}/{{ t.name }} (the first deploy installs it)"
 	else
-		log "recreating {{ t.name }} ($root)"
-		timeout "$CMD_TIMEOUT" docker compose --project-directory "$root" up -d --no-deps {{ t.name }} \
-			|| log "recreating {{ t.name }} failed (the next change or deploy retries)"
+		log "recreating {{ t.service }} ($root)"
+		timeout "$CMD_TIMEOUT" docker compose --project-directory "$root" up -d --no-deps {{ t.service }} \
+			|| log "recreating {{ t.service }} failed (the next change or deploy retries)"
 	fi
 {% endfor %}
 	exit 0

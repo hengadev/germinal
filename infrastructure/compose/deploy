@@ -1,0 +1,162 @@
+#!/usr/bin/env bash
+# deploy <stack> <sha> — the single server-side entry point for staging
+# deploys, promotions and rollbacks (issue 007, PRD module M1). A rollback is
+# just `deploy prod <earlier-sha>`: every step is re-run and the old image
+# pinned back.
+#
+# CI (issues 009/010) copies this script and the compose files from the same
+# commit it deploys, then runs it over SSH. The Agent-rendered env files are
+# root-only 0600, so this must run docker as root or via sudo — the deploy
+# user already has passwordless docker sudo (infrastructure/ansible):
+#   ssh deploy@<host> 'sudo /usr/local/bin/deploy staging <sha>'
+#
+# Sequence — every failed step exits non-zero BEFORE the next one runs:
+#   1. pull henga/germinal:<sha> from Docker Hub
+#   2. pin the stack's local image tag (henga/germinal:prod|staging)
+#   3. prod only: bring up the shared postgres + redis (no-op when running)
+#   4. migrations — one-off through the app service (DATABASE_URL from
+#      env/app.env); a failure aborts before the app is recreated
+#   5. admin bootstrap — one-off through the profile-gated admin service
+#      (issue 016; idempotent, so it runs on every deploy)
+#   6. recreate the app service (never its dependencies)
+#   7. wait for the container to be healthy AND /api/health to report <sha>
+#
+# Overridable knobs (harness / CI; the interface stays `deploy <stack> <sha>`):
+#   GERMINAL_PROD_ROOT       default /opt/germinal
+#   GERMINAL_STAGING_ROOT    default /opt/germinal-staging
+#   GERMINAL_IMAGE_REPO      default henga/germinal
+#   GERMINAL_SKIP_PULL=1     use a local image instead of pulling — local
+#                            harness ONLY; production always pulls
+#   GERMINAL_HEALTH_TIMEOUT  seconds for the /api/health SHA check (default 60)
+set -euo pipefail
+
+log() { printf 'deploy: %s\n' "$*"; }
+die() { printf 'deploy: ERROR: %s\n' "$*" >&2; exit 1; }
+
+usage() {
+	echo "usage: deploy <prod|staging> <sha>" >&2
+	exit 2
+}
+
+[ $# -eq 2 ] || usage
+stack=$1
+sha=$2
+[ -n "$sha" ] || usage
+
+case $stack in
+	prod)
+		root=${GERMINAL_PROD_ROOT:-/opt/germinal}
+		app_service="app"
+		admin_service="admin"
+		pinned_tag="prod"
+		;;
+	staging)
+		root=${GERMINAL_STAGING_ROOT:-/opt/germinal-staging}
+		app_service="staging_app"
+		admin_service="staging_admin"
+		pinned_tag="staging"
+		;;
+	*)
+		die "unknown stack '$stack' (expected prod or staging)"
+		;;
+esac
+
+repo=${GERMINAL_IMAGE_REPO:-henga/germinal}
+image=$repo:$sha
+pinned=$repo:$pinned_tag
+health_timeout=${GERMINAL_HEALTH_TIMEOUT:-60}
+compose=(docker compose --project-directory "$root")
+
+# ── preflight: the layout this deploy drives must exist ─────────────────────
+[ -f "$root/docker-compose.yml" ] ||
+	die "$root/docker-compose.yml missing — CI copies the compose files from the deployed commit (issues 009/010)"
+for f in app admin; do
+	[ -f "$root/env/$f.env" ] ||
+		die "$root/env/$f.env missing — the Infisical Agent renders it (roles/infisical_agent)"
+done
+if [ "$stack" = prod ]; then
+	for f in postgres caddy; do
+		[ -f "$root/env/$f.env" ] || die "$root/env/$f.env missing"
+	done
+fi
+
+# ── 1. pull the image for <sha> ──────────────────────────────────────────────
+if [ "${GERMINAL_SKIP_PULL:-0}" = 1 ]; then
+	log "GERMINAL_SKIP_PULL=1 — skipping pull, using local $image"
+else
+	log "pulling $image"
+	docker pull "$image" || die "pull of $image failed"
+fi
+docker image inspect "$image" >/dev/null 2>&1 ||
+	die "$image is not present locally — deploy refused"
+
+# ── 2. pin the stack's local tag ─────────────────────────────────────────────
+# The compose files reference $repo:$pinned_tag; pointing it here means the
+# one-offs below and the Agent's recreates all resolve this deploy's image.
+# Until the app is recreated (step 6), a failure moves the pin back to the
+# image the running container uses: otherwise the Agent's next recreate (an
+# env change) would start an image whose migration failed.
+previous_pin=$(docker image inspect --format '{{.Id}}' "$pinned" 2>/dev/null || true)
+restore_pin() {
+	if [ -n "$previous_pin" ]; then
+		docker tag "$previous_pin" "$pinned" &&
+			log "pin $pinned restored to the previous image"
+	else
+		docker image rm "$pinned" >/dev/null 2>&1 || true
+	fi
+}
+trap restore_pin EXIT
+docker tag "$image" "$pinned" || die "failed to pin $pinned"
+
+# ── 3. shared dependencies (prod only; idempotent) ──────────────────────────
+# First deploy on empty directories needs postgres/redis before the migration
+# one-off can connect. postgres is only recreated if its env actually
+# changed (rotation is manual, ADR 0004).
+if [ "$stack" = prod ]; then
+	log "ensuring postgres + redis are up"
+	"${compose[@]}" up -d --wait --wait-timeout 180 postgres redis ||
+		die "shared services did not become healthy"
+fi
+
+# ── 4. migrations ────────────────────────────────────────────────────────────
+log "running migrations ($app_service, one-off)"
+"${compose[@]}" run --rm --no-deps "$app_service" node scripts/migrate.js ||
+	die "migration failed — NOT recreating the app; the running container keeps serving"
+
+# ── 5. admin bootstrap (idempotent) ──────────────────────────────────────────
+log "running admin bootstrap ($admin_service, one-off)"
+"${compose[@]}" --profile bootstrap run --rm --no-deps "$admin_service" ||
+	die "admin bootstrap failed — NOT recreating the app"
+
+# ── 6. recreate the app ──────────────────────────────────────────────────────
+# From here the new image is the stack's image, even if the checks below fail.
+trap - EXIT
+log "recreating $app_service"
+"${compose[@]}" up -d --no-deps --force-recreate --wait --wait-timeout 180 "$app_service" ||
+	die "app did not become healthy after recreate"
+
+# ── 7. verify /api/health reports <sha> ──────────────────────────────────────
+sha_matches() {
+	"${compose[@]}" exec -T "$app_service" node -e '
+		const want = process.argv[1];
+		require("http").get("http://localhost:3001/api/health", (res) => {
+			let body = "";
+			res.on("data", (chunk) => (body += chunk));
+			res.on("end", () => {
+				try { process.exit(JSON.parse(body).sha === want ? 0 : 1); }
+				catch { process.exit(1); }
+			});
+		}).on("error", () => process.exit(1));
+	' "$sha"
+}
+
+log "waiting for /api/health to report $sha"
+waited=0
+until sha_matches; do
+	[ "$waited" -ge "$health_timeout" ] &&
+		die "/api/health does not report $sha after ${waited}s — deploy failed"
+	sleep 3
+	waited=$((waited + 3))
+done
+
+log "OK: $stack is serving $sha"
