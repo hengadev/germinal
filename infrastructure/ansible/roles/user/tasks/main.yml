@@ -71,27 +71,31 @@
     group: "{{ deploy_user }}"
     mode: '0700'
 
-- name: Add deploy user SSH public key
-  ansible.builtin.copy:
-    dest: "/home/{{ deploy_user }}/.ssh/authorized_keys"
-    content: "{{ deploy_ssh_public_key }}"
-    owner: "{{ deploy_user }}"
-    group: "{{ deploy_user }}"
-    mode: '0600'
-  when: deploy_ssh_public_key | length > 0
+- name: Assemble the deploy user's public keys
+  # One key per operator computer plus the CI deploy key (issue 008): a list
+  # is the only shape that can hold several keys without wiping the others.
+  # The legacy single deploy_ssh_public_key is still honoured.
+  ansible.builtin.set_fact:
+    deploy_user_public_keys: >-
+      {{ (deploy_ssh_public_keys | default([])
+          + (deploy_ssh_public_key | default('') | ternary([deploy_ssh_public_key], [])))
+         | unique }}
 
-- name: Read root SSH authorized_keys
-  ansible.builtin.slurp:
-    src: /root/.ssh/authorized_keys
-  register: root_ssh_keys
-  failed_when: false
-
-- name: Append root SSH keys to deploy user (if root has any keys)
+- name: Manage the deploy user's authorized_keys as a list
+  # exclusive: the list is the source of truth — a key removed from the list
+  # is removed from the server on the next run, and keys appended by hand do
+  # not survive it.
   ansible.builtin.authorized_key:
     user: "{{ deploy_user }}"
-    key: "{{ root_ssh_keys.content | b64decode }}"
+    key: "{{ deploy_user_public_keys | join('\n') }}"
+    exclusive: true
     state: present
-  when: root_ssh_keys.content is defined and root_ssh_keys.content | b64decode | trim | length > 0
+  when: deploy_user_public_keys | length > 0
+
+# Root's authorized_keys is left alone (the operator's key is already there:
+# that is how the playbook was reached as root). The deploy user's
+# authorized_keys is managed exclusively from deploy_ssh_public_keys, so
+# root's keys are no longer merged into it.
 
 - name: Ensure root SSH access is maintained (for subsequent playbook runs)
   ansible.builtin.lineinfile:
@@ -182,3 +186,4 @@
       - "Test sudo access:"
       - "  {{ app_base_dir }}/scripts/test-sudo.sh"
       - "==========================================="
+
