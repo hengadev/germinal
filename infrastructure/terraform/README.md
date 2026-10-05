@@ -14,7 +14,7 @@ planned and applied from any computer with no flags, after `infisical login`.
 | Hetzner | The VPS (`hcloud_server.main`) and its **primary IPs** (IPv4 + IPv6), which survive a server rebuild |
 | Cloudflare | App records (`@`, `www`, `admin`, `staff`, `staging`, ...), email records (Zoho Mail MX, SPF, DKIM, DMARC), SES and ACM validation records, `media` and `media-staging` CNAMEs |
 | AWS, per environment | `<env>-germinal-media` and `<env>-germinal-backups` buckets, the `<env>-germinal-app` IAM user, its policies (S3, backups, SES) and access key, and a media CDN (CloudFront + ACM): `media.<domain>` for production, `media-staging.<domain>` for staging |
-| AWS, shared | SES domain identity, DKIM and MAIL FROM; the `app-germinal` IAM user (local development); the state bucket |
+| AWS, shared | SES domain identity, DKIM and MAIL FROM; the `app-germinal` IAM user (operator use, keys made by hand); the state bucket |
 | Infisical | The credentials Terraform creates, written into the `germinal` project (below) |
 
 ## Secrets and inputs
@@ -41,10 +41,10 @@ planned and applied from any computer with no flags, after `infisical login`.
   | --- | --- |
   | `staging`, `prod` `/s3` `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | that environment's `<env>-germinal-app` access key |
   | `staging`, `prod` `/s3` `AWS_REGION`, `S3_BUCKET_NAME`, `MEDIA_URL` | region, media bucket, media CDN URL |
-  | `dev` `/s3` `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | `app-germinal` access key |
 
   The Infisical Agent on the server renders them into each environment's env
-  file; `make env` renders dev's.
+  file. Nothing is written to `dev`: it uses the local MinIO and keeps its
+  `AWS_*` keys empty, so it reaches no real bucket and sends no real email.
 
 ### How Terraform authenticates to Infisical
 
@@ -88,7 +88,6 @@ records don't change. Then re-run the Ansible playbooks.
 
 ```bash
 ./tf.sh apply -replace='aws_iam_access_key.app_user["production"]'   # or "staging"
-./tf.sh apply -replace=aws_iam_access_key.app_germinal                # dev
 ```
 
 The new key is written to Infisical in the same apply, and the Agent picks it up.
@@ -107,16 +106,19 @@ could not write it to Infisical. Per environment:
 
 ## After the first apply (one-time, issue 012)
 
-The first apply after the move to one state (Phase 6) imports the old
-`production` workspace's resources and creates **new** access keys for
-`production-germinal-app` and `app-germinal` (AWS never returns an existing
-key's secret, so the old keys could not be written to Infisical). Afterwards:
+The first apply is the Phase 6 rebuild, `./tf.sh apply -replace=hcloud_server.main`.
+Not a plain `make apply`: the existing server has no primary IPs yet, and
+without `-replace` Terraform would power it off to swap them in.
+
+That first apply imports the old
+`production` workspace's resources and creates a **new** access key for
+`production-germinal-app` (AWS never returns an existing key's secret, so the
+old key could not be written to Infisical). Afterwards:
 
 1. Check `./tf.sh plan` shows no changes.
-2. Delete the **old** access key of `production-germinal-app` and of
-   `app-germinal` (IAM console → user → Security credentials; the one Terraform
-   did not just create). If your local `app-germinal` AWS profile uses the old
-   key, update it from `germinal/dev/s3` first.
+2. Delete the **old** access key of `production-germinal-app` (IAM console →
+   user → Security credentials; the one Terraform did not just create).
+   `app-germinal`'s keys are untouched.
 3. Retire the old workspace: `./tf.sh workspace delete -force production`
    (drops that state only; its resources are all in `default` now).
 4. Optional: delete the `production` workspace's unused duplicate, which
@@ -137,7 +139,7 @@ cloudflare.tf      DNS records
 s3.tf, backups.tf  per-environment buckets, IAM user, policies, access key
 ses.tf             SES identity, DKIM, MAIL FROM, per-environment send policy
 cloudfront.tf      media CDN per environment (CloudFront + ACM)
-app-germinal.tf    S3-only IAM user for local development
+app-germinal.tf    S3-only IAM user for operator use (keys made by hand)
 infisical.tf       credentials written into the germinal project
 migration.tf       one-time move from two workspaces to one state (issue 012)
 backend.tf         the state bucket itself (and the old, unused DynamoDB lock table)
