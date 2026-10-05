@@ -27,7 +27,7 @@ make try
 
 `make try` starts local Postgres and Redis containers (Docker), applies the migrations, seeds demo events, sessions and talents, creates a demo admin account (`ADMIN_EMAIL` / `ADMIN_PASSWORD` from `.env`), and starts the dev server at **http://localhost:5173**. To explore the back-office, sign in at `/login` with those demo credentials.
 
-**Prerequisites:** Docker, Node.js 20+, and pnpm.
+**Prerequisites:** Docker, Node.js 22.12+, and pnpm.
 
 ### What is disabled in try mode
 

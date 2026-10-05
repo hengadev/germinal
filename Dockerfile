@@ -1,5 +1,5 @@
 # ---------- Build stage ----------
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 
 # Install libc compatibility layer for esbuild
 RUN apk add --no-cache libc6-compat
@@ -22,7 +22,7 @@ COPY . .
 RUN pnpm run build
 
 # ---------- Production stage ----------
-FROM node:20-alpine
+FROM node:22-alpine
 
 # Install pnpm in production stage too (v10 is the last series supporting Node 20)
 RUN corepack enable && corepack prepare pnpm@10 --activate
