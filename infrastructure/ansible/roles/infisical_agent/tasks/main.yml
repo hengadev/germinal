@@ -212,6 +212,12 @@
     state: started
     daemon_reload: true
 
+# Apply a changed credential, config or version now, not at the end of the
+# play: roles after this one (shared_services) need the env files the
+# restarted Agent renders.
+- name: Restart the Agent now if anything changed
+  ansible.builtin.meta: flush_handlers
+
 # ---------------------------------------------------------------------------
 # Rendered files are created 0644 by the Agent (issue 005). UMask=0077 in the
 # unit makes new files 0600; this sweep also tightens anything rendered
