@@ -23,7 +23,7 @@ of secrets, no top-level `.env` on the server (ADR 0003, ADR 0004):
 │   ├── backup.env                    issue 013's backup job
 │   └── admin.env                     ADMIN_* — the bootstrap one-off alone reads this
 ├── data/postgres/                    Postgres data dir        (survives `down`)
-├── data/redis/                       Redis AOF                (survives `down`)
+├── data/redis/                       Redis AOF + RDB, redis 999:1000 (survives `down`)
 ├── data/uploads/                     app uploads              (survives `down`)
 └── caddy/{config,data,logs}/         Caddyfile / certs / logs (roles/caddy)
 
