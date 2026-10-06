@@ -53,12 +53,6 @@ variable "server_location" {
   }
 }
 
-variable "operator_ssh_public_keys" {
-  description = "Public SSH keys of operator computers, by name, installed for root when the server is created (terraform-germinal is always included)"
-  type        = map(string)
-  default     = {}
-}
-
 variable "server_image" {
   description = "Server OS image"
   type        = string

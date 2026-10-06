@@ -25,12 +25,6 @@ server_location = "nbg1"
 server_image    = "ubuntu-24.04"
 enable_backups  = true
 
-# Root's keys on a new server, besides terraform-germinal (the original
-# computer's key, already in Hetzner). Public keys only.
-operator_ssh_public_keys = {
-  "germinal-workstation" = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGv63z7rGXAn+XBkq0RK2HOaG64sE/NQ7m8c/wBi/K1p germinal-henga-workstation"
-}
-
 # ============================================
 # Cloudflare DNS
 # ============================================
