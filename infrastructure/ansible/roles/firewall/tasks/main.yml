@@ -16,12 +16,6 @@
     - { direction: incoming, policy: deny }
     - { direction: outgoing, policy: allow }
 
-- name: Allow SSH connection
-  community.general.ufw:
-    rule: allow
-    port: "{{ ssh_port }}"
-    proto: tcp
-
 - name: Allow HTTP and HTTPS
   community.general.ufw:
     rule: allow
@@ -39,7 +33,10 @@
   loop: "{{ firewall_allowed_ports }}"
   when: firewall_allowed_ports is defined
 
-- name: Rate limit SSH to prevent brute force
+# SSH is allowed by this `limit` rule alone (allow + brute-force rate
+# limiting). A separate `allow` rule for the same port is the same UFW rule,
+# so the two replaced each other and both reported a change on every run.
+- name: Allow SSH, rate limited to prevent brute force
   community.general.ufw:
     rule: limit
     port: "{{ ssh_port }}"
