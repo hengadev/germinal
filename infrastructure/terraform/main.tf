@@ -35,7 +35,7 @@ terraform {
     }
   }
 
-  # 1.7: for_each in import blocks (migration.tf)
+  # 1.7: for_each in import blocks (the issue 012 migration)
   required_version = ">= 1.7"
 }
 

@@ -31,7 +31,7 @@ locals {
   ]...)
 
   # Same keys, split into env and name, with no resource attributes, so the
-  # import blocks (migration.tf) can iterate it.
+  # for_each keys are known at plan time.
   infisical_s3_secrets = {
     for key in flatten([
       for slug in values(local.infisical_env_slugs) : [

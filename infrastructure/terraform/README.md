@@ -104,28 +104,12 @@ could not write it to Infisical. Per environment:
    `TWILIO_API_KEY_SID` and `TWILIO_API_KEY_SECRET`.
 3. Delete the previous key in the Twilio console once the app runs with the new one.
 
-## After the first apply (one-time, issue 012)
+## Single state (issue 012)
 
-The first apply is the Phase 6 rebuild, `./tf.sh apply -replace=hcloud_server.main`.
-Not a plain `make apply`: the existing server has no primary IPs yet, and
-without `-replace` Terraform would power it off to swap them in.
-
-That first apply imports the old
-`production` workspace's resources and creates a **new** access key for
-`production-germinal-app` (AWS never returns an existing key's secret, so the
-old key could not be written to Infisical). Afterwards:
-
-1. Check `./tf.sh plan` shows no changes.
-2. Delete the **old** access key of `production-germinal-app` (IAM console →
-   user → Security credentials; the one Terraform did not just create).
-   `app-germinal`'s keys are untouched.
-3. Retire the old workspace: `./tf.sh workspace delete -force production`
-   (drops that state only; its resources are all in `default` now).
-4. Optional: delete the `production` workspace's unused duplicate, which
-   Terraform no longer tracks: the ACM certificate for `media.<domain>` tagged
-   `Environment = production` in us-east-1 (the one **not** attached to the
-   production distribution).
-5. Delete `migration.tf`.
+The two old workspaces (`default` and `production`) were merged into one state
+by the Phase 6 rebuild (2026-10-06). The one-time `moved`/`import` blocks
+(`migration.tf`) and the `production` workspace are gone; the old
+`production-germinal-app` access key was replaced by the one in `s3.tf`.
 
 ## Files
 
@@ -141,7 +125,6 @@ ses.tf             SES identity, DKIM, MAIL FROM, per-environment send policy
 cloudfront.tf      media CDN per environment (CloudFront + ACM)
 app-germinal.tf    S3-only IAM user for operator use (keys made by hand)
 infisical.tf       credentials written into the germinal project
-migration.tf       one-time move from two workspaces to one state (issue 012)
 backend.tf         the state bucket itself (and the old, unused DynamoDB lock table)
 tf.sh, Makefile    run Terraform through Infisical
 ```
