@@ -1,0 +1,105 @@
+name: Promote to production
+
+# The only way a release reaches production (issue 010). Run it by hand:
+# without input it ships the SHA staging serves; with a SHA it ships that
+# one instead, which is also how a rollback is done (promote the previous
+# SHA). Every step reuses the staging path: the image CI already built, the
+# compose file and deploy script from the same commit, `deploy prod <sha>`.
+
+on:
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: 'Full commit SHA to ship (empty = the SHA staging reports)'
+        required: false
+        default: ''
+
+jobs:
+  promote:
+    name: Promote
+    runs-on: ubuntu-latest
+    environment: production
+    # One production deploy at a time; a second run waits for the first.
+    concurrency:
+      group: deploy-prod
+      cancel-in-progress: false
+
+    env:
+      SSH_HOST: ${{ secrets.SSH_HOST }}
+      SSH_USER: ${{ secrets.SSH_USER }}
+      STACK_ROOT: /opt/germinal
+      IMAGE_REPO: henga/germinal
+      STAGING_HEALTH_URL: https://staging.germinalstudio.co/api/health
+      PROD_HEALTH_URL: https://germinalstudio.co/api/health
+
+    steps:
+      - name: Resolve the SHA to ship
+        id: sha
+        env:
+          INPUT_SHA: ${{ inputs.sha }}
+        run: |
+          if [ -n "$INPUT_SHA" ]; then
+            sha=$INPUT_SHA
+            echo "Shipping the requested SHA"
+          else
+            sha=$(curl -fsS --max-time 15 "$STAGING_HEALTH_URL" | jq -r '.sha // empty')
+            echo "Shipping the SHA staging reports"
+          fi
+          # deploy waits for /api/health to report exactly this string, so
+          # only a full SHA is accepted.
+          if ! printf '%s' "$sha" | grep -Eq '^[0-9a-f]{40}$'; then
+            echo "::error::'$sha' is not a full 40-character commit SHA"
+            exit 1
+          fi
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "### Promoting \`$sha\`" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Check the image exists
+        run: |
+          docker buildx imagetools inspect "$IMAGE_REPO:${{ steps.sha.outputs.sha }}" > /dev/null \
+            || { echo "::error::$IMAGE_REPO:${{ steps.sha.outputs.sha }} is not on Docker Hub (was it built by CI on main?)"; exit 1; }
+
+      # The compose file and deploy script come from the commit being shipped,
+      # so a rollback also rolls them back.
+      - name: Checkout the shipped commit
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ steps.sha.outputs.sha }}
+
+      - name: Configure SSH (pinned host key)
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          printf 'Host target\n  HostName %s\n  User %s\n  StrictHostKeyChecking yes\n  BatchMode yes\n' \
+            "$SSH_HOST" "$SSH_USER" > ~/.ssh/config
+
+      - name: Copy the compose file and deploy script
+        run: |
+          scp infrastructure/compose/docker-compose.prod.yml "target:$STACK_ROOT/docker-compose.yml"
+          scp infrastructure/compose/deploy "target:$STACK_ROOT/deploy"
+          ssh target "chmod 0755 $STACK_ROOT/deploy"
+
+      - name: deploy prod ${{ steps.sha.outputs.sha }}
+        run: ssh target "sudo $STACK_ROOT/deploy prod ${{ steps.sha.outputs.sha }}"
+
+      # deploy already checked /api/health inside the server; this checks the
+      # public path through Caddy (/api/health stays open in maintenance).
+      - name: Confirm production reports the SHA
+        run: |
+          reported=$(curl -fsS --max-time 15 "$PROD_HEALTH_URL" | jq -r '.sha // empty')
+          if [ "$reported" != "${{ steps.sha.outputs.sha }}" ]; then
+            echo "::error::$PROD_HEALTH_URL reports '$reported'"
+            exit 1
+          fi
+          echo "Production serves $reported" >> "$GITHUB_STEP_SUMMARY"
