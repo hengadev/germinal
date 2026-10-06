@@ -191,12 +191,8 @@ jobs:
     env:
       SSH_HOST: ${{ secrets.SSH_HOST }}
       SSH_USER: ${{ secrets.SSH_USER }}
-      STACK_ROOT: /opt/germinal-staging
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v7
-
       - name: Configure SSH (pinned host key)
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
@@ -209,12 +205,8 @@ jobs:
           printf 'Host target\n  HostName %s\n  User %s\n  StrictHostKeyChecking yes\n  BatchMode yes\n' \
             "$SSH_HOST" "$SSH_USER" > ~/.ssh/config
 
-      # The compose file and deploy script come from the commit being deployed.
-      - name: Copy the compose file and deploy script
-        run: |
-          scp infrastructure/compose/docker-compose.staging.yml "target:$STACK_ROOT/docker-compose.yml"
-          scp infrastructure/compose/deploy "target:$STACK_ROOT/deploy"
-          ssh target "chmod 0755 $STACK_ROOT/deploy"
-
+      # The CI key can run this and nothing else (issue 017): its forced
+      # command on the server reads `deploy` and the compose file from the
+      # repo at this SHA, so nothing is uploaded.
       - name: deploy staging ${{ github.sha }}
-        run: ssh target "sudo $STACK_ROOT/deploy staging $GITHUB_SHA"
+        run: ssh target "deploy staging $GITHUB_SHA"

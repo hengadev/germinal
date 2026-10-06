@@ -4,8 +4,9 @@
 # A plain file: no templating, no ${VAR} substitution of secrets, no
 # top-level .env. Every service gets its values through env_file: — the files
 # the Infisical Agent renders into ./env next to this file (ADR 0004; role
-# infrastructure/ansible/roles/infisical_agent). CI copies this file from the
-# deployed commit to /opt/germinal/docker-compose.yml (issues 009/010).
+# infrastructure/ansible/roles/infisical_agent). Each deploy installs this
+# file from the deployed commit to /opt/germinal/docker-compose.yml (root
+# 0644; the server reads it from the repo, issue 017).
 #
 # Server layout (see infrastructure/compose/README.md):
 #   /opt/germinal/docker-compose.yml                        this file

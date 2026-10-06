@@ -4,12 +4,16 @@ This directory holds everything that deploys Germinal to the VPS, committed
 as plain files in the repo — no Ansible templating, no `${VAR}` substitution
 of secrets, no top-level `.env` on the server (ADR 0003, ADR 0004):
 
-| File | Copied by CI (issues 009/010) to |
+| File | On the server (issue 017) |
 | --- | --- |
-| `docker-compose.prod.yml` | `/opt/germinal/docker-compose.yml` |
-| `docker-compose.staging.yml` | `/opt/germinal-staging/docker-compose.yml` |
-| `deploy` | `/opt/germinal/deploy` and `/opt/germinal-staging/deploy` (0755; the deploy user may run exactly these with sudo) |
+| `docker-compose.prod.yml` | installed by each prod deploy as `/opt/germinal/docker-compose.yml` (root 0644), from the deployed commit |
+| `docker-compose.staging.yml` | installed by each staging deploy as `/opt/germinal-staging/docker-compose.yml` (root 0644), from the deployed commit |
+| `deploy` | never copied: the root runner runs it straight from the deployed commit (`/var/lib/germinal-deploy/release-<stack>/`) |
 | `test/` | stays in the repo — the local harness (below) |
+
+CI uploads none of these. The server reads them from the repo at the SHA it
+deploys, so a rollback rolls them back too, and a leaked CI secret cannot
+change what runs as root (see "How CI reaches `deploy`" below).
 
 ## Server layout
 
@@ -81,16 +85,14 @@ restart policy restarts the container's own image, not the tag.
 ## `deploy <stack> <sha>`
 
 The single server-side entry point for staging deploys, promotions and
-rollbacks. CI never deploys any other way (issues 009/010 copy the script
-and compose files from the deployed commit, then SSH in and run it):
+rollbacks. CI never deploys any other way:
 
 ```sh
-ssh germinal@<host> 'sudo /opt/germinal-staging/deploy staging <sha>'
+ssh germinal@<host> 'deploy staging <sha>'
 ```
 
-It runs as root (or via sudo — the deploy user has passwordless docker
-sudo) because the Agent-rendered env files are root-only 0600. Steps, each
-gating the next:
+It runs as root because the Agent-rendered env files are root-only 0600.
+Steps, each gating the next:
 
 1. pull `henga/germinal:<sha>`
 2. pin the stack's local tag
@@ -104,10 +106,37 @@ gating the next:
 6. recreate the app service (`--no-deps --force-recreate --wait`)
 7. wait until the container is healthy **and** `/api/health` reports `<sha>`
 
-Knobs (defaults are the server's real values; the harness and CI may
-override): `GERMINAL_PROD_ROOT`, `GERMINAL_STAGING_ROOT`,
-`GERMINAL_IMAGE_REPO`, `GERMINAL_SKIP_PULL=1` (local harness only — skips
-the Docker Hub pull), `GERMINAL_HEALTH_TIMEOUT`.
+Knobs (defaults are the server's real values; the harness may override):
+`GERMINAL_PROD_ROOT`, `GERMINAL_STAGING_ROOT`, `GERMINAL_IMAGE_REPO`,
+`GERMINAL_SKIP_PULL=1` (local harness only — skips the Docker Hub pull),
+`GERMINAL_HEALTH_TIMEOUT`. On the server the runner starts `deploy` with an
+empty environment, so none of them can be set from CI.
+
+### How CI reaches `deploy` (issue 017)
+
+The CI key (`germinal-ci`) logs in as the deploy user `germinal`, which is
+**not** root-equivalent: no `docker` or `sudo` group, nothing under the stack
+roots, one sudoers line. Both scripts below are root-owned and installed by
+Ansible (`infrastructure/ansible/roles/deploy_gate`):
+
+1. **`/usr/local/sbin/germinal-deploy-gate`** — the CI key's forced command
+   (`restrict,command="…"` in `germinal`'s `authorized_keys`). It accepts
+   exactly `deploy staging <40-hex sha>` or `deploy prod <40-hex sha>` from
+   `SSH_ORIGINAL_COMMAND` and refuses everything else (shell, `id`, scp,
+   sftp; `restrict` also turns off pty and forwarding).
+2. **`/usr/local/sbin/germinal-deploy <stack> <sha>`** — the root runner,
+   `germinal`'s only sudo right. It fetches `main` from
+   `https://github.com/hengadev/germinal.git` into a root-only mirror
+   (`/var/lib/germinal-deploy/repo.git`), refuses a SHA that is not on
+   `main` (GitHub also serves fork commits under the parent's URL, so it
+   never fetches a SHA directly), extracts `deploy` and
+   `docker-compose.<stack>.yml` from that commit, installs the compose file
+   in the stack root and runs that commit's `deploy <stack> <sha>`.
+
+So the trust boundary is "what is on `main`": whoever holds the CI secrets
+can redeploy any commit of `main`, but cannot run anything else as root.
+Operator keys stay unrestricted logins as `germinal`; anything root
+(logs, `docker`, `systemctl`) goes through the root key.
 
 ## Local test harness
 
@@ -149,8 +178,7 @@ layout (printed at the end) for inspection and skips image removal.
 
 ## What belongs to other issues
 
-- **009 (staging CI)** and **010 (promote/rollback)**: copy these files from
-  the deployed commit, run `deploy` over SSH with sudo, and wire the
-  sudoers/SSH plumbing implied above.
+- **009 (staging CI)** and **010 (promote/rollback)**: run `deploy` over SSH.
+- **017 (CI key least privilege)**: the deploy gate and root runner above.
 - **013 (backup)**: the backup job reads `/opt/germinal/env/backup.env` and
   the data directories above.

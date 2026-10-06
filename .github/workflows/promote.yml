@@ -3,8 +3,9 @@ name: Promote to production
 # The only way a release reaches production (issue 010). Run it by hand:
 # without input it ships the SHA staging serves; with a SHA it ships that
 # one instead, which is also how a rollback is done (promote the previous
-# SHA). Every step reuses the staging path: the image CI already built, the
-# compose file and deploy script from the same commit, `deploy prod <sha>`.
+# SHA). Every step reuses the staging path: the image CI already built and
+# `deploy prod <sha>` — the server reads the compose file and deploy script
+# from that same commit (issue 017), so a rollback rolls them back too.
 
 on:
   workflow_dispatch:
@@ -27,7 +28,6 @@ jobs:
     env:
       SSH_HOST: ${{ secrets.SSH_HOST }}
       SSH_USER: ${{ secrets.SSH_USER }}
-      STACK_ROOT: /opt/germinal
       IMAGE_REPO: henga/germinal
       STAGING_HEALTH_URL: https://staging.germinalstudio.co/api/health
       PROD_HEALTH_URL: https://germinalstudio.co/api/health
@@ -65,13 +65,6 @@ jobs:
           docker buildx imagetools inspect "$IMAGE_REPO:${{ steps.sha.outputs.sha }}" > /dev/null \
             || { echo "::error::$IMAGE_REPO:${{ steps.sha.outputs.sha }} is not on Docker Hub (was it built by CI on main?)"; exit 1; }
 
-      # The compose file and deploy script come from the commit being shipped,
-      # so a rollback also rolls them back.
-      - name: Checkout the shipped commit
-        uses: actions/checkout@v7
-        with:
-          ref: ${{ steps.sha.outputs.sha }}
-
       - name: Configure SSH (pinned host key)
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
@@ -84,14 +77,10 @@ jobs:
           printf 'Host target\n  HostName %s\n  User %s\n  StrictHostKeyChecking yes\n  BatchMode yes\n' \
             "$SSH_HOST" "$SSH_USER" > ~/.ssh/config
 
-      - name: Copy the compose file and deploy script
-        run: |
-          scp infrastructure/compose/docker-compose.prod.yml "target:$STACK_ROOT/docker-compose.yml"
-          scp infrastructure/compose/deploy "target:$STACK_ROOT/deploy"
-          ssh target "chmod 0755 $STACK_ROOT/deploy"
-
+      # The CI key can run this and nothing else (issue 017). The server
+      # refuses a SHA that is not on main.
       - name: deploy prod ${{ steps.sha.outputs.sha }}
-        run: ssh target "sudo $STACK_ROOT/deploy prod ${{ steps.sha.outputs.sha }}"
+        run: ssh target "deploy prod ${{ steps.sha.outputs.sha }}"
 
       # deploy already checked /api/health inside the server; this checks the
       # public path through Caddy (/api/health stays open in maintenance).

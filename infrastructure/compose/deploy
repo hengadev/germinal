@@ -4,11 +4,14 @@
 # just `deploy prod <earlier-sha>`: every step is re-run and the old image
 # pinned back.
 #
-# CI (issues 009/010) copies this script and the compose file from the same
-# commit it deploys into the stack root, then runs it over SSH. The
-# Agent-rendered env files are root-only 0600, so it runs through sudo (the
-# deploy user may run exactly <stack root>/deploy; roles/user):
-#   ssh germinal@<host> 'sudo /opt/germinal-staging/deploy staging <sha>'
+# CI uploads nothing (issue 017). It asks for `deploy <stack> <sha>` over
+# SSH; the CI key's forced command (germinal-deploy-gate) hands that to the
+# root runner (germinal-deploy, ansible roles/deploy_gate), which reads THIS
+# script and the stack's compose file from the repo at <sha> (refusing a SHA
+# that is not on main), installs the compose file as
+# <stack root>/docker-compose.yml and runs this script as root — the
+# Agent-rendered env files are root-only 0600:
+#   ssh germinal@<host> 'deploy staging <sha>'
 #
 # Sequence — every failed step exits non-zero BEFORE the next one runs:
 #   1. pull henga/germinal:<sha> from Docker Hub
@@ -69,7 +72,7 @@ compose=(docker compose --project-directory "$root")
 
 # ── preflight: the layout this deploy drives must exist ─────────────────────
 [ -f "$root/docker-compose.yml" ] ||
-	die "$root/docker-compose.yml missing — CI copies the compose files from the deployed commit (issues 009/010)"
+	die "$root/docker-compose.yml missing — germinal-deploy installs it from the deployed commit (issue 017)"
 for f in app admin; do
 	[ -f "$root/env/$f.env" ] ||
 		die "$root/env/$f.env missing — the Infisical Agent renders it (roles/infisical_agent)"

@@ -6,8 +6,9 @@
 # app.env points DATABASE_URL at `postgres`/germinal_staging (a dedicated
 # role/database the Ansible setup creates — PRD M4) and REDIS_DB=1.
 #
-# CI copies this file from the deployed commit to
-# /opt/germinal-staging/docker-compose.yml (issues 009/010). Layout:
+# Each deploy installs this file from the deployed commit to
+# /opt/germinal-staging/docker-compose.yml (root 0644; the server reads it
+# from the repo, issue 017). Layout:
 #   /opt/germinal-staging/docker-compose.yml   this file
 #   /opt/germinal-staging/env/{app,admin}.env  Agent-rendered, root 0600
 #   /opt/germinal-staging/data/uploads/        persistent uploads
