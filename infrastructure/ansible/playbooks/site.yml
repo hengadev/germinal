@@ -37,7 +37,7 @@
   pre_tasks:
     - name: Display target host
       ansible.builtin.debug:
-        msg: "Setting up {{ inventory_hostname }} ({{ ansible_default_ipv4.address }}) for {{ app_name }}"
+        msg: "Setting up {{ inventory_hostname }} ({{ ansible_facts['default_ipv4']['address'] }}) for {{ app_name }}"
 
     - name: Note when the Infisical Agent role will be skipped
       ansible.builtin.debug:
@@ -159,7 +159,7 @@
           - "Germinal VPS Setup Complete!"
           - "==========================================="
           - ""
-          - "Server: {{ ansible_default_ipv4.address }}"
+          - "Server: {{ ansible_facts['default_ipv4']['address'] }}"
           - "Domain: {{ app_domain }}"
           - "Deploy user: {{ deploy_user }}"
           - "Reverse proxy: {{ 'Caddy' if caddy_enabled | default(false) else 'None' }}"

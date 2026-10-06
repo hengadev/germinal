@@ -127,13 +127,12 @@
     state: present
     backup: true
 
+# Created only: their owner and mode belong to roles/user (the deploy user,
+# 0750). Setting root here flipped them back and forth on every run.
 - name: Create app directories
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
-    mode: '0750'
-    owner: root
-    group: root
   loop:
     - "{{ app_base_dir }}"
     - "{{ app_data_dir }}"

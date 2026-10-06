@@ -23,8 +23,10 @@ app_staging_root: /opt/germinal-staging
 app_container_uid: "1001"
 app_stack_directories:
   - { path: "{{ app_prod_root }}/env", mode: "0700" }
-  - { path: "{{ app_prod_root }}/data/postgres" }
-  - { path: "{{ app_prod_root }}/data/redis" }
+  # Owner and mode left to the containers: Postgres and Redis chown their
+  # data directories to their own users at start (managed: false).
+  - { path: "{{ app_prod_root }}/data/postgres", managed: false }
+  - { path: "{{ app_prod_root }}/data/redis", managed: false }
   - { path: "{{ app_prod_root }}/data/uploads", owner: "{{ app_container_uid }}", group: "{{ app_container_uid }}", mode: "0750" }
   # Staging's root is the deploy user's, like prod's (roles/user): CI copies
   # the compose file and the deploy script into it (issue 009).

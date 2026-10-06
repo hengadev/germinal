@@ -4,9 +4,9 @@
 # - Allow SSH, HTTP, HTTPS
 # - Enable UFW
 
-- name: Reset UFW to default settings
-  community.general.ufw:
-    state: reset
+# No `ufw reset` here: it wiped and disabled the firewall on every run, so
+# every rule below reported a change. The rules are declarative; a rule
+# removed from this list must be deleted by hand (`ufw delete …`).
 
 - name: Set UFW default policies
   community.general.ufw:
