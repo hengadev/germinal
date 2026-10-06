@@ -71,12 +71,25 @@
     filename: infisical-cli
     state: present
 
+# The pin wins in both directions: unattended-upgrades may have moved the
+# package (allow_downgrade), and a changed pin replaces a held package
+# (allow_change_held_packages).
 - name: Install the pinned Infisical CLI
   ansible.builtin.apt:
     name: "infisical={{ infisical_agent_version }}"
     state: present
     update_cache: true
     cache_valid_time: 3600
+    allow_downgrade: true
+    allow_change_held_packages: true
+  notify: restart infisical agent
+
+# Held, so unattended-upgrades never changes the Agent's version behind the
+# pin; bumping infisical_agent_version is the only way it moves.
+- name: Hold the Infisical CLI at the pinned version
+  ansible.builtin.dpkg_selections:
+    name: infisical
+    selection: hold
 
 # ---------------------------------------------------------------------------
 # Filesystem layout
