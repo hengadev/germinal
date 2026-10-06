@@ -1,73 +1,42 @@
 ---
 # User Management Tasks
-# - Create deploy user
-# - Configure restricted sudo access
-# - Setup SSH keys
+# - Create the deploy user — NOT root-equivalent (issue 017)
+# - One sudoers line: the root deploy runner (roles/deploy_gate)
+# - SSH keys: operator keys unrestricted, CI keys forced to the deploy gate
 
 - name: Create deploy user
+  # groups: only its own primary group, append: false — this also takes it
+  # out of `docker` and `sudo`, which were root-equivalent (issue 017). An
+  # empty list would do the same but report a change on every run (the
+  # module counts the primary group as a membership).
   ansible.builtin.user:
     name: "{{ deploy_user }}"
     system: false
     shell: /bin/bash
     home: "/home/{{ deploy_user }}"
     create_home: true
-    groups: "{{ deploy_user_groups }}"
-    append: true
+    groups: ["{{ deploy_user }}"]
+    append: false
     state: present
 
-# SECURITY: Restrict sudo to only necessary commands
-# This limits the blast radius if the deploy user is compromised
-# Option 1: Full NOPASSWD (convenient but less secure)
-# Option 2: Restricted commands (more secure, requires specific command paths)
-- name: Configure sudoers for deploy user (restricted access)
+# One line (issue 017): the deploy user may run the root deploy runner and
+# nothing else. The runner validates its arguments itself, reads `deploy`
+# and the compose file from the repo at a commit of main, and is root-owned
+# (roles/deploy_gate), so this grants "deploy a commit of main" — not a root
+# shell. The operator uses the root key for everything else (logs, docker,
+# systemctl).
+- name: Configure sudoers for deploy user (the deploy runner only)
   ansible.builtin.copy:
     dest: "/etc/sudoers.d/{{ deploy_user }}"
     content: |
       # Sudo configuration for {{ deploy_user }} user
-      # Managed by Ansible - DO NOT EDIT MANUALLY
-
-      {% if deploy_sudo_restricted | default(true) %}
-      # RESTRICTED: Only allow specific commands without password
-      # Docker commands
-      {{ deploy_user }} ALL=(ALL) NOPASSWD: /usr/bin/docker, /usr/bin/docker-compose, /usr/local/bin/docker-compose
-
-      # Systemd service management for Docker (Caddy runs as a container)
-      {{ deploy_user }} ALL=(ALL) NOPASSWD: /bin/systemctl status docker, /bin/systemctl restart docker
-
-      # Service management via docker compose
-      {{ deploy_user }} ALL=(ALL) NOPASSWD: /usr/bin/docker *
-
-      # Log viewing
-      {{ deploy_user }} ALL=(ALL) NOPASSWD: /usr/bin/journalctl, /bin/cat /var/log/*
-
-      # Application scripts (backup/restore helpers installed by
-      # playbooks/backup.yml; prod-start.sh is gone with the old release
-      # paths — CI's deploy script lives in /usr/local/bin)
-      {{ deploy_user }} ALL=(ALL) NOPASSWD: {{ app_base_dir }}/scripts/*.sh
-
-      # The deploy script CI copies into each stack root (issue 009). No new
-      # privilege: the docker entries above are already root-equivalent.
-      {{ deploy_user }} ALL=(root) NOPASSWD: /opt/germinal/deploy, /opt/germinal-staging/deploy
-
-      # Backup operations
-      {{ deploy_user }} ALL=(ALL) NOPASSWD: /usr/bin/aws s3 *
-
-      {% if deploy_sudo_password_fallback | default(false) %}
-      # FALLBACK: Allow password-based sudo for other commands
-      {{ deploy_user }} ALL=(ALL) ALL
-      {% endif %}
-
-      {% else %}
-      # UNRESTRICTED: Full sudo access without password
-      # WARNING: Use only for development or if you understand the security implications
-      {{ deploy_user }} ALL=(ALL) NOPASSWD:ALL
-      {% endif %}
-
-      # Security: Don't require tty for sudo (needed for Ansible)
+      # Managed by Ansible (roles/user) - DO NOT EDIT MANUALLY
+      {{ deploy_user }} ALL=(root) NOPASSWD: {{ deploy_gate_runner }}
       Defaults:{{ deploy_user }} !requiretty
+    owner: root
+    group: root
     mode: '0440'
     validate: 'visudo -cf %s'
-  notify: test sudo configuration
 
 - name: Create .ssh directory for deploy user
   ansible.builtin.file:
@@ -78,42 +47,66 @@
     mode: '0700'
 
 - name: Collect the deploy user's public keys (list plus legacy single key)
-  # One key per operator computer plus the CI deploy key (issue 008): a list
-  # is the only shape that can hold several keys without wiping the others.
-  # The legacy single deploy_ssh_public_key is still honoured alongside it.
+  # One key per operator computer (issue 008). The legacy single
+  # deploy_ssh_public_key is still honoured alongside the list.
   ansible.builtin.set_fact:
     deploy_user_key_candidates: "{{ (deploy_ssh_public_keys | default([])) + [deploy_ssh_public_key | default('')] }}"
 
 - name: Assemble the deploy user's public keys (drop empties, deduplicate)
   ansible.builtin.set_fact:
     deploy_user_public_keys: "{{ deploy_user_key_candidates | select('match', '.+') | unique | list }}"
+    deploy_user_ci_public_keys: "{{ deploy_ci_ssh_public_keys | default([]) | select('match', '.+') | unique | list }}"
+
+# A CI key also listed as an operator key would get an unrestricted line
+# too, and sshd uses the first line that matches the key.
+- name: Check no CI key is also an operator key
+  ansible.builtin.assert:
+    that:
+      - >-
+        deploy_user_ci_public_keys | map('split') | map(attribute=1) | list
+        | intersect(deploy_user_public_keys | map('split') | map(attribute=1) | list)
+        | length == 0
+    fail_msg: >-
+      A key is in both deploy_ssh_public_keys and deploy_ci_ssh_public_keys.
+      The CI key (germinal-ci) belongs only in deploy_ci_ssh_public_keys.
+    quiet: true
 
 - name: Check whether the deploy user exists yet
   # In --check against a fresh host the user creation above is skipped, and
-  # the authorized_key module cannot operate on a user that does not exist
-  # yet. On a real run (or against a configured host) the home directory
-  # exists and key management proceeds normally.
+  # there is no home directory to write authorized_keys into yet. On a real
+  # run (or against a configured host) it exists and key management proceeds.
   ansible.builtin.stat:
     path: "/home/{{ deploy_user }}"
   register: deploy_user_home
 
-- name: Manage the deploy user's authorized_keys as a list
-  # exclusive: the list is the source of truth — a key removed from the list
-  # is removed from the server on the next run, and keys appended by hand do
-  # not survive it.
-  ansible.builtin.authorized_key:
-    user: "{{ deploy_user }}"
-    key: "{{ deploy_user_public_keys | join('\n') }}"
-    exclusive: true
-    state: present
+- name: Write the deploy user's authorized_keys
+  # The whole file from the two lists: a key removed from a list is removed
+  # on the next run, and keys appended by hand do not survive it. Operator
+  # keys are unrestricted; CI keys can only run the deploy gate (issue 017):
+  # `restrict` turns off pty, port/agent/X11 forwarding and ~/.ssh/rc, and
+  # the forced command replaces whatever the client asks for (shell, scp
+  # and sftp included).
+  ansible.builtin.copy:
+    dest: "/home/{{ deploy_user }}/.ssh/authorized_keys"
+    content: |
+      # Managed by Ansible (roles/user) - DO NOT EDIT MANUALLY
+      {% for key in deploy_user_public_keys %}
+      {{ key }}
+      {% endfor %}
+      {% for key in deploy_user_ci_public_keys %}
+      restrict,command="{{ deploy_gate_command }}" {{ key }}
+      {% endfor %}
+    owner: "{{ deploy_user }}"
+    group: "{{ deploy_user }}"
+    mode: '0600'
   when:
-    - deploy_user_public_keys | length > 0
+    - (deploy_user_public_keys + deploy_user_ci_public_keys) | length > 0
     - deploy_user_home.stat.exists
 
 # Root's authorized_keys is left alone (the operator's key is already there:
 # that is how the playbook was reached as root). The deploy user's
-# authorized_keys is managed exclusively from deploy_ssh_public_keys, so
-# root's keys are no longer merged into it.
+# authorized_keys is managed from the two lists above, so root's keys are
+# no longer merged into it.
 
 - name: Ensure root SSH access is maintained (for subsequent playbook runs)
   ansible.builtin.lineinfile:
@@ -125,22 +118,18 @@
     group: root
   when: deploy_ssh_public_key | default('') | length > 0
 
-- name: Ensure proper permissions on authorized_keys
-  ansible.builtin.file:
-    path: "/home/{{ deploy_user }}/.ssh/authorized_keys"
-    owner: "{{ deploy_user }}"
-    group: "{{ deploy_user }}"
-    mode: '0600'
-  when: deploy_user_home.stat.exists
-
-- name: Grant deploy user ownership of app directories
+# Nothing under the stack roots belongs to the deploy user (issue 017). The
+# Agent and the deploy runner run `docker compose` there as root: a deploy
+# user able to replace docker-compose.yml, or to swap a bind-mounted data
+# directory for a symlink, would be root again.
+- name: Make the app directories root's
   # state: directory keeps this idempotent (and --check-friendly on a fresh
   # host, where the system role's creation was only simulated).
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
-    owner: "{{ deploy_user }}"
-    group: "{{ deploy_user }}"
+    owner: root
+    group: root
     mode: '0750'
     recurse: false
   loop:
@@ -153,59 +142,24 @@
   ansible.builtin.file:
     path: "{{ app_base_dir }}/scripts"
     state: directory
-    owner: "{{ deploy_user }}"
-    group: "{{ deploy_user }}"
+    owner: root
+    group: root
     mode: '0755'
 
-- name: Create sudo test script for deploy user
-  ansible.builtin.copy:
-    dest: "{{ app_base_dir }}/scripts/test-sudo.sh"
-    content: |
-      #!/bin/bash
-      # Test sudo access for deploy user
+# It tested the docker/systemctl sudo rules issue 017 removed.
+- name: Remove the old sudo test script
+  ansible.builtin.file:
+    path: "{{ app_base_dir }}/scripts/test-sudo.sh"
+    state: absent
 
-      echo "Testing sudo access..."
-      echo ""
-
-      # Test docker access
-      echo -n "Docker: "
-      if sudo -n docker --version &>/dev/null; then
-        echo "OK"
-      else
-        echo "FAILED"
-      fi
-
-      # Test systemctl access
-      echo -n "Systemctl: "
-      if sudo -n systemctl status docker &>/dev/null; then
-        echo "OK"
-      else
-        echo "FAILED"
-      fi
-
-      echo ""
-      echo "For full sudo access, use: sudo -v"
-    mode: '0750'
-    owner: "{{ deploy_user }}"
-    group: "{{ deploy_user }}"
-
-- name: Display sudo configuration summary
+- name: Display deploy user summary
   ansible.builtin.debug:
     msg:
       - "==========================================="
-      - "Deploy User Sudo Configuration"
+      - "Deploy User"
       - "==========================================="
-      - "User: {{ deploy_user }}"
-      - "Groups: {{ deploy_user_groups | join(', ') }}"
-      - "Restricted mode: {{ deploy_sudo_restricted | default(true) }}"
-      - ""
-      - "Allowed commands (no password):"
-      - "  - docker, docker-compose"
-      - "  - systemctl (docker)"
-      - "  - Application scripts in {{ app_base_dir }}/scripts/"
-      - "  - Other commands (with password): {{ deploy_sudo_password_fallback | default(false) }}"
-      - ""
-      - "Test sudo access:"
-      - "  {{ app_base_dir }}/scripts/test-sudo.sh"
+      - "User: {{ deploy_user }} (no docker or sudo group)"
+      - "sudo: {{ deploy_gate_runner }} only"
+      - "Operator keys: {{ deploy_user_public_keys | length }} (unrestricted)"
+      - "CI keys: {{ deploy_user_ci_public_keys | length }} (forced command {{ deploy_gate_command }})"
       - "==========================================="
-

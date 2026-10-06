@@ -10,8 +10,8 @@
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
-    owner: "{{ deploy_user }}"
-    group: "{{ deploy_user }}"
+    owner: root
+    group: root
     mode: '0750'
   loop:
     - "{{ caddy_data_dir }}/data"
@@ -22,8 +22,8 @@
   ansible.builtin.template:
     src: Caddyfile.j2
     dest: "{{ caddy_data_dir }}/config/Caddyfile"
-    owner: "{{ deploy_user }}"
-    group: "{{ deploy_user }}"
+    owner: root
+    group: root
     mode: '0640'
   notify: reload caddy
   tags: caddy-config

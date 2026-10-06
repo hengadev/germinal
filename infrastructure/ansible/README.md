@@ -9,19 +9,19 @@ no local secrets (ADR 0004). Releases never go through Ansible: CI deploys
 
 ### Security Hardening
 - SSH key-only authentication (password auth disabled)
-- Root login disabled (deploy user with restricted sudo only)
+- Root login with SSH key only; the deploy user is not root-equivalent (issue 017)
 - Fail2ban for SSH brute-force protection (5 attempts = 1 hour ban)
 - UFW firewall with only essential ports open
 - Automatic security updates (unattended-upgrades)
 - Kernel hardening (sysctl, secure shared memory)
 - Modern cryptographic algorithms only (Curve25519, ChaCha20)
-- **Restricted sudo** - deploy user can only run specific commands
+- **Deploy gate** - the CI key can only run `deploy <staging|prod> <sha>`; the deploy user's only sudo right is that runner
 - **Caddy reverse proxy (Docker)** - app reachable only on the Docker network, Caddy handles TLS
 - **Docker metrics** - bound to localhost only (127.0.0.1:9323)
 
 ### System Setup
 - Docker & Docker Compose installation
-- Non-root deploy user with **restricted sudo**
+- Non-root deploy user: no `docker`/`sudo` group, one sudoers line (the deploy runner)
 - Caddy reverse proxy (Docker container) with automatic SSL/TLS and security headers
 - Infisical Agent (systemd service) rendering one env file per consumer (see [the role README](roles/infisical_agent/README.md))
 - The compose directory layout under `/opt/germinal` and `/opt/germinal-staging`
@@ -118,7 +118,10 @@ Releases go through CI, never from your machine:
   is serving (and rolls back the same way).
 
 See `.github/workflows/` and `infrastructure/compose/README.md` for the
-`deploy <stack> <sha>` entry point those workflows run over SSH.
+`deploy <stack> <sha>` entry point those workflows run over SSH. The CI key
+can run that and nothing else: `roles/deploy_gate` installs its forced
+command and the root runner, which reads `deploy` and the compose file from
+the repo at the SHA (only SHAs on `main`). CI uploads nothing.
 
 ## Playbooks
 
@@ -186,7 +189,8 @@ ansible-playbook playbooks/backup.yml \
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `deploy_user` | Deploy user name | `germinal` |
-| `deploy_ssh_public_keys` | Deploy user SSH keys (list) | `[]` |
+| `deploy_ssh_public_keys` | Operator SSH keys for the deploy user (list, unrestricted) | `[]` |
+| `deploy_ci_ssh_public_keys` | CI deploy keys (list, forced to the deploy gate) | `[]` |
 | `host_notify_email` | Notification email (overridden by the Infisical `/host` lookup) | `root@localhost` |
 | `auto_security_updates` | Enable auto updates | `true` |
 | `fail2ban_enabled` | Enable fail2ban | `true` |
@@ -214,7 +218,8 @@ infrastructure/ansible/
     ├── ssh/                   # SSH hardening
     ├── firewall/              # UFW configuration
     ├── docker/                # Docker installation (+ germinal_network)
-    ├── user/                  # Deploy user setup (authorized_keys as a list)
+    ├── deploy_gate/           # CI key's forced command + root deploy runner
+    ├── user/                  # Deploy user, its one sudoers line, authorized_keys
     ├── fail2ban/              # Brute-force protection
     ├── caddy/                 # Reverse proxy with retry window
     ├── infisical_agent/       # Infisical Agent (env files, 0600, rotation)
@@ -226,7 +231,7 @@ infrastructure/ansible/
 
 ### SSH Hardening
 - Password authentication disabled (key-only)
-- Root login disabled (use deploy user with sudo)
+- Root login with SSH key only (the operator's key; Ansible connects as root)
 - SSH banner with security notice
 - Modern cryptographic algorithms (Curve25519, ChaCha20-Poly1305)
 - Diffie-Hellman key exchange
@@ -235,12 +240,17 @@ infrastructure/ansible/
 - Client alive interval (5 min) to timeout idle connections
 - Fail2ban: 5 failed attempts = 1 hour ban
 
-### Restricted Sudo
-- Deploy user can only run specific commands without password:
-  - `docker`, `docker-compose`
-  - `systemctl` (docker)
-- Optional password-based sudo for other commands
-- See `/opt/germinal/scripts/test-sudo.sh` to verify
+### Deploy user and CI key (issue 017)
+- The deploy user is in no `docker` or `sudo` group and owns nothing under
+  `/opt/germinal{,-staging}`
+- Its only sudoers line: `/usr/local/sbin/germinal-deploy` (the root runner)
+- CI keys (`deploy_ci_ssh_public_keys`) get
+  `restrict,command="/usr/local/sbin/germinal-deploy-gate"`: no shell, no
+  scp/sftp, no forwarding; only `deploy <staging|prod> <40-hex sha>`
+- The runner deploys only commits on `main`, reading `deploy` and the
+  compose file from the repo at that SHA
+- Logs, docker and systemctl: use the root key
+- Verify: `sudo -l -U germinal` (as root) lists only the runner
 
 ### Firewall (UFW)
 - Default deny incoming
@@ -256,8 +266,7 @@ infrastructure/ansible/
 
 ### Docker Security
 - Metrics endpoint bound to localhost only (127.0.0.1:9323)
-- Users in docker group have root-equivalent access
-- Only add trusted users to the docker group
+- Nobody is in the docker group (`docker_users: []`): it is root-equivalent
 
 ### System Updates
 - Automatic security updates (unattended-upgrades)
@@ -313,6 +322,7 @@ After initial setup, verify:
 - [ ] Root login disabled
 - [ ] UFW firewall enabled
 - [ ] Fail2ban running
-- [ ] Deploy user has sudo access
+- [ ] `sudo -l -U germinal` lists only `/usr/local/sbin/germinal-deploy`; `germinal` is not in `docker`
+- [ ] With the CI key, `ssh germinal@<host> id` is refused
 - [ ] Agent-rendered env files have correct permissions (0600, root-owned)
 - [ ] Backups configured

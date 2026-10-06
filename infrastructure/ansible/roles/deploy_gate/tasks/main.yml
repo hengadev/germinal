@@ -1,0 +1,68 @@
+---
+# Deploy gate (issue 017)
+# - The CI key's forced command (germinal-deploy-gate, runs as the deploy user)
+# - The root runner it reaches through sudo (germinal-deploy): reads `deploy`
+#   and the compose file from the repo at the deployed SHA
+#
+# Both scripts are root-owned and change only with a setup run: CI can
+# trigger a deploy, never change what runs as root. The sudoers line and the
+# forced command themselves are in roles/user.
+
+- name: Install git (the runner reads deploy + compose from the repo)
+  ansible.builtin.apt:
+    name: git
+    state: present
+
+- name: Create the runner's root-only state directory
+  ansible.builtin.file:
+    path: "{{ deploy_gate_state_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: Install the root runner
+  ansible.builtin.template:
+    src: germinal-deploy.j2
+    dest: "{{ deploy_gate_runner }}"
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Install the CI key's forced command
+  ansible.builtin.template:
+    src: germinal-deploy-gate.j2
+    dest: "{{ deploy_gate_command }}"
+    owner: root
+    group: root
+    mode: "0755"
+
+# Before issue 017, CI copied `deploy` into each stack root and the deploy
+# user could sudo it. Nothing runs them anymore.
+- name: Remove the deploy scripts CI used to upload
+  ansible.builtin.file:
+    path: "{{ item.value }}/deploy"
+    state: absent
+  loop: "{{ deploy_gate_stack_roots | dict2items }}"
+  loop_control:
+    label: "{{ item.value }}/deploy"
+
+# The compose files CI uploaded are still the deploy user's until the next
+# deploy replaces them; the Agent runs compose from them as root.
+- name: Check for compose files left by the old upload path
+  ansible.builtin.stat:
+    path: "{{ item.value }}/docker-compose.yml"
+  loop: "{{ deploy_gate_stack_roots | dict2items }}"
+  loop_control:
+    label: "{{ item.value }}/docker-compose.yml"
+  register: deploy_gate_compose_files
+
+- name: Make the existing compose files root's
+  ansible.builtin.file:
+    path: "{{ item.stat.path }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop: "{{ deploy_gate_compose_files.results | selectattr('stat.exists') | list }}"
+  loop_control:
+    label: "{{ item.stat.path }}"

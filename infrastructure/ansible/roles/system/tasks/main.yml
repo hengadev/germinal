@@ -127,8 +127,8 @@
     state: present
     backup: true
 
-# Created only: their owner and mode belong to roles/user (the deploy user,
-# 0750). Setting root here flipped them back and forth on every run.
+# Created only: their owner and mode belong to roles/user (root, 0750 —
+# issue 017). Setting them here too flipped them back and forth.
 - name: Create app directories
   ansible.builtin.file:
     path: "{{ item }}"

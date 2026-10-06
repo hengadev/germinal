@@ -104,8 +104,8 @@
       echo "Add these to your local ~/.ssh/known_hosts:"
       echo "ssh-keyscan -H $(hostname) >> ~/.ssh/known_hosts"
     mode: '0750'
-    owner: "{{ deploy_user }}"
-    group: "{{ deploy_user }}"
+    owner: root
+    group: root
 
 - name: Test SSH configuration before applying
   ansible.builtin.command:

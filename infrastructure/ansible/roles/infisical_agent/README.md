@@ -34,7 +34,7 @@ From `infisical_agent_templates` in `defaults/main.yml` (`name` = template and r
 
 Staging renders only `app` and `admin`: it shares prod's Postgres, Redis and Caddy (PRD M5). `--no-deps` guarantees a change can never bounce the shared services. The stack roots and service names **must match** the compose layout installed by issues 007/009 (`infrastructure/compose/`) — they are role variables (`infisical_agent_stack_roots`, the `service` field) so a layout change is one edit.
 
-Because the rendered env files are root-only `0600`, deploys that run `docker compose` must do so with root rights (e.g. `sudo docker compose …`; the deploy user already has passwordless `docker` sudo). The `deploy` script from issue 007 (`infrastructure/compose/deploy`) documents its CI invocation accordingly.
+Because the rendered env files are root-only `0600`, deploys that run `docker compose` must do so with root rights. The `deploy` script (`infrastructure/compose/deploy`) runs as root through the deploy runner (`roles/deploy_gate`, issue 017); the deploy user has no `docker` rights of its own.
 
 ## The credential
 

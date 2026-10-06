@@ -29,13 +29,28 @@
     - not ansible_check_mode
     - not item.stat.exists
 
-- name: Install the production compose file
+# First install only (force: false): from then on the deploy runner is the
+# file's only writer, with the copy from the commit production runs
+# (roles/deploy_gate, issue 017). Overwriting it from the operator's
+# checkout would hand the Agent's next recreate an unreleased compose file.
+- name: Install the production compose file (first setup only)
   ansible.builtin.copy:
     src: "{{ shared_services_compose_src }}"
     dest: "{{ shared_services_root }}/docker-compose.yml"
-    owner: "{{ deploy_user }}"
-    group: "{{ deploy_user }}"
-    mode: "0640"
+    owner: root
+    group: root
+    mode: "0644"
+    force: false
+
+# Root's, like the deploy runner installs it: the Agent runs compose from
+# this file as root (issue 017).
+- name: Keep the production compose file root's
+  ansible.builtin.file:
+    path: "{{ shared_services_root }}/docker-compose.yml"
+    owner: root
+    group: root
+    mode: "0644"
+  when: not ansible_check_mode
 
 # Runs as root: the env files are root-only 0600. Never touches the app
 # service (it is deployed by CI, issue 010).

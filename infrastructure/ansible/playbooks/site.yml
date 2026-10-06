@@ -120,6 +120,11 @@
     - role: docker
       tags: ['docker', 'setup']
 
+    # Before roles/user: the CI key's forced command must exist when its
+    # authorized_keys line does (issue 017).
+    - role: deploy_gate
+      tags: ['deploy_gate', 'user', 'setup']
+
     - role: user
       tags: ['user', 'setup']
 

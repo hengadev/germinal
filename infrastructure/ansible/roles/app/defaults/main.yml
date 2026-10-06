@@ -34,9 +34,9 @@ app_stack_directories:
   # redis:7-alpine image.
   - { path: "{{ app_prod_root }}/data/redis", owner: "{{ redis_container_uid }}", group: "{{ redis_container_gid }}", mode: "0750" }
   - { path: "{{ app_prod_root }}/data/uploads", owner: "{{ app_container_uid }}", group: "{{ app_container_uid }}", mode: "0750" }
-  # Staging's root is the deploy user's, like prod's (roles/user): CI copies
-  # the compose file and the deploy script into it (issue 009).
-  - { path: "{{ app_staging_root }}", owner: "{{ deploy_user }}", group: "{{ deploy_user }}", mode: "0750" }
+  # Staging's root is root's, like prod's (roles/user): the deploy runner
+  # installs the compose file into it as root (issue 017).
+  - { path: "{{ app_staging_root }}", mode: "0750" }
   - { path: "{{ app_staging_root }}/env", mode: "0700" }
   - { path: "{{ app_staging_root }}/data/uploads", owner: "{{ app_container_uid }}", group: "{{ app_container_uid }}", mode: "0750" }
 

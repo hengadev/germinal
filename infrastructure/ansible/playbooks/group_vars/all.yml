@@ -20,24 +20,29 @@ host_notify_email: root@localhost
 # Deploy User Configuration
 # ============================================
 deploy_user: germinal
-deploy_user_groups: ["sudo", "docker"]
 
-# SECURITY: Restrict sudo to specific commands (recommended: true)
-# Set to false for development/convenience, true for production
-deploy_sudo_restricted: true
-
-# SECURITY: Allow password-based sudo as fallback (requires deploy user password)
-# Set to true if you want to allow other commands with password
-deploy_sudo_password_fallback: false
-
-# Deploy user SSH public keys: one per operator computer plus the CI deploy
-# key (issue 008). This list is the source of truth for the deploy user's
-# authorized_keys (managed exclusively). Prefer a vars file
-#   ansible-playbook … -e @deploy-keys.yml   # { deploy_ssh_public_keys: ["…", "…"] }
+# The deploy user is NOT root-equivalent (issue 017): no docker group, no
+# sudo group, and one sudoers line — the root runner below. Ansible itself
+# connects as root with the operator key.
+#
+# Operator keys (one per operator computer): unrestricted logins as the
+# deploy user. Prefer a vars file
+#   ansible-playbook … -e @deploy-keys.yml   # { deploy_ssh_public_keys: ["…", "…"], deploy_ci_ssh_public_keys: ["…"] }
 # or an inventory definition: recent ansible-core parses inline
 # -e 'deploy_ssh_public_keys=[…]' as a STRING, not a list.
 # The legacy single deploy_ssh_public_key below is still honoured alongside it.
 deploy_ssh_public_keys: []
+
+# CI deploy keys (germinal-ci): installed with
+#   restrict,command="<deploy_gate_command>"
+# so they can only run `deploy <staging|prod> <sha>` — no shell, no scp, no
+# forwarding. A key must not appear in both lists.
+deploy_ci_ssh_public_keys: []
+
+# The CI key's forced command (runs as the deploy user) and the root runner
+# it reaches through the deploy user's only sudoers line (roles/deploy_gate).
+deploy_gate_command: /usr/local/sbin/germinal-deploy-gate
+deploy_gate_runner: /usr/local/sbin/germinal-deploy
 
 # Legacy single public SSH key (kept for the old one-key flow)
 # You can also set this via: ansible-playbook --extra-vars "deploy_ssh_public_key=$(cat ~/.ssh/germinal.pub)"

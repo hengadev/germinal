@@ -3,8 +3,9 @@
 
 # Production stack root (infrastructure/compose/README.md). The production
 # compose file is installed here from the control node's checkout so the
-# shared services (Postgres, Redis, Caddy) run before any deploy; CI's
-# production deploys (issue 010) overwrite it with the deployed commit's copy.
+# shared services (Postgres, Redis, Caddy) run before any deploy — once:
+# every production deploy then installs the deployed commit's copy
+# (roles/deploy_gate, issue 017).
 shared_services_root: /opt/germinal
 shared_services_compose_src: "{{ playbook_dir }}/../../compose/docker-compose.prod.yml"
 shared_services: [postgres, redis, caddy]

@@ -4,11 +4,12 @@
 # This role creates directories — and nothing else. Everything that used to
 # be rendered here now belongs to another mechanism:
 #   env/*.env                        the Infisical Agent (roles/infisical_agent)
-#   docker-compose.yml, deploy       copied by CI into each stack root (009/010);
-#                                    prod's compose file is first installed by
+#   docker-compose.yml               installed by the deploy runner from the
+#                                    deployed commit (roles/deploy_gate, issue
+#                                    017); prod's is first installed by
 #                                    roles/shared_services
-# Releases never go through Ansible: CI runs `deploy <stack> <sha>` on the
-# server (infrastructure/compose/). There is no .env template and no
+# Releases never go through Ansible: CI asks for `deploy <stack> <sha>` over
+# SSH, the deploy gate runs it (infrastructure/compose/). There is no .env template and no
 # templated compose file anymore (ADR 0004).
 
 - name: Create the compose stack directories

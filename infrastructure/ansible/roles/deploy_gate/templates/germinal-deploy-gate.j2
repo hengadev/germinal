@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Managed by Ansible (roles/deploy_gate) — DO NOT EDIT MANUALLY
+#
+# Forced command of the CI deploy key (issue 017). sshd runs this instead of
+# whatever the client asked for, as the deploy user, with the request in
+# SSH_ORIGINAL_COMMAND. Exactly two requests pass:
+#   deploy staging <40-hex sha>
+#   deploy prod <40-hex sha>
+# and both go through the one sudoers line the deploy user has
+# ({{ deploy_gate_runner }}). Anything else — a shell, `id`, scp, sftp — is
+# refused here.
+set -euo pipefail
+
+request=${SSH_ORIGINAL_COMMAND:-}
+
+if [[ $request =~ ^deploy\ (staging|prod)\ ([0-9a-f]{40})$ ]]; then
+	exec sudo -n {{ deploy_gate_runner }} "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}"
+fi
+
+logger -t germinal-deploy-gate -- "refused: $(printf '%q' "$request")" || true
+echo "germinal-deploy-gate: refused. This key only runs: deploy <staging|prod> <40-hex sha>" >&2
+exit 1

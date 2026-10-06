@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+# Managed by Ansible (roles/deploy_gate) — DO NOT EDIT MANUALLY
+#
+# germinal-deploy <prod|staging> <sha> — runs as root (issue 017). The deploy
+# user reaches it through one sudoers line, the CI key only through
+# germinal-deploy-gate.
+#
+# CI uploads nothing: `deploy` and the stack's compose file are read from
+# the repo at <sha>, so a rollback also rolls them back, and a leaked CI
+# secret cannot change what root runs.
+#   1. fetch {{ deploy_gate_branch }} from {{ deploy_gate_repo_url }} into a root-only mirror
+#   2. refuse a <sha> that is not on {{ deploy_gate_branch }}
+#   3. extract infrastructure/compose/{deploy,docker-compose.<stack>.yml}
+#   4. install the compose file as <stack root>/docker-compose.yml (root 0644)
+#   5. run that commit's `deploy <stack> <sha>` with a clean environment
+set -euo pipefail
+umask 077
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+log() { printf 'germinal-deploy: %s\n' "$*"; }
+die() { printf 'germinal-deploy: ERROR: %s\n' "$*" >&2; exit 1; }
+
+[ "$(id -u)" = 0 ] || die "must run as root"
+[ $# -eq 2 ] || die "usage: germinal-deploy <prod|staging> <40-hex sha>"
+stack=$1
+sha=$2
+
+case $stack in
+{% for name, path in deploy_gate_stack_roots.items() %}
+	{{ name }}) root={{ path }} ;;
+{% endfor %}
+	*) die "unknown stack '$stack'" ;;
+esac
+[[ $sha =~ ^[0-9a-f]{40}$ ]] || die "'$sha' is not a full 40-character commit SHA"
+
+state={{ deploy_gate_state_dir }}
+mirror=$state/repo.git
+release=$state/release-$stack
+compose_src=infrastructure/compose/docker-compose.$stack.yml
+deploy_src=infrastructure/compose/deploy
+
+# One deploy per stack at a time; the lock is held until `deploy` exits
+# (exec keeps fd 8 open).
+exec 8>"$state/$stack.lock"
+flock 8
+
+# The mirror is shared by both stacks.
+(
+	flock 9
+	[ -d "$mirror" ] || git init --quiet --bare "$mirror"
+	log "fetching {{ deploy_gate_branch }}"
+	git -C "$mirror" fetch --quiet --no-tags {{ deploy_gate_repo_url }} \
+		"+refs/heads/{{ deploy_gate_branch }}:refs/heads/{{ deploy_gate_branch }}"
+) 9>"$state/mirror.lock" || die "could not fetch {{ deploy_gate_branch }} from {{ deploy_gate_repo_url }}"
+
+git -C "$mirror" cat-file -e "$sha^{commit}" 2>/dev/null &&
+	git -C "$mirror" merge-base --is-ancestor "$sha" refs/heads/{{ deploy_gate_branch }} ||
+	die "$sha is not a commit on {{ deploy_gate_branch }} — deploy refused"
+
+rm -rf "$release"
+mkdir -p "$release"
+git -C "$mirror" archive "$sha" "$deploy_src" "$compose_src" | tar -x -C "$release" ||
+	die "$sha has no $deploy_src or $compose_src"
+
+log "installing $compose_src at $sha as $root/docker-compose.yml"
+install -m 0644 -o root -g root "$release/$compose_src" "$root/docker-compose.yml"
+
+exec env -i PATH="$PATH" HOME=/root "$release/$deploy_src" "$stack" "$sha"

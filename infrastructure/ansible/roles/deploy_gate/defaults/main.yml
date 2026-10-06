@@ -1,0 +1,23 @@
+---
+# Deploy gate role defaults (issue 017)
+#
+# The two scripts' paths (deploy_gate_command, deploy_gate_runner) are in
+# playbooks/group_vars/all.yml: roles/user needs them too, for the CI key's
+# forced command and the one sudoers line.
+
+# Where root reads `deploy` and the compose files of the SHA it deploys.
+# Public repo, so no key. Only commits reachable from this repo's `main` are
+# deployed: GitHub also serves commits pushed to forks under the parent's
+# URL, so the runner never fetches a SHA directly, only `main`.
+deploy_gate_repo_url: https://github.com/hengadev/germinal.git
+deploy_gate_branch: main
+
+# Root-only state: the bare mirror, the per-stack extracted release and the
+# locks.
+deploy_gate_state_dir: /var/lib/germinal-deploy
+
+# Per-stack roots. MUST match infisical_agent_stack_roots and
+# infrastructure/compose/README.md.
+deploy_gate_stack_roots:
+  prod: /opt/germinal
+  staging: /opt/germinal-staging
