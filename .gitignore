@@ -53,3 +53,6 @@ test-results/
 !infrastructure/terraform/terraform.tfvars
 
 dev-dist/
+
+# Local operator notes and files (checklist, keys): never commit anything here
+/md/
