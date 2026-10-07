@@ -1,0 +1,13 @@
+# {{ ansible_managed }}
+# {{ job.description }} (roles/backup, issue 013). `systemctl list-timers` shows the next run.
+[Unit]
+Description={{ job.description }} timer
+
+[Timer]
+OnCalendar={{ job.on_calendar }}
+# A run missed while the server was off happens at the next boot.
+Persistent=true
+RandomizedDelaySec=10min
+
+[Install]
+WantedBy=timers.target

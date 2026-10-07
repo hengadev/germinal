@@ -1,0 +1,86 @@
+---
+# Backups (issue 013, PRD module M9)
+# - germinal-backup: daily pg_dump + config archive (allowlist) to S3
+# - germinal-snapshot: weekly age-encrypted export of Infisical prod
+# - germinal-restore-test: by hand, restores the newest dump into a
+#   throwaway container
+#
+# All root: scripts in {{ backup_bin_dir }}, systemd timers, credentials read
+# at run time from the Agent-rendered backup.env. Nothing here belongs to the
+# deploy user (issue 017). Recovery: roles/backup/README.md.
+
+- name: Require the operator's age public key
+  ansible.builtin.assert:
+    that:
+      - backup_age_recipient is match('^age1[0-9a-z]{58}$')
+    fail_msg: >-
+      backup_age_recipient must be the age PUBLIC key (age1…) whose private
+      half is in the password manager (roles/backup/defaults/main.yml).
+    quiet: true
+
+- name: Install age and jq (snapshot encryption and export)
+  ansible.builtin.apt:
+    name:
+      - age
+      - jq
+    state: present
+
+- name: Install the shared backup library
+  ansible.builtin.template:
+    src: germinal-backup-lib.sh.j2
+    dest: "{{ backup_lib_file }}"
+    owner: root
+    group: root
+    mode: "0640"
+
+- name: Install the backup scripts
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "{{ backup_bin_dir }}/{{ item }}"
+    owner: root
+    group: root
+    mode: "0750"
+  loop:
+    - germinal-backup
+    - germinal-snapshot
+    - germinal-restore-test
+
+- name: Install the backup services and timers
+  ansible.builtin.template:
+    src: "germinal-backup-job.{{ item.1 }}.j2"
+    dest: "/etc/systemd/system/{{ item.0.name }}.{{ item.1 }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop: "{{ backup_jobs | product(['service', 'timer']) | list }}"
+  loop_control:
+    label: "{{ item.0.name }}.{{ item.1 }}"
+  vars:
+    job: "{{ item.0 }}"
+  notify: Reload systemd for the backup units
+
+- name: Reload systemd before enabling the timers
+  ansible.builtin.meta: flush_handlers
+
+- name: Enable and start the backup timers
+  ansible.builtin.systemd:
+    name: "{{ item.name }}.timer"
+    enabled: true
+    state: started
+  loop: "{{ backup_jobs }}"
+  loop_control:
+    label: "{{ item.name }}.timer"
+
+# The old playbooks/backup.yml (before issue 013) installed scripts and AWS
+# credentials as the deploy user; the rebuilt server never ran it, but an
+# older host may still have them.
+- name: Remove the old backup scripts, AWS credentials and log rotation
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "{{ app_base_dir }}/scripts/backup.sh"
+    - "{{ app_base_dir }}/scripts/backup-db.sh"
+    - "{{ app_base_dir }}/scripts/restore.sh"
+    - "/home/{{ deploy_user }}/.aws"
+    - /etc/logrotate.d/germinal-backup

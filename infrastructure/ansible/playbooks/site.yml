@@ -156,6 +156,11 @@
     - role: shared_services
       tags: ['shared_services', 'setup']
 
+    # Root systemd timers: daily database + config backup, weekly
+    # age-encrypted Infisical snapshot (issue 013). Reads backup.env.
+    - role: backup
+      tags: ['backup']
+
   post_tasks:
     - name: Display setup completion message
       ansible.builtin.debug:

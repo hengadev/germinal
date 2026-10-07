@@ -164,16 +164,12 @@ INFISICAL_AGENT_CLIENT_ID=… INFISICAL_AGENT_CLIENT_SECRET=… \
   ansible-playbook playbooks/infisical-agent.yml -e "ansible_host=<server-ip>"
 ```
 
-### `backup.yml` - Database Backups
+### Backups (`roles/backup`, part of `site.yml`)
 
-Configure automated database backups:
-
-```bash
-ansible-playbook playbooks/backup.yml \
-  -e "ansible_host=<server-ip>" \
-  -e "backup_s3_bucket=my-backups" \
-  -e "backup_s3_region=eu-central-1"
-```
+Root systemd timers: a daily `pg_dump` + config archive and a weekly
+`age`-encrypted snapshot of Infisical `prod`, uploaded to the backup bucket
+with the credentials of the Agent-rendered `backup.env`. Restore test and
+recovery procedure: [roles/backup/README.md](roles/backup/README.md).
 
 ## Variables
 
@@ -194,7 +190,7 @@ ansible-playbook playbooks/backup.yml \
 | `host_notify_email` | Notification email (overridden by the Infisical `/host` lookup) | `root@localhost` |
 | `auto_security_updates` | Enable auto updates | `true` |
 | `fail2ban_enabled` | Enable fail2ban | `true` |
-| `backup_enabled` | Enable backups | `true` |
+| `backup_age_recipient` | age public key for the Infisical snapshot (`roles/backup`) | set in the role |
 
 Sensitive values are **not** variables: they live in Infisical and reach the
 server through the Agent-rendered env files (ADR 0004).
@@ -210,9 +206,7 @@ infrastructure/ansible/
 │   ├── group_vars/
 │   │   └── all.yml           # Global variables (no secrets)
 │   ├── site.yml               # Complete setup
-│   ├── infisical-agent.yml    # Agent install / rotation
-│   ├── backup.yml             # Backup configuration
-│   └── templates/             # Backup templates
+│   └── infisical-agent.yml    # Agent install / rotation
 └── roles/
     ├── system/                # Base system hardening
     ├── ssh/                   # SSH hardening
@@ -224,7 +218,8 @@ infrastructure/ansible/
     ├── caddy/                 # Reverse proxy with retry window
     ├── infisical_agent/       # Infisical Agent (env files, 0600, rotation)
     ├── app/                   # Compose directory layout (nothing else)
-    └── shared_services/       # Postgres/Redis/Caddy up, germinal_staging DB role
+    ├── shared_services/       # Postgres/Redis/Caddy up, germinal_staging DB role
+    └── backup/                # Root backup timers, encrypted snapshot, restore test
 ```
 
 ## Security Features
@@ -325,4 +320,4 @@ After initial setup, verify:
 - [ ] `sudo -l -U germinal` lists only `/usr/local/sbin/germinal-deploy`; `germinal` is not in `docker`
 - [ ] With the CI key, `ssh germinal@<host> id` is refused
 - [ ] Agent-rendered env files have correct permissions (0600, root-owned)
-- [ ] Backups configured
+- [ ] `systemctl list-timers 'germinal-*'` shows the backup and snapshot timers; `germinal-restore-test` passes

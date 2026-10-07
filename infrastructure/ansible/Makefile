@@ -5,7 +5,7 @@
 # through CI (.github/workflows): a push to main deploys staging, and the
 # Promote-to-production workflow ships the SHA staging is serving.
 
-.PHONY: help setup backup check-clean lint \
+.PHONY: help setup check-clean lint \
         ssh-info status staging-status logs staging-logs \
         install-deps vars-test terraform-outputs
 
@@ -16,7 +16,6 @@ help:
 	@echo ""
 	@echo "Setup (needs only an SSH key and 'infisical login' on this machine):"
 	@echo "  make setup           - Complete VPS setup (first time only)"
-	@echo "  make backup          - Configure database backups"
 	@echo ""
 	@echo "Releases: NOT here. CI deploys (.github/workflows): a push to main"
 	@echo "  deploys staging; 'Promote to production' ships the SHA staging serves."
@@ -39,7 +38,6 @@ help:
 # Get VPS IP from Terraform output
 VPS_IP=$(shell cd ../terraform && terraform output -raw server_ipv4_address 2>/dev/null || echo "")
 DOMAIN=$(shell cd ../terraform && terraform output -raw domain_name 2>/dev/null || echo "")
-BACKUP_BUCKET=$(shell cd ../terraform && terraform output -raw backup_bucket_name 2>/dev/null || echo "")
 
 # Get SSH public key
 SSH_KEY=$(shell cat ~/.ssh/germinal.pub 2>/dev/null || cat ~/.ssh/id_rsa.pub 2>/dev/null || echo "")
@@ -71,32 +69,6 @@ setup:
 		-e "deploy_ssh_public_key=$(SSH_KEY)" \
 		-e "app_domain=$(DOMAIN)"
 
-# Configure database backups
-backup:
-	@echo "==========================================="
-	@echo "Database Backup Configuration"
-	@echo "==========================================="
-	@echo ""
-	@if [ -z "$(VPS_IP)" ]; then \
-		echo "Error: Could not get VPS IP from Terraform."; \
-		exit 1; \
-	fi
-	@if [ -z "$(BACKUP_BUCKET)" ]; then \
-		echo "Error: Could not get backup bucket from Terraform."; \
-		exit 1; \
-	fi
-	@echo "VPS IP: $(VPS_IP)"
-	@echo "Backup Bucket: $(BACKUP_BUCKET)"
-	@echo ""
-	@read -p "Enter AWS Access Key ID: " aws_key; \
-	read -sp "Enter AWS Secret Access Key: " aws_secret; \
-	echo ""; \
-	ansible-playbook -i inventory/hosts.yml playbooks/backup.yml \
-		-e "ansible_host=$(VPS_IP)" \
-		-e "backup_s3_bucket=$(BACKUP_BUCKET)" \
-		-e "backup_aws_access_key=$$aws_key" \
-		-e "backup_aws_secret_key=$$aws_secret"
-
 # ============================================
 # Verification Commands
 # ============================================
@@ -105,7 +77,6 @@ backup:
 check-clean:
 	@echo "Checking playbooks for syntax errors..."
 	@ansible-playbook playbooks/site.yml --syntax-check
-	@ansible-playbook playbooks/backup.yml --syntax-check
 	@ansible-playbook playbooks/infisical-agent.yml --syntax-check
 	@echo "All playbooks are clean!"
 

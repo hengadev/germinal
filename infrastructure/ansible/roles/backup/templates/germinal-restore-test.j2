@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+# Managed by Ansible (roles/backup) — DO NOT EDIT MANUALLY
+#
+# germinal-restore-test [<s3 key>] — prove a database dump restores (issue
+# 013). Run by hand as root; production is never touched.
+#
+#   1. download the newest <tier>/db/germinal_prod_*.dump from the bucket
+#      (or the key given)
+#   2. restore it into a throwaway {{ backup_restore_test_image }} container with no
+#      network, removed at the end with its data
+#   3. pass only if every table in the dump is restored and the Drizzle
+#      migrations table is not empty; print the row count of every table
+#
+# Recovery of the real database: roles/backup/README.md.
+
+# shellcheck source=/dev/null
+. {{ backup_lib_file }}
+backup_init
+
+key=${1:-}
+if [ -z "$key" ]; then
+	key=$(aws s3 ls "$bucket/" --recursive |
+		awk '{print $4}' |
+		grep -E '^(daily|weekly|monthly)/db/germinal_prod_[0-9]{8}T[0-9]{6}Z\.dump$' |
+		awk -F/ '{print $NF, $0}' | sort | tail -n 1 | cut -d' ' -f2) || true
+	[ -n "$key" ] || die "no dump found in $bucket"
+fi
+
+work=$(mktemp -d "$backup_work_dir/restore-test.XXXXXX")
+container=germinal_restore_test
+cleanup() {
+	docker rm -f "$container" >/dev/null 2>&1 || true
+	rm -rf "$work"
+}
+trap cleanup EXIT
+
+log "downloading $key"
+aws s3 cp --only-show-errors "$bucket/$key" - >"$work/test.dump"
+[ -s "$work/test.dump" ] || die "$key is empty"
+
+# --rm: the container and its anonymous data volume go away when it stops.
+# Trust auth is safe here: --network none, nothing can reach it.
+docker rm -f "$container" >/dev/null 2>&1 || true
+docker run -d --rm --name "$container" --network none \
+	-e POSTGRES_HOST_AUTH_METHOD=trust -e POSTGRES_USER="$POSTGRES_USER" -e POSTGRES_DB=restore_test \
+	{{ backup_restore_test_image }} >/dev/null
+
+# The image's init runs a socket-only server first: wait for TCP, which only
+# the final server listens on.
+for _ in $(seq 60); do
+	docker exec "$container" pg_isready -q -h 127.0.0.1 -U "$POSTGRES_USER" -d restore_test && break
+	sleep 1
+done
+docker exec "$container" pg_isready -q -h 127.0.0.1 -U "$POSTGRES_USER" -d restore_test ||
+	die "the scratch Postgres did not start"
+
+psql() { docker exec -i "$container" psql -U "$POSTGRES_USER" -d restore_test -v ON_ERROR_STOP=1 -Atq "$@"; }
+
+expected=$(docker exec -i "$container" pg_restore -l <"$work/test.dump" | grep -c ' TABLE DATA ') ||
+	die "the dump is unreadable (pg_restore -l)"
+
+log "restoring into the scratch database"
+# --no-owner/--no-acl: the scratch server has none of production's other
+# roles. A real recovery restores into the production Postgres, which has.
+docker exec -i "$container" pg_restore -U "$POSTGRES_USER" -d restore_test \
+	--no-owner --no-acl --exit-on-error <"$work/test.dump" ||
+	die "pg_restore failed"
+
+restored=$(psql -c "select count(*) from pg_stat_user_tables")
+migrations=$(psql -c "select count(*) from drizzle.__drizzle_migrations" 2>/dev/null) || migrations=0
+
+log "rows per table:"
+psql -c "select format('%I.%I', schemaname, relname) from pg_stat_user_tables order by 1" |
+	while IFS= read -r t; do
+		printf '  %-50s %s\n' "$t" "$(psql -c "select count(*) from $t" </dev/null)"
+	done
+
+log "tables in dump: $expected, restored: $restored, migrations applied: $migrations"
+[ "$restored" = "$expected" ] || die "restored $restored tables, the dump has $expected"
+[ "$migrations" -gt 0 ] || die "drizzle.__drizzle_migrations is empty or missing"
+log "OK: $key restores"

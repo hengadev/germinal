@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+# Managed by Ansible (roles/backup) — DO NOT EDIT MANUALLY
+#
+# germinal-backup [daily|weekly|monthly] — the daily backup (issue 013), run
+# as root by germinal-backup.timer. Without an argument the tier follows the
+# date: monthly on the 1st, weekly on Sundays, daily otherwise. The bucket's
+# lifecycle rules (infrastructure/terraform/backups.tf) expire each tier
+# from its top-level prefix, so the S3 layout is <tier>/db/… and
+# <tier>/config/….
+#
+#   1. pg_dump (custom format) of the prod database, checked with pg_restore -l
+#   2. the config archive: an allowlist of files that are not secrets (no env
+#      file, no Agent credential, no TLS key), plus the deployed image tags
+#   3. upload both; the latest dump also stays in {{ app_backup_dir }} (root 0600)
+#
+# Restore test: germinal-restore-test. Recovery: roles/backup/README.md.
+
+# shellcheck source=/dev/null
+. {{ backup_lib_file }}
+backup_init
+
+tier=${1:-}
+if [ -z "$tier" ]; then
+	tier=daily
+	[ "$(date +%u)" = 7 ] && tier=weekly
+	[ "$(date +%d)" = 01 ] && tier=monthly
+fi
+case $tier in daily | weekly | monthly) ;; *) die "usage: germinal-backup [daily|weekly|monthly]" ;; esac
+log "starting the $tier backup ($timestamp)"
+
+work=$(mktemp -d "$backup_work_dir/run.XXXXXX")
+trap 'rm -rf "$work"' EXIT
+
+# ── 1. database ──────────────────────────────────────────────────────────────
+dump=$work/germinal_prod_$timestamp.dump
+log "dumping $POSTGRES_DB"
+docker exec {{ backup_db_container }} pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc >"$dump" ||
+	die "pg_dump failed"
+tables=$(docker exec -i {{ backup_db_container }} pg_restore -l <"$dump" | grep -c ' TABLE DATA ') ||
+	die "the dump is unreadable (pg_restore -l)"
+log "dump holds $tables tables"
+upload "$dump" "$tier/db/$(basename "$dump")"
+install -m 0600 "$dump" "$backup_work_dir/latest.dump"
+
+# ── 2. config archive (allowlist) ────────────────────────────────────────────
+manifest=$work/manifest.txt
+{
+	echo "germinal config backup $timestamp ($tier) on $(hostname)"
+	for c in {{ backup_app_containers | join(' ') }}; do
+		img=$(docker inspect -f '{{ '{{.Image}}' }}' "$c" 2>/dev/null) || { echo "$c: not running"; continue; }
+		echo "$c: $(docker image inspect -f '{{ '{{join .RepoTags " "}}' }}' "$img")"
+	done
+} >"$manifest"
+
+paths=()
+for p in {{ backup_config_paths | join(' ') }}; do
+	if [ -e "$p" ]; then paths+=("${p#/}"); else log "skipping $p (missing)"; fi
+done
+config=$work/germinal_config_$timestamp.tar.gz
+tar -czf "$config" -C / "${paths[@]}" -C "$work" manifest.txt
+
+# Belt and braces: the allowlist must never pull in a secret.
+if tar -tzf "$config" | grep -E '(^|/)(env|credentials)(/|$)|\.env$|token-sink|client-secret|client-id'; then
+	die "the config archive lists a secret-looking path (above); nothing uploaded"
+fi
+upload "$config" "$tier/config/$(basename "$config")"
+
+log "OK: $tier backup done"

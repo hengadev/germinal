@@ -114,21 +114,8 @@ fail2ban_notify_email: "{{ host_notify_email }}"
 staging_enabled: true
 
 # ============================================
-# Database
+# Backups
 # ============================================
-# Names only, used by the backup playbook's scripts. The real credentials
-# (user, password, database per stack) live in Infisical /db and reach the
-# containers through the Agent-rendered env files — never through Ansible.
-db_user: germinal
-db_name: germinal
-
-# ============================================
-# Backup Configuration
-# ============================================
-backup_enabled: true
-backup_schedule_daily: "0 2 * * *"
-backup_schedule_weekly: "0 3 * * 0"
-backup_schedule_monthly: "0 4 1 * *"
-backup_volumes_enabled: true
-backup_configs_enabled: true
-backup_s3_storage_class: "STANDARD_IA"
+# roles/backup (issue 013). The bucket, region and AWS credentials are not
+# variables: they live in Infisical prod /backup and reach the job through
+# the Agent-rendered backup.env.

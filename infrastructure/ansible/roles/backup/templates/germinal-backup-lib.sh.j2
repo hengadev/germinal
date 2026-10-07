@@ -1,0 +1,61 @@
+# Managed by Ansible (roles/backup) — DO NOT EDIT MANUALLY
+# shellcheck shell=bash
+#
+# Shared by germinal-backup, germinal-snapshot and germinal-restore-test
+# (issue 013). Sourced, never executed. Everything runs as root: the deploy
+# user has no docker and no sudo beyond the deploy runner (issue 017).
+
+set -euo pipefail
+umask 077
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+backup_name=$(basename "$0")
+backup_env_file={{ backup_env_file }}
+backup_work_dir={{ app_backup_dir }}
+
+log() { printf '%s: %s\n' "$backup_name" "$*"; }
+die() { printf '%s: ERROR: %s\n' "$backup_name" "$*" >&2; exit 1; }
+
+# Root check, one run per script at a time, and the backup.env values as
+# shell variables. backup.env is parsed, never sourced: a value is data,
+# even if it contains `$(…)`.
+backup_init() {
+	[ "$(id -u)" = 0 ] || die "must run as root"
+	exec 9>"/run/lock/$backup_name.lock"
+	flock -n 9 || die "already running"
+	[ -r "$backup_env_file" ] || die "$backup_env_file is missing (rendered by the Infisical Agent)"
+
+	local line key
+	while IFS= read -r line || [ -n "$line" ]; do
+		case $line in '' | '#'*) continue ;; esac
+		key=${line%%=*}
+		# Only the names this job reads: a value can never reach PATH & co.
+		[[ $key =~ ^(BACKUP_[A-Z0-9_]+|POSTGRES_USER|POSTGRES_DB)$ ]] || continue
+		printf -v "$key" '%s' "${line#*=}"
+	done <"$backup_env_file"
+
+	for key in BACKUP_AWS_ACCESS_KEY_ID BACKUP_AWS_SECRET_ACCESS_KEY BACKUP_S3_BUCKET BACKUP_S3_REGION POSTGRES_USER POSTGRES_DB; do
+		[ -n "${!key:-}" ] || die "$key is empty in $backup_env_file (Infisical prod /backup or /db)"
+	done
+	bucket=s3://$BACKUP_S3_BUCKET
+	timestamp=$(date -u +%Y%m%dT%H%M%SZ)
+}
+
+# The AWS CLI from its pinned image (not packaged for Ubuntu 24.04). The
+# credentials reach the container by NAME (`-e VAR`), so they never appear
+# in a command line. Uploads read stdin (`s3 cp - <url>`), downloads write
+# stdout (`s3 cp <url> -`): no host directory is mounted.
+aws() {
+	AWS_ACCESS_KEY_ID=$BACKUP_AWS_ACCESS_KEY_ID \
+		AWS_SECRET_ACCESS_KEY=$BACKUP_AWS_SECRET_ACCESS_KEY \
+		AWS_DEFAULT_REGION=$BACKUP_S3_REGION \
+		docker run --rm -i --log-driver none \
+		-e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -e AWS_DEFAULT_REGION \
+		{{ backup_aws_cli_image }} "$@"
+}
+
+# upload <local file> <key under the bucket>
+upload() {
+	aws s3 cp --only-show-errors - "$bucket/$2" <"$1"
+	log "uploaded $2 ($(stat -c %s "$1") bytes)"
+}

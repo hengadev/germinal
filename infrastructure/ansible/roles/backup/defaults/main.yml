@@ -1,0 +1,64 @@
+---
+# Backup role defaults (issue 013, PRD module M9)
+#
+# Everything runs as root from systemd timers: the deploy user has no docker
+# and no sudo beyond the deploy runner (issue 017). The credentials are read
+# at run time from the Agent-rendered backup.env, never from Ansible.
+
+# Agent-rendered (roles/infisical_agent): the /backup folder plus
+# POSTGRES_USER / POSTGRES_DB from /db.
+backup_env_file: /opt/germinal/env/backup.env
+
+# The operator's age PUBLIC key (`age1…`). Not a secret: it can only
+# encrypt. The matching private key lives only in the operator's password
+# manager, so the server can write snapshots but never read them.
+backup_age_recipient: "age1suf4r09de7wwsgzy7gsq3ln68enkzgpvlrl2a8ndaeq2q428zavqnmqcve"
+
+# The Agent's identity and token (roles/infisical_agent) export the weekly
+# snapshot: the server needs no second Infisical credential.
+backup_infisical_host: "{{ infisical_agent_host | default('https://secrets.henga.dev') }}"
+backup_infisical_token_file: /etc/infisical-agent/credentials/token-sink.json
+backup_snapshot_environment: prod
+
+# The AWS CLI is not packaged for Ubuntu 24.04: run the official image,
+# pinned. Bump on purpose, not with a floating tag.
+backup_aws_cli_image: amazon/aws-cli:2.37.10
+# Same major as the production Postgres (docker-compose.prod.yml), so the
+# restore test reads the dump with the same pg_restore.
+backup_restore_test_image: postgres:16-alpine
+
+backup_db_container: germinal_postgres
+
+# Scripts (root 0750) and their shared library (root 0640).
+backup_bin_dir: /usr/local/sbin
+backup_lib_file: /usr/local/lib/germinal-backup.sh
+
+# Local time on purpose: the operator reads times in CEST/CET. Persistent=
+# catches up a run missed while the server was off.
+backup_daily_on_calendar: "*-*-* 03:00:00 Europe/Paris"
+backup_snapshot_on_calendar: "Sun *-*-* 04:00:00 Europe/Paris"
+
+# Config archive: an ALLOWLIST, so no env file, no Agent credential and no
+# TLS key can end up in it by accident (Infisical and the encrypted snapshot
+# cover those). Missing paths are skipped.
+backup_config_paths:
+  - /opt/germinal/docker-compose.yml
+  - /opt/germinal-staging/docker-compose.yml
+  - /opt/germinal/caddy/config
+  - /etc/infisical-agent/config.yaml
+  - /etc/infisical-agent/templates
+
+# Stack app containers whose image tags (the deployed SHA) go into the
+# config archive's manifest.
+backup_app_containers:
+  - germinal_app
+  - germinal_staging_app
+
+# One systemd service + timer per scheduled job (scripts of the same name).
+backup_jobs:
+  - name: germinal-backup
+    description: Germinal daily backup (database + config)
+    on_calendar: "{{ backup_daily_on_calendar }}"
+  - name: germinal-snapshot
+    description: Germinal weekly encrypted Infisical snapshot
+    on_calendar: "{{ backup_snapshot_on_calendar }}"
