@@ -107,6 +107,12 @@ could not write it to Infisical. Per environment:
    `TWILIO_API_KEY_SID` and `TWILIO_API_KEY_SECRET`.
 3. Delete the previous key in the Twilio console once the app runs with the new one.
 
+To check a key, a region and the sender end to end, send one SMS from the
+running app container with [scripts/twilio-send-test.js](../../scripts/twilio-send-test.js)
+(staging first; usage and error codes in its header). The sender must work in
+IE1: no +1 number; an Alphanumeric Sender ID (paid accounts only) or a
+non-+1 number moved to IE1.
+
 ## Single state (issue 012)
 
 The two old workspaces (`default` and `production`) were merged into one state
