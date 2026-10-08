@@ -54,6 +54,10 @@ const devEnvSchema = z.object({
     TWILIO_API_KEY_SID: z.string().optional().default(''),
     TWILIO_API_KEY_SECRET: z.string().optional().default(''),
     TWILIO_PHONE_NUMBER: z.string().optional().default(''),
+    // Twilio region + edge (e.g. ie1 + dublin). Empty = Twilio's default (US1).
+    // An API key only authenticates in the region it was created in.
+    TWILIO_REGION: z.string().optional().default(''),
+    TWILIO_EDGE: z.string().optional().default(''),
 });
 
 // Production schema - all fields required
@@ -105,6 +109,8 @@ const prodEnvSchema = z.object({
     TWILIO_API_KEY_SID: z.string().optional(),
     TWILIO_API_KEY_SECRET: z.string().optional(),
     TWILIO_PHONE_NUMBER: z.string().optional(),
+    TWILIO_REGION: z.string().optional(),
+    TWILIO_EDGE: z.string().optional(),
 });
 
 // Check if we're in build mode (SvelteKit runs this during build for analysis)

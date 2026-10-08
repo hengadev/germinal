@@ -99,7 +99,10 @@ return a key's secret (twilio/terraform-provider-twilio#82), so Terraform
 could not write it to Infisical. Per environment:
 
 1. Twilio console → Account → API keys & tokens → **Create API key**
-   (Standard), named `<env>-germinal-app`.
+   (Standard), named `<env>-germinal-app`, in the **Ireland (IE1)** region:
+   an API key only works in the region it was created in, and the app sends
+   its requests to the region in `TWILIO_REGION` / `TWILIO_EDGE` (`ie1` /
+   `dublin`; empty = US1).
 2. Put the SID and secret in Infisical `germinal/<env>/twilio` as
    `TWILIO_API_KEY_SID` and `TWILIO_API_KEY_SECRET`.
 3. Delete the previous key in the Twilio console once the app runs with the new one.

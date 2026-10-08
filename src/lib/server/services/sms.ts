@@ -14,8 +14,13 @@ function getTwilioClient() {
 		}
 
 		const twilio = require('twilio');
+		// region/edge route every request to that Twilio region (e.g. ie1 +
+		// dublin for the EU); the API key must have been created there. Unset
+		// = Twilio's default region (US1).
 		twilioClient = twilio(env.TWILIO_API_KEY_SID, env.TWILIO_API_KEY_SECRET, {
 			accountSid: env.TWILIO_ACCOUNT_SID,
+			...(env.TWILIO_REGION ? { region: env.TWILIO_REGION } : {}),
+			...(env.TWILIO_EDGE ? { edge: env.TWILIO_EDGE } : {}),
 		});
 	}
 
