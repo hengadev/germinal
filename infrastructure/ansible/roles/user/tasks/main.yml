@@ -2,7 +2,8 @@
 # User Management Tasks
 # - Create the deploy user — NOT root-equivalent (issue 017)
 # - One sudoers line: the root deploy runner (roles/deploy_gate)
-# - SSH keys: operator keys unrestricted, CI keys forced to the deploy gate
+# - SSH keys: operator keys unrestricted (deploy user and root), CI keys
+#   forced to the deploy gate (deploy user only)
 
 - name: Create deploy user
   # groups: only its own primary group, append: false — this also takes it
@@ -103,20 +104,26 @@
     - (deploy_user_public_keys + deploy_user_ci_public_keys) | length > 0
     - deploy_user_home.stat.exists
 
-# Root's authorized_keys is left alone (the operator's key is already there:
-# that is how the playbook was reached as root). The deploy user's
-# authorized_keys is managed from the two lists above, so root's keys are
-# no longer merged into it.
-
-- name: Ensure root SSH access is maintained (for subsequent playbook runs)
-  ansible.builtin.lineinfile:
-    path: /root/.ssh/authorized_keys
-    line: "{{ deploy_ssh_public_key | default('') }}"
-    create: true
-    mode: '0600'
+# Root's authorized_keys: the operator keys, one per computer, so each
+# computer reaches root with its own key and no private key is copied
+# between computers. The whole file, like the deploy user's: a key removed
+# from deploy_ssh_public_keys loses root on the next run. Never the CI keys.
+# Written only when the list itself is non-empty: a run without the keys
+# file (or with the legacy single key alone) leaves root's file as it is,
+# so it cannot lock the operator out. Hetzner installs the
+# `terraform-germinal` key at server creation; keep it in the list.
+- name: Write root's authorized_keys from the operator keys
+  ansible.builtin.copy:
+    dest: /root/.ssh/authorized_keys
+    content: |
+      # Managed by Ansible (roles/user) - DO NOT EDIT MANUALLY
+      {% for key in deploy_user_public_keys %}
+      {{ key }}
+      {% endfor %}
     owner: root
     group: root
-  when: deploy_ssh_public_key | default('') | length > 0
+    mode: '0600'
+  when: deploy_ssh_public_keys | default([]) | select('match', '.+') | list | length > 0
 
 # Nothing under the stack roots belongs to the deploy user (issue 017). The
 # Agent and the deploy runner run `docker compose` there as root: a deploy

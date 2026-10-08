@@ -25,8 +25,8 @@ deploy_user: germinal
 # sudo group, and one sudoers line — the root runner below. Ansible itself
 # connects as root with the operator key.
 #
-# Operator keys (one per operator computer): unrestricted logins as the
-# deploy user. Prefer a vars file
+# Operator keys (one per operator computer): unrestricted logins as root
+# and as the deploy user. Prefer a vars file
 #   ansible-playbook … -e @deploy-keys.yml   # { deploy_ssh_public_keys: ["…", "…"], deploy_ci_ssh_public_keys: ["…"] }
 # or an inventory definition: recent ansible-core parses inline
 # -e 'deploy_ssh_public_keys=[…]' as a STRING, not a list.

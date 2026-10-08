@@ -185,7 +185,7 @@ recovery procedure: [roles/backup/README.md](roles/backup/README.md).
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `deploy_user` | Deploy user name | `germinal` |
-| `deploy_ssh_public_keys` | Operator SSH keys for the deploy user (list, unrestricted) | `[]` |
+| `deploy_ssh_public_keys` | Operator SSH keys, one per computer: the deploy user (unrestricted) and root | `[]` |
 | `deploy_ci_ssh_public_keys` | CI deploy keys (list, forced to the deploy gate) | `[]` |
 | `host_notify_email` | Notification email (overridden by the Infisical `/host` lookup) | `root@localhost` |
 | `auto_security_updates` | Enable auto updates | `true` |
@@ -226,7 +226,7 @@ infrastructure/ansible/
 
 ### SSH Hardening
 - Password authentication disabled (key-only)
-- Root login with SSH key only (the operator's key; Ansible connects as root)
+- Root login with SSH key only: each operator computer's own key, root's `authorized_keys` written from `deploy_ssh_public_keys` (never the CI keys)
 - SSH banner with security notice
 - Modern cryptographic algorithms (Curve25519, ChaCha20-Poly1305)
 - Diffie-Hellman key exchange
