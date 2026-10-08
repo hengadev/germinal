@@ -31,11 +31,11 @@ const config = {
             directives: {
                 'default-src': ['self'],
                 'script-src': ['self', ...__impeccableLiveDev],
-                'style-src': ['self', 'unsafe-inline', 'https://fonts.googleapis.com'],
-                'font-src': ['self', 'https://fonts.gstatic.com'],
+                'style-src': ['self', 'unsafe-inline'],
+                'font-src': ['self'],
                 'img-src': ['self', 'data:', 'blob:', 'https:', ...__localMediaDev],
                 'media-src': ['self', ...__localMediaDev],
-                'connect-src': ['self', 'https://api.stripe.com', 'https://js.stripe.com', 'https://fonts.googleapis.com', 'https://fonts.gstatic.com', ...__impeccableLiveDev],
+                'connect-src': ['self', 'https://api.stripe.com', 'https://js.stripe.com', ...__impeccableLiveDev],
                 'frame-src': ['https://js.stripe.com'],
             }
         }

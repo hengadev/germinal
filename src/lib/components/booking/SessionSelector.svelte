@@ -125,7 +125,7 @@
 			<header class="flex flex-col gap-2" style={badge ? 'padding-right: 100px' : ''}>
 				<h3
 					class="m-0 leading-[1.15]"
-					style="font-family:'Newsreader',Georgia,serif; font-weight:400; font-size:24px; letter-spacing:-0.01em; color:{muted ? '#525252' : '#0a0a0a'}"
+					style="font-family:var(--font-sans),Georgia,serif; font-weight:400; font-size:24px; letter-spacing:-0.01em; color:{muted ? '#525252' : '#0a0a0a'}"
 				>{getTitle(session)}</h3>
 				{#if getDescription(session)}
 					<p
@@ -143,7 +143,7 @@
 						class="flex-none flex flex-col items-center"
 						style="padding:6px 10px 8px; border-left:1px solid {muted ? '#e5e5e2' : '#0a0a0a'}; margin-left:-1px"
 					>
-						<span style="font-family:'Newsreader',Georgia,serif; font-weight:400; font-size:36px; line-height:1; color:{muted ? '#a3a3a3' : '#0a0a0a'}; font-feature-settings:'lnum'"
+						<span style="font-family:var(--font-sans),Georgia,serif; font-weight:400; font-size:36px; line-height:1; color:{muted ? '#a3a3a3' : '#0a0a0a'}; font-feature-settings:'lnum'"
 						>{dp.day}</span>
 						<span
 							class="font-medium mt-1"
@@ -175,7 +175,7 @@
 					style="font-size:18px; color:{muted ? '#a3a3a3' : '#737373'}; top:-10px"
 				>{symbol}</span>
 				<span
-					style="font-family:'Newsreader',Georgia,serif; font-size:44px; font-weight:400; letter-spacing:-0.02em; color:{muted ? '#a3a3a3' : '#0a0a0a'}; line-height:1; font-feature-settings:'lnum'"
+					style="font-family:var(--font-sans),Georgia,serif; font-size:44px; font-weight:400; letter-spacing:-0.02em; color:{muted ? '#a3a3a3' : '#0a0a0a'}; line-height:1; font-feature-settings:'lnum'"
 				>{price}</span>
 				<span
 					class="font-sans text-xs ml-1"
@@ -216,11 +216,11 @@
 			<!-- CTA -->
 			<div class="mt-1">
 				{#if state === 'past'}
-					<div style="border-top:1px solid #ededeb; padding:12px 0; font-family:'Newsreader',Georgia,serif; font-size:15px; font-weight:400; font-style:italic; color:#a3a3a3; letter-spacing:0.01em; text-align:center">
+					<div style="border-top:1px solid #ededeb; padding:12px 0; font-family:var(--font-sans),Georgia,serif; font-size:15px; font-weight:400; font-style:italic; color:#a3a3a3; letter-spacing:0.01em; text-align:center">
 						{$t('booking.sessionEnded')}
 					</div>
 				{:else if state === 'unavailable'}
-					<div style="border-top:1px solid #ededeb; padding:12px 0; font-family:'Newsreader',Georgia,serif; font-size:15px; font-weight:400; font-style:italic; color:#a3a3a3; letter-spacing:0.01em; text-align:center">
+					<div style="border-top:1px solid #ededeb; padding:12px 0; font-family:var(--font-sans),Georgia,serif; font-size:15px; font-weight:400; font-style:italic; color:#a3a3a3; letter-spacing:0.01em; text-align:center">
 						{$t('booking.notAvailable')}
 					</div>
 				{:else if state === 'waitlist'}
