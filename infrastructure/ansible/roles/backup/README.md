@@ -18,6 +18,19 @@ each tier by its top-level prefix. Nothing on the server deletes backups.
 The newest dump also stays on the server as `/opt/germinal/backups/latest.dump`
 (root 0600), for a quick restore after a mistake.
 
+How long each tier is kept (the lifecycle rules; `backup_retention_days` is 90):
+
+| Tier | Storage class | Deleted after |
+| --- | --- | --- |
+| `daily/` | Standard, then Standard-IA from day 30 | 90 days |
+| `weekly/` (database and Infisical snapshot) | Glacier from day 60 | 180 days |
+| `monthly/` | Glacier from day 90 | 365 days |
+
+So personal data deleted from the site stays in backups for **at most one
+year**. That limit is part of the GDPR record of processing and the privacy
+policy; change them together. Backups are not the 10-year accounting
+archive: keep accounting records (Stripe, invoices) separately.
+
 ## Where the credentials come from
 
 - **S3:** `BACKUP_AWS_ACCESS_KEY_ID`, `BACKUP_AWS_SECRET_ACCESS_KEY`,
@@ -74,6 +87,9 @@ are removed at the end. Production is never touched.
    bash -c '. /usr/local/lib/germinal-backup.sh; backup_init; aws s3 cp "$bucket/daily/db/<file>.dump" -' > /root/restore.dump
    ```
 
+   A `weekly/` dump older than 60 days or a `monthly/` dump older than 90
+   days is in Glacier: restore it in the S3 console first (Actions → Initiate
+   restore; a few hours with the Standard tier), then download it.
 2. **Test it first:** `germinal-restore-test daily/db/<file>.dump`.
 3. **Stop the app** so nothing writes during the restore:
    `docker stop germinal_app`.
@@ -88,6 +104,9 @@ are removed at the end. Production is never touched.
 
 5. **Start the app** (`docker start germinal_app`), check
    `https://germinalstudio.co/api/health`, then `rm /root/restore.dump`.
+6. **Re-apply the deletions (GDPR).** A dump brings back every account and
+   personal data deleted after it was taken. Delete or anonymise them again
+   before reopening the site.
 
 ### B. The server is lost
 

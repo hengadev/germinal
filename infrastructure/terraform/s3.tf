@@ -59,14 +59,11 @@ resource "aws_s3_bucket_lifecycle_configuration" "media_lifecycle" {
 
     filter {}
 
+    # Current objects stay readable: the site serves them through CloudFront,
+    # and an object in Glacier can't be read without a restore first.
     transition {
       days          = 30
       storage_class = "STANDARD_IA"
-    }
-
-    transition {
-      days          = 90
-      storage_class = "GLACIER"
     }
 
     noncurrent_version_transition {

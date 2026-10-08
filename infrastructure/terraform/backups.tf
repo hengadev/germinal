@@ -70,15 +70,10 @@ resource "aws_s3_bucket_lifecycle_configuration" "backups_lifecycle" {
       storage_class = "STANDARD_IA"
     }
 
-    # Move to Glacier after 90 days (must be > STANDARD_IA)
-    transition {
-      days          = 90
-      storage_class = "GLACIER"
-    }
-
-    # Delete daily backups after retention period (must be > last transition)
+    # No Glacier tier: Glacier bills 90 days minimum, so a dump moved there
+    # and deleted a day later would cost three months of storage.
     expiration {
-      days = var.backup_retention_days + 1
+      days = var.backup_retention_days
     }
 
     # Clean up old versions
