@@ -6,6 +6,10 @@
 #     AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY  <- aws_iam_access_key.app_user[<env>]
 #     AWS_REGION, S3_BUCKET_NAME, MEDIA_URL     <- region, media bucket, media CDN
 #
+#   germinal/prod/backup (the server's backup job, issue 013):
+#     BACKUP_AWS_ACCESS_KEY_ID, BACKUP_AWS_SECRET_ACCESS_KEY <- aws_iam_access_key.backup
+#     BACKUP_S3_BUCKET, BACKUP_S3_REGION                      <- production backup bucket, region
+#
 # Nothing is written to germinal/dev: dev uses the local MinIO and keeps its
 # AWS_* keys empty, so it can reach no real bucket and send no real email.
 #
@@ -49,4 +53,24 @@ resource "infisical_secret" "s3" {
   folder_path  = "/s3"
   name         = each.value.name
   value        = local.infisical_s3_values[each.key]
+}
+
+locals {
+  infisical_backup_values = {
+    BACKUP_AWS_ACCESS_KEY_ID     = aws_iam_access_key.backup.id
+    BACKUP_AWS_SECRET_ACCESS_KEY = aws_iam_access_key.backup.secret
+    BACKUP_S3_BUCKET             = aws_s3_bucket.backups["production"].bucket
+    BACKUP_S3_REGION             = var.aws_region
+  }
+}
+
+resource "infisical_secret" "backup" {
+  # Static keys, so for_each is known at plan time.
+  for_each = toset(["BACKUP_AWS_ACCESS_KEY_ID", "BACKUP_AWS_SECRET_ACCESS_KEY", "BACKUP_S3_BUCKET", "BACKUP_S3_REGION"])
+
+  workspace_id = var.infisical_germinal_project_id
+  env_slug     = "prod"
+  folder_path  = "/backup"
+  name         = each.key
+  value        = local.infisical_backup_values[each.key]
 }

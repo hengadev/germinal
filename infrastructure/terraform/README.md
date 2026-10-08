@@ -13,7 +13,7 @@ planned and applied from any computer with no flags, after `infisical login`.
 | --- | --- |
 | Hetzner | The VPS (`hcloud_server.main`) and its **primary IPs** (IPv4 + IPv6), which survive a server rebuild |
 | Cloudflare | App records (`@`, `www`, `admin`, `staff`, `staging`, ...), email records (Zoho Mail MX, SPF, DKIM, DMARC), SES and ACM validation records, `media` and `media-staging` CNAMEs |
-| AWS, per environment | `<env>-germinal-media` and `<env>-germinal-backups` buckets, the `<env>-germinal-app` IAM user, its policies (S3, backups, SES) and access key, and a media CDN (CloudFront + ACM): `media.<domain>` for production, `media-staging.<domain>` for staging |
+| AWS, per environment | `<env>-germinal-media` and `<env>-germinal-backups` buckets, the `<env>-germinal-app` IAM user, its policies (S3, SES) and access key, the `production-germinal-backup` IAM user (backup bucket, no delete; key written to Infisical prod `/backup`), and a media CDN (CloudFront + ACM): `media.<domain>` for production, `media-staging.<domain>` for staging |
 | AWS, shared | SES domain identity, DKIM and MAIL FROM; the `app-germinal` IAM user (operator use, keys made by hand); the state bucket |
 | Infisical | The credentials Terraform creates, written into the `germinal` project (below) |
 

@@ -163,38 +163,61 @@ resource "aws_s3_bucket_lifecycle_configuration" "backups_lifecycle" {
 }
 
 # ============================================
-# IAM Policy for Backup Access
+# Backup IAM user (production only; issue 013)
 # ============================================
+# The server's backup job (infrastructure/ansible/roles/backup) runs with
+# this key, read from Infisical prod /backup. It can list, read and write
+# the production backup bucket and nothing else: no delete, so a leaked key
+# or a compromised server cannot erase the backups. Expiry is the lifecycle
+# rules above; overwrites keep the previous version (versioning). Staging is
+# not backed up. The app users have no access to the backup buckets; the
+# operator-only app-germinal user (app-germinal.tf) does.
 
-resource "aws_iam_policy" "backup_access" {
-  for_each    = local.environments
-  name        = "${each.key}-${var.project_name}-backup-access"
-  description = "Policy for ${each.key} ${var.project_name} to manage database backups in S3"
+resource "aws_iam_user" "backup" {
+  name = "production-${var.project_name}-backup"
+  path = "/applications/"
+
+  tags = {
+    Name        = "${var.project_name} Backup Job"
+    Environment = "production"
+    ManagedBy   = "Terraform"
+  }
+}
+
+resource "aws_iam_policy" "backup_write" {
+  name        = "production-${var.project_name}-backup-write"
+  description = "List, read and write (no delete) the production ${var.project_name} backup bucket"
 
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
-        Sid    = "S3BackupAccess"
+        Sid      = "ListBackupBucket"
+        Effect   = "Allow"
+        Action   = "s3:ListBucket"
+        Resource = aws_s3_bucket.backups["production"].arn
+      },
+      {
+        Sid    = "ReadWriteBackupObjects"
         Effect = "Allow"
         Action = [
-          "s3:PutObject",
           "s3:GetObject",
-          "s3:DeleteObject",
-          "s3:ListBucket"
+          "s3:PutObject",
+          "s3:AbortMultipartUpload"
         ]
-        Resource = [
-          aws_s3_bucket.backups[each.key].arn,
-          "${aws_s3_bucket.backups[each.key].arn}/*"
-        ]
+        Resource = "${aws_s3_bucket.backups["production"].arn}/*"
       }
     ]
   })
 }
 
-# Attach backup policy to the application IAM user
-resource "aws_iam_user_policy_attachment" "backup_access_attach" {
-  for_each   = local.environments
-  user       = aws_iam_user.app_user[each.key].name
-  policy_arn = aws_iam_policy.backup_access[each.key].arn
+resource "aws_iam_user_policy_attachment" "backup_write" {
+  user       = aws_iam_user.backup.name
+  policy_arn = aws_iam_policy.backup_write.arn
+}
+
+# Written to germinal/prod/backup in Infisical (infisical.tf); never copied
+# by hand.
+resource "aws_iam_access_key" "backup" {
+  user = aws_iam_user.backup.name
 }
