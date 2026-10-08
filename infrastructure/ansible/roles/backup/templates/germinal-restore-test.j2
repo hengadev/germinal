@@ -8,7 +8,8 @@
 #      (or the key given)
 #   2. restore it into a throwaway {{ backup_restore_test_image }} container with no
 #      network, removed at the end with its data
-#   3. pass only if every table in the dump is restored and the Drizzle
+#   3. pass only if every table in the dump is restored (ordinary tables;
+#      a partitioned parent holds no data of its own) and the Drizzle
 #      migrations table is not empty; print the row count of every table
 #
 # Recovery of the real database: roles/backup/README.md.
@@ -54,7 +55,14 @@ done
 docker exec "$container" pg_isready -q -h 127.0.0.1 -U "$POSTGRES_USER" -d restore_test ||
 	die "the scratch Postgres did not start"
 
-psql() { docker exec -i "$container" psql -U "$POSTGRES_USER" -d restore_test -v ON_ERROR_STOP=1 -Atq "$@"; }
+# No -i: these queries read nothing from stdin, and must not swallow it.
+psql() { docker exec "$container" psql -U "$POSTGRES_USER" -d restore_test -v ON_ERROR_STOP=1 -Atq "$@"; }
+
+# Ordinary tables only: pg_dump writes data for each of them (one TABLE DATA
+# entry), never for a partitioned parent, whose rows live in its partitions
+# (pgboss.job and pgboss.job_common, for instance).
+tables_sql="select format('%I.%I', n.nspname, c.relname) from pg_class c join pg_namespace n on n.oid = c.relnamespace
+	where c.relkind = 'r' and n.nspname not in ('pg_catalog', 'information_schema') and n.nspname not like 'pg_toast%' order by 1"
 
 expected=$(docker exec -i "$container" pg_restore -l <"$work/test.dump" | grep -c ' TABLE DATA ') ||
 	die "the dump is unreadable (pg_restore -l)"
@@ -66,13 +74,13 @@ docker exec -i "$container" pg_restore -U "$POSTGRES_USER" -d restore_test \
 	--no-owner --no-acl --exit-on-error <"$work/test.dump" ||
 	die "pg_restore failed"
 
-restored=$(psql -c "select count(*) from pg_stat_user_tables")
+restored=$(psql -c "$tables_sql" | wc -l)
 migrations=$(psql -c "select count(*) from drizzle.__drizzle_migrations" 2>/dev/null) || migrations=0
 
 log "rows per table:"
-psql -c "select format('%I.%I', schemaname, relname) from pg_stat_user_tables order by 1" |
+psql -c "$tables_sql" |
 	while IFS= read -r t; do
-		printf '  %-50s %s\n' "$t" "$(psql -c "select count(*) from $t" </dev/null)"
+		printf '  %-50s %s\n' "$t" "$(psql -c "select count(*) from $t")"
 	done
 
 log "tables in dump: $expected, restored: $restored, migrations applied: $migrations"
