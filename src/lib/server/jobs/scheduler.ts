@@ -6,6 +6,7 @@ import { processEmailQueue } from './process-email-queue';
 import { deleteExpiredSessions } from '../session';
 import { sendEventReminders } from './send-event-reminders';
 import { cleanupOrphanedMedia } from './cleanup-orphaned-media';
+import { purgePersonalData } from './purge-personal-data';
 
 let boss: PgBoss | null = null;
 
@@ -48,6 +49,7 @@ export async function initJobScheduler() {
 		'process-email-queue',
 		'send-event-reminders',
 		'cleanup-orphaned-media',
+		'purge-personal-data',
 	];
 	for (const queue of queues) {
 		await boss.createQueue(queue);
@@ -84,6 +86,11 @@ export async function initJobScheduler() {
 		return { deleted: result.deleted, failed: result.failed };
 	});
 
+	await boss.work('purge-personal-data', async () => {
+		logger.info('[Job] Running purge-personal-data');
+		return { ...(await purgePersonalData()) };
+	});
+
 	// Schedule recurring jobs using cron syntax
 	// Every 5 minutes
 	await boss.schedule('cleanup-expired-reservations', '*/5 * * * *');
@@ -95,6 +102,8 @@ export async function initJobScheduler() {
 	await boss.schedule('send-event-reminders', '0 9 * * *');
 	// Daily at 3 AM
 	await boss.schedule('cleanup-orphaned-media', '0 3 * * *');
+	// Daily at 4 AM: GDPR retention (purge-personal-data.ts)
+	await boss.schedule('purge-personal-data', '0 4 * * *');
 
 	logger.info('✅ Jobs scheduled');
 

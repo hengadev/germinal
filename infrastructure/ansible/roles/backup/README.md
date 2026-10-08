@@ -27,9 +27,9 @@ How long each tier is kept (the lifecycle rules; `backup_retention_days` is 90):
 | `monthly/` | Glacier from day 90 | 365 days |
 
 So personal data deleted from the site stays in backups for **at most one
-year**. That limit is part of the GDPR record of processing and the privacy
-policy; change them together. Backups are not the 10-year accounting
-archive: keep accounting records (Stripe, invoices) separately.
+year**. The privacy page (`legal/privacy`) states that limit; change them
+together. Backups are not the 10-year accounting archive: the e-invoicing
+platform keeps the accounting records.
 
 ## Where the credentials come from
 
@@ -104,9 +104,14 @@ are removed at the end. Production is never touched.
 
 5. **Start the app** (`docker start germinal_app`), check
    `https://germinalstudio.co/api/health`, then `rm /root/restore.dump`.
-6. **Re-apply the deletions (GDPR).** A dump brings back every account and
-   personal data deleted after it was taken. Delete or anonymise them again
-   before reopening the site.
+6. **Re-apply the deletions (GDPR).** A dump brings back personal data
+   deleted after it was taken.
+   - Time-based deletions: the app's `purge-personal-data` job
+     (`src/lib/server/jobs/purge-personal-data.ts`) runs every night at 04:00
+     and removes them again by itself.
+   - Erasure requests received since the dump: run
+     `scripts/erase-guest-data.js` again for each one (usage in its header).
+     The request emails are the record of who asked.
 
 ### B. The server is lost
 
