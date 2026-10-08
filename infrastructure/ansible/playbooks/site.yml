@@ -1,23 +1,16 @@
 ---
 # Germinal VPS - Complete Setup
-# Usage: ansible-playbook -i inventory/hosts.yml playbooks/site.yml
+# Usage (or `make setup`; first-time sequence: docs/deployment/setup.md):
+#
+#   ansible-playbook -i inventory/hosts.yml playbooks/site.yml \
+#     -e "ansible_host=$(../terraform/tf.sh output -raw server_ipv4_address)" \
+#     -e @$HOME/germinal-deploy-keys.yml
 #
 # Needs only an SSH key and `infisical login` on the control machine — no
-# local secret files, no local rendering (ADR 0004, issue 011):
-#
-#   ansible-playbook -i inventory/hosts.yml playbooks/site.yml \
-#     -e "ansible_host=1.2.3.4" \
-#     -e "deploy_ssh_public_key=$(cat ~/.ssh/germinal-workstation.pub)" \
-#     -e "app_domain=yourdomain.com"
-#
-# For several keys (one per operator computer plus the CI deploy key), use a
-# vars file instead of an inline list (see playbooks/group_vars/all.yml):
-#   ansible-playbook … -e @deploy-keys.yml   # { deploy_ssh_public_keys: […] }
-#
-# Using Terraform outputs:
-#   ansible-playbook -i inventory/hosts.yml playbooks/site.yml \
-#     -e "ansible_host=$(terraform output -raw server_ipv4_address)" \
-#     -e "app_domain=$(terraform output -raw domain_name)"
+# local secret files, no local rendering (ADR 0004, issue 011). The keys
+# file holds deploy_ssh_public_keys (one per operator computer: root and the
+# deploy user) and deploy_ci_ssh_public_keys (the CI key, forced to the
+# deploy gate); see playbooks/group_vars/all.yml.
 #
 # With INFISICAL_AGENT_CLIENT_ID / INFISICAL_AGENT_CLIENT_SECRET exported,
 # the Infisical Agent is installed in the same run (roles/infisical_agent).

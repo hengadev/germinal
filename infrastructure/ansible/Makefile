@@ -35,18 +35,21 @@ help:
 	@echo "Dependencies:"
 	@echo "  make install-deps - Install Ansible dependencies"
 
-# Get VPS IP from Terraform output
-VPS_IP=$(shell cd ../terraform && terraform output -raw server_ipv4_address 2>/dev/null || echo "")
-DOMAIN=$(shell cd ../terraform && terraform output -raw domain_name 2>/dev/null || echo "")
+# VPS IP and domain from Terraform (through ../terraform/tf.sh: plain
+# `terraform` has no credentials). Evaluated only by the targets using them.
+VPS_IP=$(shell ../terraform/tf.sh output -raw server_ipv4_address 2>/dev/null || echo "")
+DOMAIN=$(shell ../terraform/tf.sh output -raw domain_name 2>/dev/null || echo "")
 
-# Get SSH public key
-SSH_KEY=$(shell cat ~/.ssh/germinal.pub 2>/dev/null || cat ~/.ssh/id_rsa.pub 2>/dev/null || echo "")
+# Operator keys (one per computer) and the CI key, kept outside the repo:
+#   deploy_ssh_public_keys: [...]      deploy_ci_ssh_public_keys: [...]
+KEYS_FILE ?= $(HOME)/germinal-deploy-keys.yml
 
 # ============================================
 # Setup Commands
 # ============================================
 
-# Complete VPS setup (run once on a fresh server)
+# Complete VPS setup (fresh server, and every later setup change). Export
+# INFISICAL_AGENT_CLIENT_ID / _SECRET first to install the Agent in the same run.
 setup:
 	@echo "==========================================="
 	@echo "Germinal VPS Setup"
@@ -54,19 +57,20 @@ setup:
 	@echo ""
 	@if [ -z "$(VPS_IP)" ]; then \
 		echo "Error: Could not get VPS IP from Terraform."; \
-		echo "Run 'cd ../terraform && terraform output server_ipv4_address'"; \
+		echo "Run 'infisical login', then 'cd ../terraform && ./tf.sh output server_ipv4_address'"; \
 		exit 1; \
 	fi
 	@echo "VPS IP: $(VPS_IP)"
 	@echo "Domain: $(DOMAIN)"
-	@echo "SSH Key: $(SSH_KEY)"
+	@echo "Keys file: $(KEYS_FILE)"
+	@test -f "$(KEYS_FILE)" || { echo "Error: $(KEYS_FILE) not found (see docs/deployment/setup.md)."; exit 1; }
 	@echo ""
 	@read -p "Continue? [y/N] " confirm && [ "$$confirm" = "y" ] || exit 1
 	@echo ""
 	@echo "Running setup playbook..."
 	ansible-playbook -i inventory/hosts.yml playbooks/site.yml \
 		-e "ansible_host=$(VPS_IP)" \
-		-e "deploy_ssh_public_key=$(SSH_KEY)" \
+		-e @$(KEYS_FILE) \
 		-e "app_domain=$(DOMAIN)"
 
 # ============================================
@@ -97,7 +101,7 @@ vars-test:
 	@echo "  ansible-inventory -i inventory/hosts.yml --list"
 
 # ============================================
-# Server Operations (read-only)
+# Server Operations (read-only, as root: the deploy user has no docker)
 # ============================================
 
 # Display SSH connection details
@@ -109,33 +113,32 @@ ssh-info:
 	@echo "VPS IP: $(VPS_IP)"
 	@echo "Domain: $(DOMAIN)"
 	@echo ""
-	@echo "Connect as root:"
-	@echo "  ssh -i ~/.ssh/germinal root@$(VPS_IP)"
+	@echo "Connect as root (this computer's own key, from deploy_ssh_public_keys):"
+	@echo "  ssh root@$(VPS_IP)"
 	@echo ""
-	@echo "Connect as deploy user:"
-	@echo "  ssh -i ~/.ssh/germinal germinal@$(VPS_IP)"
+	@echo "The deploy user can only run the deploy runner; use root for docker and logs."
 	@echo ""
 	@echo "==========================================="
 
 # Check production service status
 status:
 	@echo "Checking production service status..."
-	@ssh -i ~/.ssh/germinal germinal@$(VPS_IP) "cd /opt/germinal && docker compose ps"
+	@ssh root@$(VPS_IP) "cd /opt/germinal && docker compose ps"
 
 # Check staging service status
 staging-status:
 	@echo "Checking staging service status..."
-	@ssh -i ~/.ssh/germinal germinal@$(VPS_IP) "cd /opt/germinal-staging && docker compose ps"
+	@ssh root@$(VPS_IP) "cd /opt/germinal-staging && docker compose ps"
 
 # View production logs
 logs:
 	@echo "Streaming production logs (Ctrl+C to exit)..."
-	@ssh -i ~/.ssh/germinal germinal@$(VPS_IP) "cd /opt/germinal && docker compose logs -f"
+	@ssh root@$(VPS_IP) "cd /opt/germinal && docker compose logs -f"
 
 # View staging logs
 staging-logs:
 	@echo "Streaming staging logs (Ctrl+C to exit)..."
-	@ssh -i ~/.ssh/germinal germinal@$(VPS_IP) "cd /opt/germinal-staging && docker compose logs -f"
+	@ssh root@$(VPS_IP) "cd /opt/germinal-staging && docker compose logs -f"
 
 # ============================================
 # Dependencies
@@ -158,4 +161,4 @@ terraform-outputs:
 	@echo "Terraform Outputs"
 	@echo "==========================================="
 	@echo ""
-	@cd ../terraform && terraform output
+	@../terraform/tf.sh output

@@ -222,12 +222,27 @@ pnpm dev
 ```bash
 # 1. Edit src/lib/server/db/schema.ts
 
-# 2. Push changes to database
-pnpm drizzle-kit push
+# 2. Generate the migration (never write SQL migration files by hand)
+npx drizzle-kit generate
 
-# 3. Verify in Drizzle Studio
+# 3. Apply it locally
+node scripts/migrate.js
+
+# 4. Verify in Drizzle Studio, then commit the schema AND drizzle/migrations
 pnpm drizzle-kit studio
 ```
+
+`pnpm drizzle-kit push` syncs your local database without a migration: fine
+for experiments, but staging and production only ever get committed
+migrations. CI's `migrations` job fails if the schema and the committed
+migrations drift apart.
+
+**Migration rule: every migration must work with the previous app version.**
+Deploys run migrations *before* the new container starts, and a rollback
+runs the old app on the new schema. So add first, remove in a later release:
+new columns nullable or with a default, no one-step renames or drops of
+something the current code still uses. Details:
+[docs/deployment/README.md](./docs/deployment/README.md#the-migration-rule).
 
 ### Type Checking
 
@@ -338,7 +353,7 @@ docker-compose --profile tools up -d drizzle-studio
 ## Next Steps
 
 - See [CONTEXT.md](./CONTEXT.md) for architecture details
-- See [infrastructure/ansible/README.md](./infrastructure/ansible/README.md) for staging/production deployment
+- See [docs/deployment/README.md](./docs/deployment/README.md) for staging/production deployment
 - Check [README.md](./README.md) for project overview
 
 ---

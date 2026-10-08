@@ -108,7 +108,7 @@ pnpm install
 ## Next Steps
 
 - 📖 Read [CONTEXT.md](./CONTEXT.md) for architecture details
-- 🚀 See [infrastructure/ansible/README.md](./infrastructure/ansible/README.md) for staging/production deployment
+- 🚀 See [docs/deployment/README.md](./docs/deployment/README.md) for staging/production deployment
 - 🔧 Check [DEV_SETUP.md](./DEV_SETUP.md) for full development guide
 
 Happy coding! 🎉

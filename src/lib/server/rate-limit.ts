@@ -1,11 +1,12 @@
 /**
  * Redis-backed rate limiter, shared across all app replicas.
  *
- * Production runs multiple Swarm replicas behind a load-balanced VIP
- * (docker-stack.yml, deploy.replicas: 2) with no process affinity, so
- * counters must live in a shared store rather than per-process memory —
- * an in-process Map made every configured limit roughly half as strict as
- * configured in production, silently.
+ * Counters live in Redis, not per-process memory: the app container is
+ * replaced on every deploy and on every configuration change (Docker
+ * Compose, infrastructure/compose/), and an in-process Map would reset
+ * every limit each time — and silently weaken them again if the app ever
+ * runs more than one process. (It was written when production ran two
+ * Swarm replicas, where a Map made every limit about half as strict.)
  *
  * Fail-closed by design: if Redis is unreachable, `checkRateLimit` /
  * `createRateLimiter(...).check` throw `RateLimitUnavailableError` instead

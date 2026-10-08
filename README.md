@@ -68,7 +68,7 @@ Want to see the app running with sample data in 30 seconds, without even a datab
 
 You'll be prompted for mock admin credentials on first run (or set `MOCK_ADMIN_EMAIL` / `MOCK_ADMIN_PASSWORD` in `.env` — see [QUICKSTART.md](./QUICKSTART.md)). Then visit **http://localhost:5173**.
 
-> Uses mock data - no real database needed, perfect for UI development and testing. See [QUICKSTART.md](./QUICKSTART.md) and [MOCK_DATA_GUIDE.md](./MOCK_DATA_GUIDE.md) for details.
+> Uses mock data - no real database needed, perfect for UI development and testing. See [QUICKSTART.md](./QUICKSTART.md) for details.
 
 ---
 
@@ -101,20 +101,20 @@ Visit **http://localhost:5173**
 
 ### Staging & Production (VPS)
 
-Staging and production run on a VPS provisioned by Terraform and set up with Ansible. Configuration values live only in Infisical, rendered on the server by the Infisical Agent; releases go through CI (`.github/workflows`): a push to `main` deploys staging automatically, and the manual **Promote to production** workflow ships the exact SHA staging is serving. See `infrastructure/ansible/README.md` and `infrastructure/compose/README.md`.
+Staging and production run as two Docker Compose stacks on one VPS, provisioned by Terraform and set up with Ansible. Configuration values live only in Infisical, rendered on the server by the Infisical Agent. Releases go through CI (`.github/workflows`): a push to `main` deploys staging automatically, and the manual **Promote to production** workflow ships the exact SHA staging is serving (and rolls back by promoting an earlier SHA). See **[docs/deployment/](./docs/deployment/README.md)**: architecture and releases, the [environment-variable reference](./docs/deployment/environment.md), and the [setup checklist](./docs/deployment/setup.md).
 
 ## Documentation
 
 - **[QUICKSTART.md](./QUICKSTART.md)** - ⚡ Get running in 1 minute with mock data
 - **[DEV_SETUP.md](./DEV_SETUP.md)** - Comprehensive local development guide
-- **[MOCK_DATA_GUIDE.md](./MOCK_DATA_GUIDE.md)** - Working with mock data mode
-- **[infrastructure/ansible/README.md](./infrastructure/ansible/README.md)** - Staging/production deployment (Terraform + Ansible)
+- **[docs/deployment/](./docs/deployment/README.md)** - Staging/production: architecture, releases and rollback, environment variables, setup checklist
+- **[docs/adr/](./docs/adr/)** - Architecture decisions
 - **[CONTEXT.md](./CONTEXT.md)** - Domain language and project context
 
 ## Tech Stack
 
 - **Framework:** SvelteKit 2.x
-- **Database:** PostgreSQL 15 with Drizzle ORM
+- **Database:** PostgreSQL 16 with Drizzle ORM
 - **Storage:** Amazon S3 (or MinIO for local development)
 - **Auth:** argon2 password hashing, role-based route groups (admin/staff/public)
 - **Payments:** Stripe
@@ -124,7 +124,7 @@ Staging and production run on a VPS provisioned by Terraform and set up with Ans
 - **Styling:** Tailwind CSS 4
 - **Language:** TypeScript
 - **Testing:** Vitest (unit/integration), Playwright (e2e)
-- **Deployment:** Docker + Node.js, Caddy reverse proxy, Terraform-provisioned VPS, Ansible-managed staging/production
+- **Deployment:** Docker Compose on one Terraform-provisioned VPS, Caddy reverse proxy, Ansible-managed server, configuration from Infisical
 
 ## Project Structure
 
@@ -145,9 +145,12 @@ germinal/
 ├── drizzle/migrations/     # Database migrations (generated, never hand-written)
 ├── scripts/                # Migration, seeding, and admin-creation scripts
 ├── infrastructure/terraform/ # VPS/cloud infrastructure (provisioning)
-├── infrastructure/ansible/   # Staging/production deployment
+├── infrastructure/ansible/   # Server setup (Ansible)
+├── infrastructure/compose/   # Compose stacks + the deploy script
+├── infrastructure/infisical/ # Env templates (server Agent + make env)
 ├── static/                 # Static assets
-└── docker-compose.yml      # Local Postgres + Drizzle Studio for `pnpm dev`
+├── docs/                   # ADRs and deployment docs
+└── docker-compose.yml      # Local Postgres, Redis, MinIO for `make dev` / `make try`
 ```
 
 ## Development Commands
@@ -167,6 +170,8 @@ npx drizzle-kit studio    # Open database GUI
 ```
 
 > Migrations must always go through `drizzle-kit generate` — never write SQL migration files by hand, as it breaks snapshot generation.
+>
+> **Every migration must work with the previous app version** (add first, remove in a later release): deploys run migrations before the new container starts, and a rollback does not revert the schema. See [the migration rule](./docs/deployment/README.md#the-migration-rule).
 
 ## Environment Variables
 

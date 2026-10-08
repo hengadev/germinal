@@ -71,42 +71,41 @@ You need:
 - Root SSH access to your VPS
 - Your public SSH key(s)
 
-### Terraform Outputs
+### Keys file
 
-First, run Terraform to get your VPS details:
+The SSH public keys live outside the repo, in a small vars file (default
+`~/germinal-deploy-keys.yml`):
 
-```bash
-cd infrastructure/terraform
-terraform output server_ipv4_address
-terraform output domain_name
+```yaml
+deploy_ssh_public_keys:        # one per operator computer: root + deploy user
+  - "ssh-ed25519 AAAA… germinal-<computer>"
+deploy_ci_ssh_public_keys:     # the CI key: forced to the deploy gate
+  - "ssh-ed25519 AAAA… germinal-ci"
 ```
+
+Root's and the deploy user's `authorized_keys` are written from it: a key
+removed from the file loses access on the next run.
 
 ## Quick Start
 
-### 1. Initial VPS Setup
+### 1. Setup (fresh server, and after any change here)
 
 ```bash
+infisical login
 cd infrastructure/ansible
 
-# Set your SSH public key
-export DEPLOY_SSH_PUBLIC_KEY="$(cat ~/.ssh/germinal-workstation.pub)"
+# Optional: install or update the Infisical Agent in the same run
+read -rs "INFISICAL_AGENT_CLIENT_ID?client id: "; export INFISICAL_AGENT_CLIENT_ID      # zsh; bash: read -rsp
+read -rs "INFISICAL_AGENT_CLIENT_SECRET?client secret: "; export INFISICAL_AGENT_CLIENT_SECRET
 
-# Set your domain
-export APP_DOMAIN="yourdomain.com"
-
-# Get VPS IP from Terraform
-export ANSIBLE_HOST=$(cd ../terraform && terraform output -raw server_ipv4_address)
-
-# Run full setup
-ansible-playbook -i inventory/hosts.yml playbooks/site.yml \
-  -e "ansible_host=$ANSIBLE_HOST" \
-  -e "deploy_ssh_public_key=$DEPLOY_SSH_PUBLIC_KEY" \
-  -e "app_domain=$APP_DOMAIN"
+make setup          # = ansible-playbook -i inventory/hosts.yml playbooks/site.yml \
+                    #     -e ansible_host=<tf.sh output> -e @~/germinal-deploy-keys.yml -e app_domain=…
 ```
 
-With `INFISICAL_AGENT_CLIENT_ID` / `INFISICAL_AGENT_CLIENT_SECRET` exported
-(or by answering the prompts of `playbooks/infisical-agent.yml`), the
-Infisical Agent is installed in the same run and renders the env files.
+Run it twice: the second run must report `changed=0` (or 1 for "Update apt
+cache"). One role only: add `--tags <role>` to the `ansible-playbook` form.
+The full first-time sequence (Terraform, identity, GitHub secrets) is in
+[docs/deployment/setup.md](../../docs/deployment/setup.md).
 
 ### 2. Deploy the Application
 
@@ -137,10 +136,9 @@ exported on the control machine (see [the role README](roles/infisical_agent/REA
 without them it is skipped with a note.
 
 ```bash
-ansible-playbook playbooks/site.yml \
+ansible-playbook -i inventory/hosts.yml playbooks/site.yml \
   -e "ansible_host=<server-ip>" \
-  -e "deploy_ssh_public_key=$(cat ~/.ssh/germinal.pub)" \
-  -e "app_domain=yourdomain.com"
+  -e @$HOME/germinal-deploy-keys.yml
 ```
 
 Tags:
@@ -148,8 +146,11 @@ Tags:
 - `ssh` - SSH hardening
 - `firewall` - UFW firewall setup
 - `docker` - Docker installation
-- `user` - Deploy user setup
+- `user` - Deploy user, sudoers line, root's and the deploy user's `authorized_keys` (also runs `deploy_gate`)
 - `app` - Compose directory layout
+- `infisical`, `agent` - Infisical Agent (needs the two credential variables)
+- `shared_services` - Postgres/Redis/Caddy up, `germinal_staging` role
+- `backup` - Backup timers and scripts
 
 ### `infisical-agent.yml` - Install or rotate the Infisical Agent
 
@@ -270,51 +271,36 @@ infrastructure/ansible/
 
 ## Maintenance
 
-### Check Service Status
+Everything that touches Docker or the env files runs as root (the deploy
+user has no `docker` rights). From this directory:
 
 ```bash
-ssh germinal@<server-ip>
-docker compose -f /opt/germinal/docker-compose.yml ps
-```
-
-### View Logs
-
-```bash
-ssh germinal@<server-ip>
-docker compose -f /opt/germinal/docker-compose.yml logs -f
+make status            # docker compose ps, prod     (make staging-status)
+make logs              # docker compose logs -f, prod (make staging-logs)
+ssh root@<server-ip> 'systemctl status infisical-agent; journalctl -u infisical-agent -n 50'
 ```
 
 ## Troubleshooting
 
-### Connection Refused
-
-Make sure you can reach the server:
-```bash
-ping <server-ip>
-ssh root@<server-ip>
-```
-
-### Playbook Fails
-
-Run with verbose output:
-```bash
-ansible-playbook playbooks/site.yml -vvv
-```
-
-### Service Not Starting
-
-Check logs:
-```bash
-ssh germinal@<server-ip>
-docker compose -f /opt/germinal/docker-compose.yml logs
-```
+- **Connection refused / permission denied:** `ssh -v root@<server-ip>`. The
+  key offered must be one of `deploy_ssh_public_keys` (your computer's own
+  key). With ssh-agent loaded, add `-o IdentitiesOnly=yes -i <key>` to test
+  one key.
+- **Playbook fails:** re-run with `-vvv`.
+- **Infisical lookup fails** (`NOTIFY_EMAIL`): `infisical login` again.
+- **Agent stuck after repeated auth failures:** Universal Auth locks the
+  identity out, and the Agent's retries renew the lockout. Stop the Agent
+  (`systemctl stop infisical-agent`), clear the lockout in the Infisical UI,
+  then start it.
+- **Service not starting:** `make logs`, or `docker compose -f
+  /opt/germinal/docker-compose.yml logs <service>` as root.
 
 ## Security Checklist
 
 After initial setup, verify:
 
 - [ ] SSH password authentication disabled
-- [ ] Root login disabled
+- [ ] Root login key-only (`PermitRootLogin without-password`), with each computer's own key
 - [ ] UFW firewall enabled
 - [ ] Fail2ban running
 - [ ] `sudo -l -U germinal` lists only `/usr/local/sbin/germinal-deploy`; `germinal` is not in `docker`

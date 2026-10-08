@@ -44,8 +44,9 @@ deploy_ci_ssh_public_keys: []
 deploy_gate_command: /usr/local/sbin/germinal-deploy-gate
 deploy_gate_runner: /usr/local/sbin/germinal-deploy
 
-# Legacy single public SSH key (kept for the old one-key flow)
-# You can also set this via: ansible-playbook --extra-vars "deploy_ssh_public_key=$(cat ~/.ssh/germinal.pub)"
+# Legacy single public SSH key, added to the deploy user's keys. Prefer the
+# deploy_ssh_public_keys list above: root's authorized_keys follows only
+# that list.
 deploy_ssh_public_key: "{{ lookup('env', 'DEPLOY_SSH_PUBLIC_KEY') | default('', true) }}"
 
 # ============================================
