@@ -1,6 +1,15 @@
 import { db } from '../db';
-import { contactSubmissions, emailQueue, eventSessions, reservations, waitlist } from '../db/schema';
-import { and, eq, inArray, isNotNull, lt, ne, or } from 'drizzle-orm';
+import {
+	auditLog,
+	contactSubmissions,
+	emailQueue,
+	eventSessions,
+	reservations,
+	sessions,
+	users,
+	waitlist,
+} from '../db/schema';
+import { and, eq, inArray, isNotNull, lt, ne, notLike, or, sql } from 'drizzle-orm';
 import { jobLogger } from '../logger';
 
 /**
@@ -25,11 +34,17 @@ export const RETENTION = {
 	contactSubmissionDays: 365,
 	/** Sent or failed emails (they hold names and ticket links), from creation. */
 	emailQueueDays: 30,
+	/** A deactivated admin or staff account, from its deactivation. */
+	deactivatedTeamAccountDays: 365,
+	/** Admin action log (who did what), from the action. */
+	auditLogDays: 3 * 365,
 } as const;
 
 /** Replaces the guest's email; the column is NOT NULL. */
 export const ANONYMISED_EMAIL = 'anonymised@invalid';
 export const ANONYMISED_NAME = 'Anonymised';
+/** Team accounts keep their row (tasks and assignments point at it). */
+export const FORMER_MEMBER_EMAIL_DOMAIN = 'former-member.invalid';
 
 export interface PurgePersonalDataResult {
 	reservationsAnonymised: number;
@@ -37,6 +52,8 @@ export interface PurgePersonalDataResult {
 	waitlistDeleted: number;
 	contactSubmissionsDeleted: number;
 	emailsDeleted: number;
+	teamAccountsAnonymised: number;
+	auditLogDeleted: number;
 }
 
 function daysAgo(days: number, now: Date): Date {
@@ -105,12 +122,51 @@ export async function purgePersonalData(now: Date = new Date()): Promise<PurgePe
 		)
 		.returning({ id: emailQueue.id });
 
+	// A deactivated account has role 'user' (there are no customer accounts).
+	// Accounts deactivated before deactivated_at existed count from their
+	// last update.
+	const teamAccounts = await db
+		.update(users)
+		.set({
+			email: sql`'former-' || ${users.id} || '@' || ${FORMER_MEMBER_EMAIL_DOMAIN}`,
+			firstName: 'Former',
+			lastName: 'team member',
+			phone: null,
+			passwordHash: '!',
+			passwordResetToken: null,
+			passwordResetExpires: null,
+			updatedAt: now,
+		})
+		.where(
+			and(
+				eq(users.role, 'user'),
+				notLike(users.email, `%@${FORMER_MEMBER_EMAIL_DOMAIN}`),
+				sql`coalesce(${users.deactivatedAt}, ${users.updatedAt}) < ${daysAgo(RETENTION.deactivatedTeamAccountDays, now).toISOString()}`
+			)
+		)
+		.returning({ id: users.id });
+	if (teamAccounts.length > 0) {
+		await db.delete(sessions).where(
+			inArray(
+				sessions.userId,
+				teamAccounts.map((u: { id: string }) => u.id)
+			)
+		);
+	}
+
+	const audit = await db
+		.delete(auditLog)
+		.where(lt(auditLog.createdAt, daysAgo(RETENTION.auditLogDays, now)))
+		.returning({ id: auditLog.id });
+
 	const result = {
 		reservationsAnonymised: anonymised.length,
 		technicalDataCleared: technical.length,
 		waitlistDeleted: waitlistRows.length,
 		contactSubmissionsDeleted: contacts.length,
 		emailsDeleted: emails.length,
+		teamAccountsAnonymised: teamAccounts.length,
+		auditLogDeleted: audit.length,
 	};
 	jobLogger.info(result, '[Purge Job] Personal data retention applied');
 	return result;

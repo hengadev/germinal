@@ -2,11 +2,15 @@
 import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest';
 import { eq } from 'drizzle-orm';
 import {
+	auditLog,
 	contactSubmissions,
 	emailQueue,
 	events,
 	eventSessions,
 	reservations,
+	sessions,
+	tasks,
+	users,
 	waitlist,
 } from '../../src/lib/server/db/schema';
 import {
@@ -44,6 +48,8 @@ afterAll(async () => {
 
 beforeEach(async () => {
 	await setupTestDatabase();
+	await testDb.delete(auditLog);
+	await testDb.delete(users);
 });
 
 async function seedSession(endedDaysAgo: number) {
@@ -221,6 +227,71 @@ describe('purgePersonalData', () => {
 			waitlistDeleted: 0,
 			contactSubmissionsDeleted: 0,
 			emailsDeleted: 0,
+			teamAccountsAnonymised: 0,
+			auditLogDeleted: 0,
 		});
+	});
+
+	async function seedUser(values: Partial<typeof users.$inferInsert>) {
+		const [user] = await testDb
+			.insert(users)
+			.values({
+				email: `${Math.random().toString(36).slice(2, 10)}@example.com`,
+				firstName: 'Team',
+				lastName: 'Member',
+				phone: '+33600000001',
+				passwordHash: 'hash',
+				role: 'staff',
+				...values,
+			})
+			.returning();
+		return user;
+	}
+
+	it('anonymises a team account a year after deactivation, keeping its row and tasks', async () => {
+		const gone = await seedUser({ role: 'user', deactivatedAt: daysBefore(366) });
+		const recent = await seedUser({ role: 'user', deactivatedAt: daysBefore(100) });
+		const legacy = await seedUser({ role: 'user', updatedAt: daysBefore(400) });
+		const active = await seedUser({ role: 'staff', updatedAt: daysBefore(800) });
+		const session = await seedSession(-10);
+		await testDb.insert(tasks).values({
+			eventId: (await testDb.select().from(eventSessions).where(eq(eventSessions.id, session.id)))[0].eventId,
+			createdBy: gone.id,
+			title: 'Task',
+		});
+		await testDb.insert(sessions).values({ id: 'sess-gone', userId: gone.id, expiresAt: NOW });
+
+		const result = await purgePersonalData(NOW);
+
+		expect(result.teamAccountsAnonymised).toBe(2);
+		const [row] = await testDb.select().from(users).where(eq(users.id, gone.id));
+		expect(row).toMatchObject({
+			email: `former-${gone.id}@former-member.invalid`,
+			firstName: 'Former',
+			lastName: 'team member',
+			phone: null,
+			passwordHash: '!',
+		});
+		expect(await testDb.select().from(tasks)).toHaveLength(1);
+		expect(await testDb.select().from(sessions)).toHaveLength(0);
+		for (const kept of [recent, active]) {
+			const [r] = await testDb.select().from(users).where(eq(users.id, kept.id));
+			expect(r.email).toBe(kept.email);
+		}
+		const [l] = await testDb.select().from(users).where(eq(users.id, legacy.id));
+		expect(l.firstName).toBe('Former');
+
+		expect((await purgePersonalData(NOW)).teamAccountsAnonymised).toBe(0);
+	});
+
+	it('deletes audit log entries older than 3 years', async () => {
+		for (const createdAt of [daysBefore(3 * 365 + 1), daysBefore(30)]) {
+			await testDb.insert(auditLog).values({ action: 'test', entityType: 'event', createdAt });
+		}
+
+		const result = await purgePersonalData(NOW);
+
+		expect(result.auditLogDeleted).toBe(1);
+		expect(await testDb.select().from(auditLog)).toHaveLength(1);
 	});
 });

@@ -45,6 +45,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
             .update(users)
             .set({
                 role: 'user',
+                deactivatedAt: new Date(),
                 updatedAt: new Date(),
             })
             .where(eq(users.id, adminId));

@@ -321,6 +321,9 @@ export const users = pgTable('users', {
     role: userRoleEnum('role').notNull().default('user'),
     passwordResetToken: varchar('password_reset_token', { length: 255 }),
     passwordResetExpires: timestamp('password_reset_expires', { withTimezone: true }),
+    // Set when an admin or staff account is deactivated (role back to 'user');
+    // the purge-personal-data job anonymises the account a year later.
+    deactivatedAt: timestamp('deactivated_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => ({
