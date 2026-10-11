@@ -39,6 +39,7 @@
     });
 </script>
 
+<div class="back-office contents">
 <!-- Mobile Layout -->
 <div class="lg:hidden h-screen h-[100dvh] flex flex-col overflow-hidden bg-muted/25">
     <!-- Mobile Header - fixed at top -->
@@ -337,6 +338,7 @@
 
     <!-- Toast notifications -->
     <Toaster />
+</div>
 </div>
 
 <style>
