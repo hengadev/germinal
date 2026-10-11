@@ -62,6 +62,7 @@
     });
 </script>
 
+<div class="back-office contents">
 <!-- Mobile Layout -->
 <div class="lg:hidden h-screen h-[100dvh] flex flex-col overflow-hidden bg-muted/25">
     <!-- Mobile Header - fixed at top -->
@@ -524,6 +525,7 @@
         </form>
     </div>
 </Drawer>
+</div>
 
 <style>
     :global(.safe-area-inset-bottom) {

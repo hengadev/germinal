@@ -5,6 +5,7 @@
 @import "@fontsource-variable/newsreader/opsz-italic.css";
 @import "@fontsource-variable/source-code-pro/wght.css";
 @import "@fontsource-variable/source-code-pro/wght-italic.css";
+@import "@fontsource-variable/inter";
 
 @import "tailwindcss";
 @plugin "tailwindcss-animate";
@@ -333,6 +334,12 @@
 
 	/* iOS Safari: prevent 300ms tap delay and ensure reliable tap registration
 	   after DOM changes (e.g. filter buttons, nav items inside drawers). */
+	/* The back-office reads in a plain sans; the serif pairing belongs to the public site. */
+	.back-office {
+		--font-sans: "Inter Variable", sans-serif;
+		font-family: var(--font-sans);
+	}
+
 	button,
 	a,
 	[role="button"] {
