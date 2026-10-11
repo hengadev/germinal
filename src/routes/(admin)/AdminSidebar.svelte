@@ -167,8 +167,8 @@
  class="flex items-center text-sm font-medium transition-all duration-200 rounded-lg {isCollapsed
  ? 'justify-center px-3 py-3'
  : 'gap-3 px-3 py-2.5'} {active
- ? 'text-foreground bg-surface-hover'
- : 'text-foreground-alt hover:text-foreground hover:bg-surface-active'}"
+ ? 'bg-foreground text-background hover:bg-foreground/85'
+ : 'text-foreground-alt hover:text-foreground hover:bg-surface-hover'}"
                         aria-current={active ? "page" : undefined}
                         title={isCollapsed ? item.label : undefined}
                     >
