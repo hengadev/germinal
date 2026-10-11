@@ -70,16 +70,19 @@
 </svelte:head>
 
 <div class="px-4 py-8 lg:py-12">
- <div class="mb-8">
- <a
- href="/admin/team"
- class="inline-flex items-center gap-2 text-foreground-alt hover:text-foreground transition-colors mb-4"
- >
- <ArrowLeft size={20} />
- <span>Back to Talents</span>
- </a>
- <h1 class="text-3xl lg:text-4xl font-bold mb-2">Add New Talent</h1>
- <p class="text-muted-foreground">Fill in the details to add a new talent</p>
+ <div class="flex items-start gap-3 mb-8">
+  <a
+   href="/admin/team"
+   aria-label="Retour aux talents"
+   title="Retour aux talents"
+   class="shrink-0 inline-flex items-center justify-center size-9 lg:size-10 -ml-2 rounded-md text-foreground-alt hover:text-foreground hover:bg-muted transition-colors"
+  >
+   <ArrowLeft size={20} />
+  </a>
+  <div>
+  <h1 class="text-3xl lg:text-4xl font-bold mb-2">Add New Talent</h1>
+  <p class="text-muted-foreground">Fill in the details to add a new talent</p>
+  </div>
  </div>
 
  <div class="bg-background rounded-lg border border-border-card p-6 lg:p-8">

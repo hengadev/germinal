@@ -34,24 +34,26 @@
 </svelte:head>
 
 <div class="container mx-auto px-4 py-8 lg:py-12 max-w-2xl">
-	<a
-		href="/admin/reservations"
-		class="inline-flex items-center gap-2 text-foreground-alt hover:text-foreground mb-6"
-	>
-		<ArrowLeft size={18} />
-		<span>Retour aux Réservations</span>
-	</a>
-
-	<div class="mb-8">
-		<h1 class="text-3xl lg:text-4xl font-bold mb-2 flex items-center gap-3">
-			<Gift size={32} />
-			Réservation Comp
-		</h1>
-		<p class="text-muted-foreground">
-			Créez une réservation confirmée pour un invité sans passer par le paiement. La capacité de la
-			session est verrouillée et décrémentée exactement comme pour une réservation payante, et
-			l'invité reçoit son billet de la même façon.
-		</p>
+	<div class="flex items-start gap-3 mb-8">
+		<a
+			href="/admin/reservations"
+			aria-label="Retour aux réservations"
+			title="Retour aux réservations"
+			class="shrink-0 inline-flex items-center justify-center size-9 lg:size-10 -ml-2 rounded-md text-foreground-alt hover:text-foreground hover:bg-muted transition-colors"
+		>
+			<ArrowLeft size={20} />
+		</a>
+		<div class="flex-1 min-w-0">
+			<h1 class="text-3xl lg:text-4xl font-bold mb-2 flex items-center gap-3">
+				<Gift size={32} />
+				Réservation Comp
+			</h1>
+			<p class="text-muted-foreground">
+				Créez une réservation confirmée pour un invité sans passer par le paiement. La capacité de la
+				session est verrouillée et décrémentée exactement comme pour une réservation payante, et
+				l'invité reçoit son billet de la même façon.
+			</p>
+		</div>
 	</div>
 
 	<form

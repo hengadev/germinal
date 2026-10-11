@@ -203,37 +203,38 @@ END:VCALENDAR`;
 </svelte:head>
 
 <div class="container mx-auto px-4 py-8 lg:py-12">
-	<!-- Back Button -->
-	<a
-		href="/admin/reservations"
-		class="inline-flex items-center gap-2 text-foreground-alt hover:text-foreground mb-6"
-	>
-		<ArrowLeft size={18} />
-		<span>Retour aux Réservations</span>
-	</a>
-
 	<!-- Header -->
-	<div class="mb-8">
-		<div class="flex items-start justify-between mb-2">
-			<div>
-				<h1 class="text-3xl lg:text-4xl font-bold mb-2">Détails de la Réservation</h1>
-				<p class="text-muted-foreground">
-					ID de Confirmation : {data.reservation.id.substring(0, 8).toUpperCase()}
-				</p>
-			</div>
-			<div class="flex items-center gap-2">
-				<span class={`inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium ${statusBadge.class} rounded-full`}>
-					{#if statusBadge.icon}
-						<svelte:component this={statusBadge.icon} size={16} />
-					{/if}
-					{statusBadge.text}
-				</span>
-				{#if data.reservation.isComp}
-					<span class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium bg-purple-50 text-purple-700 rounded-full">
-						<Gift size={16} />
-						Comp
+	<div class="flex items-start gap-3 mb-8">
+		<a
+			href="/admin/reservations"
+			aria-label="Retour aux réservations"
+			title="Retour aux réservations"
+			class="shrink-0 inline-flex items-center justify-center size-9 lg:size-10 -ml-2 rounded-md text-foreground-alt hover:text-foreground hover:bg-muted transition-colors"
+		>
+			<ArrowLeft size={20} />
+		</a>
+		<div class="flex-1 min-w-0">
+			<div class="flex items-start justify-between mb-2">
+				<div>
+					<h1 class="text-3xl lg:text-4xl font-bold mb-2">Détails de la Réservation</h1>
+					<p class="text-muted-foreground">
+						ID de Confirmation : {data.reservation.id.substring(0, 8).toUpperCase()}
+					</p>
+				</div>
+				<div class="flex items-center gap-2">
+					<span class={`inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium ${statusBadge.class} rounded-full`}>
+						{#if statusBadge.icon}
+							<svelte:component this={statusBadge.icon} size={16} />
+						{/if}
+						{statusBadge.text}
 					</span>
-				{/if}
+					{#if data.reservation.isComp}
+						<span class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium bg-purple-50 text-purple-700 rounded-full">
+							<Gift size={16} />
+							Comp
+						</span>
+					{/if}
+				</div>
 			</div>
 		</div>
 	</div>
