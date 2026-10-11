@@ -182,10 +182,10 @@
 							type="button"
 							onclick={() => goToStep(i)}
 							aria-current={i === step ? 'step' : undefined}
-							class="flex items-center gap-2 text-sm font-medium transition-colors {i === step ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}"
+							class="flex items-center gap-3 text-base lg:text-xl font-semibold transition-colors {i === step ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}"
 						>
 							<span
-								class="flex size-7 items-center justify-center rounded-full border text-xs {i === step ? 'bg-foreground text-background border-foreground' : 'border-border-input'}"
+								class="flex size-7 lg:size-9 shrink-0 items-center justify-center rounded-full border text-xs lg:text-sm {i === step ? 'bg-foreground text-background border-foreground' : 'border-border-input'}"
 							>
 								{i + 1}
 							</span>
@@ -200,9 +200,7 @@
 
 			<form method="POST" use:enhance={createEventEnhance} class="space-y-6">
 				<!-- Step 1: Essentiel -->
-				<section bind:this={stepEls[0]} hidden={step !== 0} class="space-y-6" aria-labelledby="step-0-title">
-					<h2 id="step-0-title" class="text-xl font-semibold">{STEPS[0].title}</h2>
-
+				<section bind:this={stepEls[0]} hidden={step !== 0} class="space-y-6" aria-label={STEPS[0].title}>
 					<!-- Titles: side by side on desktop -->
 					<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 						<!-- Title (English) -->
@@ -370,9 +368,7 @@
 				</section>
 
 				<!-- Step 2: Date & lieu -->
-				<section bind:this={stepEls[1]} hidden={step !== 1} class="space-y-6" aria-labelledby="step-1-title">
-					<h2 id="step-1-title" class="text-xl font-semibold">{STEPS[1].title}</h2>
-
+				<section bind:this={stepEls[1]} hidden={step !== 1} class="space-y-6" aria-label={STEPS[1].title}>
 					<!-- Dates -->
 					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 						<div>
@@ -626,9 +622,7 @@
 				</section>
 
 				<!-- Step 3: Programme -->
-				<section bind:this={stepEls[2]} hidden={step !== 2} class="space-y-6" aria-labelledby="step-2-title">
-					<h2 id="step-2-title" class="text-xl font-semibold">{STEPS[2].title}</h2>
-
+				<section bind:this={stepEls[2]} hidden={step !== 2} class="space-y-6" aria-label={STEPS[2].title}>
 					<!-- Timings -->
 					<div>
 						<label class="block text-sm font-medium text-foreground-alt mb-2">
@@ -787,9 +781,7 @@
 				</section>
 
 				<!-- Step 4: Visuels -->
-				<section bind:this={stepEls[3]} hidden={step !== 3} class="space-y-6" aria-labelledby="step-3-title">
-					<h2 id="step-3-title" class="text-xl font-semibold">{STEPS[3].title}</h2>
-
+				<section bind:this={stepEls[3]} hidden={step !== 3} class="space-y-6" aria-label={STEPS[3].title}>
 					<!-- Cover Photo Section -->
 					<div class="form-section">
 						<label class="block text-sm font-medium text-foreground-alt mb-2">
