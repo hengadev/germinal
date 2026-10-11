@@ -174,9 +174,10 @@
 
 		<div class="sm:bg-background sm:rounded-lg sm:p-6 lg:p-8">
 			<!-- Step indicator: any step can be opened; required fields are checked on "Suivant" and on submit -->
-			<ol class="grid grid-cols-2 gap-x-6 gap-y-3 sm:flex sm:flex-wrap mb-8 pb-6 border-b border-border-card">
+			<ol class="grid grid-cols-2 gap-x-6 gap-y-3 sm:flex sm:flex-wrap lg:flex-nowrap lg:gap-4 mb-8 pb-6 border-b border-border-card">
 				{#each STEPS as s, i}
-					<li>
+					<!-- On desktop each step but the last stretches, with a rule filling the gap to the next -->
+					<li class="lg:flex lg:items-center lg:gap-4 {i < STEPS.length - 1 ? 'lg:flex-1' : ''}">
 						<button
 							type="button"
 							onclick={() => goToStep(i)}
@@ -188,8 +189,11 @@
 							>
 								{i + 1}
 							</span>
-							<span>{s.title}</span>
+							<span class="whitespace-nowrap">{s.title}</span>
 						</button>
+						{#if i < STEPS.length - 1}
+							<span aria-hidden="true" class="hidden lg:block h-px flex-1 bg-border-input"></span>
+						{/if}
 					</li>
 				{/each}
 			</ol>
