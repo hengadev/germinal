@@ -174,18 +174,21 @@
 </svelte:head>
 
 <div class="px-4 py-8 lg:py-12">
-		<div class="mb-8">
+		<div class="flex items-start gap-3 mb-8">
 			<a
 				href="/admin/events"
-				class="inline-flex items-center gap-2 text-foreground-alt hover:text-foreground transition-colors mb-4"
+				aria-label="Retour aux événements"
+				title="Retour aux événements"
+				class="shrink-0 inline-flex items-center justify-center size-9 lg:size-10 -ml-2 rounded-md text-foreground-alt hover:text-foreground hover:bg-muted transition-colors"
 			>
 				<ArrowLeft size={20} />
-				<span>Retour aux Événements</span>
 			</a>
-			<h1 class="text-3xl lg:text-4xl font-bold mb-2">Créer un Nouvel Événement</h1>
-			<p class="text-muted-foreground">
-				Remplissez les détails pour créer un nouvel événement
-			</p>
+			<div>
+				<h1 class="text-3xl lg:text-4xl font-bold mb-2">Créer un Nouvel Événement</h1>
+				<p class="text-muted-foreground">
+					Remplissez les détails pour créer un nouvel événement
+				</p>
+			</div>
 		</div>
 
 		<div class="sm:bg-background sm:rounded-lg sm:p-6 lg:p-8">
