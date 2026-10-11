@@ -9,13 +9,6 @@ export type EventWithMedia = Event & {
   media?: Media[];
   coverMedia?: Media | null;
   coverVideo?: Media | null;
-  category?: {
-    id: string;
-    name: string;
-    displayNameEn: string;
-    displayNameFr: string;
-    slug: string;
-  } | null;
 };
 
 export type Media = InferSelectModel<typeof media>;

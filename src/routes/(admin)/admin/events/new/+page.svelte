@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
-	import { ArrowLeft, Calendar, MapPin, Type, FileText, Tag } from 'lucide-svelte';
+	import { ArrowLeft, Calendar, MapPin, Type, FileText } from 'lucide-svelte';
 	import MediaUpload from '$lib/components/MediaUpload.svelte';
 	import type { ActionData } from './$types';
 	import type { Media } from '$lib/types/media';
@@ -54,7 +54,6 @@
 	// Events are created as drafts; publish after adding sessions
 	// let published = $state(false);
 	let isSpotlight = $state(false);
-	let categoryId = $state<string>('');
 
 	// Media upload state
 	let coverMediaId: string | null = $state(null);
@@ -271,33 +270,6 @@
 							class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent resize-none"
 						></textarea>
 					</div>
-				</div>
-
-				<!-- Category Selection -->
-				<div>
-					<label for="categoryId" class="block text-sm font-medium text-foreground-alt mb-2">
-						Catégorie (Optionnel)
-					</label>
-					<div class="relative">
-						<Tag
-							size={18}
-							class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-						/>
-						<select
-							id="categoryId"
-							name="categoryId"
-							bind:value={categoryId}
-							class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent appearance-none bg-background"
-						>
-							<option value="">Aucune catégorie</option>
-							{#each (data.categories || []) as category}
-								<option value={category.id}>{category.displayNameFr} ({category.displayNameEn})</option>
-							{/each}
-						</select>
-					</div>
-					<p class="mt-1 text-xs text-muted-foreground">
-						Lier cet événement à une catégorie existante
-					</p>
 				</div>
 
 				<!-- Subtitle (English) -->

@@ -1,20 +1,18 @@
 import { fail, redirect, type Actions } from '@sveltejs/kit';
 import { env } from '$lib/server/env';
-import { MOCK_EVENTS, MOCK_CATEGORIES, MOCK_TALENTS } from '$lib/mock-data';
+import { MOCK_EVENTS, MOCK_TALENTS } from '$lib/mock-data';
 import type { PageServerLoad } from './$types';
 import { requireAdmin } from '$lib/server/auth-guards';
 
 export const load: PageServerLoad = async () => {
 	if (env.USE_MOCK_DATA) {
 		const talents = MOCK_TALENTS.map(t => ({ id: t.id, firstName: t.firstName, lastName: t.lastName }));
-		return { categories: MOCK_CATEGORIES, talents };
+		return { talents };
 	}
-	const { getAllCategories } = await import('$lib/server/services/categories');
 	const { getAllTalents } = await import('$lib/server/services/talents');
-	const categories = await getAllCategories({ publishedOnly: true });
 	const talentsData = await getAllTalents({ publishedOnly: false, limit: 1000 });
 	const talents = talentsData.data.map((t: typeof talentsData.data[number]) => ({ id: t.id, firstName: t.firstName, lastName: t.lastName }));
-	return { categories, talents };
+	return { talents };
 };
 
 export const actions: Actions = {
@@ -51,7 +49,6 @@ export const actions: Actions = {
 		const admissionInfoFr = formData.get('admissionInfoFr');
 		const coverMediaId = formData.get('coverMediaId') as string | null;
 		const galleryMediaIds = formData.get('galleryMediaIds') as string | null;
-		const categoryId = formData.get('categoryId') as string | null;
 		// Events are always created as drafts - publish after adding sessions
 		// const published = formData.get('published') === 'true';
 		const published = false;
@@ -228,7 +225,6 @@ export const actions: Actions = {
 				admissionInfoEn: admissionInfoEn?.toString() || null,
 				admissionInfoFr: admissionInfoFr?.toString() || null,
 				coverMediaId: coverMediaId || null,
-				categoryId: categoryId || null,
 				published,
 				isSpotlight
 			});

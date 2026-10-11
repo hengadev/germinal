@@ -1,5 +1,5 @@
 import { db } from '../db';
-import { events, media, eventSessions, eventCategories } from '../db/schema';
+import { events, media, eventSessions } from '../db/schema';
 import { eq, desc, and, isNull, sql, or, ilike } from 'drizzle-orm';
 import type { Event, CreateEventInput, UpdateEventInput } from '$lib/types/events';
 import {
@@ -50,7 +50,6 @@ export async function getAllEvents(options: { publishedOnly?: boolean; excludeSp
 		with: {
 			coverMedia: true,
 			coverVideo: true,
-			category: true,
 			media: true,
 		},
 	});
@@ -68,7 +67,6 @@ export async function getEventBySlug(slug: string) {
     with: {
       coverMedia: true,
       coverVideo: true,
-      category: true,
       media: {
         orderBy: [desc(media.createdAt)],
       },
@@ -88,7 +86,6 @@ export async function getEventById(id: string) {
     with: {
       coverMedia: true,
       coverVideo: true,
-      category: true,
       media: true,
     },
   });
@@ -106,7 +103,6 @@ export async function getSpotlightEvent() {
     with: {
       coverMedia: true,
       coverVideo: true,
-      category: true,
       media: {
         orderBy: [desc(media.createdAt)],
       },
@@ -160,7 +156,6 @@ export async function createEvent(input: CreateEventInput) {
       admissionInfoEn: input.admissionInfoEn,
       admissionInfoFr: input.admissionInfoFr,
       coverMediaId: input.coverMediaId,
-      categoryId: input.categoryId,
       published: input.published ?? false,
       isSpotlight: input.isSpotlight ?? false,
     }).returning();

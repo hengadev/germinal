@@ -2,7 +2,6 @@ import { db } from '../src/lib/server/db/index.js';
 import {
   events,
   talents,
-  eventCategories,
   talentCategories,
   eventSessions
 } from '../src/lib/server/db/schema.js';
@@ -48,62 +47,6 @@ async function seed() {
     await db.delete(events);
     await db.delete(talents);
     await db.delete(talentCategories);
-    await db.delete(eventCategories);
-
-    // ============================================================
-    // CREATE EVENT CATEGORIES
-    // ============================================================
-    console.log('  📁 Creating event categories...');
-    const [festivalCategory, artsCategory, musicCategory, theaterCategory] = await db.insert(eventCategories).values([
-      {
-        name: 'festival',
-        displayNameEn: 'Festival',
-        displayNameFr: 'Festival',
-        slug: 'festival',
-        descriptionEn: 'Multi-day events featuring various performances, exhibitions, and activities',
-        descriptionFr: 'Événements de plusieurs jours avec diverses performances, expositions et activités',
-        icon: '🎉',
-        color: '#FF6B6B',
-        sortOrder: 1,
-        published: true,
-      },
-      {
-        name: 'arts',
-        displayNameEn: 'Arts & Culture',
-        displayNameFr: 'Arts & Culture',
-        slug: 'arts-culture',
-        descriptionEn: 'Art exhibitions, workshops, and cultural events',
-        descriptionFr: 'Expositions d\'art, ateliers et événements culturels',
-        icon: '🎨',
-        color: '#4ECDC4',
-        sortOrder: 2,
-        published: true,
-      },
-      {
-        name: 'music',
-        displayNameEn: 'Music',
-        displayNameFr: 'Musique',
-        slug: 'music',
-        descriptionEn: 'Live music performances, concerts, and DJ sets',
-        descriptionFr: 'Performances musicales en direct, concerts et sets de DJ',
-        icon: '🎵',
-        color: '#95E1D3',
-        sortOrder: 3,
-        published: true,
-      },
-      {
-        name: 'theater',
-        displayNameEn: 'Theater & Performing Arts',
-        displayNameFr: 'Théâtre & Arts Vivants',
-        slug: 'theater-performing-arts',
-        descriptionEn: 'Theater productions, plays, and performing arts shows',
-        descriptionFr: 'Productions théâtrales, pièces de théâtre et spectacles d\'arts vivants',
-        icon: '🎭',
-        color: '#DDA0DD',
-        sortOrder: 4,
-        published: true,
-      },
-    ]).returning();
 
     // ============================================================
     // CREATE TALENT CATEGORIES
@@ -226,7 +169,6 @@ async function seed() {
         materialsFr: 'Peinture en spray, acrylique, pochoirs, marqueurs, espace mural',
         admissionInfoEn: 'From €10 - €25 depending on session',
         admissionInfoFr: 'À partir de 10€ - 25€ selon la session',
-        categoryId: artsCategory.id,
         published: true,
         isSpotlight: true,
       },
@@ -281,7 +223,6 @@ async function seed() {
         materialsFr: 'Système sonore professionnel, écrans LED, spectacles laser',
         admissionInfoEn: '€35 per night, €50 weekend pass',
         admissionInfoFr: '35€ la nuit, 50€ pass week-end',
-        categoryId: musicCategory.id,
         published: true,
         isSpotlight: false,
       },
@@ -336,7 +277,6 @@ async function seed() {
         materialsFr: 'Décor minimaliste, projections multimédias, design sonore en direct',
         admissionInfoEn: '€20 - €25 depending on session',
         admissionInfoFr: '20€ - 25€ selon la session',
-        categoryId: theaterCategory.id,
         published: true,
         isSpotlight: false,
       },
@@ -713,7 +653,6 @@ async function seed() {
     ]);
 
     console.log('✅ Database seeded successfully!');
-    console.log('   - 4 event categories created');
     console.log('   - 5 talent categories created');
     console.log('   - 3 events created');
     console.log('   - 12 event sessions created');

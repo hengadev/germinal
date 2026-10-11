@@ -16,7 +16,6 @@
     import { browser } from "$app/environment";
     import Drawer from "$lib/components/ui/Drawer.svelte";
     import Modal from "$lib/components/ui/Modal.svelte";
-    import EventCategoriesTab from "./EventCategoriesTab.svelte";
     import { getToastContext } from "$lib/components/toast/state.svelte";
 
     let {
@@ -35,10 +34,6 @@
             isMobile = window.innerWidth < 768;
         });
     }
-
-    // Tab state
-    let activeTab = $state<'events' | 'categories'>('categories');
-    let catCreateDialogOpen = $state(false);
 
     // Event type
     type Event = (typeof data.events)[number];
@@ -91,13 +86,12 @@
 
 <div class="container mx-auto px-4 py-8 lg:py-12">
  <div
- class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6"
+ class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8"
  >
  <div>
  <h1 class="text-3xl lg:text-4xl font-bold mb-2">Événements</h1>
- <p class="text-muted-foreground">Gérez vos événements, expositions et catégories</p>
+ <p class="text-muted-foreground">Gérez vos événements</p>
  </div>
- {#if activeTab === 'events'}
  <a
  href="/admin/events/new"
  class="inline-flex items-center gap-2 px-4 py-2 bg-foreground text-background rounded-lg hover:opacity-90 transition-colors self-start"
@@ -105,34 +99,8 @@
  <Plus size={18} />
  <span>Nouvel Événement</span>
  </a>
- {:else}
- <button
- onclick={() => (catCreateDialogOpen = true)}
- class="inline-flex items-center gap-2 px-4 py-2 bg-foreground text-background rounded-lg hover:opacity-90 transition-colors self-start"
- >
- <Plus size={18} />
- <span class="whitespace-nowrap">Nouvelle Catégorie</span>
- </button>
- {/if}
  </div>
 
- <!-- Tab navigation -->
- <div class="flex border-b border-border-card mb-8">
- <button
- onclick={() => (activeTab = 'categories')}
- class="px-4 py-3 text-sm font-medium border-b-2 transition-colors -mb-px {activeTab === 'categories' ? 'border-foreground text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground-alt'}"
-        >
-            Catégories
-        </button>
-        <button
-            onclick={() => (activeTab = 'events')}
- class="px-4 py-3 text-sm font-medium border-b-2 transition-colors -mb-px {activeTab === 'events' ? 'border-foreground text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground-alt'}"
-        >
-            Événements
-        </button>
-    </div>
-
-    {#if activeTab === 'events'}
  {#if data.events.length === 0}
  <div
  class="bg-background rounded-lg border border-border-card p-12 text-center"
@@ -375,13 +343,6 @@
  </div>
  {/each}
  </div>
- {/if}
- {:else}
- <EventCategoriesTab
- categories={data.categories}
- {isMobile}
- bind:createDialogOpen={catCreateDialogOpen}
- />
  {/if}
 </div>
 

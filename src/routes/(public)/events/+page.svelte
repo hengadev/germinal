@@ -10,7 +10,7 @@
         Search,
         X,
     } from "lucide-svelte";
-    import { t, locale } from "svelte-i18n";
+    import { t } from "svelte-i18n";
     import { reveal } from "$lib/actions/reveal";
     import { goto } from "$app/navigation";
     import { page } from "$app/state";
@@ -23,19 +23,8 @@
     const SEARCH_DEBOUNCE_MS = 400;
 
     let { data }: { data: PageData } = $props();
-    let filters = $derived(data.categories || []);
 
     let viewMode: "grid" | "list" = $state(VIEW_MODE.GRID);
-    let selectedCategoryId = $state<string | null>(null);
-
-    // Helper function to get localized category display name
-    function getCategoryDisplayName(
-        category: (typeof filters)[number],
-    ): string {
-        return $locale === "en"
-            ? category.displayNameEn
-            : category.displayNameFr;
-    }
 
     // Pagination state — resynced from `data` whenever a new search navigation loads
     let allEvents = $state(data.events);
@@ -67,13 +56,6 @@
             searchInput = loadedQuery;
         }
     });
-
-    // Filtered events based on selected category
-    let filteredEvents = $derived(
-        selectedCategoryId
-            ? allEvents.filter((e) => e.categoryId === selectedCategoryId)
-            : allEvents,
-    );
 
     function navigateSearch(query: string) {
         const trimmed = query.trim();
@@ -126,14 +108,6 @@
     }
 
     // Compute button class strings to avoid Safari iOS reactive state issues
-    function getFilterButtonClass(isSelected: boolean): string {
-        const base = "px-4 py-2 rounded-full text-sm font-medium transition-colors";
-        if (isSelected) {
-            return `${base} bg-foreground text-white`;
-        }
-        return `${base} bg-transparent text-muted-foreground border border-foreground-alt hover:border-foreground cursor-pointer`;
-    }
-
     function getViewModeButtonClass(isActive: boolean): string {
         return `cursor-pointer p-1 ${isActive ? 'text-foreground' : 'text-muted-foreground'}`;
     }
@@ -186,25 +160,6 @@
         class="flex flex-col gap-6 md:flex-row md:items-center md:justify-between mb-16"
         use:reveal={{ preset: "fade-in", delay: 100 }}
     >
-        {#if filters.length > 1}
-            <div class="flex flex-wrap items-center gap-3">
-                <button
-                    onclick={() => (selectedCategoryId = null)}
-                    class={getFilterButtonClass(selectedCategoryId === null)}
-                >
-                    {$t('events.filterAll')}
-                </button>
-                {#each filters as filter}
-                    <button
-                        onclick={() => (selectedCategoryId = filter.id)}
-                        class={getFilterButtonClass(selectedCategoryId === filter.id)}
-                    >
-                        {getCategoryDisplayName(filter)}
-                    </button>
-                {/each}
-            </div>
-        {/if}
-
         <div
             class="flex flex-col sm:flex-row sm:items-center gap-4 md:ml-auto"
         >
@@ -257,12 +212,10 @@
         </div>
     </div>
 
-    {#if filteredEvents.length === 0}
+    {#if allEvents.length === 0}
         <p class="text-muted-foreground">
             {#if data.searchQuery}
                 {$t("events.noSearchResults", { values: { query: data.searchQuery } })}
-            {:else if selectedCategoryId}
-                {$t("events.noEventsInCategory")}
             {:else}
                 {$t("events.noEvents")}
             {/if}
@@ -271,7 +224,7 @@
         <div
             class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-10 gap-x-6"
         >
-            {#each filteredEvents as event, index}
+            {#each allEvents as event, index}
                 <div
                     use:reveal={{
                         preset: "fade-up",
@@ -284,7 +237,7 @@
         </div>
     {:else}
         <div class="flex flex-col gap-6">
-            {#each filteredEvents as event, index}
+            {#each allEvents as event, index}
                 <a
                     href="/events/{event.slug}"
                     use:reveal={{
