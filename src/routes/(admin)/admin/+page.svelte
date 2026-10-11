@@ -48,9 +48,43 @@
 </svelte:head>
 
 <div class="container mx-auto px-4 py-8 lg:py-12">
-	<div class="mb-8">
-		<h1 class="text-3xl lg:text-4xl font-bold mb-1">Tableau de bord</h1>
-		<p class="text-muted-foreground">Activité récente et aperçu de vos événements</p>
+	<div class="flex flex-wrap items-center justify-between gap-4 mb-8">
+		<div>
+			<h1 class="text-3xl lg:text-4xl font-bold mb-1">Tableau de bord</h1>
+			<p class="text-muted-foreground">Activité récente et aperçu de vos événements</p>
+		</div>
+
+		<!-- Quick Actions -->
+		<div class="flex flex-wrap gap-3">
+			<a
+				href="/admin/events/new"
+				class="inline-flex items-center gap-2 px-4 py-2 bg-background border border-border-input text-foreground-alt rounded-lg hover:bg-muted transition-colors text-sm font-medium"
+			>
+				<Plus size={15} />
+				<span class="whitespace-nowrap">Nouvel événement</span>
+			</a>
+			<a
+				href="/admin/talents/new"
+				class="inline-flex items-center gap-2 px-4 py-2 bg-background border border-border-input text-foreground-alt rounded-lg hover:bg-muted transition-colors text-sm font-medium"
+			>
+				<Plus size={15} />
+				<span class="whitespace-nowrap">Nouveau talent</span>
+			</a>
+			<a
+				href="/admin/analytics"
+				class="inline-flex items-center gap-2 px-4 py-2 bg-background border border-border-input text-foreground-alt rounded-lg hover:bg-muted transition-colors text-sm font-medium"
+			>
+				<BarChart3 size={15} />
+				<span class="whitespace-nowrap">Analytiques</span>
+			</a>
+			<a
+				href="/admin/reservations"
+				class="inline-flex items-center gap-2 px-4 py-2 bg-background border border-border-input text-foreground-alt rounded-lg hover:bg-muted transition-colors text-sm font-medium"
+			>
+				<Ticket size={15} />
+				<span class="whitespace-nowrap">Réservations</span>
+			</a>
+		</div>
 	</div>
 
 	<!-- Stats -->
@@ -190,37 +224,5 @@
 				</div>
 			{/if}
 		</div>
-	</div>
-
-	<!-- Quick Actions -->
-	<div class="flex flex-wrap gap-3">
-		<a
-			href="/admin/events/new"
-			class="inline-flex items-center gap-2 px-4 py-2 bg-background border border-border-input text-foreground-alt rounded-lg hover:bg-muted transition-colors text-sm font-medium"
-		>
-			<Plus size={15} />
-			<span class="whitespace-nowrap">Nouvel événement</span>
-		</a>
-		<a
-			href="/admin/talents/new"
-			class="inline-flex items-center gap-2 px-4 py-2 bg-background border border-border-input text-foreground-alt rounded-lg hover:bg-muted transition-colors text-sm font-medium"
-		>
-			<Plus size={15} />
-			<span class="whitespace-nowrap">Nouveau talent</span>
-		</a>
-		<a
-			href="/admin/analytics"
-			class="inline-flex items-center gap-2 px-4 py-2 bg-background border border-border-input text-foreground-alt rounded-lg hover:bg-muted transition-colors text-sm font-medium"
-		>
-			<BarChart3 size={15} />
-			<span class="whitespace-nowrap">Analytiques</span>
-		</a>
-		<a
-			href="/admin/reservations"
-			class="inline-flex items-center gap-2 px-4 py-2 bg-background border border-border-input text-foreground-alt rounded-lg hover:bg-muted transition-colors text-sm font-medium"
-		>
-			<Ticket size={15} />
-			<span class="whitespace-nowrap">Réservations</span>
-		</a>
 	</div>
 </div>
