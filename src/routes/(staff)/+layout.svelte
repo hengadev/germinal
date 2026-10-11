@@ -210,8 +210,8 @@
             <a
                 href="/staff"
                 class="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors {page.url.pathname === '/staff'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'}"
+                    ? 'bg-foreground text-background hover:bg-foreground/85'
+                    : 'text-foreground-alt hover:bg-surface-hover hover:text-foreground'}"
             >
                 <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -235,8 +235,8 @@
             <a
                 href="/staff/events"
                 class="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors {page.url.pathname.startsWith('/staff/events')
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'}"
+                    ? 'bg-foreground text-background hover:bg-foreground/85'
+                    : 'text-foreground-alt hover:bg-surface-hover hover:text-foreground'}"
             >
                 <svg
                     xmlns="http://www.w3.org/2000/svg"
