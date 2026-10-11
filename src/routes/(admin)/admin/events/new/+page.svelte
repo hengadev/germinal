@@ -172,7 +172,7 @@
 			</p>
 		</div>
 
-		<div class="bg-background rounded-lg border border-border-card p-6 lg:p-8">
+		<div class="sm:bg-background sm:rounded-lg sm:p-6 lg:p-8">
 			<!-- Step indicator: any step can be opened; required fields are checked on "Suivant" and on submit -->
 			<ol class="grid grid-cols-2 gap-x-6 gap-y-3 sm:flex sm:flex-wrap mb-8 pb-6 border-b border-border-card">
 				{#each STEPS as s, i}
