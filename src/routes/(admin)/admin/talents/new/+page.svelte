@@ -80,8 +80,8 @@
    <ArrowLeft size={20} />
   </a>
   <div>
-  <h1 class="text-3xl lg:text-4xl font-bold mb-2">Add New Talent</h1>
-  <p class="text-muted-foreground">Fill in the details to add a new talent</p>
+  <h1 class="text-3xl lg:text-4xl font-bold mb-2">Ajouter un Talent</h1>
+  <p class="text-muted-foreground">Remplissez les détails pour ajouter un nouveau talent</p>
   </div>
  </div>
 
