@@ -413,47 +413,50 @@
 						</div>
 					</div>
 
-					<!-- Location (English) -->
-					<div>
-						<label for="locationEn" class="block text-sm font-medium text-foreground-alt mb-2">
-							Lieu (Anglais) <span class="text-red-500">*</span>
-						</label>
-						<div class="relative">
-							<MapPin
-								size={18}
-								class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-							/>
-							<input
-								id="locationEn"
-								name="locationEn"
-								type="text"
-								bind:value={locationEn}
-								required
-								placeholder="Central Park, New York"
-								class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent"
-							/>
+					<!-- Locations: side by side on desktop -->
+					<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+						<!-- Location (English) -->
+						<div>
+							<label for="locationEn" class="block text-sm font-medium text-foreground-alt mb-2">
+								Lieu (Anglais) <span class="text-red-500">*</span>
+							</label>
+							<div class="relative">
+								<MapPin
+									size={18}
+									class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+								/>
+								<input
+									id="locationEn"
+									name="locationEn"
+									type="text"
+									bind:value={locationEn}
+									required
+									placeholder="Central Park, New York"
+									class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent"
+								/>
+							</div>
 						</div>
-					</div>
 
-					<!-- Location (French) -->
-					<div>
-						<label for="locationFr" class="block text-sm font-medium text-foreground-alt mb-2">
-							Lieu (Français) <span class="text-red-500">*</span>
-						</label>
-						<div class="relative">
-							<MapPin
-								size={18}
-								class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-							/>
-							<input
-								id="locationFr"
-								name="locationFr"
-								type="text"
-								bind:value={locationFr}
-								required
-								placeholder="Central Park, New York"
-								class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent"
-							/>
+						<!-- Location (French) -->
+						<div>
+							<label for="locationFr" class="block text-sm font-medium text-foreground-alt mb-2">
+								Lieu (Français) <span class="text-red-500">*</span>
+							</label>
+							<div class="relative">
+								<MapPin
+									size={18}
+									class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+								/>
+								<input
+									id="locationFr"
+									name="locationFr"
+									type="text"
+									bind:value={locationFr}
+									required
+									placeholder="Central Park, New York"
+									class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent"
+								/>
+							</div>
 						</div>
 					</div>
 
