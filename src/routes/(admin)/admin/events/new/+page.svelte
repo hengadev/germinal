@@ -7,50 +7,66 @@
 	import type { Media } from '$lib/types/media';
 	import type { PageData } from './$types';
 	import { getToastContext } from '$lib/components/toast/state.svelte';
+	import { cn } from '$lib/utils/design-system';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
 	const toast = getToastContext();
 
-	const STEPS = [
-		{ title: 'Essentiel' },
-		{ title: 'Date & lieu' },
-		{ title: 'Programme' },
-		{ title: 'Visuels' },
+	const TABS = [
+		{ id: 'essentiel', title: 'Essentiel' },
+		{ id: 'date-lieu', title: 'Date & lieu' },
+		{ id: 'programme', title: 'Programme' },
+		{ id: 'visuels', title: 'Visuels' },
 	];
 
-	let step = $state(0);
-	let stepEls: HTMLElement[] = $state([]);
+	// Base classes of bits-components/TabsList + TabsTrigger, then the overrides used on /admin/events/[id]
+	const TAB_LIST_CLASS = cn(
+		'inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground',
+		'inline-flex items-center w-fit bg-transparent gap-2 md:gap-1 text-sm font-semibold border-b-1 border-border-card md:p-1 md:leading-[0.01em]'
+	);
+	const TAB_TRIGGER_CLASS = cn(
+		'inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all',
+		'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+		'data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-mini',
+		'data-[state=inactive]:hover:bg-accent hover:text-accent-foreground',
+		'px-2 py-1.75 md:px-4 md:py-2 md:h-8 rounded-none bg-transparent border-b-3 data-[state=active]:shadow-none mb-[-2px] data-[state=active]:border-b-foreground data-[state=active]:text-foreground data-[state=inactive]:border-transparent data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:bg-transparent data-[state=inactive]:hover:text-foreground-alt transition-colors cursor-pointer whitespace-nowrap'
+	);
+
+	let activeTab = $state(0);
+	let tabEls: HTMLButtonElement[] = $state([]);
+	let panelEls: HTMLElement[] = $state([]);
 	let submitting = $state(false);
 
-	// All steps stay mounted (just hidden) so values and uploads survive navigation,
-	// which means the browser can't show errors for fields on a hidden step: check per step.
+	// All panels stay mounted (just hidden) so values and uploads survive switching tabs.
+	// The form is novalidate because the browser can't point at a field on a hidden panel:
+	// fields are checked per panel here instead, still with the browser's own rules and bubbles.
 	function firstInvalidField(index: number) {
-		return stepEls[index]?.querySelector<HTMLInputElement | HTMLTextAreaElement>('input:invalid, textarea:invalid') ?? null;
+		return panelEls[index]?.querySelector<HTMLInputElement | HTMLTextAreaElement>('input:invalid, textarea:invalid') ?? null;
 	}
 
-	function goToStep(index: number) {
-		step = index;
-		window.scrollTo({ top: 0, behavior: 'smooth' });
-	}
-
-	function nextStep() {
-		const invalid = firstInvalidField(step);
-		if (invalid) {
-			invalid.reportValidity();
-			return;
-		}
-		goToStep(step + 1);
+	// Arrow keys / Home / End move between tabs (WAI-ARIA tabs pattern)
+	function handleTabKeydown(event: KeyboardEvent) {
+		const last = TABS.length - 1;
+		const target =
+			event.key === 'ArrowRight' ? (activeTab === last ? 0 : activeTab + 1)
+			: event.key === 'ArrowLeft' ? (activeTab === 0 ? last : activeTab - 1)
+			: event.key === 'Home' ? 0
+			: event.key === 'End' ? last
+			: null;
+		if (target === null) return;
+		event.preventDefault();
+		activeTab = target;
+		tabEls[target]?.focus();
 	}
 
 	function createEventEnhance({ cancel }: { cancel: () => void }) {
-		// A required field may have been cleared after its step was passed
-		const invalidStep = STEPS.findIndex((_, i) => firstInvalidField(i));
-		if (invalidStep !== -1) {
+		const invalidTab = TABS.findIndex((_, i) => firstInvalidField(i));
+		if (invalidTab !== -1) {
 			cancel();
-			step = invalidStep;
-			// Wait for the step to be shown before the browser can point at the field
-			requestAnimationFrame(() => firstInvalidField(invalidStep)?.reportValidity());
+			activeTab = invalidTab;
+			// Wait for the panel to be shown before the browser can point at the field
+			requestAnimationFrame(() => firstInvalidField(invalidTab)?.reportValidity());
 			return;
 		}
 		submitting = true;
@@ -134,7 +150,7 @@
 		galleryMediaIds = mediaIds;
 	}
 
-	// Lets "Suivant" catch an end before the start, not just the server
+	// Catches an end before the start before submitting, not just on the server
 	let endDateEl: HTMLInputElement | undefined = $state();
 	$effect(() => {
 		endDateEl?.setCustomValidity(
@@ -173,34 +189,33 @@
 		</div>
 
 		<div class="sm:bg-background sm:rounded-lg sm:p-6 lg:p-8">
-			<!-- Step indicator: any step can be opened; required fields are checked on "Suivant" and on submit -->
-			<ol class="grid grid-cols-2 gap-x-6 gap-y-3 sm:flex sm:flex-wrap lg:flex-nowrap lg:gap-4 mb-8 pb-6 border-b border-border-card">
-				{#each STEPS as s, i}
-					<!-- On desktop each step but the last stretches, with a rule filling the gap to the next -->
-					<li class="lg:flex lg:items-center lg:gap-4 {i < STEPS.length - 1 ? 'lg:flex-1' : ''}">
+			<!-- Tabs: same classes the bits-ui Tabs on /admin/events/[id] end up with, so both pages look alike.
+			     Hand-rolled because bits-ui unmounts inactive panels, which would drop their fields from the form. -->
+			<div class="overflow-x-auto w-full mb-6">
+				<div role="tablist" aria-label="Sections du formulaire" class={TAB_LIST_CLASS}>
+					{#each TABS as tab, i}
 						<button
+							bind:this={tabEls[i]}
 							type="button"
-							onclick={() => goToStep(i)}
-							aria-current={i === step ? 'step' : undefined}
-							class="flex items-center gap-3 text-base lg:text-xl font-semibold transition-colors {i === step ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}"
+							role="tab"
+							id="tab-{tab.id}"
+							aria-selected={i === activeTab}
+							aria-controls="panel-{tab.id}"
+							data-state={i === activeTab ? 'active' : 'inactive'}
+							tabindex={i === activeTab ? 0 : -1}
+							onclick={() => (activeTab = i)}
+							onkeydown={handleTabKeydown}
+							class={TAB_TRIGGER_CLASS}
 						>
-							<span
-								class="flex size-7 lg:size-9 shrink-0 items-center justify-center rounded-full border text-xs lg:text-sm {i === step ? 'bg-foreground text-background border-foreground' : 'border-border-input'}"
-							>
-								{i + 1}
-							</span>
-							<span class="whitespace-nowrap">{s.title}</span>
+							{tab.title}
 						</button>
-						{#if i < STEPS.length - 1}
-							<span aria-hidden="true" class="hidden lg:block h-px flex-1 bg-border-input"></span>
-						{/if}
-					</li>
-				{/each}
-			</ol>
+					{/each}
+				</div>
+			</div>
 
-			<form method="POST" use:enhance={createEventEnhance} class="space-y-6">
-				<!-- Step 1: Essentiel -->
-				<section bind:this={stepEls[0]} hidden={step !== 0} class="space-y-6" aria-label={STEPS[0].title}>
+			<form method="POST" novalidate use:enhance={createEventEnhance} class="space-y-6">
+				<!-- Tab 1: Essentiel -->
+				<div bind:this={panelEls[0]} hidden={activeTab !== 0} role="tabpanel" id="panel-{TABS[0].id}" aria-labelledby="tab-{TABS[0].id}" class="space-y-6">
 					<!-- Titles: side by side on desktop -->
 					<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 						<!-- Title (English) -->
@@ -365,10 +380,10 @@
 							</div>
 						</div>
 					</div>
-				</section>
+				</div>
 
-				<!-- Step 2: Date & lieu -->
-				<section bind:this={stepEls[1]} hidden={step !== 1} class="space-y-6" aria-label={STEPS[1].title}>
+				<!-- Tab 2: Date & lieu -->
+				<div bind:this={panelEls[1]} hidden={activeTab !== 1} role="tabpanel" id="panel-{TABS[1].id}" aria-labelledby="tab-{TABS[1].id}" class="space-y-6">
 					<!-- Dates -->
 					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 						<div>
@@ -622,10 +637,10 @@
 							</div>
 						</div>
 					</details>
-				</section>
+				</div>
 
-				<!-- Step 3: Programme -->
-				<section bind:this={stepEls[2]} hidden={step !== 2} class="space-y-6" aria-label={STEPS[2].title}>
+				<!-- Tab 3: Programme -->
+				<div bind:this={panelEls[2]} hidden={activeTab !== 2} role="tabpanel" id="panel-{TABS[2].id}" aria-labelledby="tab-{TABS[2].id}" class="space-y-6">
 					<!-- Timings -->
 					<div>
 						<label class="block text-sm font-medium text-foreground-alt mb-2">
@@ -781,10 +796,10 @@
 							/>
 						</div>
 					</div>
-				</section>
+				</div>
 
-				<!-- Step 4: Visuels -->
-				<section bind:this={stepEls[3]} hidden={step !== 3} class="space-y-6" aria-label={STEPS[3].title}>
+				<!-- Tab 4: Visuels -->
+				<div bind:this={panelEls[3]} hidden={activeTab !== 3} role="tabpanel" id="panel-{TABS[3].id}" aria-labelledby="tab-{TABS[3].id}" class="space-y-6">
 					<!-- Cover Photo Section -->
 					<div class="form-section">
 						<label class="block text-sm font-medium text-foreground-alt mb-2">
@@ -838,45 +853,25 @@
 							</p>
 						</div>
 					</div>
-				</section>
+				</div>
 
-				<!-- Step navigation -->
+				<!-- Actions: available from every tab -->
 				<div class="flex flex-col-reverse sm:flex-row gap-3 pt-4 border-t border-border-card">
-					{#if step === 0}
-						<a
-							href="/admin/events"
-							class="flex-1 px-6 py-3 bg-background border border-border-input text-foreground-alt rounded-lg hover:bg-muted focus:outline-none focus:ring-2 focus:ring-foreground focus:ring-offset-2 transition-colors font-medium text-center"
-						>
-							Annuler
-						</a>
-					{:else}
-						<button
-							type="button"
-							onclick={() => goToStep(step - 1)}
-							class="flex-1 px-6 py-3 bg-background border border-border-input text-foreground-alt rounded-lg hover:bg-muted focus:outline-none focus:ring-2 focus:ring-foreground focus:ring-offset-2 transition-colors font-medium"
-						>
-							Précédent
-						</button>
-					{/if}
-					{#if step < STEPS.length - 1}
-						<button
-							type="button"
-							onclick={nextStep}
-							class="flex-1 px-6 py-3 bg-foreground text-background rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-foreground focus:ring-offset-2 transition-colors font-medium"
-						>
-							Suivant
-						</button>
-					{:else}
-						<button
-							type="submit"
-							name="action"
-							value="create"
-							disabled={submitting}
-							class="flex-1 px-6 py-3 bg-foreground text-background rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-foreground focus:ring-offset-2 transition-colors font-medium disabled:opacity-50"
-						>
-							{submitting ? 'Création…' : "Créer l'Événement"}
-						</button>
-					{/if}
+					<a
+						href="/admin/events"
+						class="flex-1 px-6 py-3 bg-background border border-border-input text-foreground-alt rounded-lg hover:bg-muted focus:outline-none focus:ring-2 focus:ring-foreground focus:ring-offset-2 transition-colors font-medium text-center"
+					>
+						Annuler
+					</a>
+					<button
+						type="submit"
+						name="action"
+						value="create"
+						disabled={submitting}
+						class="flex-1 px-6 py-3 bg-foreground text-background rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-foreground focus:ring-offset-2 transition-colors font-medium disabled:opacity-50"
+					>
+						{submitting ? 'Création…' : "Créer l'Événement"}
+					</button>
 				</div>
 			</form>
 		</div>
