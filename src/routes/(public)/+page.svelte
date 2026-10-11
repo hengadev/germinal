@@ -297,30 +297,24 @@
             {/if}
         </section>
 
-        <section class="">
-            <div
-                class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8"
-                use:reveal={{ preset: "fade-up", delay: 150 }}
-            >
-                <h2 class="text-2xl md:text-3xl font-serif">
-                    {$t("home.featuredTalents")}
-                </h2>
-                <a
-                    href="/talents"
-                    class="flex items-center gap-2 text-muted-foreground hover:text-foreground-alt font-normal"
+        {#if data.talents.length > 0}
+            <section>
+                <div
+                    class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8"
+                    use:reveal={{ preset: "fade-up", delay: 150 }}
                 >
-                    <p>{$t("home.viewTalents")}</p>
-                    <ArrowRight />
-                </a>
-            </div>
-
-            {#if data.talents.length === 0}
-                <div class="flex items-center justify-center py-16">
-                    <p class="text-muted-foreground text-center">
-                        {$t("home.noTalents")}
-                    </p>
+                    <h2 class="text-2xl md:text-3xl font-serif">
+                        {$t("home.featuredTalents")}
+                    </h2>
+                    <a
+                        href="/talents"
+                        class="flex items-center gap-2 text-muted-foreground hover:text-foreground-alt font-normal"
+                    >
+                        <p>{$t("home.viewTalents")}</p>
+                        <ArrowRight />
+                    </a>
                 </div>
-            {:else}
+
                 <div
                     class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
                 >
@@ -335,8 +329,8 @@
                         </div>
                     {/each}
                 </div>
-            {/if}
-        </section>
+            </section>
+        {/if}
 
         <!-- Services — ruled index: hairlines draw in on scroll, rows are links to each discipline -->
         <section>
