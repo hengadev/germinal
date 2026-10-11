@@ -120,6 +120,13 @@
       "when": 1791618537427,
       "tag": "0016_worried_wither",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1791761003772,
+      "tag": "0017_drop_event_categories",
+      "breakpoints": true
     }
   ]
 }
