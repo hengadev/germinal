@@ -199,47 +199,50 @@
 				<section bind:this={stepEls[0]} hidden={step !== 0} class="space-y-6" aria-labelledby="step-0-title">
 					<h2 id="step-0-title" class="text-xl font-semibold">{STEPS[0].title}</h2>
 
-					<!-- Title (English) -->
-					<div>
-						<label for="titleEn" class="block text-sm font-medium text-foreground-alt mb-2">
-							Titre (Anglais) <span class="text-red-500">*</span>
-						</label>
-						<div class="relative">
-							<Type
-								size={18}
-								class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-							/>
-							<input
-								id="titleEn"
-								name="titleEn"
-								type="text"
-								bind:value={titleEn}
-								required
-								placeholder="Summer Music Festival 2026"
-								class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent"
-							/>
+					<!-- Titles: side by side on desktop -->
+					<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+						<!-- Title (English) -->
+						<div>
+							<label for="titleEn" class="block text-sm font-medium text-foreground-alt mb-2">
+								Titre (Anglais) <span class="text-red-500">*</span>
+							</label>
+							<div class="relative">
+								<Type
+									size={18}
+									class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+								/>
+								<input
+									id="titleEn"
+									name="titleEn"
+									type="text"
+									bind:value={titleEn}
+									required
+									placeholder="Summer Music Festival 2026"
+									class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent"
+								/>
+							</div>
 						</div>
-					</div>
 
-					<!-- Title (French) -->
-					<div>
-						<label for="titleFr" class="block text-sm font-medium text-foreground-alt mb-2">
-							Titre (Français) <span class="text-red-500">*</span>
-						</label>
-						<div class="relative">
-							<Type
-								size={18}
-								class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-							/>
-							<input
-								id="titleFr"
-								name="titleFr"
-								type="text"
-								bind:value={titleFr}
-								required
-								placeholder="Festival de musique d'été 2026"
-								class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent"
-							/>
+						<!-- Title (French) -->
+						<div>
+							<label for="titleFr" class="block text-sm font-medium text-foreground-alt mb-2">
+								Titre (Français) <span class="text-red-500">*</span>
+							</label>
+							<div class="relative">
+								<Type
+									size={18}
+									class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+								/>
+								<input
+									id="titleFr"
+									name="titleFr"
+									type="text"
+									bind:value={titleFr}
+									required
+									placeholder="Festival de musique d'été 2026"
+									class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent"
+								/>
+							</div>
 						</div>
 					</div>
 
@@ -269,89 +272,95 @@
 						</p>
 					</div>
 
-					<!-- Subtitle (English) -->
-					<div>
-						<label for="subtitleEn" class="block text-sm font-medium text-foreground-alt mb-2">
-							Sous-titre (Anglais) (Optionnel)
-						</label>
-						<div class="relative">
-							<FileText
-								size={18}
-								class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-							/>
-							<input
-								id="subtitleEn"
-								name="subtitleEn"
-								type="text"
-								bind:value={subtitleEn}
-								placeholder="A short tagline for the event..."
-								class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent"
-							/>
+					<!-- Subtitles: side by side on desktop -->
+					<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+						<!-- Subtitle (English) -->
+						<div>
+							<label for="subtitleEn" class="block text-sm font-medium text-foreground-alt mb-2">
+								Sous-titre (Anglais) (Optionnel)
+							</label>
+							<div class="relative">
+								<FileText
+									size={18}
+									class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+								/>
+								<input
+									id="subtitleEn"
+									name="subtitleEn"
+									type="text"
+									bind:value={subtitleEn}
+									placeholder="A short tagline for the event..."
+									class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent"
+								/>
+							</div>
+						</div>
+
+						<!-- Subtitle (French) -->
+						<div>
+							<label for="subtitleFr" class="block text-sm font-medium text-foreground-alt mb-2">
+								Sous-titre (Français) (Optionnel)
+							</label>
+							<div class="relative">
+								<FileText
+									size={18}
+									class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+								/>
+								<input
+									id="subtitleFr"
+									name="subtitleFr"
+									type="text"
+									bind:value={subtitleFr}
+									placeholder="Une courte phrase accrocheuse pour l'événement..."
+									class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent"
+								/>
+							</div>
 						</div>
 					</div>
 
-					<!-- Subtitle (French) -->
-					<div>
-						<label for="subtitleFr" class="block text-sm font-medium text-foreground-alt mb-2">
-							Sous-titre (Français) (Optionnel)
-						</label>
-						<div class="relative">
-							<FileText
-								size={18}
-								class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-							/>
-							<input
-								id="subtitleFr"
-								name="subtitleFr"
-								type="text"
-								bind:value={subtitleFr}
-								placeholder="Une courte phrase accrocheuse pour l'événement..."
-								class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent"
-							/>
+					<!-- Descriptions: side by side on desktop -->
+					<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+						<!-- Description (English) -->
+						<div>
+							<label for="descriptionEn" class="block text-sm font-medium text-foreground-alt mb-2">
+								Description (Anglais) <span class="text-red-500">*</span>
+							</label>
+							<div class="relative">
+								<FileText
+									size={18}
+									class="absolute left-3 top-3 text-muted-foreground"
+								/>
+								<textarea
+									id="descriptionEn"
+									name="descriptionEn"
+									bind:value={descriptionEn}
+									required
+									rows="5"
+									placeholder="Describe your event..."
+									class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent resize-none"
+								></textarea>
+							</div>
 						</div>
-					</div>
 
-					<!-- Description (English) -->
-					<div>
-						<label for="descriptionEn" class="block text-sm font-medium text-foreground-alt mb-2">
-							Description (Anglais) <span class="text-red-500">*</span>
-						</label>
-						<div class="relative">
-							<FileText
-								size={18}
-								class="absolute left-3 top-3 text-muted-foreground"
-							/>
-							<textarea
-								id="descriptionEn"
-								name="descriptionEn"
-								bind:value={descriptionEn}
-								required
-								rows="5"
-								placeholder="Describe your event..."
-								class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent resize-none"
-							></textarea>
-						</div>
-					</div>
-
-					<!-- Description (French) -->
-					<div>
-						<label for="descriptionFr" class="block text-sm font-medium text-foreground-alt mb-2">
-							Description (Français) <span class="text-red-500">*</span>
-						</label>
-						<div class="relative">
-							<FileText
-								size={18}
-								class="absolute left-3 top-3 text-muted-foreground"
-							/>
-							<textarea
-								id="descriptionFr"
-								name="descriptionFr"
-								bind:value={descriptionFr}
-								required
-								rows="5"
-								placeholder="Décrivez votre événement..."
-								class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent resize-none"
-							></textarea>
+						<!-- Description (French) -->
+						<div>
+							<label for="descriptionFr" class="block text-sm font-medium text-foreground-alt mb-2">
+								Description (Français) <span class="text-red-500">*</span>
+							</label>
+							<div class="relative">
+								<FileText
+									size={18}
+									class="absolute left-3 top-3 text-muted-foreground"
+								/>
+								<textarea
+									id="descriptionFr"
+									name="descriptionFr"
+									bind:value={descriptionFr}
+									required
+									rows="5"
+									placeholder="Décrivez votre événement..."
+									class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent resize-none"
+								></textarea>
+							</div>
 						</div>
 					</div>
 				</section>
