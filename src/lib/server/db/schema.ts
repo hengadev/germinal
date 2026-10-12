@@ -58,6 +58,10 @@ export const discountTypeEnum = pgEnum('discount_type', ['percent', 'amount'] as
 // (ADR 0005, CONTEXT.md "Service")
 export const serviceKindEnum = pgEnum('service_kind', ['lunch', 'dinner'] as const);
 
+// An Event's Deposit rule (issue 023): no Deposit, a fixed amount per seat,
+// or a percentage of the price. Full payment online is percent 100.
+export const depositTypeEnum = pgEnum('deposit_type', ['none', 'fixed', 'percent'] as const);
+
 // Mirrors Stripe.Dispute.Status from the installed stripe SDK (apiVersion 2025-12-15.clover)
 export const disputeStatusEnum = pgEnum('dispute_status', [
     'warning_needs_response',
@@ -131,6 +135,12 @@ export const events = pgTable('events', {
     // Every Seating inherits it unless it overrides its own capacity. Null
     // only on an Event that has never been given one (no Seating yet).
     venueCapacity: integer('venue_capacity'),
+    // Deposit rule (issue 023), applied by the Pricing module
+    // ($lib/utils/pricing): `none` (value 0), `fixed` (value = minor units
+    // per seat) or `percent` (value = whole percent 1..100 of the price
+    // after any Promo Code). Defaults to percent 100 — full payment online.
+    depositType: depositTypeEnum('deposit_type').notNull().default('percent'),
+    depositValue: integer('deposit_value').notNull().default(100),
     coverMediaId: uuid('cover_media_id'),
     coverVideoId: uuid('cover_video_id'),
     published: boolean('published').default(false).notNull(),
@@ -148,6 +158,9 @@ export const events = pgTable('events', {
     portfolioIdx: index('events_portfolio_idx').on(table.isPortfolio),
     venueCapacityCheck: check('events_venue_capacity_check',
         sql`venue_capacity IS NULL OR venue_capacity > 0`
+    ),
+    depositRuleCheck: check('events_deposit_rule_check',
+        sql`(deposit_type = 'none' AND deposit_value = 0) OR (deposit_type = 'fixed' AND deposit_value > 0) OR (deposit_type = 'percent' AND deposit_value BETWEEN 1 AND 100)`
     ),
 }));
 
@@ -659,6 +672,11 @@ export const reservations = pgTable('reservations', {
     paymentId: uuid('payment_id').references(() => payments.id, { onDelete: 'set null' }),
     promotionCodeId: uuid('promotion_code_id').references(() => promotionCodes.id, { onDelete: 'set null' }),
     discountAmount: integer('discount_amount').default(0).notNull(),
+    // Issue 023: how total_amount (after discount) splits between the
+    // Deposit paid online (what Stripe charges) and the Balance due at the
+    // venue. deposit_amount + balance_amount = total_amount.
+    depositAmount: integer('deposit_amount').notNull(),
+    balanceAmount: integer('balance_amount').notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => ({
@@ -678,6 +696,9 @@ export const reservations = pgTable('reservations', {
     quantityCheck: check('reservations_quantity_check', sql`quantity > 0`),
     amountCheck: check('reservations_amount_check', sql`total_amount >= 0`),
     discountCheck: check('reservations_discount_check', sql`discount_amount >= 0`),
+    depositBalanceCheck: check('reservations_deposit_balance_check',
+        sql`deposit_amount >= 0 AND balance_amount >= 0 AND deposit_amount + balance_amount = total_amount`
+    ),
 }));
 
 export const payments = pgTable('payments', {
