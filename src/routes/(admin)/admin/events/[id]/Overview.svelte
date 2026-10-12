@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { goto, invalidateAll } from '$app/navigation';
-	import { Calendar, MapPin, Type, FileText } from 'lucide-svelte';
+	import { MapPin, Type, FileText } from 'lucide-svelte';
+	import DaysServicesPicker, { type PickedDay } from '$lib/components/admin/DaysServicesPicker.svelte';
 	import type { ActionData, PageData } from './$types';
 	import { getToastContext } from '$lib/components/toast/state.svelte';
 
@@ -9,7 +10,20 @@
 
 	const toast = getToastContext();
 
-	function updateEventEnhance() {
+	function updateEventEnhance({ cancel }: { cancel: () => void }) {
+		// The Days cannot use browser validity (the payload is a hidden input)
+		if (days.length === 0) {
+			cancel();
+			toast.error('Erreur', 'Sélectionnez au moins un jour sur le calendrier.');
+			requestAnimationFrame(() => daysPicker?.focus());
+			return;
+		}
+		if (days.some((day) => day.kinds.length === 0)) {
+			cancel();
+			toast.error('Erreur', 'Cochez au moins un repas (déjeuner ou dîner) pour chaque jour sélectionné.');
+			requestAnimationFrame(() => daysPicker?.focus());
+			return;
+		}
 		return async ({ result }: { result: import('@sveltejs/kit').ActionResult }) => {
 			if (result.type === 'success') {
 				toast.success('Succès', (result.data as { success?: string })?.success ?? 'Événement mis à jour');
@@ -27,12 +41,13 @@
 	let descriptionFr = $state(data.event.descriptionFr || "");
 	let subtitleEn = $state(data.event.subtitleEn || "");
 	let subtitleFr = $state(data.event.subtitleFr || "");
-	let startDate = $state(
-		new Date(data.event.startDate).toISOString().slice(0, 16)
+	// Days picked on the calendar (issue 019), seeded from the Event's
+	// current schedule — the Event's start/end dates are derived from its
+	// first and last Day.
+	let days: PickedDay[] = $state(
+		(data.days ?? []).map((day) => ({ date: day.date, kinds: [...day.kinds] }))
 	);
-	let endDate = $state(
-		new Date(data.event.endDate).toISOString().slice(0, 16)
-	);
+	let daysPicker: ReturnType<typeof DaysServicesPicker> | undefined = $state();
 	let locationEn = $state(data.event.locationEn);
 	let locationFr = $state(data.event.locationFr);
 	let venueNameEn = $state(data.event.venueNameEn || "");
@@ -219,48 +234,8 @@
  </div>
  </div>
 
- <!-- Dates -->
- <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
- <div>
- <label for="startDate" class="block text-sm font-medium text-foreground-alt mb-2">
- Date de Début <span class="text-red-500">*</span>
- </label>
- <div class="relative">
- <Calendar
- size={18}
- class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
- />
- <input
- id="startDate"
- name="startDate"
- type="datetime-local"
- bind:value={startDate}
- required
- class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent"
- />
- </div>
- </div>
-
- <div>
- <label for="endDate" class="block text-sm font-medium text-foreground-alt mb-2">
- Date de Fin <span class="text-red-500">*</span>
- </label>
- <div class="relative">
- <Calendar
- size={18}
- class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
- />
- <input
- id="endDate"
- name="endDate"
- type="datetime-local"
- bind:value={endDate}
- required
- class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent"
- />
- </div>
- </div>
- </div>
+ <!-- Days & meals: the Event's dates are derived from its Days (ADR 0005) -->
+ <DaysServicesPicker bind:this={daysPicker} bind:days idPrefix="event-days" />
 
  <!-- Lieu (English) -->
  <div>

@@ -2,8 +2,47 @@ import { fail, redirect, error, type Actions, type ServerLoad } from '@sveltejs/
 import { logger } from '$lib/server/logger';
 import { env } from '$lib/server/env';
 import { MOCK_EVENTS, MOCK_SESSIONS, MOCK_RESERVATIONS, MOCK_TALENTS } from '$lib/mock-data';
+import {
+	dayEndUtc,
+	dayStartUtc,
+	LUNCH_DINNER_CUTOFF_HOUR,
+	parsePickedDays,
+	pickedDaysErrorMessage,
+	saveEventSchedule,
+	ScheduleSaveRefusedError,
+	type PickedServiceDay,
+} from '$lib/server/services/event-schedule';
 import type { PageServerLoad } from './$types';
 import { requireAdmin } from '$lib/server/auth-guards';
+
+/**
+ * The Event's Days with their lunch/dinner Services, ordered by date then
+ * meal — the shape the admin Days picker is seeded with.
+ */
+async function loadScheduleDays(eventId: string): Promise<PickedServiceDay[]> {
+	const { db } = await import('$lib/server/db');
+	const { eventDays, eventServices } = await import('$lib/server/db/schema');
+	const { eq } = await import('drizzle-orm');
+
+	const rows = await db
+		.select({ date: eventDays.date, kind: eventServices.kind })
+		.from(eventDays)
+		.innerJoin(eventServices, eq(eventServices.dayId, eventDays.id))
+		.where(eq(eventDays.eventId, eventId))
+		.orderBy(eventDays.date, eventServices.kind);
+
+	const days: PickedServiceDay[] = [];
+	for (const row of rows) {
+		const date = typeof row.date === 'string' ? row.date : String(row.date).slice(0, 10);
+		const current = days.find((day) => day.date === date);
+		if (current) {
+			current.kinds.push(row.kind);
+		} else {
+			days.push({ date, kinds: [row.kind] });
+		}
+	}
+	return days;
+}
 
 export const load: PageServerLoad = async ({ params }) => {
 	const { id } = params;
@@ -63,7 +102,20 @@ export const load: PageServerLoad = async ({ params }) => {
 			});
 
 		const talents = MOCK_TALENTS.map(t => ({ id: t.id, firstName: t.firstName, lastName: t.lastName }));
-		return { event, sessions, reservations, promoCodes: [], talents };
+
+		// Mock mode has no Days table: derive them from the mock Seatings,
+		// lunch before the UTC cut-off and dinner after (same rule as the DB).
+		const daysMap = new Map<string, PickedServiceDay>();
+		for (const session of MOCK_SESSIONS.filter(s => s.eventId === id)) {
+			const date = session.startTime.toISOString().slice(0, 10);
+			const kind = session.startTime.getUTCHours() < LUNCH_DINNER_CUTOFF_HOUR ? 'lunch' : 'dinner';
+			const day = daysMap.get(date) ?? { date, kinds: [] as ('lunch' | 'dinner')[] };
+			if (!day.kinds.includes(kind)) day.kinds.push(kind);
+			daysMap.set(date, day);
+		}
+		const days = [...daysMap.values()].sort((a, b) => a.date.localeCompare(b.date));
+
+		return { event, sessions, reservations, promoCodes: [], talents, days };
 	}
 
 	// Database mode - fetch from database
@@ -111,10 +163,13 @@ export const load: PageServerLoad = async ({ params }) => {
 		const talentsData = await getAllTalents({ publishedOnly: false, limit: 1000 });
 		const talents = talentsData.data.map((t: typeof talentsData.data[number]) => ({ id: t.id, firstName: t.firstName, lastName: t.lastName }));
 
+		const days = await loadScheduleDays(id);
+
 		return {
 			event,
 			promoCodes,
 			talents,
+			days,
 			sessions: sessionsData.map((s: typeof sessionsData[number]) => ({
 				id: s.id,
 				titleEn: s.titleEn,
@@ -179,8 +234,14 @@ export const actions: Actions = {
 		const descriptionFr = formData.get('descriptionFr');
 		const subtitleEn = formData.get('subtitleEn');
 		const subtitleFr = formData.get('subtitleFr');
-		const startDate = formData.get('startDate');
-		const endDate = formData.get('endDate');
+		// Days picked on the calendar (issue 019): the Event's start/end dates
+		// are derived from its first and last Day.
+		const pickedDays = parsePickedDays(
+			typeof formData.get('days') === 'string' ? formData.get('days') as string : null
+		);
+		if (!pickedDays.ok) {
+			return fail(400, { error: pickedDaysErrorMessage(pickedDays.reason) });
+		}
 		const locationEn = formData.get('locationEn');
 		const locationFr = formData.get('locationFr');
 		const venueNameEn = formData.get('venueNameEn');
@@ -225,14 +286,6 @@ export const actions: Actions = {
 			return fail(400, { error: 'Description (French) is required' });
 		}
 
-		if (!startDate || typeof startDate !== 'string') {
-			return fail(400, { error: 'Start date is required' });
-		}
-
-		if (!endDate || typeof endDate !== 'string') {
-			return fail(400, { error: 'End date is required' });
-		}
-
 		if (!locationEn || typeof locationEn !== 'string') {
 			return fail(400, { error: 'Location (English) is required' });
 		}
@@ -246,17 +299,9 @@ export const actions: Actions = {
 			return fail(400, { error: 'Slug must contain only lowercase letters, numbers, and hyphens' });
 		}
 
-		// Validate dates
-		const start = new Date(startDate);
-		const end = new Date(endDate);
-
-		if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-			return fail(400, { error: 'Invalid date format' });
-		}
-
-		if (end < start) {
-			return fail(400, { error: 'End date must be after start date' });
-		}
+		// The Event's dates follow from its first and last Day
+		const start = dayStartUtc(pickedDays.days[0].date);
+		const end = dayEndUtc(pickedDays.days[pickedDays.days.length - 1].date);
 
 		// Validate: published events must have at least one session
 		if (published) {
@@ -330,6 +375,8 @@ export const actions: Actions = {
 		const { updateEvent } = await import('$lib/server/services/events');
 
 		try {
+			// The Event's other fields first: a refused schedule removal below
+			// must not discard them.
 			await updateEvent(id, {
 				titleEn,
 				titleFr,
@@ -338,8 +385,6 @@ export const actions: Actions = {
 				descriptionFr,
 				subtitleEn: subtitleEn?.toString() || null,
 				subtitleFr: subtitleFr?.toString() || null,
-				startDate: start,
-				endDate: end,
 				locationEn,
 				locationFr,
 				venueNameEn: venueNameEn?.toString() || null,
@@ -364,7 +409,19 @@ export const actions: Actions = {
 				isPortfolio
 			});
 
-			return { success: `Événement "${titleEn}" mis à jour` };
+			// Save the picked Days/Services in one transaction; this refuses to
+			// remove a Day or Service that still has Reservations and recomputes
+			// the Event's start/end dates from its first and last Day.
+			try {
+				await saveEventSchedule(id, pickedDays.days);
+			} catch (scheduleError) {
+				if (scheduleError instanceof ScheduleSaveRefusedError) {
+					return fail(400, { error: scheduleError.message });
+				}
+				throw scheduleError;
+			}
+
+			return { success: `Événement « ${titleEn} » mis à jour` };
 		} catch (error) {
 			logger.error({ err: error }, 'Error updating event');
 			return fail(500, { error: 'Failed to update event. The slug may already be in use.' });

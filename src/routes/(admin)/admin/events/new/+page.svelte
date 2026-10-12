@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
-	import { ArrowLeft, Calendar, MapPin, Type, FileText } from 'lucide-svelte';
+	import { ArrowLeft, MapPin, Type, FileText } from 'lucide-svelte';
 	import MediaUpload from '$lib/components/MediaUpload.svelte';
+	import DaysServicesPicker, { type PickedDay } from '$lib/components/admin/DaysServicesPicker.svelte';
 	import type { ActionData } from './$types';
 	import type { Media } from '$lib/types/media';
 	import type { PageData } from './$types';
@@ -60,7 +61,27 @@
 		tabEls[target]?.focus();
 	}
 
+	// The Days cannot use browser validity (the payload is a hidden input),
+	// so the enhance handler checks them before the per-field pass.
+	function pickedDaysError(): string | null {
+		if (days.length === 0) {
+			return 'Sélectionnez au moins un jour sur le calendrier.';
+		}
+		if (days.some((day) => day.kinds.length === 0)) {
+			return 'Cochez au moins un repas (déjeuner ou dîner) pour chaque jour sélectionné.';
+		}
+		return null;
+	}
+
 	function createEventEnhance({ cancel }: { cancel: () => void }) {
+		const dayError = pickedDaysError();
+		if (dayError !== null) {
+			cancel();
+			activeTab = 1;
+			toast.error('Erreur', dayError);
+			requestAnimationFrame(() => daysPicker?.focus());
+			return;
+		}
 		const invalidTab = TABS.findIndex((_, i) => firstInvalidField(i));
 		if (invalidTab !== -1) {
 			cancel();
@@ -88,8 +109,10 @@
 	let descriptionFr = $state('');
 	let subtitleEn = $state('');
 	let subtitleFr = $state('');
-	let startDate = $state('');
-	let endDate = $state('');
+	// Days picked on the calendar (issue 019) — the Event's start/end dates
+	// are derived from the first and last Day.
+	let days: PickedDay[] = $state([]);
+	let daysPicker: ReturnType<typeof DaysServicesPicker> | undefined = $state();
 	let locationEn = $state('');
 	let locationFr = $state('');
 	let venueNameEn = $state('');
@@ -149,14 +172,6 @@
 	function handleGalleryReorder(mediaIds: string[]) {
 		galleryMediaIds = mediaIds;
 	}
-
-	// Catches an end before the start before submitting, not just on the server
-	let endDateEl: HTMLInputElement | undefined = $state();
-	$effect(() => {
-		endDateEl?.setCustomValidity(
-			startDate && endDate && endDate < startDate ? 'La date de fin doit être après la date de début' : ''
-		);
-	});
 
 	// Auto-generate slug from English title
 	$effect(() => {
@@ -387,49 +402,8 @@
 
 				<!-- Tab 2: Date & lieu -->
 				<div bind:this={panelEls[1]} hidden={activeTab !== 1} role="tabpanel" id="panel-{TABS[1].id}" aria-labelledby="tab-{TABS[1].id}" class="space-y-6">
-					<!-- Dates -->
-					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-						<div>
-							<label for="startDate" class="block text-sm font-medium text-foreground-alt mb-2">
-								Date de Début <span class="text-red-500">*</span>
-							</label>
-							<div class="relative">
-								<Calendar
-									size={18}
-									class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-								/>
-								<input
-									id="startDate"
-									name="startDate"
-									type="datetime-local"
-									bind:value={startDate}
-									required
-									class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent"
-								/>
-							</div>
-						</div>
-
-						<div>
-							<label for="endDate" class="block text-sm font-medium text-foreground-alt mb-2">
-								Date de Fin <span class="text-red-500">*</span>
-							</label>
-							<div class="relative">
-								<Calendar
-									size={18}
-									class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-								/>
-								<input
-									id="endDate"
-									name="endDate"
-									bind:this={endDateEl}
-									type="datetime-local"
-									bind:value={endDate}
-									required
-									class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent"
-								/>
-							</div>
-						</div>
-					</div>
+					<!-- Days & meals: the Event's dates are derived from its Days (ADR 0005) -->
+					<DaysServicesPicker bind:this={daysPicker} bind:days idPrefix="new-event-days" />
 
 					<!-- Locations: side by side on desktop -->
 					<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
