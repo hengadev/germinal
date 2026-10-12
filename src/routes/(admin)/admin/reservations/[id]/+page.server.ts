@@ -36,6 +36,11 @@ export const load: PageServerLoad = async ({ params }) => {
 				guestPhone: reservation.guestPhone,
 				quantity: reservation.quantity,
 				totalAmount: reservation.totalAmount,
+				// Mock rows carry no Deposit/Balance split: balance-due.ts treats
+				// them as paid in full online (Deposit = total, Balance = 0).
+				depositAmount: (reservation as { depositAmount?: number }).depositAmount ?? null,
+				balanceAmount: (reservation as { balanceAmount?: number }).balanceAmount ?? null,
+				discountAmount: (reservation as { discountAmount?: number }).discountAmount ?? 0,
 				currency: reservation.currency,
 				status: reservation.status,
 				isComp: (reservation as { isComp?: boolean }).isComp ?? false,
@@ -87,6 +92,9 @@ export const load: PageServerLoad = async ({ params }) => {
 				guestPhone: reservation.guestPhone,
 				quantity: reservation.quantity,
 				totalAmount: reservation.totalAmount,
+				depositAmount: reservation.depositAmount,
+				balanceAmount: reservation.balanceAmount,
+				discountAmount: reservation.discountAmount,
 				currency: reservation.currency,
 				status: reservation.status,
 				isComp: reservation.isComp,
