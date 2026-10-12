@@ -461,7 +461,7 @@ export async function saveEventSchedule(eventId: string, picked: PickedServiceDa
 			const counts = await tx
 				.select({
 					serviceId: eventSessions.serviceId,
-					liveCount: sql<number>`(count(*) FILTER (WHERE ${reservations.status} IN ('pending', 'processing', 'confirmed')))::int`,
+					liveCount: sql<number>`(count(*) FILTER (WHERE ${inArray(reservations.status, LIVE_RESERVATION_STATUSES)}))::int`,
 					totalCount: sql<number>`(count(${reservations.id}))::int`,
 				})
 				.from(eventSessions)

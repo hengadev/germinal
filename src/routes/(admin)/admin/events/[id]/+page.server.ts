@@ -5,6 +5,7 @@ import { MOCK_EVENTS, MOCK_SESSIONS, MOCK_RESERVATIONS, MOCK_TALENTS } from '$li
 import {
 	dayEndUtc,
 	dayStartUtc,
+	LUNCH_DINNER_CUTOFF_HOUR,
 	parsePickedDays,
 	pickedDaysErrorMessage,
 	saveEventSchedule,
@@ -103,11 +104,11 @@ export const load: PageServerLoad = async ({ params }) => {
 		const talents = MOCK_TALENTS.map(t => ({ id: t.id, firstName: t.firstName, lastName: t.lastName }));
 
 		// Mock mode has no Days table: derive them from the mock Seatings,
-		// lunch before 16:00 UTC and dinner after (same cut-off as the DB).
+		// lunch before the UTC cut-off and dinner after (same rule as the DB).
 		const daysMap = new Map<string, PickedServiceDay>();
 		for (const session of MOCK_SESSIONS.filter(s => s.eventId === id)) {
 			const date = session.startTime.toISOString().slice(0, 10);
-			const kind = session.startTime.getUTCHours() < 16 ? 'lunch' : 'dinner';
+			const kind = session.startTime.getUTCHours() < LUNCH_DINNER_CUTOFF_HOUR ? 'lunch' : 'dinner';
 			const day = daysMap.get(date) ?? { date, kinds: [] as ('lunch' | 'dinner')[] };
 			if (!day.kinds.includes(kind)) day.kinds.push(kind);
 			daysMap.set(date, day);
