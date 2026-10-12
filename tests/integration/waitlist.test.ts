@@ -6,6 +6,7 @@ import {
 	getTestDatabase,
 	setupTestDatabase,
 	closeTestDatabase,
+	seedServiceForSession,
 	TEST_DATABASE_URL,
 } from '../fixtures/database';
 
@@ -72,14 +73,21 @@ async function seedEvent() {
 }
 
 async function seedSession(eventId: string, overrides?: Partial<typeof eventSessions.$inferInsert>) {
+	const defaultStart = new Date('2099-06-01T18:00:00Z');
+	const defaultEnd = new Date('2099-06-01T22:00:00Z');
+	const startTime = overrides?.startTime ?? defaultStart;
+	const endTime = overrides?.endTime ?? defaultEnd;
+	const serviceId = await seedServiceForSession(testDb, eventId, startTime, endTime);
+
 	const [session] = await testDb
 		.insert(eventSessions)
 		.values({
 			eventId,
+			serviceId,
 			titleEn: 'General Admission',
 			titleFr: 'Admission Générale',
-			startTime: new Date('2099-06-01T18:00:00Z'),
-			endTime: new Date('2099-06-01T22:00:00Z'),
+			startTime,
+			endTime,
 			totalCapacity: 10,
 			availableCapacity: 0, // sold out by default for waitlist scenarios
 			priceAmount: 2500,

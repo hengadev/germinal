@@ -1,7 +1,14 @@
 import { db } from '../db';
-import { eventSessions, reservations, events } from '../db/schema';
+import { eventSessions, eventServices, eventDays, reservations, events } from '../db/schema';
 import { eq, and, desc, sql } from 'drizzle-orm';
 import type { CreateEventSessionInput, UpdateEventSessionInput } from '$lib/types/event-sessions';
+import {
+	classifyServiceKind,
+	findOrAttachService,
+	pruneEmptyScheduleNodes,
+	recomputeEventDatesFromDays,
+	utcDayKey,
+} from './event-schedule';
 
 /**
  * Define result type for raw SQL query
@@ -33,6 +40,20 @@ interface SessionWithEventAndSoldCount {
 	sold_count: string;
 }
 
+/**
+ * While an Event has no Days, its hand-entered start/end window is
+ * authoritative and Seating times must fall inside it. Once Days exist the
+ * Event's dates are derived from them (ADR 0005), so Seatings may open new
+ * Days — the dates are then recomputed from the first/last Day.
+ */
+async function eventHasDays(eventId: string): Promise<boolean> {
+	const days = await db.select({ id: eventDays.id })
+		.from(eventDays)
+		.where(eq(eventDays.eventId, eventId))
+		.limit(1);
+	return days.length > 0;
+}
+
 export async function createEventSession(input: CreateEventSessionInput) {
 	const event = await db.query.events.findFirst({
 		where: eq(events.id, input.eventId),
@@ -43,28 +64,41 @@ export async function createEventSession(input: CreateEventSessionInput) {
 		throw new Error('Event not found');
 	}
 
-	if (input.startTime < event.startDate || input.endTime > event.endDate) {
+	if (
+		!await eventHasDays(input.eventId) &&
+		(input.startTime < event.startDate || input.endTime > event.endDate)
+	) {
 		throw new Error('Session times must fall within the event dates');
 	}
 
-	const [session] = await db.insert(eventSessions).values({
-		eventId: input.eventId,
-		titleEn: input.titleEn,
-		titleFr: input.titleFr,
-		descriptionEn: input.descriptionEn ?? null,
-		descriptionFr: input.descriptionFr ?? null,
-		startTime: input.startTime,
-		endTime: input.endTime,
-		totalCapacity: input.totalCapacity,
-		availableCapacity: input.totalCapacity,
-		priceAmount: input.priceAmount,
-		currency: input.currency ?? 'EUR',
-		published: input.published ?? false,
-		allowWaitlist: input.allowWaitlist ?? false,
-		badgeType: input.badgeType ?? 'none',
-	}).returning();
+	// The Seating is attached to its Day and Service (find-or-create) and the
+	// Event's derived dates are refreshed in the same transaction, so the
+	// schedule is never observable half-built.
+	return await db.transaction(async (tx: typeof db) => {
+		const serviceId = await findOrAttachService(tx, input.eventId, input.startTime, input.endTime);
 
-	return session;
+		const [session] = await tx.insert(eventSessions).values({
+			eventId: input.eventId,
+			serviceId,
+			titleEn: input.titleEn,
+			titleFr: input.titleFr,
+			descriptionEn: input.descriptionEn ?? null,
+			descriptionFr: input.descriptionFr ?? null,
+			startTime: input.startTime,
+			endTime: input.endTime,
+			totalCapacity: input.totalCapacity,
+			availableCapacity: input.totalCapacity,
+			priceAmount: input.priceAmount,
+			currency: input.currency ?? 'EUR',
+			published: input.published ?? false,
+			allowWaitlist: input.allowWaitlist ?? false,
+			badgeType: input.badgeType ?? 'none',
+		}).returning();
+
+		await recomputeEventDatesFromDays(tx, input.eventId);
+
+		return session;
+	});
 }
 
 export async function getSessionById(id: string) {
@@ -163,20 +197,65 @@ export async function updateEventSession(id: string, input: UpdateEventSessionIn
 	if (input.startTime !== undefined || input.endTime !== undefined) {
 		const effectiveStartTime = input.startTime ?? session.startTime;
 		const effectiveEndTime = input.endTime ?? session.endTime;
-		if (effectiveStartTime < session.event.startDate || effectiveEndTime > session.event.endDate) {
+		if (
+			!await eventHasDays(session.eventId) &&
+			(effectiveStartTime < session.event.startDate || effectiveEndTime > session.event.endDate)
+		) {
 			throw new Error('Session times must fall within the event dates');
 		}
 	}
 
-	if (input.totalCapacity !== undefined) {
-		if (input.totalCapacity < soldCount) {
-			throw new Error(`Cannot reduce capacity below ${soldCount} (already sold)`);
+	return await db.transaction(async (tx: typeof db) => {
+		// If the times moved the Seating to another Day or meal, re-attach it
+		// to the matching Service; nodes it vacated are pruned below.
+		if (input.startTime !== undefined || input.endTime !== undefined) {
+			const effectiveStartTime = input.startTime ?? session.startTime;
+			const effectiveEndTime = input.endTime ?? session.endTime;
+			const parent = await tx.query.eventServices.findFirst({
+				where: eq(eventServices.id, session.serviceId),
+				with: { day: true },
+			});
+
+			const dayMoved = !parent || parent.day.date !== utcDayKey(effectiveStartTime);
+			const kindMoved = !parent || parent.kind !== classifyServiceKind(effectiveStartTime);
+
+			if (dayMoved || kindMoved) {
+				const serviceId = await findOrAttachService(tx, session.eventId, effectiveStartTime, effectiveEndTime);
+				await tx.update(eventSessions)
+					.set({ serviceId })
+					.where(eq(eventSessions.id, id));
+			}
 		}
 
-		const [updated] = await db.update(eventSessions)
+		if (input.totalCapacity !== undefined) {
+			if (input.totalCapacity < soldCount) {
+				throw new Error(`Cannot reduce capacity below ${soldCount} (already sold)`);
+			}
+
+			const [updated] = await tx.update(eventSessions)
+				.set({
+						...input,
+						availableCapacity: input.totalCapacity - soldCount,
+						updatedAt: new Date(),
+					})
+				.where(eq(eventSessions.id, id))
+				.returning();
+
+			if (!updated) {
+				throw new Error('Session not found');
+			}
+
+			if (input.startTime !== undefined || input.endTime !== undefined) {
+				await pruneEmptyScheduleNodes(tx, session.eventId);
+				await recomputeEventDatesFromDays(tx, session.eventId);
+			}
+
+			return updated;
+		}
+
+		const [updated] = await tx.update(eventSessions)
 			.set({
 					...input,
-					availableCapacity: input.totalCapacity - soldCount,
 					updatedAt: new Date(),
 				})
 			.where(eq(eventSessions.id, id))
@@ -186,22 +265,13 @@ export async function updateEventSession(id: string, input: UpdateEventSessionIn
 			throw new Error('Session not found');
 		}
 
+		if (input.startTime !== undefined || input.endTime !== undefined) {
+			await pruneEmptyScheduleNodes(tx, session.eventId);
+			await recomputeEventDatesFromDays(tx, session.eventId);
+		}
+
 		return updated;
-	}
-
-	const [updated] = await db.update(eventSessions)
-		.set({
-				...input,
-				updatedAt: new Date(),
-			})
-		.where(eq(eventSessions.id, id))
-		.returning();
-
-	if (!updated) {
-		throw new Error('Session not found');
-	}
-
-	return updated;
+	});
 }
 
 export async function deleteEventSession(id: string) {
@@ -216,5 +286,18 @@ export async function deleteEventSession(id: string) {
 		throw new Error('Cannot delete session with confirmed reservations');
 	}
 
-	await db.delete(eventSessions).where(eq(eventSessions.id, id));
+	const session = await db.query.eventSessions.findFirst({
+		where: eq(eventSessions.id, id),
+		columns: { eventId: true },
+	});
+
+	await db.transaction(async (tx: typeof db) => {
+		await tx.delete(eventSessions).where(eq(eventSessions.id, id));
+		if (session) {
+			// Drop the Day/Service this Seating implicitly created if nothing
+			// else sits under them, then refresh the Event's derived dates.
+			await pruneEmptyScheduleNodes(tx, session.eventId);
+			await recomputeEventDatesFromDays(tx, session.eventId);
+		}
+	});
 }

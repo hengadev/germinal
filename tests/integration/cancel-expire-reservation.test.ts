@@ -6,6 +6,7 @@ import {
 	getTestDatabase,
 	setupTestDatabase,
 	closeTestDatabase,
+	seedServiceForSession,
 	TEST_DATABASE_URL,
 } from '../fixtures/database';
 import { createRefund } from '../../src/lib/server/services/stripe';
@@ -114,6 +115,12 @@ async function seedPublishedSession(overrides?: Partial<typeof eventSessions.$in
 		.insert(eventSessions)
 		.values({
 			eventId: event.id,
+			serviceId: await seedServiceForSession(
+				testDb,
+				event.id,
+				overrides?.startTime ?? new Date('2099-06-01T18:00:00Z'),
+				overrides?.endTime ?? new Date('2099-06-01T22:00:00Z')
+			),
 			titleEn: 'General Admission',
 			titleFr: 'Admission Générale',
 			startTime: new Date('2099-06-01T18:00:00Z'),
