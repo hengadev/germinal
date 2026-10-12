@@ -16,7 +16,7 @@ export const load: PageServerLoad = async ({ params }) => {
 		const foundTalent = MOCK_TALENTS.find((t) => t.id === id);
 
 		if (!foundTalent) {
-			throw fail(404, { error: 'Talent not found' });
+			throw fail(404, { error: 'Talent introuvable' });
 		}
 
 		// Parse social links
@@ -45,7 +45,7 @@ export const load: PageServerLoad = async ({ params }) => {
 				socialLinks
 			};
 		} catch (error) {
-			throw fail(404, { error: 'Talent not found' });
+			throw fail(404, { error: 'Talent introuvable' });
 		}
 
 		const categoriesData = await getAllTalentCategories({ publishedOnly: false });
@@ -62,7 +62,7 @@ export const actions: Actions = {
 
 		// Validate id
 		if (!id) {
-			return fail(400, { error: 'Talent ID is required' });
+			return fail(400, { error: 'L’identifiant du talent est requis' });
 		}
 
 		const formData = await request.formData();
@@ -90,27 +90,27 @@ export const actions: Actions = {
 
 		// Validation
 		if (!firstName || typeof firstName !== 'string') {
-			return fail(400, { error: 'First name is required' });
+			return fail(400, { error: 'Le prénom est requis' });
 		}
 
 		if (!lastName || typeof lastName !== 'string') {
-			return fail(400, { error: 'Last name is required' });
+			return fail(400, { error: 'Le nom est requis' });
 		}
 
 		if (!roleEn || typeof roleEn !== 'string') {
-			return fail(400, { error: 'Role (English) is required' });
+			return fail(400, { error: 'Le rôle (anglais) est requis' });
 		}
 
 		if (!roleFr || typeof roleFr !== 'string') {
-			return fail(400, { error: 'Role (French) is required' });
+			return fail(400, { error: 'Le rôle (français) est requis' });
 		}
 
 		if (!bioEn || typeof bioEn !== 'string') {
-			return fail(400, { error: 'Bio (English) is required' });
+			return fail(400, { error: 'La bio (anglais) est requise' });
 		}
 
 		if (!bioFr || typeof bioFr !== 'string') {
-			return fail(400, { error: 'Bio (French) is required' });
+			return fail(400, { error: 'La bio (français) est requise' });
 		}
 
 		// Build social links object
@@ -133,7 +133,7 @@ export const actions: Actions = {
 			const talentIndex = MOCK_TALENTS.findIndex((t) => t.id === id);
 
 			if (talentIndex === -1) {
-				return fail(404, { error: 'Talent not found' });
+				return fail(404, { error: 'Talent introuvable' });
 			}
 
 			MOCK_TALENTS[talentIndex] = {
@@ -159,7 +159,7 @@ export const actions: Actions = {
 				updatedAt: new Date()
 			} as typeof MOCK_TALENTS[number];
 
-			return { success: `Talent "${firstName} ${lastName}" updated successfully (mock mode - not persisted)` };
+			return { success: `Talent « ${firstName} ${lastName} » mis à jour (mode démo, non enregistré)` };
 		}
 
 		// Database mode - use actual database functions
@@ -219,10 +219,10 @@ export const actions: Actions = {
 				}
 			}
 
-			return { success: `Talent "${firstName} ${lastName}" updated successfully` };
+			return { success: `Talent « ${firstName} ${lastName} » mis à jour` };
 		} catch (error) {
 			logger.error({ err: error }, 'Error updating talent');
-			return fail(500, { error: 'Failed to update talent' });
+			return fail(500, { error: 'Échec de la mise à jour du talent' });
 		}
 	}
 };

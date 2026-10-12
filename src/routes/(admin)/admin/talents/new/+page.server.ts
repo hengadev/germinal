@@ -40,27 +40,27 @@ export const actions: Actions = {
 
 		// Validation
 		if (!firstName || typeof firstName !== 'string') {
-			return fail(400, { error: 'First name is required' });
+			return fail(400, { error: 'Le prénom est requis' });
 		}
 
 		if (!lastName || typeof lastName !== 'string') {
-			return fail(400, { error: 'Last name is required' });
+			return fail(400, { error: 'Le nom est requis' });
 		}
 
 		if (!roleEn || typeof roleEn !== 'string') {
-			return fail(400, { error: 'Role (English) is required' });
+			return fail(400, { error: 'Le rôle (anglais) est requis' });
 		}
 
 		if (!roleFr || typeof roleFr !== 'string') {
-			return fail(400, { error: 'Role (French) is required' });
+			return fail(400, { error: 'Le rôle (français) est requis' });
 		}
 
 		if (!bioEn || typeof bioEn !== 'string') {
-			return fail(400, { error: 'Bio (English) is required' });
+			return fail(400, { error: 'La bio (anglais) est requise' });
 		}
 
 		if (!bioFr || typeof bioFr !== 'string') {
-			return fail(400, { error: 'Bio (French) is required' });
+			return fail(400, { error: 'La bio (français) est requise' });
 		}
 
 		// Build social links object
@@ -118,7 +118,7 @@ export const actions: Actions = {
 
 			MOCK_TALENTS.push(newTalent);
 
-			return { success: `Talent "${firstName} ${lastName}" added successfully (mock mode - not persisted)` };
+			return { success: `Talent « ${firstName} ${lastName} » ajouté (mode démo, non enregistré)` };
 		}
 
 		// Database mode - use actual database functions
@@ -155,10 +155,10 @@ export const actions: Actions = {
 					.where(eq(media.id, profileMediaId));
 			}
 
-			return { success: `Talent "${firstName} ${lastName}" added successfully` };
+			return { success: `Talent « ${firstName} ${lastName} » ajouté` };
 		} catch (error) {
 			logger.error({ err: error }, 'Error creating talent');
-			return fail(500, { error: 'Failed to create talent' });
+			return fail(500, { error: 'Échec de la création du talent' });
 		}
 	}
 };
