@@ -151,8 +151,9 @@
 				throw new Error(result.error || $t('booking.createError'));
 			}
 
-			// Redirect to Stripe's hosted checkout page
-			window.location.href = result.checkoutUrl;
+			// Redirect to Stripe's hosted checkout page to pay the Deposit —
+			// or, with no Deposit, straight to the already-confirmed Ticket.
+			window.location.href = result.checkoutUrl ?? result.ticketUrl;
 		} catch (err) {
 			error = err instanceof Error ? err.message : $t('booking.createError');
 			isSubmitting = false;
@@ -442,9 +443,11 @@
 					{:else}
 						{data.isMockMode
 							? $t('booking.bookDemo')
-							: price.balance > 0 && price.deposit > 0
-								? $t('booking.continueToPayDeposit')
-								: $t('booking.continueToPay')}
+							: price.deposit === 0
+								? $t('booking.confirmBooking')
+								: price.balance > 0
+									? $t('booking.continueToPayDeposit')
+									: $t('booking.continueToPay')}
 					{/if}
 				</button>
 			</div>

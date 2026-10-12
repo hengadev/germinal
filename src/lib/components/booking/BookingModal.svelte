@@ -132,8 +132,9 @@
 				throw new Error(userMessage);
 			}
 
-			// Reservation created — redirect to Stripe's hosted checkout page
-			window.location.href = data.checkoutUrl;
+			// Reservation created — redirect to Stripe's hosted checkout page to
+			// pay the Deposit, or, with no Deposit, straight to the confirmed Ticket.
+			window.location.href = data.checkoutUrl ?? data.ticketUrl;
 
 		} catch (err) {
 			console.error('Booking error:', err);
@@ -337,7 +338,7 @@
 					<Loader2 size={18} class="animate-spin" />
 					{$t('booking.processing')}
 				{:else}
-					{price.balance > 0 && price.deposit > 0 ? $t('booking.continueToPayDeposit') : $t('booking.continueToPay')}
+					{price.deposit === 0 ? $t('booking.confirmBooking') : price.balance > 0 ? $t('booking.continueToPayDeposit') : $t('booking.continueToPay')}
 				{/if}
 			</button>
 		</div>
