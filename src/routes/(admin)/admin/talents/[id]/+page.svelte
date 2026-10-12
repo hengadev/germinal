@@ -60,7 +60,7 @@
 		}
 	}
 
-	function handleSupprimer(mediaId: string) {
+	function handleRemove(mediaId: string) {
 		if (profileMediaId === mediaId) {
 			mediaAction = 'removed';
 			newMediaId = null;
@@ -106,7 +106,7 @@
 						existingMedia={existingProfileMedia}
 						maxSizeMB={5}
 						onUpload={handleUpload}
-						onSupprimer={handleSupprimer}
+						onRemove={handleRemove}
 					/>
 					<input type="hidden" name="mediaAction" value={mediaAction} />
 					<input type="hidden" name="existingMediaId" value={profileMediaId ?? ''} />

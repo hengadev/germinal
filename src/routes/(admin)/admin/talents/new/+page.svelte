@@ -58,7 +58,7 @@
  }
  }
 
- function handleProfileSupprimer(mediaId: string) {
+ function handleProfileRemove(mediaId: string) {
  if (profileMediaId === mediaId) {
  profileMediaId = null;
  }
@@ -98,7 +98,7 @@
  entityType="talent"
  maxSizeMB={5}
  onUpload={handleProfileUpload}
- onSupprimer={handleProfileSupprimer}
+ onRemove={handleProfileRemove}
  />
  <input type="hidden" name="profileMediaId" value={profileMediaId ?? ''} />
  </div>
