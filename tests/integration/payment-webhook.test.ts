@@ -132,10 +132,12 @@ async function seedPublishedSession(overrides?: Partial<typeof eventSessions.$in
 async function seedPendingReservationWithPayment(
 	sessionId: string,
 	paymentIntentId: string,
-	overrides?: { quantity?: number; totalAmount?: number; guestEmail?: string; guestPhone?: string },
+	overrides?: { quantity?: number; totalAmount?: number; depositAmount?: number; guestEmail?: string; guestPhone?: string },
 ) {
 	const quantity = overrides?.quantity ?? 2;
 	const totalAmount = overrides?.totalAmount ?? 5000;
+	// The Deposit charged online (issue 023); the whole total by default.
+	const depositAmount = overrides?.depositAmount ?? totalAmount;
 	const guestEmail = overrides?.guestEmail ?? 'guest@example.com';
 	const guestPhone = overrides?.guestPhone ?? null;
 
@@ -150,6 +152,8 @@ async function seedPendingReservationWithPayment(
 			guestPhone,
 			quantity,
 			totalAmount,
+			depositAmount,
+			balanceAmount: totalAmount - depositAmount,
 			currency: 'EUR',
 			status: 'pending',
 			accessToken,
@@ -162,7 +166,7 @@ async function seedPendingReservationWithPayment(
 		.values({
 			reservationId: reservation.id,
 			stripePaymentIntentId: paymentIntentId,
-			amount: totalAmount,
+			amount: depositAmount,
 			currency: 'EUR',
 			status: 'pending',
 			idempotencyKey: `test-ik-wh-${reservation.id}`,
@@ -184,7 +188,7 @@ async function seedPendingReservationWithPayment(
  */
 function fakePaymentIntent(
 	id: string,
-	overrides?: { last_payment_error?: { message: string } | null; status?: string },
+	overrides?: { last_payment_error?: { message: string } | null; status?: string; amount?: number },
 ) {
 	return {
 		id,
@@ -239,6 +243,30 @@ describe('handlePaymentSuccess', () => {
 		const callArgs = sendTicketConfirmationEmailMock.mock.calls[0][0];
 		expect(callArgs.guestEmail).toBe('happy@example.com');
 		expect(callArgs.accessToken).toBe(reservation.accessToken);
+	});
+
+	it('Deposit only — a payment of the Deposit (below the total) confirms the Reservation; the Balance stays due', async () => {
+		const { session } = await seedPublishedSession();
+		const piId = `pi_test_deposit_${Date.now()}`;
+		const { reservation, payment } = await seedPendingReservationWithPayment(session.id, piId, {
+			totalAmount: 13000,
+			depositAmount: 3900,
+		});
+
+		await handlePaymentSuccess(fakePaymentIntent(piId, { amount: 3900 }));
+
+		const [updatedRes] = await testDb
+			.select()
+			.from(reservations)
+			.where(eq(reservations.id, reservation.id));
+		expect(updatedRes).toMatchObject({ status: 'confirmed', totalAmount: 13000, depositAmount: 3900, balanceAmount: 9100 });
+
+		const [updatedPay] = await testDb
+			.select()
+			.from(payments)
+			.where(eq(payments.id, payment.id));
+		expect(updatedPay).toMatchObject({ status: 'succeeded', amount: 3900 });
+		expect(sendTicketConfirmationEmailMock).toHaveBeenCalledOnce();
 	});
 
 	it('idempotency — second call is a no-op, no duplicate email', async () => {
