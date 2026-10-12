@@ -529,8 +529,10 @@ export const eventSessions = pgTable('event_sessions', {
     serviceId: uuid('service_id')
         .notNull()
         .references(() => eventServices.id, { onDelete: 'cascade' }),
-    titleEn: varchar('title_en', { length: 255 }).notNull(),
-    titleFr: varchar('title_fr', { length: 255 }).notNull(),
+    // Titles are optional (issue 020): public pages derive a label from
+    // the Seating's Day, Service and start time when these are empty.
+    titleEn: varchar('title_en', { length: 255 }),
+    titleFr: varchar('title_fr', { length: 255 }),
     descriptionEn: text('description_en'),
     descriptionFr: text('description_fr'),
     startTime: timestamp('start_time', { withTimezone: true }).notNull(),
