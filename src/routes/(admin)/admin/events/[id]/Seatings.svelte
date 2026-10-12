@@ -5,9 +5,11 @@
 	// times are filled from the duration and can be overridden per Seating.
 	// Invalid times and overlapping Seatings are flagged before saving, with
 	// the same helpers the server checks the payload with.
+	// Capacity (issue 021): the Event's Venue Capacity is set at the top and
+	// inherited by every Seating, which may override it with its own.
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
-	import { AlertTriangle, CalendarDays, ChevronDown, Plus, RotateCcw, Trash2 } from 'lucide-svelte';
+	import { AlertTriangle, CalendarDays, ChevronDown, Plus, RotateCcw, Trash2, Users } from 'lucide-svelte';
 	import { getToastContext } from '$lib/components/toast/state.svelte';
 	import {
 		formatTimeOfDay,
@@ -22,7 +24,7 @@
 		ServiceSeatingsPayload,
 	} from '$lib/types/seatings-editor';
 
-	let { data }: { data: { schedule?: EditorService[] } } = $props();
+	let { data }: { data: { schedule?: EditorService[]; venueCapacity?: number | null } } = $props();
 
 	const toast = getToastContext();
 
@@ -37,7 +39,10 @@
 		titleFr: string;
 		descriptionEn: string;
 		descriptionFr: string;
-		totalCapacity: number | null;
+		/** The Seating's own capacity; only used when `capacityOverridden`,
+		 * otherwise the Seating inherits the Venue Capacity. */
+		capacity: number | null;
+		capacityOverridden: boolean;
 		/** Price in major units as typed (converted to cents on save). */
 		price: number | null;
 		currency: string;
@@ -45,7 +50,7 @@
 		allowWaitlist: boolean;
 		badgeType: SeatingBadge;
 		reservationCount: number;
-		/** Seats already sold (confirmed) — capacity cannot go below. */
+		/** Seats held (pending, processing, confirmed) — capacity cannot go below. */
 		soldSeats: number;
 		detailsOpen: boolean;
 	}
@@ -82,7 +87,8 @@
 					titleFr: seating.titleFr ?? '',
 					descriptionEn: seating.descriptionEn ?? '',
 					descriptionFr: seating.descriptionFr ?? '',
-					totalCapacity: seating.totalCapacity,
+					capacity: seating.capacityOverridden ? seating.totalCapacity : null,
+					capacityOverridden: seating.capacityOverridden,
 					price: seating.priceAmount / 100,
 					currency: seating.currency,
 					published: seating.published,
@@ -97,6 +103,7 @@
 	}
 
 	let services: DraftService[] = $state(toDrafts(data.schedule ?? []));
+	let venueCapacity: number | null = $state(data.venueCapacity ?? null);
 	let saving = $state(false);
 
 	const reviews: SeatingReview[][] = $derived(
@@ -129,7 +136,7 @@
 					titleFr: seating.titleFr.trim() || null,
 					descriptionEn: seating.descriptionEn.trim() || null,
 					descriptionFr: seating.descriptionFr.trim() || null,
-					totalCapacity: seating.totalCapacity ?? 0,
+					capacityOverride: seating.capacityOverridden ? (seating.capacity ?? 0) : null,
 					priceAmount: Math.round((seating.price ?? 0) * 100),
 					currency: seating.currency,
 					published: seating.published,
@@ -167,7 +174,7 @@
 		const service = services[serviceIndex];
 		const serviceReviews = reviews[serviceIndex] ?? [];
 		// Start the new Seating when the latest one ends (a clean turn-over)
-		// and copy its capacity, price and settings.
+		// and copy its price and settings; it inherits the Venue Capacity.
 		let latestEnd: number | null = null;
 		let template: DraftSeating | undefined = service.seatings.at(-1);
 		for (const [index, seating] of service.seatings.entries()) {
@@ -189,7 +196,8 @@
 			titleFr: '',
 			descriptionEn: '',
 			descriptionFr: '',
-			totalCapacity: template?.totalCapacity ?? null,
+			capacity: null,
+			capacityOverridden: false,
 			price: template?.price ?? 0,
 			currency: template?.currency ?? 'EUR',
 			published: template?.published ?? true,
@@ -217,6 +225,27 @@
 		seating.end = '';
 	}
 
+	function overrideCapacity(seating: DraftSeating, value: number) {
+		seating.capacity = Number.isNaN(value) ? null : value;
+		seating.capacityOverridden = true;
+	}
+
+	function resetCapacity(seating: DraftSeating) {
+		seating.capacityOverridden = false;
+		seating.capacity = null;
+	}
+
+	function isValidCapacity(value: number | null): value is number {
+		return value !== null && Number.isInteger(value) && value >= 1 && value <= 10000;
+	}
+
+	const inheritingCount = $derived(
+		services.reduce((count, service) => count + service.seatings.filter((seating) => !seating.capacityOverridden).length, 0)
+	);
+	const overriddenCount = $derived(
+		services.reduce((count, service) => count + service.seatings.filter((seating) => seating.capacityOverridden).length, 0)
+	);
+
 	function timeErrorMessage(review: SeatingReview): string | null {
 		switch (review.timeError) {
 			case 'start':
@@ -232,6 +261,12 @@
 
 	/** First field that blocks the save, with the message to show. */
 	function firstBlockingField(): { id: string; message: string } | null {
+		if (!isValidCapacity(venueCapacity)) {
+			return {
+				id: 'venue-capacity',
+				message: 'Capacité du lieu invalide : saisissez un nombre entier de places, entre 1 et 10 000.',
+			};
+		}
 		for (const [serviceIndex, service] of services.entries()) {
 			const label = `${MEAL_LABEL[service.kind].toLowerCase()} du ${dayLabel(service.date)}`;
 			if (
@@ -262,18 +297,27 @@
 							: `Une séance du dîner doit commencer à partir de 16:00 UTC (${label}).`,
 					};
 				}
-				const capacity = seating.totalCapacity;
-				if (capacity === null || !Number.isInteger(capacity) || capacity < 1 || capacity > 10000) {
-					return {
-						id: `seating-${seating.key}-capacity`,
-						message: `Capacité invalide (entre 1 et 10 000 places) pour une séance du ${label}.`,
-					};
-				}
-				if (capacity < seating.soldSeats) {
-					return {
-						id: `seating-${seating.key}-capacity`,
-						message: `La capacité ne peut pas descendre sous les ${seating.soldSeats} places déjà réservées (${label}).`,
-					};
+				if (!seating.capacityOverridden) {
+					if (venueCapacity < seating.soldSeats) {
+						return {
+							id: 'venue-capacity',
+							message: `La capacité du lieu ne peut pas descendre sous les ${seating.soldSeats} places déjà réservées d’une séance qui en hérite (${label}).`,
+						};
+					}
+				} else {
+					const capacity = seating.capacity;
+					if (!isValidCapacity(capacity)) {
+						return {
+							id: `seating-${seating.key}-capacity`,
+							message: `Capacité invalide (entre 1 et 10 000 places) pour une séance du ${label}.`,
+						};
+					}
+					if (capacity < seating.soldSeats) {
+						return {
+							id: `seating-${seating.key}-capacity`,
+							message: `La capacité ne peut pas descendre sous les ${seating.soldSeats} places déjà réservées (${label}).`,
+						};
+					}
 				}
 				if (seating.price === null || !Number.isFinite(seating.price) || seating.price < 0) {
 					return {
@@ -301,6 +345,7 @@
 				toast.success('Succès', (result.data as { success?: string })?.success ?? 'Séances enregistrées');
 				await invalidateAll();
 				services = toDrafts(data.schedule ?? []);
+				venueCapacity = data.venueCapacity ?? null;
 			} else if (result.type === 'failure') {
 				toast.error('Erreur', (result.data as { error?: string })?.error ?? 'Une erreur est survenue');
 			} else if (result.type === 'error') {
@@ -326,6 +371,41 @@
 {:else}
 	<form method="POST" action="?/saveSeatings" use:enhance={saveSeatingsEnhance} novalidate class="space-y-6">
 		<input type="hidden" name="services" value={payload} />
+
+		<section class="bg-background rounded-lg border border-border-card p-4 lg:p-6" aria-labelledby="venue-capacity-title">
+			<div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+				<div>
+					<h3 id="venue-capacity-title" class="text-lg font-semibold text-foreground">Capacité du lieu</h3>
+					<p id="venue-capacity-help" class="text-sm text-muted-foreground">
+						Nombre de convives que le lieu accueille à la fois. Chaque séance en hérite, sauf si vous lui
+						donnez sa propre capacité.
+					</p>
+				</div>
+				<div class="w-full sm:w-48 shrink-0">
+					<label for="venue-capacity" class={LABEL_CLASS}>Places</label>
+					<div class="relative">
+						<Users size={16} class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+						<input
+							id="venue-capacity"
+							name="venueCapacity"
+							type="number"
+							inputmode="numeric"
+							min="1"
+							max="10000"
+							step="1"
+							required
+							bind:value={venueCapacity}
+							aria-describedby="venue-capacity-help venue-capacity-usage"
+							class="{INPUT_CLASS} pl-9"
+						/>
+					</div>
+				</div>
+			</div>
+			<p id="venue-capacity-usage" class="mt-3 text-xs text-muted-foreground" aria-live="polite">
+				{inheritingCount} séance{inheritingCount > 1 ? 's' : ''} en hérite{inheritingCount > 1 ? 'nt' : ''}
+				· {overriddenCount} avec sa propre capacité
+			</p>
+		</section>
 
 		<p class="text-sm text-muted-foreground">
 			Pour chaque repas, saisissez les heures de début des séances : la fin est calculée à partir de la durée
@@ -374,7 +454,7 @@
 							? derivedSeatingTitle(`${service.date}T${formatTimeOfDay(review.startMinutes)}:00Z`, { dayDate: service.date, serviceKind: service.kind }, 'fr')
 							: ''}
 						<div class="px-4 lg:px-6 py-4 space-y-3">
-							<div class="grid grid-cols-2 gap-3 lg:grid-cols-[7rem_9rem_7rem_8rem_auto_auto_1fr] lg:items-end">
+							<div class="grid grid-cols-2 gap-3 lg:grid-cols-[7rem_9rem_9rem_8rem_auto_auto_1fr] lg:items-end">
 								<div>
 									<label for="seating-{seating.key}-start" class={LABEL_CLASS}>Début</label>
 									<input
@@ -414,15 +494,36 @@
 									</div>
 								</div>
 								<div>
-									<label for="seating-{seating.key}-capacity" class={LABEL_CLASS}>Capacité</label>
-									<input
-										id="seating-{seating.key}-capacity"
-										type="number"
-										min={Math.max(1, seating.soldSeats)}
-										max="10000"
-										bind:value={seating.totalCapacity}
-										class={INPUT_CLASS}
-									/>
+									<label for="seating-{seating.key}-capacity" class={LABEL_CLASS}>
+										Capacité {seating.capacityOverridden ? '(propre)' : '(lieu)'}
+									</label>
+									<div class="flex items-center gap-1">
+										<input
+											id="seating-{seating.key}-capacity"
+											type="number"
+											inputmode="numeric"
+											min={Math.max(1, seating.soldSeats)}
+											max="10000"
+											step="1"
+											value={seating.capacityOverridden ? seating.capacity : venueCapacity}
+											oninput={(event) => overrideCapacity(seating, event.currentTarget.valueAsNumber)}
+											title={seating.capacityOverridden
+												? 'Capacité propre à cette séance'
+												: 'Capacité du lieu — saisissez une valeur pour donner à cette séance sa propre capacité'}
+											class={INPUT_CLASS}
+										/>
+										{#if seating.capacityOverridden}
+											<button
+												type="button"
+												onclick={() => resetCapacity(seating)}
+												aria-label="Revenir à la capacité du lieu"
+												title="Revenir à la capacité du lieu"
+												class="shrink-0 inline-flex items-center justify-center size-8 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted"
+											>
+												<RotateCcw size={14} />
+											</button>
+										{/if}
+									</div>
 								</div>
 								<div>
 									<label for="seating-{seating.key}-price" class={LABEL_CLASS}>Prix ({seating.currency})</label>
@@ -492,7 +593,7 @@
 								{#if seating.reservationCount > 0}
 									<p class="text-xs text-muted-foreground">
 										{seating.reservationCount} réservation{seating.reservationCount > 1 ? 's' : ''}
-										{#if seating.soldSeats > 0}· {seating.soldSeats} place{seating.soldSeats > 1 ? 's' : ''} vendue{seating.soldSeats > 1 ? 's' : ''}{/if}
+										{#if seating.soldSeats > 0}· {seating.soldSeats} place{seating.soldSeats > 1 ? 's' : ''} réservée{seating.soldSeats > 1 ? 's' : ''}{/if}
 									</p>
 								{/if}
 							</div>

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
-	import { ArrowLeft, MapPin, Type, FileText } from 'lucide-svelte';
+	import { ArrowLeft, MapPin, Type, FileText, Users } from 'lucide-svelte';
 	import MediaUpload from '$lib/components/MediaUpload.svelte';
 	import DaysServicesPicker, { type PickedDay } from '$lib/components/admin/DaysServicesPicker.svelte';
 	import type { ActionData } from './$types';
@@ -113,6 +113,8 @@
 	// are derived from the first and last Day.
 	let days: PickedDay[] = $state([]);
 	let daysPicker: ReturnType<typeof DaysServicesPicker> | undefined = $state();
+	// Venue Capacity (issue 021): inherited by every Seating unless overridden.
+	let venueCapacity: number | null = $state(null);
 	let locationEn = $state('');
 	let locationFr = $state('');
 	let venueNameEn = $state('');
@@ -404,6 +406,37 @@
 				<div bind:this={panelEls[1]} hidden={activeTab !== 1} role="tabpanel" id="panel-{TABS[1].id}" aria-labelledby="tab-{TABS[1].id}" class="space-y-6">
 					<!-- Days & meals: the Event's dates are derived from its Days (ADR 0005) -->
 					<DaysServicesPicker bind:this={daysPicker} bind:days idPrefix="new-event-days" />
+
+					<!-- Venue Capacity: every Seating inherits it unless it overrides it -->
+					<div class="lg:w-1/2">
+						<label for="venueCapacity" class="block text-sm font-medium text-foreground-alt mb-2">
+							Capacité du lieu <span class="text-red-500">*</span>
+						</label>
+						<div class="relative">
+							<Users
+								size={18}
+								class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+							/>
+							<input
+								id="venueCapacity"
+								name="venueCapacity"
+								type="number"
+								inputmode="numeric"
+								min="1"
+								max="10000"
+								step="1"
+								bind:value={venueCapacity}
+								required
+								aria-describedby="venueCapacity-help"
+								placeholder="40"
+								class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent"
+							/>
+						</div>
+						<p id="venueCapacity-help" class="mt-1.5 text-xs text-muted-foreground">
+							Nombre de convives que le lieu accueille à la fois. Chaque séance en hérite ; une séance
+							peut avoir sa propre capacité (onglet « Séances »).
+						</p>
+					</div>
 
 					<!-- Locations: side by side on desktop -->
 					<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">

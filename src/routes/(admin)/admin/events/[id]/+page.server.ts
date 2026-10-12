@@ -12,12 +12,14 @@ import {
 	LUNCH_DINNER_CUTOFF_HOUR,
 	parsePickedDays,
 	parseSeatingsPayload,
+	parseVenueCapacity,
 	pickedDaysErrorMessage,
 	saveEventSchedule,
 	saveServiceSeatings,
 	ScheduleSaveRefusedError,
 	seatingsPayloadErrorMessage,
 	seatingTitle,
+	VENUE_CAPACITY_ERROR_MESSAGE,
 	type PickedServiceDay,
 } from '$lib/server/services/event-schedule';
 import type { EditorService } from '$lib/types/seatings-editor';
@@ -124,6 +126,12 @@ export const load: PageServerLoad = async ({ params }) => {
 		}
 		const days = [...daysMap.values()].sort((a, b) => a.date.localeCompare(b.date));
 
+		// Mock Venue Capacity: the largest mock Seating capacity, as the
+		// 0020 migration backfills it; the others count as overrides.
+		const venueCapacity = sessions.length > 0
+			? Math.max(...sessions.map((session) => session.totalCapacity))
+			: null;
+
 		// Mock Seatings editor: one synthetic Service per Day and meal.
 		const clock = (instant: Date) => instant.toISOString().slice(11, 16);
 		const schedule: EditorService[] = days.flatMap((day, dayIndex) => (['lunch', 'dinner'] as const).filter((kind) => day.kinds.includes(kind)).map((kind, kindIndex) => ({
@@ -145,6 +153,7 @@ export const load: PageServerLoad = async ({ params }) => {
 					descriptionFr: session.descriptionFr,
 					totalCapacity: session.totalCapacity,
 					availableCapacity: session.availableCapacity,
+					capacityOverridden: session.totalCapacity !== venueCapacity,
 					priceAmount: session.priceAmount,
 					currency: session.currency,
 					published: session.published,
@@ -154,7 +163,7 @@ export const load: PageServerLoad = async ({ params }) => {
 				})),
 		})));
 
-		return { event, sessions, reservations, promoCodes: [], talents, days, schedule };
+		return { event, sessions, reservations, promoCodes: [], talents, days, schedule, venueCapacity };
 	}
 
 	// Database mode - fetch from database
@@ -212,6 +221,7 @@ export const load: PageServerLoad = async ({ params }) => {
 			talents,
 			days,
 			schedule,
+			venueCapacity: event.venueCapacity,
 			sessions: sessionsData.map((s: typeof sessionsData[number]) => ({
 				id: s.id,
 				titleEn: s.titleEn,
@@ -561,7 +571,8 @@ export const actions: Actions = {
 	},
 
 	// Save the Seatings editor (issue 020): each Service's default Seating
-	// duration and its Seatings, entered as start times.
+	// duration and its Seatings, entered as start times — with the Event's
+	// Venue Capacity, which inheriting Seatings follow (issue 021).
 	saveSeatings: async ({ request, params, locals }) => {
 		requireAdmin(locals);
 		const { id } = params;
@@ -575,13 +586,18 @@ export const actions: Actions = {
 		if (!parsed.ok) {
 			return fail(400, { error: seatingsPayloadErrorMessage(parsed.reason) });
 		}
+		const rawVenueCapacity = formData.get('venueCapacity');
+		const venue = parseVenueCapacity(typeof rawVenueCapacity === 'string' ? rawVenueCapacity : null);
+		if (!venue.ok) {
+			return fail(400, { error: VENUE_CAPACITY_ERROR_MESSAGE });
+		}
 
 		if (env.USE_MOCK_DATA) {
 			return { success: 'Séances enregistrées (mode démo — non persistées)' };
 		}
 
 		try {
-			const result = await saveServiceSeatings(id, parsed.services);
+			const result = await saveServiceSeatings(id, parsed.services, venue.venueCapacity);
 
 			if (result.removedSeatingIds.length > 0) {
 				const { recordAuditLog } = await import('$lib/server/services/audit-log');
