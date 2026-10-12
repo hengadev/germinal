@@ -57,7 +57,7 @@ async function eventHasDays(eventId: string): Promise<boolean> {
 export async function createEventSession(input: CreateEventSessionInput) {
 	const event = await db.query.events.findFirst({
 		where: eq(events.id, input.eventId),
-		columns: { startDate: true, endDate: true },
+		columns: { startDate: true, endDate: true, venueCapacity: true },
 	});
 
 	if (!event) {
@@ -88,6 +88,9 @@ export async function createEventSession(input: CreateEventSessionInput) {
 			endTime: input.endTime,
 			totalCapacity: input.totalCapacity,
 			availableCapacity: input.totalCapacity,
+			// A capacity other than the Venue Capacity is the Seating's own
+			// (issue 021); a matching one keeps following the Event.
+			capacityOverridden: input.totalCapacity !== event.venueCapacity,
 			priceAmount: input.priceAmount,
 			currency: input.currency ?? 'EUR',
 			published: input.published ?? false,

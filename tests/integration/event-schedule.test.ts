@@ -44,6 +44,7 @@ async function seedEvent() {
 			endDate: new Date('2099-12-31T23:59:59Z'),
 			locationEn: 'Paris',
 			locationFr: 'Paris',
+			venueCapacity: 20,
 			published: true,
 		})
 		.returning();
@@ -484,7 +485,7 @@ describe('saveServiceSeatings (admin Seatings editor)', () => {
 			titleFr: null,
 			descriptionEn: null,
 			descriptionFr: null,
-			totalCapacity: 20,
+			capacityOverride: null,
 			priceAmount: 4500,
 			currency: 'EUR',
 			published: true,
@@ -529,7 +530,7 @@ describe('saveServiceSeatings (admin Seatings editor)', () => {
 		const result = await save([{
 			serviceId: lunch.serviceId,
 			defaultDurationMinutes: 75,
-			seatings: [seating('12:00'), seating('13:15', { end: '15:00', totalCapacity: 8 })],
+			seatings: [seating('12:00'), seating('13:15', { end: '15:00', capacityOverride: 8 })],
 		}]);
 		expect(result.overlaps).toEqual([]);
 
@@ -612,7 +613,7 @@ describe('saveServiceSeatings (admin Seatings editor)', () => {
 		await expect(save([{
 			serviceId: dinner.serviceId,
 			defaultDurationMinutes: 180,
-			seatings: [seating('19:00', { id, totalCapacity: 4 })],
+			seatings: [seating('19:00', { id, capacityOverride: 4 })],
 		}])).rejects.toBeInstanceOf(SeatingCapacityRefusedError);
 
 		// Re-saving unchanged must not hand held seats back.
@@ -627,7 +628,7 @@ describe('saveServiceSeatings (admin Seatings editor)', () => {
 		await save([{
 			serviceId: dinner.serviceId,
 			defaultDurationMinutes: 180,
-			seatings: [seating('19:00', { id, totalCapacity: 10 })],
+			seatings: [seating('19:00', { id, capacityOverride: 10 })],
 		}]);
 		const [reloaded] = await loadSeatingsEditor(event.id);
 		expect(reloaded.seatings[0]).toMatchObject({ totalCapacity: 10, availableCapacity: 5, reservationCount: 2 });
@@ -663,5 +664,177 @@ describe('saveServiceSeatings (admin Seatings editor)', () => {
 			.rejects.toBeInstanceOf(PublishedEventWithoutSeatingError);
 		const [reloaded] = await loadSeatingsEditor(event.id);
 		expect(reloaded.seatings).toHaveLength(1);
+	});
+
+	// -----------------------------------------------------------------------
+	// Venue Capacity with a per-Seating override (issue 021)
+	// -----------------------------------------------------------------------
+
+	describe('Venue Capacity (issue 021)', () => {
+		async function saveWith(payload: unknown, venueCapacity?: number) {
+			const { parseSeatingsPayload, saveServiceSeatings } = await import('../../src/lib/server/services/event-schedule');
+			const parsed = parseSeatingsPayload(JSON.stringify(payload));
+			if (!parsed.ok) throw new Error(`payload rejected: ${parsed.reason}`);
+			return saveServiceSeatings(event.id, parsed.services, venueCapacity);
+		}
+
+		async function seatingRows() {
+			return testDb.select().from(eventSessions)
+				.where(eq(eventSessions.eventId, event.id))
+				.orderBy(eventSessions.startTime);
+		}
+
+		async function venueCapacityOf(eventId: string) {
+			const [row] = await testDb.select({ venueCapacity: events.venueCapacity })
+				.from(events).where(eq(events.id, eventId));
+			return row.venueCapacity;
+		}
+
+		/** Lunch with an inheriting 12:00 and a 14:00 chef's table of 6, and
+		 * dinner with an inheriting 19:00 — Venue Capacity 20. */
+		async function seedLunchAndDinner() {
+			const { loadSeatingsEditor } = await import('../../src/lib/server/services/event-schedule');
+			const [lunch, dinner] = await pickAndLoad([{ date: '2099-06-10', kinds: ['lunch', 'dinner'] }]);
+			await saveWith([
+				{ serviceId: lunch.serviceId, defaultDurationMinutes: 90, seatings: [seating('12:00'), seating('14:00', { capacityOverride: 6 })] },
+				{ serviceId: dinner.serviceId, defaultDurationMinutes: 180, seatings: [seating('19:00')] },
+			]);
+			return loadSeatingsEditor(event.id);
+		}
+
+		it('gives new Seatings the Venue Capacity and keeps an override on one Seating', async () => {
+			const [lunch, dinner] = await seedLunchAndDinner();
+			expect(lunch.seatings.map((s) => [s.start, s.totalCapacity, s.availableCapacity, s.capacityOverridden])).toEqual([
+				['12:00', 20, 20, false],
+				['14:00', 6, 6, true],
+			]);
+			expect(dinner.seatings.map((s) => [s.totalCapacity, s.capacityOverridden])).toEqual([[20, false]]);
+		});
+
+		it('updates every Seating without an override when the Venue Capacity changes, keeping held seats', async () => {
+			const { saveVenueCapacity } = await import('../../src/lib/server/services/event-schedule');
+			const [lunch, dinner] = await seedLunchAndDinner();
+			await bookSeating(dinner.seatings[0].id, 'confirmed', 3);
+			await bookSeating(dinner.seatings[0].id, 'pending', 2);
+			await bookSeating(lunch.seatings[1].id, 'confirmed', 1);
+
+			await saveVenueCapacity(event.id, 32);
+
+			expect(await venueCapacityOf(event.id)).toBe(32);
+			expect((await seatingRows()).map((r) => [r.totalCapacity, r.availableCapacity, r.capacityOverridden])).toEqual([
+				[32, 32, false], // 12:00 inherits
+				[6, 5, true], // 14:00 chef's table keeps its own capacity
+				[32, 27, false], // 19:00 inherits, 5 seats still held
+			]);
+		});
+
+		it('propagates a Venue Capacity saved with the editor to Seatings of Services outside the payload', async () => {
+			const [lunch] = await seedLunchAndDinner();
+			await saveWith([{
+				serviceId: lunch.serviceId,
+				defaultDurationMinutes: 90,
+				seatings: lunch.seatings.map((s) => seating(s.start, { id: s.id, capacityOverride: s.capacityOverridden ? s.totalCapacity : null })),
+			}], 12);
+
+			expect((await seatingRows()).map((r) => [r.totalCapacity, r.availableCapacity])).toEqual([
+				[12, 12],
+				[6, 6],
+				[12, 12],
+			]);
+		});
+
+		it('refuses a Venue Capacity below the seats an inheriting Seating holds, naming it and writing nothing', async () => {
+			const { saveVenueCapacity, SeatingCapacityRefusedError } = await import('../../src/lib/server/services/event-schedule');
+			const [lunch, dinner] = await seedLunchAndDinner();
+			// 9 seats held on the inheriting dinner (a pending checkout holds
+			// seats too); the overridden chef's table holds 6 of its own 6.
+			await bookSeating(dinner.seatings[0].id, 'confirmed', 4);
+			await bookSeating(dinner.seatings[0].id, 'pending', 5);
+			await bookSeating(lunch.seatings[1].id, 'confirmed', 6);
+			const before = await seatingRows();
+
+			const attempt = saveVenueCapacity(event.id, 8);
+			await expect(attempt).rejects.toBeInstanceOf(SeatingCapacityRefusedError);
+			await expect(attempt).rejects.toThrow(
+				/séance de 19h00 du dîner du mercredi 10 juin 2099 \(9 places déjà réservées, capacité du lieu demandée : 8\)/
+			);
+
+			expect(await venueCapacityOf(event.id)).toBe(20);
+			expect(await seatingRows()).toEqual(before);
+
+			// At exactly the held seats it goes through: nothing left to book.
+			// The chef's table's override is not affected by the Venue Capacity.
+			await saveVenueCapacity(event.id, 9);
+			expect((await seatingRows()).map((r) => [r.totalCapacity, r.availableCapacity])).toEqual([
+				[9, 9],
+				[6, 0],
+				[9, 0],
+			]);
+		});
+
+		it('refuses to revert an override to a Venue Capacity below the seats it holds', async () => {
+			const { SeatingCapacityRefusedError } = await import('../../src/lib/server/services/event-schedule');
+			const [lunch] = await pickAndLoad([{ date: '2099-06-10', kinds: ['lunch'] }]);
+			await saveWith([{ serviceId: lunch.serviceId, defaultDurationMinutes: 90, seatings: [seating('12:00', { capacityOverride: 30 })] }]);
+			const [rows] = await seatingRows();
+			await bookSeating(rows.id, 'confirmed', 25);
+
+			await expect(saveWith([{
+				serviceId: lunch.serviceId,
+				defaultDurationMinutes: 90,
+				seatings: [seating('12:00', { id: rows.id })],
+			}])).rejects.toBeInstanceOf(SeatingCapacityRefusedError);
+
+			const [after] = await seatingRows();
+			expect([after.totalCapacity, after.availableCapacity, after.capacityOverridden]).toEqual([30, 5, true]);
+		});
+
+		it('refuses an inheriting Seating while the Event has no Venue Capacity', async () => {
+			const { VenueCapacityMissingError } = await import('../../src/lib/server/services/event-schedule');
+			await testDb.update(events).set({ venueCapacity: null }).where(eq(events.id, event.id));
+			const [lunch] = await pickAndLoad([{ date: '2099-06-10', kinds: ['lunch'] }]);
+
+			await expect(saveWith([{ serviceId: lunch.serviceId, defaultDurationMinutes: 90, seatings: [seating('12:00')] }]))
+				.rejects.toBeInstanceOf(VenueCapacityMissingError);
+			expect(await seatingRows()).toEqual([]);
+
+			// Setting it in the same save is enough.
+			await saveWith([{ serviceId: lunch.serviceId, defaultDurationMinutes: 90, seatings: [seating('12:00')] }], 14);
+			expect((await seatingRows()).map((r) => r.totalCapacity)).toEqual([14]);
+			expect(await venueCapacityOf(event.id)).toBe(14);
+		});
+
+		it('keeps available capacity within 0..total across Venue Capacity changes', async () => {
+			const { saveVenueCapacity } = await import('../../src/lib/server/services/event-schedule');
+			const [, dinner] = await seedLunchAndDinner();
+			await bookSeating(dinner.seatings[0].id, 'confirmed', 7);
+			for (const capacity of [7, 50, 10]) {
+				await saveVenueCapacity(event.id, capacity);
+				for (const row of await seatingRows()) {
+					expect(row.availableCapacity).toBeGreaterThanOrEqual(0);
+					expect(row.availableCapacity).toBeLessThanOrEqual(row.totalCapacity);
+				}
+			}
+			const [, , dinnerRow] = await seatingRows();
+			expect([dinnerRow.totalCapacity, dinnerRow.availableCapacity]).toEqual([10, 3]);
+		});
+
+		it('rejects a Venue Capacity of zero at the database', async () => {
+			await expect(
+				testDb.update(events).set({ venueCapacity: 0 }).where(eq(events.id, event.id))
+			).rejects.toThrow();
+		});
+
+		it('marks a Seating created with another capacity than the venue as an override', async () => {
+			const { createEventSession } = await import('../../src/lib/server/services/event-sessions');
+			const same = await createEventSession(sessionInput({ totalCapacity: 20 }));
+			const other = await createEventSession(sessionInput({
+				startTime: new Date('2099-06-11T19:00:00Z'),
+				endTime: new Date('2099-06-11T22:00:00Z'),
+				totalCapacity: 8,
+			}));
+			expect(same.capacityOverridden).toBe(false);
+			expect(other.capacityOverridden).toBe(true);
+		});
 	});
 });

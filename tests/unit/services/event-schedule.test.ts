@@ -271,7 +271,7 @@ function seatingPayload(overrides: Record<string, unknown> = {}) {
 		titleFr: '',
 		descriptionEn: null,
 		descriptionFr: null,
-		totalCapacity: 20,
+		capacityOverride: null,
 		priceAmount: 5000,
 		currency: 'EUR',
 		published: false,
@@ -377,7 +377,7 @@ describe('parseSeatingsPayload', () => {
 	});
 
 	it('rejects invalid seating fields and normalises titles', () => {
-		expect(parseSeatingsPayload(servicesPayload([{ seatings: [seatingPayload({ totalCapacity: 0 })] }])))
+		expect(parseSeatingsPayload(servicesPayload([{ seatings: [seatingPayload({ capacityOverride: 0 })] }])))
 			.toEqual({ ok: false, reason: 'seating' });
 		expect(parseSeatingsPayload(servicesPayload([{ seatings: [seatingPayload({ priceAmount: -1 })] }])))
 			.toEqual({ ok: false, reason: 'seating' });
@@ -467,5 +467,50 @@ describe('derived seating titles', () => {
 			titleEn: 'Chef’s table',
 			titleFr: 'Dîner — mercredi 15 juillet 2026, 19h00',
 		});
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Venue Capacity with a per-Seating override (issue 021)
+// ---------------------------------------------------------------------------
+
+import { parseVenueCapacity } from '../../../src/lib/server/services/event-schedule';
+
+describe('Seating capacity override in the payload', () => {
+	it('keeps null as "inherit the Venue Capacity" and a number as the Seating\'s own', () => {
+		const result = parseSeatingsPayload(servicesPayload([{
+			seatings: [seatingPayload(), seatingPayload({ start: '14:00', capacityOverride: 8 })],
+		}]));
+		if (!result.ok) throw new Error('expected ok');
+		expect(result.services[0].seatings.map((s) => s.seating.capacityOverride)).toEqual([null, 8]);
+	});
+
+	it('rejects an override outside 1..10 000 or not a whole number, and a missing one', () => {
+		for (const capacityOverride of [0, 10001, 2.5, '12']) {
+			expect(parseSeatingsPayload(servicesPayload([{ seatings: [seatingPayload({ capacityOverride })] }])))
+				.toEqual({ ok: false, reason: 'seating' });
+		}
+		const { capacityOverride: _omitted, ...withoutOverride } = seatingPayload();
+		expect(parseSeatingsPayload(servicesPayload([{ seatings: [withoutOverride] }])))
+			.toEqual({ ok: false, reason: 'seating' });
+	});
+});
+
+describe('parseVenueCapacity', () => {
+	it('reads a whole number of places between 1 and 10 000', () => {
+		expect(parseVenueCapacity('40')).toEqual({ ok: true, venueCapacity: 40 });
+		expect(parseVenueCapacity(' 1 ')).toEqual({ ok: true, venueCapacity: 1 });
+		expect(parseVenueCapacity('10000')).toEqual({ ok: true, venueCapacity: 10000 });
+	});
+
+	it('treats a blank or absent value as "unchanged"', () => {
+		expect(parseVenueCapacity(null)).toEqual({ ok: true, venueCapacity: undefined });
+		expect(parseVenueCapacity('  ')).toEqual({ ok: true, venueCapacity: undefined });
+	});
+
+	it('rejects zero, negatives, decimals, out-of-range and non-numbers', () => {
+		for (const raw of ['0', '-3', '2.5', '10001', 'quarante', '1e3']) {
+			expect(parseVenueCapacity(raw)).toEqual({ ok: false });
+		}
 	});
 });

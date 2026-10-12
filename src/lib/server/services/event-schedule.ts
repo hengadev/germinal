@@ -572,8 +572,40 @@ const SEATING_BADGE_TYPES: readonly SeatingBadgeType[] = [
 
 // Mirrors config.eventSessions capacity bounds (src/lib/server/env.ts);
 // duplicated so the pure parsing helpers stay loadable without env vars.
+// They bound the Venue Capacity as well as a Seating's own capacity.
 const MIN_SEATING_CAPACITY = 1;
 const MAX_SEATING_CAPACITY = 10000;
+
+function isValidCapacity(value: unknown): value is number {
+	return Number.isInteger(value) &&
+		(value as number) >= MIN_SEATING_CAPACITY &&
+		(value as number) <= MAX_SEATING_CAPACITY;
+}
+
+export type VenueCapacityParseResult =
+	| { ok: true; venueCapacity: number | undefined }
+	| { ok: false };
+
+/**
+ * Parse the Venue Capacity posted by an admin form (issue 021): a whole
+ * number of guests between 1 and 10 000. An absent or blank value means
+ * “leave the Event's Venue Capacity as it is” (`undefined`).
+ */
+export function parseVenueCapacity(raw: string | null): VenueCapacityParseResult {
+	if (raw === null || raw.trim() === '') {
+		return { ok: true, venueCapacity: undefined };
+	}
+	const trimmed = raw.trim();
+	if (!/^\d+$/.test(trimmed)) {
+		return { ok: false };
+	}
+	const value = Number(trimmed);
+	return isValidCapacity(value) ? { ok: true, venueCapacity: value } : { ok: false };
+}
+
+/** French admin copy for an invalid Venue Capacity. */
+export const VENUE_CAPACITY_ERROR_MESSAGE =
+	'La capacité du lieu doit être un nombre entier de places, entre 1 et 10 000.';
 
 /** A Seating as posted by the admin Seatings editor for one Service. */
 export interface PlannedSeating {
@@ -587,7 +619,9 @@ export interface PlannedSeating {
 	titleFr: string | null;
 	descriptionEn: string | null;
 	descriptionFr: string | null;
-	totalCapacity: number;
+	/** The Seating's own capacity, or null to inherit the Event's Venue
+	 * Capacity (issue 021). */
+	capacityOverride: number | null;
 	priceAmount: number;
 	currency: string;
 	published: boolean;
@@ -742,11 +776,7 @@ export function parseSeatingsPayload(raw: string | null): SeatingsParseResult {
 				return { ok: false, reason: 'seating' };
 			}
 
-			if (
-				!Number.isInteger(entry.totalCapacity) ||
-				(entry.totalCapacity as number) < MIN_SEATING_CAPACITY ||
-				(entry.totalCapacity as number) > MAX_SEATING_CAPACITY
-			) {
+			if (entry.capacityOverride !== null && !isValidCapacity(entry.capacityOverride)) {
 				return { ok: false, reason: 'seating' };
 			}
 			if (!Number.isInteger(entry.priceAmount) || (entry.priceAmount as number) < 0) {
@@ -771,7 +801,7 @@ export function parseSeatingsPayload(raw: string | null): SeatingsParseResult {
 					titleFr,
 					descriptionEn,
 					descriptionFr,
-					totalCapacity: entry.totalCapacity as number,
+					capacityOverride: entry.capacityOverride as number | null,
 					priceAmount: entry.priceAmount as number,
 					currency: (entry.currency as string).toUpperCase(),
 					published: entry.published as boolean,
@@ -987,13 +1017,16 @@ function formatSeatingServiceMismatch(mismatches: SeatingServiceMismatch[]): str
 	return `Un horaire ne correspond pas à son repas : ${parts.join(' ; ')}.`;
 }
 
-/** A Seating whose capacity would drop below its confirmed seats. */
+/** A Seating whose capacity would drop below the seats it holds. */
 export interface SeatingCapacityBlocker {
 	date: string;
 	kind: ServiceKind;
 	start: string;
 	requestedCapacity: number;
+	/** Seats held: pending, processing and confirmed Reservations. */
 	soldCount: number;
+	/** The capacity comes from the Event's Venue Capacity (no override). */
+	inherited: boolean;
 }
 
 /** Refused: lowering a Seating's capacity below the seats already sold. */
@@ -1007,9 +1040,18 @@ export class SeatingCapacityRefusedError extends SeatingSaveRefusedError {
 function formatSeatingCapacityRefusal(blockers: SeatingCapacityBlocker[]): string {
 	const parts = blockers.map((blocker) => {
 		const meal = blocker.kind === 'lunch' ? 'déjeuner' : 'dîner';
-		return `la séance de ${frClock(blocker.start)} du ${meal} du ${blockerDateLabel(blocker.date)} (${blocker.soldCount} place${blocker.soldCount > 1 ? 's' : ''} déjà réservée${blocker.soldCount > 1 ? 's' : ''}, capacité demandée : ${blocker.requestedCapacity})`;
+		const requested = blocker.inherited ? 'capacité du lieu demandée' : 'capacité demandée';
+		return `la séance de ${frClock(blocker.start)} du ${meal} du ${blockerDateLabel(blocker.date)} (${blocker.soldCount} place${blocker.soldCount > 1 ? 's' : ''} déjà réservée${blocker.soldCount > 1 ? 's' : ''}, ${requested} : ${blocker.requestedCapacity})`;
 	});
 	return `Impossible de réduire la capacité : ${parts.join(' ; ')}.`;
+}
+
+/** Refused: a Seating inherits the Venue Capacity but the Event has none. */
+export class VenueCapacityMissingError extends SeatingSaveRefusedError {
+	constructor() {
+		super('Renseignez la capacité du lieu : les séances sans capacité propre en héritent.');
+		this.name = 'VenueCapacityMissingError';
+	}
 }
 
 export interface SavedSeatings {
@@ -1027,9 +1069,16 @@ export interface SavedSeatings {
  * duration) are created, kept Seatings are updated, dropped Seatings are
  * deleted. Refuses — with a French message and nothing written — to delete
  * a Seating that still has Reservations, to lower a capacity below the
- * seats already sold, and to leave a published Event without any Seating
+ * seats already held, and to leave a published Event without any Seating
  * (ADR 0001). Overlapping Seatings within a Service are reported in the
  * result instead of refused.
+ *
+ * Capacity (issue 021): a Seating either overrides capacity with its own
+ * or inherits the Event's Venue Capacity. When `venueCapacity` is given it
+ * becomes the Event's Venue Capacity and is propagated to every inheriting
+ * Seating of the Event — including those of Services outside the payload.
+ * total_capacity stays the effective, booking-time value; available
+ * capacity moves with it so the seats already held stay held.
  *
  * Days and Services are never created or removed here: they are picked on
  * the Days picker (issue 019), so this save only reconciles Seatings
@@ -1037,16 +1086,28 @@ export interface SavedSeatings {
  */
 export async function saveServiceSeatings(
 	eventId: string,
-	services: ParsedServiceSeatings[]
+	services: ParsedServiceSeatings[],
+	venueCapacity?: number
 ): Promise<SavedSeatings> {
+	if (venueCapacity !== undefined && !isValidCapacity(venueCapacity)) {
+		throw new Error(`Invalid venue capacity: ${venueCapacity}`);
+	}
+
 	const removedSeatingIds: string[] = await db.transaction(async (tx: typeof db) => {
-		const [event] = await tx.select({ id: events.id, published: events.published })
+		const [event] = await tx.select({
+			id: events.id,
+			published: events.published,
+			venueCapacity: events.venueCapacity,
+		})
 			.from(events)
 			.where(eq(events.id, eventId))
-			.limit(1);
+			.limit(1)
+			.for('update');
 		if (!event) {
 			throw new Error('Event not found');
 		}
+		// The Venue Capacity every inheriting Seating ends up with.
+		const venue: number | null = venueCapacity ?? event.venueCapacity;
 
 		const serviceRows: { id: string; kind: ServiceKind; date: string }[] = await tx.select({
 			id: eventServices.id,
@@ -1066,12 +1127,14 @@ export async function saveServiceSeatings(
 			startTime: Date;
 			totalCapacity: number;
 			availableCapacity: number;
+			capacityOverridden: boolean;
 		}[] = await tx.select({
 			id: eventSessions.id,
 			serviceId: eventSessions.serviceId,
 			startTime: eventSessions.startTime,
 			totalCapacity: eventSessions.totalCapacity,
 			availableCapacity: eventSessions.availableCapacity,
+			capacityOverridden: eventSessions.capacityOverridden,
 		})
 			.from(eventSessions)
 			.where(eq(eventSessions.eventId, eventId))
@@ -1126,6 +1189,14 @@ export async function saveServiceSeatings(
 			);
 		}
 
+		// A Seating without its own capacity needs a Venue Capacity to inherit.
+		if (
+			venue === null &&
+			services.some((service) => service.seatings.some((seating) => seating.seating.capacityOverride === null))
+		) {
+			throw new VenueCapacityMissingError();
+		}
+
 		// Dropped Seatings: those of the planned Services that the payload no
 		// longer lists. Seatings of Services outside the payload are untouched.
 		const keepIds = new Set<string>();
@@ -1152,9 +1223,7 @@ export async function saveServiceSeatings(
 				removalBlockers.push({
 					date: row.date,
 					kind: row.kind,
-					start: formatTimeOfDay(
-						session.startTime.getUTCHours() * 60 + session.startTime.getUTCMinutes()
-					),
+					start: utcClock(session.startTime),
 					liveCount: count.liveCount,
 					totalCount: count.totalCount,
 				});
@@ -1168,22 +1237,49 @@ export async function saveServiceSeatings(
 			);
 		}
 
-		// Capacity may never drop below the seats already sold.
+		// Inheriting Seatings of Services outside the payload follow the new
+		// Venue Capacity too; overridden ones keep their own capacity.
+		const followers = venue === null
+			? []
+			: sessionRows.filter((session) =>
+				!plannedServiceIds.has(session.serviceId) &&
+				!session.capacityOverridden &&
+				session.totalCapacity !== venue
+			);
+
+		// Capacity may never drop below the seats already held — whether the
+		// Seating's own capacity or the Venue Capacity it inherits changed.
 		const capacityBlockers: SeatingCapacityBlocker[] = [];
 		for (const service of services) {
 			const row = serviceById.get(service.serviceId)!;
 			for (const seating of service.seatings) {
 				if (seating.seating.id === null) continue;
+				const capacity = seating.seating.capacityOverride ?? venue!;
 				const held = heldSeats(seating.seating.id);
-				if (seating.seating.totalCapacity < held) {
+				if (capacity < held) {
 					capacityBlockers.push({
 						date: row.date,
 						kind: row.kind,
 						start: seating.seating.start,
-						requestedCapacity: seating.seating.totalCapacity,
+						requestedCapacity: capacity,
 						soldCount: held,
+						inherited: seating.seating.capacityOverride === null,
 					});
 				}
+			}
+		}
+		for (const session of followers) {
+			const held = heldSeats(session.id);
+			if (venue! < held) {
+				const row = serviceById.get(session.serviceId)!;
+				capacityBlockers.push({
+					date: row.date,
+					kind: row.kind,
+					start: utcClock(session.startTime),
+					requestedCapacity: venue!,
+					soldCount: held,
+					inherited: true,
+				});
 			}
 		}
 		if (capacityBlockers.length > 0) {
@@ -1193,12 +1289,32 @@ export async function saveServiceSeatings(
 		}
 
 		// A published Event must keep at least one Seating (ADR 0001).
-		if (event.published && sessionRows.length - removedIds.length + insertCount === 0) {
+		if (
+			event.published &&
+			removedIds.length > 0 &&
+			sessionRows.length - removedIds.length + insertCount === 0
+		) {
 			throw new PublishedEventWithoutSeatingError();
 		}
 
-		// Apply: default durations, then Seatings (updates and inserts), then
-		// deletions.
+		// Apply: the Venue Capacity and the Seatings inheriting it outside
+		// the payload, default durations, then Seatings (updates and
+		// inserts), then deletions.
+		if (venueCapacity !== undefined && venueCapacity !== event.venueCapacity) {
+			await tx.update(events)
+				.set({ venueCapacity, updatedAt: new Date() })
+				.where(eq(events.id, eventId));
+		}
+		for (const session of followers) {
+			await tx.update(eventSessions)
+				.set({
+					totalCapacity: venue!,
+					availableCapacity: venue! - heldSeats(session.id),
+					updatedAt: new Date(),
+				})
+				.where(eq(eventSessions.id, session.id));
+		}
+
 		for (const service of services) {
 			const row = serviceById.get(service.serviceId)!;
 			await tx.update(eventServices)
@@ -1211,6 +1327,7 @@ export async function saveServiceSeatings(
 			for (const seating of service.seatings) {
 				const startTime = seatingInstantUtc(row.date, seating.startMinutes);
 				const endTime = seatingInstantUtc(row.date, seating.endMinutes);
+				const totalCapacity = seating.seating.capacityOverride ?? venue!;
 				const fields = {
 					titleEn: seating.seating.titleEn,
 					titleFr: seating.seating.titleFr,
@@ -1218,7 +1335,8 @@ export async function saveServiceSeatings(
 					descriptionFr: seating.seating.descriptionFr,
 					startTime,
 					endTime,
-					totalCapacity: seating.seating.totalCapacity,
+					totalCapacity,
+					capacityOverridden: seating.seating.capacityOverride !== null,
 					priceAmount: seating.seating.priceAmount,
 					currency: seating.seating.currency,
 					published: seating.seating.published,
@@ -1232,7 +1350,7 @@ export async function saveServiceSeatings(
 						serviceId: service.serviceId,
 						...fields,
 						// A new Seating has no Reservations: all seats are available.
-						availableCapacity: seating.seating.totalCapacity,
+						availableCapacity: totalCapacity,
 					});
 				} else {
 					// Seats already held stay held; only the new total moves
@@ -1240,9 +1358,9 @@ export async function saveServiceSeatings(
 					await tx.update(eventSessions)
 						.set({
 							...fields,
-							availableCapacity: seating.seating.totalCapacity - heldSeats(seating.seating.id),
+							availableCapacity: totalCapacity - heldSeats(seating.seating.id),
 							updatedAt: new Date(),
-					})
+						})
 						.where(eq(eventSessions.id, seating.seating.id));
 				}
 			}
@@ -1255,6 +1373,17 @@ export async function saveServiceSeatings(
 	});
 
 	return { overlaps: findPlannedSeatingOverlaps(services), removedSeatingIds };
+}
+
+/**
+ * Set the Event's Venue Capacity alone (issue 021): every Seating that does
+ * not override its capacity follows it, in one transaction, keeping the
+ * seats it already holds. Refused with {@link SeatingCapacityRefusedError}
+ * (French message naming the Seatings, nothing written) when an inheriting
+ * Seating holds more seats than the new Venue Capacity.
+ */
+export async function saveVenueCapacity(eventId: string, venueCapacity: number): Promise<void> {
+	await saveServiceSeatings(eventId, [], venueCapacity);
 }
 
 /** `HH:MM` (UTC) of an instant. */
@@ -1309,6 +1438,7 @@ export async function loadSeatingsEditor(eventId: string): Promise<EditorService
 					descriptionFr: seating.descriptionFr,
 					totalCapacity: seating.totalCapacity,
 					availableCapacity: seating.availableCapacity,
+					capacityOverridden: seating.capacityOverridden,
 					priceAmount: seating.priceAmount,
 					currency: seating.currency,
 					published: seating.published,
