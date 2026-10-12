@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { getAllEvents, createEvent } from '$lib/server/services/events';
 import { createEventSchema } from '$lib/server/validators/events';
+import { EventWithoutSeatingError } from '$lib/server/services/event-schedule';
 import { requireAdmin } from '$lib/server/auth-guards';
 import { parsePagination, calculatePagination, createPaginatedResponse } from '$lib/utils/pagination';
 import { getCached, CACHE_TAGS } from '$lib/server/cache';
@@ -71,6 +72,12 @@ export const POST: RequestHandler = async (event) => {
 
   if (!parsed.success) {
     return json({ error: parsed.error.flatten() }, { status: 400 });
+  }
+
+  // A new Event has no Seating yet, and a published Event needs one
+  // (ADR 0001): create it as a draft, publish once Seatings are added.
+  if (parsed.data.published) {
+    return json({ error: new EventWithoutSeatingError().message }, { status: 400 });
   }
 
   const createdEvent = await createEvent(parsed.data);
