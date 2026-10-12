@@ -4,14 +4,20 @@ import { config } from '../env';
 const dateSchema = z.string().datetime().transform(s => new Date(s));
 
 // Base schema without refinements (allows .partial() to work)
+// Seating titles are optional since issue 020: public pages derive a label
+// from the Seating's Day, Service and start time when they are empty.
 const baseEventSessionSchema = z.object({
 	eventId: z.string().uuid('Invalid event ID'),
 	titleEn: z.string()
-		.min(1, 'Session title (EN) is required')
-		.max(255, 'Session title (EN) is too long'),
+		.max(255, 'Session title (EN) is too long')
+		.nullable()
+		.transform(v => v?.trim() || null)
+		.optional(),
 	titleFr: z.string()
-		.min(1, 'Session title (FR) is required')
-		.max(255, 'Session title (FR) is too long'),
+		.max(255, 'Session title (FR) is too long')
+		.nullable()
+		.transform(v => v?.trim() || null)
+		.optional(),
 	descriptionEn: z.string()
 		.optional()
 		.transform(v => v ?? null),

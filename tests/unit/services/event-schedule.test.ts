@@ -239,3 +239,233 @@ describe('groupScheduleByDayAndService', () => {
 		expect(groupScheduleByDayAndService([])).toEqual([]);
 	});
 });
+
+// ---------------------------------------------------------------------------
+// Seatings per Service (issue 020): payload parsing with end-time filling,
+// overlap detection, and derived titles for untitled Seatings.
+// ---------------------------------------------------------------------------
+
+import {
+	parseSeatingsPayload,
+	findPlannedSeatingOverlaps,
+	formatSeatingOverlapWarning,
+	derivedSeatingTitle,
+	seatingTitlesWithFallback,
+	type ParsedServiceSeatings,
+} from '../../../src/lib/server/services/event-schedule';
+import {
+	parseTimeOfDay,
+	formatTimeOfDay,
+	endAfterDuration,
+	findSeatingOverlaps,
+} from '../../../src/lib/utils/seating-times';
+
+const SERVICE_ID = '11111111-2222-3333-4444-555555555555';
+
+function seatingPayload(overrides: Record<string, unknown> = {}) {
+	return {
+		id: null,
+		start: '12:00',
+		end: null,
+		titleEn: '',
+		titleFr: '',
+		descriptionEn: null,
+		descriptionFr: null,
+		totalCapacity: 20,
+		priceAmount: 5000,
+		currency: 'EUR',
+		published: false,
+		allowWaitlist: false,
+		badgeType: 'none',
+		...overrides,
+	};
+}
+
+function servicesPayload(
+	services: { serviceId?: string; defaultDurationMinutes?: number; seatings: Record<string, unknown>[] }[]
+) {
+	return JSON.stringify(services.map((service) => ({
+		serviceId: service.serviceId ?? SERVICE_ID,
+		defaultDurationMinutes: service.defaultDurationMinutes ?? 90,
+		seatings: service.seatings,
+	})));
+}
+
+describe('parseTimeOfDay / formatTimeOfDay / endAfterDuration', () => {
+	it('parses HH:MM into minutes since midnight, rejecting anything else', () => {
+		expect(parseTimeOfDay('12:00')).toBe(720);
+		expect(parseTimeOfDay('9:05')).toBe(545);
+		expect(parseTimeOfDay('23:59')).toBe(1439);
+		expect(parseTimeOfDay('24:00')).toBeNull();
+		expect(parseTimeOfDay('12:60')).toBeNull();
+		expect(parseTimeOfDay('12h00')).toBeNull();
+		expect(parseTimeOfDay('')).toBeNull();
+	});
+
+	it('formats minutes as HH:MM', () => {
+		expect(formatTimeOfDay(0)).toBe('00:00');
+		expect(formatTimeOfDay(545)).toBe('09:05');
+		expect(formatTimeOfDay(1439)).toBe('23:59');
+	});
+
+	it('derives an end that stays on the same Day, null at or past midnight', () => {
+		expect(endAfterDuration(720, 90)).toBe(810);
+		expect(endAfterDuration(22 * 60, 120)).toBeNull(); // would reach 24:00
+		expect(endAfterDuration(23 * 60, 30)).toBe(1410);
+	});
+});
+
+describe('parseSeatingsPayload', () => {
+	it('fills a missing end from the Service default duration', () => {
+		const result = parseSeatingsPayload(servicesPayload([{
+			defaultDurationMinutes: 105,
+			seatings: [seatingPayload({ start: '12:00', end: null })],
+		}]));
+
+		expect(result).toMatchObject({ ok: true });
+		if (!result.ok) return;
+		const seating = result.services[0].seatings[0];
+		expect(seating.startMinutes).toBe(720);
+		expect(seating.endMinutes).toBe(720 + 105);
+	});
+
+	it('keeps an explicit end that is after the start', () => {
+		const result = parseSeatingsPayload(servicesPayload([{
+			defaultDurationMinutes: 90,
+			seatings: [seatingPayload({ start: '12:00', end: '15:00' })],
+		}]));
+
+		if (!result.ok) throw new Error('expected ok');
+		expect(result.services[0].seatings[0].endMinutes).toBe(900);
+	});
+
+	it('rejects a missing payload, malformed JSON and a non-array', () => {
+		expect(parseSeatingsPayload(null)).toEqual({ ok: false, reason: 'missing' });
+		expect(parseSeatingsPayload('  ')).toEqual({ ok: false, reason: 'missing' });
+		expect(parseSeatingsPayload('nope')).toEqual({ ok: false, reason: 'malformed' });
+		expect(parseSeatingsPayload('{}')).toEqual({ ok: false, reason: 'malformed' });
+	});
+
+	it('rejects an unknown or duplicated service id', () => {
+		expect(parseSeatingsPayload(servicesPayload([{ seatings: [] }]).replace(SERVICE_ID, 'not-a-uuid')))
+			.toEqual({ ok: false, reason: 'service' });
+		expect(parseSeatingsPayload(servicesPayload([
+			{ seatings: [] },
+			{ seatings: [] },
+		]))).toEqual({ ok: false, reason: 'service' });
+	});
+
+	it('rejects a default duration outside 1..1440 minutes', () => {
+		expect(parseSeatingsPayload(servicesPayload([{ defaultDurationMinutes: 0, seatings: [] }])))
+			.toEqual({ ok: false, reason: 'duration' });
+		expect(parseSeatingsPayload(servicesPayload([{ defaultDurationMinutes: 1441, seatings: [] }])))
+			.toEqual({ ok: false, reason: 'duration' });
+		expect(parseSeatingsPayload(servicesPayload([{ defaultDurationMinutes: 75.5, seatings: [] }])))
+			.toEqual({ ok: false, reason: 'duration' });
+	});
+
+	it('rejects invalid times, an end before or at the start, and midnight crossings', () => {
+		expect(parseSeatingsPayload(servicesPayload([{ seatings: [seatingPayload({ start: '12h00' })] }])))
+			.toEqual({ ok: false, reason: 'time' });
+		expect(parseSeatingsPayload(servicesPayload([{ seatings: [seatingPayload({ start: '14:00', end: '13:00' })] }])))
+			.toEqual({ ok: false, reason: 'time' });
+		expect(parseSeatingsPayload(servicesPayload([{ seatings: [seatingPayload({ start: '14:00', end: '14:00' })] }])))
+			.toEqual({ ok: false, reason: 'time' });
+		// 23:00 + the default 90 minutes would cross midnight
+		expect(parseSeatingsPayload(servicesPayload([{ seatings: [seatingPayload({ start: '23:00' })] }])))
+			.toEqual({ ok: false, reason: 'time' });
+	});
+
+	it('rejects invalid seating fields and normalises titles', () => {
+		expect(parseSeatingsPayload(servicesPayload([{ seatings: [seatingPayload({ totalCapacity: 0 })] }])))
+			.toEqual({ ok: false, reason: 'seating' });
+		expect(parseSeatingsPayload(servicesPayload([{ seatings: [seatingPayload({ priceAmount: -1 })] }])))
+			.toEqual({ ok: false, reason: 'seating' });
+		expect(parseSeatingsPayload(servicesPayload([{ seatings: [seatingPayload({ currency: 'EUROS' })] }])))
+			.toEqual({ ok: false, reason: 'seating' });
+		expect(parseSeatingsPayload(servicesPayload([{ seatings: [seatingPayload({ badgeType: 'deluxe' })] }])))
+			.toEqual({ ok: false, reason: 'seating' });
+		expect(parseSeatingsPayload(servicesPayload([{ seatings: [seatingPayload({ id: 'nope' })] }])))
+			.toEqual({ ok: false, reason: 'seating' });
+
+		const result = parseSeatingsPayload(servicesPayload([{
+			seatings: [seatingPayload({ titleEn: '  ', titleFr: null, currency: 'eur' })],
+		}]));
+		if (!result.ok) throw new Error('expected ok');
+		expect(result.services[0].seatings[0].seating.titleEn).toBeNull();
+		expect(result.services[0].seatings[0].seating.titleFr).toBeNull();
+		expect(result.services[0].seatings[0].seating.currency).toBe('EUR');
+	});
+});
+
+describe('overlap detection', () => {
+	it('flags a Seating starting before the previous one ends', () => {
+		const hits = findSeatingOverlaps([
+			{ startMinutes: 720, endMinutes: 810 }, // 12:00–13:30
+			{ startMinutes: 750, endMinutes: 870 }, // 12:30–14:30 starts before 13:30
+		]);
+		expect(hits).toEqual([{ index: 1, previousEndMinutes: 810 }]);
+	});
+
+	it('does not flag a perfect turn-over (start equal to previous end)', () => {
+		expect(findSeatingOverlaps([
+			{ startMinutes: 720, endMinutes: 810 },
+			{ startMinutes: 810, endMinutes: 900 },
+		])).toEqual([]);
+	});
+
+	it('flags later Seatings colliding with a longer earlier one, in input order', () => {
+		const hits = findSeatingOverlaps([
+			{ startMinutes: 840, endMinutes: 930 }, // 14:00–15:30
+			{ startMinutes: 720, endMinutes: 900 }, // 12:00–15:00
+			{ startMinutes: 930, endMinutes: 990 }, // 15:30–16:30 starts exactly at 15:30 → fine
+		]);
+		expect(hits).toEqual([{ index: 0, previousEndMinutes: 900 }]);
+	});
+
+	it('reports overlaps per Service from a parsed payload, without refusing it', () => {
+		const parsed = parseSeatingsPayload(servicesPayload([{
+			seatings: [
+				seatingPayload({ start: '12:00' }),       // 12:00–13:30 (90')
+				seatingPayload({ start: '13:00' }),       // 13:00–14:30 overlaps
+				seatingPayload({ start: '19:00', end: '22:00' }),
+			],
+		}]));
+		if (!parsed.ok) throw new Error('expected ok');
+
+		const warnings = findPlannedSeatingOverlaps(parsed.services);
+		expect(warnings).toEqual([
+			{ serviceIndex: 0, seatingIndex: 1, start: '13:00', previousEnd: '13:30' },
+		]);
+		expect(formatSeatingOverlapWarning(warnings)).toBe(
+			'Chevauchement de séances dans un même repas : la séance de 13h00 commence avant la fin de la précédente (13h30).'
+		);
+	});
+});
+
+describe('derived seating titles', () => {
+	it('derives a label from Day, Service and time in both locales', () => {
+		expect(derivedSeatingTitle(new Date('2026-07-15T12:00:00Z'), { dayDate: '2026-07-15', serviceKind: 'lunch' }, 'fr'))
+			.toBe('Déjeuner — mercredi 15 juillet 2026, 12h00');
+		expect(derivedSeatingTitle(new Date('2026-07-15T19:30:00Z'), { dayDate: '2026-07-15', serviceKind: 'dinner' }, 'en'))
+			.toBe('Dinner — Wednesday, 15 July 2026, 19:30');
+	});
+
+	it('falls back to the start time alone to derive Day and Service', () => {
+		expect(derivedSeatingTitle('2026-07-15T19:30:00Z', {}, 'fr'))
+			.toBe('Dîner — mercredi 15 juillet 2026, 19h30');
+		expect(derivedSeatingTitle('2026-07-15T09:00:00Z', {}, 'en'))
+			.toBe('Lunch — Wednesday, 15 July 2026, 09:00');
+	});
+
+	it('keeps stored titles and only fills the empty side', () => {
+		expect(seatingTitlesWithFallback({
+			titleEn: 'Chef’s table',
+			titleFr: null,
+			startTime: new Date('2026-07-15T19:00:00Z'),
+		}, { dayDate: '2026-07-15', serviceKind: 'dinner' })).toEqual({
+			titleEn: 'Chef’s table',
+			titleFr: 'Dîner — mercredi 15 juillet 2026, 19h00',
+		});
+	});
+});

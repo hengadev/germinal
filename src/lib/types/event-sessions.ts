@@ -4,8 +4,10 @@ export type EventSession = typeof eventSessions.$inferSelect;
 
 export type CreateEventSessionInput = {
 	eventId: string;
-	titleEn: string;
-	titleFr: string;
+	// Titles are optional since issue 020 — public pages derive a label from
+	// the Seating's Day, Service and start time when these are empty.
+	titleEn?: string | null;
+	titleFr?: string | null;
 	descriptionEn?: string | null;
 	descriptionFr?: string | null;
 	startTime: Date;

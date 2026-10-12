@@ -1,6 +1,12 @@
 import { db } from '../db';
 import { eventDays, eventServices, eventSessions, events, reservations } from '../db/schema';
 import { and, eq, inArray, sql } from 'drizzle-orm';
+import {
+	endAfterDuration,
+	findSeatingOverlaps,
+	formatTimeOfDay,
+	parseTimeOfDay,
+} from '$lib/utils/seating-times';
 
 /**
  * Event schedule — the Days → Services → Seatings model (ADR 0005).
@@ -577,6 +583,391 @@ export async function saveEventSchedule(eventId: string, picked: PickedServiceDa
 }
 
 // ---------------------------------------------------------------------------
+// Seatings per Service (issue 020)
+// ---------------------------------------------------------------------------
+
+/** Badge a Seating may carry (display only — see CONTEXT.md "Badge"). */
+export type SeatingBadgeType = (typeof eventSessions.$inferSelect)['badgeType'];
+
+const SEATING_BADGE_TYPES: readonly SeatingBadgeType[] = [
+	'none', 'featured', 'vip', 'popular', 'best_value', 'limited',
+];
+
+// Mirrors config.eventSessions capacity bounds (src/lib/server/env.ts);
+// duplicated so the pure parsing helpers stay loadable without env vars.
+const MIN_SEATING_CAPACITY = 1;
+const MAX_SEATING_CAPACITY = 10000;
+
+/** A Seating as posted by the admin Seatings editor for one Service. */
+export interface PlannedSeating {
+	/** Existing Seating id, or null to create a new one. */
+	id: string | null;
+	/** Start time on the Service's Day, `HH:MM` UTC. */
+	start: string;
+	/** Explicit end `HH:MM` UTC, or null to fill from the default duration. */
+	end: string | null;
+	titleEn: string | null;
+	titleFr: string | null;
+	descriptionEn: string | null;
+	descriptionFr: string | null;
+	totalCapacity: number;
+	priceAmount: number;
+	currency: string;
+	published: boolean;
+	allowWaitlist: boolean;
+	badgeType: SeatingBadgeType;
+}
+
+/** A planned Service with its default duration and its Seatings. */
+export interface PlannedServiceSeatings {
+	serviceId: string;
+	defaultDurationMinutes: number;
+	seatings: PlannedSeating[];
+}
+
+/** A parsed Seating: the payload entry plus its times as minutes since
+ * midnight, with the end filled from the Service's default duration when
+ * the payload left it out. */
+export interface ParsedSeating {
+	seating: PlannedSeating;
+	startMinutes: number;
+	endMinutes: number;
+}
+
+export interface ParsedServiceSeatings {
+	serviceId: string;
+	defaultDurationMinutes: number;
+	seatings: ParsedSeating[];
+}
+
+export type SeatingsParseFailure =
+	| 'missing'
+	| 'malformed'
+	| 'service'
+	| 'duration'
+	| 'time'
+	| 'seating';
+
+export type SeatingsParseResult =
+	| { ok: true; services: ParsedServiceSeatings[] }
+	| { ok: false; reason: SeatingsParseFailure };
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function optionalText(value: unknown, maxLength: number): string | null | false {
+	if (value === null) return null;
+	if (typeof value !== 'string') return false;
+	const trimmed = value.trim();
+	if (trimmed.length > maxLength) return false;
+	return trimmed === '' ? null : trimmed;
+}
+
+/**
+ * Parse the `services` payload posted by the admin Seatings editor: one
+ * entry per Service with its default Seating duration and its Seatings as
+ * start times. Ends left out are filled from the duration; everything is
+ * validated (times, duration, capacity, price, currency, badge). Returns a
+ * failure reason the admin form maps to French copy.
+ */
+export function parseSeatingsPayload(raw: string | null): SeatingsParseResult {
+	if (raw === null || raw.trim() === '') {
+		return { ok: false, reason: 'missing' };
+	}
+
+	let parsed: unknown;
+	try {
+		parsed = JSON.parse(raw);
+	} catch {
+		return { ok: false, reason: 'malformed' };
+	}
+	if (!Array.isArray(parsed)) {
+		return { ok: false, reason: 'malformed' };
+	}
+
+	const seenServiceIds = new Set<string>();
+	const seenSeatingIds = new Set<string>();
+	const services: ParsedServiceSeatings[] = [];
+
+	for (const serviceEntry of parsed) {
+		if (typeof serviceEntry !== 'object' || serviceEntry === null) {
+			return { ok: false, reason: 'malformed' };
+		}
+		const { serviceId, defaultDurationMinutes, seatings } = serviceEntry as Record<string, unknown>;
+		if (typeof serviceId !== 'string' || !UUID_PATTERN.test(serviceId)) {
+			return { ok: false, reason: 'service' };
+		}
+		if (seenServiceIds.has(serviceId)) {
+			return { ok: false, reason: 'service' };
+		}
+		seenServiceIds.add(serviceId);
+
+		if (
+			!Number.isInteger(defaultDurationMinutes) ||
+			(defaultDurationMinutes as number) < 1 ||
+			(defaultDurationMinutes as number) > 24 * 60
+		) {
+			return { ok: false, reason: 'duration' };
+		}
+		if (!Array.isArray(seatings)) {
+			return { ok: false, reason: 'malformed' };
+		}
+
+		const parsedSeatings: ParsedSeating[] = [];
+		for (const seatingEntry of seatings) {
+			if (typeof seatingEntry !== 'object' || seatingEntry === null) {
+				return { ok: false, reason: 'malformed' };
+			}
+			const entry = seatingEntry as Record<string, unknown>;
+
+			if (entry.id !== null && (typeof entry.id !== 'string' || !UUID_PATTERN.test(entry.id))) {
+				return { ok: false, reason: 'seating' };
+			}
+			if (entry.id !== null) {
+				if (seenSeatingIds.has(entry.id)) {
+					return { ok: false, reason: 'seating' };
+				}
+				seenSeatingIds.add(entry.id);
+			}
+
+			if (typeof entry.start !== 'string') {
+				return { ok: false, reason: 'time' };
+			}
+			const startMinutes = parseTimeOfDay(entry.start);
+			if (startMinutes === null) {
+				return { ok: false, reason: 'time' };
+			}
+
+			let endMinutes: number;
+			if (entry.end === null || entry.end === undefined) {
+					// No explicit end: filled from the Service's default duration
+					// (the PRD's Event schedule module owns end-time filling).
+				const filled = endAfterDuration(startMinutes, defaultDurationMinutes as number);
+				if (filled === null) {
+					return { ok: false, reason: 'time' };
+				}
+				endMinutes = filled;
+			} else {
+				if (typeof entry.end !== 'string') {
+					return { ok: false, reason: 'time' };
+				}
+				const explicit = parseTimeOfDay(entry.end);
+				if (explicit === null || explicit <= startMinutes) {
+					return { ok: false, reason: 'time' };
+				}
+				endMinutes = explicit;
+			}
+
+			const titleEn = optionalText(entry.titleEn, 255);
+			const titleFr = optionalText(entry.titleFr, 255);
+			const descriptionEn = optionalText(entry.descriptionEn, 100000);
+			const descriptionFr = optionalText(entry.descriptionFr, 100000);
+			if (titleEn === false || titleFr === false || descriptionEn === false || descriptionFr === false) {
+				return { ok: false, reason: 'seating' };
+			}
+
+			if (
+				!Number.isInteger(entry.totalCapacity) ||
+				(entry.totalCapacity as number) < MIN_SEATING_CAPACITY ||
+				(entry.totalCapacity as number) > MAX_SEATING_CAPACITY
+			) {
+				return { ok: false, reason: 'seating' };
+			}
+			if (!Number.isInteger(entry.priceAmount) || (entry.priceAmount as number) < 0) {
+				return { ok: false, reason: 'seating' };
+			}
+			if (typeof entry.currency !== 'string' || !/^[a-z]{3}$/i.test(entry.currency)) {
+				return { ok: false, reason: 'seating' };
+			}
+			if (typeof entry.published !== 'boolean' || typeof entry.allowWaitlist !== 'boolean') {
+				return { ok: false, reason: 'seating' };
+			}
+			if (!SEATING_BADGE_TYPES.includes(entry.badgeType as SeatingBadgeType)) {
+				return { ok: false, reason: 'seating' };
+			}
+
+			parsedSeatings.push({
+				seating: {
+					id: entry.id as string | null,
+					start: entry.start,
+					end: entry.end === null || entry.end === undefined ? null : (entry.end as string),
+					titleEn,
+					titleFr,
+					descriptionEn,
+					descriptionFr,
+					totalCapacity: entry.totalCapacity as number,
+					priceAmount: entry.priceAmount as number,
+					currency: (entry.currency as string).toUpperCase(),
+					published: entry.published as boolean,
+					allowWaitlist: entry.allowWaitlist as boolean,
+					badgeType: entry.badgeType as SeatingBadgeType,
+				},
+				startMinutes,
+				endMinutes,
+			});
+		}
+
+		services.push({
+			serviceId,
+			defaultDurationMinutes: defaultDurationMinutes as number,
+			seatings: parsedSeatings,
+		});
+	}
+
+	return { ok: true, services };
+}
+
+/** French admin copy for each way the seatings payload can be invalid. */
+export function seatingsPayloadErrorMessage(reason: SeatingsParseFailure): string {
+	switch (reason) {
+		case 'missing':
+			return 'Les séances de l’événement sont requises.';
+		case 'malformed':
+			return 'Les séances soumises sont invalides.';
+		case 'service':
+			return 'Un des services soumis est invalide.';
+		case 'duration':
+			return 'La durée par défaut doit être un nombre entier de minutes, entre 1 et 1440.';
+		case 'time':
+			return 'Les heures de séance sont invalides : saisissez HH:MM en UTC, fin après le début et avant minuit.';
+		case 'seating':
+			return 'Une des séances est invalide (titre, capacité, prix, devise ou badge).';
+	}
+}
+
+/** A planned Seating that starts before an earlier Seating of the same
+ * Service has ended — reported (warned), never refused (PRD). */
+export interface PlannedSeatingOverlapWarning {
+	serviceIndex: number;
+	seatingIndex: number;
+	/** Flagged Seating's start, `HH:MM`. */
+	start: string;
+	/** End of the earlier Seating it collides with, `HH:MM`. */
+	previousEnd: string;
+}
+
+/**
+ * Detect overlapping Seatings in a parsed payload, Service by Service.
+ * Pure — the save reports the result, the admin form can show the same
+ * warnings before saving.
+ */
+export function findPlannedSeatingOverlaps(
+	services: ParsedServiceSeatings[]
+): PlannedSeatingOverlapWarning[] {
+	const warnings: PlannedSeatingOverlapWarning[] = [];
+	services.forEach((service, serviceIndex) => {
+		const hits = findSeatingOverlaps(
+			service.seatings.map((seating) => ({
+				startMinutes: seating.startMinutes,
+				endMinutes: seating.endMinutes,
+			}))
+		);
+		for (const hit of hits) {
+			warnings.push({
+				serviceIndex,
+				seatingIndex: hit.index,
+				start: formatTimeOfDay(service.seatings[hit.index].startMinutes),
+				previousEnd: formatTimeOfDay(hit.previousEndMinutes),
+			});
+		}
+	});
+	return warnings;
+}
+
+function frClock(time: string): string {
+	return time.replace(':', 'h');
+}
+
+/** French admin copy for reported overlaps (a warning, not a refusal). */
+export function formatSeatingOverlapWarning(warnings: PlannedSeatingOverlapWarning[]): string {
+	const parts = warnings.map((warning) =>
+		`la séance de ${frClock(warning.start)} commence avant la fin de la précédente (${frClock(warning.previousEnd)})`
+	);
+	return `Chevauchement de séances dans un même repas : ${parts.join(' ; ')}.`;
+}
+
+// ---------------------------------------------------------------------------
+// Derived Seating titles (issue 020)
+// ---------------------------------------------------------------------------
+
+export interface SeatingLabelContext {
+	/** Day key (`YYYY-MM-DD`) when known; derived from the start time if not. */
+	dayDate?: string;
+	/** Service kind when known; derived from the start time if not. */
+	serviceKind?: ServiceKind;
+}
+
+/**
+ * The label shown for a Seating with no stored title: its Service (meal),
+ * its Day and its start time (issue 020). UTC throughout — Day keys and the
+ * lunch/dinner cut-off are evaluated on the UTC clock.
+ */
+export function derivedSeatingTitle(
+	startTime: Date | string,
+	context: SeatingLabelContext = {},
+	locale: 'en' | 'fr' = 'fr'
+): string {
+	const start = typeof startTime === 'string' ? new Date(startTime) : startTime;
+	const kind = context.serviceKind ?? classifyServiceKind(start);
+	const day = context.dayDate ?? utcDayKey(start);
+
+	const meal =
+		locale === 'fr'
+			? kind === 'lunch' ? 'Déjeuner' : 'Dîner'
+			: kind === 'lunch' ? 'Lunch' : 'Dinner';
+	const date = new Intl.DateTimeFormat(locale === 'fr' ? 'fr-FR' : 'en-GB', {
+		weekday: 'long',
+		day: 'numeric',
+		month: 'long',
+		year: 'numeric',
+		timeZone: 'UTC',
+	}).format(new Date(`${day}T12:00:00Z`));
+	const clock =
+		locale === 'fr'
+			? `${String(start.getUTCHours()).padStart(2, '0')}h${String(start.getUTCMinutes()).padStart(2, '0')}`
+			: `${String(start.getUTCHours()).padStart(2, '0')}:${String(start.getUTCMinutes()).padStart(2, '0')}`;
+	return `${meal} — ${date}, ${clock}`;
+}
+
+/**
+ * A Seating's display titles: the stored ones when present, otherwise
+ * derived from its Day, Service and start time (issue 020). Used at the
+ * read boundaries so untitled Seatings never render blank.
+ */
+export function seatingTitlesWithFallback(
+	seating: { titleEn: string | null; titleFr: string | null; startTime: Date | string },
+	context: SeatingLabelContext = {}
+): { titleEn: string; titleFr: string } {
+	return {
+		titleEn: seating.titleEn ?? derivedSeatingTitle(seating.startTime, context, 'en'),
+		titleFr: seating.titleFr ?? derivedSeatingTitle(seating.startTime, context, 'fr'),
+	};
+}
+
+/**
+ * Refused: publishing an Event that has no Seating — every published Event
+ * must be bookable (ADR 0001).
+ */
+export class EventWithoutSeatingError extends ScheduleSaveRefusedError {
+	constructor() {
+		super(
+			'Un événement ne peut pas être publié sans au moins une séance. Ajoutez une séance dans l’onglet Séances, puis publiez à nouveau.'
+		);
+		this.name = 'EventWithoutSeatingError';
+	}
+}
+
+/** Throw {@link EventWithoutSeatingError} unless the Event has a Seating. */
+export async function assertEventHasSeatings(eventId: string): Promise<void> {
+	const [seating] = await db.select({ id: eventSessions.id })
+		.from(eventSessions)
+		.where(eq(eventSessions.eventId, eventId))
+		.limit(1);
+	if (!seating) {
+		throw new EventWithoutSeatingError();
+	}
+}
+
+// ---------------------------------------------------------------------------
 // Public schedule grouping (Days → Services → Seatings)
 // ---------------------------------------------------------------------------
 
@@ -660,6 +1051,14 @@ export async function getPublishedScheduleByEventId(
 	return rows.map((row) => ({
 		dayDate: row.dayDate,
 		serviceKind: row.serviceKind,
-		item: row.session,
+		// Untitled Seatings get a label derived from Day, Service and time
+		// (issue 020) — the grouping context is already loaded here.
+		item: {
+			...row.session,
+			...seatingTitlesWithFallback(row.session, {
+				dayDate: row.dayDate,
+				serviceKind: row.serviceKind,
+			}),
+		},
 	}));
 }
