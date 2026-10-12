@@ -7,15 +7,43 @@ Germinal is a creative studio that curates and organizes bespoke cultural experi
 ### Experiences & Programming
 
 **Event**:
-A curated experience organized by Germinal (e.g., a chef's dinner, a performance, a workshop). Has a date range and one or more Sessions.
+A curated experience organized by Germinal (e.g., a chef's dinner, a performance, a workshop). Takes place over one or more Days; its date span runs from its first to its last Day.
 _Avoid_: Show, experience, programme
 
-**Session**:
-A specific, bookable time slot within an Event (e.g., a lunch service or an evening dinner). The unit of reservation — guests book a Session, not an Event. Every Event must have at least one Session before it can be published. Free events use a Session with price = 0; there is no such thing as a sessionless published Event.
-_Avoid_: Slot, occurrence, time slot
+**Day**:
+A calendar date on which an Event takes place. An Event's Days are picked individually and need not be consecutive (e.g., Monday, Wednesday, Thursday).
+_Avoid_: Date range, occurrence
+
+**Service**:
+A meal on a given Day — either lunch (déjeuner) or dinner (dîner). A Day has a lunch Service, a dinner Service, or both. Services are meal-only for now; non-meal formats (workshop, performance) are a deliberate later extension.
+_Avoid_: Meal option, repas, sitting
+
+**Seating**:
+A sitting within a Service, with a start and an end time (e.g., Wednesday lunch 12:00–13:15, then 13:30–14:45). Each Seating holds its own capacity: guests of one Seating leave before the next one arrives, so the venue fills up once per Seating. The unit of reservation — guests book a Seating, not an Event. Every Event must have at least one Seating before it can be published.
+_Avoid_: Session (former name), slot, créneau, turn
+
+**Menu**:
+A set of dishes served at an Event, described once and offered on one or more Services (e.g., the same Menu at lunch and dinner, or on every Day). Its price is set per Service that offers it, so lunch and dinner can charge differently for the same Menu. When a Service offers several Menus, the Guest picks one per seat; with a single Menu there is no choice to make.
+_Avoid_: Formula, formule, offer
+
+**Deposit**:
+The part of a Menu's price a Guest pays online when making a Reservation; the remainder (the **Balance**) is paid at the venue. Defined once per Event as either a fixed amount per seat or a percentage of each price, and always displayed as the resulting amount. An Event may require no Deposit, in which case the Guest pays everything at the venue.
+_Avoid_: Acompte (in code/docs), down payment, pre-payment
+
+**Balance**:
+What a Guest still owes at the venue: the price minus the Deposit already paid.
+_Avoid_: Remainder, solde (in code/docs)
+
+**Refund Policy**:
+The rule deciding whether a Guest who cancels gets their Deposit back, chosen by the Admin per Event. Either **manual** (a free-text statement; each refund is decided by an Admin) or **rule-based** (one or more tiers such as "100% refunded until 48h before the Seating, then 0%"; "always refundable" and "never refundable" are single-tier presets). Whatever the policy, when Germinal cancels a Seating or an Event every Deposit is refunded in full, and an Admin may always refund as a goodwill gesture.
+_Avoid_: Cancellation policy, conditions d'annulation (in code/docs)
+
+**Venue Capacity**:
+The number of guests the Event's venue holds at once. Set once per Event and inherited by every Seating, which may override it (e.g., a smaller chef's table on one dinner). A Seating's capacity can never drop below the seats already reserved.
+_Avoid_: Max guests, covers
 
 **Badge**:
-A marketing label applied to a Session to highlight it on the booking UI. Purely display — has no effect on pricing or access rules. Options: `featured`, `vip`, `popular`, `best_value`, `limited`. A Session has at most one Badge (or none).
+A marketing label applied to a Seating to highlight it on the booking UI. Purely display — has no effect on pricing or access rules. Options: `featured`, `vip`, `popular`, `best_value`, `limited`. A Seating has at most one Badge (or none).
 _Avoid_: Tag, label, tier
 
 **Spotlight**:
@@ -31,11 +59,11 @@ The person responsible for the artistic or editorial direction of a specific Eve
 _Avoid_: Organizer, director
 
 **Timings**:
-An editorial schedule displayed on the Event page alongside the venue info (e.g., "Doors: 7:00pm", "Dinner: 8:30pm"). Stored as a structured list of `{label, time}` entries. Complements Session start/end times with human-readable programme detail.
+An editorial schedule displayed on the Event page alongside the venue info (e.g., "Doors: 7:00pm", "Dinner: 8:30pm"). Stored as a structured list of `{label, time}` entries. Complements Seating start/end times with human-readable programme detail.
 _Avoid_: Schedule, programme, agenda
 
 **Admission Info**:
-Optional supplementary text displayed alongside session pricing on the Event page. Used for access conditions not captured by price alone (e.g., "Members only", "By invitation"). Purely editorial — has no effect on the booking flow.
+Optional supplementary text displayed alongside pricing on the Event page. Used for access conditions not captured by price alone (e.g., "Members only", "By invitation"). Purely editorial — has no effect on the booking flow.
 _Avoid_: Access conditions, entry requirements
 
 ### Talent
@@ -47,7 +75,7 @@ _Avoid_: Artist, creator, performer
 ### Booking Flow
 
 **Reservation**:
-The record created when a guest books one or more seats for a Session. Holds guest identity, quantity, payment status, and an access token. One Reservation may cover multiple seats.
+The record created when a guest books one or more seats for a Seating. Holds guest identity, quantity, payment status, and an access token. One Reservation may cover any number of seats, limited only by the Seating's remaining capacity — there is deliberately no per-Reservation cap.
 _Avoid_: Booking (use as a verb only), order, purchase
 
 **Ticket**:
@@ -59,11 +87,11 @@ A person who makes a Reservation, identified by email and name. Does not require
 _Avoid_: Customer, user, attendee
 
 **Waitlist**:
-A queue a guest can join when a Session is at full capacity. Scoped to a Session, with an expiry date.
+A queue a guest can join when a Seating is at full capacity. Scoped to a Seating, with an expiry date.
 _Avoid_: Queue, backlog
 
 **Promo Code**:
-A user-facing discount code entered at checkout. Backed by a Coupon that defines the discount logic. One Coupon can have many Promo Codes.
+A user-facing discount code entered at checkout. Backed by a Coupon that defines the discount logic. One Coupon can have many Promo Codes. The discount applies to the price of the meal, not to the Deposit: the Deposit is then worked out on the discounted price (and never exceeds it), and the Balance shrinks accordingly.
 _Avoid_: Discount code, voucher code
 
 **Coupon**:
@@ -95,9 +123,12 @@ A contact form submission from an external party. Four types: `collaboration` (c
 
 ## Relationships
 
-- An **Event** has one or more **Sessions**
-- A **Session** belongs to exactly one **Event**
-- A **Guest** makes a **Reservation** for a **Session** (no account required)
+- An **Event** has one or more **Days**
+- A **Day** has a lunch **Service**, a dinner **Service**, or both
+- A **Service** has one or more **Seatings**
+- A **Menu** is described once per **Event** and offered on one or more **Services**, each setting its own price
+- An **Event** has exactly one **Deposit** rule (possibly none) and one **Refund Policy**
+- A **Guest** makes a **Reservation** for a **Seating** (no account required)
 - A **Reservation** produces one **Ticket** (one QR code, regardless of seat quantity)
 - A **Coupon** belongs to an **Event** and has one or more **Promo Codes**
 - A **Talent** belongs to Germinal's roster independently of any specific **Event**
@@ -107,8 +138,14 @@ A contact form submission from an external party. Four types: `collaboration` (c
 
 ## Example dialogue
 
-> **Dev:** "We have a chef dinner coming up — it's free for invited guests. Do we still need a Session?"
-> **Domain expert:** "Yes — always. Create a Session with price = 0. We still need capacity control; Germinal events are intimate."
+> **Dev:** "The client wants Monday and Wednesday dinners, two sittings each, same tasting menu at €65 with a €20 deposit. How many Seatings is that?"
+> **Domain expert:** "Four — two Days, one dinner Service each, two Seatings per Service. The Menu is described once and offered on both Services. Each Seating gets the Venue Capacity unless we override it."
+
+> **Dev:** "A guest used a 10% promo code. What do they still owe at the door?"
+> **Domain expert:** "The Balance: the discounted price minus the Deposit they paid online. Staff see it at check-in."
+
+> **Dev:** "We have a chef dinner coming up — it's free for invited guests. Do we still need a Seating?"
+> **Domain expert:** "Yes — always. Create a Seating with price = 0. We still need capacity control; Germinal events are intimate."
 
 > **Dev:** "The chef is on our Talent roster. Should I link the Talent to the Event in the database?"
 > **Domain expert:** "No. Add them as a Collaborator on the Event — name and role. Talents are the standing roster, not per-event participants."
