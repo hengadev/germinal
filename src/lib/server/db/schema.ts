@@ -127,6 +127,10 @@ export const events = pgTable('events', {
     curatorFr: varchar('curator_fr', { length: 150 }),
     admissionInfoEn: varchar('admission_info_en', { length: 150 }),
     admissionInfoFr: varchar('admission_info_fr', { length: 150 }),
+    // Venue Capacity (issue 021): how many guests the venue holds at once.
+    // Every Seating inherits it unless it overrides its own capacity. Null
+    // only on an Event that has never been given one (no Seating yet).
+    venueCapacity: integer('venue_capacity'),
     coverMediaId: uuid('cover_media_id'),
     coverVideoId: uuid('cover_video_id'),
     published: boolean('published').default(false).notNull(),
@@ -142,6 +146,9 @@ export const events = pgTable('events', {
     publishedStartDateIdx: index('events_published_start_date_idx').on(table.published, table.startDate),
     spotlightIdx: index('events_spotlight_idx').on(table.isSpotlight),
     portfolioIdx: index('events_portfolio_idx').on(table.isPortfolio),
+    venueCapacityCheck: check('events_venue_capacity_check',
+        sql`venue_capacity IS NULL OR venue_capacity > 0`
+    ),
 }));
 
 // ============================================
@@ -537,8 +544,13 @@ export const eventSessions = pgTable('event_sessions', {
     descriptionFr: text('description_fr'),
     startTime: timestamp('start_time', { withTimezone: true }).notNull(),
     endTime: timestamp('end_time', { withTimezone: true }).notNull(),
+    // Effective capacity at booking time: the Event's Venue Capacity, or the
+    // Seating's own when `capacityOverridden` (issue 021). Changing the
+    // Venue Capacity rewrites total/available on every non-overridden
+    // Seating, so booking keeps locking and decrementing these columns only.
     totalCapacity: integer('total_capacity').notNull(),
     availableCapacity: integer('available_capacity').notNull(),
+    capacityOverridden: boolean('capacity_overridden').default(false).notNull(),
     priceAmount: integer('price_amount').notNull(),
     currency: varchar('currency', { length: 3 }).notNull().default('EUR'),
     published: boolean('published').default(false).notNull(),
