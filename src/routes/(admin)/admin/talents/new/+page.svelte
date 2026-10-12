@@ -92,7 +92,7 @@
  <label class="block text-sm font-medium text-foreground-alt mb-2">
  Photo de Profil
  </label>
- <p class="text-xs text-muted-foreground mb-3">Upload a profile photo for this talent</p>
+ <p class="text-xs text-muted-foreground mb-3">Ajoutez une photo de profil pour ce talent</p>
  <MediaUpload
  mode="single"
  entityType="talent"
@@ -364,7 +364,7 @@
  <label class="block text-sm font-medium text-foreground-alt mb-2">
  Spécialisations (Anglais) (Optionnel)
  </label>
- <p class="text-xs text-muted-foreground mb-3">Add up to 5 specializations</p>
+ <p class="text-xs text-muted-foreground mb-3">Ajoutez jusqu'à 5 spécialisations</p>
 
  <div class="space-y-2">
  {#each specializationsEn as spec, i}
@@ -520,7 +520,7 @@
                                 for="website"
                                 class="block text-sm font-medium text-foreground-alt mb-2"
                             >
-                                Website
+                                Site web
                             </label>
                             <div class="relative">
                                 <LinkIcon

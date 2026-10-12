@@ -85,7 +85,7 @@
 			<div>
 				<h1 class="text-3xl lg:text-4xl font-bold mb-2">Modifier le Talent</h1>
 				<p class="text-muted-foreground">
-					Updating "{data.talent.firstName} {data.talent.lastName}"
+					Modification de « {data.talent.firstName} {data.talent.lastName} »
 				</p>
 			</div>
 		</div>
@@ -98,7 +98,7 @@
 						Photo de Profil
 					</label>
 					<p class="text-xs text-muted-foreground mb-3">
-						{existingProfileMedia.length > 0 ? 'Replace or remove the current profile photo' : 'Upload a profile photo for this talent'}
+						{existingProfileMedia.length > 0 ? 'Remplacez ou supprimez la photo de profil actuelle' : 'Ajoutez une photo de profil pour ce talent'}
 					</p>
 					<MediaUpload
 						mode="single"
@@ -341,7 +341,7 @@
 					<label class="block text-sm font-medium text-foreground-alt mb-2">
 						Spécialisations (Anglais) (Optionnel)
 					</label>
-					<p class="text-xs text-muted-foreground mb-3">Add up to 5 specializations</p>
+					<p class="text-xs text-muted-foreground mb-3">Ajoutez jusqu'à 5 spécialisations</p>
 
 					<div class="space-y-2">
 						{#each specializationsEn as spec, i}
@@ -483,7 +483,7 @@
 
 						<div>
 							<label for="website" class="block text-sm font-medium text-foreground-alt mb-2">
-								Website
+								Site web
 							</label>
 							<div class="relative">
 								<LinkIcon
