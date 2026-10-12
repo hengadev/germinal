@@ -66,13 +66,13 @@
 		// Check file type
 		const allowedTypes = getAllowedMimeTypes();
 		if (!allowedTypes.includes(file.type)) {
-			return `Invalid file type: ${file.type}. Allowed: ${allowedTypes.join(', ')}`;
+			return `Type de fichier non autorisé : ${file.type}. Autorisés : ${allowedTypes.join(', ')}`;
 		}
 
 		// Check file size
 		const maxBytes = maxSizeMB * 1024 * 1024;
 		if (file.size > maxBytes) {
-			return `File too large: ${(file.size / 1024 / 1024).toFixed(1)}MB. Max: ${maxSizeMB}MB`;
+			return `Fichier trop volumineux : ${(file.size / 1024 / 1024).toFixed(1)} Mo. Max : ${maxSizeMB} Mo`;
 		}
 
 		// Check file count for multiple mode (only when a limit is set)
@@ -134,15 +134,15 @@
 						if (response.success && response.media && response.media.length > 0) {
 							resolve(response.media[0]);
 						} else {
-							reject(new Error('Invalid response from server'));
+							reject(new Error('Réponse du serveur invalide'));
 						}
 					} catch (e) {
-						reject(new Error('Failed to parse server response'));
+						reject(new Error('Impossible de lire la réponse du serveur'));
 					}
 				} else if (xhr.status === 401) {
-					reject(new Error('Session expired. Please log in again.'));
+					reject(new Error('Session expirée. Veuillez vous reconnecter.'));
 				} else {
-					let message = 'Upload failed';
+					let message = 'Échec de l’envoi';
 					try {
 						const parsed = JSON.parse(xhr.responseText);
 						if (parsed?.message) message = parsed.message;
@@ -153,8 +153,8 @@
 				}
 			};
 
-			xhr.onerror = () => reject(new Error('Network error during upload'));
-			xhr.onabort = () => reject(new Error('Upload cancelled'));
+			xhr.onerror = () => reject(new Error('Erreur réseau pendant l’envoi'));
+			xhr.onabort = () => reject(new Error('Envoi annulé'));
 
 			xhr.open('POST', '/api/media/upload');
 			xhr.send(formData);
@@ -207,7 +207,7 @@
 					uploadingFiles = uploadingFiles.filter((p) => p.id !== progressId);
 				}, 500);
 			} catch (err) {
-				const message = err instanceof Error ? err.message : 'Upload failed';
+				const message = err instanceof Error ? err.message : 'Échec de l’envoi';
 				const idx = uploadingFiles.findIndex((p) => p.id === progressId);
 				if (idx >= 0) uploadingFiles[idx].error = message;
 				toast?.error('Erreur upload', message);
@@ -310,12 +310,12 @@
 		<div class="media-grid">
 			{#each uploadedMedia as media (media.id)}
 				<div class="media-item">
-					<img src={media.url} alt="Uploaded media" class="media-preview" />
+					<img src={media.url} alt="Média envoyé" class="media-preview" />
 					<button
 						type="button"
 						class="remove-btn"
 						onclick={() => handleRemove(media.id)}
-						aria-label="Remove media"
+						aria-label="Supprimer le média"
 					>
 						<X size={16} />
 					</button>
@@ -410,12 +410,12 @@
 					ondragover={(e) => handleDragOverItem(e, index)}
 					ondrop={(e) => handleDropItem(e, index)}
 				>
-					<img src={media.url} alt="Uploaded media" class="media-preview" />
+					<img src={media.url} alt="Média envoyé" class="media-preview" />
 					<button
 						type="button"
 						class="remove-btn"
 						onclick={() => handleRemove(media.id)}
-						aria-label="Remove media"
+						aria-label="Supprimer le média"
 					>
 						<X size={16} />
 					</button>
