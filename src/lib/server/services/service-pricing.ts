@@ -10,6 +10,7 @@ import type {
 	ServicePricingPayload,
 } from '$lib/types/pricing-editor';
 import { resolveSeatingPrice, type SeatingPrice } from '$lib/utils/seating-price';
+import { DEPOSIT_TYPES, depositRuleOf, isValidDepositRule, type DepositRule } from '$lib/utils/pricing';
 import { formatTimeOfDay, type ServiceKind } from '$lib/utils/seating-times';
 import { ScheduleSaveRefusedError } from './event-schedule';
 
@@ -128,7 +129,8 @@ export type PricingParseFailure =
 	| 'menu-name'
 	| 'service'
 	| 'price'
-	| 'currency';
+	| 'currency'
+	| 'deposit';
 
 export type PricingParseResult =
 	| { ok: true; payload: PricingPayload }
@@ -175,7 +177,7 @@ export function parsePricingPayload(raw: string | null): PricingParseResult {
 	if (typeof parsed !== 'object' || parsed === null) {
 		return { ok: false, reason: 'malformed' };
 	}
-	const { menus, services } = parsed as Record<string, unknown>;
+	const { menus, services, deposit } = parsed as Record<string, unknown>;
 	if (!Array.isArray(menus) || !Array.isArray(services)) {
 		return { ok: false, reason: 'malformed' };
 	}
@@ -261,7 +263,30 @@ export function parsePricingPayload(raw: string | null): PricingParseResult {
 		});
 	}
 
-	return { ok: true, payload: { menus: parsedMenus, services: parsedServices } };
+	// The Deposit rule (issue 023) is optional: absent, it is left as is.
+	let parsedDeposit: DepositRule | undefined;
+	if (deposit !== undefined) {
+		if (typeof deposit !== 'object' || deposit === null) {
+			return { ok: false, reason: 'deposit' };
+		}
+		const { type, value } = deposit as Record<string, unknown>;
+		if (typeof type !== 'string' || !(DEPOSIT_TYPES as readonly string[]).includes(type) || typeof value !== 'number') {
+			return { ok: false, reason: 'deposit' };
+		}
+		parsedDeposit = { type: type as DepositRule['type'], value };
+		if (!isValidDepositRule(parsedDeposit)) {
+			return { ok: false, reason: 'deposit' };
+		}
+	}
+
+	return {
+		ok: true,
+		payload: {
+			menus: parsedMenus,
+			services: parsedServices,
+			...(parsedDeposit ? { deposit: parsedDeposit } : {}),
+		},
+	};
 }
 
 /** French admin copy for each way the pricing payload can be invalid. */
@@ -281,6 +306,8 @@ export function pricingPayloadErrorMessage(reason: PricingParseFailure): string 
 			return 'Les prix doivent être des montants positifs ou nuls (0 pour un repas gratuit), au centime près.';
 		case 'currency':
 			return `La devise doit être l’une des suivantes : ${SERVICE_CURRENCIES.join(', ')}.`;
+		case 'deposit':
+			return 'L’acompte est invalide : un pourcentage entier entre 1 et 100, ou un montant fixe par convive supérieur à zéro, au centime près.';
 	}
 }
 
@@ -311,7 +338,8 @@ export class MenuInUseError extends ScheduleSaveRefusedError {
  * Save the « Menus & tarifs » tab in one transaction: new Menus are
  * created, listed ones updated, Menus left out deleted; each listed Service
  * gets its Menu and price (and optionally loses its legacy per-Seating
- * prices). Services outside the payload are untouched. Refuses — with a
+ * prices), and the Event takes the Deposit rule when one is posted.
+ * Services outside the payload are untouched. Refuses — with a
  * French message and nothing written — a Menu or Service of another Event,
  * and deleting a Menu still offered on a Service.
  */
@@ -324,6 +352,12 @@ export async function savePricing(eventId: string, payload: PricingPayload): Pro
 			.for('update');
 		if (!event) {
 			throw new Error('Event not found');
+		}
+
+		if (payload.deposit) {
+			await tx.update(events)
+				.set({ depositType: payload.deposit.type, depositValue: payload.deposit.value, updatedAt: new Date() })
+				.where(eq(events.id, eventId));
 		}
 
 		const existingMenus: { id: string; nameFr: string }[] = await tx
@@ -424,6 +458,12 @@ const KIND_ORDER: Record<ServiceKind, number> = { lunch: 0, dinner: 1 };
  * Menu, price, Seating count and the Seatings that kept a legacy price.
  */
 export async function loadPricingEditor(eventId: string): Promise<PricingEditorData> {
+	const [event]: { depositType: DepositRule['type']; depositValue: number }[] = await db
+		.select({ depositType: events.depositType, depositValue: events.depositValue })
+		.from(events)
+		.where(eq(events.id, eventId))
+		.limit(1);
+
 	const menus: EditorMenu[] = await db
 		.select({
 			id: eventMenus.id,
@@ -499,5 +539,5 @@ export async function loadPricingEditor(eventId: string): Promise<PricingEditorD
 			};
 		});
 
-	return { menus, services };
+	return { menus, services, deposit: depositRuleOf(event ?? {}) };
 }

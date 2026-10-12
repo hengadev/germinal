@@ -24,6 +24,7 @@ import {
 } from '$lib/server/services/event-schedule';
 import type { EditorService } from '$lib/types/seatings-editor';
 import type { PricingEditorData } from '$lib/types/pricing-editor';
+import { depositRuleOf, type DepositRule } from '$lib/utils/pricing';
 import type { PageServerLoad } from './$types';
 import { requireAdmin } from '$lib/server/auth-guards';
 
@@ -177,6 +178,7 @@ export const load: PageServerLoad = async ({ params }) => {
 					legacySeatings: [],
 				};
 			}),
+			deposit: depositRuleOf(event as { depositType?: DepositRule['type']; depositValue?: number }),
 		};
 
 		return { event, sessions, reservations, promoCodes: [], talents, days, schedule, venueCapacity, pricing };
