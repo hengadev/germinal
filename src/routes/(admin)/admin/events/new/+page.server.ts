@@ -5,8 +5,10 @@ import {
 	dayEndUtc,
 	dayStartUtc,
 	parsePickedDays,
+	parseVenueCapacity,
 	pickedDaysErrorMessage,
 	saveEventSchedule,
+	VENUE_CAPACITY_ERROR_MESSAGE,
 } from '$lib/server/services/event-schedule';
 import type { PageServerLoad } from './$types';
 import { requireAdmin } from '$lib/server/auth-guards';
@@ -41,6 +43,14 @@ export const actions: Actions = {
 		if (!pickedDays.ok) {
 			return fail(400, { error: pickedDaysErrorMessage(pickedDays.reason) });
 		}
+		// Venue Capacity (issue 021): set once here, inherited by every
+		// Seating added later unless it overrides it.
+		const rawVenueCapacity = formData.get('venueCapacity');
+		const venue = parseVenueCapacity(typeof rawVenueCapacity === 'string' ? rawVenueCapacity : null);
+		if (!venue.ok || venue.venueCapacity === undefined) {
+			return fail(400, { error: venue.ok ? 'La capacité du lieu est requise.' : VENUE_CAPACITY_ERROR_MESSAGE });
+		}
+		const venueCapacity = venue.venueCapacity;
 		const start = dayStartUtc(pickedDays.days[0].date);
 		const end = dayEndUtc(pickedDays.days[pickedDays.days.length - 1].date);
 		const locationEn = formData.get('locationEn');
@@ -219,6 +229,7 @@ export const actions: Actions = {
 				curatorFr: curatorFr?.toString() || null,
 				admissionInfoEn: admissionInfoEn?.toString() || null,
 				admissionInfoFr: admissionInfoFr?.toString() || null,
+				venueCapacity,
 				coverMediaId: coverMediaId || null,
 				published,
 				isSpotlight

@@ -17,8 +17,12 @@ export interface EditorSeating {
 	titleFr: string | null;
 	descriptionEn: string | null;
 	descriptionFr: string | null;
+	/** Effective capacity: the Seating's own, or the Venue Capacity. */
 	totalCapacity: number;
 	availableCapacity: number;
+	/** The Seating keeps its own capacity instead of the Event's Venue
+	 * Capacity (issue 021). */
+	capacityOverridden: boolean;
 	priceAmount: number;
 	currency: string;
 	published: boolean;
@@ -47,7 +51,8 @@ export interface SeatingPayload {
 	titleFr: string | null;
 	descriptionEn: string | null;
 	descriptionFr: string | null;
-	totalCapacity: number;
+	/** The Seating's own capacity, or null to inherit the Venue Capacity. */
+	capacityOverride: number | null;
 	priceAmount: number;
 	currency: string;
 	published: boolean;
