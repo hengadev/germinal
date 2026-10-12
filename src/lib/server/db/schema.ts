@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, timestamp, boolean, integer, pgEnum, index, check, jsonb, unique } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, timestamp, boolean, integer, pgEnum, index, check, jsonb, unique, date } from 'drizzle-orm/pg-core';
 import { relations, sql } from 'drizzle-orm';
 
 // ============================================
@@ -53,6 +53,10 @@ export const badgeTypeEnum = pgEnum('badge_type', [
 ] as const);
 
 export const discountTypeEnum = pgEnum('discount_type', ['percent', 'amount'] as const);
+
+// A Service is a meal on a given Day — either lunch or dinner
+// (ADR 0005, CONTEXT.md "Service")
+export const serviceKindEnum = pgEnum('service_kind', ['lunch', 'dinner'] as const);
 
 // Mirrors Stripe.Dispute.Status from the installed stripe SDK (apiVersion 2025-12-15.clover)
 export const disputeStatusEnum = pgEnum('dispute_status', [
@@ -140,6 +144,43 @@ export const events = pgTable('events', {
     portfolioIdx: index('events_portfolio_idx').on(table.isPortfolio),
 }));
 
+// ============================================
+// EVENT DAYS & SERVICES (ADR 0005)
+// ============================================
+
+// A Day is a calendar date on which an Event takes place. An Event's Days
+// are picked individually and need not be consecutive; the Event's
+// startDate/endDate are derived from its first and last Day.
+export const eventDays = pgTable('event_days', {
+    id: uuid('id').defaultRandom().primaryKey(),
+    eventId: uuid('event_id')
+        .notNull()
+        .references(() => events.id, { onDelete: 'cascade' }),
+    date: date('date').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+    eventIdIdx: index('event_days_event_id_idx').on(table.eventId),
+    eventDateUnique: unique('event_days_event_date_unique').on(table.eventId, table.date),
+}));
+
+// A Service is a meal (lunch or dinner) on a Day and owns one or more
+// Seatings (the `event_sessions` table). The default Seating duration is
+// used to fill in end times for Seatings added without one.
+export const eventServices = pgTable('event_services', {
+    id: uuid('id').defaultRandom().primaryKey(),
+    dayId: uuid('day_id')
+        .notNull()
+        .references(() => eventDays.id, { onDelete: 'cascade' }),
+    kind: serviceKindEnum('kind').notNull(),
+    defaultSeatingDurationMinutes: integer('default_seating_duration_minutes').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+    dayIdIdx: index('event_services_day_id_idx').on(table.dayId),
+    dayKindUnique: unique('event_services_day_kind_unique').on(table.dayId, table.kind),
+}));
+
 export const talents = pgTable('talents', {
     id: uuid('id').defaultRandom().primaryKey(),
     firstName: varchar('first_name', { length: 100 }).notNull(),
@@ -217,9 +258,26 @@ export const eventsRelations = relations(events, ({ many, one }) => ({
         relationName: 'event_cover_video',
     }),
     eventSessions: many(eventSessions),
+    days: many(eventDays),
     coupons: many(coupons),
     staff: many(eventStaff),
     tasks: many(tasks),
+}));
+
+export const eventDaysRelations = relations(eventDays, ({ one, many }) => ({
+    event: one(events, {
+        fields: [eventDays.eventId],
+        references: [events.id],
+    }),
+    services: many(eventServices),
+}));
+
+export const eventServicesRelations = relations(eventServices, ({ one, many }) => ({
+    day: one(eventDays, {
+        fields: [eventServices.dayId],
+        references: [eventDays.id],
+    }),
+    eventSessions: many(eventSessions),
 }));
 
 export const talentsRelations = relations(talents, ({ many, one }) => ({
@@ -465,6 +523,12 @@ export const eventSessions = pgTable('event_sessions', {
     eventId: uuid('event_id')
         .notNull()
         .references(() => events.id, { onDelete: 'cascade' }),
+    // Parent Service (Day + meal kind) this Seating belongs to. Every
+    // Seating belongs to exactly one Service (ADR 0005); the table keeps its
+    // historical name so Reservations, Waitlist and Payments are untouched.
+    serviceId: uuid('service_id')
+        .notNull()
+        .references(() => eventServices.id, { onDelete: 'cascade' }),
     titleEn: varchar('title_en', { length: 255 }).notNull(),
     titleFr: varchar('title_fr', { length: 255 }).notNull(),
     descriptionEn: text('description_en'),
@@ -482,6 +546,7 @@ export const eventSessions = pgTable('event_sessions', {
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => ({
     eventIdIdx: index('event_sessions_event_id_idx').on(table.eventId),
+    serviceIdIdx: index('event_sessions_service_id_idx').on(table.serviceId),
     publishedIdx: index('event_sessions_published_idx').on(table.published),
     startTimeIdx: index('event_sessions_start_time_idx').on(table.startTime),
     // Composite indexes for common query patterns
@@ -613,6 +678,10 @@ export const eventSessionsRelations = relations(eventSessions, ({ one, many }) =
     event: one(events, {
         fields: [eventSessions.eventId],
         references: [events.id],
+    }),
+    service: one(eventServices, {
+        fields: [eventSessions.serviceId],
+        references: [eventServices.id],
     }),
     reservations: many(reservations),
     waitlistEntries: many(waitlist),
