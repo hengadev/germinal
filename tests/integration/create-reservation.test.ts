@@ -6,6 +6,7 @@ import {
 	getTestDatabase,
 	setupTestDatabase,
 	closeTestDatabase,
+	seedServiceForSession,
 	TEST_DATABASE_URL,
 } from '../fixtures/database';
 import type { CreateReservationInput } from '../../src/lib/types/reservations';
@@ -86,14 +87,19 @@ async function seedPublishedSession(overrides?: Partial<typeof eventSessions.$in
 	const defaultStart = new Date('2099-06-01T18:00:00Z');
 	const defaultEnd = new Date('2099-06-01T22:00:00Z');
 
+	const startTime = overrides?.startTime ?? defaultStart;
+	const endTime = overrides?.endTime ?? defaultEnd;
+	const serviceId = await seedServiceForSession(testDb, event.id, startTime, endTime);
+
 	const [session] = await testDb
 		.insert(eventSessions)
 		.values({
 			eventId: event.id,
+			serviceId,
 			titleEn: 'General Admission',
 			titleFr: 'Admission Générale',
-			startTime: defaultStart,
-			endTime: defaultEnd,
+			startTime,
+			endTime,
 			totalCapacity: 100,
 			availableCapacity: 100,
 			priceAmount: 2500, // €25.00

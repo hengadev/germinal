@@ -105,6 +105,8 @@
     "materials": "materials",
     "admission": "admission",
     "gallery": "Gallery",
+    "lunch": "Lunch",
+    "dinner": "Dinner",
     "bookTickets": "Book Tickets",
     "viewDetails": "View Details",
     "searchPlaceholder": "Search events…",

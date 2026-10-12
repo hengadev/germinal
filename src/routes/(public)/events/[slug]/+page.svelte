@@ -15,17 +15,41 @@
     function getEventTitle(): string {
         return ($locale === "en" ? data.event.titleEn : data.event.titleFr) || "";
     }
+
+    function formatDay(date: string): string {
+        // Day keys are UTC calendar dates — render them in the reader's locale
+        return new Date(`${date}T00:00:00.000Z`).toLocaleDateString(
+            $locale === "fr" ? "fr-FR" : "en-US",
+            { weekday: "long", day: "numeric", month: "long", year: "numeric" }
+        );
+    }
 </script>
 
 <EventDetailLayout event={data.event}>
     {#if canBook}
         <section class="mt-12 lg:mt-16" use:reveal={{ preset: "fade-up", delay: 250 }}>
             <h2 class="text-2xl lg:text-3xl font-serif mb-6 lg:mb-8">{$t("events.bookTickets")}</h2>
-            <SessionSelector
-                sessions={data.sessions}
-                eventTitle={getEventTitle()}
-                eventSlug={data.event.slug}
-            />
+            <div class="flex flex-col gap-10 lg:gap-14">
+                {#each data.schedule as day (day.date)}
+                    <article>
+                        <h3 class="font-serif text-xl lg:text-2xl pb-4 border-b border-border-card">
+                            {formatDay(day.date)}
+                        </h3>
+                        {#each day.services as service (service.kind)}
+                            <div class="mt-6 lg:mt-8">
+                                <p class="uppercase text-xxs tracking-widest text-muted-foreground mb-4">
+                                    {$t(service.kind === "lunch" ? "events.lunch" : "events.dinner")}
+                                </p>
+                                <SessionSelector
+                                    sessions={service.sessions}
+                                    eventTitle={getEventTitle()}
+                                    eventSlug={data.event.slug}
+                                />
+                            </div>
+                        {/each}
+                    </article>
+                {/each}
+            </div>
         </section>
     {/if}
 

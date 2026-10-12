@@ -27,6 +27,8 @@ export async function setupTestDatabase() {
 	await db.execute(sql`TRUNCATE TABLE reservations CASCADE`);
 	await db.execute(sql`TRUNCATE TABLE payments CASCADE`);
 	await db.execute(sql`TRUNCATE TABLE event_sessions CASCADE`);
+	await db.execute(sql`TRUNCATE TABLE event_services CASCADE`);
+	await db.execute(sql`TRUNCATE TABLE event_days CASCADE`);
 	await db.execute(sql`TRUNCATE TABLE waitlist CASCADE`);
 	await db.execute(sql`TRUNCATE TABLE promotion_codes CASCADE`);
 	await db.execute(sql`TRUNCATE TABLE coupons CASCADE`);
@@ -38,4 +40,46 @@ export async function setupTestDatabase() {
 	await db.execute(sql`TRUNCATE TABLE talents CASCADE`);
 	await db.execute(sql`TRUNCATE TABLE events CASCADE`);
 	return db;
+}
+
+/**
+ * Find-or-create the Day and Service a Seating with the given times belongs
+ * to (same UTC rules as the migration and event-schedule service), and
+ * return the Service id — for tests that insert Seatings directly.
+ */
+export async function seedServiceForSession(
+	db: ReturnType<typeof getTestDatabase>,
+	eventId: string,
+	startTime: Date,
+	endTime: Date
+): Promise<string> {
+	const dayDate = startTime.toISOString().slice(0, 10);
+	const kind = startTime.getUTCHours() < 16 ? 'lunch' : 'dinner';
+
+	const [day] = await db
+		.insert(schema.eventDays)
+		.values({ eventId, date: dayDate })
+		.onConflictDoUpdate({
+			target: [schema.eventDays.eventId, schema.eventDays.date],
+			set: { updatedAt: new Date() },
+		})
+		.returning();
+
+	const [service] = await db
+		.insert(schema.eventServices)
+		.values({
+			dayId: day.id,
+			kind,
+			defaultSeatingDurationMinutes: Math.max(
+				1,
+				Math.ceil((endTime.getTime() - startTime.getTime()) / 60000)
+			),
+		})
+		.onConflictDoUpdate({
+			target: [schema.eventServices.dayId, schema.eventServices.kind],
+			set: { updatedAt: new Date() },
+		})
+		.returning();
+
+	return service.id;
 }

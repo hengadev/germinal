@@ -177,9 +177,14 @@ export async function updateEvent(id: string, input: UpdateEventInput) {
         ));
     }
 
+    // startDate/endDate are derived from the Event's Days (ADR 0005) and
+    // recomputed whenever its Seatings change — they are ignored here so a
+    // hand-edited value can never diverge from the schedule.
+    const { startDate: _ignoredStart, endDate: _ignoredEnd, ...writable } = input;
+
     const [updated] = await tx.update(events)
       .set({
-        ...input,
+        ...writable,
         updatedAt: new Date()
       })
       .where(eq(events.id, id))

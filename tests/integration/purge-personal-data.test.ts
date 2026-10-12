@@ -17,6 +17,7 @@ import {
 	getTestDatabase,
 	setupTestDatabase,
 	closeTestDatabase,
+	seedServiceForSession,
 	TEST_DATABASE_URL,
 } from '../fixtures/database';
 
@@ -69,13 +70,15 @@ async function seedSession(endedDaysAgo: number) {
 			published: true,
 		})
 		.returning();
+	const startTime = new Date(end.getTime() - 4 * 60 * 60 * 1000);
 	const [session] = await testDb
 		.insert(eventSessions)
 		.values({
 			eventId: event.id,
+			serviceId: await seedServiceForSession(testDb, event.id, startTime, end),
 			titleEn: 'Session',
 			titleFr: 'Session',
-			startTime: new Date(end.getTime() - 4 * 60 * 60 * 1000),
+			startTime,
 			endTime: end,
 			totalCapacity: 10,
 			availableCapacity: 10,
