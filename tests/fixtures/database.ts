@@ -28,6 +28,7 @@ export async function setupTestDatabase() {
 	await db.execute(sql`TRUNCATE TABLE payments CASCADE`);
 	await db.execute(sql`TRUNCATE TABLE event_sessions CASCADE`);
 	await db.execute(sql`TRUNCATE TABLE event_services CASCADE`);
+	await db.execute(sql`TRUNCATE TABLE event_menus CASCADE`);
 	await db.execute(sql`TRUNCATE TABLE event_days CASCADE`);
 	await db.execute(sql`TRUNCATE TABLE waitlist CASCADE`);
 	await db.execute(sql`TRUNCATE TABLE promotion_codes CASCADE`);
@@ -46,13 +47,20 @@ export async function setupTestDatabase() {
  * Find-or-create the Day and Service a Seating with the given times belongs
  * to (same UTC rules as the migration and event-schedule service), and
  * return the Service id — for tests that insert Seatings directly.
+ *
+ * Seatings are booked at their Service's price (issue 022): the Service is
+ * priced at €25.00 unless `price` says otherwise (`priceAmount: null` leaves
+ * it unpriced). The price is (re)applied when the Service already exists.
  */
 export async function seedServiceForSession(
 	db: ReturnType<typeof getTestDatabase>,
 	eventId: string,
 	startTime: Date,
-	endTime: Date
+	endTime: Date,
+	price: { priceAmount?: number | null; currency?: string } = {}
 ): Promise<string> {
+	const priceAmount = price.priceAmount === undefined ? 2500 : price.priceAmount;
+	const currency = price.currency ?? 'EUR';
 	const dayDate = startTime.toISOString().slice(0, 10);
 	const kind = startTime.getUTCHours() < 16 ? 'lunch' : 'dinner';
 
@@ -74,10 +82,12 @@ export async function seedServiceForSession(
 				1,
 				Math.ceil((endTime.getTime() - startTime.getTime()) / 60000)
 			),
+			priceAmount,
+			currency,
 		})
 		.onConflictDoUpdate({
 			target: [schema.eventServices.dayId, schema.eventServices.kind],
-			set: { updatedAt: new Date() },
+			set: { priceAmount, currency, updatedAt: new Date() },
 		})
 		.returning();
 

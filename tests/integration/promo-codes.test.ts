@@ -80,8 +80,6 @@ async function seedSession(eventId: string, overrides?: Partial<typeof eventSess
 			endTime: new Date('2099-06-01T22:00:00Z'),
 			totalCapacity: 100,
 			availableCapacity: 100,
-			priceAmount: 2500,
-			currency: 'EUR',
 			published: true,
 			...overrides,
 		})

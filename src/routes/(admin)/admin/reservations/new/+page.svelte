@@ -105,7 +105,9 @@
 			{/if}
 			{#if selectedSession}
 				<p class="text-sm text-muted-foreground mt-2">
-					Prix normal : {formatCurrency(selectedSession.priceAmount, selectedSession.currency)} — sera
+					Prix normal : {selectedSession.priceAmount === null
+						? 'non défini (tarif du repas à renseigner)'
+						: formatCurrency(selectedSession.priceAmount, selectedSession.currency)} — sera
 					offert (0 {selectedSession.currency}) pour cette réservation comp.
 				</p>
 			{/if}

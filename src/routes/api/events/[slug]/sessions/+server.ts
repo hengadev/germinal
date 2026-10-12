@@ -17,8 +17,10 @@ export const GET: RequestHandler = async ({ params }) => {
 				descriptionFr: session.descriptionFr,
 				startTime: session.startTime,
 				endTime: session.endTime,
-				priceAmount: session.priceAmount,
-				currency: session.currency,
+				// Price per seat from the Seating's Service (issue 022); null
+				// while it is not set yet (the Seating cannot be booked).
+				priceAmount: session.price?.amount ?? null,
+				currency: session.price?.currency ?? session.service.currency,
 				totalCapacity: session.totalCapacity,
 				availableCapacity: session.availableCapacity,
 				soldOut: session.availableCapacity === 0,

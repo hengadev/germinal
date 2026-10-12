@@ -46,6 +46,9 @@ export const load: PageServerLoad = async ({ locals }) => {
 			},
 		},
 	});
+	// Normal price per seat: the Seating's Service price (issue 022).
+	const { getSeatingPrices } = await import('$lib/server/services/service-pricing');
+	const prices = await getSeatingPrices(upcomingSessions.map((s: typeof upcomingSessions[number]) => s.id));
 
 	return {
 		sessions: upcomingSessions.map((s: typeof upcomingSessions[number]) => ({
@@ -54,8 +57,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 			eventTitle: s.event.titleEn,
 			startTime: s.startTime.toISOString(),
 			availableCapacity: s.availableCapacity,
-			priceAmount: s.priceAmount,
-			currency: s.currency,
+			priceAmount: prices.get(s.id)?.amount ?? null,
+			currency: prices.get(s.id)?.currency ?? 'EUR',
 		})),
 	};
 };

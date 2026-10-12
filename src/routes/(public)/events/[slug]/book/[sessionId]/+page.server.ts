@@ -41,6 +41,9 @@ export const load: PageServerLoad = async ({ params }) => {
 		const dbSession = await getSessionById(params.sessionId);
 
 		if (dbSession.event.id !== event.id) throw error(404, 'Session not found');
+		// Booked at its Service's price (issue 022); a Seating whose Service
+		// has no price yet cannot be booked.
+		if (!dbSession.price) throw error(404, 'Session not found');
 
 		return {
 			event,
@@ -51,8 +54,8 @@ export const load: PageServerLoad = async ({ params }) => {
 				descriptionFr: dbSession.descriptionFr ?? null,
 				startTime: dbSession.startTime.toISOString(),
 				endTime: dbSession.endTime.toISOString(),
-				priceAmount: dbSession.priceAmount,
-				currency: dbSession.currency,
+				priceAmount: dbSession.price.amount,
+				currency: dbSession.price.currency,
 				availableCapacity: dbSession.availableCapacity,
 				totalCapacity: dbSession.totalCapacity,
 				allowWaitlist: dbSession.allowWaitlist,
