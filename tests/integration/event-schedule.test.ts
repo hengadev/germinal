@@ -205,4 +205,24 @@ describe('event schedule (Days → Services → Seatings)', () => {
 		const days = await testDb.select().from(eventDays).where(eq(eventDays.eventId, event.id));
 		expect(days).toHaveLength(0);
 	});
+	it('hand-set Event dates are kept while it has no Days and ignored once it has', async () => {
+		const { createEventSession } = await import('../../src/lib/server/services/event-sessions');
+		const { updateEvent } = await import('../../src/lib/server/services/events');
+
+		const newStart = new Date('2099-03-01T00:00:00Z');
+		const newEnd = new Date('2099-03-31T23:59:59Z');
+		await updateEvent(event.id, { startDate: newStart, endDate: newEnd });
+		let [row] = await testDb.select().from(events).where(eq(events.id, event.id));
+		expect(row.startDate.toISOString()).toBe(newStart.toISOString());
+		expect(row.endDate.toISOString()).toBe(newEnd.toISOString());
+
+		await createEventSession(sessionInput({
+			startTime: new Date('2099-03-10T19:00:00Z'),
+			endTime: new Date('2099-03-10T22:00:00Z'),
+		}));
+		await updateEvent(event.id, { startDate: newStart, endDate: newEnd });
+		[row] = await testDb.select().from(events).where(eq(events.id, event.id));
+		expect(row.startDate.toISOString()).toBe('2099-03-10T00:00:00.000Z');
+		expect(row.endDate.toISOString()).toBe('2099-03-10T23:59:59.999Z');
+	});
 });

@@ -1,5 +1,5 @@
 import { db } from '../db';
-import { events, media, eventSessions } from '../db/schema';
+import { events, media, eventSessions, eventDays } from '../db/schema';
 import { eq, desc, and, isNull, sql, or, ilike } from 'drizzle-orm';
 import type { Event, CreateEventInput, UpdateEventInput } from '$lib/types/events';
 import {
@@ -177,10 +177,16 @@ export async function updateEvent(id: string, input: UpdateEventInput) {
         ));
     }
 
-    // startDate/endDate are derived from the Event's Days (ADR 0005) and
-    // recomputed whenever its Seatings change — they are ignored here so a
-    // hand-edited value can never diverge from the schedule.
-    const { startDate: _ignoredStart, endDate: _ignoredEnd, ...writable } = input;
+    // Once an Event has Days, startDate/endDate are derived from them
+    // (ADR 0005) and recomputed whenever its Seatings change — a hand-edited
+    // value is ignored so it can never diverge from the schedule. An Event
+    // with no Days yet keeps its hand-entered window.
+    const [day] = await tx.select({ id: eventDays.id })
+      .from(eventDays)
+      .where(eq(eventDays.eventId, id))
+      .limit(1);
+    const { startDate: _startDate, endDate: _endDate, ...rest } = input;
+    const writable = day ? rest : input;
 
     const [updated] = await tx.update(events)
       .set({

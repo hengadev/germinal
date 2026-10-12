@@ -20,7 +20,7 @@
         // Day keys are UTC calendar dates — render them in the reader's locale
         return new Date(`${date}T00:00:00.000Z`).toLocaleDateString(
             $locale === "fr" ? "fr-FR" : "en-US",
-            { weekday: "long", day: "numeric", month: "long", year: "numeric" }
+            { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }
         );
     }
 </script>
