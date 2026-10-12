@@ -93,3 +93,39 @@ describe('parsePricingPayload', () => {
 		expect(parsePricingPayload('{')).toEqual({ ok: false, reason: 'malformed' });
 	});
 });
+
+describe('parsePricingPayload — Deposit rule (issue 023)', () => {
+	it('leaves the Deposit rule out when the payload has none', () => {
+		const result = parse({ menus: [menu()], services: [service()] });
+		expect(result.ok && result.payload.deposit).toBe(undefined);
+	});
+
+	it('accepts no Deposit, a fixed Deposit per seat and a percentage Deposit', () => {
+		for (const deposit of [
+			{ type: 'none', value: 0 },
+			{ type: 'fixed', value: 2000 },
+			{ type: 'percent', value: 30 },
+			{ type: 'percent', value: 100 },
+		]) {
+			const result = parse({ menus: [menu()], services: [service()], deposit });
+			expect(result).toEqual({ ok: true, payload: expect.objectContaining({ deposit }) });
+		}
+	});
+
+	it('refuses invalid Deposit rules', () => {
+		for (const deposit of [
+			null,
+			'percent',
+			{ type: 'percent', value: 0 },
+			{ type: 'percent', value: 101 },
+			{ type: 'percent', value: 12.5 },
+			{ type: 'fixed', value: 0 },
+			{ type: 'fixed', value: '2000' },
+			{ type: 'none', value: 10 },
+			{ type: 'full', value: 100 },
+		]) {
+			expect(parse({ menus: [menu()], services: [service()], deposit })).toEqual({ ok: false, reason: 'deposit' });
+		}
+		expect(pricingPayloadErrorMessage('deposit')).toMatch(/acompte/i);
+	});
+});

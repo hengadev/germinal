@@ -124,16 +124,18 @@ export function isValidDepositRule(rule: DepositRule): boolean {
 	}
 }
 
-/** An Event's Deposit rule from its columns; Events without one (mock
- * data) take full payment online. */
-export function depositRuleOf(event: {
-	depositType?: DepositType | null;
-	depositValue?: number | null;
-}): DepositRule {
-	if (!event.depositType || event.depositValue === null || event.depositValue === undefined) {
+/** An Event's Deposit rule from its `depositType`/`depositValue` columns;
+ * an Event without them (mock data) takes full payment online. */
+export function depositRuleOf(event: object): DepositRule {
+	const { depositType, depositValue } = event as { depositType?: unknown; depositValue?: unknown };
+	if (
+		typeof depositType !== 'string' ||
+		!(DEPOSIT_TYPES as readonly string[]).includes(depositType) ||
+		typeof depositValue !== 'number'
+	) {
 		return FULL_PAYMENT_DEPOSIT;
 	}
-	return { type: event.depositType, value: event.depositValue };
+	return { type: depositType as DepositType, value: depositValue };
 }
 
 /** Whether the rule makes the Guest pay the whole price online. */
