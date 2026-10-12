@@ -111,7 +111,10 @@
     "viewDetails": "Voir les détails",
     "searchPlaceholder": "Rechercher des événements…",
     "clearSearch": "Effacer la recherche",
-    "noSearchResults": "Aucun événement trouvé pour « {query} »."
+    "noSearchResults": "Aucun événement trouvé pour « {query} ».",
+    "perGuest": "par convive",
+    "free": "Gratuit",
+    "priceToBeAnnounced": "Tarif à venir"
   },
   "talents": {
     "pageTitle": "Talents | Germinal",

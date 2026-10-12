@@ -31,13 +31,7 @@ const baseEventSessionSchema = z.object({
 		.min(config.eventSessions.minCapacity, `Capacity must be at least ${config.eventSessions.minCapacity}`)
 		.max(config.eventSessions.maxCapacity,
 			`Capacity cannot exceed ${config.eventSessions.maxCapacity}`),
-	priceAmount: z.number()
-		.int('Price must be in cents (whole number)')
-		.min(0, 'Price cannot be negative'),
-	currency: z.string()
-		.length(3, 'Currency must be 3-letter ISO code')
-		.toUpperCase()
-		.default('EUR'),
+	// No price here: a Seating is booked at its Service's price (issue 022).
 	published: z.boolean().default(false),
 	allowWaitlist: z.boolean().default(false),
 });

@@ -10,6 +10,7 @@ import {
 	type SendEmailCommandInput,
 } from '@aws-sdk/client-ses';
 import { seatingTitle } from '$lib/utils/seating-title';
+import { bookedUnitPriceAmount } from '$lib/utils/seating-price';
 
 let sesClient: SESClient | null = null;
 
@@ -188,7 +189,7 @@ ${data.session.startTime.toLocaleString('en-US', { dateStyle: 'full', timeStyle:
 ${data.event.locationEn}
 
 TICKETS:
-${data.reservation.quantity} × ${formatCurrency(data.session.priceAmount, data.session.currency)}
+${data.reservation.quantity} × ${formatCurrency(bookedUnitPriceAmount(data.reservation), data.reservation.currency)}
 Total: ${formatCurrency(data.reservation.totalAmount, data.reservation.currency)}
 
 VIEW YOUR TICKETS:
@@ -244,7 +245,7 @@ function generateTicketHtmlTemplate(data: TicketEmailData): string {
     <table style="width: 100%; border-collapse: collapse;">
       <tr>
         <td style="padding: 8px 0; border-bottom: 1px solid #e9ecef;">
-          ${data.reservation.quantity} × ${formatCurrency(data.session.priceAmount, data.session.currency)}
+          ${data.reservation.quantity} × ${formatCurrency(bookedUnitPriceAmount(data.reservation), data.reservation.currency)}
         </td>
         <td style="padding: 8px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
           ${formatCurrency(data.reservation.totalAmount, data.reservation.currency)}
@@ -396,7 +397,7 @@ ${data.session.startTime.toLocaleString('en-US', { dateStyle: 'full', timeStyle:
 ${data.event.locationEn}
 
 TICKETS:
-${data.reservation.quantity} × ${formatCurrency(data.session.priceAmount, data.session.currency)}
+${data.reservation.quantity} × ${formatCurrency(bookedUnitPriceAmount(data.reservation), data.reservation.currency)}
 
 VIEW YOUR TICKETS:
 ${env.PUBLIC_URL}/tickets/${data.accessToken}
@@ -453,7 +454,7 @@ function generateEventReminderHtmlTemplate(data: TicketEmailData & { daysUntil: 
     <table style="width: 100%; border-collapse: collapse;">
       <tr>
         <td style="padding: 8px 0; border-bottom: 1px solid #e9ecef;">
-          ${data.reservation.quantity} × ${formatCurrency(data.session.priceAmount, data.session.currency)}
+          ${data.reservation.quantity} × ${formatCurrency(bookedUnitPriceAmount(data.reservation), data.reservation.currency)}
         </td>
       </tr>
     </table>

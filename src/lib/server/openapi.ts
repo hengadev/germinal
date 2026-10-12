@@ -446,7 +446,7 @@ export const openApiSpec = {
 					title: { type: 'string', description: 'Session title' },
 					startTime: { type: 'string', format: 'date-time', description: 'Session start date and time' },
 					endTime: { type: 'string', format: 'date-time', description: 'Session end date and time' },
-					priceAmount: { type: 'integer', description: 'Ticket price in cents', example: 2500 },
+					priceAmount: { type: ['integer', 'null'], description: 'Price per seat in cents, set on the session\'s service (lunch or dinner); null while not set yet', example: 2500 },
 					currency: { type: 'string', description: 'Three-letter currency code', default: 'EUR', example: 'USD' },
 					totalCapacity: { type: 'integer', description: 'Total number of available tickets', example: 100 },
 					availableCapacity: { type: 'integer', description: 'Number of tickets currently available', example: 50 },

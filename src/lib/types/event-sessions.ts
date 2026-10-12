@@ -13,8 +13,6 @@ export type CreateEventSessionInput = {
 	startTime: Date;
 	endTime: Date;
 	totalCapacity: number;
-	priceAmount: number;
-	currency?: string;
 	published?: boolean;
 	allowWaitlist?: boolean;
 	badgeType?: 'none' | 'featured' | 'vip' | 'popular' | 'best_value' | 'limited';

@@ -11,6 +11,7 @@ import {
 	type ServiceKind,
 } from '$lib/utils/seating-times';
 import { seatingTitlesWithFallback } from '$lib/utils/seating-title';
+import { resolveSeatingPrice, type SeatingPrice } from '$lib/utils/seating-price';
 
 /**
  * Event schedule — the Days → Services → Seatings model (ADR 0005).
@@ -622,8 +623,6 @@ export interface PlannedSeating {
 	/** The Seating's own capacity, or null to inherit the Event's Venue
 	 * Capacity (issue 021). */
 	capacityOverride: number | null;
-	priceAmount: number;
-	currency: string;
 	published: boolean;
 	allowWaitlist: boolean;
 	badgeType: SeatingBadgeType;
@@ -677,7 +676,8 @@ function optionalText(value: unknown, maxLength: number): string | null | false 
  * Parse the `services` payload posted by the admin Seatings editor: one
  * entry per Service with its default Seating duration and its Seatings as
  * start times. Ends left out are filled from the duration; everything is
- * validated (times, duration, capacity, price, currency, badge). Returns a
+ * validated (times, duration, capacity, badge). Prices are not part of the
+ * payload: they live on the Service (issue 022). Returns a
  * failure reason the admin form maps to French copy.
  */
 export function parseSeatingsPayload(raw: string | null): SeatingsParseResult {
@@ -779,12 +779,6 @@ export function parseSeatingsPayload(raw: string | null): SeatingsParseResult {
 			if (entry.capacityOverride !== null && !isValidCapacity(entry.capacityOverride)) {
 				return { ok: false, reason: 'seating' };
 			}
-			if (!Number.isInteger(entry.priceAmount) || (entry.priceAmount as number) < 0) {
-				return { ok: false, reason: 'seating' };
-			}
-			if (typeof entry.currency !== 'string' || !/^[a-z]{3}$/i.test(entry.currency)) {
-				return { ok: false, reason: 'seating' };
-			}
 			if (typeof entry.published !== 'boolean' || typeof entry.allowWaitlist !== 'boolean') {
 				return { ok: false, reason: 'seating' };
 			}
@@ -802,8 +796,6 @@ export function parseSeatingsPayload(raw: string | null): SeatingsParseResult {
 					descriptionEn,
 					descriptionFr,
 					capacityOverride: entry.capacityOverride as number | null,
-					priceAmount: entry.priceAmount as number,
-					currency: (entry.currency as string).toUpperCase(),
 					published: entry.published as boolean,
 					allowWaitlist: entry.allowWaitlist as boolean,
 					badgeType: entry.badgeType as SeatingBadgeType,
@@ -837,7 +829,7 @@ export function seatingsPayloadErrorMessage(reason: SeatingsParseFailure): strin
 		case 'time':
 			return 'Les heures de séance sont invalides : saisissez HH:MM en UTC, fin après le début et avant minuit.';
 		case 'seating':
-			return 'Une des séances est invalide (titre, capacité, prix, devise ou badge).';
+			return 'Une des séances est invalide (titre, capacité ou badge).';
 	}
 }
 
@@ -1337,8 +1329,6 @@ export async function saveServiceSeatings(
 					endTime,
 					totalCapacity,
 					capacityOverridden: seating.seating.capacityOverride !== null,
-					priceAmount: seating.seating.priceAmount,
-					currency: seating.seating.currency,
 					published: seating.seating.published,
 					allowWaitlist: seating.seating.allowWaitlist,
 					badgeType: seating.seating.badgeType,
@@ -1439,8 +1429,6 @@ export async function loadSeatingsEditor(eventId: string): Promise<EditorService
 					totalCapacity: seating.totalCapacity,
 					availableCapacity: seating.availableCapacity,
 					capacityOverridden: seating.capacityOverridden,
-					priceAmount: seating.priceAmount,
-					currency: seating.currency,
 					published: seating.published,
 					allowWaitlist: seating.allowWaitlist,
 					badgeType: seating.badgeType,
@@ -1506,19 +1494,25 @@ export function groupScheduleByDayAndService<T>(
 
 /**
  * The published Seatings of an Event, each tagged with its Day date and
- * Service kind, ordered for grouping (day, then start time).
+ * Service kind, ordered for grouping (day, then start time). Each Seating
+ * carries the price it is booked at (its Service's, issue 022), or null
+ * while its Service has no price yet.
  */
 export async function getPublishedScheduleByEventId(
 	eventId: string
-): Promise<ScheduleRow<typeof eventSessions.$inferSelect & { titleEn: string; titleFr: string }>[]> {
+): Promise<ScheduleRow<typeof eventSessions.$inferSelect & { titleEn: string; titleFr: string; price: SeatingPrice | null }>[]> {
 	const rows: {
 		dayDate: string;
 		serviceKind: (typeof eventServices.$inferSelect)['kind'];
+		servicePriceAmount: number | null;
+		serviceCurrency: string;
 		session: typeof eventSessions.$inferSelect;
 	}[] = await db
 		.select({
 			dayDate: sql<string>`${eventDays.date}::text`,
 			serviceKind: eventServices.kind,
+			servicePriceAmount: eventServices.priceAmount,
+			serviceCurrency: eventServices.currency,
 			session: eventSessions,
 		})
 		.from(eventSessions)
@@ -1540,6 +1534,12 @@ export async function getPublishedScheduleByEventId(
 			...seatingTitlesWithFallback(row.session, {
 				dayDate: row.dayDate,
 				serviceKind: row.serviceKind,
+			}),
+			price: resolveSeatingPrice({
+				servicePriceAmount: row.servicePriceAmount,
+				serviceCurrency: row.serviceCurrency,
+				legacyPriceAmount: row.session.legacyPriceAmount,
+				legacyCurrency: row.session.legacyCurrency,
 			}),
 		},
 	}));

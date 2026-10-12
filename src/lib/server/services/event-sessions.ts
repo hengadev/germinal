@@ -2,6 +2,7 @@ import { db } from '../db';
 import { eventSessions, eventServices, eventDays, reservations, events } from '../db/schema';
 import { eq, and, desc, sql } from 'drizzle-orm';
 import type { CreateEventSessionInput, UpdateEventSessionInput } from '$lib/types/event-sessions';
+import { resolveSeatingPrice } from '$lib/utils/seating-price';
 import {
 	classifyServiceKind,
 	findOrAttachService,
@@ -27,8 +28,6 @@ interface SessionWithEventAndSoldCount {
 	end_time: Date;
 	total_capacity: number;
 	available_capacity: number;
-	price_amount: number;
-	currency: string;
 	allow_waitlist: boolean;
 	badge_type: string;
 	// Event fields (prefixed to avoid conflicts)
@@ -91,8 +90,7 @@ export async function createEventSession(input: CreateEventSessionInput) {
 			// A capacity other than the Venue Capacity is the Seating's own
 			// (issue 021); a matching one keeps following the Event.
 			capacityOverridden: input.totalCapacity !== event.venueCapacity,
-			priceAmount: input.priceAmount,
-			currency: input.currency ?? 'EUR',
+			// Priced from its Service (issue 022): no per-Seating price.
 			published: input.published ?? false,
 			allowWaitlist: input.allowWaitlist ?? false,
 			badgeType: input.badgeType ?? 'none',
@@ -121,6 +119,9 @@ export async function getSessionById(id: string) {
 			reservations: {
 				where: eq(reservations.status, 'confirmed'),
 			},
+			service: {
+				columns: { priceAmount: true, currency: true },
+			},
 		},
 	});
 
@@ -128,7 +129,16 @@ export async function getSessionById(id: string) {
 		throw new Error('Session not found');
 	}
 
-	return session;
+	// The price the Seating is booked at — its Service's (issue 022), or
+	// null while the Service has no price yet.
+	const price = resolveSeatingPrice({
+		servicePriceAmount: session.service.priceAmount,
+		serviceCurrency: session.service.currency,
+		legacyPriceAmount: session.legacyPriceAmount,
+		legacyCurrency: session.legacyCurrency,
+	});
+
+	return { ...session, price };
 }
 
 export async function getPublishedSessionsByEventId(eventId: string) {
@@ -138,9 +148,23 @@ export async function getPublishedSessionsByEventId(eventId: string) {
 			eq(eventSessions.published, true)
 		),
 		orderBy: [eventSessions.startTime],
+		with: {
+			service: {
+				columns: { priceAmount: true, currency: true },
+			},
+		},
 	});
 
-	return sessions;
+	// Each Seating with the price it is booked at (its Service's, issue 022).
+	return sessions.map((session: (typeof sessions)[number]) => ({
+		...session,
+		price: resolveSeatingPrice({
+			servicePriceAmount: session.service.priceAmount,
+			serviceCurrency: session.service.currency,
+			legacyPriceAmount: session.legacyPriceAmount,
+			legacyCurrency: session.legacyCurrency,
+		}),
+	}));
 }
 
 export async function getAllSessionsByEventId(eventId: string) {
@@ -180,8 +204,6 @@ export async function getAllSessionsByEventId(eventId: string) {
 			endTime: new Date(row.end_time),
 			totalCapacity: row.total_capacity,
 			availableCapacity: row.available_capacity,
-			priceAmount: row.price_amount,
-			currency: row.currency,
 			allowWaitlist: row.allow_waitlist,
 			published: row.published,
 			badgeType: (row.badge_type || 'none') as 'none' | 'featured' | 'vip' | 'popular' | 'best_value' | 'limited',

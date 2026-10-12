@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest';
 import { eq } from 'drizzle-orm';
-import { events, eventSessions, reservations, payments } from '../../src/lib/server/db/schema';
+import { events, eventServices, eventSessions, reservations, payments } from '../../src/lib/server/db/schema';
 import {
 	getTestDatabase,
 	setupTestDatabase,
@@ -67,7 +67,15 @@ afterAll(async () => {
 // Helpers
 // ---------------------------------------------------------------------------
 
-async function seedPublishedSession(overrides?: Partial<typeof eventSessions.$inferInsert>) {
+/**
+ * A published Event with one Seating. Seatings are booked at their
+ * Service's price (issue 022): `servicePrice` sets it (default €25.00,
+ * `priceAmount: null` leaves the Service unpriced).
+ */
+async function seedPublishedSession(
+	overrides?: Partial<typeof eventSessions.$inferInsert>,
+	servicePrice?: { priceAmount?: number | null; currency?: string }
+) {
 	const [event] = await testDb
 		.insert(events)
 		.values({
@@ -89,7 +97,7 @@ async function seedPublishedSession(overrides?: Partial<typeof eventSessions.$in
 
 	const startTime = overrides?.startTime ?? defaultStart;
 	const endTime = overrides?.endTime ?? defaultEnd;
-	const serviceId = await seedServiceForSession(testDb, event.id, startTime, endTime);
+	const serviceId = await seedServiceForSession(testDb, event.id, startTime, endTime, servicePrice);
 
 	const [session] = await testDb
 		.insert(eventSessions)
@@ -102,8 +110,6 @@ async function seedPublishedSession(overrides?: Partial<typeof eventSessions.$in
 			endTime,
 			totalCapacity: 100,
 			availableCapacity: 100,
-			priceAmount: 2500, // €25.00
-			currency: 'EUR',
 			published: true,
 			...overrides,
 		})
@@ -157,7 +163,7 @@ describe('createReservation', () => {
 		expect(reservation).toBeDefined();
 		expect(reservation.status).toBe('pending');
 		expect(reservation.quantity).toBe(2);
-		expect(reservation.totalAmount).toBe(5000); // 2500 × 2
+		expect(reservation.totalAmount).toBe(5000); // Service price 2500 × 2
 		expect(reservation.guestEmail).toBe('guest@example.com');
 
 		// --- Payment row ---
@@ -278,6 +284,96 @@ describe('createReservation', () => {
 		// No reservation created
 		const allReservations = await testDb.select().from(reservations);
 		expect(allReservations).toHaveLength(0);
+	});
+
+	it('Service price — the total is the Service price × quantity, in its currency, for Stripe too', async () => {
+		const { session } = await seedPublishedSession({}, { priceAmount: 4200, currency: 'CHF' });
+		const { createReservation } = await import('../../src/lib/server/services/reservations');
+		const { createCheckoutSession } = await import('../../src/lib/server/services/stripe');
+
+		const result = await createReservation(makeInput(session.id, { quantity: 3 }));
+
+		const [reservation] = await testDb
+			.select()
+			.from(reservations)
+			.where(eq(reservations.id, result.reservation.id));
+		expect(reservation.totalAmount).toBe(12600); // 4200 × 3
+		expect(reservation.currency).toBe('CHF');
+
+		const [payment] = await testDb
+			.select()
+			.from(payments)
+			.where(eq(payments.reservationId, result.reservation.id));
+		expect(payment.amount).toBe(12600);
+		expect(payment.currency).toBe('CHF');
+
+		expect(createCheckoutSession).toHaveBeenCalledWith(expect.objectContaining({
+			amount: 12600,
+			currency: 'CHF',
+			quantity: 3,
+		}));
+	});
+
+	it('Service price changed — a new Reservation uses the current Service price', async () => {
+		const { session } = await seedPublishedSession();
+		await testDb.update(eventServices)
+			.set({ priceAmount: 3900 })
+			.where(eq(eventServices.id, session.serviceId));
+		const { createReservation } = await import('../../src/lib/server/services/reservations');
+
+		const result = await createReservation(makeInput(session.id, { quantity: 2 }));
+
+		expect(result.reservation.totalAmount).toBe(7800); // 3900 × 2
+	});
+
+	it('zero price — a free Service gives a zero total; capacity is still locked', async () => {
+		const { session } = await seedPublishedSession({}, { priceAmount: 0 });
+		const { createReservation } = await import('../../src/lib/server/services/reservations');
+		const { createCheckoutSession } = await import('../../src/lib/server/services/stripe');
+
+		const result = await createReservation(makeInput(session.id, { quantity: 2 }));
+
+		const [reservation] = await testDb
+			.select()
+			.from(reservations)
+			.where(eq(reservations.id, result.reservation.id));
+		expect(reservation.totalAmount).toBe(0);
+		expect(reservation.discountAmount).toBe(0);
+		expect(createCheckoutSession).toHaveBeenCalledWith(expect.objectContaining({ amount: 0 }));
+
+		const [updatedSession] = await testDb
+			.select()
+			.from(eventSessions)
+			.where(eq(eventSessions.id, session.id));
+		expect(updatedSession.availableCapacity).toBe(98);
+	});
+
+	it('legacy Seating price — a migrated Seating that kept its own price is booked at it', async () => {
+		const { session } = await seedPublishedSession(
+			{ legacyPriceAmount: 6000, legacyCurrency: 'EUR' },
+			{ priceAmount: 2500 }
+		);
+		const { createReservation } = await import('../../src/lib/server/services/reservations');
+
+		const result = await createReservation(makeInput(session.id, { quantity: 2 }));
+
+		expect(result.reservation.totalAmount).toBe(12000); // 6000 × 2, not 2500 × 2
+	});
+
+	it('Service without a price — refused; no Reservation, capacity unchanged, no Stripe call', async () => {
+		const { session } = await seedPublishedSession({}, { priceAmount: null });
+		const { createReservation } = await import('../../src/lib/server/services/reservations');
+		const { createCheckoutSession } = await import('../../src/lib/server/services/stripe');
+
+		await expect(createReservation(makeInput(session.id))).rejects.toThrow('Seating has no price yet');
+
+		expect(await testDb.select().from(reservations)).toHaveLength(0);
+		expect(createCheckoutSession).not.toHaveBeenCalled();
+		const [unchanged] = await testDb
+			.select()
+			.from(eventSessions)
+			.where(eq(eventSessions.id, session.id));
+		expect(unchanged.availableCapacity).toBe(100);
 	});
 
 	it('honeypot filled — throws when honeypot field is non-empty', async () => {

@@ -21,7 +21,8 @@ interface UpcomingSession {
 	startTime: string;
 	totalCapacity: number;
 	availableCapacity: number;
-	priceAmount: number;
+	/** Price per seat from the Seating's Service; null while not set. */
+	priceAmount: number | null;
 	currency: string;
 }
 
@@ -159,6 +160,9 @@ async function getDbDashboardData() {
 		}
 	});
 
+	const { getSeatingPrices } = await import('$lib/server/services/service-pricing');
+	const upcomingPrices = await getSeatingPrices(upcomingDetailed.map((s: (typeof upcomingDetailed)[number]) => s.id));
+
 	const upcomingSessions: UpcomingSession[] = upcomingDetailed.map((s) => ({
 		id: s.id,
 		eventTitle: (s as typeof s & { event: { titleEn: string } | null }).event?.titleEn ?? 'Unknown Event',
@@ -166,8 +170,8 @@ async function getDbDashboardData() {
 		startTime: s.startTime.toISOString(),
 		totalCapacity: s.totalCapacity,
 		availableCapacity: s.availableCapacity,
-		priceAmount: s.priceAmount,
-		currency: s.currency
+		priceAmount: upcomingPrices.get(s.id)?.amount ?? null,
+		currency: upcomingPrices.get(s.id)?.currency ?? 'EUR'
 	}));
 
 	return {

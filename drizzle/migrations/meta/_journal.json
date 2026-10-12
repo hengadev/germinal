@@ -148,6 +148,13 @@
       "when": 1791833887281,
       "tag": "0020_venue_capacity",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1791835059501,
+      "tag": "0021_service_menus_and_price",
+      "breakpoints": true
     }
   ]
 }

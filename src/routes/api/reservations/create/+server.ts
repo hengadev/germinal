@@ -85,6 +85,11 @@ export const POST: RequestHandler = async ({ request, getClientAddress, locals }
 				return json({ error: 'Session is sold out', code: 'SOLD_OUT' }, { status: 409 });
 			}
 
+			// The Seating's Service has no price yet (issue 022).
+			if (error.message === 'Seating has no price yet') {
+				return json({ error: 'This session is not open for booking yet', code: 'NOT_PRICED' }, { status: 409 });
+			}
+
 			if (error.message === 'Session not found or not published') {
 				return json({ error: 'Session not found', code: 'NOT_FOUND' }, { status: 404 });
 			}

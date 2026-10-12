@@ -90,8 +90,6 @@ async function seedSession(eventId: string, overrides?: Partial<typeof eventSess
 			endTime,
 			totalCapacity: 10,
 			availableCapacity: 0, // sold out by default for waitlist scenarios
-			priceAmount: 2500,
-			currency: 'EUR',
 			published: true,
 			allowWaitlist: true,
 			...overrides,

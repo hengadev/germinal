@@ -82,7 +82,6 @@ async function seedSession(endedDaysAgo: number) {
 			endTime: end,
 			totalCapacity: 10,
 			availableCapacity: 10,
-			priceAmount: 2500,
 			published: true,
 		})
 		.returning();

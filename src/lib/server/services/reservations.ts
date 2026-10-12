@@ -9,6 +9,15 @@ import { env } from '../env';
 import type { CreateReservationInput, CreateCompReservationInput, ReservationWithDetails } from '$lib/types/reservations';
 import { validatePromoCode, calculateDiscountAmount, incrementRedemption } from './promo-codes';
 import { seatingTitle } from '$lib/utils/seating-title';
+import { getSeatingPrice } from './service-pricing';
+
+/** Thrown when a Seating's Service has no price yet: it cannot be booked. */
+export class SeatingNotPricedError extends Error {
+	constructor() {
+		super('Seating has no price yet');
+		this.name = 'SeatingNotPricedError';
+	}
+}
 
 /**
  * Lock a Session row and atomically decrement its available capacity.
@@ -86,8 +95,14 @@ export async function createReservation(input: CreateReservationInput) {
 		return await db.transaction(async (tx: typeof db) => {
 		const session = await lockAndDecrementSessionCapacity(tx, input.sessionId, input.quantity);
 
-		// Step 4: Calculate total amount (snapshot price at booking time)
-		const baseAmount = session.priceAmount * input.quantity;
+		// Step 4: Calculate total amount (snapshot price at booking time).
+		// The unit price is the Seating's Service price (issue 022); a
+		// Service without a price yet cannot be booked.
+		const price = await getSeatingPrice(tx, session.id);
+		if (!price) {
+			throw new SeatingNotPricedError();
+		}
+		const baseAmount = price.amount * input.quantity;
 
 		// Step 4a: Validate and apply promo code if provided
 		let discountAmount = 0;
@@ -127,7 +142,7 @@ export async function createReservation(input: CreateReservationInput) {
 			notificationPreference: input.notificationPreference ?? 'both',
 			quantity: input.quantity,
 			totalAmount,
-			currency: session.currency,
+			currency: price.currency,
 			status: 'pending',
 			accessToken,
 			expiresAt,
@@ -148,7 +163,7 @@ export async function createReservation(input: CreateReservationInput) {
 			reservationId: reservation.id,
 			accessToken,
 			amount: totalAmount,
-			currency: session.currency,
+			currency: price.currency,
 			quantity: input.quantity,
 			productName: `${seatingTitle(session, 'en')}${event ? ` — ${event.titleEn}` : ''}`,
 			customerEmail: input.email,
@@ -175,7 +190,7 @@ export async function createReservation(input: CreateReservationInput) {
 			stripePaymentIntentId: checkoutSession.id, // placeholder; updated by webhook
 			stripeClientSecret: null,
 			amount: totalAmount,
-			currency: session.currency,
+			currency: price.currency,
 			status: 'pending',
 			idempotencyKey: `reservation-${reservation.id}`,
 		});
@@ -219,6 +234,9 @@ export async function createCompReservation(input: CreateCompReservationInput) {
 	const created = await db.transaction(async (tx: typeof db) => {
 		// Same capacity lock + decrement as a paid Guest booking.
 		const session = await lockAndDecrementSessionCapacity(tx, input.sessionId, input.quantity);
+		// Nothing is charged; the currency follows the Seating's price
+		// (EUR while its Service has none yet).
+		const price = await getSeatingPrice(tx, session.id);
 
 		const accessToken = generateAccessToken();
 		const now = new Date();
@@ -235,7 +253,7 @@ export async function createCompReservation(input: CreateCompReservationInput) {
 			notificationPreference: input.notificationPreference ?? 'both',
 			quantity: input.quantity,
 			totalAmount: 0,
-			currency: session.currency,
+			currency: price?.currency ?? 'EUR',
 			status: 'confirmed',
 			accessToken,
 			expiresAt: now,

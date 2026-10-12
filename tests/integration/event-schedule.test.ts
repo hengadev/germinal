@@ -59,7 +59,6 @@ function sessionInput(overrides: Partial<CreateEventSessionInput> = {}): CreateE
 		startTime: new Date('2099-06-10T19:00:00Z'),
 		endTime: new Date('2099-06-10T22:00:00Z'),
 		totalCapacity: 20,
-		priceAmount: 5000,
 		published: true,
 		...overrides,
 	};
@@ -486,8 +485,6 @@ describe('saveServiceSeatings (admin Seatings editor)', () => {
 			descriptionEn: null,
 			descriptionFr: null,
 			capacityOverride: null,
-			priceAmount: 4500,
-			currency: 'EUR',
 			published: true,
 			allowWaitlist: false,
 			badgeType: 'none',

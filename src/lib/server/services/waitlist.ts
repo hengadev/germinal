@@ -7,6 +7,7 @@ import { queueEmail } from '../jobs/process-email-queue';
 import { env } from '../env';
 import { escapeHtml } from '$lib/utils/html';
 import { seatingTitle } from '$lib/utils/seating-title';
+import { formatCurrency } from '$lib/utils/currency';
 
 /**
  * Join a waitlist for a sold-out session
@@ -121,10 +122,17 @@ export async function notifyWaitlist(sessionId: string, availableCapacity: numbe
 
 type SessionWithEvent = typeof eventSessions.$inferSelect & { event?: { slug: string } | null };
 
+/** Unit price from the Seating's Service (issue 022); null when not set. */
+type UnitPrice = { amount: number; currency: string } | null;
+
+function formatUnitPrice(price: UnitPrice): string {
+	return price ? formatCurrency(price.amount, price.currency) : 'Price to be announced';
+}
+
 /**
  * Generate waitlist notification email
  */
-function generateWaitlistTextTemplate(entry: typeof waitlist.$inferSelect, session: SessionWithEvent): string {
+function generateWaitlistTextTemplate(entry: typeof waitlist.$inferSelect, session: SessionWithEvent, price: UnitPrice): string {
 	return `
 Good news, ${entry.name}!
 
@@ -132,7 +140,7 @@ Tickets are now available for:
 
 ${seatingTitle(session, 'en')}
 ${session.startTime.toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })}
-${session.priceAmount / 100}${session.currency} per ticket
+${formatUnitPrice(price)} per ticket
 
 You requested ${entry.quantity} ticket(s). Please book soon as availability is limited.
 
@@ -142,7 +150,7 @@ This link is valid for 24 hours.
   `.trim();
 }
 
-function generateWaitlistHtmlTemplate(entry: typeof waitlist.$inferSelect, session: SessionWithEvent): string {
+function generateWaitlistHtmlTemplate(entry: typeof waitlist.$inferSelect, session: SessionWithEvent, price: UnitPrice): string {
 	return `
 <!DOCTYPE html>
 <html lang="en">
@@ -173,7 +181,7 @@ function generateWaitlistHtmlTemplate(entry: typeof waitlist.$inferSelect, sessi
       </tr>
       <tr>
         <td style="padding: 8px 0; color: #6c757d;">
-          ${session.priceAmount / 100}${session.currency} per ticket
+          ${formatUnitPrice(price)} per ticket
         </td>
       </tr>
     </table>
@@ -209,10 +217,12 @@ function generateWaitlistHtmlTemplate(entry: typeof waitlist.$inferSelect, sessi
  */
 async function sendWaitlistNotificationEmail(
 	entry: typeof waitlist.$inferSelect & { eventSession: typeof eventSessions.$inferSelect & { event: { slug: string } | null } },
-	session: typeof eventSessions.$inferSelect & { event: { slug: string } | null }
+	session: SessionWithEvent
 ) {
-	const textBody = generateWaitlistTextTemplate(entry, session);
-	const htmlBody = generateWaitlistHtmlTemplate(entry, session);
+	const { getSeatingPrice } = await import('./service-pricing');
+	const price = await getSeatingPrice(db, session.id);
+	const textBody = generateWaitlistTextTemplate(entry, session, price);
+	const htmlBody = generateWaitlistHtmlTemplate(entry, session, price);
 
 	await queueEmail({
 		type: 'contact_notification',
@@ -232,7 +242,7 @@ async function sendWaitlistNotificationEmail(
  */
 export async function sendWaitlistNotification(
 	entry: typeof waitlist.$inferSelect & { eventSession: typeof eventSessions.$inferSelect & { event: { slug: string } | null } },
-	session: typeof eventSessions.$inferSelect & { event: { slug: string } | null }
+	session: SessionWithEvent
 ) {
 	// Send email if user prefers email or both
 	if (entry.notificationPreference !== 'sms') {
