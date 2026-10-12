@@ -136,28 +136,6 @@ export async function findOrAttachService(
 	return service.id;
 }
 
-/**
- * Remove the Services (then Days) of an Event that no longer have any
- * Seatings, so implicitly created schedule nodes never linger and distort
- * the Event's derived dates. Must run after a Seating is deleted or moved.
- */
-export async function pruneEmptyScheduleNodes(tx: typeof db, eventId: string): Promise<void> {
-	await tx.delete(eventServices)
-		.where(and(
-			inArray(
-				eventServices.dayId,
-				tx.select({ id: eventDays.id }).from(eventDays).where(eq(eventDays.eventId, eventId))
-			),
-			sql`NOT EXISTS (SELECT 1 FROM event_sessions es WHERE es.service_id = ${eventServices.id})`
-		));
-
-	await tx.delete(eventDays)
-		.where(and(
-			eq(eventDays.eventId, eventId),
-			sql`NOT EXISTS (SELECT 1 FROM event_services sv WHERE sv.day_id = ${eventDays.id})`
-		));
-}
-
 // ---------------------------------------------------------------------------
 // Saving the admin Days picker (issue 019)
 // ---------------------------------------------------------------------------

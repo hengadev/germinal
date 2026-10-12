@@ -150,7 +150,7 @@ describe('event schedule (Days → Services → Seatings)', () => {
 		expect(updated.endDate.toISOString()).toBe('2099-06-10T23:59:59.999Z');
 	});
 
-	it('moving a Seating across the cut-off re-attaches it and prunes the emptied schedule nodes', async () => {
+	it('moving a Seating across the cut-off re-attaches it and keeps the Day and Service it left', async () => {
 		const { createEventSession, updateEventSession } = await import('../../src/lib/server/services/event-sessions');
 
 		const session = await createEventSession(sessionInput({
@@ -163,17 +163,20 @@ describe('event schedule (Days → Services → Seatings)', () => {
 			endTime: new Date('2099-06-12T22:00:00Z'),
 		});
 
-		// The Seating now sits under a dinner Service on the new Day; the
-		// lunch Service and the emptied Day are gone.
+		// The Seating now sits under a dinner Service on the new Day. The
+		// lunch Service and its Day stay: Days and Services are picked by the
+		// Admin and only the Days picker removes them (issue 020).
 		const schedule = await loadSchedule(event.id);
 		expect(schedule).toEqual([
 			{ dayDate: '2099-06-12', kind: 'dinner', duration: 180, sessionId: session.id },
 		]);
-		const days = await testDb.select().from(eventDays).where(eq(eventDays.eventId, event.id));
-		expect(days.map((d) => d.date)).toEqual(['2099-06-12']);
+		const days = await testDb.select().from(eventDays).where(eq(eventDays.eventId, event.id)).orderBy(eventDays.date);
+		expect(days.map((d) => d.date)).toEqual(['2099-06-10', '2099-06-12']);
+		const lunch = await testDb.select().from(eventServices).where(eq(eventServices.dayId, days[0].id));
+		expect(lunch.map((service) => service.kind)).toEqual(['lunch']);
 
 		const [updated] = await testDb.select().from(events).where(eq(events.id, event.id));
-		expect(updated.startDate.toISOString()).toBe('2099-06-12T00:00:00.000Z');
+		expect(updated.startDate.toISOString()).toBe('2099-06-10T00:00:00.000Z');
 		expect(updated.endDate.toISOString()).toBe('2099-06-12T23:59:59.999Z');
 	});
 
@@ -191,20 +194,32 @@ describe('event schedule (Days → Services → Seatings)', () => {
 		expect(days).toHaveLength(0);
 	});
 
-	it('deleting the last Seating prunes its Day and Service', async () => {
+	it('deleting the last Seating of a draft keeps its picked Day and Service', async () => {
 		const { createEventSession, deleteEventSession } = await import('../../src/lib/server/services/event-sessions');
+		await testDb.update(events).set({ published: false }).where(eq(events.id, event.id));
 
 		const session = await createEventSession(sessionInput());
 		await deleteEventSession(session.id);
 
 		const seatings = await testDb.select().from(eventSessions).where(eq(eventSessions.eventId, event.id));
 		expect(seatings).toHaveLength(0);
-		const services = await testDb.select().from(eventServices)
-			.where(eq(eventServices.dayId, testDb.select({ id: eventDays.id }).from(eventDays).where(eq(eventDays.eventId, event.id))));
-		expect(services).toHaveLength(0);
 		const days = await testDb.select().from(eventDays).where(eq(eventDays.eventId, event.id));
-		expect(days).toHaveLength(0);
+		expect(days.map((d) => d.date)).toEqual(['2099-06-10']);
+		const services = await testDb.select().from(eventServices).where(eq(eventServices.dayId, days[0].id));
+		expect(services.map((service) => service.kind)).toEqual(['dinner']);
 	});
+
+	it('refuses to delete the last Seating of a published Event', async () => {
+		const { createEventSession, deleteEventSession } = await import('../../src/lib/server/services/event-sessions');
+		const { PublishedEventWithoutSeatingError } = await import('../../src/lib/server/services/event-schedule');
+
+		const session = await createEventSession(sessionInput());
+		await expect(deleteEventSession(session.id)).rejects.toBeInstanceOf(PublishedEventWithoutSeatingError);
+
+		const seatings = await testDb.select().from(eventSessions).where(eq(eventSessions.eventId, event.id));
+		expect(seatings.map((seating) => seating.id)).toEqual([session.id]);
+	});
+
 	it('hand-set Event dates are kept while it has no Days and ignored once it has', async () => {
 		const { createEventSession } = await import('../../src/lib/server/services/event-sessions');
 		const { updateEvent } = await import('../../src/lib/server/services/events');
