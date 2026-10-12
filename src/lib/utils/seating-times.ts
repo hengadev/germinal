@@ -13,6 +13,20 @@
 
 export const MINUTES_PER_DAY = 24 * 60;
 
+/**
+ * Hour (UTC) at which a Seating stops counting as lunch: a start time
+ * before 16:00 is lunch, 16:00 and later is dinner. Cut-off confirmed
+ * in issue 018.
+ */
+export const LUNCH_DINNER_CUTOFF_HOUR = 16;
+
+export type ServiceKind = 'lunch' | 'dinner';
+
+/** Meal a time of day (minutes since UTC midnight) belongs to. */
+export function serviceKindOfMinutes(minutes: number): ServiceKind {
+	return minutes < LUNCH_DINNER_CUTOFF_HOUR * 60 ? 'lunch' : 'dinner';
+}
+
 /** Parse an `HH:MM` time-of-day into minutes since midnight; null if invalid. */
 export function parseTimeOfDay(value: string): number | null {
 	const match = /^([01]?\d|2[0-3]):([0-5]\d)$/.exec(value.trim());
