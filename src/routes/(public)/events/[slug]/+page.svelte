@@ -5,6 +5,7 @@
     import type { PageData } from "./$types";
     import { reveal } from "$lib/actions/reveal";
     import { t, locale } from "svelte-i18n";
+    import { formatCurrency } from "$lib/utils/currency";
 
     let { data }: { data: PageData } = $props();
 
@@ -14,6 +15,17 @@
 
     function getEventTitle(): string {
         return ($locale === "en" ? data.event.titleEn : data.event.titleFr) || "";
+    }
+
+    // A Service's price per guest (issue 022): shown once per Service.
+    function formatServicePrice(amount: number | null, currency: string): string {
+        if (amount === null) return $t("events.priceToBeAnnounced");
+        if (amount === 0) return $t("events.free");
+        return formatCurrency(amount, currency, $locale === "fr" ? "fr-FR" : "en-US");
+    }
+
+    function localized(en: string | null, fr: string | null): string {
+        return ($locale === "en" ? en : fr) ?? "";
     }
 
     function formatDay(date: string): string {
@@ -40,6 +52,30 @@
                                 <p class="uppercase text-xxs tracking-widest text-muted-foreground mb-4">
                                     {$t(service.kind === "lunch" ? "events.lunch" : "events.dinner")}
                                 </p>
+                                <div
+                                    class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-baseline sm:justify-between sm:gap-10"
+                                >
+                                    {#if service.menu}
+                                        <div class="min-w-0">
+                                            <p class="text-lg lg:text-xl leading-snug">
+                                                {localized(service.menu.nameEn, service.menu.nameFr)}
+                                            </p>
+                                            {#if localized(service.menu.descriptionEn, service.menu.descriptionFr)}
+                                                <p class="mt-2 text-sm leading-relaxed text-muted-foreground max-w-[60ch] whitespace-pre-line">
+                                                    {localized(service.menu.descriptionEn, service.menu.descriptionFr)}
+                                                </p>
+                                            {/if}
+                                        </div>
+                                    {/if}
+                                    <p class="shrink-0 flex items-baseline gap-2 {service.menu ? '' : 'sm:ml-auto'}">
+                                        <span class="font-mono text-base lg:text-lg">
+                                            {formatServicePrice(service.priceAmount, service.currency)}
+                                        </span>
+                                        {#if service.priceAmount !== null && service.priceAmount > 0}
+                                            <span class="text-xs text-muted-foreground">{$t("events.perGuest")}</span>
+                                        {/if}
+                                    </p>
+                                </div>
                                 <SessionSelector
                                     sessions={service.sessions}
                                     eventTitle={getEventTitle()}

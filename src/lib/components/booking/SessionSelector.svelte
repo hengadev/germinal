@@ -13,8 +13,14 @@
 		descriptionFr?: string | null;
 		startTime: string;
 		endTime: string;
-		priceAmount: number;
+		/** Unit price the Seating is booked at; null while its Service has
+		 * no price yet (the Seating cannot be booked). */
+		priceAmount: number | null;
 		currency: string;
+		/** The Seating keeps a price of its own, different from its
+		 * Service's (shown on the card; the Service price is shown once
+		 * above the cards otherwise). */
+		ownPrice?: boolean;
 		availableCapacity: number;
 		totalCapacity: number;
 		allowWaitlist: boolean;
@@ -50,12 +56,13 @@
 		'Limited':     'color:oklch(0.45 0.07 30);background:oklch(0.96 0.020 30);border-color:oklch(0.86 0.040 30)',
 	};
 
-	type CardState = 'default' | 'limited' | 'waitlist' | 'unavailable' | 'past';
+	type CardState = 'default' | 'limited' | 'waitlist' | 'unavailable' | 'past' | 'unpriced';
 
 	function getCardState(s: Session): CardState {
 		if (s.isPast) return 'past';
 		if (s.soldOut && s.allowWaitlist) return 'waitlist';
 		if (s.soldOut) return 'unavailable';
+		if (s.priceAmount === null) return 'unpriced';
 		if (s.badgeType === 'limited') return 'limited';
 		return 'default';
 	}
@@ -104,11 +111,11 @@
 <div class="grid gap-6" style="grid-template-columns: repeat(auto-fit, minmax(420px, 1fr))">
 	{#each sortedSessions as session (session.id)}
 		{@const state = getCardState(session)}
-		{@const muted = state === 'past' || state === 'unavailable'}
+		{@const muted = state === 'past' || state === 'unavailable' || state === 'unpriced'}
 		{@const badge = getBadgeLabel(session)}
 		{@const dp = getDateParts(session.startTime)}
 		{@const symbol = getCurrencySymbol(session.currency, $locale ?? 'en')}
-		{@const price = formatCurrencyAmount(session.priceAmount, $locale ?? 'en')}
+		{@const price = session.priceAmount === null ? '' : formatCurrencyAmount(session.priceAmount, $locale ?? 'en')}
 		{@const pct = Math.max(0, Math.min(100, ((session.totalCapacity - session.availableCapacity) / session.totalCapacity) * 100))}
 
 		<div
@@ -170,7 +177,9 @@
 				</div>
 			</div>
 
-			<!-- Price: large Newsreader numeral -->
+			<!-- Price: only for a Seating priced apart from its Service — the
+			     Service price is shown once above the cards (issue 022). -->
+			{#if session.ownPrice && session.priceAmount !== null}
 			<div class="flex items-baseline gap-1" style="border-top:1px solid #ededeb; padding-top:18px">
 				<span
 					class="relative font-sans font-normal"
@@ -184,6 +193,7 @@
 					style="color:{muted ? '#a3a3a3' : '#737373'}; letter-spacing:0.04em"
 				>{$t('booking.perTicket')}</span>
 			</div>
+			{/if}
 
 			<!-- Capacity: 2px hairline progress bar -->
 			<div class="flex flex-col gap-[6px]">
@@ -221,6 +231,10 @@
 					<div style="border-top:1px solid #ededeb; padding:12px 0; font-family:var(--font-sans),Georgia,serif; font-size:15px; font-weight:400; font-style:italic; color:#a3a3a3; letter-spacing:0.01em; text-align:center">
 						{$t('booking.sessionEnded')}
 					</div>
+				{:else if state === 'unpriced'}
+					<div style="border-top:1px solid #ededeb; padding:12px 0; font-family:var(--font-sans),Georgia,serif; font-size:15px; font-weight:400; font-style:italic; color:#a3a3a3; letter-spacing:0.01em; text-align:center">
+						{$t('events.priceToBeAnnounced')}
+					</div>
 				{:else if state === 'unavailable'}
 					<div style="border-top:1px solid #ededeb; padding:12px 0; font-family:var(--font-sans),Georgia,serif; font-size:15px; font-weight:400; font-style:italic; color:#a3a3a3; letter-spacing:0.01em; text-align:center">
 						{$t('booking.notAvailable')}
@@ -253,10 +267,10 @@
 	{/each}
 </div>
 
-{#if selectedSession && bookingModalOpen}
+{#if selectedSession && selectedSession.priceAmount !== null && bookingModalOpen}
 	<BookingModal
 		bind:isOpen={bookingModalOpen}
-		session={selectedSession}
+		session={{ ...selectedSession, priceAmount: selectedSession.priceAmount }}
 		{eventTitle}
 		{eventSlug}
 	/>

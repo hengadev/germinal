@@ -1,9 +1,59 @@
 import { getEventBySlug } from '$lib/server/services/events';
 import { getPublishedScheduleByEventId, classifyServiceKind, utcDayKey, groupScheduleByDayAndService } from '$lib/server/services/event-schedule';
 import { MOCK_EVENTS, MOCK_SESSIONS, USE_MOCK_DATA } from '$lib/mock-data';
+import { getServiceOffersByEventId } from '$lib/server/services/service-pricing';
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { seatingTitlesWithFallback } from '$lib/utils/seating-title';
+import type { ServiceKind } from '$lib/utils/seating-times';
+
+/** What a Service offers on the public page (issue 022): its Menu and the
+ * price per guest, shown once per Service rather than on every Seating. */
+interface ServiceOffer {
+  menu: {
+    nameEn: string;
+    nameFr: string;
+    descriptionEn: string | null;
+    descriptionFr: string | null;
+  } | null;
+  /** Minor units; null while the price is not announced yet. */
+  priceAmount: number | null;
+  currency: string;
+}
+
+interface SeatingCard {
+  id: string;
+  serviceId: string;
+  /** Unit price the Seating is booked at, null while not set. */
+  priceAmount: number | null;
+  currency: string;
+  [key: string]: unknown;
+}
+
+/**
+ * Days → Services → Seatings for the page. A Seating's own price is only
+ * flagged (`ownPrice`) when it differs from its Service's — a Seating
+ * migrated with a legacy price — so the page shows it next to that Seating.
+ */
+function buildSchedule<T extends SeatingCard>(
+  rows: { dayDate: string; serviceKind: ServiceKind; item: T }[],
+  offerOf: (serviceId: string, items: T[]) => ServiceOffer
+) {
+  return groupScheduleByDayAndService(rows).map((day) => ({
+    date: day.date,
+    services: day.services.map((service) => {
+      const offer = offerOf(service.items[0].serviceId, service.items);
+      return {
+        kind: service.kind,
+        ...offer,
+        sessions: service.items.map((item) => ({
+          ...item,
+          ownPrice: item.priceAmount !== offer.priceAmount || item.currency !== offer.currency,
+        })),
+      };
+    }),
+  }));
+}
 
 export const load: PageServerLoad = async ({ params }) => {
   // Use mock data if enabled (no database required!)
@@ -19,6 +69,8 @@ export const load: PageServerLoad = async ({ params }) => {
         serviceKind: classifyServiceKind(s.startTime),
         item: {
           id: s.id,
+          // Mock mode has no Services table: one synthetic Service per Day and meal.
+          serviceId: `${utcDayKey(s.startTime)}:${classifyServiceKind(s.startTime)}`,
           ...seatingTitlesWithFallback(s),
           descriptionEn: (s as any).descriptionEn ?? null,
           descriptionFr: (s as any).descriptionFr ?? null,
@@ -34,12 +86,11 @@ export const load: PageServerLoad = async ({ params }) => {
           isPast: s.startTime < new Date()
         }
       }));
-    const schedule = groupScheduleByDayAndService(rows).map((day) => ({
-      date: day.date,
-      services: day.services.map((service) => ({
-        kind: service.kind,
-        sessions: service.items
-      }))
+    // Mock Services have no Menu; their price is their first Seating's.
+    const schedule = buildSchedule(rows, (_serviceId, items) => ({
+      menu: null,
+      priceAmount: items[0].priceAmount,
+      currency: items[0].currency,
     }));
     return {
       event,
@@ -51,20 +102,22 @@ export const load: PageServerLoad = async ({ params }) => {
   try {
     const event = await getEventBySlug(params.slug);
     const scheduleRows = await getPublishedScheduleByEventId(event.id);
+    const offers = await getServiceOffersByEventId(event.id);
 
     const rows = scheduleRows.map((row) => ({
       dayDate: row.dayDate,
       serviceKind: row.serviceKind,
       item: {
         id: row.item.id,
+        serviceId: row.item.serviceId,
         titleEn: row.item.titleEn,
         titleFr: row.item.titleFr,
         descriptionEn: row.item.descriptionEn ?? null,
         descriptionFr: row.item.descriptionFr ?? null,
         startTime: row.item.startTime.toISOString(),
         endTime: row.item.endTime.toISOString(),
-        priceAmount: row.item.priceAmount,
-        currency: row.item.currency,
+        priceAmount: row.item.price?.amount ?? null,
+        currency: row.item.price?.currency ?? offers.get(row.item.serviceId)?.currency ?? 'EUR',
         availableCapacity: row.item.availableCapacity,
         totalCapacity: row.item.totalCapacity,
         allowWaitlist: row.item.allowWaitlist,
@@ -74,13 +127,14 @@ export const load: PageServerLoad = async ({ params }) => {
       }
     }));
 
-    const schedule = groupScheduleByDayAndService(rows).map((day) => ({
-      date: day.date,
-      services: day.services.map((service) => ({
-        kind: service.kind,
-        sessions: service.items
-      }))
-    }));
+    const schedule = buildSchedule(rows, (serviceId) => {
+      const offer = offers.get(serviceId);
+      return {
+        menu: offer?.menu ?? null,
+        priceAmount: offer?.priceAmount ?? null,
+        currency: offer?.currency ?? 'EUR',
+      };
+    });
 
     return {
       event,
