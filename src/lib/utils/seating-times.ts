@@ -83,3 +83,74 @@ export function findSeatingOverlaps(
 	}
 	return hits;
 }
+
+/** Why a Seating's times cannot be saved as typed. */
+export type SeatingTimeError =
+	/** Start is not a valid `HH:MM`. */
+	| 'start'
+	/** Explicit end is not a valid `HH:MM`, or is not after the start. */
+	| 'end'
+	/** The end filled from the default duration would reach midnight. */
+	| 'midnight';
+
+export interface SeatingReview {
+	startMinutes: number | null;
+	/** Explicit end, or the one filled from the default duration. */
+	endMinutes: number | null;
+	timeError: SeatingTimeError | null;
+	/** The start falls on the other meal's side of the 16:00 UTC cut-off. */
+	mealMismatch: boolean;
+	/** End (minutes) of the earlier Seating this one starts before, if any. */
+	overlapsPreviousEndingAt: number | null;
+}
+
+/**
+ * Review one Service's Seatings as typed in the admin editor, before saving
+ * (issue 020): fill missing ends from the default duration, flag invalid
+ * times, starts on the wrong side of the lunch/dinner cut-off, and Seatings
+ * starting before the previous one ends. The server parses and checks the
+ * same rules (`parseSeatingsPayload`, `saveServiceSeatings`), sharing
+ * {@link endAfterDuration} and {@link findSeatingOverlaps}.
+ */
+export function reviewServiceSeatings(
+	kind: ServiceKind,
+	defaultDurationMinutes: number,
+	seatings: { start: string; end: string | null }[]
+): SeatingReview[] {
+	const reviews: SeatingReview[] = seatings.map(({ start, end }) => {
+		const startMinutes = parseTimeOfDay(start);
+		if (startMinutes === null) {
+			return { startMinutes, endMinutes: null, timeError: 'start', mealMismatch: false, overlapsPreviousEndingAt: null };
+		}
+		const mealMismatch = serviceKindOfMinutes(startMinutes) !== kind;
+		if (end === null || end.trim() === '') {
+			const filled = Number.isInteger(defaultDurationMinutes) && defaultDurationMinutes > 0
+				? endAfterDuration(startMinutes, defaultDurationMinutes)
+				: null;
+			return {
+				startMinutes,
+				endMinutes: filled,
+				timeError: filled === null ? 'midnight' : null,
+				mealMismatch,
+				overlapsPreviousEndingAt: null,
+			};
+		}
+		const endMinutes = parseTimeOfDay(end);
+		if (endMinutes === null || endMinutes <= startMinutes) {
+			return { startMinutes, endMinutes: null, timeError: 'end', mealMismatch, overlapsPreviousEndingAt: null };
+		}
+		return { startMinutes, endMinutes, timeError: null, mealMismatch, overlapsPreviousEndingAt: null };
+	});
+
+	// Overlaps only make sense between Seatings whose times are both valid.
+	const timed = reviews
+		.map((review, index) => ({ review, index }))
+		.filter(({ review }) => review.startMinutes !== null && review.endMinutes !== null);
+	const hits = findSeatingOverlaps(
+		timed.map(({ review }) => ({ startMinutes: review.startMinutes!, endMinutes: review.endMinutes! }))
+	);
+	for (const hit of hits) {
+		reviews[timed[hit.index].index].overlapsPreviousEndingAt = hit.previousEndMinutes;
+	}
+	return reviews;
+}

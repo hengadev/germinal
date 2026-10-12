@@ -1,6 +1,7 @@
 import { db } from '../db';
 import { eventDays, eventServices, eventSessions, events, reservations } from '../db/schema';
-import { and, eq, inArray, sql } from 'drizzle-orm';
+import { and, eq, getTableColumns, inArray, sql } from 'drizzle-orm';
+import type { EditorService } from '$lib/types/seatings-editor';
 import {
 	endAfterDuration,
 	findSeatingOverlaps,
@@ -1239,6 +1240,68 @@ export async function saveServiceSeatings(
 	});
 
 	return { overlaps: findPlannedSeatingOverlaps(services), removedSeatingIds };
+}
+
+/** `HH:MM` (UTC) of an instant. */
+function utcClock(instant: Date): string {
+	return formatTimeOfDay(instant.getUTCHours() * 60 + instant.getUTCMinutes());
+}
+
+/**
+ * The Event's Days → Services → Seatings as the admin Seatings editor
+ * shows them (issue 020): Services ordered by Day then meal, Seatings by
+ * start, with each Seating's Reservation count (any status — a booked
+ * Seating cannot be removed). Services with no Seating yet are included so
+ * the Admin can add the first one.
+ */
+export async function loadSeatingsEditor(eventId: string): Promise<EditorService[]> {
+	const serviceRows: { id: string; kind: ServiceKind; date: string; duration: number }[] = await db
+		.select({
+			id: eventServices.id,
+			kind: eventServices.kind,
+			date: sql<string>`${eventDays.date}::text`,
+			duration: eventServices.defaultSeatingDurationMinutes,
+		})
+		.from(eventServices)
+		.innerJoin(eventDays, eq(eventServices.dayId, eventDays.id))
+		.where(eq(eventDays.eventId, eventId));
+
+	const seatingRows: (typeof eventSessions.$inferSelect & { reservationCount: number })[] = await db
+		.select({
+			...getTableColumns(eventSessions),
+			reservationCount: sql<number>`(SELECT count(*) FROM reservations r WHERE r.event_session_id = "event_sessions"."id")::int`,
+		})
+		.from(eventSessions)
+		.where(eq(eventSessions.eventId, eventId))
+		.orderBy(eventSessions.startTime);
+
+	return serviceRows
+		.sort((a, b) => a.date.localeCompare(b.date) || KIND_ORDER[a.kind] - KIND_ORDER[b.kind])
+		.map((service) => ({
+			serviceId: service.id,
+			date: service.date,
+			kind: service.kind,
+			defaultDurationMinutes: service.duration,
+			seatings: seatingRows
+				.filter((seating) => seating.serviceId === service.id)
+				.map((seating) => ({
+					id: seating.id,
+					start: utcClock(seating.startTime),
+					end: utcClock(seating.endTime),
+					titleEn: seating.titleEn,
+					titleFr: seating.titleFr,
+					descriptionEn: seating.descriptionEn,
+					descriptionFr: seating.descriptionFr,
+					totalCapacity: seating.totalCapacity,
+					availableCapacity: seating.availableCapacity,
+					priceAmount: seating.priceAmount,
+					currency: seating.currency,
+					published: seating.published,
+					allowWaitlist: seating.allowWaitlist,
+					badgeType: seating.badgeType,
+					reservationCount: seating.reservationCount,
+				})),
+		}));
 }
 
 // ---------------------------------------------------------------------------

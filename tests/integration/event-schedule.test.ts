@@ -455,3 +455,196 @@ describe('saveEventSchedule (admin Days picker)', () => {
 		).rejects.toThrow('Event not found');
 	});
 });
+
+// ---------------------------------------------------------------------------
+// Seatings per Service (issue 020): the admin Seatings editor's save
+// ---------------------------------------------------------------------------
+
+describe('saveServiceSeatings (admin Seatings editor)', () => {
+	beforeEach(async () => {
+		vi.clearAllMocks();
+		await setupTestDatabase();
+		await seedEvent();
+		await testDb.update(events).set({ published: false }).where(eq(events.id, event.id));
+	});
+
+	/** Pick Days/Services, then return the editor's Services. */
+	async function pickAndLoad(days: { date: string; kinds: ('lunch' | 'dinner')[] }[]) {
+		const { saveEventSchedule, loadSeatingsEditor } = await import('../../src/lib/server/services/event-schedule');
+		await saveEventSchedule(event.id, days);
+		return loadSeatingsEditor(event.id);
+	}
+
+	function seating(start: string, overrides: Record<string, unknown> = {}) {
+		return {
+			id: null,
+			start,
+			end: null,
+			titleEn: null,
+			titleFr: null,
+			descriptionEn: null,
+			descriptionFr: null,
+			totalCapacity: 20,
+			priceAmount: 4500,
+			currency: 'EUR',
+			published: true,
+			allowWaitlist: false,
+			badgeType: 'none',
+			...overrides,
+		};
+	}
+
+	async function save(payload: unknown) {
+		const { parseSeatingsPayload, saveServiceSeatings } = await import('../../src/lib/server/services/event-schedule');
+		const parsed = parseSeatingsPayload(JSON.stringify(payload));
+		if (!parsed.ok) throw new Error(`payload rejected: ${parsed.reason}`);
+		return saveServiceSeatings(event.id, parsed.services);
+	}
+
+	async function bookSeating(sessionId: string, status: 'confirmed' | 'cancelled', quantity = 1) {
+		await testDb.insert(reservations).values({
+			eventSessionId: sessionId,
+			guestEmail: `guest-${Math.random().toString(36).slice(2, 8)}@example.com`,
+			guestName: 'Guest',
+			quantity,
+			totalAmount: 4500 * quantity,
+			status,
+			accessToken: `tok-${sessionId}-${Math.random().toString(36).slice(2, 10)}`,
+			expiresAt: new Date('2099-12-31T23:59:59Z'),
+		});
+	}
+
+	it('sets the default duration and creates untitled Seatings with ends filled from it', async () => {
+		const { loadSeatingsEditor } = await import('../../src/lib/server/services/event-schedule');
+		const [lunch] = await pickAndLoad([{ date: '2099-06-10', kinds: ['lunch'] }]);
+		expect(lunch.seatings).toEqual([]);
+
+		const result = await save([{
+			serviceId: lunch.serviceId,
+			defaultDurationMinutes: 75,
+			seatings: [seating('12:00'), seating('13:15', { end: '15:00', totalCapacity: 8 })],
+		}]);
+		expect(result.overlaps).toEqual([]);
+
+		const [reloaded] = await loadSeatingsEditor(event.id);
+		expect(reloaded.defaultDurationMinutes).toBe(75);
+		expect(reloaded.seatings.map((s) => [s.start, s.end, s.totalCapacity, s.availableCapacity, s.titleEn])).toEqual([
+			['12:00', '13:15', 20, 20, null],
+			['13:15', '15:00', 8, 8, null],
+		]);
+		const rows = await testDb.select().from(eventSessions).where(eq(eventSessions.eventId, event.id)).orderBy(eventSessions.startTime);
+		expect(rows[0].startTime.toISOString()).toBe('2099-06-10T12:00:00.000Z');
+		expect(rows[0].endTime.toISOString()).toBe('2099-06-10T13:15:00.000Z');
+		expect(rows.every((row) => row.serviceId === lunch.serviceId)).toBe(true);
+	});
+
+	it('reports overlapping Seatings without refusing the save', async () => {
+		const [dinner] = await pickAndLoad([{ date: '2099-06-10', kinds: ['dinner'] }]);
+		const result = await save([{
+			serviceId: dinner.serviceId,
+			defaultDurationMinutes: 120,
+			seatings: [seating('19:00'), seating('20:30')],
+		}]);
+		expect(result.overlaps).toEqual([
+			{ serviceIndex: 0, seatingIndex: 1, start: '20:30', previousEnd: '21:00' },
+		]);
+		const rows = await testDb.select().from(eventSessions).where(eq(eventSessions.eventId, event.id));
+		expect(rows).toHaveLength(2);
+	});
+
+	it('updates kept Seatings, deletes dropped unbooked ones and keeps the Day and Service', async () => {
+		const { loadSeatingsEditor } = await import('../../src/lib/server/services/event-schedule');
+		const [lunch] = await pickAndLoad([{ date: '2099-06-10', kinds: ['lunch'] }]);
+		await save([{ serviceId: lunch.serviceId, defaultDurationMinutes: 90, seatings: [seating('12:00'), seating('13:30')] }]);
+		const [loaded] = await loadSeatingsEditor(event.id);
+
+		const result = await save([{
+			serviceId: lunch.serviceId,
+			defaultDurationMinutes: 90,
+			seatings: [seating('12:15', { id: loaded.seatings[0].id, titleFr: 'Table du chef' })],
+		}]);
+		expect(result.removedSeatingIds).toEqual([loaded.seatings[1].id]);
+
+		const [reloaded] = await loadSeatingsEditor(event.id);
+		expect(reloaded.serviceId).toBe(lunch.serviceId);
+		expect(reloaded.seatings.map((s) => [s.id, s.start, s.end, s.titleFr])).toEqual([
+			[loaded.seatings[0].id, '12:15', '13:45', 'Table du chef'],
+		]);
+	});
+
+	it('refuses to delete a Seating with Reservations, writing nothing', async () => {
+		const { loadSeatingsEditor, SeatingRemovalRefusedError } = await import('../../src/lib/server/services/event-schedule');
+		const [lunch] = await pickAndLoad([{ date: '2099-06-10', kinds: ['lunch'] }]);
+		await save([{ serviceId: lunch.serviceId, defaultDurationMinutes: 90, seatings: [seating('12:00'), seating('13:30')] }]);
+		const [loaded] = await loadSeatingsEditor(event.id);
+		await bookSeating(loaded.seatings[1].id, 'cancelled');
+
+		const attempt = save([{
+			serviceId: lunch.serviceId,
+			defaultDurationMinutes: 60,
+			seatings: [seating('12:00', { id: loaded.seatings[0].id })],
+		}]);
+		await expect(attempt).rejects.toBeInstanceOf(SeatingRemovalRefusedError);
+		await expect(attempt).rejects.toThrow(/13h30 du déjeuner .*1 réservation passée/);
+
+		const [reloaded] = await loadSeatingsEditor(event.id);
+		expect(reloaded.defaultDurationMinutes).toBe(90);
+		expect(reloaded.seatings).toHaveLength(2);
+	});
+
+	it('refuses to lower capacity below the seats sold and keeps available seats in step', async () => {
+		const { loadSeatingsEditor, SeatingCapacityRefusedError } = await import('../../src/lib/server/services/event-schedule');
+		const [dinner] = await pickAndLoad([{ date: '2099-06-10', kinds: ['dinner'] }]);
+		await save([{ serviceId: dinner.serviceId, defaultDurationMinutes: 180, seatings: [seating('19:00')] }]);
+		const [loaded] = await loadSeatingsEditor(event.id);
+		const id = loaded.seatings[0].id;
+		await bookSeating(id, 'confirmed');
+		await bookSeating(id, 'confirmed');
+
+		await expect(save([{
+			serviceId: dinner.serviceId,
+			defaultDurationMinutes: 180,
+			seatings: [seating('19:00', { id, totalCapacity: 1 })],
+		}])).rejects.toBeInstanceOf(SeatingCapacityRefusedError);
+
+		await save([{
+			serviceId: dinner.serviceId,
+			defaultDurationMinutes: 180,
+			seatings: [seating('19:00', { id, totalCapacity: 10 })],
+		}]);
+		const [reloaded] = await loadSeatingsEditor(event.id);
+		expect(reloaded.seatings[0]).toMatchObject({ totalCapacity: 10, availableCapacity: 8, reservationCount: 2 });
+	});
+
+	it('refuses a start on the other side of the 16:00 UTC cut-off', async () => {
+		const { SeatingServiceMismatchError } = await import('../../src/lib/server/services/event-schedule');
+		const [lunch] = await pickAndLoad([{ date: '2099-06-10', kinds: ['lunch'] }]);
+		await expect(save([{
+			serviceId: lunch.serviceId,
+			defaultDurationMinutes: 90,
+			seatings: [seating('19:00')],
+		}])).rejects.toBeInstanceOf(SeatingServiceMismatchError);
+	});
+
+	it('refuses a Service of another Event', async () => {
+		const { UnknownScheduleServiceError } = await import('../../src/lib/server/services/event-schedule');
+		await pickAndLoad([{ date: '2099-06-10', kinds: ['lunch'] }]);
+		await expect(save([{
+			serviceId: '00000000-0000-4000-8000-000000000000',
+			defaultDurationMinutes: 90,
+			seatings: [],
+		}])).rejects.toBeInstanceOf(UnknownScheduleServiceError);
+	});
+
+	it('refuses to remove every Seating of a published Event (ADR 0001)', async () => {
+		const { loadSeatingsEditor, PublishedEventWithoutSeatingError } = await import('../../src/lib/server/services/event-schedule');
+		const [lunch] = await pickAndLoad([{ date: '2099-06-10', kinds: ['lunch'] }]);
+		await save([{ serviceId: lunch.serviceId, defaultDurationMinutes: 90, seatings: [seating('12:00')] }]);
+		await testDb.update(events).set({ published: true }).where(eq(events.id, event.id));
+
+		await expect(save([{ serviceId: lunch.serviceId, defaultDurationMinutes: 90, seatings: [] }]))
+			.rejects.toBeInstanceOf(PublishedEventWithoutSeatingError);
+		const [reloaded] = await loadSeatingsEditor(event.id);
+		expect(reloaded.seatings).toHaveLength(1);
+	});
+});
