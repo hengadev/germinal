@@ -13,6 +13,8 @@
 	} from 'lucide-svelte';
 	import { page } from '$app/state';
 	import { formatCurrency } from '$lib/utils/currency';
+	import { priceReservation } from '$lib/utils/pricing';
+	import DepositBreakdown from '$lib/components/booking/DepositBreakdown.svelte';
 	import { t, locale } from 'svelte-i18n';
 	import type { PageData } from './$types';
 
@@ -43,18 +45,20 @@
 		discountValue: number;
 	} | null>(null);
 
-	function calculateDiscount(type: 'percent' | 'amount', value: number, total: number): number {
-		if (type === 'percent') return Math.round((total * value) / 100);
-		return Math.min(value, total);
-	}
-
-	let baseAmount = $derived(data.session.priceAmount * quantity);
-	let discountAmount = $derived(
-		appliedPromoCode
-			? calculateDiscount(appliedPromoCode.discountType, appliedPromoCode.discountValue, baseAmount)
-			: 0
+	// Same Pricing as the checkout (issue 023): the Promo Code discounts
+	// the meal, the Event's Deposit rule splits the total into the Deposit
+	// paid now and the Balance due at the venue.
+	let price = $derived(
+		priceReservation({
+			unitPrice: data.session.priceAmount,
+			seats: quantity,
+			discount: appliedPromoCode,
+			deposit: data.deposit,
+		})
 	);
-	let totalAmount = $derived(baseAmount - discountAmount);
+	let baseAmount = $derived(price.subtotal);
+	let discountAmount = $derived(price.discount);
+	let totalAmount = $derived(price.total);
 
 	// Clear promo code when quantity changes (discount might need recalculating)
 	$effect(() => {
@@ -416,6 +420,7 @@
 						{formatCurrency(totalAmount, data.session.currency, $locale ?? undefined)}
 					</span>
 				</div>
+				<DepositBreakdown {price} currency={data.session.currency} />
 			</div>
 
 			<!-- Submit -->
@@ -435,7 +440,11 @@
 						<Loader2 size={18} class="animate-spin" />
 						{$t('booking.processing')}
 					{:else}
-						{data.isMockMode ? $t('booking.bookDemo') : $t('booking.continueToPay')}
+						{data.isMockMode
+							? $t('booking.bookDemo')
+							: price.balance > 0 && price.deposit > 0
+								? $t('booking.continueToPayDeposit')
+								: $t('booking.continueToPay')}
 					{/if}
 				</button>
 			</div>

@@ -6,6 +6,7 @@
     import { reveal } from "$lib/actions/reveal";
     import { t, locale } from "svelte-i18n";
     import { formatCurrency } from "$lib/utils/currency";
+    import { depositRuleOf, isFullPayment, priceReservation } from "$lib/utils/pricing";
 
     let { data }: { data: PageData } = $props();
 
@@ -22,6 +23,20 @@
         if (amount === null) return $t("events.priceToBeAnnounced");
         if (amount === 0) return $t("events.free");
         return formatCurrency(amount, currency, $locale === "fr" ? "fr-FR" : "en-US");
+    }
+
+    // The Event's Deposit rule (issue 023): what one guest pays online for
+    // a Service's price, shown under it unless the whole price is paid online.
+    const deposit = $derived(depositRuleOf(data.event));
+
+    function depositNote(amount: number | null, currency: string): string | null {
+        if (amount === null || amount === 0 || isFullPayment(deposit)) return null;
+        const price = priceReservation({ unitPrice: amount, seats: 1, deposit });
+        if (price.balance === 0) return null;
+        if (price.deposit === 0) return $t("events.noDepositNote");
+        return $t("events.depositPerGuest", {
+            values: { amount: formatCurrency(price.deposit, currency, $locale === "fr" ? "fr-FR" : "en-US") },
+        });
     }
 
     function localized(en: string | null, fr: string | null): string {
@@ -67,19 +82,27 @@
                                             {/if}
                                         </div>
                                     {/if}
-                                    <p class="shrink-0 flex items-baseline gap-2 {service.menu ? '' : 'sm:ml-auto'}">
-                                        <span class="font-mono text-base lg:text-lg">
-                                            {formatServicePrice(service.priceAmount, service.currency)}
-                                        </span>
-                                        {#if service.priceAmount !== null && service.priceAmount > 0}
-                                            <span class="text-xs text-muted-foreground">{$t("events.perGuest")}</span>
+                                    <div class="shrink-0 sm:text-right {service.menu ? '' : 'sm:ml-auto'}">
+                                        <p class="flex items-baseline gap-2 sm:justify-end">
+                                            <span class="font-mono text-base lg:text-lg">
+                                                {formatServicePrice(service.priceAmount, service.currency)}
+                                            </span>
+                                            {#if service.priceAmount !== null && service.priceAmount > 0}
+                                                <span class="text-xs text-muted-foreground">{$t("events.perGuest")}</span>
+                                            {/if}
+                                        </p>
+                                        {#if depositNote(service.priceAmount, service.currency)}
+                                            <p class="mt-1 text-xs text-muted-foreground">
+                                                {depositNote(service.priceAmount, service.currency)}
+                                            </p>
                                         {/if}
-                                    </p>
+                                    </div>
                                 </div>
                                 <SessionSelector
                                     sessions={service.sessions}
                                     eventTitle={getEventTitle()}
                                     eventSlug={data.event.slug}
+                                    {deposit}
                                 />
                             </div>
                         {/each}

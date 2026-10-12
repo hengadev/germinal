@@ -190,7 +190,9 @@ ${data.event.locationEn}
 
 TICKETS:
 ${data.reservation.quantity} × ${formatCurrency(bookedUnitPriceAmount(data.reservation), data.reservation.currency)}
-Total: ${formatCurrency(data.reservation.totalAmount, data.reservation.currency)}
+Total: ${formatCurrency(data.reservation.totalAmount, data.reservation.currency)}${data.reservation.balanceAmount > 0 ? `
+Deposit paid: ${formatCurrency(data.reservation.depositAmount, data.reservation.currency)}
+Balance due at the venue: ${formatCurrency(data.reservation.balanceAmount, data.reservation.currency)}` : ''}
 
 VIEW YOUR TICKETS:
 ${env.PUBLIC_URL}/tickets/${data.accessToken}
@@ -256,7 +258,19 @@ function generateTicketHtmlTemplate(data: TicketEmailData): string {
         <td style="padding: 12px 0; text-align: right; font-weight: 600;">
           ${formatCurrency(data.reservation.totalAmount, data.reservation.currency)}
         </td>
+      </tr>${data.reservation.balanceAmount > 0 ? `
+      <tr>
+        <td style="padding: 8px 0; border-top: 1px solid #e9ecef;">Deposit paid</td>
+        <td style="padding: 8px 0; border-top: 1px solid #e9ecef; text-align: right;">
+          ${formatCurrency(data.reservation.depositAmount, data.reservation.currency)}
+        </td>
       </tr>
+      <tr>
+        <td style="padding: 8px 0; font-weight: 600;">Balance due at the venue</td>
+        <td style="padding: 8px 0; text-align: right; font-weight: 600;">
+          ${formatCurrency(data.reservation.balanceAmount, data.reservation.currency)}
+        </td>
+      </tr>` : ''}
     </table>
 
     <div style="margin-top: 24px; text-align: center;">

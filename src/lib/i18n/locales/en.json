@@ -114,7 +114,9 @@
     "noSearchResults": "No events found for \"{query}\".",
     "perGuest": "per guest",
     "free": "Free",
-    "priceToBeAnnounced": "Price to be announced"
+    "priceToBeAnnounced": "Price to be announced",
+    "depositPerGuest": "Deposit {amount} per guest, balance at the venue",
+    "noDepositNote": "Paid in full at the venue"
   },
   "talents": {
     "pageTitle": "Talents | Germinal",
@@ -264,7 +266,15 @@
       "sessionNotFound": "This session is no longer available.",
       "rateLimit": "Too many attempts. Please wait a few minutes and try again.",
       "generic": "Something went wrong. Please try again or contact us if the problem persists."
-    }
+    },
+    "deposit": {
+      "total": "Total",
+      "payNow": "Deposit to pay now",
+      "balanceAtVenue": "Balance due at the venue",
+      "noDeposit": "Nothing to pay online: the full amount is settled at the venue.",
+      "note": "Only the deposit is charged online; the balance is settled at the venue."
+    },
+    "continueToPayDeposit": "Continue to pay the deposit"
   },
   "waitlist": {
     "description": "Get notified when tickets become available",
@@ -331,7 +341,9 @@
       "successTitle": "Reservation Cancelled",
       "successWithRefund": "Your reservation has been cancelled and a refund of {amount} has been issued to your original payment method. It may take 5–10 business days to appear.",
       "successNoRefund": "Your reservation has been cancelled."
-    }
+    },
+    "depositPaid": "Deposit paid",
+    "balanceDue": "Balance due at the venue"
   },
   "findTicket": {
     "pageTitle": "Find My Ticket | Germinal",

@@ -4,6 +4,7 @@
 	import { t, locale } from 'svelte-i18n';
 	import { seatingTitle } from '$lib/utils/seating-title';
 	import { formatCurrencyAmount, getCurrencySymbol } from '$lib/utils/currency';
+	import { FULL_PAYMENT_DEPOSIT, type DepositRule } from '$lib/utils/pricing';
 
 	interface Session {
 		id: string;
@@ -29,10 +30,12 @@
 		badgeType?: 'none' | 'featured' | 'vip' | 'popular' | 'best_value' | 'limited';
 	}
 
-	let { sessions, eventTitle, eventSlug }: {
+	let { sessions, eventTitle, eventSlug, deposit = FULL_PAYMENT_DEPOSIT }: {
 		sessions: Session[];
 		eventTitle: string;
 		eventSlug: string;
+		/** The Event's Deposit rule (issue 023), for the booking step. */
+		deposit?: DepositRule;
 	} = $props();
 
 	let bookingModalOpen = $state(false);
@@ -273,6 +276,7 @@
 		session={{ ...selectedSession, priceAmount: selectedSession.priceAmount }}
 		{eventTitle}
 		{eventSlug}
+		{deposit}
 	/>
 {/if}
 
