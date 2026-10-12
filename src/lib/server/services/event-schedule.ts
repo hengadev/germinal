@@ -1058,25 +1058,41 @@ export async function saveServiceSeatings(
 			.where(eq(eventDays.eventId, eventId));
 		const serviceById = new Map(serviceRows.map((row) => [row.id, row]));
 
-		const sessionRows: { id: string; serviceId: string; startTime: Date }[] = await tx.select({
+		// Locked like a booking locks its Seating, so seats held below stay
+		// exact while this transaction runs.
+		const sessionRows: {
+			id: string;
+			serviceId: string;
+			startTime: Date;
+			totalCapacity: number;
+			availableCapacity: number;
+		}[] = await tx.select({
 			id: eventSessions.id,
 			serviceId: eventSessions.serviceId,
 			startTime: eventSessions.startTime,
+			totalCapacity: eventSessions.totalCapacity,
+			availableCapacity: eventSessions.availableCapacity,
 		})
 			.from(eventSessions)
-			.where(eq(eventSessions.eventId, eventId));
+			.where(eq(eventSessions.eventId, eventId))
+			.for('update');
 		const sessionById = new Map(sessionRows.map((row) => [row.id, row]));
+		// Seats held on a Seating: every pending, processing or confirmed
+		// Reservation decremented available capacity by its quantity when it
+		// was created, and expiry/cancellation gives the seats back.
+		const heldSeats = (sessionId: string): number => {
+			const row = sessionById.get(sessionId);
+			return row ? row.totalCapacity - row.availableCapacity : 0;
+		};
 
 		const counts: {
 			sessionId: string;
 			liveCount: number;
-			confirmedCount: number;
 			totalCount: number;
 		}[] = sessionRows.length > 0
 			? await tx.select({
 					sessionId: reservations.eventSessionId,
 					liveCount: sql<number>`(count(*) FILTER (WHERE ${inArray(reservations.status, LIVE_RESERVATION_STATUSES)}))::int`,
-					confirmedCount: sql<number>`(count(*) FILTER (WHERE ${reservations.status} = 'confirmed'))::int`,
 					totalCount: sql<number>`(count(${reservations.id}))::int`,
 				})
 				.from(reservations)
@@ -1158,14 +1174,14 @@ export async function saveServiceSeatings(
 			const row = serviceById.get(service.serviceId)!;
 			for (const seating of service.seatings) {
 				if (seating.seating.id === null) continue;
-				const confirmed = countsBySession.get(seating.seating.id)?.confirmedCount ?? 0;
-				if (seating.seating.totalCapacity < confirmed) {
+				const held = heldSeats(seating.seating.id);
+				if (seating.seating.totalCapacity < held) {
 					capacityBlockers.push({
 						date: row.date,
 						kind: row.kind,
 						start: seating.seating.start,
 						requestedCapacity: seating.seating.totalCapacity,
-						soldCount: confirmed,
+						soldCount: held,
 					});
 				}
 			}
@@ -1219,13 +1235,12 @@ export async function saveServiceSeatings(
 						availableCapacity: seating.seating.totalCapacity,
 					});
 				} else {
-					// Available seats stay in step with the confirmed ones (the
-					// same convention as updateEventSession).
-					const confirmed = countsBySession.get(seating.seating.id)?.confirmedCount ?? 0;
+					// Seats already held stay held; only the new total moves
+					// the available count.
 					await tx.update(eventSessions)
 						.set({
 							...fields,
-							availableCapacity: seating.seating.totalCapacity - confirmed,
+							availableCapacity: seating.seating.totalCapacity - heldSeats(seating.seating.id),
 							updatedAt: new Date(),
 					})
 						.where(eq(eventSessions.id, seating.seating.id));

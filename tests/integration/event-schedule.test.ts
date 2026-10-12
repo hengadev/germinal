@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import { events, eventSessions, eventDays, eventServices, reservations } from '../../src/lib/server/db/schema';
 import {
 	getTestDatabase,
@@ -501,7 +501,14 @@ describe('saveServiceSeatings (admin Seatings editor)', () => {
 		return saveServiceSeatings(event.id, parsed.services);
 	}
 
-	async function bookSeating(sessionId: string, status: 'confirmed' | 'cancelled', quantity = 1) {
+	/** Inserts a Reservation and, like createReservation, holds its seats
+	 * (pending/processing/confirmed hold; cancelled ones gave them back). */
+	async function bookSeating(sessionId: string, status: 'pending' | 'confirmed' | 'cancelled', quantity = 1) {
+		if (status !== 'cancelled') {
+			await testDb.update(eventSessions)
+				.set({ availableCapacity: sql`${eventSessions.availableCapacity} - ${quantity}` })
+				.where(eq(eventSessions.id, sessionId));
+		}
 		await testDb.insert(reservations).values({
 			eventSessionId: sessionId,
 			guestEmail: `guest-${Math.random().toString(36).slice(2, 8)}@example.com`,
@@ -598,14 +605,24 @@ describe('saveServiceSeatings (admin Seatings editor)', () => {
 		await save([{ serviceId: dinner.serviceId, defaultDurationMinutes: 180, seatings: [seating('19:00')] }]);
 		const [loaded] = await loadSeatingsEditor(event.id);
 		const id = loaded.seatings[0].id;
-		await bookSeating(id, 'confirmed');
-		await bookSeating(id, 'confirmed');
+		// 5 seats held: a confirmed booking of 2 and a pending checkout of 3.
+		await bookSeating(id, 'confirmed', 2);
+		await bookSeating(id, 'pending', 3);
 
 		await expect(save([{
 			serviceId: dinner.serviceId,
 			defaultDurationMinutes: 180,
-			seatings: [seating('19:00', { id, totalCapacity: 1 })],
+			seatings: [seating('19:00', { id, totalCapacity: 4 })],
 		}])).rejects.toBeInstanceOf(SeatingCapacityRefusedError);
+
+		// Re-saving unchanged must not hand held seats back.
+		await save([{
+			serviceId: dinner.serviceId,
+			defaultDurationMinutes: 180,
+			seatings: [seating('19:00', { id })],
+		}]);
+		const [current] = await loadSeatingsEditor(event.id);
+		expect(current.seatings[0]).toMatchObject({ totalCapacity: 20, availableCapacity: 15 });
 
 		await save([{
 			serviceId: dinner.serviceId,
@@ -613,7 +630,7 @@ describe('saveServiceSeatings (admin Seatings editor)', () => {
 			seatings: [seating('19:00', { id, totalCapacity: 10 })],
 		}]);
 		const [reloaded] = await loadSeatingsEditor(event.id);
-		expect(reloaded.seatings[0]).toMatchObject({ totalCapacity: 10, availableCapacity: 8, reservationCount: 2 });
+		expect(reloaded.seatings[0]).toMatchObject({ totalCapacity: 10, availableCapacity: 5, reservationCount: 2 });
 	});
 
 	it('refuses a start on the other side of the 16:00 UTC cut-off', async () => {
