@@ -3,7 +3,7 @@ import { logger } from '$lib/server/logger';
 import { payments, reservations, eventSessions } from '../db/schema';
 import { eq } from 'drizzle-orm';
 import type Stripe from 'stripe';
-import { sendTicketConfirmationEmail } from './email';
+import { sendTicketNotifications } from './ticket-notifications';
 import { seatingTitle } from '$lib/utils/seating-title';
 
 /**
@@ -56,37 +56,8 @@ export async function handlePaymentSuccess(paymentIntent: Stripe.PaymentIntent) 
 			.where(eq(reservations.id, payment.reservationId));
 	});
 
-	// Send ticket confirmation email
-	try {
-		await sendTicketConfirmationEmail({
-			guestEmail: payment.reservation.guestEmail,
-			guestName: payment.reservation.guestName,
-			accessToken: payment.reservation.accessToken,
-			reservation: payment.reservation,
-			session: payment.reservation.eventSession,
-			event: payment.reservation.eventSession.event,
-		});
-	} catch (error) {
-		logger.error({ err: error }, 'Failed to send ticket confirmation email');
-		// Don't throw - payment is still successful
-	}
-
-	// Send SMS confirmation if user opted in and has phone number
-	if (payment.reservation.guestPhone && payment.reservation.notificationPreference !== 'email') {
-		try {
-			const { sendTicketConfirmationSMS } = await import('./sms');
-			await sendTicketConfirmationSMS({
-				phone: payment.reservation.guestPhone,
-				guestName: payment.reservation.guestName,
-				eventTitle: payment.reservation.eventSession.event.titleEn,
-				sessionStartTime: payment.reservation.eventSession.startTime,
-				accessToken: payment.reservation.accessToken,
-			});
-		} catch (error) {
-			logger.error({ err: error }, 'Failed to send ticket confirmation SMS');
-			// Don't throw - email was already sent
-		}
-	}
+	// Send the Ticket (email, and SMS if opted in); failures are logged, never thrown.
+	await sendTicketNotifications(payment.reservation);
 }
 
 /**
@@ -142,35 +113,8 @@ export async function handleCheckoutSuccess(session: Stripe.Checkout.Session) {
 		})
 		.where(eq(reservations.id, payment.reservationId));
 
-	// Send ticket confirmation email
-	try {
-		await sendTicketConfirmationEmail({
-			guestEmail: payment.reservation.guestEmail,
-			guestName: payment.reservation.guestName,
-			accessToken: payment.reservation.accessToken,
-			reservation: payment.reservation,
-			session: payment.reservation.eventSession,
-			event: payment.reservation.eventSession.event,
-		});
-	} catch (error) {
-		logger.error({ err: error }, 'Failed to send ticket confirmation email');
-	}
-
-	// Send SMS confirmation if opted in
-	if (payment.reservation.guestPhone && payment.reservation.notificationPreference !== 'email') {
-		try {
-			const { sendTicketConfirmationSMS } = await import('./sms');
-			await sendTicketConfirmationSMS({
-				phone: payment.reservation.guestPhone,
-				guestName: payment.reservation.guestName,
-				eventTitle: payment.reservation.eventSession.event.titleEn,
-				sessionStartTime: payment.reservation.eventSession.startTime,
-				accessToken: payment.reservation.accessToken,
-			});
-		} catch (error) {
-			logger.error({ err: error }, 'Failed to send ticket confirmation SMS');
-		}
-	}
+	// Send the Ticket (email, and SMS if opted in); failures are logged, never thrown.
+	await sendTicketNotifications(payment.reservation);
 }
 
 /**

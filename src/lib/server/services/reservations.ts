@@ -6,7 +6,7 @@ import { generateAccessToken } from '$lib/utils/tokens';
 import { createCheckoutSession } from './stripe';
 import { events } from '../db/schema';
 import { env } from '../env';
-import type { CreateReservationInput, CreateCompReservationInput, ReservationWithDetails } from '$lib/types/reservations';
+import type { CreateReservationInput, CreateCompReservationInput, Reservation, ReservationWithDetails } from '$lib/types/reservations';
 import { validatePromoCode, incrementRedemption } from './promo-codes';
 import { FULL_PAYMENT_DEPOSIT, depositRuleOf, priceReservation, type PromoDiscount } from '$lib/utils/pricing';
 import { seatingTitle } from '$lib/utils/seating-title';
@@ -80,10 +80,22 @@ async function lockAndDecrementSessionCapacity(
 }
 
 /**
+ * What booking returns. `checkoutUrl` is where the Guest pays the Deposit;
+ * it is `null` when there is no Deposit — the Reservation is then already
+ * confirmed (no Checkout Session, no expiry) and the Guest goes straight to
+ * their Ticket.
+ */
+export type CreateReservationResult = {
+	reservation: Reservation;
+	checkoutUrl: string | null;
+	expiresAt: Date | null;
+};
+
+/**
  * Create a reservation with atomic capacity locking
  * This prevents race conditions when multiple users book simultaneously
  */
-export async function createReservation(input: CreateReservationInput) {
+export async function createReservation(input: CreateReservationInput): Promise<CreateReservationResult> {
 	// Validate honeypot
 	if (input.honeypot && input.honeypot.trim() !== '') {
 		throw new Error('Invalid submission');
@@ -92,8 +104,9 @@ export async function createReservation(input: CreateReservationInput) {
 	// Track Checkout Session ID for cleanup in case of transaction failure
 	let checkoutSessionId: string | null = null;
 
+	let result: CreateReservationResult;
 	try {
-		return await db.transaction(async (tx: typeof db) => {
+		result = await db.transaction(async (tx: typeof db) => {
 		const session = await lockAndDecrementSessionCapacity(tx, input.sessionId, input.quantity);
 
 		// Step 4: Calculate total amount (snapshot price at booking time).
@@ -142,6 +155,38 @@ export async function createReservation(input: CreateReservationInput) {
 		// Step 5: Generate secure access token
 		const accessToken = generateAccessToken();
 
+		// No Deposit to collect (rule 'none', a zero price, or a 100 % Promo
+		// Code): nothing goes through Stripe (issue 025). The Reservation is
+		// confirmed right away — a regular paid-path booking, NOT comp — with
+		// no Payment row; the Ticket is sent once the transaction commits.
+		if (pricing.deposit === 0) {
+			const now = new Date();
+			const [reservation] = await tx.insert(reservations).values({
+				eventSessionId: input.sessionId,
+				guestEmail: input.email,
+				guestName: input.name,
+				guestPhone: input.phone ?? null,
+				notificationPreference: input.notificationPreference ?? 'both',
+				quantity: input.quantity,
+				totalAmount: pricing.total,
+				depositAmount: pricing.deposit,
+				balanceAmount: pricing.balance,
+				currency: price.currency,
+				status: 'confirmed',
+				accessToken,
+				// expiresAt only gates cleanup of `pending` Reservations.
+				expiresAt: now,
+				confirmedAt: now,
+				isComp: false,
+				ipAddress: input.ipAddress ?? null,
+				userAgent: input.userAgent ?? null,
+				promotionCodeId,
+				discountAmount: pricing.discount,
+			}).returning();
+
+			return { reservation, checkoutUrl: null, expiresAt: null };
+		}
+
 		// Step 6: Calculate expiration time (15 minutes default)
 		const expiryMinutes = env.RESERVATION_EXPIRY_MINUTES || 15;
 		const expiresAt = new Date(Date.now() + expiryMinutes * 60 * 1000);
@@ -171,7 +216,6 @@ export async function createReservation(input: CreateReservationInput) {
 		// the Deposit only — one line item whose amount is the Deposit, so
 		// Stripe charges exactly that (the Promo Code is already in it). A
 		// Deposit below the whole total is named as such.
-		// (A zero Deposit still goes through Checkout for now: issue 025.)
 		const seatingLabel = `${seatingTitle(session, 'en')}${event ? ` — ${event.titleEn}` : ''}`;
 		const checkoutSession = await createCheckoutSession({
 			reservationId: reservation.id,
@@ -230,6 +274,31 @@ export async function createReservation(input: CreateReservationInput) {
 			}
 		}
 		throw error;
+	}
+
+	// Confirmed without Stripe (no Deposit): send the Ticket now that the
+	// booking is committed, as the Stripe webhook does for a paid one. A
+	// failure is logged and never undoes the booking.
+	if (result.checkoutUrl === null) {
+		await sendConfirmedTicket(result.reservation.id);
+	}
+
+	return result;
+}
+
+/** Load a committed, confirmed Reservation with its Seating and Event and
+ * send its Ticket. Never throws. */
+async function sendConfirmedTicket(reservationId: string) {
+	try {
+		const reservation = await db.query.reservations.findFirst({
+			where: eq(reservations.id, reservationId),
+			with: { eventSession: { with: { event: true } } },
+		});
+		if (!reservation) return;
+		const { sendTicketNotifications } = await import('./ticket-notifications');
+		await sendTicketNotifications(reservation);
+	} catch (error) {
+		logger.error({ err: error, reservationId }, 'Failed to send the Ticket for a booking with no Deposit');
 	}
 }
 
