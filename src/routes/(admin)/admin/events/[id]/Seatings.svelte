@@ -43,9 +43,6 @@
 		 * otherwise the Seating inherits the Venue Capacity. */
 		capacity: number | null;
 		capacityOverridden: boolean;
-		/** Price in major units as typed (converted to cents on save). */
-		price: number | null;
-		currency: string;
 		published: boolean;
 		allowWaitlist: boolean;
 		badgeType: SeatingBadge;
@@ -89,8 +86,6 @@
 					descriptionFr: seating.descriptionFr ?? '',
 					capacity: seating.capacityOverridden ? seating.totalCapacity : null,
 					capacityOverridden: seating.capacityOverridden,
-					price: seating.priceAmount / 100,
-					currency: seating.currency,
 					published: seating.published,
 					allowWaitlist: seating.allowWaitlist,
 					badgeType: seating.badgeType,
@@ -137,8 +132,6 @@
 					descriptionEn: seating.descriptionEn.trim() || null,
 					descriptionFr: seating.descriptionFr.trim() || null,
 					capacityOverride: seating.capacityOverridden ? (seating.capacity ?? 0) : null,
-					priceAmount: Math.round((seating.price ?? 0) * 100),
-					currency: seating.currency,
 					published: seating.published,
 					allowWaitlist: seating.allowWaitlist,
 					badgeType: seating.badgeType,
@@ -174,7 +167,8 @@
 		const service = services[serviceIndex];
 		const serviceReviews = reviews[serviceIndex] ?? [];
 		// Start the new Seating when the latest one ends (a clean turn-over)
-		// and copy its price and settings; it inherits the Venue Capacity.
+		// and copy its settings; it inherits the Venue Capacity and is priced
+		// from its Service (« Menus & tarifs »).
 		let latestEnd: number | null = null;
 		let template: DraftSeating | undefined = service.seatings.at(-1);
 		for (const [index, seating] of service.seatings.entries()) {
@@ -198,8 +192,6 @@
 			descriptionFr: '',
 			capacity: null,
 			capacityOverridden: false,
-			price: template?.price ?? 0,
-			currency: template?.currency ?? 'EUR',
 			published: template?.published ?? true,
 			allowWaitlist: template?.allowWaitlist ?? false,
 			badgeType: 'none',
@@ -319,12 +311,6 @@
 						};
 					}
 				}
-				if (seating.price === null || !Number.isFinite(seating.price) || seating.price < 0) {
-					return {
-						id: `seating-${seating.key}-price`,
-						message: `Prix invalide pour une séance du ${label}.`,
-					};
-				}
 			}
 		}
 		return null;
@@ -410,7 +396,8 @@
 		<p class="text-sm text-muted-foreground">
 			Pour chaque repas, saisissez les heures de début des séances : la fin est calculée à partir de la durée
 			par défaut et reste modifiable. Les heures sont en UTC. Une séance sans titre est affichée avec son
-			repas, son jour et son heure.
+			repas, son jour et son heure. Le menu et le prix se règlent par repas dans l’onglet « Menus &amp;
+			tarifs ».
 		</p>
 
 		{#each services as service, serviceIndex (service.serviceId)}
@@ -454,7 +441,7 @@
 							? derivedSeatingTitle(`${service.date}T${formatTimeOfDay(review.startMinutes)}:00Z`, { dayDate: service.date, serviceKind: service.kind }, 'fr')
 							: ''}
 						<div class="px-4 lg:px-6 py-4 space-y-3">
-							<div class="grid grid-cols-2 gap-3 lg:grid-cols-[7rem_9rem_9rem_8rem_auto_auto_1fr] lg:items-end">
+							<div class="grid grid-cols-2 gap-3 lg:grid-cols-[7rem_9rem_9rem_auto_auto_1fr] lg:items-end">
 								<div>
 									<label for="seating-{seating.key}-start" class={LABEL_CLASS}>Début</label>
 									<input
@@ -524,17 +511,6 @@
 											</button>
 										{/if}
 									</div>
-								</div>
-								<div>
-									<label for="seating-{seating.key}-price" class={LABEL_CLASS}>Prix ({seating.currency})</label>
-									<input
-										id="seating-{seating.key}-price"
-										type="number"
-										min="0"
-										step="0.01"
-										bind:value={seating.price}
-										class={INPUT_CLASS}
-									/>
 								</div>
 								<label class="flex items-center gap-2 text-sm text-foreground-alt lg:pb-2">
 									<input type="checkbox" bind:checked={seating.published} class="size-4" />
@@ -644,7 +620,7 @@
 									</div>
 								</div>
 								<div class="grid grid-cols-2 gap-3 lg:w-1/2">
-									<div>
+									<div class="col-span-2 lg:col-span-1">
 										<label for="seating-{seating.key}-badge" class={LABEL_CLASS}>Badge</label>
 										<select id="seating-{seating.key}-badge" bind:value={seating.badgeType} class={INPUT_CLASS}>
 											<option value="none">Aucun</option>
@@ -653,15 +629,6 @@
 											<option value="popular">Populaire</option>
 											<option value="best_value">Meilleur rapport</option>
 											<option value="limited">Places limitées</option>
-										</select>
-									</div>
-									<div>
-										<label for="seating-{seating.key}-currency" class={LABEL_CLASS}>Devise</label>
-										<select id="seating-{seating.key}-currency" bind:value={seating.currency} class={INPUT_CLASS}>
-											<option value="EUR">EUR</option>
-											<option value="USD">USD</option>
-											<option value="GBP">GBP</option>
-											<option value="CHF">CHF</option>
 										</select>
 									</div>
 								</div>

@@ -23,8 +23,6 @@ export interface EditorSeating {
 	/** The Seating keeps its own capacity instead of the Event's Venue
 	 * Capacity (issue 021). */
 	capacityOverridden: boolean;
-	priceAmount: number;
-	currency: string;
 	published: boolean;
 	allowWaitlist: boolean;
 	badgeType: SeatingBadge;
@@ -53,8 +51,6 @@ export interface SeatingPayload {
 	descriptionFr: string | null;
 	/** The Seating's own capacity, or null to inherit the Venue Capacity. */
 	capacityOverride: number | null;
-	priceAmount: number;
-	currency: string;
 	published: boolean;
 	allowWaitlist: boolean;
 	badgeType: SeatingBadge;

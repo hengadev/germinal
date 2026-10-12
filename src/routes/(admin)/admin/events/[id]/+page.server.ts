@@ -23,6 +23,7 @@ import {
 	type PickedServiceDay,
 } from '$lib/server/services/event-schedule';
 import type { EditorService } from '$lib/types/seatings-editor';
+import type { PricingEditorData } from '$lib/types/pricing-editor';
 import type { PageServerLoad } from './$types';
 import { requireAdmin } from '$lib/server/auth-guards';
 
@@ -79,8 +80,6 @@ export const load: PageServerLoad = async ({ params }) => {
 				endTime: s.endTime.toISOString(),
 				totalCapacity: s.totalCapacity,
 				availableCapacity: s.availableCapacity,
-				priceAmount: s.priceAmount,
-				currency: s.currency,
 				published: s.published,
 				allowWaitlist: s.allowWaitlist,
 				badgeType: (s as any).badgeType || 'none',
@@ -154,8 +153,6 @@ export const load: PageServerLoad = async ({ params }) => {
 					totalCapacity: session.totalCapacity,
 					availableCapacity: session.availableCapacity,
 					capacityOverridden: session.totalCapacity !== venueCapacity,
-					priceAmount: session.priceAmount,
-					currency: session.currency,
 					published: session.published,
 					allowWaitlist: session.allowWaitlist,
 					badgeType: session.badgeType,
@@ -163,7 +160,26 @@ export const load: PageServerLoad = async ({ params }) => {
 				})),
 		})));
 
-		return { event, sessions, reservations, promoCodes: [], talents, days, schedule, venueCapacity };
+		// Mock « Menus & tarifs »: no Menu yet; each synthetic Service is
+		// priced like its first mock Seating.
+		const pricing: PricingEditorData = {
+			menus: [],
+			services: schedule.map((service) => {
+				const first = MOCK_SESSIONS.find((session) => session.id === service.seatings[0]?.id);
+				return {
+					serviceId: service.serviceId,
+					date: service.date,
+					kind: service.kind,
+					menuId: null,
+					priceAmount: first?.priceAmount ?? null,
+					currency: first?.currency ?? 'EUR',
+					seatingCount: service.seatings.length,
+					legacySeatings: [],
+				};
+			}),
+		};
+
+		return { event, sessions, reservations, promoCodes: [], talents, days, schedule, venueCapacity, pricing };
 	}
 
 	// Database mode - fetch from database
@@ -214,6 +230,8 @@ export const load: PageServerLoad = async ({ params }) => {
 		const days = await loadScheduleDays(id);
 		const { loadSeatingsEditor } = await import('$lib/server/services/event-schedule');
 		const schedule = await loadSeatingsEditor(id);
+		const { loadPricingEditor } = await import('$lib/server/services/service-pricing');
+		const pricing = await loadPricingEditor(id);
 
 		return {
 			event,
@@ -221,6 +239,7 @@ export const load: PageServerLoad = async ({ params }) => {
 			talents,
 			days,
 			schedule,
+			pricing,
 			venueCapacity: event.venueCapacity,
 			sessions: sessionsData.map((s: typeof sessionsData[number]) => ({
 				id: s.id,
@@ -232,8 +251,6 @@ export const load: PageServerLoad = async ({ params }) => {
 				endTime: s.endTime.toISOString(),
 				totalCapacity: s.totalCapacity,
 				availableCapacity: s.availableCapacity,
-				priceAmount: s.priceAmount,
-				currency: s.currency,
 				published: s.published,
 				allowWaitlist: s.allowWaitlist,
 				badgeType: s.badgeType,
@@ -624,6 +641,41 @@ export const actions: Actions = {
 			}
 			logger.error({ err }, 'Save seatings error');
 			return fail(500, { error: 'Échec de l’enregistrement des séances.' });
+		}
+	},
+
+	// Save the « Menus & tarifs » tab (issue 022): the Event's Menus and,
+	// per Service, its Menu and price.
+	savePricing: async ({ request, params, locals }) => {
+		requireAdmin(locals);
+		const { id } = params;
+		if (!id) {
+			return fail(400, { error: 'L’identifiant de l’événement est requis.' });
+		}
+
+		const { parsePricingPayload, pricingPayloadErrorMessage, savePricing } = await import(
+			'$lib/server/services/service-pricing'
+		);
+		const formData = await request.formData();
+		const raw = formData.get('pricing');
+		const parsed = parsePricingPayload(typeof raw === 'string' ? raw : null);
+		if (!parsed.ok) {
+			return fail(400, { error: pricingPayloadErrorMessage(parsed.reason) });
+		}
+
+		if (env.USE_MOCK_DATA) {
+			return { success: 'Menus et tarifs enregistrés (mode démo — non persistés)' };
+		}
+
+		try {
+			await savePricing(id, parsed.payload);
+			return { success: 'Menus et tarifs enregistrés.' };
+		} catch (err) {
+			if (err instanceof ScheduleSaveRefusedError) {
+				return fail(400, { error: err.message });
+			}
+			logger.error({ err }, 'Save pricing error');
+			return fail(500, { error: 'Échec de l’enregistrement des menus et tarifs.' });
 		}
 	},
 

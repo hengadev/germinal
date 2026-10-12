@@ -272,8 +272,6 @@ function seatingPayload(overrides: Record<string, unknown> = {}) {
 		descriptionEn: null,
 		descriptionFr: null,
 		capacityOverride: null,
-		priceAmount: 5000,
-		currency: 'EUR',
 		published: false,
 		allowWaitlist: false,
 		badgeType: 'none',
@@ -379,22 +377,26 @@ describe('parseSeatingsPayload', () => {
 	it('rejects invalid seating fields and normalises titles', () => {
 		expect(parseSeatingsPayload(servicesPayload([{ seatings: [seatingPayload({ capacityOverride: 0 })] }])))
 			.toEqual({ ok: false, reason: 'seating' });
-		expect(parseSeatingsPayload(servicesPayload([{ seatings: [seatingPayload({ priceAmount: -1 })] }])))
-			.toEqual({ ok: false, reason: 'seating' });
-		expect(parseSeatingsPayload(servicesPayload([{ seatings: [seatingPayload({ currency: 'EUROS' })] }])))
-			.toEqual({ ok: false, reason: 'seating' });
 		expect(parseSeatingsPayload(servicesPayload([{ seatings: [seatingPayload({ badgeType: 'deluxe' })] }])))
 			.toEqual({ ok: false, reason: 'seating' });
 		expect(parseSeatingsPayload(servicesPayload([{ seatings: [seatingPayload({ id: 'nope' })] }])))
 			.toEqual({ ok: false, reason: 'seating' });
 
 		const result = parseSeatingsPayload(servicesPayload([{
-			seatings: [seatingPayload({ titleEn: '  ', titleFr: null, currency: 'eur' })],
+			seatings: [seatingPayload({ titleEn: '  ', titleFr: null })],
 		}]));
 		if (!result.ok) throw new Error('expected ok');
 		expect(result.services[0].seatings[0].seating.titleEn).toBeNull();
 		expect(result.services[0].seatings[0].seating.titleFr).toBeNull();
-		expect(result.services[0].seatings[0].seating.currency).toBe('EUR');
+	});
+
+	it('carries no per-Seating price: Seatings are priced from their Service (issue 022)', () => {
+		const result = parseSeatingsPayload(servicesPayload([{
+			seatings: [seatingPayload({ priceAmount: -1, currency: 'EUROS' })],
+		}]));
+		if (!result.ok) throw new Error('expected ok');
+		expect(result.services[0].seatings[0].seating).not.toHaveProperty('priceAmount');
+		expect(result.services[0].seatings[0].seating).not.toHaveProperty('currency');
 	});
 });
 

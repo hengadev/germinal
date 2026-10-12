@@ -28,6 +28,7 @@
 
     import Overview from "./Overview.svelte";
     import Seatings from "./Seatings.svelte";
+    import Pricing from "./Pricing.svelte";
     import Reservations from "./Reservations.svelte";
     import Photos from "./Photos.svelte";
     import PromoCodes from "./PromoCodes.svelte";
@@ -43,6 +44,7 @@
         { value: "overview", name: "Vue d'ensemble" },
         { value: "photos", name: "Photos" },
         { value: "sessions", name: "Séances" },
+        { value: "pricing", name: "Menus & tarifs" },
         { value: "team", name: "Team" },
         { value: "tasks", name: "Tasks" },
         { value: "reservations", name: "Réservations" },
@@ -111,6 +113,9 @@
         </TabsContent>
         <TabsContent value="sessions" class="h-full p-6">
             <Seatings {data} />
+        </TabsContent>
+        <TabsContent value="pricing" class="h-full p-6">
+            <Pricing {data} />
         </TabsContent>
         <TabsContent value="team" class="h-full p-6">
             <Team {data} {form} />
