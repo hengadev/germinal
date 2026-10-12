@@ -1,5 +1,5 @@
 import { db } from '../db';
-import { eventDays, eventServices, eventSessions, events } from '../db/schema';
+import { eventDays, eventServices, eventSessions, events, reservations } from '../db/schema';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 
 /**
@@ -428,7 +428,7 @@ export async function saveEventSchedule(eventId: string, picked: PickedServiceDa
 		}
 	}
 
-	await db.transaction(async (tx) => {
+	await db.transaction(async (tx: typeof db) => {
 		const [event] = await tx.select({ id: events.id })
 			.from(events)
 			.where(eq(events.id, eventId))
@@ -437,11 +437,11 @@ export async function saveEventSchedule(eventId: string, picked: PickedServiceDa
 			throw new Error('Event not found');
 		}
 
-		const dayRows = await tx.select({ id: eventDays.id, date: eventDays.date })
+		const dayRows: { id: string; date: string | Date }[] = await tx.select({ id: eventDays.id, date: eventDays.date })
 			.from(eventDays)
 			.where(eq(eventDays.eventId, eventId))
 			.orderBy(eventDays.date);
-		const serviceRows = await tx
+		const serviceRows: { id: string; dayId: string; kind: ServiceKind }[] = await tx
 			.select({ id: eventServices.id, dayId: eventServices.dayId, kind: eventServices.kind })
 			.from(eventServices)
 			.innerJoin(eventDays, eq(eventServices.dayId, eventDays.id))
@@ -514,9 +514,9 @@ export async function saveEventSchedule(eventId: string, picked: PickedServiceDa
 		}
 		if (plan.servicesToAdd.length > 0) {
 			const dayIdByDate = new Map(
-				(await tx.select({ id: eventDays.id, date: eventDays.date })
+				((await tx.select({ id: eventDays.id, date: eventDays.date })
 					.from(eventDays)
-					.where(eq(eventDays.eventId, eventId)))
+					.where(eq(eventDays.eventId, eventId))) as { id: string; date: string | Date }[])
 				.map((day) => [dayKeyOf(day.date), day.id])
 			);
 			await tx.insert(eventServices)

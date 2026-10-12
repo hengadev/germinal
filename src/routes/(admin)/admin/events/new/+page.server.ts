@@ -1,6 +1,13 @@
 import { fail, redirect, type Actions } from '@sveltejs/kit';
 import { env } from '$lib/server/env';
 import { MOCK_EVENTS, MOCK_TALENTS } from '$lib/mock-data';
+import {
+	dayEndUtc,
+	dayStartUtc,
+	parsePickedDays,
+	pickedDaysErrorMessage,
+	saveEventSchedule,
+} from '$lib/server/services/event-schedule';
 import type { PageServerLoad } from './$types';
 import { requireAdmin } from '$lib/server/auth-guards';
 
@@ -26,8 +33,16 @@ export const actions: Actions = {
 		const descriptionFr = formData.get('descriptionFr');
 		const subtitleEn = formData.get('subtitleEn');
 		const subtitleFr = formData.get('subtitleFr');
-		const startDate = formData.get('startDate');
-		const endDate = formData.get('endDate');
+		// Days picked on the calendar (issue 019): the Event's start/end dates
+		// are derived from its first and last Day.
+		const pickedDays = parsePickedDays(
+			typeof formData.get('days') === 'string' ? formData.get('days') as string : null
+		);
+		if (!pickedDays.ok) {
+			return fail(400, { error: pickedDaysErrorMessage(pickedDays.reason) });
+		}
+		const start = dayStartUtc(pickedDays.days[0].date);
+		const end = dayEndUtc(pickedDays.days[pickedDays.days.length - 1].date);
 		const locationEn = formData.get('locationEn');
 		const locationFr = formData.get('locationFr');
 		const venueNameEn = formData.get('venueNameEn');
@@ -90,14 +105,6 @@ export const actions: Actions = {
 			return fail(400, { error: 'Description (French) is required' });
 		}
 
-		if (!startDate || typeof startDate !== 'string') {
-			return fail(400, { error: 'Start date is required' });
-		}
-
-		if (!endDate || typeof endDate !== 'string') {
-			return fail(400, { error: 'End date is required' });
-		}
-
 		if (!locationEn || typeof locationEn !== 'string') {
 			return fail(400, { error: 'Location (English) is required' });
 		}
@@ -109,18 +116,6 @@ export const actions: Actions = {
 		// Validate slug format
 		if (!/^[a-z0-9-]+$/.test(slug)) {
 			return fail(400, { error: 'Slug must contain only lowercase letters, numbers, and hyphens' });
-		}
-
-		// Validate dates
-		const start = new Date(startDate);
-		const end = new Date(endDate);
-
-		if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-			return fail(400, { error: 'Invalid date format' });
-		}
-
-		if (end < start) {
-			return fail(400, { error: 'End date must be after start date' });
 		}
 
 		if (env.USE_MOCK_DATA) {
@@ -228,6 +223,10 @@ export const actions: Actions = {
 				published,
 				isSpotlight
 			});
+
+			// Save the picked Days/Services; this also recomputes the Event's
+			// start/end dates from its first and last Day (identical here).
+			await saveEventSchedule(event.id, pickedDays.days);
 
 			// Link media to event
 			for (let i = 0; i < allMediaIds.length; i++) {
