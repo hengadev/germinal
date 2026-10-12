@@ -471,7 +471,12 @@ export async function saveEventSchedule(eventId: string, picked: PickedServiceDa
 
 			const removedDayIds = new Set(plan.dayIdsToRemove);
 			const blockers = new Map<string, ScheduleRemovalBlocker>();
-		for (const count of counts) {
+			for (const count of counts) {
+				// A removed Service with Seatings but no Reservations at all is
+				// fine to delete — only booked or historically booked ones block.
+				if (count.liveCount === 0 && count.totalCount === 0) {
+					continue;
+				}
 				const node = current.find((candidate) =>
 					candidate.services.some((service) => service.serviceId === count.serviceId)
 				)!;
