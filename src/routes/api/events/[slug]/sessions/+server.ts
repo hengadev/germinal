@@ -2,6 +2,7 @@ import { json } from '@sveltejs/kit';
 import { getEventBySlug } from '$lib/server/services/events';
 import { getPublishedSessionsByEventId } from '$lib/server/services/event-sessions';
 import type { RequestHandler } from './$types';
+import { seatingTitlesWithFallback } from '$lib/utils/seating-title';
 
 export const GET: RequestHandler = async ({ params }) => {
 	try {
@@ -11,8 +12,7 @@ export const GET: RequestHandler = async ({ params }) => {
 		return json({
 			sessions: sessions.map((session: typeof sessions[number]) => ({
 				id: session.id,
-				titleEn: session.titleEn,
-				titleFr: session.titleFr,
+				...seatingTitlesWithFallback(session),
 				descriptionEn: session.descriptionEn,
 				descriptionFr: session.descriptionFr,
 				startTime: session.startTime,

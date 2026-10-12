@@ -2,6 +2,7 @@ import { env } from '$lib/server/env';
 import { fail } from '@sveltejs/kit';
 import { requireAdmin } from '$lib/server/auth-guards';
 import type { PageServerLoad, Actions } from './$types';
+import { seatingTitle } from '$lib/utils/seating-title';
 
 export const load: PageServerLoad = async () => {
 	if (env.USE_MOCK_DATA) {
@@ -68,7 +69,7 @@ export const load: PageServerLoad = async () => {
 				totalAmount: p.reservation.totalAmount,
 				currency: p.reservation.currency,
 				status: p.reservation.status,
-				sessionTitle: p.reservation.eventSession?.titleEn,
+				sessionTitle: p.reservation.eventSession ? seatingTitle(p.reservation.eventSession, 'en') : undefined,
 				eventTitle: p.reservation.eventSession?.event?.titleEn,
 				sessionStartTime: p.reservation.eventSession?.startTime.toISOString()
 			} : null

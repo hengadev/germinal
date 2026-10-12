@@ -2,6 +2,7 @@ import { env } from '$lib/server/env';
 import { MOCK_EVENTS, MOCK_SESSIONS, MOCK_RESERVATIONS } from '$lib/mock-data';
 import type { PageServerLoad } from './$types';
 import { or, ilike } from 'drizzle-orm';
+import { seatingTitle } from '$lib/utils/seating-title';
 
 export const load: PageServerLoad = async ({ url }) => {
 	// Get search query from URL
@@ -23,7 +24,7 @@ export const load: PageServerLoad = async ({ url }) => {
 				createdAt: r.createdAt,
 				confirmedAt: r.confirmedAt,
 				eventTitle: event?.titleEn || '',
-				sessionTitle: (session as any)?.titleEn || (session as any)?.title || '',
+				sessionTitle: session ? seatingTitle(session, 'en') : '',
 				sessionStartTime: session?.startTime?.toISOString() || '',
 				paymentStatus: r.paymentStatus,
 				isComp: (r as { isComp?: boolean }).isComp ?? false
@@ -93,7 +94,7 @@ export const load: PageServerLoad = async ({ url }) => {
 			createdAt: r.createdAt.toISOString(),
 			confirmedAt: r.confirmedAt?.toISOString(),
 			eventTitle: r.eventSession.event.titleEn,
-			sessionTitle: r.eventSession.titleEn,
+			sessionTitle: seatingTitle(r.eventSession, 'en'),
 			sessionStartTime: r.eventSession.startTime.toISOString(),
 			paymentStatus: r.payment?.status || 'none',
 			isComp: r.isComp

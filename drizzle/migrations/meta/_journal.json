@@ -134,6 +134,13 @@
       "when": 1791799720920,
       "tag": "0018_days_services_seatings",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1791900000000,
+      "tag": "0019_seating_titles_optional",
+      "breakpoints": true
     }
   ]
 }

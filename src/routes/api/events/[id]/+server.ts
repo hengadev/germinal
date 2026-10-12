@@ -1,6 +1,7 @@
 import { json, error } from '@sveltejs/kit';
 import { getEventById, updateEvent, deleteEvent } from '$lib/server/services/events';
 import { updateEventSchema } from '$lib/server/validators/events';
+import { assertEventHasSeatings, EventWithoutSeatingError } from '$lib/server/services/event-schedule';
 import { requireAdmin } from '$lib/server/auth-guards';
 import type { RequestHandler } from './$types';
 
@@ -21,6 +22,18 @@ export const PUT: RequestHandler = async (event) => {
 
   if (!parsed.success) {
     return json({ error: parsed.error.flatten() }, { status: 400 });
+  }
+
+  // A published Event must have at least one Seating (ADR 0001).
+  if (parsed.data.published) {
+    try {
+      await assertEventHasSeatings(event.params.id);
+    } catch (seatingError) {
+      if (seatingError instanceof EventWithoutSeatingError) {
+        return json({ error: seatingError.message }, { status: 400 });
+      }
+      throw seatingError;
+    }
   }
 
   try {

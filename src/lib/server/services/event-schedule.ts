@@ -1,6 +1,16 @@
 import { db } from '../db';
 import { eventDays, eventServices, eventSessions, events, reservations } from '../db/schema';
-import { and, eq, inArray, sql } from 'drizzle-orm';
+import { and, eq, getTableColumns, inArray, sql } from 'drizzle-orm';
+import type { EditorService } from '$lib/types/seatings-editor';
+import {
+	endAfterDuration,
+	findSeatingOverlaps,
+	formatTimeOfDay,
+	LUNCH_DINNER_CUTOFF_HOUR,
+	parseTimeOfDay,
+	type ServiceKind,
+} from '$lib/utils/seating-times';
+import { seatingTitlesWithFallback } from '$lib/utils/seating-title';
 
 /**
  * Event schedule — the Days → Services → Seatings model (ADR 0005).
@@ -15,14 +25,9 @@ import { and, eq, inArray, sql } from 'drizzle-orm';
  * evaluated on the UTC clock (stated in issue 018's summary).
  */
 
-/**
- * Hour (UTC) at which a Seating stops counting as lunch: a start time
- * before 16:00 is lunch, 16:00 and later is dinner. Cut-off confirmed
- * in issue 018.
- */
-export const LUNCH_DINNER_CUTOFF_HOUR = 16;
-
-export type ServiceKind = 'lunch' | 'dinner';
+// The 16:00 UTC lunch/dinner cut-off (issue 018) lives with the pure
+// time-of-day helpers so the admin editor and public labels share it.
+export { LUNCH_DINNER_CUTOFF_HOUR, type ServiceKind };
 
 const KIND_ORDER: Record<ServiceKind, number> = { lunch: 0, dinner: 1 };
 
@@ -130,28 +135,6 @@ export async function findOrAttachService(
 		.returning();
 
 	return service.id;
-}
-
-/**
- * Remove the Services (then Days) of an Event that no longer have any
- * Seatings, so implicitly created schedule nodes never linger and distort
- * the Event's derived dates. Must run after a Seating is deleted or moved.
- */
-export async function pruneEmptyScheduleNodes(tx: typeof db, eventId: string): Promise<void> {
-	await tx.delete(eventServices)
-		.where(and(
-			inArray(
-				eventServices.dayId,
-				tx.select({ id: eventDays.id }).from(eventDays).where(eq(eventDays.eventId, eventId))
-			),
-			sql`NOT EXISTS (SELECT 1 FROM event_sessions es WHERE es.service_id = ${eventServices.id})`
-		));
-
-	await tx.delete(eventDays)
-		.where(and(
-			eq(eventDays.eventId, eventId),
-			sql`NOT EXISTS (SELECT 1 FROM event_services sv WHERE sv.day_id = ${eventDays.id})`
-		));
 }
 
 // ---------------------------------------------------------------------------
@@ -577,6 +560,766 @@ export async function saveEventSchedule(eventId: string, picked: PickedServiceDa
 }
 
 // ---------------------------------------------------------------------------
+// Seatings per Service (issue 020)
+// ---------------------------------------------------------------------------
+
+/** Badge a Seating may carry (display only — see CONTEXT.md "Badge"). */
+export type SeatingBadgeType = (typeof eventSessions.$inferSelect)['badgeType'];
+
+const SEATING_BADGE_TYPES: readonly SeatingBadgeType[] = [
+	'none', 'featured', 'vip', 'popular', 'best_value', 'limited',
+];
+
+// Mirrors config.eventSessions capacity bounds (src/lib/server/env.ts);
+// duplicated so the pure parsing helpers stay loadable without env vars.
+const MIN_SEATING_CAPACITY = 1;
+const MAX_SEATING_CAPACITY = 10000;
+
+/** A Seating as posted by the admin Seatings editor for one Service. */
+export interface PlannedSeating {
+	/** Existing Seating id, or null to create a new one. */
+	id: string | null;
+	/** Start time on the Service's Day, `HH:MM` UTC. */
+	start: string;
+	/** Explicit end `HH:MM` UTC, or null to fill from the default duration. */
+	end: string | null;
+	titleEn: string | null;
+	titleFr: string | null;
+	descriptionEn: string | null;
+	descriptionFr: string | null;
+	totalCapacity: number;
+	priceAmount: number;
+	currency: string;
+	published: boolean;
+	allowWaitlist: boolean;
+	badgeType: SeatingBadgeType;
+}
+
+/** A planned Service with its default duration and its Seatings. */
+export interface PlannedServiceSeatings {
+	serviceId: string;
+	defaultDurationMinutes: number;
+	seatings: PlannedSeating[];
+}
+
+/** A parsed Seating: the payload entry plus its times as minutes since
+ * midnight, with the end filled from the Service's default duration when
+ * the payload left it out. */
+export interface ParsedSeating {
+	seating: PlannedSeating;
+	startMinutes: number;
+	endMinutes: number;
+}
+
+export interface ParsedServiceSeatings {
+	serviceId: string;
+	defaultDurationMinutes: number;
+	seatings: ParsedSeating[];
+}
+
+export type SeatingsParseFailure =
+	| 'missing'
+	| 'malformed'
+	| 'service'
+	| 'duration'
+	| 'time'
+	| 'seating';
+
+export type SeatingsParseResult =
+	| { ok: true; services: ParsedServiceSeatings[] }
+	| { ok: false; reason: SeatingsParseFailure };
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function optionalText(value: unknown, maxLength: number): string | null | false {
+	if (value === null) return null;
+	if (typeof value !== 'string') return false;
+	const trimmed = value.trim();
+	if (trimmed.length > maxLength) return false;
+	return trimmed === '' ? null : trimmed;
+}
+
+/**
+ * Parse the `services` payload posted by the admin Seatings editor: one
+ * entry per Service with its default Seating duration and its Seatings as
+ * start times. Ends left out are filled from the duration; everything is
+ * validated (times, duration, capacity, price, currency, badge). Returns a
+ * failure reason the admin form maps to French copy.
+ */
+export function parseSeatingsPayload(raw: string | null): SeatingsParseResult {
+	if (raw === null || raw.trim() === '') {
+		return { ok: false, reason: 'missing' };
+	}
+
+	let parsed: unknown;
+	try {
+		parsed = JSON.parse(raw);
+	} catch {
+		return { ok: false, reason: 'malformed' };
+	}
+	if (!Array.isArray(parsed)) {
+		return { ok: false, reason: 'malformed' };
+	}
+
+	const seenServiceIds = new Set<string>();
+	const seenSeatingIds = new Set<string>();
+	const services: ParsedServiceSeatings[] = [];
+
+	for (const serviceEntry of parsed) {
+		if (typeof serviceEntry !== 'object' || serviceEntry === null) {
+			return { ok: false, reason: 'malformed' };
+		}
+		const { serviceId, defaultDurationMinutes, seatings } = serviceEntry as Record<string, unknown>;
+		if (typeof serviceId !== 'string' || !UUID_PATTERN.test(serviceId)) {
+			return { ok: false, reason: 'service' };
+		}
+		if (seenServiceIds.has(serviceId)) {
+			return { ok: false, reason: 'service' };
+		}
+		seenServiceIds.add(serviceId);
+
+		if (
+			!Number.isInteger(defaultDurationMinutes) ||
+			(defaultDurationMinutes as number) < 1 ||
+			(defaultDurationMinutes as number) > 24 * 60
+		) {
+			return { ok: false, reason: 'duration' };
+		}
+		if (!Array.isArray(seatings)) {
+			return { ok: false, reason: 'malformed' };
+		}
+
+		const parsedSeatings: ParsedSeating[] = [];
+		for (const seatingEntry of seatings) {
+			if (typeof seatingEntry !== 'object' || seatingEntry === null) {
+				return { ok: false, reason: 'malformed' };
+			}
+			const entry = seatingEntry as Record<string, unknown>;
+
+			if (entry.id !== null && (typeof entry.id !== 'string' || !UUID_PATTERN.test(entry.id))) {
+				return { ok: false, reason: 'seating' };
+			}
+			if (entry.id !== null) {
+				if (seenSeatingIds.has(entry.id)) {
+					return { ok: false, reason: 'seating' };
+				}
+				seenSeatingIds.add(entry.id);
+			}
+
+			if (typeof entry.start !== 'string') {
+				return { ok: false, reason: 'time' };
+			}
+			const startMinutes = parseTimeOfDay(entry.start);
+			if (startMinutes === null) {
+				return { ok: false, reason: 'time' };
+			}
+
+			let endMinutes: number;
+			if (entry.end === null || entry.end === undefined) {
+					// No explicit end: filled from the Service's default duration
+					// (the PRD's Event schedule module owns end-time filling).
+				const filled = endAfterDuration(startMinutes, defaultDurationMinutes as number);
+				if (filled === null) {
+					return { ok: false, reason: 'time' };
+				}
+				endMinutes = filled;
+			} else {
+				if (typeof entry.end !== 'string') {
+					return { ok: false, reason: 'time' };
+				}
+				const explicit = parseTimeOfDay(entry.end);
+				if (explicit === null || explicit <= startMinutes) {
+					return { ok: false, reason: 'time' };
+				}
+				endMinutes = explicit;
+			}
+
+			const titleEn = optionalText(entry.titleEn, 255);
+			const titleFr = optionalText(entry.titleFr, 255);
+			const descriptionEn = optionalText(entry.descriptionEn, 100000);
+			const descriptionFr = optionalText(entry.descriptionFr, 100000);
+			if (titleEn === false || titleFr === false || descriptionEn === false || descriptionFr === false) {
+				return { ok: false, reason: 'seating' };
+			}
+
+			if (
+				!Number.isInteger(entry.totalCapacity) ||
+				(entry.totalCapacity as number) < MIN_SEATING_CAPACITY ||
+				(entry.totalCapacity as number) > MAX_SEATING_CAPACITY
+			) {
+				return { ok: false, reason: 'seating' };
+			}
+			if (!Number.isInteger(entry.priceAmount) || (entry.priceAmount as number) < 0) {
+				return { ok: false, reason: 'seating' };
+			}
+			if (typeof entry.currency !== 'string' || !/^[a-z]{3}$/i.test(entry.currency)) {
+				return { ok: false, reason: 'seating' };
+			}
+			if (typeof entry.published !== 'boolean' || typeof entry.allowWaitlist !== 'boolean') {
+				return { ok: false, reason: 'seating' };
+			}
+			if (!SEATING_BADGE_TYPES.includes(entry.badgeType as SeatingBadgeType)) {
+				return { ok: false, reason: 'seating' };
+			}
+
+			parsedSeatings.push({
+				seating: {
+					id: entry.id as string | null,
+					start: entry.start,
+					end: entry.end === null || entry.end === undefined ? null : (entry.end as string),
+					titleEn,
+					titleFr,
+					descriptionEn,
+					descriptionFr,
+					totalCapacity: entry.totalCapacity as number,
+					priceAmount: entry.priceAmount as number,
+					currency: (entry.currency as string).toUpperCase(),
+					published: entry.published as boolean,
+					allowWaitlist: entry.allowWaitlist as boolean,
+					badgeType: entry.badgeType as SeatingBadgeType,
+				},
+				startMinutes,
+				endMinutes,
+			});
+		}
+
+		services.push({
+			serviceId,
+			defaultDurationMinutes: defaultDurationMinutes as number,
+			seatings: parsedSeatings,
+		});
+	}
+
+	return { ok: true, services };
+}
+
+/** French admin copy for each way the seatings payload can be invalid. */
+export function seatingsPayloadErrorMessage(reason: SeatingsParseFailure): string {
+	switch (reason) {
+		case 'missing':
+			return 'Les séances de l’événement sont requises.';
+		case 'malformed':
+			return 'Les séances soumises sont invalides.';
+		case 'service':
+			return 'Un des services soumis est invalide.';
+		case 'duration':
+			return 'La durée par défaut doit être un nombre entier de minutes, entre 1 et 1440.';
+		case 'time':
+			return 'Les heures de séance sont invalides : saisissez HH:MM en UTC, fin après le début et avant minuit.';
+		case 'seating':
+			return 'Une des séances est invalide (titre, capacité, prix, devise ou badge).';
+	}
+}
+
+/** A planned Seating that starts before an earlier Seating of the same
+ * Service has ended — reported (warned), never refused (PRD). */
+export interface PlannedSeatingOverlapWarning {
+	serviceIndex: number;
+	seatingIndex: number;
+	/** Flagged Seating's start, `HH:MM`. */
+	start: string;
+	/** End of the earlier Seating it collides with, `HH:MM`. */
+	previousEnd: string;
+}
+
+/**
+ * Detect overlapping Seatings in a parsed payload, Service by Service.
+ * Pure — the save reports the result, the admin form can show the same
+ * warnings before saving.
+ */
+export function findPlannedSeatingOverlaps(
+	services: ParsedServiceSeatings[]
+): PlannedSeatingOverlapWarning[] {
+	const warnings: PlannedSeatingOverlapWarning[] = [];
+	services.forEach((service, serviceIndex) => {
+		const hits = findSeatingOverlaps(
+			service.seatings.map((seating) => ({
+				startMinutes: seating.startMinutes,
+				endMinutes: seating.endMinutes,
+			}))
+		);
+		for (const hit of hits) {
+			warnings.push({
+				serviceIndex,
+				seatingIndex: hit.index,
+				start: formatTimeOfDay(service.seatings[hit.index].startMinutes),
+				previousEnd: formatTimeOfDay(hit.previousEndMinutes),
+			});
+		}
+	});
+	return warnings;
+}
+
+function frClock(time: string): string {
+	return time.replace(':', 'h');
+}
+
+/** French admin copy for reported overlaps (a warning, not a refusal). */
+export function formatSeatingOverlapWarning(warnings: PlannedSeatingOverlapWarning[]): string {
+	const parts = warnings.map((warning) =>
+		`la séance de ${frClock(warning.start)} commence avant la fin de la précédente (${frClock(warning.previousEnd)})`
+	);
+	return `Chevauchement de séances dans un même repas : ${parts.join(' ; ')}.`;
+}
+
+// ---------------------------------------------------------------------------
+// Derived Seating titles (issue 020) — pure, shared with the client.
+// ---------------------------------------------------------------------------
+
+export {
+	derivedSeatingTitle,
+	seatingTitle,
+	seatingTitlesWithFallback,
+	type SeatingLabelContext,
+} from '$lib/utils/seating-title';
+
+/**
+ * Refused: publishing an Event that has no Seating — every published Event
+ * must be bookable (ADR 0001).
+ */
+export class EventWithoutSeatingError extends ScheduleSaveRefusedError {
+	constructor() {
+		super(
+			'Un événement ne peut pas être publié sans au moins une séance. Ajoutez une séance dans l’onglet Séances, puis publiez à nouveau.'
+		);
+		this.name = 'EventWithoutSeatingError';
+	}
+}
+
+/** Throw {@link EventWithoutSeatingError} unless the Event has a Seating. */
+export async function assertEventHasSeatings(eventId: string): Promise<void> {
+	const [seating] = await db.select({ id: eventSessions.id })
+		.from(eventSessions)
+		.where(eq(eventSessions.eventId, eventId))
+		.limit(1);
+	if (!seating) {
+		throw new EventWithoutSeatingError();
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Saving the admin Seatings editor (issue 020)
+// ---------------------------------------------------------------------------
+
+/** Full UTC instant of `minutes` since midnight on `day`. */
+function seatingInstantUtc(day: string, minutes: number): Date {
+	return new Date(`${day}T${formatTimeOfDay(minutes)}:00.000Z`);
+}
+
+/** A Seating that cannot be deleted because Reservations still point at
+ * it. The Reservations foreign key is RESTRICT, so even past (cancelled or
+ * expired) Reservations keep the Seating row — the guest's history keeps
+ * its reference (same principle as saveEventSchedule's Day/Service guard). */
+export interface SeatingRemovalBlocker {
+	date: string;
+	kind: ServiceKind;
+	/** `HH:MM` start of the Seating. */
+	start: string;
+	liveCount: number;
+	totalCount: number;
+}
+
+/**
+ * Thrown by {@link saveServiceSeatings} when the payload cannot be saved;
+ * the message is French admin copy and nothing has been written.
+ */
+export class SeatingSaveRefusedError extends ScheduleSaveRefusedError {
+	constructor(message: string) {
+		super(message);
+		this.name = 'SeatingSaveRefusedError';
+	}
+}
+
+/** Refused: the payload names a Service or Seating outside this Event. */
+export class UnknownScheduleServiceError extends SeatingSaveRefusedError {
+	constructor() {
+		super('Impossible d’enregistrer : un des services ou séances soumis n’appartient pas à cet événement.');
+		this.name = 'UnknownScheduleServiceError';
+	}
+}
+
+/** Refused: a dropped Seating still has Reservations. */
+export class SeatingRemovalRefusedError extends SeatingSaveRefusedError {
+	constructor(public readonly blockers: SeatingRemovalBlocker[]) {
+		super(formatSeatingRemovalRefusal(blockers));
+		this.name = 'SeatingRemovalRefusedError';
+	}
+}
+
+function formatSeatingRemovalRefusal(blockers: SeatingRemovalBlocker[]): string {
+	const parts = blockers.map((blocker) => {
+		const meal = blocker.kind === 'lunch' ? 'déjeuner' : 'dîner';
+		const count = blocker.liveCount > 0 ? blocker.liveCount : blocker.totalCount;
+		const plural = count > 1 ? 's' : '';
+		const which = blocker.liveCount > 0
+			? `${count} réservation${plural} en cours`
+			: `${count} réservation${plural} passée${plural}`;
+		return `la séance de ${frClock(blocker.start)} du ${meal} du ${blockerDateLabel(blocker.date)} (${which})`;
+	});
+	return `Impossible de supprimer ${parts.join(' ; ')}. Les séances concernées doivent être conservées.`;
+}
+
+/** A Seating whose start time classifies as the other meal than the
+ * Service it was planned under. */
+export interface SeatingServiceMismatch {
+	date: string;
+	kind: ServiceKind;
+	start: string;
+}
+
+/** Refused: a Seating's start does not match its Service's meal — the
+ * 16:00 UTC cut-off decides which meal a time belongs to. */
+export class SeatingServiceMismatchError extends SeatingSaveRefusedError {
+	constructor(public readonly mismatches: SeatingServiceMismatch[]) {
+		super(formatSeatingServiceMismatch(mismatches));
+		this.name = 'SeatingServiceMismatchError';
+	}
+}
+
+function formatSeatingServiceMismatch(mismatches: SeatingServiceMismatch[]): string {
+	const parts = mismatches.map((mismatch) => {
+		const meal = mismatch.kind === 'lunch' ? 'déjeuner' : 'dîner';
+		const window = mismatch.kind === 'lunch'
+			? 'avant 16:00 UTC'
+			: 'à partir de 16:00 UTC';
+		return `la séance de ${frClock(mismatch.start)} du ${meal} du ${blockerDateLabel(mismatch.date)} doit commencer ${window}`;
+	});
+	return `Un horaire ne correspond pas à son repas : ${parts.join(' ; ')}.`;
+}
+
+/** A Seating whose capacity would drop below its confirmed seats. */
+export interface SeatingCapacityBlocker {
+	date: string;
+	kind: ServiceKind;
+	start: string;
+	requestedCapacity: number;
+	soldCount: number;
+}
+
+/** Refused: lowering a Seating's capacity below the seats already sold. */
+export class SeatingCapacityRefusedError extends SeatingSaveRefusedError {
+	constructor(public readonly blockers: SeatingCapacityBlocker[]) {
+		super(formatSeatingCapacityRefusal(blockers));
+		this.name = 'SeatingCapacityRefusedError';
+	}
+}
+
+function formatSeatingCapacityRefusal(blockers: SeatingCapacityBlocker[]): string {
+	const parts = blockers.map((blocker) => {
+		const meal = blocker.kind === 'lunch' ? 'déjeuner' : 'dîner';
+		return `la séance de ${frClock(blocker.start)} du ${meal} du ${blockerDateLabel(blocker.date)} (${blocker.soldCount} place${blocker.soldCount > 1 ? 's' : ''} déjà réservée${blocker.soldCount > 1 ? 's' : ''}, capacité demandée : ${blocker.requestedCapacity})`;
+	});
+	return `Impossible de réduire la capacité : ${parts.join(' ; ')}.`;
+}
+
+export interface SavedSeatings {
+	/** Seatings starting before the previous one ends — reported as a
+	 * warning, never a refusal (PRD “reports overlapping Seatings”). */
+	overlaps: PlannedSeatingOverlapWarning[];
+	/** Ids of the Seatings deleted by this save (for the audit log). */
+	removedSeatingIds: string[];
+}
+
+/**
+ * Save the admin Seatings editor in one transaction (the “Event schedule”
+ * deep module, PRD): each planned Service gets its default Seating
+ * duration, new Seatings (entered as start times, ends filled from the
+ * duration) are created, kept Seatings are updated, dropped Seatings are
+ * deleted. Refuses — with a French message and nothing written — to delete
+ * a Seating that still has Reservations, to lower a capacity below the
+ * seats already sold, and to leave a published Event without any Seating
+ * (ADR 0001). Overlapping Seatings within a Service are reported in the
+ * result instead of refused.
+ *
+ * Days and Services are never created or removed here: they are picked on
+ * the Days picker (issue 019), so this save only reconciles Seatings
+ * underneath them.
+ */
+export async function saveServiceSeatings(
+	eventId: string,
+	services: ParsedServiceSeatings[]
+): Promise<SavedSeatings> {
+	const removedSeatingIds: string[] = await db.transaction(async (tx: typeof db) => {
+		const [event] = await tx.select({ id: events.id, published: events.published })
+			.from(events)
+			.where(eq(events.id, eventId))
+			.limit(1);
+		if (!event) {
+			throw new Error('Event not found');
+		}
+
+		const serviceRows: { id: string; kind: ServiceKind; date: string }[] = await tx.select({
+			id: eventServices.id,
+			kind: eventServices.kind,
+			date: sql<string>`${eventDays.date}::text`,
+		})
+			.from(eventServices)
+			.innerJoin(eventDays, eq(eventServices.dayId, eventDays.id))
+			.where(eq(eventDays.eventId, eventId));
+		const serviceById = new Map(serviceRows.map((row) => [row.id, row]));
+
+		// Locked like a booking locks its Seating, so seats held below stay
+		// exact while this transaction runs.
+		const sessionRows: {
+			id: string;
+			serviceId: string;
+			startTime: Date;
+			totalCapacity: number;
+			availableCapacity: number;
+		}[] = await tx.select({
+			id: eventSessions.id,
+			serviceId: eventSessions.serviceId,
+			startTime: eventSessions.startTime,
+			totalCapacity: eventSessions.totalCapacity,
+			availableCapacity: eventSessions.availableCapacity,
+		})
+			.from(eventSessions)
+			.where(eq(eventSessions.eventId, eventId))
+			.for('update');
+		const sessionById = new Map(sessionRows.map((row) => [row.id, row]));
+		// Seats held on a Seating: every pending, processing or confirmed
+		// Reservation decremented available capacity by its quantity when it
+		// was created, and expiry/cancellation gives the seats back.
+		const heldSeats = (sessionId: string): number => {
+			const row = sessionById.get(sessionId);
+			return row ? row.totalCapacity - row.availableCapacity : 0;
+		};
+
+		const counts: {
+			sessionId: string;
+			liveCount: number;
+			totalCount: number;
+		}[] = sessionRows.length > 0
+			? await tx.select({
+					sessionId: reservations.eventSessionId,
+					liveCount: sql<number>`(count(*) FILTER (WHERE ${inArray(reservations.status, LIVE_RESERVATION_STATUSES)}))::int`,
+					totalCount: sql<number>`(count(${reservations.id}))::int`,
+				})
+				.from(reservations)
+				.where(inArray(reservations.eventSessionId, sessionRows.map((row) => row.id)))
+				.groupBy(reservations.eventSessionId)
+			: [];
+		const countsBySession = new Map(counts.map((count) => [count.sessionId, count]));
+
+		// Every planned Service and Seating must belong to this Event, and
+		// every Seating's start must classify as its Service's meal.
+		const plannedServiceIds = new Set<string>();
+		const mismatches: SeatingServiceMismatch[] = [];
+		for (const service of services) {
+			const row = serviceById.get(service.serviceId);
+			if (!row) {
+				throw new UnknownScheduleServiceError();
+			}
+			plannedServiceIds.add(row.id);
+			for (const seating of service.seatings) {
+				if (seating.seating.id !== null && sessionById.get(seating.seating.id)?.serviceId !== row.id) {
+					throw new UnknownScheduleServiceError();
+				}
+				if (classifyServiceKind(seatingInstantUtc(row.date, seating.startMinutes)) !== row.kind) {
+					mismatches.push({ date: row.date, kind: row.kind, start: seating.seating.start });
+				}
+			}
+		}
+		if (mismatches.length > 0) {
+			throw new SeatingServiceMismatchError(
+				mismatches.sort((a, b) => a.date.localeCompare(b.date) || a.start.localeCompare(b.start))
+			);
+		}
+
+		// Dropped Seatings: those of the planned Services that the payload no
+		// longer lists. Seatings of Services outside the payload are untouched.
+		const keepIds = new Set<string>();
+		let insertCount = 0;
+		for (const service of services) {
+			for (const seating of service.seatings) {
+				if (seating.seating.id !== null) {
+					keepIds.add(seating.seating.id);
+				} else {
+					insertCount++;
+				}
+			}
+		}
+
+		const removalBlockers: SeatingRemovalBlocker[] = [];
+		const removedIds: string[] = [];
+		for (const session of sessionRows) {
+			if (!plannedServiceIds.has(session.serviceId) || keepIds.has(session.id)) {
+				continue;
+			}
+			const count = countsBySession.get(session.id);
+			if (count && count.totalCount > 0) {
+				const row = serviceById.get(session.serviceId)!;
+				removalBlockers.push({
+					date: row.date,
+					kind: row.kind,
+					start: formatTimeOfDay(
+						session.startTime.getUTCHours() * 60 + session.startTime.getUTCMinutes()
+					),
+					liveCount: count.liveCount,
+					totalCount: count.totalCount,
+				});
+			} else {
+				removedIds.push(session.id);
+			}
+		}
+		if (removalBlockers.length > 0) {
+			throw new SeatingRemovalRefusedError(
+				removalBlockers.sort((a, b) => a.date.localeCompare(b.date) || a.start.localeCompare(b.start))
+			);
+		}
+
+		// Capacity may never drop below the seats already sold.
+		const capacityBlockers: SeatingCapacityBlocker[] = [];
+		for (const service of services) {
+			const row = serviceById.get(service.serviceId)!;
+			for (const seating of service.seatings) {
+				if (seating.seating.id === null) continue;
+				const held = heldSeats(seating.seating.id);
+				if (seating.seating.totalCapacity < held) {
+					capacityBlockers.push({
+						date: row.date,
+						kind: row.kind,
+						start: seating.seating.start,
+						requestedCapacity: seating.seating.totalCapacity,
+						soldCount: held,
+					});
+				}
+			}
+		}
+		if (capacityBlockers.length > 0) {
+			throw new SeatingCapacityRefusedError(
+				capacityBlockers.sort((a, b) => a.date.localeCompare(b.date) || a.start.localeCompare(b.start))
+			);
+		}
+
+		// A published Event must keep at least one Seating (ADR 0001).
+		if (event.published && sessionRows.length - removedIds.length + insertCount === 0) {
+			throw new PublishedEventWithoutSeatingError();
+		}
+
+		// Apply: default durations, then Seatings (updates and inserts), then
+		// deletions.
+		for (const service of services) {
+			const row = serviceById.get(service.serviceId)!;
+			await tx.update(eventServices)
+				.set({
+					defaultSeatingDurationMinutes: service.defaultDurationMinutes,
+					updatedAt: new Date(),
+				})
+				.where(eq(eventServices.id, service.serviceId));
+
+			for (const seating of service.seatings) {
+				const startTime = seatingInstantUtc(row.date, seating.startMinutes);
+				const endTime = seatingInstantUtc(row.date, seating.endMinutes);
+				const fields = {
+					titleEn: seating.seating.titleEn,
+					titleFr: seating.seating.titleFr,
+					descriptionEn: seating.seating.descriptionEn,
+					descriptionFr: seating.seating.descriptionFr,
+					startTime,
+					endTime,
+					totalCapacity: seating.seating.totalCapacity,
+					priceAmount: seating.seating.priceAmount,
+					currency: seating.seating.currency,
+					published: seating.seating.published,
+					allowWaitlist: seating.seating.allowWaitlist,
+					badgeType: seating.seating.badgeType,
+				};
+
+				if (seating.seating.id === null) {
+					await tx.insert(eventSessions).values({
+						eventId,
+						serviceId: service.serviceId,
+						...fields,
+						// A new Seating has no Reservations: all seats are available.
+						availableCapacity: seating.seating.totalCapacity,
+					});
+				} else {
+					// Seats already held stay held; only the new total moves
+					// the available count.
+					await tx.update(eventSessions)
+						.set({
+							...fields,
+							availableCapacity: seating.seating.totalCapacity - heldSeats(seating.seating.id),
+							updatedAt: new Date(),
+					})
+						.where(eq(eventSessions.id, seating.seating.id));
+				}
+			}
+		}
+
+		if (removedIds.length > 0) {
+			await tx.delete(eventSessions).where(inArray(eventSessions.id, removedIds));
+		}
+		return removedIds;
+	});
+
+	return { overlaps: findPlannedSeatingOverlaps(services), removedSeatingIds };
+}
+
+/** `HH:MM` (UTC) of an instant. */
+function utcClock(instant: Date): string {
+	return formatTimeOfDay(instant.getUTCHours() * 60 + instant.getUTCMinutes());
+}
+
+/**
+ * The Event's Days → Services → Seatings as the admin Seatings editor
+ * shows them (issue 020): Services ordered by Day then meal, Seatings by
+ * start, with each Seating's Reservation count (any status — a booked
+ * Seating cannot be removed). Services with no Seating yet are included so
+ * the Admin can add the first one.
+ */
+export async function loadSeatingsEditor(eventId: string): Promise<EditorService[]> {
+	const serviceRows: { id: string; kind: ServiceKind; date: string; duration: number }[] = await db
+		.select({
+			id: eventServices.id,
+			kind: eventServices.kind,
+			date: sql<string>`${eventDays.date}::text`,
+			duration: eventServices.defaultSeatingDurationMinutes,
+		})
+		.from(eventServices)
+		.innerJoin(eventDays, eq(eventServices.dayId, eventDays.id))
+		.where(eq(eventDays.eventId, eventId));
+
+	const seatingRows: (typeof eventSessions.$inferSelect & { reservationCount: number })[] = await db
+		.select({
+			...getTableColumns(eventSessions),
+			reservationCount: sql<number>`(SELECT count(*) FROM reservations r WHERE r.event_session_id = "event_sessions"."id")::int`,
+		})
+		.from(eventSessions)
+		.where(eq(eventSessions.eventId, eventId))
+		.orderBy(eventSessions.startTime);
+
+	return serviceRows
+		.sort((a, b) => a.date.localeCompare(b.date) || KIND_ORDER[a.kind] - KIND_ORDER[b.kind])
+		.map((service) => ({
+			serviceId: service.id,
+			date: service.date,
+			kind: service.kind,
+			defaultDurationMinutes: service.duration,
+			seatings: seatingRows
+				.filter((seating) => seating.serviceId === service.id)
+				.map((seating) => ({
+					id: seating.id,
+					start: utcClock(seating.startTime),
+					end: utcClock(seating.endTime),
+					titleEn: seating.titleEn,
+					titleFr: seating.titleFr,
+					descriptionEn: seating.descriptionEn,
+					descriptionFr: seating.descriptionFr,
+					totalCapacity: seating.totalCapacity,
+					availableCapacity: seating.availableCapacity,
+					priceAmount: seating.priceAmount,
+					currency: seating.currency,
+					published: seating.published,
+					allowWaitlist: seating.allowWaitlist,
+					badgeType: seating.badgeType,
+					reservationCount: seating.reservationCount,
+				})),
+		}));
+}
+
+// ---------------------------------------------------------------------------
 // Public schedule grouping (Days → Services → Seatings)
 // ---------------------------------------------------------------------------
 
@@ -637,7 +1380,7 @@ export function groupScheduleByDayAndService<T>(
  */
 export async function getPublishedScheduleByEventId(
 	eventId: string
-): Promise<ScheduleRow<typeof eventSessions.$inferSelect>[]> {
+): Promise<ScheduleRow<typeof eventSessions.$inferSelect & { titleEn: string; titleFr: string }>[]> {
 	const rows: {
 		dayDate: string;
 		serviceKind: (typeof eventServices.$inferSelect)['kind'];
@@ -660,6 +1403,14 @@ export async function getPublishedScheduleByEventId(
 	return rows.map((row) => ({
 		dayDate: row.dayDate,
 		serviceKind: row.serviceKind,
-		item: row.session,
+		// Untitled Seatings get a label derived from Day, Service and time
+		// (issue 020) — the grouping context is already loaded here.
+		item: {
+			...row.session,
+			...seatingTitlesWithFallback(row.session, {
+				dayDate: row.dayDate,
+				serviceKind: row.serviceKind,
+			}),
+		},
 	}));
 }

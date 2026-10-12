@@ -177,6 +177,20 @@ describe('createReservation', () => {
 		expect(updatedSession.availableCapacity).toBe(98); // 100 − 2
 	});
 
+	it('untitled Seating — Stripe Checkout gets the label derived from Day, Service and time', async () => {
+		const { session } = await seedPublishedSession({ titleEn: null, titleFr: null });
+		const { createReservation } = await import('../../src/lib/server/services/reservations');
+		const { createCheckoutSession } = await import('../../src/lib/server/services/stripe');
+
+		await createReservation(makeInput(session.id));
+
+		// Stripe rejects empty line-item names: an untitled Seating must
+		// never send one.
+		expect(createCheckoutSession).toHaveBeenCalledWith(expect.objectContaining({
+			productName: 'Dinner — Monday, 1 June 2099, 18:00 — Test Event',
+		}));
+	});
+
 	it('sold out — throws when availableCapacity < quantity; capacity unchanged', async () => {
 		const { session } = await seedPublishedSession({
 			totalCapacity: 5,

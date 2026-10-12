@@ -3,12 +3,12 @@ import { getSessionById } from '$lib/server/services/event-sessions';
 import { MOCK_EVENTS, MOCK_SESSIONS, USE_MOCK_DATA } from '$lib/mock-data';
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
+import { seatingTitlesWithFallback } from '$lib/utils/seating-title';
 
 function mapSession(s: (typeof MOCK_SESSIONS)[number]) {
 	return {
 		id: s.id,
-		titleEn: (s as any).titleEn || s.title,
-		titleFr: (s as any).titleFr || s.title,
+		...seatingTitlesWithFallback(s),
 		descriptionEn: (s as any).descriptionEn ?? null,
 		descriptionFr: (s as any).descriptionFr ?? null,
 		startTime: s.startTime.toISOString(),
@@ -46,8 +46,7 @@ export const load: PageServerLoad = async ({ params }) => {
 			event,
 			session: {
 				id: dbSession.id,
-				titleEn: dbSession.titleEn,
-				titleFr: dbSession.titleFr,
+				...seatingTitlesWithFallback(dbSession),
 				descriptionEn: dbSession.descriptionEn ?? null,
 				descriptionFr: dbSession.descriptionFr ?? null,
 				startTime: dbSession.startTime.toISOString(),

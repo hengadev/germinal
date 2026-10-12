@@ -5,7 +5,7 @@ import type { CreateEventSessionInput, UpdateEventSessionInput } from '$lib/type
 import {
 	classifyServiceKind,
 	findOrAttachService,
-	pruneEmptyScheduleNodes,
+	PublishedEventWithoutSeatingError,
 	recomputeEventDatesFromDays,
 	utcDayKey,
 } from './event-schedule';
@@ -16,8 +16,8 @@ import {
 interface SessionWithEventAndSoldCount {
 	id: string;
 	event_id: string;
-	title_en: string;
-	title_fr: string;
+	title_en: string | null;
+	title_fr: string | null;
 	description_en: string | null;
 	description_fr: string | null;
 	published: boolean;
@@ -207,7 +207,9 @@ export async function updateEventSession(id: string, input: UpdateEventSessionIn
 
 	return await db.transaction(async (tx: typeof db) => {
 		// If the times moved the Seating to another Day or meal, re-attach it
-		// to the matching Service; nodes it vacated are pruned below.
+		// to the matching Service. The Day/Service it leaves are kept: Days
+		// and Services are picked by the Admin (issue 019) and only the Days
+		// picker removes them (issue 020).
 		if (input.startTime !== undefined || input.endTime !== undefined) {
 			const effectiveStartTime = input.startTime ?? session.startTime;
 			const effectiveEndTime = input.endTime ?? session.endTime;
@@ -246,7 +248,6 @@ export async function updateEventSession(id: string, input: UpdateEventSessionIn
 			}
 
 			if (input.startTime !== undefined || input.endTime !== undefined) {
-				await pruneEmptyScheduleNodes(tx, session.eventId);
 				await recomputeEventDatesFromDays(tx, session.eventId);
 			}
 
@@ -266,7 +267,6 @@ export async function updateEventSession(id: string, input: UpdateEventSessionIn
 		}
 
 		if (input.startTime !== undefined || input.endTime !== undefined) {
-			await pruneEmptyScheduleNodes(tx, session.eventId);
 			await recomputeEventDatesFromDays(tx, session.eventId);
 		}
 
@@ -286,18 +286,28 @@ export async function deleteEventSession(id: string) {
 		throw new Error('Cannot delete session with confirmed reservations');
 	}
 
-	const session = await db.query.eventSessions.findFirst({
-		where: eq(eventSessions.id, id),
-		columns: { eventId: true },
-	});
-
+	// Only the Seating goes: its Day and Service were picked by the Admin
+	// and stay until the Days picker removes them (issue 020), so the
+	// Event's derived dates are unchanged too.
 	await db.transaction(async (tx: typeof db) => {
-		await tx.delete(eventSessions).where(eq(eventSessions.id, id));
-		if (session) {
-			// Drop the Day/Service this Seating implicitly created if nothing
-			// else sits under them, then refresh the Event's derived dates.
-			await pruneEmptyScheduleNodes(tx, session.eventId);
-			await recomputeEventDatesFromDays(tx, session.eventId);
+		const [deleted]: { eventId: string }[] = await tx.delete(eventSessions)
+			.where(eq(eventSessions.id, id))
+			.returning({ eventId: eventSessions.eventId });
+		if (!deleted) return;
+
+		// A published Event must keep at least one Seating (ADR 0001).
+		const [event]: { published: boolean }[] = await tx.select({ published: events.published })
+			.from(events)
+			.where(eq(events.id, deleted.eventId))
+			.limit(1);
+		if (event?.published) {
+			const [remaining] = await tx.select({ id: eventSessions.id })
+				.from(eventSessions)
+				.where(eq(eventSessions.eventId, deleted.eventId))
+				.limit(1);
+			if (!remaining) {
+				throw new PublishedEventWithoutSeatingError();
+			}
 		}
 	});
 }

@@ -2,6 +2,7 @@ import { getReservationByToken } from '$lib/server/services/reservations';
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import QRCode from 'qrcode';
+import { seatingTitlesWithFallback } from '$lib/utils/seating-title';
 
 export const load: PageServerLoad = async ({ params }) => {
 	const reservation = await getReservationByToken(params.token);
@@ -36,8 +37,7 @@ export const load: PageServerLoad = async ({ params }) => {
 			createdAt: reservation.createdAt.toISOString(),
 			accessToken: params.token,
 			session: {
-				titleEn: reservation.eventSession.titleEn,
-				titleFr: reservation.eventSession.titleFr,
+				...seatingTitlesWithFallback(reservation.eventSession),
 				startTime: reservation.eventSession.startTime.toISOString(),
 				endTime: reservation.eventSession.endTime.toISOString(),
 				event: reservation.eventSession.event

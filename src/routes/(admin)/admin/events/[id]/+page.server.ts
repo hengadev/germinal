@@ -3,15 +3,24 @@ import { logger } from '$lib/server/logger';
 import { env } from '$lib/server/env';
 import { MOCK_EVENTS, MOCK_SESSIONS, MOCK_RESERVATIONS, MOCK_TALENTS } from '$lib/mock-data';
 import {
+	assertEventHasSeatings,
 	dayEndUtc,
 	dayStartUtc,
+	DEFAULT_SERVICE_DURATION_MINUTES,
+	EventWithoutSeatingError,
+	formatSeatingOverlapWarning,
 	LUNCH_DINNER_CUTOFF_HOUR,
 	parsePickedDays,
+	parseSeatingsPayload,
 	pickedDaysErrorMessage,
 	saveEventSchedule,
+	saveServiceSeatings,
 	ScheduleSaveRefusedError,
+	seatingsPayloadErrorMessage,
+	seatingTitle,
 	type PickedServiceDay,
 } from '$lib/server/services/event-schedule';
+import type { EditorService } from '$lib/types/seatings-editor';
 import type { PageServerLoad } from './$types';
 import { requireAdmin } from '$lib/server/auth-guards';
 
@@ -94,7 +103,7 @@ export const load: PageServerLoad = async ({ params }) => {
 					createdAt: r.createdAt,
 					confirmedAt: r.confirmedAt,
 					eventTitle: evt?.titleEn || '',
-					sessionTitle: (session as any)?.titleEn || (session as any)?.title || '',
+					sessionTitle: session ? seatingTitle(session, 'en') : '',
 					sessionStartTime: session?.startTime?.toISOString() || '',
 					paymentStatus: r.paymentStatus,
 					isComp: (r as { isComp?: boolean }).isComp ?? false
@@ -115,7 +124,37 @@ export const load: PageServerLoad = async ({ params }) => {
 		}
 		const days = [...daysMap.values()].sort((a, b) => a.date.localeCompare(b.date));
 
-		return { event, sessions, reservations, promoCodes: [], talents, days };
+		// Mock Seatings editor: one synthetic Service per Day and meal.
+		const clock = (instant: Date) => instant.toISOString().slice(11, 16);
+		const schedule: EditorService[] = days.flatMap((day, dayIndex) => (['lunch', 'dinner'] as const).filter((kind) => day.kinds.includes(kind)).map((kind, kindIndex) => ({
+			serviceId: `00000000-0000-4000-8000-${String(dayIndex * 2 + kindIndex).padStart(12, '0')}`,
+			date: day.date,
+			kind,
+			defaultDurationMinutes: DEFAULT_SERVICE_DURATION_MINUTES[kind],
+			seatings: sessions
+				.filter((session) =>
+					session.startTime.slice(0, 10) === day.date &&
+					(new Date(session.startTime).getUTCHours() < LUNCH_DINNER_CUTOFF_HOUR ? 'lunch' : 'dinner') === kind)
+				.map((session) => ({
+					id: session.id,
+					start: clock(new Date(session.startTime)),
+					end: clock(new Date(session.endTime)),
+					titleEn: session.titleEn ?? null,
+					titleFr: session.titleFr ?? null,
+					descriptionEn: session.descriptionEn,
+					descriptionFr: session.descriptionFr,
+					totalCapacity: session.totalCapacity,
+					availableCapacity: session.availableCapacity,
+					priceAmount: session.priceAmount,
+					currency: session.currency,
+					published: session.published,
+					allowWaitlist: session.allowWaitlist,
+					badgeType: session.badgeType,
+					reservationCount: session.reservationCount,
+				})),
+		})));
+
+		return { event, sessions, reservations, promoCodes: [], talents, days, schedule };
 	}
 
 	// Database mode - fetch from database
@@ -164,12 +203,15 @@ export const load: PageServerLoad = async ({ params }) => {
 		const talents = talentsData.data.map((t: typeof talentsData.data[number]) => ({ id: t.id, firstName: t.firstName, lastName: t.lastName }));
 
 		const days = await loadScheduleDays(id);
+		const { loadSeatingsEditor } = await import('$lib/server/services/event-schedule');
+		const schedule = await loadSeatingsEditor(id);
 
 		return {
 			event,
 			promoCodes,
 			talents,
 			days,
+			schedule,
 			sessions: sessionsData.map((s: typeof sessionsData[number]) => ({
 				id: s.id,
 				titleEn: s.titleEn,
@@ -198,7 +240,7 @@ export const load: PageServerLoad = async ({ params }) => {
 				createdAt: r.createdAt.toISOString(),
 				confirmedAt: r.confirmedAt?.toISOString(),
 				eventTitle: event.titleEn,
-				sessionTitle: r.eventSession.titleEn,
+				sessionTitle: seatingTitle(r.eventSession, 'en'),
 				sessionStartTime: r.eventSession.startTime.toISOString(),
 				paymentStatus: r.payment?.status || 'none',
 				isComp: r.isComp
@@ -303,18 +345,20 @@ export const actions: Actions = {
 		const start = dayStartUtc(pickedDays.days[0].date);
 		const end = dayEndUtc(pickedDays.days[pickedDays.days.length - 1].date);
 
-		// Validate: published events must have at least one session
+		// A published Event must have at least one Seating (ADR 0001).
 		if (published) {
 			if (env.USE_MOCK_DATA) {
-				const hasSessions = MOCK_SESSIONS.some(s => s.eventId === id);
-				if (!hasSessions) {
-					return fail(400, { error: 'Cannot publish event without at least one session. Please add a session first.' });
+				if (!MOCK_SESSIONS.some(s => s.eventId === id)) {
+					return fail(400, { error: new EventWithoutSeatingError().message });
 				}
 			} else {
-				const { getAllSessionsByEventId } = await import('$lib/server/services/event-sessions');
-				const sessions = await getAllSessionsByEventId(id);
-				if (!sessions || sessions.length === 0) {
-					return fail(400, { error: 'Cannot publish event without at least one session. Please add a session first.' });
+				try {
+					await assertEventHasSeatings(id);
+				} catch (seatingError) {
+					if (seatingError instanceof EventWithoutSeatingError) {
+						return fail(400, { error: seatingError.message });
+					}
+					throw seatingError;
 				}
 			}
 		}
@@ -516,94 +560,54 @@ export const actions: Actions = {
 		}
 	},
 
-	// Create session action
-	createSession: async ({ request, params, locals }) => {
+	// Save the Seatings editor (issue 020): each Service's default Seating
+	// duration and its Seatings, entered as start times.
+	saveSeatings: async ({ request, params, locals }) => {
 		requireAdmin(locals);
-		if (!params.id) {
-			return fail(400, { error: 'Event ID is required' });
+		const { id } = params;
+		if (!id) {
+			return fail(400, { error: 'L’identifiant de l’événement est requis.' });
 		}
+
 		const formData = await request.formData();
+		const raw = formData.get('services');
+		const parsed = parseSeatingsPayload(typeof raw === 'string' ? raw : null);
+		if (!parsed.ok) {
+			return fail(400, { error: seatingsPayloadErrorMessage(parsed.reason) });
+		}
+
+		if (env.USE_MOCK_DATA) {
+			return { success: 'Séances enregistrées (mode démo — non persistées)' };
+		}
 
 		try {
-			const { createEventSession } = await import('$lib/server/services/event-sessions');
+			const result = await saveServiceSeatings(id, parsed.services);
 
-			const session = await createEventSession({
-				eventId: params.id,
-				titleEn: formData.get('titleEn') as string,
-				titleFr: formData.get('titleFr') as string,
-				descriptionEn: formData.get('descriptionEn') as string || null,
-				descriptionFr: formData.get('descriptionFr') as string || null,
-				startTime: new Date(formData.get('startTime') as string),
-				endTime: new Date(formData.get('endTime') as string),
-				totalCapacity: parseInt(formData.get('totalCapacity') as string),
-				priceAmount: parseInt(formData.get('priceAmount') as string),
-				currency: formData.get('currency') as string || 'EUR',
-				published: formData.get('published') === 'on',
-				allowWaitlist: formData.get('allowWaitlist') === 'on',
-				badgeType: (formData.get('badgeType') as string || 'none') as 'none' | 'featured' | 'vip' | 'popular' | 'best_value' | 'limited'
-			});
+			if (result.removedSeatingIds.length > 0) {
+				const { recordAuditLog } = await import('$lib/server/services/audit-log');
+				for (const seatingId of result.removedSeatingIds) {
+					await recordAuditLog({
+						adminId: locals.user!.id,
+						action: 'session.delete',
+						entityType: 'session',
+						entityId: seatingId,
+					});
+				}
+			}
 
-			return { success: `Séance "${session.titleEn}" créée avec succès` };
+			// Overlaps were flagged in the editor before saving; they are a
+			// warning, not a refusal (PRD), so the save goes through and
+			// reports them again.
+			const warning = result.overlaps.length > 0
+				? ` ${formatSeatingOverlapWarning(result.overlaps)}`
+				: '';
+			return { success: `Séances enregistrées.${warning}` };
 		} catch (err) {
-			logger.error({ err }, 'Create session error');
-			return fail(500, { error: err instanceof Error ? err.message : 'Failed to create session' });
-		}
-	},
-
-	// Update session action
-	updateSession: async ({ request, locals }) => {
-		requireAdmin(locals);
-		const formData = await request.formData();
-		const id = formData.get('id') as string;
-
-		try {
-			const { updateEventSession } = await import('$lib/server/services/event-sessions');
-
-			await updateEventSession(id, {
-				titleEn: formData.get('titleEn') as string,
-				titleFr: formData.get('titleFr') as string,
-				descriptionEn: formData.get('descriptionEn') as string || null,
-				descriptionFr: formData.get('descriptionFr') as string || null,
-				startTime: new Date(formData.get('startTime') as string),
-				endTime: new Date(formData.get('endTime') as string),
-				totalCapacity: parseInt(formData.get('totalCapacity') as string),
-				priceAmount: parseInt(formData.get('priceAmount') as string),
-				currency: formData.get('currency') as string,
-				published: formData.get('published') === 'on',
-				allowWaitlist: formData.get('allowWaitlist') === 'on',
-				badgeType: (formData.get('badgeType') as string || 'none') as 'none' | 'featured' | 'vip' | 'popular' | 'best_value' | 'limited'
-			});
-
-			return { success: 'Séance mise à jour avec succès' };
-		} catch (err) {
-			logger.error({ err }, 'Update session error');
-			return fail(500, { error: err instanceof Error ? err.message : 'Failed to update session' });
-		}
-	},
-
-	// Delete session action
-	deleteSession: async ({ request, locals }) => {
-		requireAdmin(locals);
-		const formData = await request.formData();
-		const id = formData.get('id') as string;
-
-		try {
-			const { deleteEventSession } = await import('$lib/server/services/event-sessions');
-
-			await deleteEventSession(id);
-
-			const { recordAuditLog } = await import('$lib/server/services/audit-log');
-			await recordAuditLog({
-				adminId: locals.user!.id,
-				action: 'session.delete',
-				entityType: 'session',
-				entityId: id,
-			});
-
-			return { success: 'Séance supprimée avec succès' };
-		} catch (err) {
-			logger.error({ err }, 'Delete session error');
-			return fail(500, { error: err instanceof Error ? err.message : 'Failed to delete session' });
+			if (err instanceof ScheduleSaveRefusedError) {
+				return fail(400, { error: err.message });
+			}
+			logger.error({ err }, 'Save seatings error');
+			return fail(500, { error: 'Échec de l’enregistrement des séances.' });
 		}
 	},
 

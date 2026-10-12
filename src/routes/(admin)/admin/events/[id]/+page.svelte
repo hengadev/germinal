@@ -27,7 +27,7 @@
     });
 
     import Overview from "./Overview.svelte";
-    import Sessions from "./Sessions.svelte";
+    import Seatings from "./Seatings.svelte";
     import Reservations from "./Reservations.svelte";
     import Photos from "./Photos.svelte";
     import PromoCodes from "./PromoCodes.svelte";
@@ -42,7 +42,7 @@
     let triggers: Trigger[] = [
         { value: "overview", name: "Vue d'ensemble" },
         { value: "photos", name: "Photos" },
-        { value: "sessions", name: "Sessions" },
+        { value: "sessions", name: "Séances" },
         { value: "team", name: "Team" },
         { value: "tasks", name: "Tasks" },
         { value: "reservations", name: "Réservations" },
@@ -110,7 +110,7 @@
             <Photos {data} {form} />
         </TabsContent>
         <TabsContent value="sessions" class="h-full p-6">
-            <Sessions {data} {form} />
+            <Seatings {data} />
         </TabsContent>
         <TabsContent value="team" class="h-full p-6">
             <Team {data} {form} />
