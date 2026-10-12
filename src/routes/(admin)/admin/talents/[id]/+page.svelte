@@ -174,7 +174,7 @@
 							type="text"
 							bind:value={roleEn}
 							required
-							placeholder="Lead Vocalist & Songwriter"
+							placeholder="ex : Lead Vocalist & Songwriter"
 							class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent"
 						/>
 					</div>
@@ -218,7 +218,7 @@
 							bind:value={bioEn}
 							required
 							rows="5"
-							placeholder="Tell us about this talent..."
+							placeholder="Parlez-nous de ce talent (en anglais)..."
 							class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent resize-none"
 						></textarea>
 					</div>
@@ -299,7 +299,7 @@
 								name="country"
 								type="text"
 								bind:value={country}
-								placeholder="Japan"
+								placeholder="Japon"
 								class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
 							/>
 						</div>
@@ -316,7 +316,7 @@
 						name="quoteEn"
 						bind:value={quoteEn}
 						rows="2"
-						placeholder="A meaningful quote or tagline..."
+						placeholder="Une citation ou une phrase accrocheuse (en anglais)..."
 						class="w-full px-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent resize-none"
 					></textarea>
 				</div>
@@ -349,7 +349,7 @@
 								<input
 									type="text"
 									bind:value={specializationsEn[i]}
-									placeholder="e.g., Spatial Audio Installation"
+									placeholder="ex : Spatial Audio Installation"
 									class="flex-1 px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
 								/>
 								<button
@@ -389,7 +389,7 @@
 								<input
 									type="text"
 									bind:value={specializationsFr[i]}
-									placeholder="ex: Installation audio spatiale"
+									placeholder="ex : Installation audio spatiale"
 									class="flex-1 px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
 								/>
 								<button
