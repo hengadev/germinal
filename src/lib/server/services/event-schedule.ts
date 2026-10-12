@@ -366,11 +366,35 @@ export interface ScheduleRemovalBlocker {
 	totalCount: number;
 }
 
-/** Thrown by {@link saveEventSchedule} when a removal is refused. */
-export class ScheduleRemovalRefusedError extends Error {
+/**
+ * Thrown by {@link saveEventSchedule} when the picked set cannot be saved;
+ * the message is French admin copy and nothing has been written.
+ */
+export class ScheduleSaveRefusedError extends Error {
+	constructor(message: string) {
+		super(message);
+		this.name = 'ScheduleSaveRefusedError';
+	}
+}
+
+/** Refused: a removed Day or Service still has Reservations. */
+export class ScheduleRemovalRefusedError extends ScheduleSaveRefusedError {
 	constructor(public readonly blockers: ScheduleRemovalBlocker[]) {
 		super(formatRemovalRefusal(blockers));
 		this.name = 'ScheduleRemovalRefusedError';
+	}
+}
+
+/**
+ * Refused: the removals would leave a published Event without any Seating,
+ * and a published Event must stay bookable (ADR 0001).
+ */
+export class PublishedEventWithoutSeatingError extends ScheduleSaveRefusedError {
+	constructor() {
+		super(
+			'Un événement publié doit conserver au moins une séance : ces jours ou repas ne peuvent pas tous être retirés. Dépubliez l’événement d’abord.'
+		);
+		this.name = 'PublishedEventWithoutSeatingError';
 	}
 }
 
@@ -429,7 +453,7 @@ export async function saveEventSchedule(eventId: string, picked: PickedServiceDa
 	}
 
 	await db.transaction(async (tx: typeof db) => {
-		const [event] = await tx.select({ id: events.id })
+		const [event] = await tx.select({ id: events.id, published: events.published })
 			.from(events)
 			.where(eq(events.id, eventId))
 			.limit(1);
@@ -456,6 +480,7 @@ export async function saveEventSchedule(eventId: string, picked: PickedServiceDa
 		}));
 
 		const plan = planScheduleChange(current, picked);
+		let removesSeatings = false;
 
 		if (plan.serviceIdsToRemove.length > 0) {
 			const counts = await tx
@@ -468,6 +493,7 @@ export async function saveEventSchedule(eventId: string, picked: PickedServiceDa
 				.leftJoin(reservations, eq(reservations.eventSessionId, eventSessions.id))
 				.where(inArray(eventSessions.serviceId, plan.serviceIdsToRemove))
 				.groupBy(eventSessions.serviceId);
+			removesSeatings = counts.length > 0;
 
 			const removedDayIds = new Set(plan.dayIdsToRemove);
 			const blockers = new Map<string, ScheduleRemovalBlocker>();
@@ -510,6 +536,19 @@ export async function saveEventSchedule(eventId: string, picked: PickedServiceDa
 		if (plan.dayIdsToRemove.length > 0) {
 			await tx.delete(eventDays)
 				.where(inArray(eventDays.id, plan.dayIdsToRemove));
+		}
+
+		// Removed Services take their unbooked Seatings with them (cascade):
+		// a published Event must keep at least one (ADR 0001). Only checked
+		// when Seatings were actually removed; throwing rolls the deletions back.
+		if (event.published && removesSeatings) {
+			const [remaining] = await tx.select({ id: eventSessions.id })
+				.from(eventSessions)
+				.where(eq(eventSessions.eventId, eventId))
+				.limit(1);
+			if (!remaining) {
+				throw new PublishedEventWithoutSeatingError();
+			}
 		}
 
 		if (plan.daysToAdd.length > 0) {

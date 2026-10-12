@@ -202,7 +202,7 @@
 					<button
 						type="button"
 						aria-pressed={Boolean(picked)}
-						aria-label={`${frDate(cell.key, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}${picked ? ' — sélectionné' : ''}`}
+						aria-label={frDate(cell.key, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
 						onclick={() => toggleDay(cell.key)}
 						class="h-9 w-full text-sm rounded-md transition-colors cursor-pointer {picked
 							? 'bg-foreground text-background font-semibold'

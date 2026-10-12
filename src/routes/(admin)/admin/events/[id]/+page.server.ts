@@ -9,7 +9,7 @@ import {
 	parsePickedDays,
 	pickedDaysErrorMessage,
 	saveEventSchedule,
-	ScheduleRemovalRefusedError,
+	ScheduleSaveRefusedError,
 	type PickedServiceDay,
 } from '$lib/server/services/event-schedule';
 import type { PageServerLoad } from './$types';
@@ -415,7 +415,7 @@ export const actions: Actions = {
 			try {
 				await saveEventSchedule(id, pickedDays.days);
 			} catch (scheduleError) {
-				if (scheduleError instanceof ScheduleRemovalRefusedError) {
+				if (scheduleError instanceof ScheduleSaveRefusedError) {
 					return fail(400, { error: scheduleError.message });
 				}
 				throw scheduleError;

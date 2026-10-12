@@ -398,6 +398,7 @@ describe('saveEventSchedule (admin Days picker)', () => {
 
 	it('removes a Day whose Seatings were never reserved, cascading the Seatings', async () => {
 		const { saveEventSchedule } = await import('../../src/lib/server/services/event-schedule');
+		await testDb.update(events).set({ published: false }).where(eq(events.id, event.id));
 
 		const session = await seedSeating(new Date('2099-06-10T19:00:00Z'), new Date('2099-06-10T22:00:00Z'));
 		await saveEventSchedule(event.id, [{ date: '2099-06-10', kinds: ['dinner'] }]);
@@ -412,6 +413,23 @@ describe('saveEventSchedule (admin Days picker)', () => {
 		const [row] = await testDb.select().from(events).where(eq(events.id, event.id));
 		expect(row.startDate.toISOString()).toBe('2099-06-12T00:00:00.000Z');
 		expect(row.endDate.toISOString()).toBe('2099-06-12T23:59:59.999Z');
+	});
+
+	it('refuses removals that would leave a published Event without any Seating', async () => {
+		const { saveEventSchedule, PublishedEventWithoutSeatingError } = await import('../../src/lib/server/services/event-schedule');
+
+		const session = await seedSeating(new Date('2099-06-10T19:00:00Z'), new Date('2099-06-10T22:00:00Z'));
+		await saveEventSchedule(event.id, [{ date: '2099-06-10', kinds: ['dinner'] }]);
+
+		await expect(
+			saveEventSchedule(event.id, [{ date: '2099-06-12', kinds: ['dinner'] }])
+		).rejects.toBeInstanceOf(PublishedEventWithoutSeatingError);
+
+		const seatings = await testDb.select().from(eventSessions).where(eq(eventSessions.id, session.id));
+		expect(seatings).toHaveLength(1);
+		expect(await loadPickerShape(event.id)).toEqual([
+			{ date: '2099-06-10', kinds: ['dinner'] },
+		]);
 	});
 
 	it('throws on an unknown Event', async () => {
