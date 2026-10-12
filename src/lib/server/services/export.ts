@@ -1,6 +1,7 @@
 import { db } from '../db';
 import { reservations, payments, eventSessions, events, waitlist } from '../db/schema';
 import { eq, and, desc, sql } from 'drizzle-orm';
+import { seatingTitle } from '$lib/utils/seating-title';
 
 /**
  * Format date to ISO-like string
@@ -102,8 +103,8 @@ export async function exportReservationsToCSV(options: {
 			r.guestEmail.toLowerCase().includes(query) ||
 			r.eventSession.event.titleEn.toLowerCase().includes(query) ||
 			r.eventSession.event.titleFr.toLowerCase().includes(query) ||
-			r.eventSession.titleEn.toLowerCase().includes(query) ||
-			r.eventSession.titleFr.toLowerCase().includes(query)
+			seatingTitle(r.eventSession, 'en').toLowerCase().includes(query) ||
+			seatingTitle(r.eventSession, 'fr').toLowerCase().includes(query)
 		);
 	}
 
@@ -119,7 +120,7 @@ export async function exportReservationsToCSV(options: {
 		'Status': r.status,
 		'Is Comp': r.isComp,
 		'Event': r.eventSession.event.titleEn,
-		'Session': r.eventSession.titleEn,
+		'Session': seatingTitle(r.eventSession, 'en'),
 		'Session Start': r.eventSession.startTime,
 		'Session End': r.eventSession.endTime,
 		'Payment Status': r.payment?.status || (r.isComp ? 'comp' : ''),
@@ -262,7 +263,7 @@ export async function exportWaitlistToCSV(options: { limit?: number } = {}) {
 		'Notified At': w.notifiedAt,
 		'Expires At': w.expiresAt,
 		'Event': w.eventSession.event.titleEn,
-		'Session': w.eventSession.titleEn,
+		'Session': seatingTitle(w.eventSession, 'en'),
 		'Session Start': w.eventSession.startTime,
 		'Created At': w.createdAt,
 	}));

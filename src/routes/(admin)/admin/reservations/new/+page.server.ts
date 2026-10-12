@@ -3,6 +3,7 @@ import { env } from '$lib/server/env';
 import { MOCK_EVENTS, MOCK_SESSIONS } from '$lib/mock-data';
 import { requireAdmin } from '$lib/server/auth-guards';
 import type { PageServerLoad, Actions } from './$types';
+import { seatingTitle } from '$lib/utils/seating-title';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	requireAdmin(locals);
@@ -15,7 +16,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 				const event = MOCK_EVENTS.find((e: any) => e.id === s.eventId);
 				return {
 					id: s.id,
-					titleEn: s.titleEn || s.title || '',
+					titleEn: seatingTitle(s, 'en'),
 					eventTitle: event?.titleEn || '',
 					startTime: new Date(s.startTime).toISOString(),
 					availableCapacity: s.availableCapacity,
@@ -49,7 +50,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 	return {
 		sessions: upcomingSessions.map((s: typeof upcomingSessions[number]) => ({
 			id: s.id,
-			titleEn: s.titleEn,
+			titleEn: seatingTitle(s, 'en'),
 			eventTitle: s.event.titleEn,
 			startTime: s.startTime.toISOString(),
 			availableCapacity: s.availableCapacity,

@@ -2,6 +2,7 @@
 	import BookingModal from './BookingModal.svelte';
 	import WaitlistForm from './WaitlistForm.svelte';
 	import { t, locale } from 'svelte-i18n';
+	import { seatingTitle } from '$lib/utils/seating-title';
 	import { formatCurrencyAmount, getCurrencySymbol } from '$lib/utils/currency';
 
 	interface Session {
@@ -64,8 +65,9 @@
 		return BADGE_LABEL[s.badgeType] ?? null;
 	}
 
+	// Untitled Seatings get the label derived from Day, Service and time.
 	function getTitle(s: Session): string {
-		return ($locale === 'en' ? s.titleEn : s.titleFr) || '';
+		return seatingTitle(s, $locale === 'en' ? 'en' : 'fr');
 	}
 
 	function getDescription(s: Session): string {

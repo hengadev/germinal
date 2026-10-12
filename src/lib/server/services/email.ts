@@ -9,6 +9,7 @@ import {
 	SendEmailCommand,
 	type SendEmailCommandInput,
 } from '@aws-sdk/client-ses';
+import { seatingTitle } from '$lib/utils/seating-title';
 
 let sesClient: SESClient | null = null;
 
@@ -182,7 +183,7 @@ Hi ${data.guestName},
 Your tickets for ${data.event.titleEn} are confirmed!
 
 EVENT DETAILS:
-${data.session.titleEn}
+${seatingTitle(data.session, 'en')}
 ${data.session.startTime.toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })}
 ${data.event.locationEn}
 
@@ -225,7 +226,7 @@ function generateTicketHtmlTemplate(data: TicketEmailData): string {
     <h3 style="margin: 24px 0 12px 0; color: #495057; font-size: 16px; font-weight: 600;">Event Details</h3>
     <table style="width: 100%; border-collapse: collapse;">
       <tr>
-        <td style="padding: 8px 0; color: #212529;"><strong>${escapeHtml(data.session.titleEn)}</strong></td>
+        <td style="padding: 8px 0; color: #212529;"><strong>${escapeHtml(seatingTitle(data.session, 'en'))}</strong></td>
       </tr>
       <tr>
         <td style="padding: 8px 0; color: #6c757d;">
@@ -390,7 +391,7 @@ Hi ${data.guestName},
 This is a friendly reminder that your event is coming up ${timePhrase}!
 
 EVENT DETAILS:
-${data.session.titleEn}
+${seatingTitle(data.session, 'en')}
 ${data.session.startTime.toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })}
 ${data.event.locationEn}
 
@@ -434,7 +435,7 @@ function generateEventReminderHtmlTemplate(data: TicketEmailData & { daysUntil: 
     <h3 style="margin: 24px 0 12px 0; color: #495057; font-size: 16px; font-weight: 600;">Event Details</h3>
     <table style="width: 100%; border-collapse: collapse;">
       <tr>
-        <td style="padding: 8px 0; color: #212529;"><strong>${escapeHtml(data.session.titleEn)}</strong></td>
+        <td style="padding: 8px 0; color: #212529;"><strong>${escapeHtml(seatingTitle(data.session, 'en'))}</strong></td>
       </tr>
       <tr>
         <td style="padding: 8px 0; color: #6c757d;">

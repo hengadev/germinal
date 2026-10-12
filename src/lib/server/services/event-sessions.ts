@@ -16,8 +16,8 @@ import {
 interface SessionWithEventAndSoldCount {
 	id: string;
 	event_id: string;
-	title_en: string;
-	title_fr: string;
+	title_en: string | null;
+	title_fr: string | null;
 	description_en: string | null;
 	description_fr: string | null;
 	published: boolean;

@@ -3,6 +3,7 @@ import { MOCK_EVENTS, MOCK_SESSIONS, MOCK_RESERVATIONS } from '$lib/mock-data';
 import { error, fail, redirect } from '@sveltejs/kit';
 import { requireAdmin } from '$lib/server/auth-guards';
 import type { PageServerLoad, Actions } from './$types';
+import { seatingTitlesWithFallback } from '$lib/utils/seating-title';
 
 export const load: PageServerLoad = async ({ params }) => {
 	if (env.USE_MOCK_DATA) {
@@ -95,8 +96,7 @@ export const load: PageServerLoad = async ({ params }) => {
 				cancelledAt: reservation.cancelledAt?.toISOString(),
 				createdAt: reservation.createdAt.toISOString(),
 				session: {
-					titleEn: reservation.eventSession.titleEn,
-					titleFr: reservation.eventSession.titleFr,
+					...seatingTitlesWithFallback(reservation.eventSession),
 					startTime: reservation.eventSession.startTime.toISOString(),
 					endTime: reservation.eventSession.endTime.toISOString(),
 					event: reservation.eventSession.event

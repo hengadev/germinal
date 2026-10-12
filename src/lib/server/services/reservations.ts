@@ -8,6 +8,7 @@ import { events } from '../db/schema';
 import { env } from '../env';
 import type { CreateReservationInput, CreateCompReservationInput, ReservationWithDetails } from '$lib/types/reservations';
 import { validatePromoCode, calculateDiscountAmount, incrementRedemption } from './promo-codes';
+import { seatingTitle } from '$lib/utils/seating-title';
 
 /**
  * Lock a Session row and atomically decrement its available capacity.
@@ -149,7 +150,7 @@ export async function createReservation(input: CreateReservationInput) {
 			amount: totalAmount,
 			currency: session.currency,
 			quantity: input.quantity,
-			productName: `${session.titleEn}${event ? ` — ${event.titleEn}` : ''}`,
+			productName: `${seatingTitle(session, 'en')}${event ? ` — ${event.titleEn}` : ''}`,
 			customerEmail: input.email,
 			metadata: {
 				reservationId: reservation.id,
@@ -507,7 +508,7 @@ export async function cancelReservationWithRefund(reservationId: string) {
 			guestPhone: reservation.guestPhone,
 			notificationPreference: reservation.notificationPreference,
 			eventTitle: reservation.eventSession.event.titleEn,
-			sessionTitle: reservation.eventSession.titleEn,
+			sessionTitle: seatingTitle(reservation.eventSession, 'en'),
 			sessionStartTime: reservation.eventSession.startTime,
 			refundCurrency: reservation.payment.currency,
 		};
@@ -716,7 +717,7 @@ export async function cancelReservation(reservationId: string) {
 			guestPhone: reservation.guestPhone,
 			notificationPreference: reservation.notificationPreference,
 			eventTitle: event?.titleEn ?? '',
-			sessionTitle: session.titleEn,
+			sessionTitle: seatingTitle(session, 'en'),
 			sessionStartTime: session.startTime,
 		};
 	});
@@ -860,7 +861,7 @@ export async function processRefund(reservationId: string, amount?: number) {
 			guestPhone: reservation.guestPhone,
 			notificationPreference: reservation.notificationPreference,
 			eventTitle: reservation.eventSession.event.titleEn,
-			sessionTitle: reservation.eventSession.titleEn,
+			sessionTitle: seatingTitle(reservation.eventSession, 'en'),
 			sessionStartTime: reservation.eventSession.startTime,
 			refundCurrency: reservation.payment.currency,
 			newRefundedTotal,

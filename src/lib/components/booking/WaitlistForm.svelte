@@ -5,6 +5,7 @@
 	import { browser } from '$app/environment';
 	import { page } from '$app/state';
 	import { t, locale } from 'svelte-i18n';
+	import { seatingTitle } from '$lib/utils/seating-title';
 
 	type NotificationPreference = 'email' | 'sms' | 'both';
 
@@ -27,11 +28,17 @@
 	} = $props();
 
 	// Helper to get localized session title
+	// Untitled Seatings get the label derived from Day, Service and time.
 	function getSessionTitle(session: Session): string {
-		if ($locale === 'en') {
-			return session.titleEn || session.title || '';
-		}
-		return session.titleFr || session.title || '';
+		const isEn = $locale === 'en';
+		return seatingTitle(
+			{
+				titleEn: session.titleEn || session.title,
+				titleFr: session.titleFr || session.title,
+				startTime: session.startTime,
+			},
+			isEn ? 'en' : 'fr'
+		);
 	}
 
 	// Form state

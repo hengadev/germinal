@@ -3,6 +3,7 @@ import { getPublishedScheduleByEventId, classifyServiceKind, utcDayKey, groupSch
 import { MOCK_EVENTS, MOCK_SESSIONS, USE_MOCK_DATA } from '$lib/mock-data';
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
+import { seatingTitlesWithFallback } from '$lib/utils/seating-title';
 
 export const load: PageServerLoad = async ({ params }) => {
   // Use mock data if enabled (no database required!)
@@ -18,8 +19,7 @@ export const load: PageServerLoad = async ({ params }) => {
         serviceKind: classifyServiceKind(s.startTime),
         item: {
           id: s.id,
-          titleEn: (s as any).titleEn || s.title,
-          titleFr: (s as any).titleFr || s.title,
+          ...seatingTitlesWithFallback(s),
           descriptionEn: (s as any).descriptionEn ?? null,
           descriptionFr: (s as any).descriptionFr ?? null,
           startTime: s.startTime.toISOString(),

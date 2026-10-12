@@ -240,7 +240,7 @@ export const load: PageServerLoad = async ({ params }) => {
 				createdAt: r.createdAt.toISOString(),
 				confirmedAt: r.confirmedAt?.toISOString(),
 				eventTitle: event.titleEn,
-				sessionTitle: r.eventSession.titleEn,
+				sessionTitle: seatingTitle(r.eventSession, 'en'),
 				sessionStartTime: r.eventSession.startTime.toISOString(),
 				paymentStatus: r.payment?.status || 'none',
 				isComp: r.isComp

@@ -1365,7 +1365,7 @@ export function groupScheduleByDayAndService<T>(
  */
 export async function getPublishedScheduleByEventId(
 	eventId: string
-): Promise<ScheduleRow<typeof eventSessions.$inferSelect>[]> {
+): Promise<ScheduleRow<typeof eventSessions.$inferSelect & { titleEn: string; titleFr: string }>[]> {
 	const rows: {
 		dayDate: string;
 		serviceKind: (typeof eventServices.$inferSelect)['kind'];

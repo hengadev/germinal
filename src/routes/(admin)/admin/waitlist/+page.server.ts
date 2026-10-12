@@ -2,6 +2,7 @@ import { env } from '$lib/server/env';
 import { fail } from '@sveltejs/kit';
 import { requireAdmin } from '$lib/server/auth-guards';
 import type { PageServerLoad, Actions } from './$types';
+import { seatingTitle } from '$lib/utils/seating-title';
 
 export const load: PageServerLoad = async ({ url }) => {
 	if (env.USE_MOCK_DATA) {
@@ -95,7 +96,7 @@ export const load: PageServerLoad = async ({ url }) => {
 			createdAt: entry.createdAt.toISOString(),
 			session: {
 				id: entry.eventSession.id,
-				title: entry.eventSession.titleEn,
+				title: seatingTitle(entry.eventSession, 'en'),
 				startTime: entry.eventSession.startTime.toISOString(),
 				eventTitle: entry.eventSession.event?.titleEn || '',
 				eventSlug: entry.eventSession.event?.slug || ''
@@ -103,7 +104,7 @@ export const load: PageServerLoad = async ({ url }) => {
 		})),
 		sessions: allSessions.map((s: typeof allSessions[number]) => ({
 			id: s.id,
-			title: `${s.event?.titleEn || ''}: ${s.titleEn}`,
+			title: `${s.event?.titleEn || ''}: ${seatingTitle(s, 'en')}`,
 			startTime: s.startTime.toISOString()
 		})),
 		filters: {

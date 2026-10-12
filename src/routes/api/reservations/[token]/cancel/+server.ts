@@ -5,6 +5,7 @@ import { db } from '$lib/server/db';
 import { reservations, payments, eventSessions } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
 import { logger } from '$lib/server/logger';
+import { seatingTitle } from '$lib/utils/seating-title';
 
 // Cancellation window: 24 hours before event
 const CANCELLATION_WINDOW_HOURS = 24;
@@ -160,7 +161,7 @@ export const POST: RequestHandler = async ({ params }) => {
 					guestEmail: reservation.guestEmail,
 					guestName: reservation.guestName,
 					eventTitle: reservation.eventSession.event.titleEn,
-					sessionTitle: reservation.eventSession.titleEn,
+					sessionTitle: seatingTitle(reservation.eventSession, 'en'),
 					sessionStartTime: reservation.eventSession.startTime,
 					reservationId: reservation.id,
 					amount: refundResult.amount,
@@ -173,7 +174,7 @@ export const POST: RequestHandler = async ({ params }) => {
 					guestEmail: reservation.guestEmail,
 					guestName: reservation.guestName,
 					eventTitle: reservation.eventSession.event.titleEn,
-					sessionTitle: reservation.eventSession.titleEn,
+					sessionTitle: seatingTitle(reservation.eventSession, 'en'),
 					sessionStartTime: reservation.eventSession.startTime,
 					reservationId: reservation.id,
 				});
@@ -236,7 +237,7 @@ export const GET: RequestHandler = async ({ params }) => {
 				id: reservation.id,
 				status: reservation.status,
 				eventTitle: reservation.eventSession.event.titleEn,
-				sessionTitle: reservation.eventSession.titleEn,
+				sessionTitle: seatingTitle(reservation.eventSession, 'en'),
 				sessionStartTime: reservation.eventSession.startTime,
 			},
 		});

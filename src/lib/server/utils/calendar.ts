@@ -1,4 +1,5 @@
 import type { Event, EventSession } from '$lib/server/db/schema';
+import { seatingTitle } from '$lib/utils/seating-title';
 
 /**
  * Generate Google Calendar URL for an event session
@@ -15,9 +16,9 @@ export function generateGoogleCalendarUrl(event: Event, session: EventSession): 
 	// Build the URL parameters
 	const params = new URLSearchParams({
 		action: 'TEMPLATE',
-		text: `${event.titleEn} - ${session.titleEn}`,
+		text: `${event.titleEn} - ${seatingTitle(session, 'en')}`,
 		dates: `${formatDate(startDate)}/${formatDate(endDate)}`,
-		details: `Event: ${event.titleEn}\nSession: ${session.titleEn}\n\n${event.descriptionEn?.substring(0, 500) || ''}`,
+		details: `Event: ${event.titleEn}\nSession: ${seatingTitle(session, 'en')}\n\n${event.descriptionEn?.substring(0, 500) || ''}`,
 		location: event.locationEn || '',
 	});
 
@@ -60,7 +61,7 @@ export function generateICS(event: Event, session: EventSession): string {
 		`DTSTAMP:${formatICSDate(new Date())}`,
 		`DTSTART:${formatICSDate(startDate)}`,
 		`DTEND:${formatICSDate(endDate)}`,
-		`SUMMARY:${escapeICS(`${event.titleEn} - ${session.titleEn}`)}`,
+		`SUMMARY:${escapeICS(`${event.titleEn} - ${seatingTitle(session, 'en')}`)}`,
 		`DESCRIPTION:${escapeICS(event.descriptionEn?.substring(0, 500) || 'Event')}`,
 		`LOCATION:${escapeICS(event.locationEn || '')}`,
 		'STATUS:CONFIRMED',

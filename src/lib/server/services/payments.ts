@@ -4,6 +4,7 @@ import { payments, reservations, eventSessions } from '../db/schema';
 import { eq } from 'drizzle-orm';
 import type Stripe from 'stripe';
 import { sendTicketConfirmationEmail } from './email';
+import { seatingTitle } from '$lib/utils/seating-title';
 
 /**
  * Handle successful payment from Stripe webhook
@@ -283,7 +284,7 @@ export async function handleRefund(charge: Stripe.Charge) {
 				guestEmail: reservation.guestEmail,
 				guestName: reservation.guestName,
 				eventTitle: reservation.eventSession.event.titleEn,
-				sessionTitle: reservation.eventSession.titleEn,
+				sessionTitle: seatingTitle(reservation.eventSession, 'en'),
 				sessionStartTime: reservation.eventSession.startTime,
 				reservationId: reservation.id,
 				amount: refundedAmount,
