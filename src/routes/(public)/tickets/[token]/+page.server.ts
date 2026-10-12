@@ -31,6 +31,9 @@ export const load: PageServerLoad = async ({ params }) => {
 			guestEmail: reservation.guestEmail,
 			quantity: reservation.quantity,
 			totalAmount: reservation.totalAmount,
+			// Issue 023: the Deposit paid online and the Balance due at the venue.
+			depositAmount: reservation.depositAmount,
+			balanceAmount: reservation.balanceAmount,
 			currency: reservation.currency,
 			status: reservation.status,
 			confirmedAt: reservation.confirmedAt?.toISOString(),

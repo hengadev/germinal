@@ -4,12 +4,24 @@
 	// offers and its price per guest. The same Menu can be offered on several
 	// Services at different prices; a price of zero is a free meal. A
 	// Service without a price cannot be booked yet.
+	// The Event's Deposit rule (issue 023) lives here too, with the Deposit
+	// each price gives shown live next to it — worked out by the same
+	// Pricing module the booking uses.
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
 	import { AlertTriangle, CalendarDays, Plus, Trash2, UtensilsCrossed } from 'lucide-svelte';
 	import { getToastContext } from '$lib/components/toast/state.svelte';
 	import { formatCurrency } from '$lib/utils/currency';
 	import type { PricingEditorData, PricingPayload } from '$lib/types/pricing-editor';
+	import {
+		FULL_PAYMENT_DEPOSIT,
+		MAX_FIXED_DEPOSIT,
+		isFullPayment,
+		isValidDepositRule,
+		priceReservation,
+		type DepositRule,
+		type DepositType,
+	} from '$lib/utils/pricing';
 
 	let { data }: { data: { pricing?: PricingEditorData } } = $props();
 
@@ -66,7 +78,25 @@
 		}));
 	}
 
+	/** The Deposit rule as edited: percentage as typed, fixed amount in
+	 * major units as typed. */
+	interface DraftDeposit {
+		type: DepositType;
+		percent: number | null;
+		fixed: number | null;
+	}
+
+	function toDraftDeposit(pricing: PricingEditorData | undefined): DraftDeposit {
+		const rule = pricing?.deposit ?? FULL_PAYMENT_DEPOSIT;
+		return {
+			type: rule.type,
+			percent: rule.type === 'percent' ? rule.value : 30,
+			fixed: rule.type === 'fixed' ? rule.value / 100 : null,
+		};
+	}
+
 	let menus: DraftMenu[] = $state(toDraftMenus(data.pricing));
+	let deposit: DraftDeposit = $state(toDraftDeposit(data.pricing));
 	let services: DraftService[] = $state(toDraftServices(data.pricing));
 	let saving = $state(false);
 
@@ -78,6 +108,40 @@
 	/** A typed price is valid when it is a non-negative amount to the cent. */
 	function isValidPrice(price: number | null): boolean {
 		return price !== null && Number.isFinite(price) && price >= 0 && Math.abs(Math.round(price * 100) - price * 100) < 1e-6;
+	}
+
+	/** The rule as posted, or null while what is typed is not valid. */
+	const depositRule: DepositRule | null = $derived.by(() => {
+		let rule: DepositRule;
+		if (deposit.type === 'none') {
+			rule = { type: 'none', value: 0 };
+		} else if (deposit.type === 'percent') {
+			if (isBlank(deposit.percent)) return null;
+			rule = { type: 'percent', value: Number(deposit.percent) };
+		} else {
+			if (isBlank(deposit.fixed) || !isValidPrice(deposit.fixed)) return null;
+			rule = { type: 'fixed', value: Math.round((deposit.fixed as number) * 100) };
+		}
+		return isValidDepositRule(rule) ? rule : null;
+	});
+
+	/** What one guest pays online and at the venue for a Service's price,
+	 * per the rule being edited (same Pricing module as the booking). */
+	function depositPreview(service: DraftService): string | null {
+		if (isBlank(service.price) || !isValidPrice(service.price) || !depositRule) return null;
+		const unitPrice = Math.round((service.price as number) * 100);
+		if (unitPrice === 0) return 'Repas gratuit : rien à régler.';
+		const price = priceReservation({ unitPrice, seats: 1, deposit: depositRule });
+		const amount = (value: number) => formatCurrency(value, service.currency, 'fr-FR');
+		if (price.balance === 0) {
+			return isFullPayment(depositRule)
+				? `Paiement intégral en ligne : ${amount(price.deposit)} par convive.`
+				: `Acompte : ${amount(price.deposit)} par convive (le prix entier) — rien à régler sur place.`;
+		}
+		if (price.deposit === 0) {
+			return `Pas d’acompte : ${amount(price.balance)} par convive à régler sur place.`;
+		}
+		return `Acompte : ${amount(price.deposit)} par convive — reste ${amount(price.balance)} à régler sur place.`;
 	}
 
 	const payload = $derived(
@@ -97,6 +161,8 @@
 				currency: service.currency,
 				clearLegacyPrices: service.clearLegacyPrices,
 			})),
+			// An invalid rule is caught before posting (firstBlockingField).
+			deposit: depositRule ?? undefined,
 		} satisfies PricingPayload)
 	);
 
@@ -140,6 +206,14 @@
 				return { id: `menu-${menu.key}-nameEn`, message: `Le menu ${index + 1} doit avoir un nom en anglais.` };
 			}
 		}
+		if (!depositRule) {
+			return deposit.type === 'percent'
+				? { id: 'deposit-percent', message: 'Pourcentage d’acompte invalide : saisissez un nombre entier entre 1 et 100.' }
+				: {
+					id: 'deposit-fixed',
+					message: `Acompte fixe invalide : saisissez un montant par convive supérieur à zéro, au centime près (${MAX_FIXED_DEPOSIT / 100} au plus).`,
+				};
+		}
 		for (const service of services) {
 			const label = `${MEAL_LABEL[service.kind].toLowerCase()} du ${dayLabel(service.date)}`;
 			const blank = isBlank(service.price);
@@ -175,6 +249,7 @@
 				await invalidateAll();
 				menus = toDraftMenus(data.pricing);
 				services = toDraftServices(data.pricing);
+				deposit = toDraftDeposit(data.pricing);
 			} else if (result.type === 'failure') {
 				toast.error('Erreur', (result.data as { error?: string })?.error ?? 'Une erreur est survenue');
 			} else if (result.type === 'error') {
@@ -294,6 +369,70 @@
 		</div>
 	</section>
 
+	<section class="bg-background rounded-lg border border-border-card" aria-labelledby="deposit-title">
+		<header class="p-4 lg:p-6 border-b border-border-card">
+			<h3 id="deposit-title" class="text-lg font-semibold text-foreground">Acompte</h3>
+			<p class="text-sm text-muted-foreground">
+				Ce que le convive règle en ligne à la réservation ; le reste est à régler sur place. L’acompte est
+				calculé sur le prix après code promo et ne dépasse jamais ce prix. Le montant obtenu s’affiche à
+				côté de chaque prix ci-dessous.
+			</p>
+		</header>
+		<fieldset class="px-4 lg:px-6 py-4 space-y-3">
+			<legend class="sr-only">Règle d’acompte</legend>
+			<label class="flex items-start gap-3 text-sm text-foreground">
+				<input type="radio" name="deposit-type" value="percent" bind:group={deposit.type} class="mt-0.5 size-4" />
+				<span>
+					Acompte en pourcentage
+					<span class="block text-xs text-muted-foreground">À 100 %, le convive paie tout en ligne (paiement intégral).</span>
+				</span>
+			</label>
+			{#if deposit.type === 'percent'}
+				<div class="pl-7 max-w-[12rem]">
+					<label for="deposit-percent" class={LABEL_CLASS}>Pourcentage du prix (1 à 100)</label>
+					<div class="flex items-center gap-2">
+						<input
+							id="deposit-percent"
+							type="number"
+							inputmode="numeric"
+							min="1"
+							max="100"
+							step="1"
+							bind:value={deposit.percent}
+							aria-invalid={!depositRule ? 'true' : undefined}
+							class={INPUT_CLASS}
+						/>
+						<span class="text-sm text-muted-foreground">%</span>
+					</div>
+				</div>
+			{/if}
+			<label class="flex items-start gap-3 text-sm text-foreground">
+				<input type="radio" name="deposit-type" value="fixed" bind:group={deposit.type} class="mt-0.5 size-4" />
+				<span>Acompte fixe par convive</span>
+			</label>
+			{#if deposit.type === 'fixed'}
+				<div class="pl-7 max-w-[12rem]">
+					<label for="deposit-fixed" class={LABEL_CLASS}>Montant par convive</label>
+					<input
+						id="deposit-fixed"
+						type="number"
+						inputmode="decimal"
+						min="0.01"
+						step="0.01"
+						bind:value={deposit.fixed}
+						aria-invalid={!depositRule ? 'true' : undefined}
+						class={INPUT_CLASS}
+					/>
+					<p class="mt-1 text-xs text-muted-foreground">Dans la devise de chaque repas ; jamais plus que le prix.</p>
+				</div>
+			{/if}
+			<label class="flex items-start gap-3 text-sm text-foreground">
+				<input type="radio" name="deposit-type" value="none" bind:group={deposit.type} class="mt-0.5 size-4" />
+				<span>Pas d’acompte (tout est réglé sur place)</span>
+			</label>
+		</fieldset>
+	</section>
+
 	<section class="bg-background rounded-lg border border-border-card" aria-labelledby="service-prices-title">
 		<header class="p-4 lg:p-6 border-b border-border-card">
 			<h3 id="service-prices-title" class="text-lg font-semibold text-foreground">Menu et prix par repas</h3>
@@ -356,6 +495,10 @@
 								</select>
 							</div>
 						</div>
+
+						{#if depositPreview(service)}
+							<p class="text-xs text-muted-foreground" aria-live="polite">{depositPreview(service)}</p>
+						{/if}
 
 						{#if blank && service.seatingCount > 0}
 							<p class="flex items-center gap-1.5 text-xs text-amber-700">

@@ -4,6 +4,7 @@ import { MOCK_EVENTS, MOCK_SESSIONS, USE_MOCK_DATA } from '$lib/mock-data';
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { seatingTitlesWithFallback } from '$lib/utils/seating-title';
+import { depositRuleOf } from '$lib/utils/pricing';
 
 function mapSession(s: (typeof MOCK_SESSIONS)[number]) {
 	return {
@@ -33,7 +34,7 @@ export const load: PageServerLoad = async ({ params }) => {
 		);
 		if (!session) throw error(404, 'Session not found');
 
-		return { event, session: mapSession(session), isMockMode: true };
+		return { event, session: mapSession(session), deposit: depositRuleOf(event), isMockMode: true };
 	}
 
 	try {
@@ -62,6 +63,9 @@ export const load: PageServerLoad = async ({ params }) => {
 				soldOut: dbSession.availableCapacity === 0,
 				isPast: dbSession.startTime < new Date()
 			},
+			// The Event's Deposit rule (issue 023): the Guest sees the total,
+			// Deposit and Balance before paying.
+			deposit: depositRuleOf(event),
 			isMockMode: false
 		};
 	} catch {

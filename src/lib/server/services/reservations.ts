@@ -7,7 +7,8 @@ import { createCheckoutSession } from './stripe';
 import { events } from '../db/schema';
 import { env } from '../env';
 import type { CreateReservationInput, CreateCompReservationInput, ReservationWithDetails } from '$lib/types/reservations';
-import { validatePromoCode, calculateDiscountAmount, incrementRedemption } from './promo-codes';
+import { validatePromoCode, incrementRedemption } from './promo-codes';
+import { FULL_PAYMENT_DEPOSIT, depositRuleOf, priceReservation, type PromoDiscount } from '$lib/utils/pricing';
 import { seatingTitle } from '$lib/utils/seating-title';
 import { getSeatingPrice } from './service-pricing';
 
@@ -102,10 +103,8 @@ export async function createReservation(input: CreateReservationInput) {
 		if (!price) {
 			throw new SeatingNotPricedError();
 		}
-		const baseAmount = price.amount * input.quantity;
-
-		// Step 4a: Validate and apply promo code if provided
-		let discountAmount = 0;
+		// Step 4a: Validate and claim the promo code if provided
+		let discount: PromoDiscount | null = null;
 		let promotionCodeId: string | null = null;
 
 		if (input.promoCode) {
@@ -113,18 +112,32 @@ export async function createReservation(input: CreateReservationInput) {
 			if (!promoResult.valid) {
 				throw new Error(`Invalid promotion code: ${promoResult.error}`);
 			}
-			discountAmount = calculateDiscountAmount(
-				promoResult.discountType,
-				promoResult.discountValue,
-				baseAmount
-			);
+			discount = { discountType: promoResult.discountType, discountValue: promoResult.discountValue };
 			promotionCodeId = promoResult.promotionCodeId;
 
 			// Atomically claim the promo code slot
 			await incrementRedemption(promotionCodeId, tx);
 		}
 
-		const totalAmount = baseAmount - discountAmount;
+		// Step 4b: Price through Pricing (issue 023): the discount applies to
+		// the meal, the Event's Deposit rule splits the discounted total into
+		// the Deposit charged now and the Balance due at the venue.
+		const [event] = await tx
+			.select({
+				titleEn: events.titleEn,
+				slug: events.slug,
+				depositType: events.depositType,
+				depositValue: events.depositValue,
+			})
+			.from(events)
+			.where(eq(events.id, session.eventId));
+
+		const pricing = priceReservation({
+			unitPrice: price.amount,
+			seats: input.quantity,
+			discount,
+			deposit: event ? depositRuleOf(event) : FULL_PAYMENT_DEPOSIT,
+		});
 
 		// Step 5: Generate secure access token
 		const accessToken = generateAccessToken();
@@ -141,7 +154,9 @@ export async function createReservation(input: CreateReservationInput) {
 			guestPhone: input.phone ?? null,
 			notificationPreference: input.notificationPreference ?? 'both',
 			quantity: input.quantity,
-			totalAmount,
+			totalAmount: pricing.total,
+			depositAmount: pricing.deposit,
+			balanceAmount: pricing.balance,
 			currency: price.currency,
 			status: 'pending',
 			accessToken,
@@ -149,23 +164,24 @@ export async function createReservation(input: CreateReservationInput) {
 			ipAddress: input.ipAddress ?? null,
 			userAgent: input.userAgent ?? null,
 			promotionCodeId,
-			discountAmount,
+			discountAmount: pricing.discount,
 		}).returning();
 
-		// Step 8: Load event title for checkout session product name
-		const [event] = await tx
-			.select({ titleEn: events.titleEn, slug: events.slug })
-			.from(events)
-			.where(eq(events.id, session.eventId));
-
-		// Step 9: Create Stripe Checkout Session (hosted payment page)
+		// Step 8: Create Stripe Checkout Session (hosted payment page) for
+		// the Deposit only — one line item whose amount is the Deposit, so
+		// Stripe charges exactly that (the Promo Code is already in it). A
+		// Deposit below the whole total is named as such.
+		// (A zero Deposit still goes through Checkout for now: issue 025.)
+		const seatingLabel = `${seatingTitle(session, 'en')}${event ? ` — ${event.titleEn}` : ''}`;
 		const checkoutSession = await createCheckoutSession({
 			reservationId: reservation.id,
 			accessToken,
-			amount: totalAmount,
+			amount: pricing.deposit,
 			currency: price.currency,
 			quantity: input.quantity,
-			productName: `${seatingTitle(session, 'en')}${event ? ` — ${event.titleEn}` : ''}`,
+			productName: pricing.balance > 0
+				? `Acompte / Deposit — ${seatingLabel} × ${input.quantity}`
+				: seatingLabel,
 			customerEmail: input.email,
 			metadata: {
 				reservationId: reservation.id,
@@ -182,14 +198,14 @@ export async function createReservation(input: CreateReservationInput) {
 		// Store Checkout Session ID for potential cleanup
 		checkoutSessionId = checkoutSession.id;
 
-		// Step 10: Store payment record using checkout session ID as the identifier.
+		// Step 9: Store payment record (the Deposit charged) using checkout session ID as the identifier.
 		// payment_intent is null at session creation time on this Stripe API version —
 		// it is populated when checkout.session.completed fires and we update it then.
 		await tx.insert(payments).values({
 			reservationId: reservation.id,
 			stripePaymentIntentId: checkoutSession.id, // placeholder; updated by webhook
 			stripeClientSecret: null,
-			amount: totalAmount,
+			amount: pricing.deposit,
 			currency: price.currency,
 			status: 'pending',
 			idempotencyKey: `reservation-${reservation.id}`,
@@ -252,7 +268,10 @@ export async function createCompReservation(input: CreateCompReservationInput) {
 			guestPhone: input.phone ?? null,
 			notificationPreference: input.notificationPreference ?? 'both',
 			quantity: input.quantity,
+			// Nothing to collect: no Deposit, no Balance.
 			totalAmount: 0,
+			depositAmount: 0,
+			balanceAmount: 0,
 			currency: price?.currency ?? 'EUR',
 			status: 'confirmed',
 			accessToken,

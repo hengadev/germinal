@@ -102,6 +102,8 @@ async function seedReservation(
 			ipAddress: '203.0.113.7',
 			userAgent: 'Mozilla/5.0',
 			totalAmount: 2500,
+			depositAmount: 2500,
+			balanceAmount: 0,
 			status: 'confirmed',
 			accessToken: `atk-${Math.random().toString(36).slice(2, 12)}`,
 			expiresAt: NOW,

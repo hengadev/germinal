@@ -140,9 +140,11 @@ async function seedPublishedSession(overrides?: Partial<typeof eventSessions.$in
  * database.  This mirrors the state left behind by `createReservation` +
  * `handlePaymentSuccess` without going through those code-paths.
  */
-async function seedConfirmedReservation(sessionId: string, overrides?: { quantity?: number; totalAmount?: number }) {
+async function seedConfirmedReservation(sessionId: string, overrides?: { quantity?: number; totalAmount?: number; depositAmount?: number }) {
 	const quantity = overrides?.quantity ?? 2;
 	const totalAmount = overrides?.totalAmount ?? 5000;
+	// The Deposit paid online (issue 023); the whole total by default.
+	const depositAmount = overrides?.depositAmount ?? totalAmount;
 
 	const accessToken = `test-atk-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
@@ -154,6 +156,8 @@ async function seedConfirmedReservation(sessionId: string, overrides?: { quantit
 			guestName: 'Test Guest',
 			quantity,
 			totalAmount,
+			depositAmount,
+			balanceAmount: totalAmount - depositAmount,
 			currency: 'EUR',
 			status: 'confirmed',
 			accessToken,
@@ -167,7 +171,7 @@ async function seedConfirmedReservation(sessionId: string, overrides?: { quantit
 		.values({
 			reservationId: reservation.id,
 			stripePaymentIntentId: `pi_test_${reservation.id}`,
-			amount: totalAmount,
+			amount: depositAmount,
 			currency: 'EUR',
 			status: 'succeeded',
 			idempotencyKey: `test-ik-${reservation.id}`,
@@ -200,6 +204,8 @@ async function seedPendingReservation(sessionId: string, overrides?: { quantity?
 			guestName: 'Test Guest',
 			quantity,
 			totalAmount,
+			depositAmount: totalAmount,
+			balanceAmount: 0,
 			currency: 'EUR',
 			status: 'pending',
 			accessToken,
@@ -313,6 +319,8 @@ describe('cancelReservationWithRefund', () => {
 				guestName: 'Test Guest',
 				quantity: 2,
 				totalAmount: 5000,
+				depositAmount: 5000,
+				balanceAmount: 0,
 				currency: 'EUR',
 				status: 'confirmed',
 				accessToken,
@@ -447,6 +455,30 @@ describe('processRefund', () => {
 		expect(unchangedSession.availableCapacity).toBe(90);
 	});
 
+	it('Deposit only — a refund is capped at the Deposit paid, not the Reservation total', async () => {
+		const { session } = await seedPublishedSession({ availableCapacity: 90 });
+		const { reservation, payment } = await seedConfirmedReservation(session.id, {
+			quantity: 2,
+			totalAmount: 13000,
+			depositAmount: 3900,
+		});
+
+		await expect(processRefund(reservation.id, 5000)).rejects.toThrow(
+			'Refund amount exceeds the remaining refundable balance'
+		);
+		expect(vi.mocked(createRefund)).not.toHaveBeenCalled();
+
+		vi.mocked(createRefund).mockResolvedValueOnce({ id: 're_test_deposit', amount: 3900, status: 'succeeded' } as any);
+		await processRefund(reservation.id);
+
+		expect(vi.mocked(createRefund)).toHaveBeenCalledWith(payment.stripePaymentIntentId, 3900);
+		const [updatedPay] = await testDb
+			.select()
+			.from(payments)
+			.where(eq(payments.reservationId, reservation.id));
+		expect(updatedPay).toMatchObject({ status: 'refunded', refundedAmount: 3900 });
+	});
+
 	it('second partial refund after a first — remaining balance shrinks and status stays partially_refunded until fully refunded', async () => {
 		const { session } = await seedPublishedSession({ availableCapacity: 90 });
 		const { reservation, payment } = await seedConfirmedReservation(session.id, {
@@ -559,6 +591,8 @@ describe('expireReservation', () => {
 				guestName: 'Test Guest',
 				quantity: 2,
 				totalAmount: 5000,
+				depositAmount: 5000,
+				balanceAmount: 0,
 				currency: 'EUR',
 				status: 'expired',
 				accessToken: `test-atk-expired-${Date.now()}`,

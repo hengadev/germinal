@@ -22,7 +22,8 @@
 	let cancelSuccess = $state(false);
 	let refundAmount = $state<number | null>(null);
 
-	let hasPayment = $derived(data.reservation.payment !== null && data.reservation.totalAmount > 0);
+	// What was paid online is the Deposit (issue 023) — all a refund covers.
+	let hasPayment = $derived(data.reservation.payment !== null && data.reservation.depositAmount > 0);
 
 	// The backend only returns a reason once the confirmed-status check has already passed,
 	// so in practice the remaining failure case is the 24h window — but fall back to a
@@ -89,7 +90,7 @@
 			}
 
 			// Capture refund details before invalidateAll refreshes `data`.
-			refundAmount = hasPayment ? data.reservation.totalAmount : null;
+			refundAmount = hasPayment ? data.reservation.depositAmount : null;
 			showCancelModal = false;
 			cancelSuccess = true;
 			cancellationState = 'idle';
@@ -439,15 +440,40 @@ END:VCALENDAR`;
 						{$t('tickets.paymentDetails')}
 					</h3>
 					<dl class="divide-y divide-border-card">
-						<div class="flex items-center justify-between py-2.5 gap-4">
-							<dt class="flex items-center gap-2 text-sm text-muted-foreground">
-								<CreditCard size={15} class="text-muted-foreground" />
-								{$t('tickets.totalPaid')}
-							</dt>
-							<dd class="text-sm font-semibold text-foreground">
-								{formatCurrency(data.reservation.totalAmount, data.reservation.currency, $locale ?? undefined)}
-							</dd>
-						</div>
+						{#if data.reservation.balanceAmount > 0}
+							<!-- A Deposit was paid online; the Balance is settled at the venue (issue 023). -->
+							<div class="flex items-center justify-between py-2.5 gap-4">
+								<dt class="text-sm text-muted-foreground">{$t('booking.deposit.total')}</dt>
+								<dd class="text-sm text-foreground">
+									{formatCurrency(data.reservation.totalAmount, data.reservation.currency, $locale ?? undefined)}
+								</dd>
+							</div>
+							<div class="flex items-center justify-between py-2.5 gap-4">
+								<dt class="flex items-center gap-2 text-sm text-muted-foreground">
+									<CreditCard size={15} class="text-muted-foreground" />
+									{$t('tickets.depositPaid')}
+								</dt>
+								<dd class="text-sm font-semibold text-foreground">
+									{formatCurrency(data.reservation.depositAmount, data.reservation.currency, $locale ?? undefined)}
+								</dd>
+							</div>
+							<div class="flex items-center justify-between py-2.5 gap-4">
+								<dt class="font-serif text-base text-foreground">{$t('tickets.balanceDue')}</dt>
+								<dd class="font-mono text-base font-semibold text-foreground">
+									{formatCurrency(data.reservation.balanceAmount, data.reservation.currency, $locale ?? undefined)}
+								</dd>
+							</div>
+						{:else}
+							<div class="flex items-center justify-between py-2.5 gap-4">
+								<dt class="flex items-center gap-2 text-sm text-muted-foreground">
+									<CreditCard size={15} class="text-muted-foreground" />
+									{$t('tickets.totalPaid')}
+								</dt>
+								<dd class="text-sm font-semibold text-foreground">
+									{formatCurrency(data.reservation.totalAmount, data.reservation.currency, $locale ?? undefined)}
+								</dd>
+							</div>
+						{/if}
 					</dl>
 					{#if data.reservation.payment?.receiptUrl}
 						<a

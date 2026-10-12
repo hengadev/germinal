@@ -114,7 +114,9 @@
     "noSearchResults": "Aucun événement trouvé pour « {query} ».",
     "perGuest": "par convive",
     "free": "Gratuit",
-    "priceToBeAnnounced": "Tarif à venir"
+    "priceToBeAnnounced": "Tarif à venir",
+    "depositPerGuest": "Acompte de {amount} par convive, le reste sur place",
+    "noDepositNote": "Réglé en totalité sur place"
   },
   "talents": {
     "pageTitle": "Talents | Germinal",
@@ -264,7 +266,15 @@
       "sessionNotFound": "Cette session n'est plus disponible.",
       "rateLimit": "Trop de tentatives. Veuillez patienter quelques minutes avant de réessayer.",
       "generic": "Une erreur est survenue. Veuillez réessayer ou nous contacter si le problème persiste."
-    }
+    },
+    "deposit": {
+      "total": "Total",
+      "payNow": "Acompte à régler maintenant",
+      "balanceAtVenue": "Reste à régler sur place",
+      "noDeposit": "Rien à régler en ligne : la totalité se règle sur place.",
+      "note": "Seul l’acompte est débité en ligne ; le reste se règle sur place."
+    },
+    "continueToPayDeposit": "Continuer vers le paiement de l’acompte"
   },
   "waitlist": {
     "description": "Soyez averti dès que des billets sont disponibles",
@@ -331,7 +341,9 @@
       "successTitle": "Réservation annulée",
       "successWithRefund": "Votre réservation a été annulée et un remboursement de {amount} a été émis vers votre moyen de paiement d'origine. Le délai peut être de 5 à 10 jours ouvrés.",
       "successNoRefund": "Votre réservation a été annulée."
-    }
+    },
+    "depositPaid": "Acompte payé",
+    "balanceDue": "Reste à régler sur place"
   },
   "findTicket": {
     "pageTitle": "Retrouver mon billet | Germinal",

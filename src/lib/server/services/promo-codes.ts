@@ -3,6 +3,7 @@ import { logger } from '$lib/server/logger';
 import { coupons, promotionCodes, eventSessions } from '../db/schema';
 import { eq, and, sql, desc } from 'drizzle-orm';
 import { isStripeEnabled } from '../env';
+import { discountAmount } from '$lib/utils/pricing';
 
 export type PromoCodeForAdmin = {
 	id: string;
@@ -36,18 +37,15 @@ export type ValidatePromoCodeResult =
 	| { valid: false; error: string };
 
 /**
- * Calculate discount amount in cents for a given total
+ * Calculate discount amount in cents for a given total — the Pricing
+ * module's discount maths (rounded to the cent, never more than the total).
  */
 export function calculateDiscountAmount(
 	discountType: 'percent' | 'amount',
 	discountValue: number,
 	totalAmount: number
 ): number {
-	if (discountType === 'percent') {
-		return Math.round((totalAmount * discountValue) / 100);
-	}
-	// Fixed amount: cannot exceed total
-	return Math.min(discountValue, totalAmount);
+	return discountAmount({ discountType, discountValue }, totalAmount);
 }
 
 /**

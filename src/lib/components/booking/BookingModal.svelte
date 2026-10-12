@@ -7,6 +7,8 @@
 	import { formatCurrency } from '$lib/utils/currency';
 	import { t, locale } from 'svelte-i18n';
 	import { seatingTitle } from '$lib/utils/seating-title';
+	import { FULL_PAYMENT_DEPOSIT, priceReservation, type DepositRule } from '$lib/utils/pricing';
+	import DepositBreakdown from './DepositBreakdown.svelte';
 
 	type NotificationPreference = 'email' | 'sms' | 'both';
 
@@ -26,12 +28,15 @@
 		isOpen = $bindable(),
 		session,
 		eventTitle,
-		eventSlug
+		eventSlug,
+		deposit = FULL_PAYMENT_DEPOSIT
 	}: {
 		isOpen: boolean;
 		session: Session;
 		eventTitle: string;
 		eventSlug: string;
+		/** The Event's Deposit rule (issue 023). */
+		deposit?: DepositRule;
 	} = $props();
 
 	// Helper to get localized session title
@@ -75,8 +80,9 @@
 		};
 	});
 
-	// Calculate total
-	let totalAmount = $derived(session.priceAmount * quantity);
+	// Total, Deposit and Balance — same Pricing as the checkout (issue 023)
+	let price = $derived(priceReservation({ unitPrice: session.priceAmount, seats: quantity, deposit }));
+	let totalAmount = $derived(price.total);
 
 	// Validate form
 	let isFormValid = $derived(
@@ -309,6 +315,7 @@
 					{formatCurrency(totalAmount, session.currency, $locale ?? undefined)}
 				</span>
 			</div>
+			<DepositBreakdown {price} currency={session.currency} />
 		</div>
 
 		<!-- Submit Buttons -->
@@ -330,7 +337,7 @@
 					<Loader2 size={18} class="animate-spin" />
 					{$t('booking.processing')}
 				{:else}
-					{$t('booking.continueToPay')}
+					{price.balance > 0 && price.deposit > 0 ? $t('booking.continueToPayDeposit') : $t('booking.continueToPay')}
 				{/if}
 			</button>
 		</div>
