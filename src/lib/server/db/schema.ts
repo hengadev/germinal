@@ -171,9 +171,33 @@ export const eventDays = pgTable('event_days', {
     eventDateUnique: unique('event_days_event_date_unique').on(table.eventId, table.date),
 }));
 
+// A Menu is described once per Event (EN/FR) and offered on one or more
+// of its Services, each Service setting its own price (issue 022).
+export const eventMenus = pgTable('event_menus', {
+    id: uuid('id').defaultRandom().primaryKey(),
+    eventId: uuid('event_id')
+        .notNull()
+        .references(() => events.id, { onDelete: 'cascade' }),
+    nameEn: varchar('name_en', { length: 255 }).notNull(),
+    nameFr: varchar('name_fr', { length: 255 }).notNull(),
+    descriptionEn: text('description_en'),
+    descriptionFr: text('description_fr'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+    eventIdIdx: index('event_menus_event_id_idx').on(table.eventId),
+}));
+
 // A Service is a meal (lunch or dinner) on a Day and owns one or more
 // Seatings (the `event_sessions` table). The default Seating duration is
 // used to fill in end times for Seatings added without one.
+//
+// Pricing (issue 022): the Service offers one Menu and sets its price — the
+// price every Seating of the Service is booked at (in v1 a Service has a
+// single Menu, so the price lives here rather than on a Menu/Service join).
+// Both are optional until the Admin sets them: a Service picked on the Days
+// picker starts without a Menu or price, and its Seatings cannot be booked
+// until a price (possibly zero) is set.
 export const eventServices = pgTable('event_services', {
     id: uuid('id').defaultRandom().primaryKey(),
     dayId: uuid('day_id')
@@ -181,11 +205,25 @@ export const eventServices = pgTable('event_services', {
         .references(() => eventDays.id, { onDelete: 'cascade' }),
     kind: serviceKindEnum('kind').notNull(),
     defaultSeatingDurationMinutes: integer('default_seating_duration_minutes').notNull(),
+    // NO ACTION (not RESTRICT): deleting an Event cascades to both its
+    // Menus and its Services in one statement, which NO ACTION allows since
+    // it is checked at the end of the statement. Deleting a Menu still
+    // attached to a Service on its own is refused (the Menus service checks
+    // first with a French message; the constraint is the backstop).
+    menuId: uuid('menu_id')
+        .references(() => eventMenus.id),
+    // Minor units (cents), zero allowed (free Events, ADR 0001); NULL until set.
+    priceAmount: integer('price_amount'),
+    currency: varchar('currency', { length: 3 }).notNull().default('EUR'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => ({
     dayIdIdx: index('event_services_day_id_idx').on(table.dayId),
+    menuIdIdx: index('event_services_menu_id_idx').on(table.menuId),
     dayKindUnique: unique('event_services_day_kind_unique').on(table.dayId, table.kind),
+    priceCheck: check('event_services_price_check',
+        sql`price_amount IS NULL OR price_amount >= 0`
+    ),
 }));
 
 export const talents = pgTable('talents', {
@@ -266,6 +304,7 @@ export const eventsRelations = relations(events, ({ many, one }) => ({
     }),
     eventSessions: many(eventSessions),
     days: many(eventDays),
+    menus: many(eventMenus),
     coupons: many(coupons),
     staff: many(eventStaff),
     tasks: many(tasks),
@@ -279,10 +318,22 @@ export const eventDaysRelations = relations(eventDays, ({ one, many }) => ({
     services: many(eventServices),
 }));
 
+export const eventMenusRelations = relations(eventMenus, ({ one, many }) => ({
+    event: one(events, {
+        fields: [eventMenus.eventId],
+        references: [events.id],
+    }),
+    services: many(eventServices),
+}));
+
 export const eventServicesRelations = relations(eventServices, ({ one, many }) => ({
     day: one(eventDays, {
         fields: [eventServices.dayId],
         references: [eventDays.id],
+    }),
+    menu: one(eventMenus, {
+        fields: [eventServices.menuId],
+        references: [eventMenus.id],
     }),
     eventSessions: many(eventSessions),
 }));
@@ -551,8 +602,13 @@ export const eventSessions = pgTable('event_sessions', {
     totalCapacity: integer('total_capacity').notNull(),
     availableCapacity: integer('available_capacity').notNull(),
     capacityOverridden: boolean('capacity_overridden').default(false).notNull(),
-    priceAmount: integer('price_amount').notNull(),
-    currency: varchar('currency', { length: 3 }).notNull().default('EUR'),
+    // Legacy per-Seating price (issue 022): the price now lives on the
+    // Service. Only Seatings migrated from a Session whose price differed
+    // from the one its merged Service took keep their old price here, so no
+    // migrated booking price changed. Both NULL otherwise; never set for new
+    // Seatings. Read only through resolveSeatingPrice ($lib/utils/seating-price).
+    legacyPriceAmount: integer('legacy_price_amount'),
+    legacyCurrency: varchar('legacy_currency', { length: 3 }),
     published: boolean('published').default(false).notNull(),
     allowWaitlist: boolean('allow_waitlist').default(false).notNull(),
     badgeType: badgeTypeEnum('badge_type').notNull().default('none'),
@@ -572,8 +628,8 @@ export const eventSessions = pgTable('event_sessions', {
     timeRangeCheck: check('event_sessions_time_range_check',
         sql`end_time > start_time`
     ),
-    priceCheck: check('event_sessions_price_check',
-        sql`price_amount >= 0`
+    legacyPriceCheck: check('event_sessions_legacy_price_check',
+        sql`(legacy_price_amount IS NULL) = (legacy_currency IS NULL) AND (legacy_price_amount IS NULL OR legacy_price_amount >= 0)`
     ),
 }));
 
