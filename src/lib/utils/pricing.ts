@@ -62,8 +62,9 @@ export interface PriceBreakdown {
 }
 
 /** `percent` % of `amount` (both non-negative integers), rounded to the
- * cent half-up with integer arithmetic. */
-function percentOf(amount: number, percent: number): number {
+ * cent half-up with integer arithmetic. Shared with the Refund Policy
+ * module (issue 027) so every percentage is rounded the same way. */
+export function percentOf(amount: number, percent: number): number {
 	return Math.floor((amount * percent + 50) / 100);
 }
 
