@@ -7,6 +7,9 @@
 	// The Event's Deposit rule (issue 023) lives here too, with the Deposit
 	// each price gives shown live next to it — worked out by the same
 	// Pricing module the booking uses.
+	// And its Refund Policy (issue 027): a manual statement (EN/FR) or tiers
+	// in hours before the Seating, entered in hours or days, with the policy
+	// shown live as guests will read it.
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
 	import { AlertTriangle, CalendarDays, Plus, Trash2, UtensilsCrossed } from 'lucide-svelte';
@@ -22,6 +25,20 @@
 		type DepositRule,
 		type DepositType,
 	} from '$lib/utils/pricing';
+	import {
+		ALWAYS_REFUNDABLE_TIERS,
+		EMPTY_MANUAL_REFUND_POLICY,
+		MAX_HOURS_BEFORE,
+		MAX_REFUND_POLICY_TEXT,
+		MAX_TIERS,
+		NEVER_REFUNDABLE_TIERS,
+		describeRefundPolicy,
+		refundableUntilTiers,
+		validateTiers,
+		type RefundPolicy,
+		type RefundPolicyType,
+		type RefundTier,
+	} from '$lib/utils/refund-policy';
 
 	let { data }: { data: { pricing?: PricingEditorData } } = $props();
 
@@ -95,7 +112,45 @@
 		};
 	}
 
+	/** A tier as edited: its window in the chosen unit, as typed. */
+	interface DraftTier {
+		key: number;
+		amount: number | null;
+		unit: 'hours' | 'days';
+		percent: number | null;
+	}
+
+	interface DraftRefund {
+		type: RefundPolicyType;
+		textEn: string;
+		textFr: string;
+		tiers: DraftTier[];
+	}
+
+	function toDraftTiers(tiers: readonly RefundTier[]): DraftTier[] {
+		return tiers.map((tier) => {
+			const inDays = tier.hoursBefore > 0 && tier.hoursBefore % 24 === 0;
+			return {
+				key: nextKey++,
+				amount: inDays ? tier.hoursBefore / 24 : tier.hoursBefore,
+				unit: inDays ? 'days' : 'hours',
+				percent: tier.percent,
+			};
+		});
+	}
+
+	function toDraftRefund(pricing: PricingEditorData | undefined): DraftRefund {
+		const policy = pricing?.refundPolicy ?? EMPTY_MANUAL_REFUND_POLICY;
+		return {
+			type: policy.type,
+			textEn: policy.textEn ?? '',
+			textFr: policy.textFr ?? '',
+			tiers: toDraftTiers(policy.tiers.length > 0 ? policy.tiers : refundableUntilTiers(24)),
+		};
+	}
+
 	let menus: DraftMenu[] = $state(toDraftMenus(data.pricing));
+	let refund: DraftRefund = $state(toDraftRefund(data.pricing));
 	let deposit: DraftDeposit = $state(toDraftDeposit(data.pricing));
 	let services: DraftService[] = $state(toDraftServices(data.pricing));
 	let saving = $state(false);
@@ -144,6 +199,64 @@
 		return `Acompte : ${amount(price.deposit)} par convive — reste ${amount(price.balance)} à régler sur place.`;
 	}
 
+	/** The tiers as posted (hours, largest window first), or null while what
+	 * is typed is not valid. */
+	const refundTiers: RefundTier[] | null = $derived.by(() => {
+		const tiers: RefundTier[] = [];
+		for (const tier of refund.tiers) {
+			if (isBlank(tier.amount) || isBlank(tier.percent)) return null;
+			const amount = Number(tier.amount);
+			tiers.push({ hoursBefore: tier.unit === 'days' ? amount * 24 : amount, percent: Number(tier.percent) });
+		}
+		return validateTiers(tiers);
+	});
+
+	/** The policy as posted, or null while invalid. A manual policy keeps
+	 * the tiers typed so far when they are valid. */
+	const refundPolicy: RefundPolicy | null = $derived.by(() => {
+		const textEn = refund.textEn.trim();
+		const textFr = refund.textFr.trim();
+		if (textEn.length > MAX_REFUND_POLICY_TEXT || textFr.length > MAX_REFUND_POLICY_TEXT) return null;
+		if (refund.type === 'rules' && !refundTiers) return null;
+		return { type: refund.type, textEn: textEn || null, textFr: textFr || null, tiers: refundTiers ?? [] };
+	});
+
+	/** The policy as guests will read it, in French and English. */
+	const refundPreview = $derived.by(() => {
+		if (!refundPolicy) return null;
+		const options = { fullPayment: depositRule ? isFullPayment(depositRule) : false };
+		return {
+			fr: describeRefundPolicy(refundPolicy, 'fr', options),
+			en: describeRefundPolicy(refundPolicy, 'en', options),
+		};
+	});
+
+	function applyRefundPreset(tiers: readonly RefundTier[]) {
+		refund.tiers = toDraftTiers(tiers);
+	}
+
+	/** Whether the typed tiers are exactly these (to mark the preset). */
+	function isPreset(tiers: readonly RefundTier[]): boolean {
+		return refundTiers !== null && JSON.stringify(refundTiers) === JSON.stringify(tiers);
+	}
+
+	const REFUND_PRESETS: { label: string; tiers: readonly RefundTier[] }[] = [
+		{ label: 'Remboursable jusqu’à 24 h avant', tiers: refundableUntilTiers(24) },
+		{ label: 'Remboursable jusqu’à 48 h avant', tiers: refundableUntilTiers(48) },
+		{ label: 'Remboursable jusqu’à 7 jours avant', tiers: refundableUntilTiers(168) },
+		{ label: 'Toujours remboursable', tiers: ALWAYS_REFUNDABLE_TIERS },
+		{ label: 'Jamais remboursable', tiers: NEVER_REFUNDABLE_TIERS },
+	];
+
+	function addRefundTier() {
+		const last = refund.tiers[refund.tiers.length - 1];
+		refund.tiers.push({ key: nextKey++, amount: 0, unit: last?.unit ?? 'hours', percent: 0 });
+	}
+
+	function removeRefundTier(index: number) {
+		refund.tiers.splice(index, 1);
+	}
+
 	const payload = $derived(
 		JSON.stringify({
 			menus: menus.map((menu) => ({
@@ -163,6 +276,7 @@
 			})),
 			// An invalid rule is caught before posting (firstBlockingField).
 			deposit: depositRule ?? undefined,
+			refundPolicy: refundPolicy ?? undefined,
 		} satisfies PricingPayload)
 	);
 
@@ -214,6 +328,18 @@
 					message: `Acompte fixe invalide : saisissez un montant par convive supérieur à zéro, au centime près (${MAX_FIXED_DEPOSIT / 100} au plus).`,
 				};
 		}
+		if (!refundPolicy) {
+			if (refund.textEn.trim().length > MAX_REFUND_POLICY_TEXT || refund.textFr.trim().length > MAX_REFUND_POLICY_TEXT) {
+				return { id: 'refund-textFr', message: `Le texte de la politique de remboursement dépasse ${MAX_REFUND_POLICY_TEXT} caractères.` };
+			}
+			return {
+				id: refund.tiers.length > 0 ? `refund-tier-${refund.tiers[0].key}-amount` : 'refund-add-tier',
+				message:
+					`Paliers de remboursement invalides : de 1 à ${MAX_TIERS} paliers, chacun avec un délai différent ` +
+					`(nombre entier, ${MAX_HOURS_BEFORE / 24} jours au plus) et un pourcentage entier de 0 à 100 qui ` +
+					'diminue à mesure que la séance approche.',
+			};
+		}
 		for (const service of services) {
 			const label = `${MEAL_LABEL[service.kind].toLowerCase()} du ${dayLabel(service.date)}`;
 			const blank = isBlank(service.price);
@@ -250,6 +376,7 @@
 				menus = toDraftMenus(data.pricing);
 				services = toDraftServices(data.pricing);
 				deposit = toDraftDeposit(data.pricing);
+				refund = toDraftRefund(data.pricing);
 			} else if (result.type === 'failure') {
 				toast.error('Erreur', (result.data as { error?: string })?.error ?? 'Une erreur est survenue');
 			} else if (result.type === 'error') {
@@ -431,6 +558,167 @@
 				<span>Pas d’acompte (tout est réglé sur place)</span>
 			</label>
 		</fieldset>
+	</section>
+
+	<section class="bg-background rounded-lg border border-border-card" aria-labelledby="refund-title">
+		<header class="p-4 lg:p-6 border-b border-border-card">
+			<h3 id="refund-title" class="text-lg font-semibold text-foreground">Politique de remboursement</h3>
+			<p class="text-sm text-muted-foreground">
+				Ce que le convive récupère de son acompte s’il annule. Elle lui est présentée avant le paiement et sur
+				son billet. Quelle que soit la politique, si Germinal annule une séance ou l’événement, l’acompte est
+				intégralement remboursé.
+			</p>
+		</header>
+		<div class="px-4 lg:px-6 py-4 space-y-4">
+			<fieldset class="space-y-3">
+				<legend class="sr-only">Type de politique</legend>
+				<label class="flex items-start gap-3 text-sm text-foreground">
+					<input type="radio" name="refund-type" value="rules" bind:group={refund.type} class="mt-0.5 size-4" />
+					<span>
+						Selon des paliers
+						<span class="block text-xs text-muted-foreground">
+							Le remboursement dépend du délai restant avant la séance ; il sera proposé automatiquement à
+							l’annulation.
+						</span>
+					</span>
+				</label>
+				<label class="flex items-start gap-3 text-sm text-foreground">
+					<input type="radio" name="refund-type" value="manual" bind:group={refund.type} class="mt-0.5 size-4" />
+					<span>
+						Texte libre
+						<span class="block text-xs text-muted-foreground">
+							Vous rédigez les conditions ; chaque remboursement est décidé au cas par cas.
+						</span>
+					</span>
+				</label>
+			</fieldset>
+
+			{#if refund.type === 'rules'}
+				<div class="space-y-3">
+					<div class="flex flex-wrap gap-2" role="group" aria-label="Préréglages">
+						{#each REFUND_PRESETS as preset (preset.label)}
+							<button
+								type="button"
+								onclick={() => applyRefundPreset(preset.tiers)}
+								aria-pressed={isPreset(preset.tiers)}
+								class="px-3 py-1.5 text-xs rounded-lg border border-border-input text-foreground-alt hover:bg-muted aria-pressed:bg-foreground aria-pressed:text-background aria-pressed:border-foreground"
+							>
+								{preset.label}
+							</button>
+						{/each}
+					</div>
+
+					<div class="space-y-2">
+						<p class="text-xs text-muted-foreground">
+							Chaque palier s’applique si le convive annule au moins ce délai avant la séance (délai exact
+							inclus). Plus près de la séance que le dernier palier, rien n’est remboursé.
+						</p>
+						{#each refund.tiers as tier, index (tier.key)}
+							<div class="flex flex-wrap items-end gap-2">
+								<div class="w-24">
+									<label for="refund-tier-{tier.key}-amount" class={LABEL_CLASS}>Jusqu’à</label>
+									<input
+										id="refund-tier-{tier.key}-amount"
+										type="number"
+										inputmode="numeric"
+										min="0"
+										step="1"
+										bind:value={tier.amount}
+										aria-invalid={!refundTiers ? 'true' : undefined}
+										class={INPUT_CLASS}
+									/>
+								</div>
+								<div class="w-28">
+									<label for="refund-tier-{tier.key}-unit" class={LABEL_CLASS}>Unité</label>
+									<select id="refund-tier-{tier.key}-unit" bind:value={tier.unit} class={INPUT_CLASS}>
+										<option value="hours">heures</option>
+										<option value="days">jours</option>
+									</select>
+								</div>
+								<span class="pb-2 text-sm text-muted-foreground">avant la séance :</span>
+								<div class="w-24">
+									<label for="refund-tier-{tier.key}-percent" class={LABEL_CLASS}>Remboursé</label>
+									<div class="flex items-center gap-1">
+										<input
+											id="refund-tier-{tier.key}-percent"
+											type="number"
+											inputmode="numeric"
+											min="0"
+											max="100"
+											step="1"
+											bind:value={tier.percent}
+											aria-invalid={!refundTiers ? 'true' : undefined}
+											class={INPUT_CLASS}
+										/>
+										<span class="text-sm text-muted-foreground">%</span>
+									</div>
+								</div>
+								<button
+									type="button"
+									onclick={() => removeRefundTier(index)}
+									disabled={refund.tiers.length === 1}
+									aria-label="Supprimer ce palier"
+									title={refund.tiers.length === 1 ? 'Il faut au moins un palier.' : 'Supprimer ce palier'}
+									class="mb-0.5 inline-flex items-center justify-center size-8 rounded-md text-red-600 hover:bg-red-50 disabled:text-muted-foreground disabled:hover:bg-transparent disabled:cursor-not-allowed"
+								>
+									<Trash2 size={16} />
+								</button>
+							</div>
+						{/each}
+						<button
+							id="refund-add-tier"
+							type="button"
+							onclick={addRefundTier}
+							disabled={refund.tiers.length >= MAX_TIERS}
+							class="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-border-input text-foreground-alt hover:bg-muted disabled:opacity-50"
+						>
+							<Plus size={16} />
+							Ajouter un palier
+						</button>
+					</div>
+				</div>
+			{:else}
+				<div class="grid gap-3 lg:grid-cols-2">
+					<div>
+						<label for="refund-textEn" class={LABEL_CLASS}>Conditions (anglais)</label>
+						<textarea
+							id="refund-textEn"
+							rows="3"
+							maxlength={MAX_REFUND_POLICY_TEXT}
+							bind:value={refund.textEn}
+							placeholder="Refunds are handled case by case — contact us."
+							class="{INPUT_CLASS} resize-y"
+						></textarea>
+					</div>
+					<div>
+						<label for="refund-textFr" class={LABEL_CLASS}>Conditions (français)</label>
+						<textarea
+							id="refund-textFr"
+							rows="3"
+							maxlength={MAX_REFUND_POLICY_TEXT}
+							bind:value={refund.textFr}
+							placeholder="Les remboursements sont étudiés au cas par cas — contactez-nous."
+							class="{INPUT_CLASS} resize-y"
+						></textarea>
+					</div>
+					<p class="text-xs text-muted-foreground lg:col-span-2">
+						Si une langue est vide, l’autre est affichée ; si les deux sont vides, rien n’est affiché aux convives.
+					</p>
+				</div>
+			{/if}
+
+			<div class="border-t border-border-card pt-3" aria-live="polite">
+				<p class="text-xs font-medium text-foreground-alt mb-1">Ce que verront les convives</p>
+				{#if !refundPreview}
+					<p class="text-sm text-amber-700">Complétez les paliers pour voir l’aperçu.</p>
+				{:else if !refundPreview.fr && !refundPreview.en}
+					<p class="text-sm text-muted-foreground">Rien ne sera affiché.</p>
+				{:else}
+					<p class="text-sm text-foreground">{refundPreview.fr}</p>
+					<p class="text-sm text-muted-foreground mt-1"><span class="text-xs">EN · </span>{refundPreview.en}</p>
+				{/if}
+			</div>
+		</div>
 	</section>
 
 	<section class="bg-background rounded-lg border border-border-card" aria-labelledby="service-prices-title">

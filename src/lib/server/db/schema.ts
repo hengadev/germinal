@@ -62,6 +62,10 @@ export const serviceKindEnum = pgEnum('service_kind', ['lunch', 'dinner'] as con
 // or a percentage of the price. Full payment online is percent 100.
 export const depositTypeEnum = pgEnum('deposit_type', ['none', 'fixed', 'percent'] as const);
 
+// An Event's Refund Policy (issue 027): manual (free text, each refund
+// decided by an Admin) or rule-based (tiers in hours before the Seating).
+export const refundPolicyTypeEnum = pgEnum('refund_policy_type', ['manual', 'rules'] as const);
+
 // Mirrors Stripe.Dispute.Status from the installed stripe SDK (apiVersion 2025-12-15.clover)
 export const disputeStatusEnum = pgEnum('dispute_status', [
     'warning_needs_response',
@@ -141,6 +145,20 @@ export const events = pgTable('events', {
     // after any Promo Code). Defaults to percent 100 — full payment online.
     depositType: depositTypeEnum('deposit_type').notNull().default('percent'),
     depositValue: integer('deposit_value').notNull().default(100),
+    // Refund Policy (issue 027), applied by the Refund Policy module
+    // ($lib/utils/refund-policy). `manual`: the EN/FR statement is shown to
+    // guests and each refund is decided by an Admin. `rules`: the tiers
+    // ({ hoursBefore, percent }[], validated by the module) decide it. Both
+    // the texts and the tiers are kept whatever the type. New Events get a
+    // full refund until 24 hours before the Seating; Events that existed
+    // before 0023 got a manual policy stating the terms they had.
+    refundPolicyType: refundPolicyTypeEnum('refund_policy_type').notNull().default('rules'),
+    refundPolicyTextEn: text('refund_policy_text_en'),
+    refundPolicyTextFr: text('refund_policy_text_fr'),
+    refundPolicyTiers: jsonb('refund_policy_tiers')
+        .$type<{ hoursBefore: number; percent: number }[]>()
+        .notNull()
+        .default(sql`'[{"hoursBefore":24,"percent":100}]'::jsonb`),
     coverMediaId: uuid('cover_media_id'),
     coverVideoId: uuid('cover_video_id'),
     published: boolean('published').default(false).notNull(),
@@ -161,6 +179,10 @@ export const events = pgTable('events', {
     ),
     depositRuleCheck: check('events_deposit_rule_check',
         sql`(deposit_type = 'none' AND deposit_value = 0) OR (deposit_type = 'fixed' AND deposit_value > 0) OR (deposit_type = 'percent' AND deposit_value BETWEEN 1 AND 100)`
+    ),
+    // Tiers are always a JSON array; a rule-based policy has 1 to 10.
+    refundPolicyCheck: check('events_refund_policy_check',
+        sql`CASE WHEN jsonb_typeof(refund_policy_tiers) <> 'array' THEN false WHEN refund_policy_type = 'manual' THEN true ELSE jsonb_array_length(refund_policy_tiers) BETWEEN 1 AND 10 END`
     ),
 }));
 

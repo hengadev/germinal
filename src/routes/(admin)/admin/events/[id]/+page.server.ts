@@ -25,6 +25,7 @@ import {
 import type { EditorService } from '$lib/types/seatings-editor';
 import type { PricingEditorData } from '$lib/types/pricing-editor';
 import { depositRuleOf } from '$lib/utils/pricing';
+import { refundPolicyOf } from '$lib/utils/refund-policy';
 import type { PageServerLoad } from './$types';
 import { requireAdmin } from '$lib/server/auth-guards';
 
@@ -182,6 +183,7 @@ export const load: PageServerLoad = async ({ params }) => {
 				};
 			}),
 			deposit: depositRuleOf(event),
+			refundPolicy: refundPolicyOf(event),
 		};
 
 		return { event, sessions, reservations, promoCodes: [], talents, days, schedule, venueCapacity, pricing };

@@ -274,7 +274,10 @@
       "noDeposit": "Rien à régler en ligne : la totalité se règle sur place.",
       "note": "Seul l’acompte est débité en ligne ; le reste se règle sur place."
     },
-    "continueToPayDeposit": "Continuer vers le paiement de l’acompte",
+    "refundPolicy": {
+      "title": "Annulation et remboursement"
+    },
+        "continueToPayDeposit": "Continuer vers le paiement de l’acompte",
     "confirmBooking": "Confirmer la réservation"
   },
   "waitlist": {

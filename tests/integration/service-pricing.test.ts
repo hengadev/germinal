@@ -243,3 +243,52 @@ describe('savePricing', () => {
 		expect(row.item.price).toEqual({ amount: 7000, currency: 'GBP', legacy: false });
 	});
 });
+
+describe('savePricing — Refund Policy (issue 027)', () => {
+	beforeEach(async () => {
+		await setupTestDatabase();
+	});
+
+	it('gives a new Event a full refund until 24 hours before the Seating', async () => {
+		const event = await seedEvent('refund-default');
+		const { loadPricingEditor } = await import('../../src/lib/server/services/service-pricing');
+		expect((await loadPricingEditor(event.id)).refundPolicy).toEqual({
+			type: 'rules',
+			textEn: null,
+			textFr: null,
+			tiers: [{ hoursBefore: 24, percent: 100 }],
+		});
+	});
+
+	it('saves rule-based tiers, then a manual statement keeping them, and leaves the policy alone when absent', async () => {
+		const event = await seedEvent('refund-save');
+		const { savePricing, loadPricingEditor, parsePricingPayload } = await import(
+			'../../src/lib/server/services/service-pricing'
+		);
+
+		const parsed = parsePricingPayload(JSON.stringify({
+			menus: [],
+			services: [],
+			refundPolicy: {
+				type: 'rules',
+				textEn: null,
+				textFr: null,
+				tiers: [{ hoursBefore: 24, percent: 50 }, { hoursBefore: 168, percent: 100 }],
+			},
+		}));
+		if (!parsed.ok) throw new Error(parsed.reason);
+		await savePricing(event.id, parsed.payload);
+
+		const tiers = [{ hoursBefore: 168, percent: 100 }, { hoursBefore: 24, percent: 50 }];
+		expect((await loadPricingEditor(event.id)).refundPolicy).toEqual({ type: 'rules', textEn: null, textFr: null, tiers });
+		const [row] = await testDb.select().from(events).where(eq(events.id, event.id));
+		expect(row.refundPolicyTiers).toEqual(tiers);
+
+		const manual = { type: 'manual' as const, textEn: 'Refunds on request.', textFr: 'Remboursement sur demande.', tiers };
+		await savePricing(event.id, { menus: [], services: [], refundPolicy: manual });
+		expect((await loadPricingEditor(event.id)).refundPolicy).toEqual(manual);
+
+		await savePricing(event.id, { menus: [], services: [] });
+		expect((await loadPricingEditor(event.id)).refundPolicy).toEqual(manual);
+	});
+});

@@ -409,6 +409,11 @@ export async function getReservationByToken(token: string): Promise<ReservationW
 							cityFr: true,
 							countryEn: true,
 							countryFr: true,
+							// The Refund Policy shown on the Ticket (issue 027).
+							refundPolicyType: true,
+							refundPolicyTextEn: true,
+							refundPolicyTextFr: true,
+							refundPolicyTiers: true,
 						},
 						with: {
 							coverMedia: true,

@@ -8,6 +8,7 @@
 	import { onMount } from 'svelte';
 	import { invalidateAll } from '$app/navigation';
 	import Modal from '$lib/components/ui/Modal.svelte';
+	import RefundPolicyNote from '$lib/components/booking/RefundPolicyNote.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -485,6 +486,15 @@ END:VCALENDAR`;
 							<CreditCard size={13} />
 							{$t('tickets.viewReceipt')}
 						</a>
+					{/if}
+					<!-- What happens to the payment on cancellation (issue 027);
+					     nothing to say when nothing was paid online. -->
+					{#if data.reservation.depositAmount > 0}
+						<RefundPolicyNote
+							policy={data.reservation.refundPolicy}
+							fullPayment={data.reservation.balanceAmount === 0}
+							class="mt-5"
+						/>
 					{/if}
 				</div>
 

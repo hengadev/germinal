@@ -5,6 +5,7 @@ import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { seatingTitlesWithFallback } from '$lib/utils/seating-title';
 import { depositRuleOf } from '$lib/utils/pricing';
+import { refundPolicyOf } from '$lib/utils/refund-policy';
 
 function mapSession(s: (typeof MOCK_SESSIONS)[number]) {
 	return {
@@ -34,7 +35,7 @@ export const load: PageServerLoad = async ({ params }) => {
 		);
 		if (!session) throw error(404, 'Session not found');
 
-		return { event, session: mapSession(session), deposit: depositRuleOf(event), isMockMode: true };
+		return { event, session: mapSession(session), deposit: depositRuleOf(event), refundPolicy: refundPolicyOf(event), isMockMode: true };
 	}
 
 	try {
@@ -66,6 +67,8 @@ export const load: PageServerLoad = async ({ params }) => {
 			// The Event's Deposit rule (issue 023): the Guest sees the total,
 			// Deposit and Balance before paying.
 			deposit: depositRuleOf(event),
+			// Its Refund Policy (issue 027), shown before paying.
+			refundPolicy: refundPolicyOf(event),
 			isMockMode: false
 		};
 	} catch {

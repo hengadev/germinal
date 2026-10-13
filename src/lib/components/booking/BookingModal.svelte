@@ -9,6 +9,8 @@
 	import { seatingTitle } from '$lib/utils/seating-title';
 	import { FULL_PAYMENT_DEPOSIT, priceReservation, type DepositRule } from '$lib/utils/pricing';
 	import DepositBreakdown from './DepositBreakdown.svelte';
+	import RefundPolicyNote from './RefundPolicyNote.svelte';
+	import { EMPTY_MANUAL_REFUND_POLICY, type RefundPolicy } from '$lib/utils/refund-policy';
 
 	type NotificationPreference = 'email' | 'sms' | 'both';
 
@@ -29,7 +31,8 @@
 		session,
 		eventTitle,
 		eventSlug,
-		deposit = FULL_PAYMENT_DEPOSIT
+		deposit = FULL_PAYMENT_DEPOSIT,
+		refundPolicy = EMPTY_MANUAL_REFUND_POLICY
 	}: {
 		isOpen: boolean;
 		session: Session;
@@ -37,6 +40,8 @@
 		eventSlug: string;
 		/** The Event's Deposit rule (issue 023). */
 		deposit?: DepositRule;
+		/** The Event's Refund Policy (issue 027), shown before paying. */
+		refundPolicy?: RefundPolicy;
 	} = $props();
 
 	// Helper to get localized session title
@@ -318,6 +323,11 @@
 			</div>
 			<DepositBreakdown {price} currency={session.currency} />
 		</div>
+
+		<!-- What happens to the payment on cancellation (issue 027) -->
+		{#if price.deposit > 0}
+			<RefundPolicyNote policy={refundPolicy} fullPayment={price.balance === 0} />
+		{/if}
 
 		<!-- Submit Buttons -->
 		<div class="flex items-center justify-end gap-3 pt-4">

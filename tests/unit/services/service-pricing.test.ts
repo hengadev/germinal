@@ -129,3 +129,59 @@ describe('parsePricingPayload — Deposit rule (issue 023)', () => {
 		expect(pricingPayloadErrorMessage('deposit')).toMatch(/acompte/i);
 	});
 });
+
+describe('parsePricingPayload — Refund Policy (issue 027)', () => {
+	const base = { menus: [menu()], services: [service()] };
+
+	it('leaves the Refund Policy out when the payload has none', () => {
+		const result = parse(base);
+		expect(result.ok && result.payload.refundPolicy).toBe(undefined);
+	});
+
+	it('accepts rule-based tiers, sorted largest window first, and trims the texts', () => {
+		const result = parse({
+			...base,
+			refundPolicy: {
+				type: 'rules',
+				textEn: '  ',
+				textFr: ' Ancien texte ',
+				tiers: [{ hoursBefore: 24, percent: 50 }, { hoursBefore: 168, percent: 100 }],
+			},
+		});
+		expect(result).toEqual({
+			ok: true,
+			payload: expect.objectContaining({
+				refundPolicy: {
+					type: 'rules',
+					textEn: null,
+					textFr: 'Ancien texte',
+					tiers: [{ hoursBefore: 168, percent: 100 }, { hoursBefore: 24, percent: 50 }],
+				},
+			}),
+		});
+	});
+
+	it('accepts a manual policy with or without kept tiers', () => {
+		for (const tiers of [[], [{ hoursBefore: 48, percent: 100 }]]) {
+			const refundPolicy = { type: 'manual', textEn: 'On request.', textFr: null, tiers };
+			expect(parse({ ...base, refundPolicy })).toEqual({ ok: true, payload: expect.objectContaining({ refundPolicy }) });
+		}
+	});
+
+	it('refuses invalid Refund Policies', () => {
+		for (const refundPolicy of [
+			null,
+			'rules',
+			{ type: 'rules', textEn: null, textFr: null, tiers: [] },
+			{ type: 'rules', textEn: null, textFr: null, tiers: [{ hoursBefore: 12.5, percent: 100 }] },
+			{ type: 'rules', textEn: null, textFr: null, tiers: [{ hoursBefore: 48, percent: 50 }, { hoursBefore: 24, percent: 80 }] },
+			{ type: 'manual', textEn: 'x'.repeat(2001), textFr: null, tiers: [] },
+			{ type: 'manual', textEn: 42, textFr: null, tiers: [] },
+			{ type: 'manual', textEn: null, textFr: null, tiers: [{ hoursBefore: -1, percent: 0 }] },
+			{ type: 'partial', textEn: null, textFr: null, tiers: [] },
+		]) {
+			expect(parse({ ...base, refundPolicy })).toEqual({ ok: false, reason: 'refund-policy' });
+		}
+		expect(pricingPayloadErrorMessage('refund-policy')).toMatch(/remboursement/i);
+	});
+});

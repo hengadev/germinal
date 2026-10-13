@@ -1,5 +1,6 @@
 import type { ServiceKind } from '$lib/utils/seating-times';
 import type { DepositRule } from '$lib/utils/pricing';
+import type { RefundPolicy } from '$lib/utils/refund-policy';
 
 /**
  * Shapes of the admin « Menus & tarifs » tab (issue 022): the Event's Menus
@@ -44,6 +45,8 @@ export interface PricingEditorData {
 	services: EditorServicePricing[];
 	/** The Event's Deposit rule (issue 023). */
 	deposit: DepositRule;
+	/** The Event's Refund Policy (issue 027). */
+	refundPolicy: RefundPolicy;
 }
 
 /** A Menu as posted: `id` null creates it. `key` is how Services refer to
@@ -75,4 +78,6 @@ export interface PricingPayload {
 	services: ServicePricingPayload[];
 	/** The Event's Deposit rule (issue 023); left unchanged when absent. */
 	deposit?: DepositRule;
+	/** The Event's Refund Policy (issue 027); left unchanged when absent. */
+	refundPolicy?: RefundPolicy;
 }
