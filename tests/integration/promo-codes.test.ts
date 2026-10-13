@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest';
 import { eq } from 'drizzle-orm';
-import { events, eventSessions, coupons, promotionCodes } from '../../src/lib/server/db/schema';
+import { events, eventSessions, coupons, promotionCodes, reservations, payments } from '../../src/lib/server/db/schema';
 import {
 	getTestDatabase,
 	setupTestDatabase,
@@ -16,6 +16,16 @@ vi.mock('../../src/lib/server/services/stripe', () => ({
 	createStripeCoupon: vi.fn(),
 	createStripePromotionCode: vi.fn(),
 	deactivateStripePromotionCode: vi.fn(),
+	createCheckoutSession: vi.fn().mockResolvedValue({
+		id: 'cs_test_mock_checkout_session',
+		url: 'https://checkout.stripe.test/mock',
+	}),
+	cancelCheckoutSession: vi.fn().mockResolvedValue(undefined),
+}));
+
+// Bookings confirmed without Stripe (a 100 % Promo Code) send the Ticket.
+vi.mock('../../src/lib/server/services/ticket-notifications', () => ({
+	sendTicketNotifications: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock('../../src/lib/server/env', () => ({
@@ -63,7 +73,11 @@ async function seedEvent() {
 	return event;
 }
 
-async function seedSession(eventId: string, overrides?: Partial<typeof eventSessions.$inferInsert>) {
+async function seedSession(
+	eventId: string,
+	overrides?: Partial<typeof eventSessions.$inferInsert>,
+	servicePrice?: { priceAmount?: number | null; currency?: string }
+) {
 	const [session] = await testDb
 		.insert(eventSessions)
 		.values({
@@ -72,7 +86,8 @@ async function seedSession(eventId: string, overrides?: Partial<typeof eventSess
 				testDb,
 				eventId,
 				overrides?.startTime ?? new Date('2099-06-01T18:00:00Z'),
-				overrides?.endTime ?? new Date('2099-06-01T22:00:00Z')
+				overrides?.endTime ?? new Date('2099-06-01T22:00:00Z'),
+				servicePrice
 			),
 			titleEn: 'General Admission',
 			titleFr: 'Admission Générale',
@@ -449,5 +464,148 @@ describe('decrementRedemption', () => {
 		await expect(
 			decrementRedemption('00000000-0000-0000-0000-000000000000')
 		).resolves.toBeUndefined();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Booking with a Promo Code (issue 026): the discount comes off the price of
+// the meal; the Deposit is worked out on the discounted total.
+// ---------------------------------------------------------------------------
+
+describe('createReservation with a Promo Code', () => {
+	beforeEach(async () => {
+		vi.clearAllMocks();
+		await setupTestDatabase();
+	});
+
+	/** A published Event priced at `unitPrice` per seat with the given Deposit
+	 * rule, and a Promo Code `code` for it. */
+	async function seedBookable(opts: {
+		unitPrice: number;
+		deposit: { type: 'none' | 'fixed' | 'percent'; value: number };
+		code: string;
+		discountType: 'percent' | 'amount';
+		discountValue: number;
+	}) {
+		const event = await seedEvent();
+		await testDb
+			.update(events)
+			.set({ depositType: opts.deposit.type, depositValue: opts.deposit.value })
+			.where(eq(events.id, event.id));
+		const session = await seedSession(event.id, {}, { priceAmount: opts.unitPrice });
+		const coupon = await seedCoupon(event.id, {
+			discountType: opts.discountType,
+			discountValue: opts.discountValue,
+		});
+		await seedPromoCode(coupon.id, opts.code);
+		return session;
+	}
+
+	async function book(sessionId: string, code: string, quantity: number) {
+		const { createReservation } = await import('../../src/lib/server/services/reservations');
+		const result = await createReservation({
+			sessionId,
+			email: 'guest@example.com',
+			name: 'Promo Guest',
+			quantity,
+			promoCode: code.toLowerCase(),
+		});
+		const [reservation] = await testDb.select().from(reservations).where(eq(reservations.id, result.reservation.id));
+		const paymentRows = await testDb.select().from(payments).where(eq(payments.reservationId, result.reservation.id));
+		return { result, reservation, paymentRows };
+	}
+
+	it('a percent Promo Code reduces the total before a percentage Deposit', async () => {
+		const session = await seedBookable({
+			unitPrice: 4000,
+			deposit: { type: 'percent', value: 50 },
+			code: 'QUARTER',
+			discountType: 'percent',
+			discountValue: 25,
+		});
+		const { createCheckoutSession } = await import('../../src/lib/server/services/stripe');
+
+		const { reservation, paymentRows } = await book(session.id, 'QUARTER', 3);
+
+		// 3 × 40 € = 120 €, −25 % = 90 €; Deposit 50 % = 45 €; Balance 45 €
+		expect(reservation).toMatchObject({ totalAmount: 9000, discountAmount: 3000, depositAmount: 4500, balanceAmount: 4500 });
+		expect(paymentRows.map((p) => p.amount)).toEqual([4500]);
+		expect(createCheckoutSession).toHaveBeenCalledWith(expect.objectContaining({ amount: 4500 }));
+	});
+
+	it('an amount Promo Code reduces the total before a percentage Deposit — not the Deposit', async () => {
+		const session = await seedBookable({
+			unitPrice: 5000,
+			deposit: { type: 'percent', value: 30 },
+			code: 'MINUS30',
+			discountType: 'amount',
+			discountValue: 3000,
+		});
+		const { createCheckoutSession } = await import('../../src/lib/server/services/stripe');
+
+		const { reservation, paymentRows } = await book(session.id, 'MINUS30', 2);
+
+		// 2 × 50 € = 100 €, −30 € = 70 €; Deposit 30 % = 21 €; Balance 49 €
+		expect(reservation).toMatchObject({ totalAmount: 7000, discountAmount: 3000, depositAmount: 2100, balanceAmount: 4900 });
+		expect(paymentRows.map((p) => p.amount)).toEqual([2100]);
+		expect(createCheckoutSession).toHaveBeenCalledWith(expect.objectContaining({ amount: 2100 }));
+	});
+
+	it('a fixed Deposit stays fixed while below the discounted total; the Balance takes the discount', async () => {
+		const session = await seedBookable({
+			unitPrice: 5000,
+			deposit: { type: 'fixed', value: 1500 },
+			code: 'MINUS20',
+			discountType: 'amount',
+			discountValue: 2000,
+		});
+
+		const { reservation, paymentRows } = await book(session.id, 'MINUS20', 2);
+
+		// 2 × 50 € = 100 €, −20 € = 80 €; Deposit 2 × 15 € = 30 €; Balance 50 €
+		expect(reservation).toMatchObject({ totalAmount: 8000, discountAmount: 2000, depositAmount: 3000, balanceAmount: 5000 });
+		expect(paymentRows.map((p) => p.amount)).toEqual([3000]);
+	});
+
+	it('a fixed Deposit is capped at a discounted total that falls below it', async () => {
+		const session = await seedBookable({
+			unitPrice: 3000,
+			deposit: { type: 'fixed', value: 2000 },
+			code: 'HALF',
+			discountType: 'percent',
+			discountValue: 50,
+		});
+		const { createCheckoutSession } = await import('../../src/lib/server/services/stripe');
+
+		const { reservation, paymentRows } = await book(session.id, 'HALF', 2);
+
+		// 2 × 30 € = 60 €, −50 % = 30 €; fixed 2 × 20 € = 40 € capped at 30 €; Balance 0
+		expect(reservation).toMatchObject({ totalAmount: 3000, discountAmount: 3000, depositAmount: 3000, balanceAmount: 0 });
+		expect(paymentRows.map((p) => p.amount)).toEqual([3000]);
+		expect(createCheckoutSession).toHaveBeenCalledWith(expect.objectContaining({ amount: 3000 }));
+	});
+
+	it('a 100 % Promo Code on a fixed-Deposit Event — nothing to pay: confirmed without Stripe', async () => {
+		const session = await seedBookable({
+			unitPrice: 5000,
+			deposit: { type: 'fixed', value: 2000 },
+			code: 'ONTHEHOUSE',
+			discountType: 'percent',
+			discountValue: 100,
+		});
+		const { createCheckoutSession } = await import('../../src/lib/server/services/stripe');
+
+		const { result, reservation, paymentRows } = await book(session.id, 'ONTHEHOUSE', 2);
+
+		expect(result.checkoutUrl).toBeNull();
+		expect(createCheckoutSession).not.toHaveBeenCalled();
+		expect(paymentRows).toHaveLength(0);
+		expect(reservation).toMatchObject({
+			status: 'confirmed',
+			totalAmount: 0,
+			discountAmount: 10000,
+			depositAmount: 0,
+			balanceAmount: 0,
+		});
 	});
 });
