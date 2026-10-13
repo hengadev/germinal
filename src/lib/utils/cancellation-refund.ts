@@ -11,7 +11,6 @@
 
 import {
 	describeRefundPolicy,
-	formatRefundWindow,
 	refundFor,
 	type RefundDecision,
 	type RefundPolicy,
@@ -57,7 +56,7 @@ export function suggestCancellationRefund(input: {
 	});
 }
 
-const NBSP = ' ';
+const NBSP = '\u00a0';
 const MINUTE_MS = 60_000;
 const HOUR_MS = 60 * MINUTE_MS;
 
@@ -96,7 +95,7 @@ export function describeCancellationRefundFr(
 			const when =
 				tier.hoursBefore === 0
 					? 'jusqu’au début de la séance'
-					: `jusqu’à ${formatRefundWindow(tier.hoursBefore, 'fr')} avant la séance`;
+					: `jusqu’à ${formatTimeLeftFr(tier.hoursBefore * HOUR_MS)} avant la séance`;
 			return `Palier appliqué : ${tier.percent}${NBSP}% ${when} — ${left}`;
 		}
 	}

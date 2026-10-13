@@ -1,0 +1,385 @@
+// @vitest-environment node
+//
+// Issue 028 — cancelling with the refund the Event's Refund Policy gives:
+// the admin cancel screen's pre-fill and confirmation (guest-requested or
+// Germinal-initiated), and the guest's self-service cancellation of a
+// rule-based Event.
+import { describe, it, expect, beforeEach, beforeAll, afterAll, vi } from 'vitest';
+import { eq } from 'drizzle-orm';
+import { events, eventSessions, reservations, payments } from '../../src/lib/server/db/schema';
+import {
+	getTestDatabase,
+	setupTestDatabase,
+	closeTestDatabase,
+	seedServiceForSession,
+	TEST_DATABASE_URL,
+} from '../fixtures/database';
+import { createRefund } from '../../src/lib/server/services/stripe';
+import type { RefundTier } from '../../src/lib/utils/refund-policy';
+
+const testDb = getTestDatabase();
+
+vi.mock('../../src/lib/server/services/stripe', () => ({
+	createCheckoutSession: vi.fn(),
+	cancelCheckoutSession: vi.fn().mockResolvedValue(undefined),
+	// Stripe refunds exactly what it is asked to.
+	createRefund: vi.fn(async (_paymentIntentId: string, amount?: number) => ({
+		id: 're_test_mock',
+		amount: amount ?? 0,
+		status: 'succeeded',
+	})),
+}));
+
+vi.mock('../../src/lib/server/services/waitlist', () => ({
+	notifyWaitlist: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock('../../src/lib/server/env', () => ({
+	env: {
+		DATABASE_URL: TEST_DATABASE_URL,
+		USE_MOCK_DATA: false,
+		PUBLIC_URL: 'http://localhost:5173',
+		RESERVATION_EXPIRY_MINUTES: 15,
+		STRIPE_SECRET_KEY: 'sk_test_fake',
+		STRIPE_WEBHOOK_SECRET: 'whsec_test_fake',
+	},
+	isStripeEnabled: () => true,
+	isAWSConfigured: () => false,
+	isDevelopment: () => true,
+}));
+
+vi.mock('../../src/lib/server/db', () => ({
+	db: testDb,
+	runMigrations: vi.fn(),
+	withTimeout: vi.fn(),
+	getQueryStats: vi.fn(),
+}));
+
+type CancellationModule = typeof import('../../src/lib/server/services/cancellation');
+let cancellation: CancellationModule;
+
+beforeAll(async () => {
+	cancellation = await import('../../src/lib/server/services/cancellation');
+});
+
+afterAll(async () => {
+	await closeTestDatabase();
+});
+
+beforeEach(async () => {
+	vi.clearAllMocks();
+	await setupTestDatabase();
+});
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+const HOUR = 3_600_000;
+const NOW = new Date('2099-06-01T08:00:00Z');
+const TIERED: RefundTier[] = [
+	{ hoursBefore: 48, percent: 100 },
+	{ hoursBefore: 24, percent: 50 },
+];
+const MANUAL_TEXT_FR = 'Vous pouvez annuler jusqu’à 24 h avant votre séance. Passé ce délai, contactez-nous.';
+
+/** An Event with a Refund Policy and a Seating starting `hoursAhead` after NOW. */
+async function seedSeating(options: { policy: 'rules' | 'manual'; hoursAhead: number; tiers?: RefundTier[] }) {
+	const startTime = new Date(NOW.getTime() + options.hoursAhead * HOUR);
+	const endTime = new Date(startTime.getTime() + 3 * HOUR);
+	const [event] = await testDb
+		.insert(events)
+		.values({
+			titleEn: 'Policy Event',
+			titleFr: 'Événement politique',
+			slug: `policy-event-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+			descriptionEn: 'Test',
+			descriptionFr: 'Test',
+			startDate: startTime,
+			endDate: endTime,
+			locationEn: 'Paris',
+			locationFr: 'Paris',
+			published: true,
+			refundPolicyType: options.policy,
+			refundPolicyTextEn: options.policy === 'manual' ? 'Contact us.' : null,
+			refundPolicyTextFr: options.policy === 'manual' ? MANUAL_TEXT_FR : null,
+			refundPolicyTiers: options.policy === 'rules' ? (options.tiers ?? TIERED) : [],
+		})
+		.returning();
+
+	const [session] = await testDb
+		.insert(eventSessions)
+		.values({
+			eventId: event.id,
+			serviceId: await seedServiceForSession(testDb, event.id, startTime, endTime),
+			startTime,
+			endTime,
+			totalCapacity: 20,
+			availableCapacity: 18,
+			published: true,
+		})
+		.returning();
+	return { event, session };
+}
+
+/** A confirmed Reservation of 2 seats; a Deposit paid online unless 0. */
+async function seedReservation(sessionId: string, options: { deposit: number; total?: number; refunded?: number }) {
+	const total = options.total ?? 8000;
+	const [reservation] = await testDb
+		.insert(reservations)
+		.values({
+			eventSessionId: sessionId,
+			guestEmail: 'guest@example.com',
+			guestName: 'Test Guest',
+			quantity: 2,
+			totalAmount: total,
+			depositAmount: options.deposit,
+			balanceAmount: total - options.deposit,
+			currency: 'EUR',
+			status: 'confirmed',
+			accessToken: `atk-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+			expiresAt: new Date(NOW.getTime() + 15 * 60_000),
+			confirmedAt: NOW,
+		})
+		.returning();
+
+	if (options.deposit === 0) return { reservation, payment: null };
+
+	const refunded = options.refunded ?? 0;
+	const [payment] = await testDb
+		.insert(payments)
+		.values({
+			reservationId: reservation.id,
+			stripePaymentIntentId: `pi_test_${reservation.id}`,
+			amount: options.deposit,
+			refundedAmount: refunded,
+			currency: 'EUR',
+			status: refunded > 0 ? 'partially_refunded' : 'succeeded',
+			idempotencyKey: `ik-${reservation.id}`,
+		})
+		.returning();
+	await testDb.update(reservations).set({ paymentId: payment.id }).where(eq(reservations.id, reservation.id));
+	return { reservation, payment };
+}
+
+async function stateOf(reservationId: string, paymentId: string | null, sessionId: string) {
+	const reservation = await testDb.query.reservations.findFirst({ where: eq(reservations.id, reservationId) });
+	const payment = paymentId ? await testDb.query.payments.findFirst({ where: eq(payments.id, paymentId) }) : null;
+	const session = await testDb.query.eventSessions.findFirst({ where: eq(eventSessions.id, sessionId) });
+	return { reservation: reservation!, payment, session: session! };
+}
+
+// ---------------------------------------------------------------------------
+// Admin cancel screen
+// ---------------------------------------------------------------------------
+
+describe('admin cancellation — pre-fill', () => {
+	it('suggests the tier refund with its reason, and the full Deposit for Germinal', async () => {
+		const { session } = await seedSeating({ policy: 'rules', hoursAhead: 31 });
+		const { reservation } = await seedReservation(session.id, { deposit: 4000 });
+
+		const quote = await cancellation.getCancellationQuote(reservation.id, NOW);
+
+		expect(quote.refundable).toBe(4000);
+		expect(quote.policyType).toBe('rules');
+		expect(quote.suggestedAmount).toBe(2000);
+		expect(quote.suggestedReasonFr).toBe('Palier appliqué : 50\u00a0% jusqu’à 24\u00a0h avant la séance — il reste 31\u00a0h');
+		expect(quote.germinalAmount).toBe(4000);
+		expect(quote.germinalReasonFr).toBe('Annulé par Germinal : remboursement intégral de l’acompte');
+	});
+
+	it('manual policy: no suggestion, the policy text instead', async () => {
+		const { session } = await seedSeating({ policy: 'manual', hoursAhead: 31 });
+		const { reservation } = await seedReservation(session.id, { deposit: 4000 });
+
+		const quote = await cancellation.getCancellationQuote(reservation.id, NOW);
+
+		expect(quote.policyType).toBe('manual');
+		expect(quote.suggestedAmount).toBeNull();
+		expect(quote.policyTextFr).toBe(MANUAL_TEXT_FR);
+		expect(quote.germinalAmount).toBe(4000);
+	});
+
+	it('applies the policy to what is left after an earlier refund', async () => {
+		const { session } = await seedSeating({ policy: 'rules', hoursAhead: 31 });
+		const { reservation } = await seedReservation(session.id, { deposit: 4000, refunded: 1000 });
+
+		const quote = await cancellation.getCancellationQuote(reservation.id, NOW);
+
+		expect(quote.refundable).toBe(3000);
+		expect(quote.suggestedAmount).toBe(1500);
+	});
+});
+
+describe('admin cancellation — confirm', () => {
+	it('pre-filled partial refund: half the Deposit refunded, Reservation cancelled, seats released', async () => {
+		const { session } = await seedSeating({ policy: 'rules', hoursAhead: 31 });
+		const { reservation, payment } = await seedReservation(session.id, { deposit: 4000 });
+
+		const result = await cancellation.cancelWithRefund(reservation.id, { cancelledBy: 'guest', now: NOW });
+
+		expect(result).toMatchObject({ cancelledBy: 'guest', suggestedAmount: 2000, appliedAmount: 2000, refundable: 4000 });
+		expect(createRefund).toHaveBeenCalledWith(payment!.stripePaymentIntentId, 2000);
+		const state = await stateOf(reservation.id, payment!.id, session.id);
+		expect(state.reservation.status).toBe('cancelled');
+		expect(state.reservation.cancelledAt).not.toBeNull();
+		expect(state.payment!.status).toBe('partially_refunded');
+		expect(state.payment!.refundedAmount).toBe(2000);
+		expect(state.session.availableCapacity).toBe(20);
+	});
+
+	it('Germinal cancellation refunds the full Deposit whatever amount is sent', async () => {
+		const { session } = await seedSeating({ policy: 'rules', hoursAhead: 3 }); // too late for the policy
+		const { reservation, payment } = await seedReservation(session.id, { deposit: 4000 });
+
+		const result = await cancellation.cancelWithRefund(reservation.id, { cancelledBy: 'germinal', amount: 100, now: NOW });
+
+		expect(result).toMatchObject({ cancelledBy: 'germinal', suggestedAmount: 4000, appliedAmount: 4000 });
+		expect(createRefund).toHaveBeenCalledWith(payment!.stripePaymentIntentId, 4000);
+		const state = await stateOf(reservation.id, payment!.id, session.id);
+		expect(state.reservation.status).toBe('cancelled');
+		expect(state.payment!.status).toBe('refunded');
+		expect(state.payment!.refundedAmount).toBe(4000);
+	});
+
+	it('an edited amount is respected', async () => {
+		const { session } = await seedSeating({ policy: 'rules', hoursAhead: 31 });
+		const { reservation, payment } = await seedReservation(session.id, { deposit: 4000 });
+
+		// Goodwill: more than the 50 % suggested.
+		const result = await cancellation.cancelWithRefund(reservation.id, { cancelledBy: 'guest', amount: 3500, now: NOW });
+
+		expect(result).toMatchObject({ suggestedAmount: 2000, appliedAmount: 3500 });
+		const state = await stateOf(reservation.id, payment!.id, session.id);
+		expect(state.payment!.refundedAmount).toBe(3500);
+		expect(state.reservation.status).toBe('cancelled');
+	});
+
+	it('an amount above the refundable Deposit is refused and nothing changes', async () => {
+		const { session } = await seedSeating({ policy: 'rules', hoursAhead: 31 });
+		const { reservation, payment } = await seedReservation(session.id, { deposit: 4000 });
+
+		await expect(
+			cancellation.cancelWithRefund(reservation.id, { cancelledBy: 'guest', amount: 4001, now: NOW })
+		).rejects.toThrow(cancellation.CancellationError);
+
+		expect(createRefund).not.toHaveBeenCalled();
+		const state = await stateOf(reservation.id, payment!.id, session.id);
+		expect(state.reservation.status).toBe('confirmed');
+		expect(state.payment!.refundedAmount).toBe(0);
+		expect(state.session.availableCapacity).toBe(18);
+	});
+
+	it('zero: cancels and releases the seats without refunding', async () => {
+		const { session } = await seedSeating({ policy: 'rules', hoursAhead: 31 });
+		const { reservation, payment } = await seedReservation(session.id, { deposit: 4000 });
+
+		await cancellation.cancelWithRefund(reservation.id, { cancelledBy: 'guest', amount: 0, now: NOW });
+
+		expect(createRefund).not.toHaveBeenCalled();
+		const state = await stateOf(reservation.id, payment!.id, session.id);
+		expect(state.reservation.status).toBe('cancelled');
+		expect(state.payment!.status).toBe('succeeded');
+		expect(state.session.availableCapacity).toBe(20);
+	});
+
+	it('manual policy: the Admin must type the amount', async () => {
+		const { session } = await seedSeating({ policy: 'manual', hoursAhead: 31 });
+		const { reservation, payment } = await seedReservation(session.id, { deposit: 4000 });
+
+		await expect(
+			cancellation.cancelWithRefund(reservation.id, { cancelledBy: 'guest', now: NOW })
+		).rejects.toThrow(/montant/);
+
+		const result = await cancellation.cancelWithRefund(reservation.id, { cancelledBy: 'guest', amount: 1234, now: NOW });
+		expect(result).toMatchObject({ suggestedAmount: null, appliedAmount: 1234 });
+		const state = await stateOf(reservation.id, payment!.id, session.id);
+		expect(state.payment!.refundedAmount).toBe(1234);
+	});
+
+	it('no Deposit: cancels without any refund', async () => {
+		const { session } = await seedSeating({ policy: 'rules', hoursAhead: 100 });
+		const { reservation } = await seedReservation(session.id, { deposit: 0 });
+
+		const result = await cancellation.cancelWithRefund(reservation.id, { cancelledBy: 'germinal', now: NOW });
+
+		expect(result).toMatchObject({ refundable: 0, appliedAmount: 0 });
+		expect(createRefund).not.toHaveBeenCalled();
+		const state = await stateOf(reservation.id, null, session.id);
+		expect(state.reservation.status).toBe('cancelled');
+		expect(state.session.availableCapacity).toBe(20);
+	});
+
+	it('an already-cancelled Reservation is refused', async () => {
+		const { session } = await seedSeating({ policy: 'rules', hoursAhead: 31 });
+		const { reservation } = await seedReservation(session.id, { deposit: 4000 });
+		await cancellation.cancelWithRefund(reservation.id, { cancelledBy: 'guest', now: NOW });
+
+		await expect(
+			cancellation.cancelWithRefund(reservation.id, { cancelledBy: 'germinal', now: NOW })
+		).rejects.toThrow('Cette réservation est déjà annulée');
+		expect(createRefund).toHaveBeenCalledTimes(1);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Guest self-service cancellation
+// ---------------------------------------------------------------------------
+
+describe('guest self-service cancellation', () => {
+	it('rule-based policy: refunds the policy amount', async () => {
+		const { session } = await seedSeating({ policy: 'rules', hoursAhead: 31 });
+		const { reservation, payment } = await seedReservation(session.id, { deposit: 4000 });
+
+		const terms = await cancellation.getGuestCancellationTerms(reservation.id, NOW);
+		expect(terms).toMatchObject({ canCancel: true, mode: 'policy', refundAmount: 2000, currency: 'EUR' });
+
+		const result = await cancellation.cancelByGuestWithPolicy(reservation.id, NOW);
+
+		expect(result).toEqual({ refundAmount: 2000, currency: 'EUR' });
+		expect(createRefund).toHaveBeenCalledWith(payment!.stripePaymentIntentId, 2000);
+		const state = await stateOf(reservation.id, payment!.id, session.id);
+		expect(state.reservation.status).toBe('cancelled');
+		expect(state.payment!.refundedAmount).toBe(2000);
+		expect(state.session.availableCapacity).toBe(20);
+	});
+
+	it('rule-based policy, too late for a refund: still cancels and releases the seats', async () => {
+		const { session } = await seedSeating({ policy: 'rules', hoursAhead: 3 });
+		const { reservation, payment } = await seedReservation(session.id, { deposit: 4000 });
+
+		const result = await cancellation.cancelByGuestWithPolicy(reservation.id, NOW);
+
+		expect(result.refundAmount).toBe(0);
+		expect(createRefund).not.toHaveBeenCalled();
+		const state = await stateOf(reservation.id, payment!.id, session.id);
+		expect(state.reservation.status).toBe('cancelled');
+		expect(state.payment!.status).toBe('succeeded');
+		expect(state.session.availableCapacity).toBe(20);
+	});
+
+	it('manual policy: the historical 24-hour full-refund rule (not the policy path)', async () => {
+		const { session } = await seedSeating({ policy: 'manual', hoursAhead: 31 });
+		const { reservation } = await seedReservation(session.id, { deposit: 4000 });
+
+		expect(await cancellation.getGuestCancellationTerms(reservation.id, NOW)).toMatchObject({
+			canCancel: true,
+			mode: 'full-refund',
+			refundAmount: 4000,
+		});
+		await expect(cancellation.cancelByGuestWithPolicy(reservation.id, NOW)).rejects.toThrow(
+			cancellation.CancellationError
+		);
+	});
+
+	it('once the Seating has started: refused', async () => {
+		const { session } = await seedSeating({ policy: 'rules', hoursAhead: -1 });
+		const { reservation } = await seedReservation(session.id, { deposit: 4000 });
+
+		await expect(cancellation.cancelByGuestWithPolicy(reservation.id, NOW)).rejects.toThrow(
+			'The seating has already started'
+		);
+		const state = await stateOf(reservation.id, null, session.id);
+		expect(state.reservation.status).toBe('confirmed');
+	});
+});
