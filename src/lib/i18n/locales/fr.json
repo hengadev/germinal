@@ -274,7 +274,8 @@
       "noDeposit": "Rien à régler en ligne : la totalité se règle sur place.",
       "note": "Seul l’acompte est débité en ligne ; le reste se règle sur place."
     },
-    "continueToPayDeposit": "Continuer vers le paiement de l’acompte"
+    "continueToPayDeposit": "Continuer vers le paiement de l’acompte",
+    "confirmBooking": "Confirmer la réservation"
   },
   "waitlist": {
     "description": "Soyez averti dès que des billets sont disponibles",

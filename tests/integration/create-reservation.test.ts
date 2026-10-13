@@ -34,6 +34,12 @@ vi.mock('../../src/lib/server/services/stripe', () => ({
 	cancelCheckoutSession: vi.fn().mockResolvedValue(undefined),
 }));
 
+// The Ticket notifications (email + SMS) sent when a booking is confirmed
+// without Stripe — mocked so the zero-Deposit tests can count the sends.
+vi.mock('../../src/lib/server/services/ticket-notifications', () => ({
+	sendTicketNotifications: vi.fn().mockResolvedValue(undefined),
+}));
+
 vi.mock('../../src/lib/server/env', () => ({
 	env: {
 		DATABASE_URL: TEST_DATABASE_URL,
@@ -339,7 +345,8 @@ describe('createReservation', () => {
 			.where(eq(reservations.id, result.reservation.id));
 		expect(reservation.totalAmount).toBe(0);
 		expect(reservation.discountAmount).toBe(0);
-		expect(createCheckoutSession).toHaveBeenCalledWith(expect.objectContaining({ amount: 0 }));
+		// Nothing to charge: no Stripe Checkout (issue 025)
+		expect(createCheckoutSession).not.toHaveBeenCalled();
 
 		const [updatedSession] = await testDb
 			.select()
@@ -533,5 +540,153 @@ describe('createReservation — Deposit', () => {
 		await expect(setDepositRule(event.id, 'percent', 101)).rejects.toThrow();
 		await expect(setDepositRule(event.id, 'none', 30)).rejects.toThrow();
 		await expect(setDepositRule(event.id, 'fixed', 0)).rejects.toThrow();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// No Deposit (issue 025): confirmed at once, without Stripe
+// ---------------------------------------------------------------------------
+
+describe('createReservation — no Deposit', () => {
+	beforeEach(async () => {
+		vi.clearAllMocks();
+		await setupTestDatabase();
+	});
+
+	async function rowsFor(reservationId: string) {
+		const [reservation] = await testDb.select().from(reservations).where(eq(reservations.id, reservationId));
+		const paymentRows = await testDb.select().from(payments).where(eq(payments.reservationId, reservationId));
+		return { reservation, paymentRows };
+	}
+
+	async function availableCapacity(sessionId: string) {
+		const [row] = await testDb.select().from(eventSessions).where(eq(eventSessions.id, sessionId));
+		return row.availableCapacity;
+	}
+
+	it("the 'none' rule — no Checkout Session, no Payment, confirmed (not comp), seats held, Ticket sent once", async () => {
+		const { event, session } = await seedPublishedSession({}, { priceAmount: 6500 });
+		await testDb.update(events).set({ depositType: 'none', depositValue: 0 }).where(eq(events.id, event.id));
+		const { createReservation } = await import('../../src/lib/server/services/reservations');
+		const { createCheckoutSession } = await import('../../src/lib/server/services/stripe');
+		const { sendTicketNotifications } = await import('../../src/lib/server/services/ticket-notifications');
+
+		const result = await createReservation(makeInput(session.id, { quantity: 2 }));
+
+		expect(result.checkoutUrl).toBeNull();
+		expect(result.expiresAt).toBeNull();
+		expect(createCheckoutSession).not.toHaveBeenCalled();
+
+		const { reservation, paymentRows } = await rowsFor(result.reservation.id);
+		expect(paymentRows).toHaveLength(0);
+		// 2 × 65 € = 130 €, all of it due at the venue
+		expect(reservation).toMatchObject({
+			status: 'confirmed',
+			isComp: false,
+			totalAmount: 13000,
+			depositAmount: 0,
+			balanceAmount: 13000,
+		});
+		expect(reservation.confirmedAt).toBeInstanceOf(Date);
+		expect(await availableCapacity(session.id)).toBe(98);
+
+		expect(sendTicketNotifications).toHaveBeenCalledOnce();
+		expect(sendTicketNotifications).toHaveBeenCalledWith(expect.objectContaining({
+			id: reservation.id,
+			accessToken: reservation.accessToken,
+			status: 'confirmed',
+			eventSession: expect.objectContaining({
+				id: session.id,
+				event: expect.objectContaining({ id: event.id, titleEn: 'Test Event' }),
+			}),
+		}));
+	});
+
+	it('a zero price — confirmed without Stripe', async () => {
+		const { session } = await seedPublishedSession({}, { priceAmount: 0 });
+		const { createReservation } = await import('../../src/lib/server/services/reservations');
+		const { createCheckoutSession } = await import('../../src/lib/server/services/stripe');
+		const { sendTicketNotifications } = await import('../../src/lib/server/services/ticket-notifications');
+
+		const result = await createReservation(makeInput(session.id, { quantity: 3 }));
+
+		expect(result.checkoutUrl).toBeNull();
+		expect(createCheckoutSession).not.toHaveBeenCalled();
+		const { reservation, paymentRows } = await rowsFor(result.reservation.id);
+		expect(paymentRows).toHaveLength(0);
+		expect(reservation).toMatchObject({ status: 'confirmed', isComp: false, totalAmount: 0, depositAmount: 0, balanceAmount: 0 });
+		expect(await availableCapacity(session.id)).toBe(97);
+		expect(sendTicketNotifications).toHaveBeenCalledOnce();
+	});
+
+	it('a 100 % Promo Code — confirmed without Stripe, the redemption still counted', async () => {
+		const { event, session } = await seedPublishedSession({}, { priceAmount: 5000 });
+		const [coupon] = await testDb
+			.insert(coupons)
+			.values({ eventId: event.id, name: 'FREE', discountType: 'percent', discountValue: 100, active: true })
+			.returning();
+		const [code] = await testDb.insert(promotionCodes).values({ couponId: coupon.id, code: 'FREE', active: true }).returning();
+		const { createReservation } = await import('../../src/lib/server/services/reservations');
+		const { createCheckoutSession } = await import('../../src/lib/server/services/stripe');
+		const { sendTicketNotifications } = await import('../../src/lib/server/services/ticket-notifications');
+
+		const result = await createReservation(makeInput(session.id, { quantity: 2, promoCode: 'free' }));
+
+		expect(result.checkoutUrl).toBeNull();
+		expect(createCheckoutSession).not.toHaveBeenCalled();
+		const { reservation, paymentRows } = await rowsFor(result.reservation.id);
+		expect(paymentRows).toHaveLength(0);
+		expect(reservation).toMatchObject({
+			status: 'confirmed',
+			isComp: false,
+			totalAmount: 0,
+			discountAmount: 10000,
+			depositAmount: 0,
+			balanceAmount: 0,
+			promotionCodeId: code.id,
+		});
+		const [redeemed] = await testDb.select().from(promotionCodes).where(eq(promotionCodes.id, code.id));
+		expect(redeemed.redemptionCount).toBe(1);
+		expect(await availableCapacity(session.id)).toBe(98);
+		expect(sendTicketNotifications).toHaveBeenCalledOnce();
+	});
+
+	it('a failed Ticket send does not undo the booking', async () => {
+		const { event, session } = await seedPublishedSession();
+		await testDb.update(events).set({ depositType: 'none', depositValue: 0 }).where(eq(events.id, event.id));
+		const { createReservation } = await import('../../src/lib/server/services/reservations');
+		const { sendTicketNotifications } = await import('../../src/lib/server/services/ticket-notifications');
+		vi.mocked(sendTicketNotifications).mockRejectedValueOnce(new Error('SES down'));
+
+		const result = await createReservation(makeInput(session.id));
+
+		const { reservation } = await rowsFor(result.reservation.id);
+		expect(reservation.status).toBe('confirmed');
+		expect(await availableCapacity(session.id)).toBe(99);
+	});
+
+	it('capacity is still locked — no Deposit cannot oversell a Seating', async () => {
+		const { event, session } = await seedPublishedSession({ totalCapacity: 2, availableCapacity: 2 });
+		await testDb.update(events).set({ depositType: 'none', depositValue: 0 }).where(eq(events.id, event.id));
+		const { createReservation } = await import('../../src/lib/server/services/reservations');
+		const { sendTicketNotifications } = await import('../../src/lib/server/services/ticket-notifications');
+
+		await expect(createReservation(makeInput(session.id, { quantity: 3 }))).rejects.toThrow('Not enough tickets available');
+
+		expect(await testDb.select().from(reservations)).toHaveLength(0);
+		expect(await availableCapacity(session.id)).toBe(2);
+		expect(sendTicketNotifications).not.toHaveBeenCalled();
+	});
+
+	it('a booking with a Deposit still goes through Stripe and sends nothing until paid', async () => {
+		const { session } = await seedPublishedSession();
+		const { createReservation } = await import('../../src/lib/server/services/reservations');
+		const { sendTicketNotifications } = await import('../../src/lib/server/services/ticket-notifications');
+
+		const result = await createReservation(makeInput(session.id));
+
+		expect(result.checkoutUrl).toBe('https://checkout.stripe.test/mock');
+		expect((await rowsFor(result.reservation.id)).reservation.status).toBe('pending');
+		expect(sendTicketNotifications).not.toHaveBeenCalled();
 	});
 });

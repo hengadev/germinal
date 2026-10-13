@@ -70,7 +70,11 @@ export const POST: RequestHandler = async ({ request, getClientAddress, locals }
 		return json(
 			{
 				reservationId: result.reservation.id,
+				// null when there is no Deposit: the Reservation is already
+				// confirmed and the Guest goes straight to `ticketUrl`.
 				checkoutUrl: result.checkoutUrl,
+				ticketUrl: `/tickets/${result.reservation.accessToken}?success=true`,
+				status: result.reservation.status,
 				expiresAt: result.expiresAt,
 				accessToken: result.reservation.accessToken,
 			},

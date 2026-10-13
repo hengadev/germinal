@@ -274,7 +274,8 @@
       "noDeposit": "Nothing to pay online: the full amount is settled at the venue.",
       "note": "Only the deposit is charged online; the balance is settled at the venue."
     },
-    "continueToPayDeposit": "Continue to pay the deposit"
+    "continueToPayDeposit": "Continue to pay the deposit",
+    "confirmBooking": "Confirm booking"
   },
   "waitlist": {
     "description": "Get notified when tickets become available",
