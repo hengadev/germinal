@@ -11,6 +11,14 @@ import type {
 } from '$lib/types/pricing-editor';
 import { resolveSeatingPrice, type SeatingPrice } from '$lib/utils/seating-price';
 import { DEPOSIT_TYPES, depositRuleOf, isValidDepositRule, type DepositRule } from '$lib/utils/pricing';
+import {
+	MAX_REFUND_POLICY_TEXT,
+	REFUND_POLICY_TYPES,
+	refundPolicyOf,
+	validateTiers,
+	type RefundPolicy,
+	type RefundTier,
+} from '$lib/utils/refund-policy';
 import { formatTimeOfDay, type ServiceKind } from '$lib/utils/seating-times';
 import { ScheduleSaveRefusedError } from './event-schedule';
 
@@ -130,7 +138,8 @@ export type PricingParseFailure =
 	| 'service'
 	| 'price'
 	| 'currency'
-	| 'deposit';
+	| 'deposit'
+	| 'refund-policy';
 
 export type PricingParseResult =
 	| { ok: true; payload: PricingPayload }
@@ -177,7 +186,7 @@ export function parsePricingPayload(raw: string | null): PricingParseResult {
 	if (typeof parsed !== 'object' || parsed === null) {
 		return { ok: false, reason: 'malformed' };
 	}
-	const { menus, services, deposit } = parsed as Record<string, unknown>;
+	const { menus, services, deposit, refundPolicy } = parsed as Record<string, unknown>;
 	if (!Array.isArray(menus) || !Array.isArray(services)) {
 		return { ok: false, reason: 'malformed' };
 	}
@@ -279,14 +288,49 @@ export function parsePricingPayload(raw: string | null): PricingParseResult {
 		}
 	}
 
+	// The Refund Policy (issue 027) is optional too: absent, left as is.
+	let parsedRefundPolicy: RefundPolicy | undefined;
+	if (refundPolicy !== undefined) {
+		const policy = parseRefundPolicy(refundPolicy);
+		if (!policy) {
+			return { ok: false, reason: 'refund-policy' };
+		}
+		parsedRefundPolicy = policy;
+	}
+
 	return {
 		ok: true,
 		payload: {
 			menus: parsedMenus,
 			services: parsedServices,
 			...(parsedDeposit ? { deposit: parsedDeposit } : {}),
+			...(parsedRefundPolicy ? { refundPolicy: parsedRefundPolicy } : {}),
 		},
 	};
+}
+
+/**
+ * A posted Refund Policy: its type, EN/FR statements (trimmed, empty →
+ * null) and tiers (sorted largest window first). A rule-based policy needs
+ * valid tiers; a manual one may keep earlier valid tiers or none. Null when
+ * invalid.
+ */
+function parseRefundPolicy(raw: unknown): RefundPolicy | null {
+	if (typeof raw !== 'object' || raw === null) return null;
+	const { type, textEn, textFr, tiers } = raw as Record<string, unknown>;
+	if (typeof type !== 'string' || !(REFUND_POLICY_TYPES as readonly string[]).includes(type)) return null;
+	const en = optionalText(textEn, MAX_REFUND_POLICY_TEXT);
+	const fr = optionalText(textFr, MAX_REFUND_POLICY_TEXT);
+	if (en === false || fr === false) return null;
+	let parsedTiers: RefundTier[];
+	if (Array.isArray(tiers) && tiers.length === 0 && type === 'manual') {
+		parsedTiers = [];
+	} else {
+		const valid = validateTiers(tiers);
+		if (!valid) return null;
+		parsedTiers = valid;
+	}
+	return { type: type as RefundPolicy['type'], textEn: en, textFr: fr, tiers: parsedTiers };
 }
 
 /** French admin copy for each way the pricing payload can be invalid. */
@@ -308,6 +352,8 @@ export function pricingPayloadErrorMessage(reason: PricingParseFailure): string 
 			return `La devise doit être l’une des suivantes : ${SERVICE_CURRENCIES.join(', ')}.`;
 		case 'deposit':
 			return 'L’acompte est invalide : un pourcentage entier entre 1 et 100, ou un montant fixe par convive supérieur à zéro, au centime près.';
+		case 'refund-policy':
+			return 'La politique de remboursement est invalide : de 1 à 10 paliers, chacun avec un délai différent (en heures entières, un an au plus) et un pourcentage entier de 0 à 100 qui diminue à l’approche de la séance ; textes de 2000 caractères au plus.';
 	}
 }
 
@@ -338,7 +384,8 @@ export class MenuInUseError extends ScheduleSaveRefusedError {
  * Save the « Menus & tarifs » tab in one transaction: new Menus are
  * created, listed ones updated, Menus left out deleted; each listed Service
  * gets its Menu and price (and optionally loses its legacy per-Seating
- * prices), and the Event takes the Deposit rule when one is posted.
+ * prices), and the Event takes the Deposit rule and the Refund Policy
+ * when they are posted.
  * Services outside the payload are untouched. Refuses — with a
  * French message and nothing written — a Menu or Service of another Event,
  * and deleting a Menu still offered on a Service.
@@ -357,6 +404,18 @@ export async function savePricing(eventId: string, payload: PricingPayload): Pro
 		if (payload.deposit) {
 			await tx.update(events)
 				.set({ depositType: payload.deposit.type, depositValue: payload.deposit.value, updatedAt: new Date() })
+				.where(eq(events.id, eventId));
+		}
+
+		if (payload.refundPolicy) {
+			await tx.update(events)
+				.set({
+					refundPolicyType: payload.refundPolicy.type,
+					refundPolicyTextEn: payload.refundPolicy.textEn,
+					refundPolicyTextFr: payload.refundPolicy.textFr,
+					refundPolicyTiers: payload.refundPolicy.tiers,
+					updatedAt: new Date(),
+				})
 				.where(eq(events.id, eventId));
 		}
 
@@ -458,8 +517,22 @@ const KIND_ORDER: Record<ServiceKind, number> = { lunch: 0, dinner: 1 };
  * Menu, price, Seating count and the Seatings that kept a legacy price.
  */
 export async function loadPricingEditor(eventId: string): Promise<PricingEditorData> {
-	const [event]: { depositType: DepositRule['type']; depositValue: number }[] = await db
-		.select({ depositType: events.depositType, depositValue: events.depositValue })
+	const [event]: {
+		depositType: DepositRule['type'];
+		depositValue: number;
+		refundPolicyType: RefundPolicy['type'];
+		refundPolicyTextEn: string | null;
+		refundPolicyTextFr: string | null;
+		refundPolicyTiers: unknown;
+	}[] = await db
+		.select({
+			depositType: events.depositType,
+			depositValue: events.depositValue,
+			refundPolicyType: events.refundPolicyType,
+			refundPolicyTextEn: events.refundPolicyTextEn,
+			refundPolicyTextFr: events.refundPolicyTextFr,
+			refundPolicyTiers: events.refundPolicyTiers,
+		})
 		.from(events)
 		.where(eq(events.id, eventId))
 		.limit(1);
@@ -539,5 +612,5 @@ export async function loadPricingEditor(eventId: string): Promise<PricingEditorD
 			};
 		});
 
-	return { menus, services, deposit: depositRuleOf(event ?? {}) };
+	return { menus, services, deposit: depositRuleOf(event ?? {}), refundPolicy: refundPolicyOf(event ?? {}) };
 }
