@@ -19,9 +19,8 @@ vi.mock('../../../src/lib/server/db', () => ({
 
 describe('exportReservationsToCSV', () => {
 	it('does not throw when a search term is supplied, and matches on titleEn/titleFr', async () => {
-		findManyMock.mockReturnValue({
-			limit: () =>
-				Promise.resolve([
+		findManyMock.mockReturnValue(
+			Promise.resolve([
 					{
 						id: 'r1',
 						guestName: 'Alice Example',
@@ -71,7 +70,7 @@ describe('exportReservationsToCSV', () => {
 						},
 					},
 				]),
-		});
+		);
 
 		const { exportReservationsToCSV } = await import(
 			'../../../src/lib/server/services/export'

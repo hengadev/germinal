@@ -2,18 +2,29 @@
 	import { Eye, CheckCircle2, Clock, XCircle, AlertCircle, Search, Calendar, User, Mail, Ticket, CreditCard, ArrowRight, Download, Gift } from 'lucide-svelte';
 	import type { PageData } from './$types';
 	import { formatCurrency } from '$lib/utils/currency';
+	import {
+		balanceToCollect,
+		filterReservations,
+		seatingFilterOptions,
+		totalBalanceToCollect
+	} from '$lib/utils/balance-due';
 
 	let { data }: { data: PageData } = $props();
 
 	// Filter and search state
 	let statusFilter = $state<'all' | 'confirmed' | 'pending' | 'cancelled' | 'expired'>('all');
 	let searchQuery = $state('');
+	let seatingFilter = $state('all');
+
+	// One option per Seating present in the list, prefixed with its Event
+	let seatingOptions = $derived(seatingFilterOptions(data.reservations, { withEvent: true }));
 
 	// Get export URL
 	let exportUrl = $derived(() => {
 		const params = new URLSearchParams();
 		if (statusFilter !== 'all') params.set('status', statusFilter);
 		if (searchQuery.trim()) params.set('search', searchQuery.trim());
+		if (seatingFilter !== 'all') params.set('seating', seatingFilter);
 		return `/admin/export/reservations?${params.toString()}`;
 	});
 
@@ -50,27 +61,18 @@
 	}
 
 	// Filter reservations
-	let filteredReservations = $derived(() => {
-		let filtered = data.reservations;
+	let filteredReservations = $derived(() =>
+		filterReservations<(typeof data.reservations)[number]>(data.reservations, {
+			status: statusFilter,
+			seatingId: seatingFilter,
+			search: searchQuery
+		})
+	);
 
-		// Filter by status
-		if (statusFilter !== 'all') {
-			filtered = filtered.filter(r => r.status === statusFilter);
-		}
-
-		// Filter by search query
-		if (searchQuery.trim()) {
-			const query = searchQuery.toLowerCase();
-			filtered = filtered.filter(r =>
-				r.guestName.toLowerCase().includes(query) ||
-				r.guestEmail.toLowerCase().includes(query) ||
-				r.eventTitle.toLowerCase().includes(query) ||
-				r.sessionTitle.toLowerCase().includes(query)
-			);
-		}
-
-		return filtered;
-	});
+	// What the door collects for the selected Seating (one Event, one currency)
+	let seatingBalanceTotal = $derived(
+		seatingFilter === 'all' ? null : totalBalanceToCollect(filteredReservations())
+	);
 
 	// Format date and time
 	function formatDateTime(dateString: string): string {
@@ -111,7 +113,7 @@
 				Réservation Comp
 			</a>
 			<a
-				href={exportUrl}
+				href={exportUrl()}
 				target="_blank"
 				rel="noopener noreferrer"
 				class="inline-flex items-center gap-2 px-4 py-2 bg-foreground text-background rounded-lg hover:opacity-90 transition-colors font-medium text-sm"
@@ -125,6 +127,21 @@
 	<!-- Filters and Search -->
 	<div class="bg-background rounded-lg border border-border-card p-4 mb-6">
 		<div class="flex flex-col sm:flex-row gap-4">
+			<!-- Seating Filter -->
+			<div class="flex-1">
+				<label for="seatingFilter" class="block text-sm font-medium text-foreground-alt mb-1">Filtrer par Séance</label>
+				<select
+					id="seatingFilter"
+					bind:value={seatingFilter}
+					class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
+				>
+					<option value="all">Toutes les Séances</option>
+					{#each seatingOptions as option (option.id)}
+						<option value={option.id}>{option.label}</option>
+					{/each}
+				</select>
+			</div>
+
 			<!-- Status Filter -->
 			<div class="flex-1">
 				<label for="statusFilter" class="block text-sm font-medium text-foreground-alt mb-1">Filtrer par Statut</label>
@@ -158,8 +175,16 @@
 		</div>
 
 		<!-- Results count -->
-		<div class="mt-3 text-sm text-muted-foreground">
-			Affichage de {filteredReservations().length} sur {data.reservations.length} réservations
+		<div class="mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 text-sm text-muted-foreground">
+			<span>Affichage de {filteredReservations().length} sur {data.reservations.length} réservations</span>
+			{#if seatingBalanceTotal !== null && filteredReservations().length > 0}
+				<span>
+					Reste à encaisser sur place (réservations confirmées) :
+					<span class="font-semibold text-foreground">
+						{formatCurrency(seatingBalanceTotal, filteredReservations()[0].currency)}
+					</span>
+				</span>
+			{/if}
 		</div>
 	</div>
 
@@ -170,7 +195,7 @@
 				Aucune réservation trouvée
 			</h3>
 			<p class="text-muted-foreground">
-				{#if searchQuery || statusFilter !== 'all'}
+				{#if searchQuery || statusFilter !== 'all' || seatingFilter !== 'all'}
 					Essayez d'ajuster vos filtres ou votre recherche
 				{:else}
 					Aucune réservation n'a encore été faite
@@ -193,6 +218,9 @@
 							Quantité & Total
 						</th>
 						<th class="px-6 py-4 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">
+							Reste à régler
+						</th>
+						<th class="px-6 py-4 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">
 							Statut
 						</th>
 						<th class="px-6 py-4 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">
@@ -210,6 +238,7 @@
 					{#each filteredReservations() as reservation}
 						{@const statusBadge = getStatusBadge(reservation.status)}
 						{@const paymentBadge = getPaymentStatusBadge(reservation.paymentStatus)}
+						{@const balance = balanceToCollect(reservation)}
 						<tr class="hover:bg-muted transition-colors">
 							<td class="px-6 py-4">
 								<div class="flex items-center gap-3">
@@ -244,6 +273,13 @@
 										{formatCurrency(reservation.totalAmount, reservation.currency)}
 									</div>
 								</div>
+							</td>
+							<td class="px-6 py-4 text-sm">
+								{#if balance === null}
+									<span class="text-muted-foreground" title="Réservation annulée ou expirée : rien à encaisser">—</span>
+								{:else}
+									<span class="font-medium text-foreground">{formatCurrency(balance, reservation.currency)}</span>
+								{/if}
 							</td>
 							<td class="px-6 py-4">
 								<div class="flex items-center gap-2">
@@ -295,6 +331,7 @@
 			{#each filteredReservations() as reservation}
 				{@const statusBadge = getStatusBadge(reservation.status)}
 				{@const paymentBadge = getPaymentStatusBadge(reservation.paymentStatus)}
+				{@const balance = balanceToCollect(reservation)}
 				<div class="bg-background rounded-lg border border-border-card p-4">
 					<div class="flex items-start gap-3 mb-3">
 						<div class="w-10 h-10 bg-muted rounded-full flex items-center justify-center flex-shrink-0">
@@ -337,6 +374,12 @@
 							<div class="text-xs text-muted-foreground">Total</div>
 							<div class="text-sm font-medium text-foreground">
 								{formatCurrency(reservation.totalAmount, reservation.currency)}
+							</div>
+						</div>
+						<div>
+							<div class="text-xs text-muted-foreground">Reste à régler</div>
+							<div class="text-sm font-medium text-foreground">
+								{balance === null ? '—' : formatCurrency(balance, reservation.currency)}
 							</div>
 						</div>
 						<div>

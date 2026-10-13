@@ -2,6 +2,7 @@
 	import { ArrowLeft, User, Mail, Phone, Ticket, Calendar, Clock, MapPin, CreditCard, CheckCircle2, ExternalLink, Download, Printer, XCircle, MailCheck, RotateCcw, AlertCircle, Gift } from 'lucide-svelte';
 	import type { PageData, ActionData } from './$types';
 	import { formatCurrency } from '$lib/utils/currency';
+	import { reservationAmounts, balanceToCollect } from '$lib/utils/balance-due';
 	import QRCode from 'qrcode';
 	import { enhance } from '$app/forms';
 	import { env } from '$env/dynamic/public';
@@ -89,6 +90,17 @@
 				return status;
 		}
 	}
+
+	// Total / Deposit / Balance of the Reservation (Comp: all zero). The
+	// Balance is null when the booking was cancelled or expired: nothing to
+	// collect at the door.
+	let amounts = $derived(reservationAmounts(data.reservation));
+	let balanceDue = $derived(balanceToCollect(data.reservation));
+	let depositSettled = $derived(
+		data.reservation.isComp ||
+		data.reservation.status === 'confirmed' ||
+		['succeeded', 'partially_refunded', 'refunded'].includes(data.reservation.payment?.status ?? '')
+	);
 
 	// Remaining refundable balance, in cents. Used to default/limit the
 	// partial refund amount input and to decide whether the refund action
@@ -342,9 +354,9 @@ END:VCALENDAR`;
 							<span class="font-medium text-foreground">{getPaymentStatusLabel(data.reservation.payment.status)}</span>
 						</div>
 						<div class="flex items-center justify-between">
-							<span class="text-foreground-alt">Montant Payé</span>
+							<span class="text-foreground-alt">Montant payé en ligne (acompte)</span>
 							<span class="font-semibold text-foreground">
-								{formatCurrency(data.reservation.totalAmount, data.reservation.currency)}
+								{formatCurrency(data.reservation.payment.amount, data.reservation.currency)}
 							</span>
 						</div>
 						{#if data.reservation.payment.refundedAmount > 0}
@@ -571,7 +583,25 @@ END:VCALENDAR`;
 					</div>
 					<div class="flex items-center justify-between">
 						<span class="text-muted-foreground">Total</span>
-						<span class="font-semibold">{formatCurrency(data.reservation.totalAmount, data.reservation.currency)}</span>
+						<span class="font-semibold">{formatCurrency(amounts.total, data.reservation.currency)}</span>
+					</div>
+					{#if data.reservation.discountAmount > 0}
+						<div class="flex items-center justify-between">
+							<span class="text-muted-foreground">Remise appliquée (déjà déduite)</span>
+							<span class="font-semibold">-{formatCurrency(data.reservation.discountAmount, data.reservation.currency)}</span>
+						</div>
+					{/if}
+					<div class="flex items-center justify-between">
+						<span class="text-muted-foreground">{depositSettled ? 'Acompte payé' : 'Acompte (non encore payé)'}</span>
+						<span class="font-semibold">{formatCurrency(amounts.deposit, data.reservation.currency)}</span>
+					</div>
+					<div class="flex items-center justify-between">
+						<span class="text-muted-foreground">Reste à régler sur place</span>
+						{#if balanceDue === null}
+							<span class="font-semibold" title="Réservation annulée ou expirée : rien à encaisser">— (rien à encaisser)</span>
+						{:else}
+							<span class="font-semibold">{formatCurrency(balanceDue, data.reservation.currency)}</span>
+						{/if}
 					</div>
 					<div class="flex items-center justify-between">
 						<span class="text-muted-foreground">Statut</span>

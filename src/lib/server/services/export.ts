@@ -2,6 +2,7 @@ import { db } from '../db';
 import { reservations, payments, eventSessions, events, waitlist } from '../db/schema';
 import { eq, and, desc, sql } from 'drizzle-orm';
 import { seatingTitle } from '$lib/utils/seating-title';
+import { reservationAmounts, balanceToCollect } from '$lib/utils/balance-due';
 
 /**
  * Format date to ISO-like string
@@ -59,12 +60,20 @@ export async function exportReservationsToCSV(options: {
 	limit?: number;
 	status?: string;
 	search?: string;
+	/** Only this Seating's (event_sessions.id) Reservations. */
+	seatingId?: string;
 	startDate?: Date;
 	endDate?: Date;
 } = {}) {
-	const { limit = 1000, status, search, startDate, endDate } = options;
+	const { limit = 1000, status, search, seatingId, startDate, endDate } = options;
 
-	let query = db.query.reservations.findMany({
+	const conditions = [
+		status ? eq(reservations.status, status as typeof reservations.status.enumValues[number]) : undefined,
+		seatingId ? eq(reservations.eventSessionId, seatingId) : undefined,
+	].filter((c) => c !== undefined);
+
+	const reservations_data = await db.query.reservations.findMany({
+		where: conditions.length > 0 ? and(...conditions) : undefined,
 		with: {
 			eventSession: {
 				with: {
@@ -74,25 +83,8 @@ export async function exportReservationsToCSV(options: {
 			payment: true,
 		},
 		orderBy: [desc(reservations.createdAt)],
-	}).limit(limit);
-
-	// Apply filters
-	if (status) {
-		query = db.query.reservations.findMany({
-			where: eq(reservations.status, status as typeof reservations.status.enumValues[number]),
-			with: {
-				eventSession: {
-					with: {
-						event: true,
-					},
-				},
-				payment: true,
-			},
-			orderBy: [desc(reservations.createdAt)],
-		}).limit(limit);
-	}
-
-	const reservations_data = await query;
+		limit,
+	});
 
 	// Apply search filter (case-insensitive, matches frontend behavior)
 	let filtered = reservations_data;
@@ -108,26 +100,33 @@ export async function exportReservationsToCSV(options: {
 		);
 	}
 
-	const csvData = filtered.map((r: typeof filtered[number]) => ({
-		'Reservation ID': r.id,
-		'Guest Name': r.guestName,
-		'Guest Email': r.guestEmail,
-		'Guest Phone': r.guestPhone || '',
-		'Notification Preference': r.notificationPreference,
-		'Quantity': r.quantity,
-		'Total Amount': r.totalAmount / 100,
-		'Currency': r.currency,
-		'Status': r.status,
-		'Is Comp': r.isComp,
-		'Event': r.eventSession.event.titleEn,
-		'Session': seatingTitle(r.eventSession, 'en'),
-		'Session Start': r.eventSession.startTime,
-		'Session End': r.eventSession.endTime,
-		'Payment Status': r.payment?.status || (r.isComp ? 'comp' : ''),
-		'Payment Method': r.payment?.stripePaymentMethodId || '',
-		'Confirmed At': r.confirmedAt,
-		'Created At': r.createdAt,
-	}));
+	const csvData = filtered.map((r: typeof filtered[number]) => {
+		const amounts = reservationAmounts(r);
+		const balanceDue = balanceToCollect(r);
+		return {
+			'Reservation ID': r.id,
+			'Guest Name': r.guestName,
+			'Guest Email': r.guestEmail,
+			'Guest Phone': r.guestPhone || '',
+			'Notification Preference': r.notificationPreference,
+			'Quantity': r.quantity,
+			'Total Amount': r.totalAmount / 100,
+			'Deposit Paid': amounts.deposit / 100,
+			// Blank when cancelled/expired: nothing to collect at the venue.
+			'Balance Due': balanceDue === null ? '' : balanceDue / 100,
+			'Currency': r.currency,
+			'Status': r.status,
+			'Is Comp': r.isComp,
+			'Event': r.eventSession.event.titleEn,
+			'Session': seatingTitle(r.eventSession, 'en'),
+			'Session Start': r.eventSession.startTime,
+			'Session End': r.eventSession.endTime,
+			'Payment Status': r.payment?.status || (r.isComp ? 'comp' : ''),
+			'Payment Method': r.payment?.stripePaymentMethodId || '',
+			'Confirmed At': r.confirmedAt,
+			'Created At': r.createdAt,
+		};
+	});
 
 	const headers = [
 		'Reservation ID',
@@ -137,6 +136,8 @@ export async function exportReservationsToCSV(options: {
 		'Notification Preference',
 		'Quantity',
 		'Total Amount',
+		'Deposit Paid',
+		'Balance Due',
 		'Currency',
 		'Status',
 		'Is Comp',

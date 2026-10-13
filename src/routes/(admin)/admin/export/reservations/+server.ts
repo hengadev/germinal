@@ -13,12 +13,17 @@ export const GET: RequestHandler = async ({ url, locals }) => {
 	const status = url.searchParams.get('status');
 	const limit = parseInt(url.searchParams.get('limit') || '1000');
 	const search = url.searchParams.get('search') || undefined;
+	const seatingId = url.searchParams.get('seating') || undefined;
+	if (seatingId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(seatingId)) {
+		return text('Séance invalide', { status: 400 });
+	}
 
 	try {
 		const csv = await exportReservationsToCSV({
 			limit,
 			status: status || undefined,
 			search,
+			seatingId,
 		});
 
 		return new Response(csv, {
