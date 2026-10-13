@@ -140,6 +140,51 @@
 		return true;
 	}
 
+	// --- Cancel screen (issue 028) ---
+	// Pre-filled from the Event's Refund Policy: the suggested refund for a
+	// guest-requested cancellation (editable, 0 ≤ amount ≤ refundable), the
+	// whole refundable Deposit when Germinal cancels, nothing pre-filled for
+	// a manual policy (its text is shown instead).
+	let showCancelPanel = $state(false);
+	let cancelledBy = $state<'guest' | 'germinal'>('guest');
+	// A number input's bound value: a number, or null/'' when empty.
+	let cancelAmountInput = $state<string | number | null>('');
+	let cancelAmountError = $state('');
+
+	let cancellation = $derived(data.cancellation);
+
+	function toMajor(cents: number): string {
+		return (cents / 100).toFixed(2);
+	}
+
+	function openCancelPanel() {
+		cancelledBy = 'guest';
+		cancelAmountInput =
+			cancellation && cancellation.suggestedAmount !== null ? toMajor(cancellation.suggestedAmount) : '';
+		cancelAmountError = '';
+		showCancelPanel = true;
+	}
+
+	function validateCancelAmount(): boolean {
+		cancelAmountError = '';
+		if (cancelledBy === 'germinal' || !cancellation) return true;
+		const trimmed = String(cancelAmountInput ?? '').trim().replace(',', '.');
+		if (trimmed === '') {
+			cancelAmountError = 'Indiquez le montant à rembourser (0 pour aucun remboursement).';
+			return false;
+		}
+		const parsed = Number(trimmed);
+		if (!Number.isFinite(parsed) || parsed < 0) {
+			cancelAmountError = 'Le montant doit être positif ou nul.';
+			return false;
+		}
+		if (Math.round(parsed * 100) > cancellation.refundable) {
+			cancelAmountError = `Le montant dépasse le montant remboursable de ${formatCurrency(cancellation.refundable, data.reservation.currency, 'fr-FR')}.`;
+			return false;
+		}
+		return true;
+	}
+
 	// Format date and time
 	function formatDateTime(dateString: string): string {
 		return new Date(dateString).toLocaleString('en-US', {
@@ -477,28 +522,135 @@ END:VCALENDAR`;
 							</button>
 						</form>
 
-						<form method="POST" action="?/cancel" use:enhance={({ formElement }) => {
-							isSubmitting = true;
-							return async ({ result }) => {
-								isSubmitting = false;
-								if (result.type === 'success' && result.data) {
-									form = { success: (result.data as { message: string }).message };
-								} else if (result.type === 'failure' && result.data) {
-									form = { error: (result.data as { error?: string }).error || 'Action échouée' };
-								}
-							};
-						}}>
+						{#if !showCancelPanel}
 							<button
-								type="submit"
+								type="button"
+								onclick={openCancelPanel}
 								disabled={isSubmitting}
 								class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
 							>
 								<XCircle size={18} />
 								Annuler la Réservation
 							</button>
-						</form>
+						{:else if cancellation}
+							<form
+								method="POST"
+								action="?/cancel"
+								class="border border-red-200 rounded-lg p-4 space-y-3"
+								use:enhance={({ cancel }) => {
+									if (!validateCancelAmount()) {
+										cancel();
+										return;
+									}
+									isSubmitting = true;
+									return async ({ result, update }) => {
+										isSubmitting = false;
+										if (result.type === 'success' && result.data) {
+											showCancelPanel = false;
+											form = { success: (result.data as { message: string }).message };
+											await update();
+										} else if (result.type === 'failure' && result.data) {
+											form = { error: (result.data as { error?: string }).error || 'Action échouée' };
+										}
+									};
+								}}
+							>
+								<h3 class="text-sm font-semibold text-foreground">Annuler la réservation</h3>
 
-						{#if canRefund}
+								<fieldset class="space-y-1.5">
+									<legend class="text-xs text-foreground-alt mb-1">Origine de l’annulation</legend>
+									<label class="flex items-center gap-2 text-sm text-foreground">
+										<input type="radio" name="cancelledBy" value="guest" bind:group={cancelledBy} />
+										À la demande du client
+									</label>
+									<label class="flex items-center gap-2 text-sm text-foreground">
+										<input type="radio" name="cancelledBy" value="germinal" bind:group={cancelledBy} />
+										Annulé par Germinal
+									</label>
+								</fieldset>
+
+								{#if cancellation.refundable === 0}
+									<input type="hidden" name="amount" value="0" />
+									<p class="text-xs text-muted-foreground">
+										Rien à rembourser : aucun acompte n’a été payé en ligne (ou il a déjà été remboursé). L’annulation libère les places.
+									</p>
+								{:else if cancelledBy === 'germinal'}
+									<p class="text-xs text-foreground-alt">{cancellation.germinalReasonFr}</p>
+									<div class="flex items-center justify-between text-sm">
+										<span class="text-foreground-alt">Remboursement</span>
+										<span class="font-semibold text-foreground">{formatCurrency(cancellation.germinalAmount, data.reservation.currency, 'fr-FR')}</span>
+									</div>
+								{:else}
+									{#if cancellation.suggestedAmount !== null}
+										<p class="text-xs text-foreground-alt">{cancellation.suggestedReasonFr}</p>
+										<p class="text-xs text-muted-foreground">
+											Remboursement suggéré : {formatCurrency(cancellation.suggestedAmount, data.reservation.currency, 'fr-FR')}
+										</p>
+									{:else}
+										<div class="text-xs text-foreground-alt bg-muted rounded-md p-3">
+											<div class="font-medium text-foreground mb-1">Politique de remboursement (manuelle)</div>
+											{#if cancellation.policyTextFr}
+												<p class="whitespace-pre-line">{cancellation.policyTextFr}</p>
+											{:else}
+												<p>Aucun texte de politique saisi pour cet événement.</p>
+											{/if}
+										</div>
+									{/if}
+									<div>
+										<label for="cancel-amount" class="block text-xs text-foreground-alt mb-1">
+											Montant à rembourser (modifiable)
+										</label>
+										<div class="text-xs text-muted-foreground mb-2">
+											Remboursable : {formatCurrency(cancellation.refundable, data.reservation.currency, 'fr-FR')}
+										</div>
+										<input
+											id="cancel-amount"
+											name="amount"
+											type="number"
+											step="0.01"
+											min="0"
+											max={toMajor(cancellation.refundable)}
+											placeholder="0.00"
+											bind:value={cancelAmountInput}
+											oninput={() => { cancelAmountError = ''; }}
+											class="w-full px-3 py-2 border border-border-input rounded-lg text-sm bg-background text-foreground"
+										/>
+									</div>
+								{/if}
+
+								{#if cancelAmountError}
+									<div class="flex items-center gap-1.5 text-xs text-red-600">
+										<AlertCircle size={14} />
+										<span>{cancelAmountError}</span>
+									</div>
+								{/if}
+
+								<div class="flex gap-2">
+									<button
+										type="button"
+										onclick={() => { showCancelPanel = false; }}
+										disabled={isSubmitting}
+										class="flex-1 px-3 py-2 border border-border-input text-foreground-alt rounded-lg hover:bg-muted transition-colors font-medium text-sm disabled:opacity-50"
+									>
+										Retour
+									</button>
+									<button
+										type="submit"
+										disabled={isSubmitting}
+										class="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+									>
+										<XCircle size={16} />
+										Confirmer l’annulation
+									</button>
+								</div>
+							</form>
+						{/if}
+					{/if}
+
+					<!-- Goodwill refund on an already-cancelled Reservation with
+					     something left to refund (the cancel screen refunds
+					     an active one). -->
+					{#if data.reservation.status === 'cancelled' && canRefund}
 							<form method="POST" action="?/refund" use:enhance={({ cancel }) => {
 								if (!validateRefundAmount()) {
 									cancel();
@@ -550,7 +702,6 @@ END:VCALENDAR`;
 									Traiter le Remboursement
 								</button>
 							</form>
-						{/if}
 					{/if}
 
 					<div class="border-t border-border-card my-3"></div>

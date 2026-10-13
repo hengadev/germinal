@@ -344,7 +344,9 @@
       "errorGeneric": "Something went wrong while cancelling your reservation. Please try again or contact us.",
       "successTitle": "Reservation Cancelled",
       "successWithRefund": "Your reservation has been cancelled and a refund of {amount} has been issued to your original payment method. It may take 5–10 business days to appear.",
-      "successNoRefund": "Your reservation has been cancelled."
+      "successNoRefund": "Your reservation has been cancelled.",
+      "refundPreview": "If you cancel now, {amount} will be refunded to your original payment method, under this event's refund policy.",
+      "noRefundPreview": "Under this event's refund policy, cancelling now gives no refund. Your seats will be released."
     },
     "depositPaid": "Deposit paid",
     "balanceDue": "Balance due at the venue"

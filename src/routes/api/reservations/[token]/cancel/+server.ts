@@ -6,44 +6,18 @@ import { reservations, payments, eventSessions } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
 import { logger } from '$lib/server/logger';
 import { seatingTitle } from '$lib/utils/seating-title';
-
-// Cancellation window: 24 hours before event
-const CANCELLATION_WINDOW_HOURS = 24;
+import { cancelByGuestWithPolicy, getGuestCancellationTerms } from '$lib/server/services/cancellation';
 
 /**
- * Check if a reservation can be cancelled
- * - Must be in 'confirmed' status
- * - Must be more than 24 hours before event start
+ * Self-service cancellation from the Ticket (issue 028): the Event's Refund
+ * Policy decides.
+ * - Manual policy (every migrated Event — its statement promises exactly
+ *   this): cancellable up to 24 hours before the Seating, with a full
+ *   refund of what was paid online — the historical behaviour, unchanged.
+ * - Rule-based policy: cancellable until the Seating starts; the refund is
+ *   the policy's amount (possibly nothing — the seats are freed anyway).
+ * See guestCancellationTerms.
  */
-async function canCancelReservation(reservation: any): Promise<{ canCancel: boolean; reason?: string }> {
-	// Check status
-	if (reservation.status !== 'confirmed') {
-		return { canCancel: false, reason: 'Reservation is not confirmed' };
-	}
-
-	// Get session to check time
-	const session = await db.query.eventSessions.findFirst({
-		where: eq(eventSessions.id, reservation.eventSessionId),
-	});
-
-	if (!session) {
-		return { canCancel: false, reason: 'Session not found' };
-	}
-
-	// Check time window
-	const now = new Date();
-	const hoursUntilEvent = (session.startTime.getTime() - now.getTime()) / (1000 * 60 * 60);
-
-	if (hoursUntilEvent < CANCELLATION_WINDOW_HOURS) {
-		return {
-			canCancel: false,
-			reason: `Cancellation is only available more than ${CANCELLATION_WINDOW_HOURS} hours before the event`,
-		};
-	}
-
-	return { canCancel: true };
-}
-
 // POST /api/reservations/[token]/cancel - Cancel a reservation
 export const POST: RequestHandler = async ({ params }) => {
 	const { token } = params;
@@ -56,12 +30,25 @@ export const POST: RequestHandler = async ({ params }) => {
 			return json({ error: 'Reservation not found' }, { status: 404 });
 		}
 
-		// Check if can cancel
-		const { canCancel, reason } = await canCancelReservation(reservation);
+		// Check if can cancel, and how the refund is decided
+		const terms = await getGuestCancellationTerms(reservation.id);
 
-		if (!canCancel) {
-			return json({ error: reason || 'Cannot cancel reservation' }, { status: 400 });
+		if (!terms.canCancel) {
+			return json({ error: terms.reason || 'Cannot cancel reservation' }, { status: 400 });
 		}
+
+		if (terms.mode === 'policy') {
+			// Rule-based Refund Policy: refund the policy's amount through the
+			// shared refund path (which also notifies the guest).
+			const result = await cancelByGuestWithPolicy(reservation.id);
+			logger.info(`Reservation ${reservation.id} cancelled by user (policy refund ${result.refundAmount})`);
+			return json({
+				success: true,
+				refund: result.refundAmount > 0 ? { amount: result.refundAmount, currency: result.currency } : null,
+			});
+		}
+
+		// Manual Refund Policy: the historical full refund below.
 
 		// Use transaction to update reservation and process refund. Returns
 		// refund info (or null) so we know afterward whether to send the guest
@@ -210,7 +197,7 @@ export const POST: RequestHandler = async ({ params }) => {
 			}
 		}
 
-		return json({ success: true });
+		return json({ success: true, refund: refundResult });
 	} catch (error) {
 		logger.error({ err: error }, 'Failed to cancel reservation');
 		return json({ error: 'Failed to cancel reservation' }, { status: 500 });
@@ -228,11 +215,13 @@ export const GET: RequestHandler = async ({ params }) => {
 			return json({ error: 'Reservation not found' }, { status: 404 });
 		}
 
-		const { canCancel, reason } = await canCancelReservation(reservation);
+		const terms = await getGuestCancellationTerms(reservation.id);
 
 		return json({
-			canCancel,
-			reason: reason || null,
+			canCancel: terms.canCancel,
+			reason: terms.canCancel ? null : terms.reason,
+			// The refund the guest would get if they cancel now (minor units).
+			refund: terms.canCancel ? { amount: terms.refundAmount, currency: terms.currency } : null,
 			reservation: {
 				id: reservation.id,
 				status: reservation.status,

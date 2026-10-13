@@ -773,6 +773,9 @@ export async function expireReservation(reservationId: string) {
  */
 export async function cancelReservation(reservationId: string) {
 	const result = await db.transaction(async (tx: typeof db) => {
+		// Serialise concurrent cancellations of this Reservation.
+		await tx.select({ id: reservations.id }).from(reservations).where(eq(reservations.id, reservationId)).for('update');
+
 		const reservation = await tx.query.reservations.findFirst({
 			where: eq(reservations.id, reservationId),
 		});
@@ -875,10 +878,21 @@ export async function cancelReservation(reservationId: string) {
  * (in cents) to issue a partial refund instead; it must be greater than
  * zero and no more than the remaining refundable balance.
  */
-export async function processRefund(reservationId: string, amount?: number) {
+export async function processRefund(
+	reservationId: string,
+	amount?: number,
+	options: {
+		/** Refuse a Reservation that is already cancelled (a cancellation
+		 * with refund, issue 028) instead of refunding it again. */
+		cancelling?: boolean;
+	} = {}
+) {
 	const { createRefund } = await import('./stripe');
 
 	const sessionData = await db.transaction(async (tx: typeof db) => {
+		// Serialise concurrent cancellations/refunds of this Reservation.
+		await tx.select({ id: reservations.id }).from(reservations).where(eq(reservations.id, reservationId)).for('update');
+
 		const reservation = await tx.query.reservations.findFirst({
 			where: eq(reservations.id, reservationId),
 			with: {
@@ -889,6 +903,10 @@ export async function processRefund(reservationId: string, amount?: number) {
 
 		if (!reservation) {
 			throw new Error('Reservation not found');
+		}
+
+		if (options.cancelling && reservation.status === 'cancelled') {
+			throw new Error('Reservation is already cancelled');
 		}
 
 		if (!reservation.payment) {

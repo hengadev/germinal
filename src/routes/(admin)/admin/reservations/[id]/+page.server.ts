@@ -4,6 +4,13 @@ import { error, fail, redirect } from '@sveltejs/kit';
 import { requireAdmin } from '$lib/server/auth-guards';
 import type { PageServerLoad, Actions } from './$types';
 import { seatingTitlesWithFallback } from '$lib/utils/seating-title';
+import { cancellationPreFill, refundableAmount, type CancellationPreFill } from '$lib/utils/cancellation-refund';
+import { EMPTY_MANUAL_REFUND_POLICY } from '$lib/utils/refund-policy';
+
+/** Only an active Reservation gets the cancel screen's pre-fill. */
+function isCancellable(status: string): boolean {
+	return status !== 'cancelled' && status !== 'expired';
+}
 
 export const load: PageServerLoad = async ({ params }) => {
 	if (env.USE_MOCK_DATA) {
@@ -28,7 +35,23 @@ export const load: PageServerLoad = async ({ params }) => {
 			throw error(404, 'Event not found');
 		}
 
+		const mockPayment = {
+			amount: reservation.totalAmount,
+			refundedAmount: reservation.paymentStatus === 'refunded' ? reservation.totalAmount : null,
+			status: reservation.paymentStatus,
+		};
+		// Mock Events carry no Refund Policy: an empty manual one.
+		const cancellation: CancellationPreFill | null = isCancellable(reservation.status)
+			? cancellationPreFill({
+				policy: EMPTY_MANUAL_REFUND_POLICY,
+				seatingStart: session.startTime,
+				now: new Date(),
+				refundable: refundableAmount(mockPayment),
+			})
+			: null;
+
 		return {
+			cancellation,
 			reservation: {
 				id: reservation.id,
 				guestName: reservation.guestName,
@@ -84,7 +107,24 @@ export const load: PageServerLoad = async ({ params }) => {
 	try {
 		const reservation = await getReservationById(params.id);
 
+		// The cancel screen's pre-fill from the Event's Refund Policy (issue 028).
+		let cancellation: CancellationPreFill | null = null;
+		if (isCancellable(reservation.status)) {
+			const { getCancellationQuote } = await import('$lib/server/services/cancellation');
+			const quote = await getCancellationQuote(params.id);
+			cancellation = {
+				refundable: quote.refundable,
+				policyType: quote.policyType,
+				policyTextFr: quote.policyTextFr,
+				suggestedAmount: quote.suggestedAmount,
+				suggestedReasonFr: quote.suggestedReasonFr,
+				germinalAmount: quote.germinalAmount,
+				germinalReasonFr: quote.germinalReasonFr,
+			};
+		}
+
 		return {
+			cancellation,
 			reservation: {
 				id: reservation.id,
 				guestName: reservation.guestName,
@@ -125,16 +165,41 @@ export const load: PageServerLoad = async ({ params }) => {
 };
 
 export const actions: Actions = {
+	/**
+	 * Cancel with the refund confirmed on the cancel screen (issue 028):
+	 * `cancelledBy` = guest (the amount the Admin confirmed, pre-filled from
+	 * the Refund Policy) or germinal (the whole refundable Deposit, whatever
+	 * the amount sent). The amount is in major units ("12.50"); 0 cancels
+	 * without refunding.
+	 */
 	cancel: async ({ params, request, locals }) => {
 		requireAdmin(locals);
+
+		const formData = await request.formData();
+		const cancelledBy = formData.get('cancelledBy') === 'germinal' ? 'germinal' : 'guest';
+		const amountRaw = formData.get('amount');
+
+		let amount: number | undefined;
+		if (cancelledBy === 'guest') {
+			if (typeof amountRaw !== 'string' || amountRaw.trim() === '') {
+				return fail(400, { error: 'Indiquez le montant à rembourser (0 pour aucun remboursement)' });
+			}
+			const { parseCurrency } = await import('$lib/utils/currency');
+			try {
+				amount = parseCurrency(amountRaw.trim().replace(',', '.'));
+			} catch {
+				return fail(400, { error: 'Montant à rembourser invalide' });
+			}
+		}
+
 		if (env.USE_MOCK_DATA) {
 			// Mock mode - just return success
-			return { success: true, message: 'Reservation cancelled (mock)' };
+			return { success: true, message: 'Réservation annulée (données fictives)' };
 		}
 
 		try {
-			const { cancelReservation } = await import('$lib/server/services/reservations');
-			await cancelReservation(params.id);
+			const { cancelWithRefund } = await import('$lib/server/services/cancellation');
+			const result = await cancelWithRefund(params.id, { cancelledBy, amount });
 
 			const { recordAuditLog } = await import('$lib/server/services/audit-log');
 			await recordAuditLog({
@@ -142,11 +207,27 @@ export const actions: Actions = {
 				action: 'reservation.cancel',
 				entityType: 'reservation',
 				entityId: params.id,
+				metadata: {
+					cancelledBy: result.cancelledBy,
+					suggestedAmount: result.suggestedAmount,
+					appliedAmount: result.appliedAmount,
+					refundable: result.refundable,
+				},
 			});
 
-			return { success: true, message: 'Reservation cancelled successfully' };
+			const { formatCurrency } = await import('$lib/utils/currency');
+			return {
+				success: true,
+				message: result.appliedAmount > 0
+					? `Réservation annulée, ${formatCurrency(result.appliedAmount, result.currency, 'fr-FR')} remboursés`
+					: 'Réservation annulée, sans remboursement'
+			};
 		} catch (err) {
-			return fail(400, { error: err instanceof Error ? err.message : 'Failed to cancel reservation' });
+			const { CancellationError } = await import('$lib/server/services/cancellation');
+			if (err instanceof CancellationError) return fail(400, { error: err.message });
+			const { logger } = await import('$lib/server/logger');
+			logger.error({ err, reservationId: params.id }, 'Admin cancellation failed');
+			return fail(400, { error: 'Échec de l’annulation de la réservation' });
 		}
 	},
 
