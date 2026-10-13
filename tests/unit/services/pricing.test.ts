@@ -133,6 +133,47 @@ describe('priceReservation — Promo Codes', () => {
 		})).toEqual({ subtotal: 6000, discount: 5000, total: 1000, deposit: 1000, balance: 0 });
 	});
 
+	it('keeps a fixed Deposit fixed while it is below the discounted total', () => {
+		// 2 × 50 € = 100 €, −20 € = 80 €; fixed 15 € × 2 = 30 €, untouched by the discount
+		expect(priceReservation({
+			unitPrice: 5000,
+			seats: 2,
+			discount: { discountType: 'amount', discountValue: 2000 },
+			deposit: { type: 'fixed', value: 1500 },
+		})).toEqual({ subtotal: 10000, discount: 2000, total: 8000, deposit: 3000, balance: 5000 });
+	});
+
+	it('caps a fixed Deposit at the total after a percent Promo Code', () => {
+		// 2 × 30 € = 60 €, −50 % = 30 €; fixed 20 € × 2 = 40 € capped at 30 €
+		expect(priceReservation({
+			unitPrice: 3000,
+			seats: 2,
+			discount: { discountType: 'percent', discountValue: 50 },
+			deposit: { type: 'fixed', value: 2000 },
+		})).toEqual({ subtotal: 6000, discount: 3000, total: 3000, deposit: 3000, balance: 0 });
+	});
+
+	it('takes an amount Promo Code off the price, not off the Deposit', () => {
+		// 100 € − 25 € = 75 €, Deposit 30 % = 22,50 € — not 30 € − 25 € = 5 €
+		expect(priceReservation({
+			unitPrice: 5000,
+			seats: 2,
+			discount: { discountType: 'amount', discountValue: 2500 },
+			deposit: { type: 'percent', value: 30 },
+		})).toEqual({ subtotal: 10000, discount: 2500, total: 7500, deposit: 2250, balance: 5250 });
+	});
+
+	it('a 100 % Promo Code leaves nothing to pay online or at the venue, whatever the rule', () => {
+		for (const deposit of [NONE, FULL_PAYMENT_DEPOSIT, { type: 'percent', value: 30 }, { type: 'fixed', value: 2000 }] as DepositRule[]) {
+			expect(priceReservation({
+				unitPrice: 5000,
+				seats: 2,
+				discount: { discountType: 'percent', discountValue: 100 },
+				deposit,
+			})).toEqual({ subtotal: 10000, discount: 10000, total: 0, deposit: 0, balance: 0 });
+		}
+	});
+
 	it('never discounts below zero', () => {
 		expect(priceReservation({
 			unitPrice: 2000,
