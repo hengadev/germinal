@@ -3,6 +3,7 @@ import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import QRCode from 'qrcode';
 import { seatingTitlesWithFallback } from '$lib/utils/seating-title';
+import { refundPolicyOf } from '$lib/utils/refund-policy';
 
 export const load: PageServerLoad = async ({ params }) => {
 	const reservation = await getReservationByToken(params.token);
@@ -45,6 +46,8 @@ export const load: PageServerLoad = async ({ params }) => {
 				endTime: reservation.eventSession.endTime.toISOString(),
 				event: reservation.eventSession.event
 			},
+			// The Event's Refund Policy (issue 027), in plain words on the Ticket.
+			refundPolicy: refundPolicyOf(reservation.eventSession.event),
 			payment: reservation.payment ? {
 				status: reservation.payment.status,
 				receiptUrl: reservation.payment.receiptUrl

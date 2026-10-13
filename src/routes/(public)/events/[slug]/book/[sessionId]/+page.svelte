@@ -15,6 +15,7 @@
 	import { formatCurrency } from '$lib/utils/currency';
 	import { priceReservation } from '$lib/utils/pricing';
 	import DepositBreakdown from '$lib/components/booking/DepositBreakdown.svelte';
+	import RefundPolicyNote from '$lib/components/booking/RefundPolicyNote.svelte';
 	import { t, locale } from 'svelte-i18n';
 	import type { PageData } from './$types';
 
@@ -422,6 +423,11 @@
 				</div>
 				<DepositBreakdown {price} currency={data.session.currency} />
 			</div>
+
+			<!-- What happens to the payment on cancellation (issue 027) -->
+			{#if price.deposit > 0}
+				<RefundPolicyNote policy={data.refundPolicy} fullPayment={price.balance === 0} />
+			{/if}
 
 			<!-- Submit -->
 			<div class="flex items-center justify-end gap-3 pt-2">

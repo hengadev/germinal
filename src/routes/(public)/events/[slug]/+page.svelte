@@ -7,6 +7,7 @@
     import { t, locale } from "svelte-i18n";
     import { formatCurrency } from "$lib/utils/currency";
     import { depositRuleOf, isFullPayment, priceReservation } from "$lib/utils/pricing";
+    import { refundPolicyOf } from "$lib/utils/refund-policy";
 
     let { data }: { data: PageData } = $props();
 
@@ -28,6 +29,8 @@
     // The Event's Deposit rule (issue 023): what one guest pays online for
     // a Service's price, shown under it unless the whole price is paid online.
     const deposit = $derived(depositRuleOf(data.event));
+    // Its Refund Policy (issue 027), shown at the booking step.
+    const refundPolicy = $derived(refundPolicyOf(data.event));
 
     function depositNote(amount: number | null, currency: string): string | null {
         if (amount === null || amount === 0 || isFullPayment(deposit)) return null;
@@ -103,6 +106,7 @@
                                     eventTitle={getEventTitle()}
                                     eventSlug={data.event.slug}
                                     {deposit}
+                                    {refundPolicy}
                                 />
                             </div>
                         {/each}

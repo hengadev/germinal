@@ -274,6 +274,9 @@
       "noDeposit": "Nothing to pay online: the full amount is settled at the venue.",
       "note": "Only the deposit is charged online; the balance is settled at the venue."
     },
+    "refundPolicy": {
+      "title": "Cancellation and refunds"
+    },
     "continueToPayDeposit": "Continue to pay the deposit"
   },
   "waitlist": {

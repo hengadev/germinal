@@ -5,6 +5,7 @@
 	import { seatingTitle } from '$lib/utils/seating-title';
 	import { formatCurrencyAmount, getCurrencySymbol } from '$lib/utils/currency';
 	import { FULL_PAYMENT_DEPOSIT, type DepositRule } from '$lib/utils/pricing';
+	import { EMPTY_MANUAL_REFUND_POLICY, type RefundPolicy } from '$lib/utils/refund-policy';
 
 	interface Session {
 		id: string;
@@ -30,12 +31,14 @@
 		badgeType?: 'none' | 'featured' | 'vip' | 'popular' | 'best_value' | 'limited';
 	}
 
-	let { sessions, eventTitle, eventSlug, deposit = FULL_PAYMENT_DEPOSIT }: {
+	let { sessions, eventTitle, eventSlug, deposit = FULL_PAYMENT_DEPOSIT, refundPolicy = EMPTY_MANUAL_REFUND_POLICY }: {
 		sessions: Session[];
 		eventTitle: string;
 		eventSlug: string;
 		/** The Event's Deposit rule (issue 023), for the booking step. */
 		deposit?: DepositRule;
+		/** The Event's Refund Policy (issue 027), for the booking step. */
+		refundPolicy?: RefundPolicy;
 	} = $props();
 
 	let bookingModalOpen = $state(false);
@@ -277,6 +280,7 @@
 		{eventTitle}
 		{eventSlug}
 		{deposit}
+		{refundPolicy}
 	/>
 {/if}
 

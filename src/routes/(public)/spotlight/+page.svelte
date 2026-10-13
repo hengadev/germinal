@@ -2,6 +2,7 @@
 	import EventDetailLayout from '$lib/components/EventDetailLayout.svelte';
 	import SessionSelector from '$lib/components/booking/SessionSelector.svelte';
 	import { depositRuleOf } from '$lib/utils/pricing';
+	import { refundPolicyOf } from '$lib/utils/refund-policy';
 	import { ArrowLeft } from 'lucide-svelte';
 	import type { PageData } from './$types';
 	import { reveal } from '$lib/actions/reveal';
@@ -41,6 +42,7 @@
 					eventTitle={getEventField('title')}
 					eventSlug={spotlightEvent.slug}
 					deposit={depositRuleOf(spotlightEvent)}
+					refundPolicy={refundPolicyOf(spotlightEvent)}
 				/>
 			</section>
 		{/if}
