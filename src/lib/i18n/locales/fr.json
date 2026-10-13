@@ -344,7 +344,9 @@
       "errorGeneric": "Une erreur est survenue lors de l'annulation de votre réservation. Veuillez réessayer ou nous contacter.",
       "successTitle": "Réservation annulée",
       "successWithRefund": "Votre réservation a été annulée et un remboursement de {amount} a été émis vers votre moyen de paiement d'origine. Le délai peut être de 5 à 10 jours ouvrés.",
-      "successNoRefund": "Votre réservation a été annulée."
+      "successNoRefund": "Votre réservation a été annulée.",
+      "refundPreview": "Si vous annulez maintenant, {amount} vous seront remboursés sur votre moyen de paiement, selon la politique de remboursement de l’événement.",
+      "noRefundPreview": "Selon la politique de remboursement de l’événement, une annulation maintenant ne donne lieu à aucun remboursement. Vos places seront libérées."
     },
     "depositPaid": "Acompte payé",
     "balanceDue": "Reste à régler sur place"

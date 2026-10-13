@@ -22,6 +22,9 @@
 	let cancelError = $state<string | null>(null);
 	let cancelSuccess = $state(false);
 	let refundAmount = $state<number | null>(null);
+	// The refund the guest would get by cancelling now, from the Event's
+	// Refund Policy (issue 028); null until checked or when nothing was paid.
+	let refundPreview = $state<number | null>(null);
 
 	// What was paid online is the Deposit (issue 023) — all a refund covers.
 	let hasPayment = $derived(data.reservation.payment !== null && data.reservation.depositAmount > 0);
@@ -54,6 +57,7 @@
 			}
 
 			cancellationReason = result.reason ?? null;
+			refundPreview = hasPayment && result.refund ? result.refund.amount : null;
 			cancellationState = result.canCancel ? 'eligible' : 'ineligible';
 		} catch (err) {
 			console.error('Failed to check cancellation eligibility:', err);
@@ -90,8 +94,9 @@
 				throw new Error(result.error || $t('tickets.cancellation.errorGeneric'));
 			}
 
-			// Capture refund details before invalidateAll refreshes `data`.
-			refundAmount = hasPayment ? data.reservation.depositAmount : null;
+			// What was actually refunded (none: nothing paid, or the policy
+			// gives nothing at this point).
+			refundAmount = result.refund?.amount > 0 ? result.refund.amount : null;
 			showCancelModal = false;
 			cancelSuccess = true;
 			cancellationState = 'idle';
@@ -611,6 +616,16 @@ END:VCALENDAR`;
 		title={$t('tickets.cancellation.modalTitle')}
 		description={$t('tickets.cancellation.modalDescription', { values: { eventTitle: isFr ? data.reservation.session.event.titleFr : data.reservation.session.event.titleEn } })}
 	>
+		{#if refundPreview !== null}
+			<p class="font-serif text-sm text-foreground-alt leading-relaxed mb-4">
+				{#if refundPreview > 0}
+					{$t('tickets.cancellation.refundPreview', { values: { amount: formatCurrency(refundPreview, data.reservation.currency, $locale ?? undefined) } })}
+				{:else}
+					{$t('tickets.cancellation.noRefundPreview')}
+				{/if}
+			</p>
+		{/if}
+
 		{#if cancelError}
 			<div class="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3 mb-4">
 				<AlertCircle size={20} class="text-red-600 flex-shrink-0 mt-0.5" />
