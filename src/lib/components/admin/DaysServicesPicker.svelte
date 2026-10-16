@@ -10,7 +10,8 @@
 	// individually on a month calendar — non-consecutive Days are allowed —
 	// and picks lunch and/or dinner per Day, or once for all Days. The
 	// Event's start/end dates are derived from the first and last Day.
-	import { ChevronLeft, ChevronRight } from 'lucide-svelte';
+	import { Popover } from 'bits-ui';
+	import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-svelte';
 
 	let {
 		days = $bindable(),
@@ -170,60 +171,82 @@
 		</p>
 	</div>
 
-	<!-- Month calendar -->
-	<div class="border border-border-input rounded-lg p-4 max-w-md">
-		<div class="flex items-center justify-between mb-3">
-			<button
-				type="button"
-				onclick={() => shiftMonth(-1)}
-				aria-label="Mois précédent"
-				class="inline-flex items-center justify-center size-8 rounded-md text-foreground-alt hover:text-foreground hover:bg-muted transition-colors"
-			>
-				<ChevronLeft size={18} />
-			</button>
-			<span class="text-sm font-medium capitalize">{monthLabel()}</span>
-			<button
-				type="button"
-				onclick={() => shiftMonth(1)}
-				aria-label="Mois suivant"
-				class="inline-flex items-center justify-center size-8 rounded-md text-foreground-alt hover:text-foreground hover:bg-muted transition-colors"
-			>
-				<ChevronRight size={18} />
-			</button>
-		</div>
-
-		<div class="grid grid-cols-7 gap-1 text-center" role="group" aria-label="Calendrier — jours de l'événement">
-			{#each WEEKDAY_LABELS as weekday}
-				<span class="text-xs text-muted-foreground py-1">{weekday}</span>
-			{/each}
-			{#each cells as cell, i}
-				{#if cell}
-					{@const picked = dayByKey(cell.key)}
-					<button
-						type="button"
-						aria-pressed={Boolean(picked)}
-						aria-label={frDate(cell.key, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-						onclick={() => toggleDay(cell.key)}
-						class="h-9 w-full text-sm rounded-md transition-colors cursor-pointer {picked
-							? 'bg-foreground text-background font-semibold'
-							: 'text-foreground hover:bg-muted'}"
-					>
-						{cell.day}
-					</button>
-				{:else}
-					<span aria-hidden="true"></span>
-				{/if}
-			{/each}
-		</div>
-
-		<button
-			type="button"
-			onclick={() => (view = monthOf(todayKey()))}
-			class="mt-3 text-xs text-foreground-alt hover:text-foreground font-medium cursor-pointer"
+	<!-- Month calendar, in a popover so it only takes room while picking.
+	     It holds no form fields (the hidden `days` input is outside), so
+	     the popover unmounting it when closed is safe. -->
+	<Popover.Root>
+		<Popover.Trigger
+			class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium border border-border-input rounded-lg text-foreground hover:bg-muted transition-colors cursor-pointer"
 		>
-			Revenir au mois en cours
-		</button>
-	</div>
+			<CalendarDays size={16} aria-hidden="true" />
+			{sortedDays.length === 0 ? 'Choisir les jours' : 'Ajouter ou retirer des jours'}
+		</Popover.Trigger>
+		<Popover.Content
+			side="bottom"
+			align="start"
+			sideOffset={8}
+			class="z-50 w-[min(28rem,calc(100vw-2rem))] border border-border-input rounded-lg p-4 bg-background shadow-lg"
+		>
+			<div class="flex items-center justify-between mb-3">
+				<button
+					type="button"
+					onclick={() => shiftMonth(-1)}
+					aria-label="Mois précédent"
+					class="inline-flex items-center justify-center size-8 rounded-md text-foreground-alt hover:text-foreground hover:bg-muted transition-colors"
+				>
+					<ChevronLeft size={18} />
+				</button>
+				<span class="text-sm font-medium capitalize">{monthLabel()}</span>
+				<button
+					type="button"
+					onclick={() => shiftMonth(1)}
+					aria-label="Mois suivant"
+					class="inline-flex items-center justify-center size-8 rounded-md text-foreground-alt hover:text-foreground hover:bg-muted transition-colors"
+				>
+					<ChevronRight size={18} />
+				</button>
+			</div>
+
+			<div class="grid grid-cols-7 gap-1 text-center" role="group" aria-label="Calendrier — jours de l'événement">
+				{#each WEEKDAY_LABELS as weekday}
+					<span class="text-xs text-muted-foreground py-1">{weekday}</span>
+				{/each}
+				{#each cells as cell, i}
+					{#if cell}
+						{@const picked = dayByKey(cell.key)}
+						<button
+							type="button"
+							aria-pressed={Boolean(picked)}
+							aria-label={frDate(cell.key, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+							onclick={() => toggleDay(cell.key)}
+							class="h-9 w-full text-sm rounded-md transition-colors cursor-pointer {picked
+								? 'bg-foreground text-background font-semibold'
+								: 'text-foreground hover:bg-muted'}"
+						>
+							{cell.day}
+						</button>
+					{:else}
+						<span aria-hidden="true"></span>
+					{/if}
+				{/each}
+			</div>
+
+			<div class="mt-3 flex items-center justify-between">
+				<button
+					type="button"
+					onclick={() => (view = monthOf(todayKey()))}
+					class="text-xs text-foreground-alt hover:text-foreground font-medium cursor-pointer"
+				>
+					Revenir au mois en cours
+				</button>
+				<Popover.Close
+					class="px-3 py-1.5 text-sm font-medium rounded-md bg-foreground text-background hover:bg-foreground/90 transition-colors cursor-pointer"
+				>
+					Terminé
+				</Popover.Close>
+			</div>
+		</Popover.Content>
+	</Popover.Root>
 
 	<!-- Meals per Day, with the "tous les jours" shortcut -->
 	<div class="space-y-2">
