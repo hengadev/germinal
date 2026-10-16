@@ -82,6 +82,14 @@ _Avoid_: Organizer, director
 An editorial schedule displayed on the Event page alongside the venue info (e.g., "Doors: 7:00pm", "Dinner: 8:30pm"). Stored as a structured list of `{label, time}` entries. Complements Seating start/end times with human-readable programme detail.
 _Avoid_: Schedule, programme, agenda
 
+**Practical Info**:
+What a Guest needs on the day: arrival instructions, door code, dress code, a contact to call. Written per Event (EN/FR) and given only to Guests holding a Ticket — on the Ticket and in their emails, never on the public Event page.
+_Avoid_: Access info, infos pratiques (in code/docs), Admission Info (which is public)
+
+**Internal Notes**:
+Free text on an Event that only Admins ever see (venue contact, client, budget). Never shown to Guests or Staff.
+_Avoid_: Comments, memo
+
 **Admission Info**:
 Optional supplementary text displayed alongside pricing on the Event page. Used for access conditions not captured by price alone (e.g., "Members only", "By invitation"). Purely editorial — has no effect on the booking flow.
 _Avoid_: Access conditions, entry requirements
@@ -98,6 +106,10 @@ _Avoid_: Artist, creator, performer
 The record created when a guest books one or more seats for a Seating. Holds guest identity, quantity, payment status, and an access token. One Reservation may cover any number of seats, limited only by the Seating's remaining capacity — there is deliberately no per-Reservation cap.
 _Avoid_: Booking (use as a verb only), order, purchase
 
+**Dietary Requirements**:
+Allergies or a diet a Guest declares when booking, for the whole Reservation, on Events that ask for them. Health data: given only with the Guest's explicit consent, seen only by Admins, and erased 30 days after the Seating.
+_Avoid_: Allergies (as the field name), dietary notes, régime (in code/docs)
+
 **Ticket**:
 The confirmation document a guest receives after a Reservation is confirmed. One Ticket per Reservation (not per seat), identified by a unique QR code linking to `/tickets/[token]`.
 _Avoid_: Pass, voucher, confirmation
@@ -106,8 +118,12 @@ _Avoid_: Pass, voucher, confirmation
 A person who makes a Reservation, identified by email and name. Does not require an account — Reservations are guest-first and accessed via token, not login.
 _Avoid_: Customer, user, attendee
 
+**Booking Window**:
+The period during which a Seating can be booked. Set once per Event: it opens at a chosen moment (by default as soon as the Event is published) and closes a chosen number of hours before each Seating starts (by default at its start). Before it opens, Guests see the Seatings and prices and when booking opens, but cannot book.
+_Avoid_: Sales period, booking period, ouverture des ventes (in code/docs)
+
 **Waitlist**:
-A queue a guest can join when a Seating is at full capacity. Scoped to a Seating, with an expiry date.
+A queue a guest can join when a Seating is at full capacity, only while its Booking Window is open. Scoped to a Seating, with an expiry date; it stops, and its entries expire, when the Seating's Booking Window closes.
 _Avoid_: Queue, backlog
 
 **Promo Code**:
