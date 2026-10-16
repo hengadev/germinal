@@ -2,7 +2,6 @@
 	import { enhance } from '$app/forms';
 	import { goto, invalidateAll } from '$app/navigation';
 	import { MapPin, Type, FileText } from 'lucide-svelte';
-	import DaysServicesPicker, { type PickedDay } from '$lib/components/admin/DaysServicesPicker.svelte';
 	import type { ActionData, PageData } from './$types';
 	import { getToastContext } from '$lib/components/toast/state.svelte';
 
@@ -10,20 +9,7 @@
 
 	const toast = getToastContext();
 
-	function updateEventEnhance({ cancel }: { cancel: () => void }) {
-		// The Days cannot use browser validity (the payload is a hidden input)
-		if (days.length === 0) {
-			cancel();
-			toast.error('Erreur', 'Sélectionnez au moins un jour sur le calendrier.');
-			requestAnimationFrame(() => daysPicker?.focus());
-			return;
-		}
-		if (days.some((day) => day.kinds.length === 0)) {
-			cancel();
-			toast.error('Erreur', 'Cochez au moins un repas (déjeuner ou dîner) pour chaque jour sélectionné.');
-			requestAnimationFrame(() => daysPicker?.focus());
-			return;
-		}
+	function updateEventEnhance() {
 		return async ({ result }: { result: import('@sveltejs/kit').ActionResult }) => {
 			if (result.type === 'success') {
 				toast.success('Succès', (result.data as { success?: string })?.success ?? 'Événement mis à jour');
@@ -41,13 +27,6 @@
 	let descriptionFr = $state(data.event.descriptionFr || "");
 	let subtitleEn = $state(data.event.subtitleEn || "");
 	let subtitleFr = $state(data.event.subtitleFr || "");
-	// Days picked on the calendar (issue 019), seeded from the Event's
-	// current schedule — the Event's start/end dates are derived from its
-	// first and last Day.
-	let days: PickedDay[] = $state(
-		(data.days ?? []).map((day) => ({ date: day.date, kinds: [...day.kinds] }))
-	);
-	let daysPicker: ReturnType<typeof DaysServicesPicker> | undefined = $state();
 	let locationEn = $state(data.event.locationEn);
 	let locationFr = $state(data.event.locationFr);
 	let venueNameEn = $state(data.event.venueNameEn || "");
@@ -233,9 +212,6 @@
  />
  </div>
  </div>
-
- <!-- Days & meals: the Event's dates are derived from its Days (ADR 0005) -->
- <DaysServicesPicker bind:this={daysPicker} bind:days idPrefix="event-days" />
 
  <!-- Lieu (English) -->
  <div>

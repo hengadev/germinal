@@ -4,11 +4,10 @@ import { env } from '$lib/server/env';
 import { MOCK_EVENTS, MOCK_SESSIONS, MOCK_RESERVATIONS, MOCK_TALENTS } from '$lib/mock-data';
 import {
 	assertEventHasSeatings,
-	dayEndUtc,
-	dayStartUtc,
 	DEFAULT_SERVICE_DURATION_MINUTES,
 	EventWithoutSeatingError,
 	formatSeatingOverlapWarning,
+	loadSeatingsEditor,
 	LUNCH_DINNER_CUTOFF_HOUR,
 	parsePickedDays,
 	parseSeatingsPayload,
@@ -22,6 +21,7 @@ import {
 	VENUE_CAPACITY_ERROR_MESSAGE,
 	type PickedServiceDay,
 } from '$lib/server/services/event-schedule';
+import { parseServiceRefs, resolveServiceRefs, serviceKey } from '$lib/server/services/new-event-schedule';
 import type { EditorService } from '$lib/types/seatings-editor';
 import type { PricingEditorData } from '$lib/types/pricing-editor';
 import { depositRuleOf } from '$lib/utils/pricing';
@@ -235,7 +235,6 @@ export const load: PageServerLoad = async ({ params }) => {
 		const talents = talentsData.data.map((t: typeof talentsData.data[number]) => ({ id: t.id, firstName: t.firstName, lastName: t.lastName }));
 
 		const days = await loadScheduleDays(id);
-		const { loadSeatingsEditor } = await import('$lib/server/services/event-schedule');
 		const schedule = await loadSeatingsEditor(id);
 		const { loadPricingEditor } = await import('$lib/server/services/service-pricing');
 		const pricing = await loadPricingEditor(id);
@@ -313,14 +312,8 @@ export const actions: Actions = {
 		const descriptionFr = formData.get('descriptionFr');
 		const subtitleEn = formData.get('subtitleEn');
 		const subtitleFr = formData.get('subtitleFr');
-		// Days picked on the calendar (issue 019): the Event's start/end dates
-		// are derived from its first and last Day.
-		const pickedDays = parsePickedDays(
-			typeof formData.get('days') === 'string' ? formData.get('days') as string : null
-		);
-		if (!pickedDays.ok) {
-			return fail(400, { error: pickedDaysErrorMessage(pickedDays.reason) });
-		}
+		// The Days, and the start/end dates derived from them, are saved
+		// with the Seatings (« Dates & séances » tab, `saveSeatings`).
 		const locationEn = formData.get('locationEn');
 		const locationFr = formData.get('locationFr');
 		const venueNameEn = formData.get('venueNameEn');
@@ -378,10 +371,6 @@ export const actions: Actions = {
 			return fail(400, { error: 'Slug must contain only lowercase letters, numbers, and hyphens' });
 		}
 
-		// The Event's dates follow from its first and last Day
-		const start = dayStartUtc(pickedDays.days[0].date);
-		const end = dayEndUtc(pickedDays.days[pickedDays.days.length - 1].date);
-
 		// A published Event must have at least one Seating (ADR 0001).
 		if (published) {
 			if (env.USE_MOCK_DATA) {
@@ -422,8 +411,6 @@ export const actions: Actions = {
 				descriptionFr,
 				subtitleEn: subtitleEn?.toString() || null,
 				subtitleFr: subtitleFr?.toString() || null,
-				startDate: start,
-				endDate: end,
 				locationEn,
 				locationFr,
 				venueNameEn: venueNameEn?.toString() || null,
@@ -456,8 +443,6 @@ export const actions: Actions = {
 		const { updateEvent } = await import('$lib/server/services/events');
 
 		try {
-			// The Event's other fields first: a refused schedule removal below
-			// must not discard them.
 			await updateEvent(id, {
 				titleEn,
 				titleFr,
@@ -489,18 +474,6 @@ export const actions: Actions = {
 				isSpotlight,
 				isPortfolio
 			});
-
-			// Save the picked Days/Services in one transaction; this refuses to
-			// remove a Day or Service that still has Reservations and recomputes
-			// the Event's start/end dates from its first and last Day.
-			try {
-				await saveEventSchedule(id, pickedDays.days);
-			} catch (scheduleError) {
-				if (scheduleError instanceof ScheduleSaveRefusedError) {
-					return fail(400, { error: scheduleError.message });
-				}
-				throw scheduleError;
-			}
 
 			return { success: `Événement « ${titleEn} » mis à jour` };
 		} catch (error) {
@@ -597,9 +570,12 @@ export const actions: Actions = {
 		}
 	},
 
-	// Save the Seatings editor (issue 020): each Service's default Seating
-	// duration and its Seatings, entered as start times — with the Event's
-	// Venue Capacity, which inheriting Seatings follow (issue 021).
+	// Save the « Dates & séances » tab: the picked Days and meals (issue
+	// 019), then each Service's default Seating duration and its Seatings,
+	// entered as start times (issue 020) — with the Event's Venue Capacity,
+	// which inheriting Seatings follow (issue 021). A meal picked in the tab
+	// but not saved yet is named by a placeholder, mapped to its Day and
+	// meal by `serviceRefs` as on the new-event form.
 	saveSeatings: async ({ request, params, locals }) => {
 		requireAdmin(locals);
 		const { id } = params;
@@ -608,6 +584,17 @@ export const actions: Actions = {
 		}
 
 		const formData = await request.formData();
+		const pickedDays = parsePickedDays(
+			typeof formData.get('days') === 'string' ? formData.get('days') as string : null
+		);
+		if (!pickedDays.ok) {
+			return fail(400, { error: pickedDaysErrorMessage(pickedDays.reason) });
+		}
+		const rawRefs = formData.get('serviceRefs');
+		const refs = parseServiceRefs(typeof rawRefs === 'string' ? rawRefs : null, pickedDays.days);
+		if (!refs) {
+			return fail(400, { error: 'Les repas des séances ne correspondent pas aux jours sélectionnés.' });
+		}
 		const raw = formData.get('services');
 		const parsed = parseSeatingsPayload(typeof raw === 'string' ? raw : null);
 		if (!parsed.ok) {
@@ -624,7 +611,22 @@ export const actions: Actions = {
 		}
 
 		try {
-			const result = await saveServiceSeatings(id, parsed.services, venue.venueCapacity);
+			// The Days first: this refuses to remove a Day or Service that
+			// still has Reservations, and recomputes the Event's start/end
+			// dates from its first and last Day.
+			await saveEventSchedule(id, pickedDays.days);
+
+			// Then the Seatings, with the placeholders swapped for the
+			// Services just created; saved Services keep their id.
+			const realIds = new Map(
+				(await loadSeatingsEditor(id)).map((service) => [serviceKey(service.date, service.kind), service.serviceId])
+			);
+			const placeholderIds = new Set(refs.map((ref) => ref.ref));
+			const services = [
+				...parsed.services.filter((service) => !placeholderIds.has(service.serviceId)),
+				...resolveServiceRefs(parsed.services.filter((service) => placeholderIds.has(service.serviceId)), refs, realIds),
+			];
+			const result = await saveServiceSeatings(id, services, venue.venueCapacity);
 
 			if (result.removedSeatingIds.length > 0) {
 				const { recordAuditLog } = await import('$lib/server/services/audit-log');

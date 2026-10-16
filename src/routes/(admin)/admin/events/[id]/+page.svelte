@@ -43,7 +43,7 @@
     let triggers: Trigger[] = [
         { value: "overview", name: "Vue d'ensemble" },
         { value: "photos", name: "Photos" },
-        { value: "sessions", name: "Séances" },
+        { value: "sessions", name: "Dates & séances" },
         { value: "pricing", name: "Menus & tarifs" },
         { value: "team", name: "Team" },
         { value: "tasks", name: "Tasks" },
