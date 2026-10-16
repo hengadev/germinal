@@ -19,7 +19,7 @@ A meal on a given Day — either lunch (déjeuner) or dinner (dîner). A Day has
 _Avoid_: Meal option, repas, sitting
 
 **Seating**:
-A sitting within a Service, with a start and an end time (e.g., Wednesday lunch 12:00–13:15, then 13:30–14:45). Each Seating holds its own capacity: guests of one Seating leave before the next one arrives, so the venue fills up once per Seating. The unit of reservation — guests book a Seating, not an Event. Every Event must have at least one Seating before it can be published.
+A sitting within a Service, with a start and an end time (e.g., Wednesday lunch 12:00–13:15, then 13:30–14:45). Each Seating holds its own capacity: guests of one Seating leave before the next one arrives, so the venue fills up once per Seating. The unit of reservation — guests book a Seating, not an Event, so an Event without Seatings can be announced but not booked.
 _Avoid_: Session (former name), slot, créneau, turn
 
 **Menu**:
@@ -168,7 +168,7 @@ A contact form submission from an external party. Four types: `collaboration` (c
 > **Domain expert:** "The Balance: the discounted price minus the Deposit they paid online. Staff see it at check-in."
 
 > **Dev:** "We have a chef dinner coming up — it's free for invited guests. Do we still need a Seating?"
-> **Domain expert:** "Yes — always. Create a Seating with price = 0. We still need capacity control; Germinal events are intimate."
+> **Domain expert:** "Yes — guests can only book a Seating. Set the Service's price to 0. We still need capacity control; Germinal events are intimate."
 
 > **Dev:** "The chef is on our Talent roster. Should I link the Talent to the Event in the database?"
 > **Domain expert:** "No. Add them as a Collaborator on the Event — name and role. Talents are the standing roster, not per-event participants."
