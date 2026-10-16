@@ -50,9 +50,25 @@ _Avoid_: Fuseau (in code/docs), UTC times, local time (ambiguous)
 A marketing label applied to a Seating to highlight it on the booking UI. Purely display — has no effect on pricing or access rules. Options: `featured`, `vip`, `popular`, `best_value`, `limited`. A Seating has at most one Badge (or none).
 _Avoid_: Tag, label, tier
 
+**Visibility**:
+Who can see and book an Event. **Draft**: Admins only, who can preview its public page. **Private**: anyone holding its link can see and book it, but it is never listed, never indexed by search engines and never the Spotlight (e.g., a dinner commissioned by a brand for its guests). **Public**: anyone can see and book it, and it may be the Spotlight. Taking an Event out of Draft is publishing it.
+_Avoid_: Published/unpublished (as a state), unlisted, hidden, status
+
 **Spotlight**:
-The single upcoming Event currently promoted on the homepage and its own dedicated page, excluded from the regular Events listing. There is always at most one Spotlight at a time — enforced by convention, not by a database constraint.
+The single upcoming Public Event promoted on the homepage and its own dedicated page ("Prochain événement"). Other upcoming Events are listed nowhere and reached through their link. There is always at most one Spotlight at a time — enforced by convention, not by a database constraint.
 _Avoid_: Featured event, hero event
+
+**Portfolio**:
+The curated set of Events Germinal showcases as projects once they are over, listed under "Projets" and in the homepage gallery. Private and Public Events alike may join it, but only after their last Seating has started; it is meant to be shown with a Recap and Event Photos. An Event that is over and not in the Portfolio is listed nowhere.
+_Avoid_: Archive, past events, gallery (the homepage block only)
+
+**Recap**:
+The text written after an Event for its Portfolio presentation, telling what took place. Once the Event is in the Portfolio, its page leads with the Recap and no longer shows the announcement text, Seatings or prices.
+_Avoid_: Summary, review, compte rendu (in code/docs)
+
+**Event Photos**:
+Photos taken at the Event, added after it for its Portfolio presentation, one of them chosen as the project's cover. Distinct from the **Visuals** used to announce the Event beforehand.
+_Avoid_: Gallery, media (ambiguous)
 
 **Collaborator**:
 A person or organization contributing to a specific Event. Stored as a structured list of `{name, role}` entries on the Event (e.g., "Maison Dupont — Partner Venue", "Chef Laurent — Guest Chef"). Rendered as an "In collaboration with" block on the public Event page.
@@ -133,6 +149,8 @@ A contact form submission from an external party. Four types: `collaboration` (c
 - A **Menu** is described once per **Event** and offered on one or more **Services**, each setting its own price
 - A **Service** offers at most one **Menu**
 - An **Event** has exactly one **Deposit** rule (possibly none) and one **Refund Policy**
+- An **Event** has one **Visibility** and one **Time Zone**
+- An **Event** may join the **Portfolio** once it is over; it is shown there with its **Recap** and **Event Photos**
 - A **Guest** makes a **Reservation** for a **Seating** (no account required)
 - A **Reservation** produces one **Ticket** (one QR code, regardless of seat quantity)
 - A **Coupon** belongs to an **Event** and has one or more **Promo Codes**
