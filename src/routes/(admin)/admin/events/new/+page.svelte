@@ -1,9 +1,23 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
-	import { ArrowLeft, MapPin, Type, FileText, Users } from 'lucide-svelte';
+	import { ArrowLeft, MapPin, Type, FileText } from 'lucide-svelte';
 	import MediaUpload from '$lib/components/MediaUpload.svelte';
 	import DaysServicesPicker, { type PickedDay } from '$lib/components/admin/DaysServicesPicker.svelte';
+	import SeatingsEditor, {
+		newSeatingService,
+		type DraftSeatingService,
+	} from '$lib/components/admin/SeatingsEditor.svelte';
+	import PricingEditor, {
+		newPricingService,
+		toDraftDeposit,
+		toDraftRefund,
+		type DraftDeposit,
+		type DraftMenu,
+		type DraftPricingService,
+		type DraftRefund,
+	} from '$lib/components/admin/PricingEditor.svelte';
 	import type { ActionData } from './$types';
 	import type { Media } from '$lib/types/media';
 	import type { PageData } from './$types';
@@ -16,7 +30,9 @@
 
 	const TABS = [
 		{ id: 'essentiel', title: 'Essentiel' },
-		{ id: 'date-lieu', title: 'Date & lieu' },
+		{ id: 'lieu', title: 'Lieu' },
+		{ id: 'dates-seances', title: 'Dates & séances' },
+		{ id: 'tarifs', title: 'Menus & tarifs' },
 		{ id: 'programme', title: 'Programme' },
 		{ id: 'visuels', title: 'Visuels' },
 	];
@@ -77,7 +93,7 @@
 		const dayError = pickedDaysError();
 		if (dayError !== null) {
 			cancel();
-			activeTab = 1;
+			activeTab = 2;
 			toast.error('Erreur', dayError);
 			requestAnimationFrame(() => daysPicker?.focus());
 			return;
@@ -88,6 +104,18 @@
 			activeTab = invalidTab;
 			// Wait for the panel to be shown before the browser can point at the field
 			requestAnimationFrame(() => firstInvalidField(invalidTab)?.reportValidity());
+			return;
+		}
+		const editorChecks: [number, { id: string; message: string } | null][] = [
+			[2, seatingsEditor?.firstBlockingField() ?? null],
+			[3, pricingEditor?.firstBlockingField() ?? null],
+		];
+		for (const [tab, blocking] of editorChecks) {
+			if (!blocking) continue;
+			cancel();
+			activeTab = tab;
+			toast.error('Erreur', blocking.message);
+			requestAnimationFrame(() => document.getElementById(blocking.id)?.focus());
 			return;
 		}
 		submitting = true;
@@ -115,6 +143,53 @@
 	let daysPicker: ReturnType<typeof DaysServicesPicker> | undefined = $state();
 	// Venue Capacity (issue 021): inherited by every Seating unless overridden.
 	let venueCapacity: number | null = $state(null);
+
+	// « Séances » and « Menus & tarifs »: the event page's editors, on the
+	// Services just picked. Each Day + meal gets a placeholder id, kept while
+	// it stays picked; `serviceRefs` tells the server which Service each
+	// placeholder stands for (see new-event-schedule.ts).
+	let seatingServices: DraftSeatingService[] = $state([]);
+	let pricingServices: DraftPricingService[] = $state([]);
+	let menus: DraftMenu[] = $state([]);
+	let deposit: DraftDeposit = $state(toDraftDeposit(undefined));
+	let refund: DraftRefund = $state(toDraftRefund(undefined, true));
+	let seatingsEditor: ReturnType<typeof SeatingsEditor> | undefined = $state();
+	let pricingEditor: ReturnType<typeof PricingEditor> | undefined = $state();
+
+	const placeholderIds = new Map<string, string>();
+	function placeholderId(date: string, kind: 'lunch' | 'dinner'): string {
+		const key = `${date}:${kind}`;
+		let id = placeholderIds.get(key);
+		if (!id) {
+			id = crypto.randomUUID();
+			placeholderIds.set(key, id);
+		}
+		return id;
+	}
+
+	// Follow the Days picker: a newly picked meal gets empty drafts, a meal
+	// still picked keeps what was typed, an unpicked one is dropped.
+	$effect(() => {
+		const picked = days.flatMap((day) => day.kinds.map((kind) => ({ date: day.date, kind })));
+		untrack(() => {
+			seatingServices = picked.map(({ date, kind }) =>
+				seatingServices.find((service) => service.date === date && service.kind === kind)
+					?? newSeatingService(placeholderId(date, kind), date, kind)
+			);
+			pricingServices = picked.map(({ date, kind }) =>
+				pricingServices.find((service) => service.date === date && service.kind === kind)
+					?? newPricingService(placeholderId(date, kind), date, kind)
+			);
+		});
+	});
+
+	const serviceRefs = $derived(
+		JSON.stringify(seatingServices.map((service) => ({ ref: service.serviceId, date: service.date, kind: service.kind })))
+	);
+
+	function seatingCountOf(serviceId: string): number {
+		return seatingServices.find((service) => service.serviceId === serviceId)?.seatings.length ?? 0;
+	}
 	let locationEn = $state('');
 	let locationFr = $state('');
 	let venueNameEn = $state('');
@@ -402,42 +477,8 @@
 					</div>
 				</div>
 
-				<!-- Tab 2: Date & lieu -->
+				<!-- Tab 2: Lieu -->
 				<div bind:this={panelEls[1]} hidden={activeTab !== 1} role="tabpanel" id="panel-{TABS[1].id}" aria-labelledby="tab-{TABS[1].id}" class="space-y-6">
-					<!-- Days & meals: the Event's dates are derived from its Days (ADR 0005) -->
-					<DaysServicesPicker bind:this={daysPicker} bind:days idPrefix="new-event-days" />
-
-					<!-- Venue Capacity: every Seating inherits it unless it overrides it -->
-					<div class="lg:w-1/2">
-						<label for="venueCapacity" class="block text-sm font-medium text-foreground-alt mb-2">
-							Capacité du lieu <span class="text-red-500">*</span>
-						</label>
-						<div class="relative">
-							<Users
-								size={18}
-								class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-							/>
-							<input
-								id="venueCapacity"
-								name="venueCapacity"
-								type="number"
-								inputmode="numeric"
-								min="1"
-								max="10000"
-								step="1"
-								bind:value={venueCapacity}
-								required
-								aria-describedby="venueCapacity-help"
-								placeholder="40"
-								class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent"
-							/>
-						</div>
-						<p id="venueCapacity-help" class="mt-1.5 text-xs text-muted-foreground">
-							Nombre de convives que le lieu accueille à la fois. Chaque séance en hérite ; une séance
-							peut avoir sa propre capacité (onglet « Séances »).
-						</p>
-					</div>
-
 					<!-- Locations: side by side on desktop -->
 					<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 						<!-- Location (English) -->
@@ -486,7 +527,7 @@
 					</div>
 
 					<!-- Venue Details -->
-					<details class="space-y-4">
+					<details open class="space-y-4">
 						<summary class="cursor-pointer text-sm font-medium text-foreground-alt hover:text-foreground">Adresse détaillée (Optionnel)</summary>
 
 						<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -649,8 +690,35 @@
 					</details>
 				</div>
 
-				<!-- Tab 3: Programme -->
-				<div bind:this={panelEls[2]} hidden={activeTab !== 2} role="tabpanel" id="panel-{TABS[2].id}" aria-labelledby="tab-{TABS[2].id}" class="space-y-6">
+				<!-- Tab 3: Dates & séances — the Seatings follow the Days and meals
+				     picked just above (Venue Capacity included, as on the event page) -->
+				<div bind:this={panelEls[2]} hidden={activeTab !== 2} role="tabpanel" id="panel-{TABS[2].id}" aria-labelledby="tab-{TABS[2].id}" class="space-y-8">
+					<!-- Days & meals: the Event's dates are derived from its Days (ADR 0005) -->
+					<DaysServicesPicker bind:this={daysPicker} bind:days idPrefix="new-event-days" />
+
+					<input type="hidden" name="serviceRefs" value={serviceRefs} />
+					<SeatingsEditor
+						bind:this={seatingsEditor}
+						bind:services={seatingServices}
+						bind:venueCapacity
+					/>
+				</div>
+
+				<!-- Tab 4: Menus & tarifs (Menus, Deposit, Refund Policy, price per meal) -->
+				<div bind:this={panelEls[3]} hidden={activeTab !== 3} role="tabpanel" id="panel-{TABS[3].id}" aria-labelledby="tab-{TABS[3].id}">
+					<PricingEditor
+						bind:this={pricingEditor}
+						bind:menus
+						bind:deposit
+						bind:refund
+						bind:services={pricingServices}
+						daysTabName="Dates & séances"
+						{seatingCountOf}
+					/>
+				</div>
+
+				<!-- Tab 5: Programme -->
+				<div bind:this={panelEls[4]} hidden={activeTab !== 4} role="tabpanel" id="panel-{TABS[4].id}" aria-labelledby="tab-{TABS[4].id}" class="space-y-6">
 					<!-- Timings -->
 					<div>
 						<label class="block text-sm font-medium text-foreground-alt mb-2">
@@ -808,8 +876,8 @@
 					</div>
 				</div>
 
-				<!-- Tab 4: Visuels -->
-				<div bind:this={panelEls[3]} hidden={activeTab !== 3} role="tabpanel" id="panel-{TABS[3].id}" aria-labelledby="tab-{TABS[3].id}" class="space-y-6">
+				<!-- Tab 6: Visuels -->
+				<div bind:this={panelEls[5]} hidden={activeTab !== 5} role="tabpanel" id="panel-{TABS[5].id}" aria-labelledby="tab-{TABS[5].id}" class="space-y-6">
 					<!-- Cover Photo Section -->
 					<div class="form-section">
 						<label class="block text-sm font-medium text-foreground-alt mb-2">

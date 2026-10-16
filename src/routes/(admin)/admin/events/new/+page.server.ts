@@ -4,12 +4,31 @@ import { MOCK_EVENTS, MOCK_TALENTS } from '$lib/mock-data';
 import {
 	dayEndUtc,
 	dayStartUtc,
+	formatSeatingOverlapWarning,
+	loadSeatingsEditor,
 	parsePickedDays,
+	parseSeatingsPayload,
 	parseVenueCapacity,
 	pickedDaysErrorMessage,
 	saveEventSchedule,
+	saveServiceSeatings,
+	ScheduleSaveRefusedError,
+	seatingsPayloadErrorMessage,
 	VENUE_CAPACITY_ERROR_MESSAGE,
+	type ParsedServiceSeatings,
 } from '$lib/server/services/event-schedule';
+import {
+	parsePricingPayload,
+	pricingPayloadErrorMessage,
+	savePricing,
+} from '$lib/server/services/service-pricing';
+import {
+	parseServiceRefs,
+	refersOnlyTo,
+	resolveServiceRefs,
+	serviceKey,
+} from '$lib/server/services/new-event-schedule';
+import type { PricingPayload } from '$lib/types/pricing-editor';
 import type { PageServerLoad } from './$types';
 import { requireAdmin } from '$lib/server/auth-guards';
 
@@ -51,6 +70,36 @@ export const actions: Actions = {
 			return fail(400, { error: venue.ok ? 'La capacité du lieu est requise.' : VENUE_CAPACITY_ERROR_MESSAGE });
 		}
 		const venueCapacity = venue.venueCapacity;
+		// Seatings and « Menus & tarifs » (same editors as the event page),
+		// for the Services just picked: their payloads name each Service by
+		// a placeholder, mapped to its Day and meal by `serviceRefs`. All of
+		// it is checked here, before anything is created.
+		const rawRefs = formData.get('serviceRefs');
+		const refs = parseServiceRefs(typeof rawRefs === 'string' ? rawRefs : null, pickedDays.days);
+		if (!refs) {
+			return fail(400, { error: 'Les repas des séances et des tarifs ne correspondent pas aux jours sélectionnés.' });
+		}
+		const rawSeatings = formData.get('services');
+		let seatingServices: ParsedServiceSeatings[] = [];
+		if (typeof rawSeatings === 'string' && rawSeatings.trim() !== '') {
+			const parsedSeatings = parseSeatingsPayload(rawSeatings);
+			if (!parsedSeatings.ok) {
+				return fail(400, { error: seatingsPayloadErrorMessage(parsedSeatings.reason) });
+			}
+			seatingServices = parsedSeatings.services;
+		}
+		const rawPricing = formData.get('pricing');
+		let pricing: PricingPayload | null = null;
+		if (typeof rawPricing === 'string' && rawPricing.trim() !== '') {
+			const parsedPricing = parsePricingPayload(rawPricing);
+			if (!parsedPricing.ok) {
+				return fail(400, { error: pricingPayloadErrorMessage(parsedPricing.reason) });
+			}
+			pricing = parsedPricing.payload;
+		}
+		if (!refersOnlyTo(seatingServices, refs) || (pricing && !refersOnlyTo(pricing.services, refs))) {
+			return fail(400, { error: 'Les repas des séances et des tarifs ne correspondent pas aux jours sélectionnés.' });
+		}
 		const start = dayStartUtc(pickedDays.days[0].date);
 		const end = dayEndUtc(pickedDays.days[pickedDays.days.length - 1].date);
 		const locationEn = formData.get('locationEn');
@@ -193,14 +242,14 @@ export const actions: Actions = {
 		}
 
 		// Database mode - use actual database functions
-		const { createEvent } = await import('$lib/server/services/events');
+		const { createEvent, deleteEvent } = await import('$lib/server/services/events');
 		const { db } = await import('$lib/server/db');
 		const { media } = await import('$lib/server/db/schema');
 		const { eq } = await import('drizzle-orm');
 
+		let event: Awaited<ReturnType<typeof createEvent>>;
 		try {
-			// Create event
-			const event = await createEvent({
+			event = await createEvent({
 				titleEn,
 				titleFr,
 				slug,
@@ -234,24 +283,54 @@ export const actions: Actions = {
 				published,
 				isSpotlight
 			});
-
-			// Save the picked Days/Services; this also recomputes the Event's
-			// start/end dates from its first and last Day (identical here).
-			await saveEventSchedule(event.id, pickedDays.days);
-
-			// Link media to event
-			for (let i = 0; i < allMediaIds.length; i++) {
-				const mediaId = allMediaIds[i];
-				const isCover = i === 0; // First image is cover
-				await db.update(media)
-					.set({ eventId: event.id, isCover })
-					.where(eq(media.id, mediaId));
-			}
-
-			return { success: `Event "${titleEn}" created successfully` };
 		} catch (error) {
 			console.error('Error creating event:', error);
 			return fail(500, { error: 'Failed to create event. The slug may already be in use.' });
 		}
+
+		let overlapWarning = '';
+		try {
+			// Save the picked Days/Services; this also recomputes the Event's
+			// start/end dates from its first and last Day (identical here).
+			await saveEventSchedule(event.id, pickedDays.days);
+
+			// Then the Seatings and pricing, on the Services just created.
+			const realIds = new Map(
+				(await loadSeatingsEditor(event.id)).map((service) => [serviceKey(service.date, service.kind), service.serviceId])
+			);
+			if (seatingServices.length > 0) {
+				const saved = await saveServiceSeatings(
+					event.id,
+					resolveServiceRefs(seatingServices, refs, realIds),
+					venueCapacity
+				);
+				if (saved.overlaps.length > 0) {
+					overlapWarning = ` ${formatSeatingOverlapWarning(saved.overlaps)}`;
+				}
+			}
+			if (pricing) {
+				await savePricing(event.id, { ...pricing, services: resolveServiceRefs(pricing.services, refs, realIds) });
+			}
+		} catch (error) {
+			// Nothing half-created: the Event goes, with its Days, Services,
+			// Seatings and Menus (cascade).
+			await deleteEvent(event.id);
+			if (error instanceof ScheduleSaveRefusedError) {
+				return fail(400, { error: error.message });
+			}
+			console.error('Error saving new event schedule:', error);
+			return fail(500, { error: 'Échec de l’enregistrement des séances et des tarifs : l’événement n’a pas été créé.' });
+		}
+
+		// Link media to event
+		for (let i = 0; i < allMediaIds.length; i++) {
+			const mediaId = allMediaIds[i];
+			const isCover = i === 0; // First image is cover
+			await db.update(media)
+				.set({ eventId: event.id, isCover })
+				.where(eq(media.id, mediaId));
+		}
+
+		return { success: `Événement « ${titleFr} » créé.${overlapWarning}` };
 	}
 };
