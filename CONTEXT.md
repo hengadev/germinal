@@ -23,7 +23,7 @@ A sitting within a Service, with a start and an end time (e.g., Wednesday lunch 
 _Avoid_: Session (former name), slot, créneau, turn
 
 **Menu**:
-A set of dishes served at an Event, described once and offered on one or more Services (e.g., the same Menu at lunch and dinner, or on every Day). Its price is set per Service that offers it, so lunch and dinner can charge differently for the same Menu. When a Service offers several Menus, the Guest picks one per seat; with a single Menu there is no choice to make.
+A set of dishes served at an Event, described once and offered on one or more Services (e.g., the same Menu at lunch and dinner, or on every Day). Its price is set per Service that offers it, so lunch and dinner can charge differently for the same Menu. A Service offers at most one Menu, so the Guest has no choice to make; offering several Menus with a per-seat choice is a deliberate later extension.
 _Avoid_: Formula, formule, offer
 
 **Deposit**:
@@ -127,6 +127,7 @@ A contact form submission from an external party. Four types: `collaboration` (c
 - A **Day** has a lunch **Service**, a dinner **Service**, or both
 - A **Service** has one or more **Seatings**
 - A **Menu** is described once per **Event** and offered on one or more **Services**, each setting its own price
+- A **Service** offers at most one **Menu**
 - An **Event** has exactly one **Deposit** rule (possibly none) and one **Refund Policy**
 - A **Guest** makes a **Reservation** for a **Seating** (no account required)
 - A **Reservation** produces one **Ticket** (one QR code, regardless of seat quantity)
