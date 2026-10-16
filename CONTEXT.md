@@ -42,6 +42,10 @@ _Avoid_: Cancellation policy, conditions d'annulation (in code/docs)
 The number of guests the Event's venue holds at once. Set once per Event and inherited by every Seating, which may override it (e.g., a smaller chef's table on one dinner). A Seating's capacity can never drop below the seats already reserved.
 _Avoid_: Max guests, covers
 
+**Time Zone**:
+The local time of the Event's venue (e.g., Europe/Paris, Europe/London). Set once per Event; every Seating time is entered and displayed in it, whoever is looking and wherever they are. A Seating's Day and whether it falls at lunch or dinner are read in this local time.
+_Avoid_: Fuseau (in code/docs), UTC times, local time (ambiguous)
+
 **Badge**:
 A marketing label applied to a Seating to highlight it on the booking UI. Purely display — has no effect on pricing or access rules. Options: `featured`, `vip`, `popular`, `best_value`, `limited`. A Seating has at most one Badge (or none).
 _Avoid_: Tag, label, tier
