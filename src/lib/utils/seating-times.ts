@@ -22,6 +22,15 @@ export const LUNCH_DINNER_CUTOFF_HOUR = 16;
 
 export type ServiceKind = 'lunch' | 'dinner';
 
+/**
+ * Default Seating duration (minutes) given to a new Service, which has no
+ * Seating yet to carry a duration over.
+ */
+export const DEFAULT_SERVICE_DURATION_MINUTES: Record<ServiceKind, number> = {
+	lunch: 90,
+	dinner: 180,
+};
+
 /** Meal a time of day (minutes since UTC midnight) belongs to. */
 export function serviceKindOfMinutes(minutes: number): ServiceKind {
 	return minutes < LUNCH_DINNER_CUTOFF_HOUR * 60 ? 'lunch' : 'dinner';

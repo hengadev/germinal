@@ -3,6 +3,7 @@ import { eventDays, eventServices, eventSessions, events, reservations } from '.
 import { and, eq, getTableColumns, inArray, sql } from 'drizzle-orm';
 import type { EditorService } from '$lib/types/seatings-editor';
 import {
+	DEFAULT_SERVICE_DURATION_MINUTES,
 	endAfterDuration,
 	findSeatingOverlaps,
 	formatTimeOfDay,
@@ -28,20 +29,11 @@ import { resolveSeatingPrice, type SeatingPrice } from '$lib/utils/seating-price
 
 // The 16:00 UTC lunch/dinner cut-off (issue 018) lives with the pure
 // time-of-day helpers so the admin editor and public labels share it.
-export { LUNCH_DINNER_CUTOFF_HOUR, type ServiceKind };
+export { DEFAULT_SERVICE_DURATION_MINUTES, LUNCH_DINNER_CUTOFF_HOUR, type ServiceKind };
 
 const KIND_ORDER: Record<ServiceKind, number> = { lunch: 0, dinner: 1 };
 
 const ORDERED_SERVICE_KINDS: ServiceKind[] = ['lunch', 'dinner'];
-
-/**
- * Default Seating duration (minutes) given to a Service created by the
- * admin Days picker, which has no Seating yet to carry a duration over.
- */
-export const DEFAULT_SERVICE_DURATION_MINUTES: Record<ServiceKind, number> = {
-	lunch: 90,
-	dinner: 180,
-};
 
 /**
  * Reservations that still count against a Day/Service being removed: a
