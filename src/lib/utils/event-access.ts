@@ -10,10 +10,9 @@
  * checks publication on its own.
  *
  * Inputs are plain snapshots so later rules slot in by widening them:
- * Visibility (032) replaces `published`, the Admin preview (033) adds a
- * view for the Admin viewer, the Booking Window (035) adds refusals before
- * opening and after closing, and the Portfolio (044) adds a view and a
- * listing rule.
+ * Visibility (032) replaces `published`, the Booking Window (035) adds
+ * refusals before opening and after closing, and the Portfolio (044) adds a
+ * view and a listing rule.
  */
 
 /** Who is looking: anyone, or a signed-in Admin. */
@@ -43,14 +42,21 @@ export interface AccessSeating {
 	allowWaitlist: boolean;
 }
 
-/** Which page an Event is shown as. */
-export type EventView = 'announcement';
+/** Which page an Event is shown as: its announcement, or — for an
+ * Admin looking at a Draft (issue 033) — the preview of it. */
+export type EventView = 'announcement' | 'preview';
 
 export type EventAccessDecision = { visible: true; view: EventView } | { visible: false };
 
 /** May this viewer see the Event's page, and as what. Hidden means "not found". */
-export function eventAccess(event: AccessEvent, _viewer: Viewer): EventAccessDecision {
-	if (!event.published) return { visible: false };
+export function eventAccess(event: AccessEvent, viewer: Viewer): EventAccessDecision {
+	if (!event.published) {
+		// The Admin preview (issue 033): an Admin sees a Draft's real page,
+		// as a Guest would, with booking disabled; everyone else gets
+		// "not found".
+		if (viewer.role === 'admin') return { visible: true, view: 'preview' };
+		return { visible: false };
+	}
 	return { visible: true, view: 'announcement' };
 }
 
@@ -88,7 +94,10 @@ export interface SeatingAccessInput {
 
 /** Refusals shared by booking and the Waitlist, before capacity. */
 function refusalBeforeCapacity({ event, seating, viewer, now }: SeatingAccessInput): BookingRefusal | null {
-	if (!eventAccess(event, viewer).visible) return 'event-not-published';
+	const access = eventAccess(event, viewer);
+	// The Admin preview (033) may show a Draft's page, but no viewer ever
+	// books one: the preview view refuses like a hidden Event does.
+	if (!access.visible || access.view === 'preview') return 'event-not-published';
 	if (!seating.published) return 'seating-unpublished';
 	if (!seating.priced) return 'not-priced';
 	if (seating.startTime.getTime() <= now.getTime()) return 'started';

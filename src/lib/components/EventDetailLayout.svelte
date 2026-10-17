@@ -46,6 +46,10 @@
 
 	let {
 		event,
+		/** Whether this is the Admin preview of a Draft (issue 033): the
+		 * hero carries a quiet "Aperçu — brouillon" banner and the page
+		 * under it shows Seatings without booking. */
+		preview = false,
 		children
 	}: {
 		event: {
@@ -55,6 +59,7 @@
 			timings?: string | null;
 			[key: string]: any;
 		} & { [K in EnField]?: string } & { [K in FrField]?: string };
+		preview?: boolean;
 		children: import('svelte').Snippet;
 	} = $props();
 
@@ -134,6 +139,16 @@
 		<ArrowLeft size={18} />
 		<p class="text-sm lg:text-base">{$t('events.backToAll')}</p>
 	</a>
+
+	<!-- Admin preview banner (issue 033) — quiet label register, no alert styling -->
+	{#if preview}
+		<p
+			class="absolute top-36 left-6 lg:left-12 z-10 text-xs font-medium uppercase tracking-[0.15em] text-white/80"
+			use:reveal={{ preset: 'fade-in', duration: 600 }}
+		>
+			Aperçu — brouillon
+		</p>
+	{/if}
 
 	<!-- Title and subtitle at bottom -->
 	<div

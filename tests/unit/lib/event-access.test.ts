@@ -56,10 +56,14 @@ describe('eventAccess', () => {
 		expect(eventAccess(PUBLISHED, viewer)).toEqual({ visible: true, view: 'announcement' });
 	});
 
-	// The Admin preview of a Draft comes in a later issue (033): until then
-	// an unpublished Event is not found for everyone.
-	it.each(VIEWERS)('an unpublished Event is hidden from the %s viewer', (_, viewer) => {
-		expect(eventAccess(UNPUBLISHED, viewer)).toEqual({ visible: false });
+	// The Admin preview (033): a Draft is "not found" for everyone but an
+	// Admin, who sees its real page as a preview (booking stays off).
+	it('an unpublished Event is seen by the Admin, as a preview', () => {
+		expect(eventAccess(UNPUBLISHED, ADMIN)).toEqual({ visible: true, view: 'preview' });
+	});
+
+	it('an unpublished Event is hidden from the anonymous viewer', () => {
+		expect(eventAccess(UNPUBLISHED, ANONYMOUS)).toEqual({ visible: false });
 	});
 });
 
@@ -77,7 +81,9 @@ describe('listing, indexing and the Spotlight', () => {
 describe('seatingBooking', () => {
 	// Every published × viewer × Seating-state combination. The first
 	// matching refusal wins, in this order: Event not published, Seating
-	// unpublished, no price on its Service, Seating started, full.
+	// unpublished, no price on its Service, Seating started, full. The Admin
+	// preview (033) shows a Draft's page but never books it: a Draft's
+	// Seatings refuse for the Admin too.
 	const SEATING_STATES: [string, AccessSeating, string | null][] = [
 		['open', seating(), null],
 		['unpublished', seating({ published: false }), 'seating-unpublished'],
@@ -157,5 +163,12 @@ describe('seatingAvailability', () => {
 		['a Seating of an unpublished Event', UNPUBLISHED, seating({ availableCapacity: 0 }), { bookingRefusal: 'event-not-published', waitlistOpen: false }],
 	])('%s', (_, event, state, expected) => {
 		expect(seatingAvailability({ event, seating: state, viewer: ANONYMOUS, now: NOW })).toEqual(expected);
+	});
+
+	// In the Admin preview (033) every Seating is shown unbookable and no
+	// Waitlist opens, so the page can leave the booking links out.
+	it.each(VIEWERS)('in the preview of a Draft, every Seating is unbookable and no Waitlist opens (%s viewer)', (_, viewer) => {
+		expect(seatingAvailability({ event: UNPUBLISHED, seating: seating({ availableCapacity: 0 }), viewer, now: NOW }))
+			.toEqual({ bookingRefusal: 'event-not-published', waitlistOpen: false });
 	});
 });

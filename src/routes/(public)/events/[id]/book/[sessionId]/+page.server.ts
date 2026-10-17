@@ -6,7 +6,7 @@ import type { PageServerLoad } from './$types';
 import { seatingTitlesWithFallback } from '$lib/utils/seating-title';
 import { depositRuleOf } from '$lib/utils/pricing';
 import { refundPolicyOf } from '$lib/utils/refund-policy';
-import { loadSeatingAccess, toAccessEvent } from '$lib/server/services/event-access';
+import { loadSeatingAccess, toAccessEvent, toAccessSeating } from '$lib/server/services/event-access';
 import { db } from '$lib/server/db';
 import { eventAccess, seatingBooking, viewerOf } from '$lib/utils/event-access';
 
@@ -39,6 +39,21 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 			(s) => s.id === params.sessionId && s.eventId === event.id
 		);
 		if (!session) throw error(404, 'Session not found');
+
+		// The same rule as the database path: the Admin preview (033) may
+		// show a Draft's page, but its Seatings cannot be booked.
+		const booking = seatingBooking({
+			event,
+			seating: toAccessSeating(
+				session,
+				session.priceAmount === null ? null : { amount: session.priceAmount, currency: session.currency, legacy: false }
+			),
+			viewer,
+			now: new Date(),
+		});
+		if (!booking.bookable && booking.reason !== 'started' && booking.reason !== 'full') {
+			throw error(404, 'Session not found');
+		}
 
 		return { event, session: mapSession(session), deposit: depositRuleOf(event), refundPolicy: refundPolicyOf(event), isMockMode: true };
 	}
