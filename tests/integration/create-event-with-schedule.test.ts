@@ -69,9 +69,10 @@ function createForm(dinnerStart = '19:30'): FormData {
 		pricing: JSON.stringify({
 			menus: [{ key: 'new-1', id: null, nameEn: 'Tasting', nameFr: 'Dégustation', descriptionEn: null, descriptionFr: null }],
 			services: [
-				{ serviceId: LUNCH_REF, menuKey: null, priceAmount: null, currency: 'EUR', clearLegacyPrices: false },
-				{ serviceId: DINNER_REF, menuKey: 'new-1', priceAmount: 8500, currency: 'EUR', clearLegacyPrices: false },
+				{ serviceId: LUNCH_REF, menuKey: null, priceAmount: null, clearLegacyPrices: false },
+				{ serviceId: DINNER_REF, menuKey: 'new-1', priceAmount: 8500, clearLegacyPrices: false },
 			],
+			currency: 'CHF',
 			deposit: { type: 'percent', value: 30 },
 			refundPolicy: { type: 'rules', textEn: null, textFr: null, tiers: [{ hoursBefore: 48, percent: 100 }] },
 		}),
@@ -118,7 +119,7 @@ describe('first save of « Dates & séances » on a new Event', () => {
 		await setupTestDatabase();
 	});
 
-	it('creates a Draft with the Days, Seatings, Menu, price, Deposit and Refund Policy', async () => {
+	it('creates a Draft with the Days, Seatings, Menu, price, currency, Deposit and Refund Policy', async () => {
 		const event = await eventById(draftIdOf(await submit(createForm())));
 		expect(event).toMatchObject({
 			visibility: 'draft',
@@ -126,6 +127,7 @@ describe('first save of « Dates & séances » on a new Event', () => {
 			titleEn: null,
 			titleFr: null,
 			venueCapacity: 24,
+			currency: 'CHF',
 			depositType: 'percent',
 			depositValue: 30,
 			refundPolicyType: 'rules',
@@ -139,7 +141,7 @@ describe('first save of « Dates & séances » on a new Event', () => {
 		const dinner = services.find((service) => service.kind === 'dinner')!;
 		const [menu] = await testDb.select().from(eventMenus).where(eq(eventMenus.eventId, event.id));
 		expect(menu.nameFr).toBe('Dégustation');
-		expect(dinner).toMatchObject({ menuId: menu.id, priceAmount: 8500, currency: 'EUR', defaultSeatingDurationMinutes: 120 });
+		expect(dinner).toMatchObject({ menuId: menu.id, priceAmount: 8500, defaultSeatingDurationMinutes: 120 });
 		expect(lunch).toMatchObject({ menuId: null, priceAmount: null });
 
 		const seatings = await testDb.select().from(eventSessions).where(eq(eventSessions.eventId, event.id));

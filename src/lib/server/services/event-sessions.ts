@@ -111,13 +111,14 @@ export async function getSessionById(id: string) {
 					startDate: true,
 					endDate: true,
 					timeZone: true,
+					currency: true,
 				},
 			},
 			reservations: {
 				where: eq(reservations.status, 'confirmed'),
 			},
 			service: {
-				columns: { priceAmount: true, currency: true },
+				columns: { priceAmount: true },
 			},
 		},
 	});
@@ -130,7 +131,7 @@ export async function getSessionById(id: string) {
 	// null while the Service has no price yet.
 	const price = resolveSeatingPrice({
 		servicePriceAmount: session.service.priceAmount,
-		serviceCurrency: session.service.currency,
+		eventCurrency: session.event.currency,
 		legacyPriceAmount: session.legacyPriceAmount,
 		legacyCurrency: session.legacyCurrency,
 	});
@@ -147,7 +148,11 @@ export async function getPublishedSessionsByEventId(eventId: string) {
 		orderBy: [eventSessions.startTime],
 		with: {
 			service: {
-				columns: { priceAmount: true, currency: true },
+				columns: { priceAmount: true },
+			},
+			// The Event's currency prices every Seating (issue 042).
+			event: {
+				columns: { currency: true },
 			},
 		},
 	});
@@ -157,7 +162,7 @@ export async function getPublishedSessionsByEventId(eventId: string) {
 		...session,
 		price: resolveSeatingPrice({
 			servicePriceAmount: session.service.priceAmount,
-			serviceCurrency: session.service.currency,
+			eventCurrency: session.event.currency,
 			legacyPriceAmount: session.legacyPriceAmount,
 			legacyCurrency: session.legacyCurrency,
 		}),

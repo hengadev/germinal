@@ -390,9 +390,11 @@ export const load: PageServerLoad = async ({ params }) => {
 		})));
 
 		// Mock « Menus & tarifs »: no Menu yet; each synthetic Service is
-		// priced like its first mock Seating.
+		// priced like its first mock Seating, in that Seating's currency.
 		const pricing: PricingEditorData = {
 			menus: [],
+			currency: MOCK_SESSIONS.find((session) => session.eventId === id)?.currency ?? 'EUR',
+			currencyLocked: reservations.length > 0,
 			services: schedule.map((service) => {
 				const first = MOCK_SESSIONS.find((session) => session.id === service.seatings[0]?.id);
 				return {
@@ -401,7 +403,6 @@ export const load: PageServerLoad = async ({ params }) => {
 					kind: service.kind,
 					menuId: null,
 					priceAmount: first?.priceAmount ?? null,
-					currency: first?.currency ?? 'EUR',
 					seatingCount: service.seatings.length,
 					legacySeatings: [],
 				};
@@ -890,7 +891,6 @@ export const actions: Actions = {
 		const code = formData.get('code')?.toString().trim();
 		const discountType = formData.get('discountType')?.toString();
 		const discountValueRaw = formData.get('discountValue')?.toString();
-		const currency = formData.get('currency')?.toString().trim() || 'EUR';
 		const maxRedemptionsRaw = formData.get('maxRedemptions')?.toString().trim();
 		const expiresAtRaw = formData.get('expiresAt')?.toString().trim();
 
@@ -919,7 +919,6 @@ export const actions: Actions = {
 				code: code.toUpperCase(),
 				discountType: discountType as 'percent' | 'amount',
 				discountValue: discountType === 'amount' ? Math.round(discountValue * 100) : discountValue,
-				currency: discountType === 'amount' ? currency : undefined,
 				maxRedemptions,
 				expiresAt,
 			});

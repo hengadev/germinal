@@ -10,6 +10,9 @@
 	// And its Refund Policy (issue 027): a manual statement (EN/FR) or tiers
 	// in hours before the Seating, entered in hours or days, with the policy
 	// shown live as guests will read it.
+	// And its currency (issue 042): one per Event, which every price, the
+	// fixed Deposit and the live amounts are in; locked once the Event has a
+	// Reservation.
 	//
 	// Fields only: the host page owns the drafts and the <form>. The editor
 	// posts its payload as `pricing`; call `firstBlockingField()` before
@@ -26,6 +29,7 @@
 		type RefundTier,
 	} from '$lib/utils/refund-policy';
 	import type { ServiceKind } from '$lib/utils/seating-times';
+	import { DEFAULT_EVENT_CURRENCY } from '$lib/utils/currency';
 
 	export interface DraftMenu {
 		key: string;
@@ -43,7 +47,6 @@
 		menuKey: string;
 		/** Price in major units as typed; null when left blank (not set). */
 		price: number | null;
-		currency: string;
 		seatingCount: number;
 		legacySeatings: PricingEditorData['services'][number]['legacySeatings'];
 		clearLegacyPrices: boolean;
@@ -92,7 +95,6 @@
 			kind: service.kind,
 			menuKey: service.menuId ?? '',
 			price: service.priceAmount === null ? null : service.priceAmount / 100,
-			currency: service.currency,
 			seatingCount: service.seatingCount,
 			legacySeatings: service.legacySeatings,
 			clearLegacyPrices: false,
@@ -107,7 +109,6 @@
 			kind,
 			menuKey: '',
 			price: null,
-			currency: 'EUR',
 			seatingCount: 0,
 			legacySeatings: [],
 			clearLegacyPrices: false,
@@ -148,6 +149,11 @@
 		};
 	}
 
+	/** The Event's currency; a new Event is priced in euros. */
+	export function toDraftCurrency(pricing: PricingEditorData | undefined): string {
+		return pricing?.currency ?? DEFAULT_EVENT_CURRENCY;
+	}
+
 	export function newMenuKey(): string {
 		return `new-${nextKey++}`;
 	}
@@ -159,7 +165,7 @@
 
 <script lang="ts">
 	import { AlertTriangle, CalendarDays, Plus, Trash2, UtensilsCrossed } from 'lucide-svelte';
-	import { formatCurrency } from '$lib/utils/currency';
+	import { EVENT_CURRENCIES, formatCurrency } from '$lib/utils/currency';
 	import { formatDayKey } from '$lib/utils/event-time';
 	import type { PricingPayload } from '$lib/types/pricing-editor';
 	import {
@@ -185,6 +191,8 @@
 		deposit = $bindable(),
 		refund = $bindable(),
 		services = $bindable(),
+		currency = $bindable(),
+		currencyLocked = false,
 		daysTabName,
 		seatingCountOf,
 	}: {
@@ -192,14 +200,16 @@
 		deposit: DraftDeposit;
 		refund: DraftRefund;
 		services: DraftPricingService[];
+		/** The Event's currency (issue 042). */
+		currency: string;
+		/** The Event has a Reservation: the currency can no longer change. */
+		currencyLocked?: boolean;
 		/** The tab where Days and meals are picked, named in the empty state. */
 		daysTabName: string;
 		/** Live Seating count per Service, when the host edits Seatings
 		 * alongside (new-event form); else the saved count is shown. */
 		seatingCountOf?: (serviceId: string) => number;
 	} = $props();
-
-	const CURRENCIES = ['EUR', 'USD', 'GBP', 'CHF'] as const;
 
 	/** An empty price field: the price is not set yet. */
 	function isBlank(price: number | null | undefined | ''): boolean {
@@ -233,7 +243,7 @@
 		const unitPrice = Math.round((service.price as number) * 100);
 		if (unitPrice === 0) return 'Repas gratuit : rien à régler.';
 		const price = priceReservation({ unitPrice, seats: 1, deposit: depositRule });
-		const amount = (value: number) => formatCurrency(value, service.currency, 'fr-FR');
+		const amount = (value: number) => formatCurrency(value, currency, 'fr-FR');
 		if (price.balance === 0) {
 			return isFullPayment(depositRule)
 				? `Paiement intégral en ligne : ${amount(price.deposit)} par convive.`
@@ -317,9 +327,9 @@
 				serviceId: service.serviceId,
 				menuKey: service.menuKey === '' ? null : service.menuKey,
 				priceAmount: isBlank(service.price) ? null : Math.round((service.price as number) * 100),
-				currency: service.currency,
 				clearLegacyPrices: service.clearLegacyPrices,
 			})),
+			currency,
 			// An invalid rule is caught before posting (firstBlockingField).
 			deposit: depositRule ?? undefined,
 			refundPolicy: refundPolicy ?? undefined,
@@ -406,6 +416,36 @@
 
 <div class="space-y-8">
 	<input type="hidden" name="pricing" value={payload} />
+
+	<section class="bg-background rounded-lg border border-border-card" aria-labelledby="currency-title">
+		<header class="p-4 lg:p-6 border-b border-border-card">
+			<h3 id="currency-title" class="text-lg font-semibold text-foreground">Devise</h3>
+			<p class="text-sm text-muted-foreground">
+				Une seule devise pour tout l’événement : les prix des repas, l’acompte fixe, les codes promo à montant
+				fixe et le paiement en ligne.
+			</p>
+		</header>
+		<div class="px-4 lg:px-6 py-4 max-w-[12rem]">
+			<label for="event-currency" class={LABEL_CLASS}>Devise de l’événement</label>
+			<select
+				id="event-currency"
+				bind:value={currency}
+				disabled={currencyLocked}
+				aria-describedby={currencyLocked ? 'event-currency-locked' : undefined}
+				class="{INPUT_CLASS} disabled:opacity-60"
+			>
+				{#each EVENT_CURRENCIES as code (code)}
+					<option value={code}>{code}</option>
+				{/each}
+			</select>
+		</div>
+		{#if currencyLocked}
+			<p id="event-currency-locked" class="px-4 lg:px-6 pb-4 -mt-1 text-xs text-muted-foreground">
+				L’événement a déjà des réservations : la devise ne peut plus changer, pour que les montants déjà
+				réglés restent cohérents.
+			</p>
+		{/if}
+	</section>
 
 	<section class="bg-background rounded-lg border border-border-card" aria-labelledby="menus-title">
 		<header class="p-4 lg:p-6 border-b border-border-card">
@@ -553,7 +593,7 @@
 			</label>
 			{#if deposit.type === 'fixed'}
 				<div class="pl-7 max-w-[12rem]">
-					<label for="deposit-fixed" class={LABEL_CLASS}>Montant par convive</label>
+					<label for="deposit-fixed" class={LABEL_CLASS}>Montant par convive ({currency})</label>
 					<input
 						id="deposit-fixed"
 						type="number"
@@ -564,7 +604,7 @@
 						aria-invalid={!depositRule ? 'true' : undefined}
 						class={INPUT_CLASS}
 					/>
-					<p class="mt-1 text-xs text-muted-foreground">Dans la devise de chaque repas ; jamais plus que le prix.</p>
+					<p class="mt-1 text-xs text-muted-foreground">Jamais plus que le prix du repas.</p>
 				</div>
 			{/if}
 			<label class="flex items-start gap-3 text-sm text-foreground">
@@ -758,7 +798,7 @@
 					{@const blank = isBlank(service.price)}
 					{@const seatingCount = seatingCountOf?.(service.serviceId) ?? service.seatingCount}
 					<div class="px-4 lg:px-6 py-4 space-y-3">
-						<div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(12rem,1fr)_minmax(12rem,1fr)_9rem_7rem] lg:items-end">
+						<div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(12rem,1fr)_minmax(12rem,1fr)_10rem] lg:items-end">
 							<div class="sm:col-span-2 lg:col-span-1 lg:pb-2">
 								<p class="text-sm font-medium text-foreground">{MEAL_LABEL[service.kind]}</p>
 								<p class="text-xs text-muted-foreground first-letter:uppercase">
@@ -776,7 +816,7 @@
 							</div>
 							<div>
 								<label for="service-{service.serviceId}-price" class={LABEL_CLASS}>
-									Prix par convive {blank ? '(non défini)' : service.price === 0 ? '(gratuit)' : ''}
+									Prix par convive, {currency} {blank ? '(non défini)' : service.price === 0 ? '(gratuit)' : ''}
 								</label>
 								<input
 									id="service-{service.serviceId}-price"
@@ -788,14 +828,6 @@
 									aria-invalid={!blank && !isValidPrice(service.price) ? 'true' : undefined}
 									class={INPUT_CLASS}
 								/>
-							</div>
-							<div>
-								<label for="service-{service.serviceId}-currency" class={LABEL_CLASS}>Devise</label>
-								<select id="service-{service.serviceId}-currency" bind:value={service.currency} class={INPUT_CLASS}>
-									{#each CURRENCIES as currency (currency)}
-										<option value={currency}>{currency}</option>
-									{/each}
-								</select>
 							</div>
 						</div>
 

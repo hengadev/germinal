@@ -26,7 +26,6 @@ function service(overrides: Record<string, unknown> = {}) {
 		serviceId: LUNCH,
 		menuKey: MENU_ID,
 		priceAmount: 4500,
-		currency: 'EUR',
 		clearLegacyPrices: false,
 		...overrides,
 	};
@@ -60,14 +59,26 @@ describe('parsePricingPayload', () => {
 		expect(result.payload.services.map((entry) => entry.priceAmount)).toEqual([0, null]);
 	});
 
-	it('creates new Menus referenced by key, trims text and normalises the currency', () => {
+	it('creates new Menus referenced by key and trims text', () => {
 		const result = parse({
 			menus: [menu({ key: 'new-0', id: null, nameEn: '  Lunch  ', descriptionFr: '   ' })],
-			services: [service({ menuKey: 'new-0', currency: 'chf' })],
+			services: [service({ menuKey: 'new-0' })],
 		});
 		if (!result.ok) throw new Error('expected ok');
 		expect(result.payload.menus[0]).toMatchObject({ id: null, nameEn: 'Lunch', descriptionFr: null });
-		expect(result.payload.services[0]).toMatchObject({ menuKey: 'new-0', currency: 'CHF' });
+		expect(result.payload.services[0]).toMatchObject({ menuKey: 'new-0' });
+	});
+
+	it('takes one currency for the Event, normalised, and none per Service (issue 042)', () => {
+		const result = parse({ menus: [menu()], services: [service()], currency: ' chf ' });
+		if (!result.ok) throw new Error('expected ok');
+		expect(result.payload.currency).toBe('CHF');
+		expect(result.payload.services[0]).not.toHaveProperty('currency');
+	});
+
+	it('leaves the currency out when the payload has none', () => {
+		const result = parse({ menus: [menu()], services: [service()] });
+		expect(result.ok && result.payload.currency).toBe(undefined);
 	});
 
 	it.each<[string, unknown, PricingParseFailure]>([
@@ -81,7 +92,8 @@ describe('parsePricingPayload', () => {
 		['a malformed Service id', { menus: [menu()], services: [service({ serviceId: 'x' })] }, 'service'],
 		['a negative price', { menus: [menu()], services: [service({ priceAmount: -1 })] }, 'price'],
 		['a fractional price in cents', { menus: [menu()], services: [service({ priceAmount: 12.5 })] }, 'price'],
-		['an unknown currency', { menus: [menu()], services: [service({ currency: 'JPY' })] }, 'currency'],
+		['an unknown currency', { menus: [menu()], services: [service()], currency: 'JPY' }, 'currency'],
+		['a non-string currency', { menus: [menu()], services: [service()], currency: 978 }, 'currency'],
 		['aligning legacy prices on an unset price', { menus: [menu()], services: [service({ priceAmount: null, clearLegacyPrices: true })] }, 'price'],
 	])('rejects %s', (_label, payload, reason) => {
 		const result = payload === null ? parsePricingPayload(null) : parse(payload);

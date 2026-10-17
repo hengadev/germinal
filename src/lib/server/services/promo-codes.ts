@@ -1,6 +1,6 @@
 import { db } from '../db';
 import { logger } from '$lib/server/logger';
-import { coupons, promotionCodes, eventSessions } from '../db/schema';
+import { coupons, promotionCodes, eventSessions, events } from '../db/schema';
 import { eq, and, sql, desc } from 'drizzle-orm';
 import { isStripeEnabled } from '../env';
 import { discountAmount } from '$lib/utils/pricing';
@@ -49,7 +49,9 @@ export function calculateDiscountAmount(
 }
 
 /**
- * Create a coupon + promotion code for an event (and mirror to Stripe if enabled)
+ * Create a coupon + promotion code for an event (and mirror to Stripe if enabled).
+ * A fixed-amount coupon is in the Event's currency (issue 042); a
+ * percentage one has none.
  */
 export async function createPromoCode(input: {
 	eventId: string;
@@ -57,11 +59,20 @@ export async function createPromoCode(input: {
 	code: string;
 	discountType: 'percent' | 'amount';
 	discountValue: number;
-	currency?: string;
 	maxRedemptions?: number;
 	expiresAt?: Date;
 }) {
 	const normalizedCode = input.code.toUpperCase().trim();
+
+	const [event] = await db
+		.select({ currency: events.currency })
+		.from(events)
+		.where(eq(events.id, input.eventId))
+		.limit(1);
+	if (!event) {
+		throw new Error('Event not found');
+	}
+	const currency: string | null = input.discountType === 'amount' ? event.currency : null;
 
 	// Check code uniqueness
 	const existing = await db.query.promotionCodes.findFirst({
@@ -82,7 +93,7 @@ export async function createPromoCode(input: {
 				name: input.name,
 				discountType: input.discountType,
 				discountValue: input.discountValue,
-				currency: input.currency,
+				currency: currency ?? undefined,
 				maxRedemptions: input.maxRedemptions,
 				expiresAt: input.expiresAt,
 			});
@@ -107,7 +118,7 @@ export async function createPromoCode(input: {
 			name: input.name,
 			discountType: input.discountType,
 			discountValue: input.discountValue,
-			currency: input.currency ?? null,
+			currency,
 			maxRedemptions: input.maxRedemptions ?? null,
 			expiresAt: input.expiresAt ?? null,
 			active: true,

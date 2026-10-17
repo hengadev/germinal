@@ -7,6 +7,8 @@ import {
 	priceReservation,
 	type DepositRule,
 } from '../../../src/lib/utils/pricing';
+import { resolveSeatingPrice } from '../../../src/lib/utils/seating-price';
+import { formatCurrency } from '../../../src/lib/utils/currency';
 
 const NONE: DepositRule = { type: 'none', value: 0 };
 
@@ -207,5 +209,38 @@ describe('Deposit rule', () => {
 	it('reads an Event’s rule, defaulting to full payment online', () => {
 		expect(depositRuleOf({ depositType: 'fixed', depositValue: 1500 })).toEqual({ type: 'fixed', value: 1500 });
 		expect(depositRuleOf({})).toEqual(FULL_PAYMENT_DEPOSIT);
+	});
+});
+
+describe('a non-EUR Event’s totals (issue 042)', () => {
+	// A London dinner priced in pounds: the Seating's price, the fixed
+	// Deposit and the fixed-amount Promo Code are all in the Event's
+	// currency, and so are the totals the Guest is shown.
+	const price = resolveSeatingPrice({
+		servicePriceAmount: 8500,
+		eventCurrency: 'GBP',
+		legacyPriceAmount: null,
+		legacyCurrency: null,
+	})!;
+
+	it('prices the Reservation in the Event’s currency', () => {
+		const breakdown = priceReservation({
+			unitPrice: price.amount,
+			seats: 2,
+			discount: { discountType: 'amount', discountValue: 1000 },
+			deposit: { type: 'fixed', value: 2000 },
+		});
+		expect(price.currency).toBe('GBP');
+		expect(breakdown).toEqual({ subtotal: 17000, discount: 1000, total: 16000, deposit: 4000, balance: 12000 });
+		expect(formatCurrency(breakdown.total, price.currency)).toBe('£160.00');
+		expect(formatCurrency(breakdown.deposit, price.currency)).toBe('£40.00');
+		expect(formatCurrency(breakdown.balance, price.currency, 'fr-FR')).toBe('120,00 £GB');
+	});
+
+	it('shows a Swiss Event’s full payment in francs', () => {
+		const chf = resolveSeatingPrice({ servicePriceAmount: 4200, eventCurrency: 'CHF', legacyPriceAmount: null, legacyCurrency: null })!;
+		const breakdown = priceReservation({ unitPrice: chf.amount, seats: 3, deposit: FULL_PAYMENT_DEPOSIT });
+		expect(breakdown).toMatchObject({ total: 12600, deposit: 12600, balance: 0 });
+		expect(formatCurrency(breakdown.deposit, chf.currency)).toBe('CHF 126.00');
 	});
 });

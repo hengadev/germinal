@@ -2,6 +2,7 @@ import type { CreateEventInput } from '$lib/types/events';
 import type { PricingPayload } from '$lib/types/pricing-editor';
 import { FULL_PAYMENT_DEPOSIT } from '$lib/utils/pricing';
 import { DEFAULT_REFUND_POLICY } from '$lib/utils/refund-policy';
+import { DEFAULT_EVENT_CURRENCY } from '$lib/utils/currency';
 
 /**
  * Drafts (ADR 0008, issue 036): « Nouvel événement » opens the same tabbed
@@ -78,11 +79,13 @@ function sameTiers(a: readonly { hoursBefore: number; percent: number }[], b: re
 
 /**
  * Whether a « Menus & tarifs » payload holds anything beyond what a new
- * Event gets anyway: a Menu, a Service's Menu or price, a Deposit other than
- * full payment, or a Refund Policy other than the default one.
+ * Event gets anyway: a Menu, a Service's Menu or price, a currency other
+ * than EUR, a Deposit other than full payment, or a Refund Policy other than
+ * the default one.
  */
 export function pricingHasContent(payload: PricingPayload): boolean {
 	if (payload.menus.length > 0) return true;
+	if (payload.currency !== undefined && payload.currency !== DEFAULT_EVENT_CURRENCY) return true;
 	if (payload.services.some((service) => service.menuKey !== null || service.priceAmount !== null)) return true;
 	const deposit = payload.deposit;
 	if (deposit && (deposit.type !== FULL_PAYMENT_DEPOSIT.type || deposit.value !== FULL_PAYMENT_DEPOSIT.value)) {

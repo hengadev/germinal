@@ -7,6 +7,7 @@
 	import { goto, invalidateAll } from '$app/navigation';
 	import { getToastContext } from '$lib/components/toast/state.svelte';
 	import PricingEditor, {
+		toDraftCurrency,
 		toDraftDeposit,
 		toDraftMenus,
 		toDraftPricingServices,
@@ -40,6 +41,7 @@
 	let refund: DraftRefund = $state(toDraftRefund(data.pricing));
 	let deposit: DraftDeposit = $state(toDraftDeposit(data.pricing));
 	let services: DraftPricingService[] = $state(toDraftPricingServices(data.pricing));
+	let currency: string = $state(toDraftCurrency(data.pricing));
 	let saving = $state(false);
 	let editor: ReturnType<typeof PricingEditor> | undefined = $state();
 
@@ -78,6 +80,7 @@
 				services = toDraftPricingServices(data.pricing);
 				deposit = toDraftDeposit(data.pricing);
 				refund = toDraftRefund(data.pricing);
+				currency = toDraftCurrency(data.pricing);
 			} else if (result.type === 'failure') {
 				toast.error('Erreur', (result.data as { error?: string })?.error ?? 'Une erreur est survenue');
 			} else if (result.type === 'error') {
@@ -88,7 +91,17 @@
 </script>
 
 <form data-editor-form="pricing" method="POST" action="?/savePricing" use:enhance={savePricingEnhance} novalidate class="space-y-8">
-	<PricingEditor bind:this={editor} bind:menus bind:deposit bind:refund bind:services daysTabName="Dates & séances" {seatingCountOf} />
+	<PricingEditor
+		bind:this={editor}
+		bind:menus
+		bind:deposit
+		bind:refund
+		bind:services
+		bind:currency
+		currencyLocked={data.pricing?.currencyLocked ?? false}
+		daysTabName="Dates & séances"
+		{seatingCountOf}
+	/>
 
 	<div class="flex flex-col sm:flex-row sm:items-center gap-3 pt-4 border-t border-border-card">
 		<button

@@ -1433,7 +1433,7 @@ export async function getPublishedScheduleByEventId(
 		dayDate: string;
 		serviceKind: (typeof eventServices.$inferSelect)['kind'];
 		servicePriceAmount: number | null;
-		serviceCurrency: string;
+		eventCurrency: string;
 		timeZone: string;
 		session: typeof eventSessions.$inferSelect;
 	}[] = await db
@@ -1441,7 +1441,7 @@ export async function getPublishedScheduleByEventId(
 			dayDate: sql<string>`${eventDays.date}::text`,
 			serviceKind: eventServices.kind,
 			servicePriceAmount: eventServices.priceAmount,
-			serviceCurrency: eventServices.currency,
+			eventCurrency: events.currency,
 			timeZone: events.timeZone,
 			session: eventSessions,
 		})
@@ -1469,7 +1469,7 @@ export async function getPublishedScheduleByEventId(
 			}),
 			price: resolveSeatingPrice({
 				servicePriceAmount: row.servicePriceAmount,
-				serviceCurrency: row.serviceCurrency,
+				eventCurrency: row.eventCurrency,
 				legacyPriceAmount: row.session.legacyPriceAmount,
 				legacyCurrency: row.session.legacyCurrency,
 			}),

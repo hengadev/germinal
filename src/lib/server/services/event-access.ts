@@ -102,7 +102,7 @@ export async function loadSeatingAccess(
 			bookingOpensAt: events.bookingOpensAt,
 			bookingClosesHoursBefore: events.bookingClosesHoursBefore,
 			servicePriceAmount: eventServices.priceAmount,
-			serviceCurrency: eventServices.currency,
+			eventCurrency: events.currency,
 		})
 		.from(eventSessions)
 		.innerJoin(eventServices, eq(eventSessions.serviceId, eventServices.id))
@@ -118,14 +118,14 @@ export async function loadSeatingAccess(
 		bookingOpensAt: Date | null;
 		bookingClosesHoursBefore: number | null;
 		servicePriceAmount: number | null;
-		serviceCurrency: string;
+		eventCurrency: string;
 	}[] = lock ? await query.for('update', { of: eventSessions }) : await query;
 
 	if (!row) return null;
 
 	const price = resolveSeatingPrice({
 		servicePriceAmount: row.servicePriceAmount,
-		serviceCurrency: row.serviceCurrency,
+		eventCurrency: row.eventCurrency,
 		legacyPriceAmount: row.seating.legacyPriceAmount,
 		legacyCurrency: row.seating.legacyCurrency,
 	});

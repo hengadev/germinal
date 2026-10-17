@@ -52,6 +52,8 @@ export async function setupTestDatabase() {
  * Seatings are booked at their Service's price (issue 022): the Service is
  * priced at €25.00 unless `price` says otherwise (`priceAmount: null` leaves
  * it unpriced). The price is (re)applied when the Service already exists.
+ * The currency is the Event's (issue 042): `price.currency`, when given, is
+ * set on the Event.
  */
 export async function seedServiceForSession(
 	db: ReturnType<typeof getTestDatabase>,
@@ -61,13 +63,18 @@ export async function seedServiceForSession(
 	price: { priceAmount?: number | null; currency?: string } = {}
 ): Promise<string> {
 	const priceAmount = price.priceAmount === undefined ? 2500 : price.priceAmount;
-	const currency = price.currency ?? 'EUR';
 	// The Seating's Day and meal on the Event's clock (ADR 0006).
 	const [event] = await db
 		.select({ timeZone: schema.events.timeZone })
 		.from(schema.events)
 		.where(eq(schema.events.id, eventId));
 	const zone = event?.timeZone ?? DEFAULT_EVENT_TIME_ZONE;
+	if (price.currency !== undefined) {
+		await db
+			.update(schema.events)
+			.set({ currency: price.currency })
+			.where(eq(schema.events.id, eventId));
+	}
 	const dayDate = dayOf(startTime, zone);
 	const kind = serviceKindOf(startTime, zone);
 
@@ -90,11 +97,10 @@ export async function seedServiceForSession(
 				Math.ceil((endTime.getTime() - startTime.getTime()) / 60000)
 			),
 			priceAmount,
-			currency,
 		})
 		.onConflictDoUpdate({
 			target: [schema.eventServices.dayId, schema.eventServices.kind],
-			set: { priceAmount, currency, updatedAt: new Date() },
+			set: { priceAmount, updatedAt: new Date() },
 		})
 		.returning();
 

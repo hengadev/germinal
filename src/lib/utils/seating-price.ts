@@ -16,7 +16,8 @@
 export interface SeatingPriceSource {
 	/** The Service's price in minor units, or null when not set yet. */
 	servicePriceAmount: number | null;
-	serviceCurrency: string;
+	/** The Event's currency (issue 042): every Service price is in it. */
+	eventCurrency: string;
 	/** Legacy per-Seating price kept by migration 0021, or null. */
 	legacyPriceAmount: number | null;
 	legacyCurrency: string | null;
@@ -39,7 +40,7 @@ export function resolveSeatingPrice(source: SeatingPriceSource): SeatingPrice | 
 	if (source.servicePriceAmount === null) {
 		return null;
 	}
-	return { amount: source.servicePriceAmount, currency: source.serviceCurrency, legacy: false };
+	return { amount: source.servicePriceAmount, currency: source.eventCurrency, legacy: false };
 }
 
 /** A Service's own price (what its Seatings cost), or null when not set. */

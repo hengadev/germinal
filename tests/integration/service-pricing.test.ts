@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest';
 import { eq } from 'drizzle-orm';
-import { events, eventMenus, eventServices, eventSessions } from '../../src/lib/server/db/schema';
+import { coupons, events, eventMenus, eventServices, eventSessions, reservations } from '../../src/lib/server/db/schema';
 import {
 	getTestDatabase,
 	setupTestDatabase,
@@ -93,8 +93,8 @@ describe('savePricing', () => {
 		await savePricing(event.id, {
 			menus: [TASTING],
 			services: [
-				{ serviceId: lunch.serviceId, menuKey: 'new-tasting', priceAmount: 4500, currency: 'EUR', clearLegacyPrices: false },
-				{ serviceId: dinner.serviceId, menuKey: 'new-tasting', priceAmount: 8500, currency: 'EUR', clearLegacyPrices: false },
+				{ serviceId: lunch.serviceId, menuKey: 'new-tasting', priceAmount: 4500, clearLegacyPrices: false },
+				{ serviceId: dinner.serviceId, menuKey: 'new-tasting', priceAmount: 8500, clearLegacyPrices: false },
 			],
 		});
 
@@ -123,7 +123,7 @@ describe('savePricing', () => {
 
 		await savePricing(event.id, {
 			menus: [],
-			services: [{ serviceId: lunch.serviceId, menuKey: null, priceAmount: 0, currency: 'EUR', clearLegacyPrices: false }],
+			services: [{ serviceId: lunch.serviceId, menuKey: null, priceAmount: 0, clearLegacyPrices: false }],
 		});
 
 		expect(await getSeatingPrice(testDb, lunch.seatingId)).toEqual({ amount: 0, currency: 'EUR', legacy: false });
@@ -136,7 +136,7 @@ describe('savePricing', () => {
 
 		await savePricing(event.id, {
 			menus: [TASTING],
-			services: [{ serviceId: lunch.serviceId, menuKey: 'new-tasting', priceAmount: 3000, currency: 'EUR', clearLegacyPrices: false }],
+			services: [{ serviceId: lunch.serviceId, menuKey: 'new-tasting', priceAmount: 3000, clearLegacyPrices: false }],
 		});
 		const [menu] = (await loadPricingEditor(event.id)).menus;
 
@@ -160,7 +160,7 @@ describe('savePricing', () => {
 
 		await savePricing(event.id, {
 			menus: [],
-			services: [{ serviceId: lunch.serviceId, menuKey: null, priceAmount: 3000, currency: 'EUR', clearLegacyPrices: false }],
+			services: [{ serviceId: lunch.serviceId, menuKey: null, priceAmount: 3000, clearLegacyPrices: false }],
 		});
 		expect(await testDb.select().from(eventMenus).where(eq(eventMenus.eventId, event.id))).toHaveLength(0);
 	});
@@ -175,7 +175,7 @@ describe('savePricing', () => {
 
 		await expect(savePricing(event.id, {
 			menus: [],
-			services: [{ serviceId: theirs.serviceId, menuKey: null, priceAmount: 100, currency: 'EUR', clearLegacyPrices: false }],
+			services: [{ serviceId: theirs.serviceId, menuKey: null, priceAmount: 100, clearLegacyPrices: false }],
 		})).rejects.toBeInstanceOf(UnknownPricingTargetError);
 
 		await savePricing(other.id, { menus: [TASTING], services: [] });
@@ -210,7 +210,7 @@ describe('savePricing', () => {
 
 		const payload = (clearLegacyPrices: boolean): PricingPayload => ({
 			menus: [],
-			services: [{ serviceId: first.serviceId, menuKey: null, priceAmount: 4500, currency: 'EUR', clearLegacyPrices }],
+			services: [{ serviceId: first.serviceId, menuKey: null, priceAmount: 4500, clearLegacyPrices }],
 		});
 
 		await savePricing(event.id, payload(false));
@@ -237,7 +237,8 @@ describe('savePricing', () => {
 
 		await savePricing(event.id, {
 			menus: [],
-			services: [{ serviceId: dinner.serviceId, menuKey: null, priceAmount: 7000, currency: 'GBP', clearLegacyPrices: false }],
+			services: [{ serviceId: dinner.serviceId, menuKey: null, priceAmount: 7000, clearLegacyPrices: false }],
+			currency: 'GBP',
 		});
 		[row] = await getPublishedScheduleByEventId(event.id);
 		expect(row.item.price).toEqual({ amount: 7000, currency: 'GBP', legacy: false });
@@ -290,5 +291,122 @@ describe('savePricing — Refund Policy (issue 027)', () => {
 
 		await savePricing(event.id, { menus: [], services: [] });
 		expect((await loadPricingEditor(event.id)).refundPolicy).toEqual(manual);
+	});
+});
+
+describe('savePricing — one currency per Event (issue 042)', () => {
+	beforeEach(async () => {
+		await setupTestDatabase();
+	});
+
+	async function book(seatingId: string, status: 'pending' | 'confirmed' | 'cancelled' = 'confirmed') {
+		await testDb.insert(reservations).values({
+			eventSessionId: seatingId,
+			guestEmail: 'guest@example.com',
+			guestName: 'Guest',
+			quantity: 2,
+			totalAmount: 9000,
+			depositAmount: 9000,
+			balanceAmount: 0,
+			currency: 'EUR',
+			status,
+			accessToken: `token-${seatingId}-${status}`,
+			expiresAt: new Date('2099-12-31T00:00:00Z'),
+		});
+	}
+
+	it('prices every Seating, the public offers and the editor in the Event’s currency', async () => {
+		const event = await seedEvent('currency');
+		const lunch = await seedSeating(event.id, '2099-06-10T10:00:00Z');
+		const dinner = await seedSeating(event.id, '2099-06-10T18:30:00Z');
+		const { savePricing, loadPricingEditor, getServiceOffersByEventId, getSeatingPrices } = await import(
+			'../../src/lib/server/services/service-pricing'
+		);
+
+		expect(await loadPricingEditor(event.id)).toMatchObject({ currency: 'EUR', currencyLocked: false });
+
+		await savePricing(event.id, {
+			menus: [],
+			services: [
+				{ serviceId: lunch.serviceId, menuKey: null, priceAmount: 4500, clearLegacyPrices: false },
+				{ serviceId: dinner.serviceId, menuKey: null, priceAmount: 8500, clearLegacyPrices: false },
+			],
+			currency: 'USD',
+		});
+
+		const [saved] = await testDb.select().from(events).where(eq(events.id, event.id));
+		expect(saved.currency).toBe('USD');
+		const prices = await getSeatingPrices([lunch.seatingId, dinner.seatingId]);
+		expect(prices.get(lunch.seatingId)).toEqual({ amount: 4500, currency: 'USD', legacy: false });
+		expect(prices.get(dinner.seatingId)).toEqual({ amount: 8500, currency: 'USD', legacy: false });
+		const offers = await getServiceOffersByEventId(event.id);
+		expect([...offers.values()].map((offer) => offer.currency)).toEqual(['USD', 'USD']);
+		expect(await loadPricingEditor(event.id)).toMatchObject({ currency: 'USD', currencyLocked: false });
+	});
+
+	it('moves the Event’s fixed-amount Coupons to the new currency, not its percentage ones', async () => {
+		const event = await seedEvent('coupons');
+		await testDb.insert(coupons).values([
+			{ eventId: event.id, name: 'Ten off', discountType: 'amount', discountValue: 1000, currency: 'EUR' },
+			{ eventId: event.id, name: 'Twenty percent', discountType: 'percent', discountValue: 20, currency: null },
+		]);
+		const { savePricing } = await import('../../src/lib/server/services/service-pricing');
+
+		await savePricing(event.id, { menus: [], services: [], currency: 'CHF' });
+
+		const rows = await testDb.select().from(coupons).where(eq(coupons.eventId, event.id));
+		expect(Object.fromEntries(rows.map((row) => [row.name, row.currency]))).toEqual({
+			'Ten off': 'CHF',
+			'Twenty percent': null,
+		});
+	});
+
+	it('refuses to change the currency once the Event has a Reservation, writing nothing', async () => {
+		const event = await seedEvent('locked');
+		const dinner = await seedSeating(event.id, '2099-06-10T18:30:00Z');
+		await book(dinner.seatingId, 'cancelled');
+		const { savePricing, loadPricingEditor, CurrencyChangeRefusedError } = await import(
+			'../../src/lib/server/services/service-pricing'
+		);
+
+		expect((await loadPricingEditor(event.id)).currencyLocked).toBe(true);
+
+		const payload: PricingPayload = {
+			menus: [],
+			services: [{ serviceId: dinner.serviceId, menuKey: null, priceAmount: 9900, clearLegacyPrices: false }],
+			currency: 'GBP',
+		};
+		await expect(savePricing(event.id, payload)).rejects.toBeInstanceOf(CurrencyChangeRefusedError);
+		await expect(savePricing(event.id, payload)).rejects.toThrow(/devise/);
+
+		const [unchanged] = await testDb.select().from(events).where(eq(events.id, event.id));
+		expect(unchanged.currency).toBe('EUR');
+		const [service] = await testDb.select().from(eventServices).where(eq(eventServices.id, dinner.serviceId));
+		expect(service.priceAmount).toBeNull();
+
+		// Saving the tab with the same currency still works.
+		await savePricing(event.id, { ...payload, currency: 'EUR' });
+		const [priced] = await testDb.select().from(eventServices).where(eq(eventServices.id, dinner.serviceId));
+		expect(priced.priceAmount).toBe(9900);
+	});
+
+	it('refuses the change through the « Menus & tarifs » action too', async () => {
+		const event = await seedEvent('locked-action');
+		const dinner = await seedSeating(event.id, '2099-06-10T18:30:00Z');
+		await book(dinner.seatingId);
+		const { actions } = await import('../../src/routes/(admin)/admin/events/[id]/+page.server');
+
+		const form = new FormData();
+		form.set('pricing', JSON.stringify({ menus: [], services: [], currency: 'USD' }));
+		const result = await actions.savePricing({
+			locals: { user: { id: '00000000-0000-4000-8000-000000000001', email: 'admin@test', role: 'admin', createdAt: new Date() } },
+			request: new Request(`http://x/admin/events/${event.id}?/savePricing`, { method: 'POST', body: form }),
+			params: { id: event.id },
+			url: new URL(`http://x/admin/events/${event.id}?/savePricing`),
+		} as never);
+
+		expect(result).toMatchObject({ status: 400, data: { error: expect.stringMatching(/devise/) } });
+		const [unchanged] = await testDb.select().from(events).where(eq(events.id, event.id));
+		expect(unchanged.currency).toBe('EUR');
 	});
 });

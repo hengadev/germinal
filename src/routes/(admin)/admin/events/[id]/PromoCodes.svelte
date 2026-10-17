@@ -25,7 +25,6 @@
 	let createCode = $state('');
 	let createDiscountType = $state<'percent' | 'amount'>('percent');
 	let createDiscountValue = $state('');
-	let createCurrency = $state('EUR');
 	let createMaxRedemptions = $state('');
 	let createExpiresAt = $state('');
 
@@ -34,7 +33,6 @@
 		createCode = '';
 		createDiscountType = 'percent';
 		createDiscountValue = '';
-		createCurrency = 'EUR';
 		createMaxRedemptions = '';
 		createExpiresAt = '';
 	}
@@ -62,6 +60,10 @@
 			}
 		};
 	}
+
+	// Fixed-amount codes are in the Event's currency (issue 042), chosen in
+	// « Menus & tarifs ».
+	const eventCurrency: string = $derived(data.event?.currency ?? 'EUR');
 
 	function formatDiscount(promoCode: PromoCodeForAdmin): string {
 		const { discountType, discountValue, currency } = promoCode.coupon;
@@ -282,7 +284,7 @@
 		<div class="grid grid-cols-2 gap-3">
 			<div>
 				<label for="promo-value" class="block text-sm font-medium text-foreground-alt mb-1">
-					{createDiscountType === 'percent' ? 'Pourcentage (%)' : 'Montant (€)'} <span class="text-red-500">*</span>
+					{createDiscountType === 'percent' ? 'Pourcentage (%)' : `Montant (${eventCurrency})`} <span class="text-red-500">*</span>
 				</label>
 				<input
 					id="promo-value"
@@ -298,19 +300,9 @@
 				/>
 			</div>
 			{#if createDiscountType === 'amount'}
-				<div>
-					<label for="promo-currency" class="block text-sm font-medium text-foreground-alt mb-1">Devise</label>
-					<select
-						id="promo-currency"
-						name="currency"
-						bind:value={createCurrency}
-						class="w-full px-3 py-2 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground text-sm bg-background"
-					>
-						<option value="EUR">EUR</option>
-						<option value="USD">USD</option>
-						<option value="GBP">GBP</option>
-					</select>
-				</div>
+				<p class="self-end pb-2 text-xs text-muted-foreground">
+					En {eventCurrency}, la devise de l’événement (onglet « Menus &amp; tarifs »).
+				</p>
 			{/if}
 		</div>
 
