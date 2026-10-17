@@ -10,6 +10,55 @@ import type { ServiceKind } from '$lib/utils/seating-times';
 import { toAccessEvent, toAccessSeating } from '$lib/server/services/event-access';
 import { eventAccess, isIndexed, seatingAvailability, viewerOf, type AccessEvent } from '$lib/utils/event-access';
 import { withoutPracticalInfo } from '$lib/utils/practical-info';
+import { eventPhotosOf, projectCover, visualsOf } from '$lib/utils/event-photos';
+
+/**
+ * A Portfolio Event's page is its project (issue 045, ADR 0007): the
+ * Recap, the Event Photos, credits, dates and venue. It leaves without the
+ * announcement texts, Visuals, Seatings and prices, which the project page
+ * never shows.
+ */
+function projectPage<E extends {
+  media?: { id: string; role?: 'visual' | 'event_photo' | null; isCover?: boolean | null }[] | null;
+  coverMedia?: { id: string } | null;
+}>(event: E, days: string[]) {
+  const {
+    descriptionEn: _descriptionEn,
+    descriptionFr: _descriptionFr,
+    subtitleEn: _subtitleEn,
+    subtitleFr: _subtitleFr,
+    admissionInfoEn: _admissionInfoEn,
+    admissionInfoFr: _admissionInfoFr,
+    timings: _timings,
+    media,
+    coverMedia,
+    coverVideo: _coverVideo,
+    ...rest
+  } = event as E & Record<string, unknown>;
+  const photos = eventPhotosOf(media);
+  return {
+    project: {
+      ...(rest as Omit<E, 'media' | 'coverMedia' | 'coverVideo'>),
+      // The project cover: the Event Photos' cover, else the Visual one.
+      cover: projectCover({ media, coverMedia }) as NonNullable<E['media']>[number] | E['coverMedia'] | null,
+      eventPhotos: photos as NonNullable<E['media']>,
+      days,
+    },
+  };
+}
+
+/** The Event's Days (`YYYY-MM-DD`), first to last. */
+async function eventDaysOf(eventId: string): Promise<string[]> {
+  const { db } = await import('$lib/server/db');
+  const { eventDays } = await import('$lib/server/db/schema');
+  const { asc, eq, sql } = await import('drizzle-orm');
+  const rows: { date: string }[] = await db
+    .select({ date: sql<string>`${eventDays.date}::text` })
+    .from(eventDays)
+    .where(eq(eventDays.eventId, eventId))
+    .orderBy(asc(eventDays.date));
+  return rows.map((row) => row.date);
+}
 
 /**
  * A Private Event's page is reachable by its link but never indexed
@@ -83,6 +132,10 @@ export const load: PageServerLoad = async ({ params, locals, setHeaders }) => {
     }
     const view = access.view;
     const indexed = robots(event, setHeaders);
+    if (view === 'portfolio') {
+      const days = [...new Set(MOCK_SESSIONS.filter((s) => s.eventId === event.id).map((s) => dayOf(s.startTime, event.timeZone)))].sort();
+      return { view, indexed, ...projectPage(withoutPracticalInfo(event), days), event: null, schedule: [], sessions: [] };
+    }
     const rows = MOCK_SESSIONS
       .filter((s) => s.eventId === event.id && s.published)
       .map((s) => ({
@@ -120,8 +173,10 @@ export const load: PageServerLoad = async ({ params, locals, setHeaders }) => {
       currency: items[0].currency,
     }));
     return {
-      // The public page never carries Practical Info (issue 040).
-      event: withoutPracticalInfo(event),
+      project: null,
+      // The public page never carries Practical Info (issue 040), and the
+      // announcement shows only the Visuals (issue 045).
+      event: { ...withoutPracticalInfo(event), media: visualsOf(event.media) },
       indexed,
       schedule,
       sessions: rows.map((row) => row.item),
@@ -144,6 +199,12 @@ export const load: PageServerLoad = async ({ params, locals, setHeaders }) => {
     throw error(404, 'Event not found');
   }
   const indexed = robots(accessEvent, setHeaders);
+
+  if (access.view === 'portfolio') {
+    // No Seatings, prices or booking on a project page (issue 045).
+    const days = await eventDaysOf(event.id);
+    return { view: access.view, indexed, ...projectPage(withoutPracticalInfo(event), days), event: null, schedule: [], sessions: [] };
+  }
 
   try {
     const scheduleRows = await getPublishedScheduleByEventId(event.id);
@@ -190,9 +251,11 @@ export const load: PageServerLoad = async ({ params, locals, setHeaders }) => {
     });
 
     return {
+      project: null,
       // The public page never carries Practical Info (issue 040) — not even
-      // for the Admin previewing a Draft.
-      event: withoutPracticalInfo(event),
+      // for the Admin previewing a Draft — and the announcement shows only
+      // the Visuals, never the Event Photos (issue 045).
+      event: { ...withoutPracticalInfo(event), media: visualsOf(event.media) },
       indexed,
       schedule,
       sessions: rows.map((row) => row.item),
