@@ -429,7 +429,8 @@ export const load: PageServerLoad = async ({ params }) => {
 	const { desc, eq, inArray } = await import('drizzle-orm');
 
 	try {
-		const event = await getEventById(id);
+		// The admin editor is the one place Internal Notes are read (issue 039).
+		const event = await getEventById(id, { withInternalNotes: true });
 		const sessionsData = await getAllSessionsByEventId(id);
 		const promoCodes = await getPromoCodesForEvent(id);
 

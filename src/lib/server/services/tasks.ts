@@ -219,8 +219,12 @@ export async function getTasksForUser(userId: string): Promise<TaskWithEvent[]> 
 	try {
 		const tasksData = await db.query.tasks.findMany({
 			where: eq(tasks.assignedTo, userId),
+			// Explicit columns: the Staff portal never reads Internal Notes
+			// (issue 039).
 			with: {
-				event: true,
+				event: {
+					columns: { id: true, titleEn: true, titleFr: true },
+				},
 			},
 			orderBy: [desc(tasks.createdAt)],
 		});

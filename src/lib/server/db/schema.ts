@@ -182,6 +182,10 @@ export const events = pgTable('events', {
     // Checkout. Locked once the Event has a Reservation; Reservations and
     // payments keep the currency they recorded.
     currency: varchar('currency', { length: 3 }).notNull().default('EUR'),
+    // Internal Notes (issue 039): free text only Admins ever see — venue
+    // contact, client, budget. Public and Staff loaders leave it out
+    // (services/events PUBLIC_EVENT_COLUMNS), so it can never reach them.
+    internalNotes: text('internal_notes'),
     coverMediaId: uuid('cover_media_id'),
     coverVideoId: uuid('cover_video_id'),
     visibility: eventVisibilityEnum('visibility').notNull().default('draft'),

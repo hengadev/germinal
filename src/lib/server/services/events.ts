@@ -13,6 +13,14 @@ import { canBeSpotlight, canJoinPortfolio } from '$lib/utils/event-access';
 import { lastSeatingStartOf, listedEventsCondition, toAccessEvent } from './event-access';
 
 /**
+ * The Event columns every loader outside the admin reads: all but Internal
+ * Notes (issue 039), which only Admins ever see. Listings, the Spotlight
+ * and the public Event page go through this, so the notes never reach a
+ * Guest or a Staff member.
+ */
+export const PUBLIC_EVENT_COLUMNS = { internalNotes: false } as const;
+
+/**
  * Events, newest first, paged. `listedOnly` (the default) keeps the Events
  * Event access lets be listed publicly — the Portfolio, of any Visibility
  * except Draft (issues 030 and 044); the admin passes false.
@@ -54,6 +62,7 @@ export async function getAllEvents(options: { listedOnly?: boolean; excludeSpotl
 		orderBy: [desc(events.startDate)],
 		limit,
 		offset: (page - 1) * limit,
+		columns: PUBLIC_EVENT_COLUMNS,
 		with: {
 			coverMedia: true,
 			coverVideo: true,
@@ -71,7 +80,11 @@ export async function getAllEvents(options: { listedOnly?: boolean; excludeSpotl
 /** Event ids are random UUIDs and public URLs carry them (ADR 0007). */
 const EVENT_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export async function getEventById(id: string) {
+/**
+ * One Event by id, without its Internal Notes (issue 039) unless the
+ * caller is the admin editor and asks for them with `withInternalNotes`.
+ */
+export async function getEventById(id: string, options: { withInternalNotes?: boolean } = {}) {
   // Anything that is not a UUID cannot be an Event: not found, rather than
   // a database error on the cast.
   if (!EVENT_ID.test(id)) {
@@ -80,6 +93,7 @@ export async function getEventById(id: string) {
 
   const event = await db.query.events.findFirst({
     where: eq(events.id, id),
+    columns: options.withInternalNotes ? undefined : PUBLIC_EVENT_COLUMNS,
     with: {
       coverMedia: true,
       coverVideo: true,
@@ -101,6 +115,7 @@ export async function getEventById(id: string) {
 export async function getSpotlightEvent() {
   const spotlightEvent = await db.query.events.findFirst({
     where: eq(events.isSpotlight, true),
+    columns: PUBLIC_EVENT_COLUMNS,
     with: {
       coverMedia: true,
       coverVideo: true,
@@ -192,6 +207,7 @@ export async function createEvent(input: CreateEventInput) {
       curatorFr: input.curatorFr,
       admissionInfoEn: input.admissionInfoEn,
       admissionInfoFr: input.admissionInfoFr,
+      internalNotes: input.internalNotes,
       venueCapacity: input.venueCapacity ?? null,
       coverMediaId: input.coverMediaId,
       visibility,

@@ -86,6 +86,8 @@ export interface EditorEvent {
 	curatorFr: string | null;
 	admissionInfoEn: string | null;
 	admissionInfoFr: string | null;
+	/** Internal Notes (issue 039): only Admins ever see them. */
+	internalNotes?: string | null;
 	visibility: 'draft' | 'private' | 'public';
 	isSpotlight: boolean | null;
 	isPortfolio: boolean | null;

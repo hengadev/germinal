@@ -15,8 +15,9 @@ import { DEFAULT_EVENT_CURRENCY } from '$lib/utils/currency';
 export const NOTHING_TO_SAVE_MESSAGE =
 	'Rien à enregistrer : remplissez au moins un champ pour créer le brouillon.';
 
-/** The Event's own text fields, as posted by the Essentiel, Lieu and
- * Programme tabs (each posts only its own). */
+/** The Event's own text fields, as posted by the Essentiel (with the
+ * Internal Notes, issue 039), Lieu and Programme tabs (each posts only its
+ * own). */
 export const EVENT_TEXT_FIELDS = [
 	'titleEn',
 	'titleFr',
@@ -43,6 +44,7 @@ export const EVENT_TEXT_FIELDS = [
 	'curatorFr',
 	'admissionInfoEn',
 	'admissionInfoFr',
+	'internalNotes',
 ] as const;
 
 export type EventTextField = (typeof EVENT_TEXT_FIELDS)[number];

@@ -211,6 +211,13 @@
       "when": 1792243443989,
       "tag": "0029_event_currency",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1792246569492,
+      "tag": "0030_internal_notes",
+      "breakpoints": true
     }
   ]
 }

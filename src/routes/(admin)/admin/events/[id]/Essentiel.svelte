@@ -1,13 +1,14 @@
 <script lang="ts">
 	// « Essentiel » tab (issue 036): titles, subtitles and descriptions —
-	// nothing required (ADR 0008) — and, on a saved Event, its Visibility,
+	// nothing required (ADR 0008) —, the Internal Notes (issue 039) and, on
+	// a saved Event, its Visibility,
 	// Spotlight and Portfolio. Saved with `updateEvent`, which only touches
 	// the fields posted here.
 	import { enhance } from '$app/forms';
 	import { getToastContext } from '$lib/components/toast/state.svelte';
 	import { handleTabResult, type EditorEvent } from './editor-forms';
 	import Modal from '$lib/components/ui/Modal.svelte';
-	import { Type, FileText } from 'lucide-svelte';
+	import { Type, FileText, Lock } from 'lucide-svelte';
 	import { VISIBILITIES, VISIBILITY_LABELS, canBeSpotlight, canJoinPortfolio, type Visibility } from '$lib/utils/event-access';
 	import type { EventWarning } from '$lib/utils/event-warnings';
 
@@ -85,6 +86,7 @@
 	let descriptionFr = $state(event?.descriptionFr ?? "");
 	let subtitleEn = $state(event?.subtitleEn ?? "");
 	let subtitleFr = $state(event?.subtitleFr ?? "");
+	let internalNotes = $state(event?.internalNotes ?? "");
 	let visibility = $state<Visibility>(event?.visibility ?? 'draft');
 	let isSpotlight = $state(event?.isSpotlight ?? false);
 	// Only a Public Event can be the Spotlight: choosing Brouillon or Privé
@@ -235,6 +237,31 @@
  </div>
  </div>
 
+
+        <!-- Notes internes (issue 039): only Admins ever see them -->
+        <div>
+            <label for="internalNotes" class="block text-sm font-medium text-foreground-alt mb-2">
+                Notes internes (Optionnel)
+            </label>
+            <div class="relative">
+                <Lock
+                    size={18}
+                    class="absolute left-3 top-3 text-muted-foreground"
+                />
+                <textarea
+                    id="internalNotes"
+                    name="internalNotes"
+                    bind:value={internalNotes}
+                    rows="4"
+                    aria-describedby="internalNotesHint"
+                    placeholder="Contact du lieu, client, budget…"
+                    class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent resize-y"
+                ></textarea>
+            </div>
+            <p id="internalNotesHint" class="mt-1 text-xs text-muted-foreground">
+                Visibles des seuls administrateurs : jamais montrées aux invités ni à l’équipe.
+            </p>
+        </div>
 
         <!-- A new Event is created as a Draft (issue 032): its Visibility is
              set once it has been saved. -->
