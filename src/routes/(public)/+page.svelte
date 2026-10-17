@@ -15,6 +15,7 @@
         data.events.filter(e => e.isPortfolio && e.coverMedia && !e.isSpotlight).slice(0, 9)
     );
     const showGallery = $derived(portfolioEvents.length >= 5);
+    const listedEvents = $derived(data.events.filter(e => !e.isSpotlight));
 
     const serviceKeys = ['artDirection', 'scenography', 'production'] as const;
     const placeholderPartners = [
@@ -129,8 +130,8 @@
         </section>
 
         <!-- Upcoming event (Spotlight) -->
-        {#if data.events.length > 0}
-            {@const event = data.events.find(e => e.isSpotlight) ?? data.events[0]}
+        {#if data.spotlightEvent}
+            {@const event = data.spotlightEvent}
             {@const start = new Date(event.startDate)}
             {@const end = new Date(event.endDate)}
             {@const isSameDay = start.toDateString() === end.toDateString()}
@@ -230,13 +231,13 @@
                 <div class="hidden md:block" use:reveal={{ preset: "fade-up", delay: 100 }}>
                     <PortfolioGallery events={portfolioEvents} />
                 </div>
-            {:else if data.events.filter(e => !e.isSpotlight).length === 0}
+            {:else if listedEvents.length === 0}
                 <div class="hidden md:flex items-center justify-center py-16 border-t border-border-input-hover mt-6">
                     <p class="text-muted-foreground text-center">{$t("home.noEvents")}</p>
                 </div>
             {:else}
                 <div class="hidden md:block">
-                    {#each data.events.filter(e => !e.isSpotlight).slice(0, 3) as event, index}
+                    {#each listedEvents.slice(0, 3) as event, index}
                         {@const start = new Date(event.startDate)}
                         {@const title = $locale === 'en' ? event.titleEn : event.titleFr}
                         {@const location = $locale === 'en' ? event.locationEn : event.locationFr}
@@ -264,13 +265,13 @@
             {/if}
 
             <!-- Mobile: always use the standard list -->
-            {#if data.events.filter(e => !e.isSpotlight).length === 0}
+            {#if listedEvents.length === 0}
                 <div class="md:hidden flex items-center justify-center py-16 border-t border-border-input-hover mt-6">
                     <p class="text-muted-foreground text-center">{$t("home.noEvents")}</p>
                 </div>
             {:else}
                 <div class="md:hidden">
-                    {#each data.events.filter(e => !e.isSpotlight).slice(0, 3) as event, index}
+                    {#each listedEvents.slice(0, 3) as event, index}
                         {@const start = new Date(event.startDate)}
                         {@const title = $locale === 'en' ? event.titleEn : event.titleFr}
                         {@const location = $locale === 'en' ? event.locationEn : event.locationFr}
