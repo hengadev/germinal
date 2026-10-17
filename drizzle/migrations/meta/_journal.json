@@ -176,6 +176,13 @@
       "when": 1792220415070,
       "tag": "0024_drop_event_slug",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1792221322061,
+      "tag": "0025_event_time_zone",
+      "breakpoints": true
     }
   ]
 }
