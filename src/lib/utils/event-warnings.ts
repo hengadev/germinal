@@ -13,6 +13,7 @@ import type { ServiceKind } from './event-time';
 import type { EditorService } from '$lib/types/seatings-editor';
 import type { PricingEditorData } from '$lib/types/pricing-editor';
 import { lacksAltText, type MediaAltText } from './media-alt';
+import { eventPhotosOf, visualsOf, type RoledMedia } from './event-photos';
 
 /**
  * Event warnings (issue 038, ADR 0008) — pure, no database.
@@ -27,7 +28,7 @@ import { lacksAltText, type MediaAltText } from './media-alt';
  */
 
 /** The editor tab an item is fixed in (EventEditor's tab ids). */
-export type EditorTabId = 'essentiel' | 'lieu' | 'dates-seances' | 'tarifs' | 'programme' | 'visuels';
+export type EditorTabId = 'essentiel' | 'lieu' | 'dates-seances' | 'tarifs' | 'programme' | 'visuels' | 'portfolio';
 
 /** One thing to check before publishing. */
 export interface EventWarning {
@@ -50,7 +51,13 @@ export type EventWarningCode =
 	| 'missing-location-fr'
 	| 'no-visual'
 	| 'visual-without-alt'
-	| 'booking-window-opens-after-close';
+	| 'booking-window-opens-after-close'
+	// The Portfolio list (issue 045)
+	| 'missing-recap-en'
+	| 'missing-recap-fr'
+	| 'no-event-photo'
+	| 'no-event-photo-cover'
+	| 'event-photo-without-alt';
 
 /** A Service as the warnings read it: a Day's meal with its Menu and price. */
 export interface WarningService {
@@ -227,7 +234,8 @@ export interface EditorWarningsEvent {
 	bookingClosesHoursBefore: number | null;
 	coverMediaId: string | null;
 	coverMedia?: ({ id: string } & MediaAltText) | null;
-	media?: ({ id: string } & MediaAltText)[] | null;
+	/** Visuals and Event Photos alike (issue 045); only the Visuals count here. */
+	media?: (RoledMedia & MediaAltText)[] | null;
 }
 
 /**
@@ -257,7 +265,10 @@ export function editorEventWarnings(
 		priceAmount: service.priceAmount,
 	}));
 	const cover = event.coverMediaId ?? event.coverMedia?.id ?? null;
-	const gallery = (event.media ?? []).filter((medium) => medium.id !== cover);
+	// Only the Visuals announce the Event; its Event Photos are the
+	// Portfolio's (issue 045).
+	const visualMedia = visualsOf(event.media);
+	const gallery = visualMedia.filter((medium) => medium.id !== cover);
 	const visualCount = (cover !== null ? 1 : 0) + gallery.length;
 	// A cover known only by its id reads as lacking alt text.
 	const coverMedium =
@@ -265,7 +276,7 @@ export function editorEventWarnings(
 			? null
 			: event.coverMedia?.id === cover
 				? event.coverMedia
-				: ((event.media ?? []).find((medium) => medium.id === cover) ?? { id: cover });
+				: (visualMedia.find((medium) => medium.id === cover) ?? { id: cover });
 	const visuals = [...(coverMedium ? [coverMedium] : []), ...gallery];
 	const visualsWithoutAlt = visuals.filter((medium) =>
 		lacksAltText({ ...medium, ...altOverrides[medium.id] })
@@ -286,6 +297,84 @@ export function editorEventWarnings(
 			closesHoursBefore: event.bookingClosesHoursBefore ?? null,
 		},
 		timeZone: zone,
+	});
+}
+
+// ---------------------------------------------------------------------------
+// The Portfolio list (issue 045)
+// ---------------------------------------------------------------------------
+
+/**
+ * What the Portfolio list needs to know about an Event. As for publishing,
+ * an absent field reads as missing.
+ */
+export interface PortfolioWarningsInput {
+	recapEn?: string | null;
+	recapFr?: string | null;
+	/** How many Event Photos the Event has. */
+	eventPhotoCount?: number;
+	/** Whether one of them is the project cover. */
+	hasEventPhotoCover?: boolean;
+	/** How many Event Photos lack alt text in English or in French. */
+	eventPhotosWithoutAlt?: number;
+}
+
+/**
+ * What a Portfolio Event's project page lacks: the Recap per language,
+ * Event Photos, their cover and their alt text — each fixed in the
+ * « Portfolio » tab. Warnings only (ADR 0007): the one hard rule for the
+ * Portfolio stays "once over" (Event access, issue 044).
+ */
+export function portfolioWarnings(input: PortfolioWarningsInput): EventWarning[] {
+	const warnings: EventWarning[] = [];
+	const add = (code: EventWarningCode, message: string) => warnings.push({ code, message, tab: 'portfolio' });
+
+	if (!present(input.recapFr)) add('missing-recap-fr', 'Récap manquant en français.');
+	if (!present(input.recapEn)) add('missing-recap-en', 'Récap manquant en anglais.');
+
+	const count = input.eventPhotoCount ?? 0;
+	if (count === 0) {
+		add('no-event-photo', 'Aucune photo de l’événement : le projet s’affiche avec ses visuels d’annonce.');
+	} else if (input.hasEventPhotoCover !== true) {
+		add('no-event-photo-cover', 'Aucune photo de l’événement n’est choisie comme couverture du projet.');
+	}
+
+	const withoutAlt = input.eventPhotosWithoutAlt ?? 0;
+	if (withoutAlt > 0) {
+		add(
+			'event-photo-without-alt',
+			`Photo sans texte alternatif : ${
+				withoutAlt === 1 ? 'une photo de l’événement n’a' : `${withoutAlt} photos de l’événement n’ont`
+			} pas de texte alternatif en français ou en anglais.`
+		);
+	}
+
+	return warnings;
+}
+
+/** What the editor knows about a saved Event for the Portfolio list. */
+export interface EditorPortfolioEvent {
+	recapEn?: string | null;
+	recapFr?: string | null;
+	media?: (RoledMedia & MediaAltText)[] | null;
+}
+
+/**
+ * The Portfolio list for the Event the editor shows, read from its page
+ * data. `altOverrides` holds the alt texts saved in « Portfolio » since
+ * the page data was loaded, by media id.
+ */
+export function editorPortfolioWarnings(
+	event: EditorPortfolioEvent,
+	altOverrides: Readonly<Record<string, MediaAltText>> = {}
+): EventWarning[] {
+	const photos = eventPhotosOf(event.media);
+	return portfolioWarnings({
+		recapEn: event.recapEn,
+		recapFr: event.recapFr,
+		eventPhotoCount: photos.length,
+		hasEventPhotoCover: photos.some((photo) => photo.isCover === true),
+		eventPhotosWithoutAlt: photos.filter((photo) => lacksAltText({ ...photo, ...altOverrides[photo.id] })).length,
 	});
 }
 

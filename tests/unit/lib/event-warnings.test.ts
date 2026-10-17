@@ -1,7 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import {
 	editorEventWarnings,
+	editorPortfolioWarnings,
 	eventWarnings,
+	portfolioWarnings,
+	type PortfolioWarningsInput,
 	type EditorWarningsEvent,
 	type EventWarningsInput,
 	type EventWarningCode,
@@ -274,5 +277,91 @@ describe('editorEventWarnings', () => {
 				gallery: { altEn: 'The chef', altFr: 'Le chef' },
 			})
 		).toEqual([]);
+	});
+});
+
+describe('editorEventWarnings and Event Photos (issue 045)', () => {
+	it('never counts Event Photos as Visuals', () => {
+		const photo = { id: 'photo', role: 'event_photo' as const, isCover: true, altEn: null, altFr: null };
+		const event = { ...EVENT, coverMediaId: null, coverMedia: null, media: [photo] };
+		// No Visual at all: the Event Photo neither stands in for one nor
+		// is flagged for its missing alt text here.
+		expect(editorEventWarnings(event, SCHEDULE, PRICING).map((w) => w.code)).toEqual(['no-visual']);
+	});
+});
+
+// A complete Portfolio project: both Recaps, Event Photos with a cover and
+// alt texts.
+const COMPLETE_PROJECT: PortfolioWarningsInput = {
+	recapEn: 'Forty guests shared a long table.',
+	recapFr: 'Quarante convives autour d’une longue table.',
+	eventPhotoCount: 3,
+	hasEventPhotoCover: true,
+	eventPhotosWithoutAlt: 0,
+};
+
+const projectCodes = (input: PortfolioWarningsInput) => portfolioWarnings(input).map((warning) => warning.code);
+
+describe('portfolioWarnings (issue 045)', () => {
+	it('lists nothing for a complete project', () => {
+		expect(portfolioWarnings(COMPLETE_PROJECT)).toEqual([]);
+	});
+
+	it('warns for a missing Recap in each language, blank included', () => {
+		expect(projectCodes({ ...COMPLETE_PROJECT, recapFr: null })).toEqual(['missing-recap-fr']);
+		expect(projectCodes({ ...COMPLETE_PROJECT, recapEn: '   ' })).toEqual(['missing-recap-en']);
+	});
+
+	it('warns when there is no Event Photo, without also asking for a cover', () => {
+		expect(projectCodes({ ...COMPLETE_PROJECT, eventPhotoCount: 0, hasEventPhotoCover: false })).toEqual(['no-event-photo']);
+	});
+
+	it('warns when Event Photos have no cover', () => {
+		expect(projectCodes({ ...COMPLETE_PROJECT, hasEventPhotoCover: false })).toEqual(['no-event-photo-cover']);
+	});
+
+	it('counts the Event Photos lacking alt text', () => {
+		const one = portfolioWarnings({ ...COMPLETE_PROJECT, eventPhotosWithoutAlt: 1 });
+		expect(one.map((w) => w.code)).toEqual(['event-photo-without-alt']);
+		expect(one[0].message).toContain('une photo');
+		expect(portfolioWarnings({ ...COMPLETE_PROJECT, eventPhotosWithoutAlt: 2 })[0].message).toContain('2 photos');
+	});
+
+	it('reads an empty snapshot as missing everything', () => {
+		expect(projectCodes({})).toEqual(['missing-recap-fr', 'missing-recap-en', 'no-event-photo']);
+	});
+
+	it('sends every item to the Portfolio tab', () => {
+		expect(new Set(portfolioWarnings({}).map((w) => w.tab))).toEqual(new Set(['portfolio']));
+	});
+});
+
+describe('editorPortfolioWarnings (issue 045)', () => {
+	const photo = (id: string, extra: Record<string, unknown> = {}) => ({
+		id,
+		role: 'event_photo' as const,
+		isCover: false,
+		altEn: 'Guests at the table',
+		altFr: 'Les convives à table',
+		...extra,
+	});
+	const recaps = { recapEn: 'It took place.', recapFr: 'Cela a eu lieu.' };
+
+	it('reads only the Event Photos, never the Visuals', () => {
+		const visual = { id: 'visual', role: 'visual' as const, isCover: true, altEn: null, altFr: null };
+		expect(editorPortfolioWarnings({ ...recaps, media: [visual] }).map((w) => w.code)).toEqual(['no-event-photo']);
+		// Media from before roles read as Visuals too.
+		expect(editorPortfolioWarnings({ ...recaps, media: [{ id: 'old', isCover: true }] }).map((w) => w.code)).toEqual(['no-event-photo']);
+	});
+
+	it('finds the cover among the Event Photos', () => {
+		expect(editorPortfolioWarnings({ ...recaps, media: [photo('a'), photo('b', { isCover: true })] })).toEqual([]);
+		expect(editorPortfolioWarnings({ ...recaps, media: [photo('a')] }).map((w) => w.code)).toEqual(['no-event-photo-cover']);
+	});
+
+	it('follows the alt texts saved since the page data was loaded', () => {
+		const event = { ...recaps, media: [photo('a', { isCover: true, altEn: null })] };
+		expect(editorPortfolioWarnings(event).map((w) => w.code)).toEqual(['event-photo-without-alt']);
+		expect(editorPortfolioWarnings(event, { a: { altEn: 'The table', altFr: 'La table' } })).toEqual([]);
 	});
 });
