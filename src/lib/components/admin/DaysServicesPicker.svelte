@@ -18,6 +18,7 @@
 		days = $bindable(),
 		idPrefix = 'days-picker',
 		timeZone = DEFAULT_EVENT_TIME_ZONE,
+		defaultKinds = ['dinner'],
 	}: {
 		/** The picked Days, kept sorted by date; two-way bound. */
 		days: PickedDay[];
@@ -25,6 +26,9 @@
 		idPrefix?: string;
 		/** The Event's Time Zone: "today" is today at the venue. */
 		timeZone?: string;
+		/** Meals a newly picked Day starts with (« Dupliquer » passes the
+		 * source's, issue 046). */
+		defaultKinds?: PickerServiceKind[];
 	} = $props();
 
 	const WEEKDAY_LABELS = ['lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.', 'dim.'];
@@ -84,11 +88,15 @@
 		if (dayByKey(key)) {
 			days = days.filter((day) => day.date !== key);
 		} else {
-			// A newly picked Day defaults to dinner — most Germinal meals are
+			// A newly picked Day defaults to dinner (or the given defaultKinds) — most Germinal meals are
 			// dinners; adjust per Day or with the "tous les jours" controls.
-			days = sortDays([...days, { date: key, kinds: ['dinner'] }]);
+			days = sortDays([...days, { date: key, kinds: sortedKinds(newDayKinds) }]);
 		}
 	}
+
+	const newDayKinds = $derived<PickerServiceKind[]>(defaultKinds.length > 0 ? defaultKinds : ['dinner']);
+	const KIND_LABELS: Record<PickerServiceKind, string> = { lunch: 'déjeuner', dinner: 'dîner' };
+	const newDayKindsLabel = $derived(sortedKinds(newDayKinds).map((kind) => KIND_LABELS[kind]).join(' » et « '));
 
 	function sortDays(list: PickedDay[]): PickedDay[] {
 		return [...list].sort((a, b) => a.date.localeCompare(b.date));
@@ -169,7 +177,7 @@
 		</span>
 		<p class="text-xs text-muted-foreground">
 			Sélectionnez chaque date où l'événement a lieu — des dates non consécutives sont permises.
-			Un jour nouvellement sélectionné est coché «&nbsp;dîner&nbsp;» par défaut.
+			Un jour nouvellement sélectionné est coché «&nbsp;{newDayKindsLabel}&nbsp;» par défaut.
 		</p>
 	</div>
 
@@ -183,11 +191,13 @@
 			<CalendarDays size={16} aria-hidden="true" />
 			{sortedDays.length === 0 ? 'Choisir les jours' : 'Ajouter ou retirer des jours'}
 		</Popover.Trigger>
+		<!-- Portalled above any dialog hosting the picker (« Dupliquer »). -->
+		<Popover.Portal>
 		<Popover.Content
 			side="bottom"
 			align="start"
 			sideOffset={8}
-			class="z-50 w-[min(28rem,calc(100vw-2rem))] border border-border-input rounded-lg p-4 bg-background shadow-lg"
+			class="z-[10000] w-[min(28rem,calc(100vw-2rem))] border border-border-input rounded-lg p-4 bg-background shadow-lg"
 		>
 			<div class="flex items-center justify-between mb-3">
 				<button
@@ -248,6 +258,7 @@
 				</Popover.Close>
 			</div>
 		</Popover.Content>
+		</Popover.Portal>
 	</Popover.Root>
 
 	<!-- Meals per Day, with the "tous les jours" shortcut -->
