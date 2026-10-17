@@ -211,15 +211,14 @@ describe('event schedule (Days → Services → Seatings)', () => {
 		expect(services.map((service) => service.kind)).toEqual(['dinner']);
 	});
 
-	it('refuses to delete the last Seating of a published Event', async () => {
+	it('deletes the last Seating of a published Event (ADR 0008: publishing never requires one)', async () => {
 		const { createEventSession, deleteEventSession } = await import('../../src/lib/server/services/event-sessions');
-		const { PublishedEventWithoutSeatingError } = await import('../../src/lib/server/services/event-schedule');
 
 		const session = await createEventSession(sessionInput());
-		await expect(deleteEventSession(session.id)).rejects.toBeInstanceOf(PublishedEventWithoutSeatingError);
+		await deleteEventSession(session.id);
 
 		const seatings = await testDb.select().from(eventSessions).where(eq(eventSessions.eventId, event.id));
-		expect(seatings.map((seating) => seating.id)).toEqual([session.id]);
+		expect(seatings).toEqual([]);
 	});
 
 	it('hand-set Event dates are kept while it has no Days and ignored once it has', async () => {
@@ -434,22 +433,18 @@ describe('saveEventSchedule (admin Days picker)', () => {
 		expect(row.endDate!.toISOString()).toBe('2099-06-12T23:59:59.999Z');
 	});
 
-	it('refuses removals that would leave a published Event without any Seating', async () => {
-		const { saveEventSchedule, PublishedEventWithoutSeatingError } = await import('../../src/lib/server/services/event-schedule');
+	it('lets removals leave a published Event without any Seating (ADR 0008)', async () => {
+		const { saveEventSchedule } = await import('../../src/lib/server/services/event-schedule');
 
 		const session = await seedSeating(new Date('2099-06-10T19:00:00Z'), new Date('2099-06-10T22:00:00Z'));
 		await saveEventSchedule(event.id, [{ date: '2099-06-10', kinds: ['dinner'] }]);
-
-		await expect(
-			saveEventSchedule(event.id, [{ date: '2099-06-12', kinds: ['dinner'] }])
-		).rejects.toBeInstanceOf(PublishedEventWithoutSeatingError);
+		await saveEventSchedule(event.id, [{ date: '2099-06-12', kinds: ['dinner'] }]);
 
 		const seatings = await testDb.select().from(eventSessions).where(eq(eventSessions.id, session.id));
-		expect(seatings).toHaveLength(1);
-		expect(await loadPickerShape(event.id)).toEqual([
-			{ date: '2099-06-10', kinds: ['dinner'] },
-		]);
+		expect(seatings).toHaveLength(0);
+		expect(await loadPickerShape(event.id)).toEqual([{ date: '2099-06-12', kinds: ['dinner'] }]);
 	});
+
 
 	it('throws on an unknown Event', async () => {
 		const { saveEventSchedule } = await import('../../src/lib/server/services/event-schedule');
@@ -657,17 +652,17 @@ describe('saveServiceSeatings (admin Seatings editor)', () => {
 		}])).rejects.toBeInstanceOf(UnknownScheduleServiceError);
 	});
 
-	it('refuses to remove every Seating of a published Event (ADR 0001)', async () => {
-		const { loadSeatingsEditor, PublishedEventWithoutSeatingError } = await import('../../src/lib/server/services/event-schedule');
+	it('removes every Seating of a published Event (ADR 0008)', async () => {
+		const { loadSeatingsEditor } = await import('../../src/lib/server/services/event-schedule');
 		const [lunch] = await pickAndLoad([{ date: '2099-06-10', kinds: ['lunch'] }]);
 		await save([{ serviceId: lunch.serviceId, defaultDurationMinutes: 90, seatings: [seating('12:00')] }]);
 		await testDb.update(events).set({ visibility: 'public' }).where(eq(events.id, event.id));
 
-		await expect(save([{ serviceId: lunch.serviceId, defaultDurationMinutes: 90, seatings: [] }]))
-			.rejects.toBeInstanceOf(PublishedEventWithoutSeatingError);
+		await save([{ serviceId: lunch.serviceId, defaultDurationMinutes: 90, seatings: [] }]);
 		const [reloaded] = await loadSeatingsEditor(event.id);
-		expect(reloaded.seatings).toHaveLength(1);
+		expect(reloaded.seatings).toHaveLength(0);
 	});
+
 
 	// -----------------------------------------------------------------------
 	// Venue Capacity with a per-Seating override (issue 021)

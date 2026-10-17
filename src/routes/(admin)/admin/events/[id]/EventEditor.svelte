@@ -4,9 +4,10 @@
 	// tab keeps its own save; on a new Event the first save of any tab
 	// creates the Draft and lands on its page. All panels stay mounted (just
 	// hidden) so what is typed survives switching tabs.
-	import { ArrowLeft, Eye } from 'lucide-svelte';
+	import { ArrowLeft, ChevronRight, Eye } from 'lucide-svelte';
 	import { cn } from '$lib/utils/design-system';
 	import { DEFAULT_EVENT_TIME_ZONE } from '$lib/utils/event-time';
+	import { editorEventWarnings, type EventWarning } from '$lib/utils/event-warnings';
 	import { getToastContext } from '$lib/components/toast/state.svelte';
 	import { toSeatingDrafts, type DraftSeatingService } from '$lib/components/admin/SeatingsEditor.svelte';
 	import type { ActionData, PageData as EventPageData } from './$types';
@@ -119,6 +120,16 @@
 		};
 	}
 
+	// « À vérifier » (issue 038, ADR 0008): what is missing for publishing,
+	// read off the saved Event's page data. A new Event has nothing saved
+	// yet, so there is nothing to check; the list stays visible once the
+	// Event is published.
+	const warnings = $derived(
+		data.event !== null && data.schedule && data.pricing
+			? editorEventWarnings(data.event, data.schedule, data.pricing)
+			: ([] as EventWarning[])
+	);
+
 	const headerTitle = $derived(
 		event ? event.titleFr || event.titleEn || 'Sans titre' : 'Nouvel événement'
 	);
@@ -175,6 +186,40 @@
 		</div>
 	{/if}
 
+	{#if warnings.length > 0}
+		<!-- « À vérifier » (issue 038): what is missing for publishing. Each
+		     item opens the tab that fixes it; publishing is never refused
+		     (ADR 0008), and the list stays while the Event is published. -->
+		<section class="mb-6 bg-background rounded-lg border border-border-card p-6" aria-label="À vérifier">
+			<h2 class="text-base font-semibold text-foreground mb-1">À vérifier</h2>
+			<p class="text-sm text-muted-foreground mb-4">
+				{#if event && event.visibility !== 'draft'}
+				Cet événement est publié ; ces points lui manquent toujours.
+			{:else}
+				Rien n’oblige à les compléter avant de publier : la décision vous reste.
+				{/if}
+				Chaque point ouvre l’onglet qui le corrige.
+			</p>
+			<ul class="divide-y divide-border-card">
+				{#each warnings as warning, i (i)}
+					<li>
+						<button
+							type="button"
+							onclick={() => (activeTab = panelIndex(warning.tab))}
+							class="group w-full flex items-center justify-between gap-4 py-2.5 text-left text-sm text-foreground-alt hover:text-foreground transition-colors"
+						>
+							<span>{warning.message}</span>
+							<span class="flex items-center gap-1 text-xs text-muted-foreground group-hover:text-foreground whitespace-nowrap">
+								{tabs.find((tab) => tab.id === warning.tab)?.title}
+								<ChevronRight size={14} aria-hidden="true" />
+							</span>
+						</button>
+					</li>
+				{/each}
+			</ul>
+		</section>
+	{/if}
+
 	<!-- Hand-rolled tabs: bits-ui unmounts inactive panels, which would drop
 	     what was typed in them. -->
 	<div class="overflow-x-auto w-full mb-6">
@@ -211,7 +256,9 @@
 		</div>
 	{/snippet}
 
-	{#snippet essentiel()}<Essentiel {event} lastSeatingStart={saved?.lastSeatingStart ?? null} />{/snippet}
+	{#snippet essentiel()}
+		<Essentiel {event} lastSeatingStart={saved?.lastSeatingStart ?? null} {warnings} />
+	{/snippet}
 	{#snippet lieu()}
 		<Lieu {event} zones={data.timeZones ?? []} locked={data.timeZoneLocked ?? false} bind:timeZone />
 	{/snippet}

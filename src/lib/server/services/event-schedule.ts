@@ -367,19 +367,6 @@ export class ScheduleRemovalRefusedError extends ScheduleSaveRefusedError {
 	}
 }
 
-/**
- * Refused: the removals would leave a published Event without any Seating,
- * and a published Event must stay bookable (ADR 0001).
- */
-export class PublishedEventWithoutSeatingError extends ScheduleSaveRefusedError {
-	constructor() {
-		super(
-			'Un événement publié doit conserver au moins une séance : ces jours ou repas ne peuvent pas tous être retirés. Dépubliez l’événement d’abord.'
-		);
-		this.name = 'PublishedEventWithoutSeatingError';
-	}
-}
-
 function blockerDateLabel(date: string): string {
 	return formatDayKey(date, 'fr');
 }
@@ -458,7 +445,6 @@ export async function saveEventSchedule(eventId: string, picked: PickedServiceDa
 		}));
 
 		const plan = planScheduleChange(current, picked);
-		let removesSeatings = false;
 
 		if (plan.serviceIdsToRemove.length > 0) {
 			const counts = await tx
@@ -471,7 +457,6 @@ export async function saveEventSchedule(eventId: string, picked: PickedServiceDa
 				.leftJoin(reservations, eq(reservations.eventSessionId, eventSessions.id))
 				.where(inArray(eventSessions.serviceId, plan.serviceIdsToRemove))
 				.groupBy(eventSessions.serviceId);
-			removesSeatings = counts.length > 0;
 
 			const removedDayIds = new Set(plan.dayIdsToRemove);
 			const blockers = new Map<string, ScheduleRemovalBlocker>();
@@ -514,19 +499,6 @@ export async function saveEventSchedule(eventId: string, picked: PickedServiceDa
 		if (plan.dayIdsToRemove.length > 0) {
 			await tx.delete(eventDays)
 				.where(inArray(eventDays.id, plan.dayIdsToRemove));
-		}
-
-		// Removed Services take their unbooked Seatings with them (cascade):
-		// a published Event must keep at least one (ADR 0001). Only checked
-		// when Seatings were actually removed; throwing rolls the deletions back.
-		if (event.visibility !== 'draft' && removesSeatings) {
-			const [remaining] = await tx.select({ id: eventSessions.id })
-				.from(eventSessions)
-				.where(eq(eventSessions.eventId, eventId))
-				.limit(1);
-			if (!remaining) {
-				throw new PublishedEventWithoutSeatingError();
-			}
 		}
 
 		if (plan.daysToAdd.length > 0) {
@@ -890,30 +862,6 @@ export {
 	type SeatingLabelContext,
 } from '$lib/utils/seating-title';
 
-/**
- * Refused: publishing an Event that has no Seating — every published Event
- * must be bookable (ADR 0001).
- */
-export class EventWithoutSeatingError extends ScheduleSaveRefusedError {
-	constructor() {
-		super(
-			'Un événement ne peut pas être publié sans au moins une séance. Ajoutez une séance dans l’onglet Séances, puis publiez à nouveau.'
-		);
-		this.name = 'EventWithoutSeatingError';
-	}
-}
-
-/** Throw {@link EventWithoutSeatingError} unless the Event has a Seating. */
-export async function assertEventHasSeatings(eventId: string): Promise<void> {
-	const [seating] = await db.select({ id: eventSessions.id })
-		.from(eventSessions)
-		.where(eq(eventSessions.eventId, eventId))
-		.limit(1);
-	if (!seating) {
-		throw new EventWithoutSeatingError();
-	}
-}
-
 // ---------------------------------------------------------------------------
 // Saving the admin Seatings editor (issue 020)
 // ---------------------------------------------------------------------------
@@ -1271,15 +1219,6 @@ export async function saveServiceSeatings(
 			throw new SeatingCapacityRefusedError(
 				capacityBlockers.sort((a, b) => a.date.localeCompare(b.date) || a.start.localeCompare(b.start))
 			);
-		}
-
-		// A published Event must keep at least one Seating (ADR 0001).
-		if (
-			event.visibility !== 'draft' &&
-			removedIds.length > 0 &&
-			sessionRows.length - removedIds.length + insertCount === 0
-		) {
-			throw new PublishedEventWithoutSeatingError();
 		}
 
 		// Apply: the Venue Capacity and the Seatings inheriting it outside

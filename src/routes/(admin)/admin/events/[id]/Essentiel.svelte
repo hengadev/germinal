@@ -6,27 +6,77 @@
 	import { enhance } from '$app/forms';
 	import { getToastContext } from '$lib/components/toast/state.svelte';
 	import { handleTabResult, type EditorEvent } from './editor-forms';
+	import Modal from '$lib/components/ui/Modal.svelte';
 	import { Type, FileText } from 'lucide-svelte';
 	import { VISIBILITIES, VISIBILITY_LABELS, canBeSpotlight, canJoinPortfolio, type Visibility } from '$lib/utils/event-access';
+	import type { EventWarning } from '$lib/utils/event-warnings';
 
 	let {
 		event,
 		lastSeatingStart = null,
+		warnings = [],
 	}: {
 		event: EditorEvent | null;
 		/** Start of the Event's last Seating, for the Portfolio rule (issue 044). */
 		lastSeatingStart?: Date | string | null;
+		/** What is missing for publishing (issue 038), for the confirmation
+		 * shown when the Event leaves Brouillon. */
+		warnings?: EventWarning[];
 	} = $props();
 
 	const toast = getToastContext();
 	let saving = $state(false);
 
-	function saveEnhance() {
+	// Publishing confirmation (issue 038, ADR 0008): taking a Brouillon out
+	// of Draft with points missing asks first (« Publier quand même » /
+	// « Annuler »); with nothing missing, it goes straight through.
+	let formEl: HTMLFormElement | undefined = $state();
+	let publishDialogOpen = $state(false);
+	let publishConfirmed = $state(false);
+	let publishDialogWasOpen = false;
+
+	// Closing the dialog without publishing (Annuler, Échap) leaves the
+	// Event in Brouillon, as it was. The confirmation flag is consumed here:
+	// « Publier quand même » closes the dialog and submits, so the revert
+	// must not run for that close.
+	$effect(() => {
+		if (publishDialogOpen) {
+			publishDialogWasOpen = true;
+			return;
+		}
+		if (publishDialogWasOpen && !publishConfirmed) {
+			visibility = 'draft';
+		}
+		publishDialogWasOpen = false;
+		publishConfirmed = false;
+	});
+
+	function saveEnhance({ cancel }: { cancel: () => void }) {
+		if (
+			!publishConfirmed &&
+			event?.visibility === 'draft' &&
+			visibility !== 'draft' &&
+			warnings.length > 0
+		) {
+			cancel();
+			publishDialogOpen = true;
+			return;
+		}
 		saving = true;
 		return async ({ result }: { result: import('@sveltejs/kit').ActionResult }) => {
 			saving = false;
 			await handleTabResult(result, toast, 'Modifications enregistrées');
 		};
+	}
+
+	function publishAnyway() {
+		publishDialogOpen = false;
+		publishConfirmed = true;
+		formEl?.requestSubmit();
+	}
+
+	function cancelPublish() {
+		publishDialogOpen = false;
 	}
 
 	let titleEn = $state(event?.titleEn ?? "");
@@ -58,7 +108,7 @@
 </script>
 
 <div class="bg-background rounded-lg border border-border-card p-6 lg:p-8">
-    <form method="POST" action="?/updateEvent" use:enhance={saveEnhance} class="space-y-6">
+    <form bind:this={formEl} method="POST" action="?/updateEvent" use:enhance={saveEnhance} class="space-y-6">
  <!-- Titre (Anglais) -->
  <div>
  <label for="titleEn" class="block text-sm font-medium text-foreground-alt mb-2">
@@ -275,3 +325,36 @@
         </div>
     </form>
 </div>
+
+<!-- Publishing confirmation (issue 038, ADR 0008): leaving Brouillon with
+     points missing shows them here; the Admin decides (ADR 0008). -->
+<Modal
+    bind:isOpen={publishDialogOpen}
+    title="Publier cet événement ?"
+    description="Avant de quitter le brouillon, il reste des points à vérifier :"
+>
+    <ul class="my-2 space-y-1.5 text-sm text-foreground-alt list-disc pl-5">
+        {#each warnings as warning, i (i)}
+            <li>{warning.message}</li>
+        {/each}
+    </ul>
+    <p class="text-sm text-muted-foreground">
+        Publier reste possible : rien n’est bloquant, la décision vous appartient.
+    </p>
+    <div class="flex justify-end gap-3 mt-4">
+        <button
+            type="button"
+            onclick={cancelPublish}
+            class="px-4 py-2 text-sm font-medium text-foreground-alt bg-background border border-border-card rounded-lg hover:bg-surface transition-colors"
+        >
+            Annuler
+        </button>
+        <button
+            type="button"
+            onclick={publishAnyway}
+            class="px-4 py-2 text-sm font-medium text-background bg-foreground rounded-lg hover:opacity-90 transition-colors"
+        >
+            Publier quand même
+        </button>
+    </div>
+</Modal>

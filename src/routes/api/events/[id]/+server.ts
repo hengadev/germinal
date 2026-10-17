@@ -1,7 +1,6 @@
 import { json, error } from '@sveltejs/kit';
 import { getEventById, updateEvent, deleteEvent, SpotlightRequiresPublicError } from '$lib/server/services/events';
 import { updateEventSchema } from '$lib/server/validators/events';
-import { assertEventHasSeatings, EventWithoutSeatingError } from '$lib/server/services/event-schedule';
 import { requireAdmin } from '$lib/server/auth-guards';
 import { toAccessEvent } from '$lib/server/services/event-access';
 import { eventAccess, viewerOf } from '$lib/utils/event-access';
@@ -33,17 +32,8 @@ export const PUT: RequestHandler = async (event) => {
     return json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  // A published Event must have at least one Seating (ADR 0001).
-  if (parsed.data.visibility !== undefined && parsed.data.visibility !== 'draft') {
-    try {
-      await assertEventHasSeatings(event.params.id);
-    } catch (seatingError) {
-      if (seatingError instanceof EventWithoutSeatingError) {
-        return json({ error: seatingError.message }, { status: 400 });
-      }
-      throw seatingError;
-    }
-  }
+  // Publishing is never refused (ADR 0008, which supersedes ADR 0001): an
+  // Event without a Seating is announced but not bookable.
 
   try {
     const updatedEvent = await updateEvent(event.params.id, parsed.data);

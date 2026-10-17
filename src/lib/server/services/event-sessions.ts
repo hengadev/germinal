@@ -5,7 +5,6 @@ import type { CreateEventSessionInput, UpdateEventSessionInput } from '$lib/type
 import { resolveSeatingPrice } from '$lib/utils/seating-price';
 import {
 	findOrAttachService,
-	PublishedEventWithoutSeatingError,
 	recomputeEventDatesFromDays,
 } from './event-schedule';
 import { dayOf, serviceKindOf } from '$lib/utils/event-time';
@@ -317,19 +316,5 @@ export async function deleteEventSession(id: string) {
 			.returning({ eventId: eventSessions.eventId });
 		if (!deleted) return;
 
-		// A published Event must keep at least one Seating (ADR 0001).
-		const [event]: { visibility: string }[] = await tx.select({ visibility: events.visibility })
-			.from(events)
-			.where(eq(events.id, deleted.eventId))
-			.limit(1);
-		if (event && event.visibility !== 'draft') {
-			const [remaining] = await tx.select({ id: eventSessions.id })
-				.from(eventSessions)
-				.where(eq(eventSessions.eventId, deleted.eventId))
-				.limit(1);
-			if (!remaining) {
-				throw new PublishedEventWithoutSeatingError();
-			}
-		}
 	});
 }
