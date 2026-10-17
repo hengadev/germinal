@@ -1,6 +1,6 @@
 import { db } from '../db';
 import { events, eventDays, eventServices, eventSessions } from '../db/schema';
-import { eq } from 'drizzle-orm';
+import { and, desc, eq, ne } from 'drizzle-orm';
 import { resolveSeatingPrice, type SeatingPrice } from '$lib/utils/seating-price';
 import type { AccessEvent, AccessSeating, Visibility } from '$lib/utils/event-access';
 
@@ -11,9 +11,27 @@ import type { AccessEvent, AccessSeating, Visibility } from '$lib/utils/event-ac
  * entry point reads an Event's publication anywhere else.
  */
 
-/** The Event access snapshot of an Event row. */
-export function toAccessEvent(event: { visibility: Visibility }): AccessEvent {
-	return { visibility: event.visibility };
+/**
+ * The Event access snapshot of an Event row, with its Booking Window (035)
+ * and Portfolio fields (044). A row selected without the Booking Window
+ * columns (for listing or indexing only) gets the default window; an
+ * absent Portfolio flag means "not in the Portfolio", an absent last
+ * Seating start "may not join it yet". Deciding on a Seating needs the
+ * full row.
+ */
+export function toAccessEvent(event: {
+	visibility: Visibility;
+	bookingOpensAt?: Date | null;
+	bookingClosesHoursBefore?: number | null;
+	isPortfolio?: boolean | null;
+	lastSeatingStart?: Date | null;
+}): AccessEvent {
+	return {
+		visibility: event.visibility,
+		bookingWindow: { opensAt: event.bookingOpensAt ?? null, closesHoursBefore: event.bookingClosesHoursBefore ?? null },
+		isPortfolio: event.isPortfolio ?? false,
+		lastSeatingStart: event.lastSeatingStart ?? null,
+	};
 }
 
 /** The Event access snapshot of a Seating row and the price it is booked at. */
@@ -32,10 +50,29 @@ export function toAccessSeating(
 
 /**
  * SQL for the Events {@link isListed} lets be listed, for queries that page
- * through them. Kept equal to `isListed` by tests/integration/draft-access.
+ * through them: Portfolio Events of any Visibility except Draft (issue
+ * 044). Kept equal to `isListed` by tests/integration/draft-access.
  */
 export function listedEventsCondition() {
-	return eq(events.visibility, 'public');
+	return and(eq(events.isPortfolio, true), ne(events.visibility, 'draft'));
+}
+
+/**
+ * When the Event's last Seating starts, or null when it has none — what
+ * {@link canJoinPortfolio} needs to decide whether the Event may join the
+ * Portfolio (issue 044).
+ */
+export async function lastSeatingStartOf(
+	tx: typeof db,
+	eventId: string
+): Promise<Date | null> {
+	const [last] = await tx
+		.select({ startTime: eventSessions.startTime })
+		.from(eventSessions)
+		.where(eq(eventSessions.eventId, eventId))
+		.orderBy(desc(eventSessions.startTime))
+		.limit(1);
+	return last?.startTime ?? null;
 }
 
 export interface SeatingAccess {
@@ -62,6 +99,8 @@ export async function loadSeatingAccess(
 			seating: eventSessions,
 			eventId: events.id,
 			eventVisibility: events.visibility,
+			bookingOpensAt: events.bookingOpensAt,
+			bookingClosesHoursBefore: events.bookingClosesHoursBefore,
 			servicePriceAmount: eventServices.priceAmount,
 			serviceCurrency: eventServices.currency,
 		})
@@ -76,6 +115,8 @@ export async function loadSeatingAccess(
 		seating: typeof eventSessions.$inferSelect;
 		eventId: string;
 		eventVisibility: Visibility;
+		bookingOpensAt: Date | null;
+		bookingClosesHoursBefore: number | null;
 		servicePriceAmount: number | null;
 		serviceCurrency: string;
 	}[] = lock ? await query.for('update', { of: eventSessions }) : await query;
@@ -93,7 +134,11 @@ export async function loadSeatingAccess(
 		seating: row.seating,
 		eventId: row.eventId,
 		price,
-		event: toAccessEvent({ visibility: row.eventVisibility }),
+		event: toAccessEvent({
+			visibility: row.eventVisibility,
+			bookingOpensAt: row.bookingOpensAt,
+			bookingClosesHoursBefore: row.bookingClosesHoursBefore,
+		}),
 		access: toAccessSeating(row.seating, price),
 	};
 }

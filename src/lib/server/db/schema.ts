@@ -171,6 +171,12 @@ export const events = pgTable('events', {
         .$type<{ hoursBefore: number; percent: number }[]>()
         .notNull()
         .default(sql`'[{"hoursBefore":24,"percent":100}]'::jsonb`),
+    // Booking Window (issue 035, $lib/utils/booking-window): when bookings
+    // open (null: as soon as the Event is published; typed in its Time
+    // Zone) and how many hours before each Seating they close (null: at
+    // its start).
+    bookingOpensAt: timestamp('booking_opens_at', { withTimezone: true }),
+    bookingClosesHoursBefore: integer('booking_closes_hours_before'),
     coverMediaId: uuid('cover_media_id'),
     coverVideoId: uuid('cover_video_id'),
     visibility: eventVisibilityEnum('visibility').notNull().default('draft'),

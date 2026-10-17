@@ -1,5 +1,5 @@
 {
-  "id": "bfe3d31e-6319-4e60-acdd-4ace196b7188",
+  "id": "1df2625c-c9b0-4da4-93c0-e6631bd72501",
   "prevId": "19c0a5ca-5110-438d-9f6d-895d761bc6a7",
   "version": "7",
   "dialect": "postgresql",
@@ -1485,25 +1485,25 @@
           "name": "title_en",
           "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "title_fr": {
           "name": "title_fr",
           "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "description_en": {
           "name": "description_en",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "description_fr": {
           "name": "description_fr",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "subtitle_en": {
           "name": "subtitle_en",
@@ -1521,25 +1521,25 @@
           "name": "start_date",
           "type": "timestamp with time zone",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "end_date": {
           "name": "end_date",
           "type": "timestamp with time zone",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "location_en": {
           "name": "location_en",
           "type": "varchar(500)",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "location_fr": {
           "name": "location_fr",
           "type": "varchar(500)",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "venue_name_en": {
           "name": "venue_name_en",
@@ -1697,6 +1697,18 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'[{\"hoursBefore\":24,\"percent\":100}]'::jsonb"
+        },
+        "booking_opens_at": {
+          "name": "booking_opens_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "booking_closes_hours_before": {
+          "name": "booking_closes_hours_before",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
         },
         "cover_media_id": {
           "name": "cover_media_id",

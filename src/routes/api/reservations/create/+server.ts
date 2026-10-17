@@ -95,6 +95,14 @@ export const POST: RequestHandler = async ({ request, getClientAddress, locals }
 					return json({ error: 'This session is not open for booking yet', code: 'NOT_PRICED' }, { status: 409 });
 				case 'started':
 					return json({ error: 'This session has already started', code: 'SESSION_STARTED' }, { status: 400 });
+				// Outside the Booking Window (issue 035).
+				case 'not-open':
+					return json(
+						{ error: 'Bookings for this session are not open yet', code: 'BOOKING_NOT_OPEN', opensAt: error.opensAt?.toISOString() ?? null },
+						{ status: 409 }
+					);
+				case 'closed':
+					return json({ error: 'Bookings for this session are closed', code: 'BOOKING_CLOSED' }, { status: 409 });
 				case 'full':
 					return json({ error: 'Session is sold out', code: 'SOLD_OUT' }, { status: 409 });
 			}

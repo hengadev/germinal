@@ -241,6 +241,8 @@
     "doors": "Doors",
     "capacity": "Capacity",
     "soldOut": "Sold Out",
+    "bookingOpensOn": "Bookings open on {date}",
+    "bookingClosed": "Bookings closed",
     "sessionEnded": "Session ended",
     "notAvailable": "Not Available",
     "joinWaitlist": "Join Waitlist",

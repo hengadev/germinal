@@ -211,7 +211,7 @@
 		</div>
 	{/snippet}
 
-	{#snippet essentiel()}<Essentiel {event} />{/snippet}
+	{#snippet essentiel()}<Essentiel {event} lastSeatingStart={saved?.lastSeatingStart ?? null} />{/snippet}
 	{#snippet lieu()}
 		<Lieu {event} zones={data.timeZones ?? []} locked={data.timeZoneLocked ?? false} bind:timeZone />
 	{/snippet}

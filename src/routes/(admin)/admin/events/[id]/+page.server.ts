@@ -13,6 +13,8 @@ import {
 	parseSeatingsPayload,
 	parseVenueCapacity,
 	pickedDaysErrorMessage,
+	getEventTimeZone,
+	saveBookingWindow,
 	saveEventSchedule,
 	saveServiceSeatings,
 	ScheduleSaveRefusedError,
@@ -23,7 +25,8 @@ import {
 	type ParsedServiceSeatings,
 	type PickedServiceDay,
 } from '$lib/server/services/event-schedule';
-import { clockOf, dayOf, DEFAULT_EVENT_TIME_ZONE, isValidTimeZone, listTimeZones, serviceKindOf } from '$lib/utils/event-time';
+import { clockOf, dayOf, DEFAULT_EVENT_TIME_ZONE, isValidTimeZone, listTimeZones, serviceKindOf, wallClockToInstant } from '$lib/utils/event-time';
+import { BOOKING_WINDOW_ERROR_MESSAGES, parseBookingWindow } from '$lib/utils/booking-window';
 import { parseServiceRefs, refersOnlyTo, resolveServiceRefs, serviceKey } from '$lib/server/services/new-event-schedule';
 import {
 	createDraftEvent,
@@ -41,9 +44,26 @@ import { depositRuleOf } from '$lib/utils/pricing';
 import { refundPolicyOf } from '$lib/utils/refund-policy';
 import type { PageServerLoad } from './$types';
 import { requireAdmin } from '$lib/server/auth-guards';
-import { canBeSpotlight, parseVisibility, type Visibility } from '$lib/utils/event-access';
+import { canBeSpotlight, canJoinPortfolio, parseVisibility, type Visibility } from '$lib/utils/event-access';
 
 const SPOTLIGHT_REQUIRES_PUBLIC_MESSAGE = 'Seul un événement Public peut être mis en avant (Spotlight).';
+const PORTFOLIO_REQUIRES_OVER_MESSAGE =
+	'Un événement ne rejoint le Portfolio qu’une fois sa dernière séance commencée.';
+
+/**
+ * When the Event's last Seating starts — what Event access needs to decide
+ * whether it may join the Portfolio (issue 044). Mock mode has no Seatings
+ * table: its Sessions stand in for them.
+ */
+async function lastSeatingStart(eventId: string): Promise<Date | null> {
+	if (env.USE_MOCK_DATA) {
+		const starts = MOCK_SESSIONS.filter((s) => s.eventId === eventId).map((s) => s.startTime.getTime());
+		return starts.length > 0 ? new Date(Math.max(...starts)) : null;
+	}
+	const { db } = await import('$lib/server/db');
+	const { lastSeatingStartOf } = await import('$lib/server/services/event-access');
+	return lastSeatingStartOf(db, eventId);
+}
 
 /**
  * The Event's Days with their lunch/dinner Services, ordered by date then
@@ -204,8 +224,26 @@ async function saveNewEventSchedule(formData: FormData) {
 	if (!timeZone) {
 		return fail(400, { error: TIME_ZONE_ERROR_MESSAGE });
 	}
+	// The Booking Window (issue 035), its opening typed on that clock too.
+	const rawOpensAt = formData.get('bookingOpensAt');
+	const rawClosesHoursBefore = formData.get('bookingClosesHoursBefore');
+	const bookingWindow = parseBookingWindow(
+		typeof rawOpensAt === 'string' ? rawOpensAt : null,
+		typeof rawClosesHoursBefore === 'string' ? rawClosesHoursBefore : null,
+		(day, minutes) => wallClockToInstant(day, minutes, timeZone)
+	);
+	if (!bookingWindow.ok) {
+		return fail(400, { error: BOOKING_WINDOW_ERROR_MESSAGES[bookingWindow.reason] });
+	}
+	const { opensAt, closesHoursBefore } = bookingWindow.window;
 
-	if (days.length === 0 && venue.venueCapacity === undefined && !(pricing && pricingHasContent(pricing))) {
+	if (
+		days.length === 0 &&
+		venue.venueCapacity === undefined &&
+		opensAt === null &&
+		closesHoursBefore === null &&
+		!(pricing && pricingHasContent(pricing))
+	) {
 		return fail(400, { error: NOTHING_TO_SAVE_MESSAGE });
 	}
 
@@ -229,6 +267,7 @@ async function saveNewEventSchedule(formData: FormData) {
 		if (pricing) {
 			await savePricing(id, { ...pricing, services: resolveServiceRefs(pricing.services, refs, realIds) });
 		}
+		await saveBookingWindow(id, bookingWindow.window);
 	} catch (err) {
 		// Nothing half-created: the Draft goes, with its Days, Services,
 		// Seatings and Menus (cascade).
@@ -373,7 +412,13 @@ export const load: PageServerLoad = async ({ params }) => {
 			refundPolicy: refundPolicyOf(event),
 		};
 
-		return { event, sessions, reservations, promoCodes: [], talents, days, schedule, venueCapacity, pricing, timeZones: listTimeZones(), timeZoneLocked: reservations.length > 0 };
+		// When the Event's last Seating starts (issue 044): what decides
+		// whether it may join the Portfolio. Mock mode has no Seatings table,
+		// so its Sessions stand in for them.
+		const seatingStarts = sessions.map((s) => new Date(s.startTime).getTime());
+		const lastSeatingStart = seatingStarts.length > 0 ? new Date(Math.max(...seatingStarts)) : null;
+
+		return { event, sessions, reservations, promoCodes: [], talents, days, schedule, venueCapacity, pricing, timeZones: listTimeZones(), timeZoneLocked: reservations.length > 0, lastSeatingStart };
 	}
 
 	// Database mode - fetch from database
@@ -426,6 +471,11 @@ export const load: PageServerLoad = async ({ params }) => {
 		const { loadPricingEditor } = await import('$lib/server/services/service-pricing');
 		const pricing = await loadPricingEditor(id);
 
+		// When the Event's last Seating starts (issue 044): what decides
+		// whether it may join the Portfolio. Its Seatings are already loaded.
+		const seatingStarts = sessionsData.map((s: typeof sessionsData[number]) => s.startTime.getTime());
+		const lastSeatingStart = seatingStarts.length > 0 ? new Date(Math.max(...seatingStarts)) : null;
+
 		return {
 			event,
 			promoCodes,
@@ -475,6 +525,7 @@ export const load: PageServerLoad = async ({ params }) => {
 			// has a Reservation (ADR 0006).
 			timeZones: listTimeZones(),
 			timeZoneLocked: reservationsData.length > 0,
+			lastSeatingStart,
 		};
 	} catch (err) {
 		if (err instanceof Error && err.message === 'Event not found') {
@@ -508,7 +559,13 @@ export const actions: Actions = {
 			if (isSpotlight && !canBeSpotlight({ visibility })) {
 				return fail(400, { error: SPOTLIGHT_REQUIRES_PUBLIC_MESSAGE });
 			}
-			publishing = { visibility, isSpotlight, isPortfolio: formData.get('isPortfolio') === 'true' };
+			const isPortfolio = formData.get('isPortfolio') === 'true';
+			// The Portfolio (issue 044): an Event joins it only once its last
+			// Seating has started. updateEvent refuses it again on the database.
+			if (isPortfolio && !canJoinPortfolio({ visibility, isPortfolio, lastSeatingStart: await lastSeatingStart(id) }, new Date())) {
+				return fail(400, { error: PORTFOLIO_REQUIRES_OVER_MESSAGE });
+			}
+			publishing = { visibility, isSpotlight, isPortfolio };
 
 			// A published Event must have at least one Seating (ADR 0001).
 			if (visibility !== 'draft') {
@@ -577,9 +634,12 @@ export const actions: Actions = {
 			await updateEvent(id, { ...fields, ...publishing });
 			return { success: 'Modifications enregistrées.' };
 		} catch (error) {
-			const { SpotlightRequiresPublicError } = await import('$lib/server/services/events');
+			const { SpotlightRequiresPublicError, PortfolioRequiresOverEventError } = await import('$lib/server/services/events');
 			if (error instanceof SpotlightRequiresPublicError) {
 				return fail(400, { error: SPOTLIGHT_REQUIRES_PUBLIC_MESSAGE });
+			}
+			if (error instanceof PortfolioRequiresOverEventError) {
+				return fail(400, { error: PORTFOLIO_REQUIRES_OVER_MESSAGE });
 			}
 			logger.error({ err: error }, 'Error updating event');
 			return fail(500, { error: 'Échec de l’enregistrement de l’événement.' });
@@ -721,6 +781,29 @@ export const actions: Actions = {
 			return fail(400, { error: VENUE_CAPACITY_ERROR_MESSAGE });
 		}
 
+		// The Booking Window (issue 035): the opening is typed on the
+		// Event's clock; both settings may be left empty.
+		let timeZone = DEFAULT_EVENT_TIME_ZONE;
+		if (env.USE_MOCK_DATA) {
+			timeZone = MOCK_EVENTS.find((e: typeof MOCK_EVENTS[number]) => e.id === id)?.timeZone ?? timeZone;
+		} else {
+			const eventTimeZone = await getEventTimeZone(id).catch(() => null);
+			if (!eventTimeZone) {
+				return fail(404, { error: 'Événement introuvable.' });
+			}
+			timeZone = eventTimeZone;
+		}
+		const rawOpensAt = formData.get('bookingOpensAt');
+		const rawClosesHoursBefore = formData.get('bookingClosesHoursBefore');
+		const bookingWindow = parseBookingWindow(
+			typeof rawOpensAt === 'string' ? rawOpensAt : null,
+			typeof rawClosesHoursBefore === 'string' ? rawClosesHoursBefore : null,
+			(day, minutes) => wallClockToInstant(day, minutes, timeZone)
+		);
+		if (!bookingWindow.ok) {
+			return fail(400, { error: BOOKING_WINDOW_ERROR_MESSAGES[bookingWindow.reason] });
+		}
+
 		if (env.USE_MOCK_DATA) {
 			return { success: 'Séances enregistrées (mode démo — non persistées)' };
 		}
@@ -742,6 +825,7 @@ export const actions: Actions = {
 				...resolveServiceRefs(parsed.services.filter((service) => placeholderIds.has(service.serviceId)), refs, realIds),
 			];
 			const result = await saveServiceSeatings(id, services, venue.venueCapacity);
+			await saveBookingWindow(id, bookingWindow.window);
 
 			if (result.removedSeatingIds.length > 0) {
 				const { recordAuditLog } = await import('$lib/server/services/audit-log');

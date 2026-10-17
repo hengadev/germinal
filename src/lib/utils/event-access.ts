@@ -1,3 +1,5 @@
+import { bookingWindowState, DEFAULT_BOOKING_WINDOW, type BookingWindow } from './booking-window';
+
 /**
  * Event access (issue 030, ADR 0007) — pure, no database.
  *
@@ -12,8 +14,8 @@
  * Inputs are plain snapshots so later rules slot in by widening them:
  * Visibility (032) replaced `published`, the Admin preview (033) adds a
  * view for the Admin viewer, the Booking Window (035) adds refusals before
- * opening and after closing, and the Portfolio (044) adds a view and a
- * listing rule.
+ * opening and after closing, and the Portfolio (044) adds a listing rule
+ * and decides when an Event may join it.
  */
 
 /** Who is looking: anyone, or a signed-in Admin. */
@@ -36,9 +38,20 @@ export type Visibility = 'draft' | 'private' | 'public';
 
 export const VISIBILITIES: readonly Visibility[] = ['draft', 'private', 'public'];
 
-/** What Event access needs to know about an Event. */
+/** What Event access needs to know about an Event. The Portfolio fields
+ * (issue 044) may be unknown to a caller that does not need them: an
+ * absent flag means "not in the Portfolio", an absent last Seating start
+ * means "may not join it yet" — both fail closed. */
 export interface AccessEvent {
 	visibility: Visibility;
+	/** Its Booking Window (035); absent: the default one (open as soon as
+	 * published, closing at each Seating's start). */
+	bookingWindow?: BookingWindow;
+	/** Whether the Event is part of the Portfolio (ADR 0007), the
+	 * post-event showcase "Projets" and the homepage gallery list. */
+	isPortfolio?: boolean;
+	/** When the Event's last Seating starts; null when it has none. */
+	lastSeatingStart?: Date | null;
 }
 
 /** What Event access needs to know about a Seating. */
@@ -70,13 +83,17 @@ export function eventAccess(event: AccessEvent, viewer: Viewer): EventAccessDeci
 	return { visible: true, view: 'announcement' };
 }
 
-/** May the Event appear in public listings (Events listing, homepage
- * gallery): Public Events only — a Private one is reached by its link. */
+/** May the Event appear in public listings (the Events listing, homepage
+ * gallery): Portfolio Events of any Visibility except Draft, most recent
+ * first (issue 044). A Private Event joins the Portfolio only once it is
+ * over, so listing it no longer exposes a bookable link; an Event that is
+ * over and not in the Portfolio is listed nowhere. */
 export function isListed(event: AccessEvent): boolean {
-	return event.visibility === 'public';
+	return event.isPortfolio === true && event.visibility !== 'draft';
 }
 
-/** May the Event's page be indexed (sitemap, no `noindex`): Public only. */
+/** May the Event's page be indexed (sitemap, no `noindex`): Public only —
+ * even a Portfolio one, a Private Event stays out of the sitemap. */
 export function isIndexed(event: AccessEvent): boolean {
 	return event.visibility === 'public';
 }
@@ -86,15 +103,30 @@ export function canBeSpotlight(event: AccessEvent): boolean {
 	return event.visibility === 'public';
 }
 
+/** May the Event join the Portfolio: only once its last Seating has
+ * started (ADR 0007) — the one hard rule, so a Private Event's link is
+ * never listed while its Event can still be booked. An Event without
+ * Seatings never can. */
+export function canJoinPortfolio(event: AccessEvent, now: Date): boolean {
+	const lastSeatingStart = event.lastSeatingStart ?? null;
+	return lastSeatingStart !== null && lastSeatingStart.getTime() <= now.getTime();
+}
+
 /** Why a Seating cannot be booked, in the order the rules are checked. */
 export type BookingRefusal =
 	| 'event-not-published'
 	| 'seating-unpublished'
 	| 'not-priced'
 	| 'started'
+	| 'not-open'
+	| 'closed'
 	| 'full';
 
-export type SeatingBookingDecision = { bookable: true } | { bookable: false; reason: BookingRefusal };
+export type SeatingBookingDecision =
+	| { bookable: true }
+	| { bookable: false; reason: Exclude<BookingRefusal, 'not-open'> }
+	/** Before the Booking Window opens (035): when it opens. */
+	| { bookable: false; reason: 'not-open'; opensAt: Date };
 
 export interface SeatingAccessInput {
 	event: AccessEvent;
@@ -103,15 +135,22 @@ export interface SeatingAccessInput {
 	now: Date;
 }
 
+type Refusal = { reason: Exclude<BookingRefusal, 'full' | 'not-open'> } | { reason: 'not-open'; opensAt: Date };
+
 /** Refusals shared by booking and the Waitlist, before capacity. */
-function refusalBeforeCapacity({ event, seating, viewer, now }: SeatingAccessInput): BookingRefusal | null {
+function refusalBeforeCapacity({ event, seating, viewer, now }: SeatingAccessInput): Refusal | null {
 	const access = eventAccess(event, viewer);
 	// The Admin preview (033) may show a Draft's page, but no viewer ever
 	// books one: the preview view refuses like a hidden Event does.
-	if (!access.visible || access.view === 'preview') return 'event-not-published';
-	if (!seating.published) return 'seating-unpublished';
-	if (!seating.priced) return 'not-priced';
-	if (seating.startTime.getTime() <= now.getTime()) return 'started';
+	if (!access.visible || access.view === 'preview') return { reason: 'event-not-published' };
+	if (!seating.published) return { reason: 'seating-unpublished' };
+	if (!seating.priced) return { reason: 'not-priced' };
+	if (seating.startTime.getTime() <= now.getTime()) return { reason: 'started' };
+	// The Booking Window (035): before it opens, or once it has closed
+	// for this Seating, it can neither be booked nor wait-listed.
+	const window = bookingWindowState(event.bookingWindow ?? DEFAULT_BOOKING_WINDOW, seating.startTime, now);
+	if (window.state === 'not-open') return { reason: 'not-open', opensAt: window.opensAt };
+	if (window.state === 'closed') return { reason: 'closed' };
 	return null;
 }
 
@@ -121,7 +160,7 @@ function refusalBeforeCapacity({ event, seating, viewer, now }: SeatingAccessInp
  */
 export function seatingBooking(input: SeatingAccessInput & { seats?: number }): SeatingBookingDecision {
 	const refusal = refusalBeforeCapacity(input);
-	if (refusal) return { bookable: false, reason: refusal };
+	if (refusal) return { bookable: false, ...refusal };
 	if (input.seating.availableCapacity < (input.seats ?? 1)) return { bookable: false, reason: 'full' };
 	return { bookable: true };
 }
@@ -136,7 +175,7 @@ export type WaitlistDecision = { allowed: true } | { allowed: false; reason: Wai
  */
 export function waitlistAccess(input: SeatingAccessInput): WaitlistDecision {
 	const refusal = refusalBeforeCapacity(input);
-	if (refusal) return { allowed: false, reason: refusal as WaitlistRefusal };
+	if (refusal) return { allowed: false, reason: refusal.reason };
 	if (!input.seating.allowWaitlist) return { allowed: false, reason: 'waitlist-not-offered' };
 	return { allowed: true };
 }
@@ -145,6 +184,9 @@ export function waitlistAccess(input: SeatingAccessInput): WaitlistDecision {
  * can) and whether its Waitlist is open. */
 export interface SeatingAvailability {
 	bookingRefusal: BookingRefusal | null;
+	/** When booking opens, while the Booking Window has not (035); null
+	 * otherwise. */
+	bookingOpensAt: Date | null;
 	waitlistOpen: boolean;
 }
 
@@ -152,6 +194,7 @@ export function seatingAvailability(input: SeatingAccessInput): SeatingAvailabil
 	const booking = seatingBooking(input);
 	return {
 		bookingRefusal: booking.bookable ? null : booking.reason,
+		bookingOpensAt: !booking.bookable && booking.reason === 'not-open' ? booking.opensAt : null,
 		waitlistOpen: !booking.bookable && booking.reason === 'full' && waitlistAccess(input).allowed,
 	};
 }

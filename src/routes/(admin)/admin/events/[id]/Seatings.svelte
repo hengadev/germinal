@@ -15,6 +15,7 @@
 		type DraftSeatingService,
 	} from '$lib/components/admin/SeatingsEditor.svelte';
 	import type { EditorService } from '$lib/types/seatings-editor';
+	import { clockOf, dayOf, DEFAULT_EVENT_TIME_ZONE } from '$lib/utils/event-time';
 
 	let {
 		data,
@@ -27,7 +28,11 @@
 			days?: PickedDay[];
 			schedule?: EditorService[];
 			venueCapacity?: number | null;
-			event?: { timeZone?: string } | null;
+			event?: {
+				timeZone?: string;
+				bookingOpensAt?: Date | string | null;
+				bookingClosesHoursBefore?: number | null;
+			} | null;
 		};
 		/** A new Event (issue 036): no Day is required, and the first save
 		 * creates the Draft. */
@@ -49,6 +54,16 @@
 	let daysPicker: ReturnType<typeof DaysServicesPicker> | undefined = $state();
 	let venueCapacity: number | null = $state(data.venueCapacity ?? null);
 	let saving = $state(false);
+
+	// The Booking Window (issue 035): the opening is typed and shown on the
+	// Event's clock (`YYYY-MM-DDTHH:MM`), whatever the Admin's own zone.
+	function openingInputOf(event: typeof data.event): string {
+		if (!event?.bookingOpensAt) return '';
+		const zone = event.timeZone ?? DEFAULT_EVENT_TIME_ZONE;
+		return `${dayOf(event.bookingOpensAt, zone)}T${clockOf(event.bookingOpensAt, zone)}`;
+	}
+	let bookingOpensAt = $state(openingInputOf(data.event));
+	let bookingClosesHoursBefore: number | null = $state(data.event?.bookingClosesHoursBefore ?? null);
 	let editor: ReturnType<typeof SeatingsEditor> | undefined = $state();
 
 	// Drafts of meals unpicked since the last save, so picking one back
@@ -136,6 +151,8 @@
 				days = pickedDaysOf(data.days);
 				services = toSeatingDrafts(data.schedule ?? []);
 				venueCapacity = data.venueCapacity ?? null;
+				bookingOpensAt = openingInputOf(data.event);
+				bookingClosesHoursBefore = data.event?.bookingClosesHoursBefore ?? null;
 			} else if (result.type === 'failure') {
 				toast.error('Erreur', (result.data as { error?: string })?.error ?? 'Une erreur est survenue');
 			} else if (result.type === 'error') {
@@ -151,6 +168,54 @@
 
 	<input type="hidden" name="serviceRefs" value={serviceRefs} />
 	<SeatingsEditor bind:this={editor} bind:services bind:venueCapacity {timeZone} />
+
+	<!-- Booking Window (issue 035): both optional; empty keeps bookings open
+	     from publication until each Seating starts. -->
+	<section class="bg-background rounded-lg border border-border-card p-4 lg:p-6" aria-labelledby="booking-window-title">
+		<h3 id="booking-window-title" class="text-lg font-semibold text-foreground">Ouverture des réservations</h3>
+		<p class="text-sm text-muted-foreground">
+			Laissez vide pour ouvrir les réservations dès la publication et les fermer au début de chaque séance.
+		</p>
+		<div class="mt-4 grid gap-4 sm:grid-cols-2">
+			<div>
+				<label for="booking-opens-at" class="block text-xs font-medium text-foreground-alt mb-1">
+					Ouverture (heure de l’événement, {data.event?.timeZone ?? DEFAULT_EVENT_TIME_ZONE})
+				</label>
+				<input
+					id="booking-opens-at"
+					name="bookingOpensAt"
+					type="datetime-local"
+					bind:value={bookingOpensAt}
+					aria-describedby="booking-opens-at-help"
+					class="w-full px-3 py-2 border border-border-input rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
+				/>
+				<p id="booking-opens-at-help" class="mt-1 text-xs text-muted-foreground">
+					Avant cette date, les séances et les prix sont affichés, sans réservation ni liste d’attente.
+				</p>
+			</div>
+			<div>
+				<label for="booking-closes-hours" class="block text-xs font-medium text-foreground-alt mb-1">
+					Clôture (heures avant chaque séance)
+				</label>
+				<input
+					id="booking-closes-hours"
+					name="bookingClosesHoursBefore"
+					type="number"
+					inputmode="numeric"
+					min="0"
+					max="8760"
+					step="1"
+					placeholder="0"
+					bind:value={bookingClosesHoursBefore}
+					aria-describedby="booking-closes-hours-help"
+					class="w-full px-3 py-2 border border-border-input rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
+				/>
+				<p id="booking-closes-hours-help" class="mt-1 text-xs text-muted-foreground">
+					Par exemple 24 : les réservations d’une séance ferment la veille, à la même heure.
+				</p>
+			</div>
+		</div>
+	</section>
 
 	<div class="flex flex-col sm:flex-row sm:items-center gap-3 pt-4 border-t border-border-card">
 		<button

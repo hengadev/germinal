@@ -194,6 +194,24 @@ describe('first save of « Dates & séances » on a new Event', () => {
 		expect(await testDb.select().from(eventDays).where(eq(eventDays.eventId, event.id))).toHaveLength(0);
 	});
 
+	it('saves the Booking Window with the first save, typed in the Event’s Time Zone', async () => {
+		const form = createForm();
+		form.set('bookingOpensAt', '2099-10-01T10:00');
+		form.set('bookingClosesHoursBefore', '24');
+		const event = await eventById(draftIdOf(await submit(form)));
+		// Europe/Paris is UTC+2 on 1 October.
+		expect(event.bookingOpensAt!.toISOString()).toBe('2099-10-01T08:00:00.000Z');
+		expect(event.bookingClosesHoursBefore).toBe(24);
+	});
+
+	it('creates a Draft from the Booking Window alone', async () => {
+		const form = new FormData();
+		form.set('days', '[]');
+		form.set('bookingClosesHoursBefore', '12');
+		const event = await eventById(draftIdOf(await submit(form)));
+		expect(event).toMatchObject({ bookingClosesHoursBefore: 12, visibility: 'draft' });
+	});
+
 	it('creates nothing when a Seating is refused', async () => {
 		// A dinner Seating starting at lunch time is refused by the save.
 		const result = await submit(createForm('12:00'));
