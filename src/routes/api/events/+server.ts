@@ -7,6 +7,7 @@ import { getCached, CACHE_TAGS } from '$lib/server/cache';
 import { MOCK_EVENTS, USE_MOCK_DATA } from '$lib/mock-data';
 import { isListed, viewerOf } from '$lib/utils/event-access';
 import { withoutPracticalInfo } from '$lib/utils/practical-info';
+import { withProjectCover } from '$lib/utils/event-photos';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ url, setHeaders, locals }) => {
@@ -41,7 +42,7 @@ export const GET: RequestHandler = async ({ url, setHeaders, locals }) => {
 
     const paginationMetadata = calculatePagination(page, limit, totalEvents);
     // A public listing never carries Practical Info (issue 040).
-    const listedEvents = listedOnly ? paginatedEvents.map(withoutPracticalInfo) : paginatedEvents;
+    const listedEvents = listedOnly ? paginatedEvents.map((e) => withProjectCover(withoutPracticalInfo(e))) : paginatedEvents;
     return json(createPaginatedResponse(listedEvents, paginationMetadata));
   }
 
