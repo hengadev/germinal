@@ -41,6 +41,7 @@
 					sessions={sessions}
 					eventTitle={getEventField('title')}
 					eventId={spotlightEvent.id}
+					timeZone={spotlightEvent.timeZone}
 					deposit={depositRuleOf(spotlightEvent)}
 					refundPolicy={refundPolicyOf(spotlightEvent)}
 				/>

@@ -1,39 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import {
-	LUNCH_DINNER_CUTOFF_HOUR,
-	classifyServiceKind,
-	utcDayKey,
 	seatingDurationMinutes,
-	dayStartUtc,
-	dayEndUtc,
 	groupScheduleByDayAndService,
 	parsePickedDays,
 	planScheduleChange,
 	type CurrentScheduleNode,
 } from '../../../src/lib/server/services/event-schedule';
 
-describe('classifyServiceKind', () => {
-	it('classifies a start before the cut-off as lunch', () => {
-		expect(classifyServiceKind(new Date('2026-07-15T12:00:00Z'))).toBe('lunch');
-		expect(classifyServiceKind(new Date('2026-07-15T15:59:59Z'))).toBe('lunch');
-		expect(classifyServiceKind(new Date('2026-01-01T00:00:00Z'))).toBe('lunch');
-	});
-
-	it('classifies a start at or after the cut-off as dinner', () => {
-		// Exactly 16:00 is dinner — the cut-off is exclusive for lunch
-		expect(classifyServiceKind(new Date(`2026-07-15T${LUNCH_DINNER_CUTOFF_HOUR}:00:00Z`))).toBe('dinner');
-		expect(classifyServiceKind(new Date('2026-07-15T16:00:01Z'))).toBe('dinner');
-		expect(classifyServiceKind(new Date('2026-07-15T23:59:59Z'))).toBe('dinner');
-	});
-});
-
-describe('utcDayKey', () => {
-	it('returns the UTC calendar date of a Seating', () => {
-		expect(utcDayKey(new Date('2026-07-15T18:30:00Z'))).toBe('2026-07-15');
-		expect(utcDayKey(new Date('2026-07-15T23:30:00Z'))).toBe('2026-07-15');
-		expect(utcDayKey(new Date('2026-07-16T00:30:00Z'))).toBe('2026-07-16');
-	});
-});
+// Day, meal and Day bounds in the Event's Time Zone: tests/unit/lib/event-time.test.ts
 
 describe('seatingDurationMinutes', () => {
 	it('returns whole minutes between start and end', () => {
@@ -52,16 +26,6 @@ describe('seatingDurationMinutes', () => {
 			new Date('2026-07-15T12:00:00Z'),
 			new Date('2026-07-15T12:00:00Z')
 		)).toBe(1);
-	});
-});
-
-describe('dayStartUtc / dayEndUtc', () => {
-	it('dayStartUtc is midnight UTC of the day', () => {
-		expect(dayStartUtc('2026-07-15').toISOString()).toBe('2026-07-15T00:00:00.000Z');
-	});
-
-	it('dayEndUtc is the last representable instant of the day', () => {
-		expect(dayEndUtc('2026-07-15').toISOString()).toBe('2026-07-15T23:59:59.999Z');
 	});
 });
 
@@ -447,16 +411,16 @@ describe('overlap detection', () => {
 
 describe('derived seating titles', () => {
 	it('derives a label from Day, Service and time in both locales', () => {
-		expect(derivedSeatingTitle(new Date('2026-07-15T12:00:00Z'), { dayDate: '2026-07-15', serviceKind: 'lunch' }, 'fr'))
+		expect(derivedSeatingTitle(new Date('2026-07-15T10:00:00Z'), { timeZone: 'Europe/Paris', dayDate: '2026-07-15', serviceKind: 'lunch' }, 'fr'))
 			.toBe('Déjeuner — mercredi 15 juillet 2026, 12h00');
-		expect(derivedSeatingTitle(new Date('2026-07-15T19:30:00Z'), { dayDate: '2026-07-15', serviceKind: 'dinner' }, 'en'))
+		expect(derivedSeatingTitle(new Date('2026-07-15T17:30:00Z'), { timeZone: 'Europe/Paris', dayDate: '2026-07-15', serviceKind: 'dinner' }, 'en'))
 			.toBe('Dinner — Wednesday, 15 July 2026, 19:30');
 	});
 
 	it('falls back to the start time alone to derive Day and Service', () => {
-		expect(derivedSeatingTitle('2026-07-15T19:30:00Z', {}, 'fr'))
+		expect(derivedSeatingTitle('2026-07-15T17:30:00Z', { timeZone: 'Europe/Paris' }, 'fr'))
 			.toBe('Dîner — mercredi 15 juillet 2026, 19h30');
-		expect(derivedSeatingTitle('2026-07-15T09:00:00Z', {}, 'en'))
+		expect(derivedSeatingTitle('2026-07-15T08:00:00Z', { timeZone: 'Europe/London' }, 'en'))
 			.toBe('Lunch — Wednesday, 15 July 2026, 09:00');
 	});
 
@@ -464,8 +428,8 @@ describe('derived seating titles', () => {
 		expect(seatingTitlesWithFallback({
 			titleEn: 'Chef’s table',
 			titleFr: null,
-			startTime: new Date('2026-07-15T19:00:00Z'),
-		}, { dayDate: '2026-07-15', serviceKind: 'dinner' })).toEqual({
+			startTime: new Date('2026-07-15T17:00:00Z'),
+		}, { timeZone: 'Europe/Paris', dayDate: '2026-07-15', serviceKind: 'dinner' })).toEqual({
 			titleEn: 'Chef’s table',
 			titleFr: 'Dîner — mercredi 15 juillet 2026, 19h00',
 		});

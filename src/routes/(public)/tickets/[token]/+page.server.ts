@@ -41,7 +41,7 @@ export const load: PageServerLoad = async ({ params }) => {
 			createdAt: reservation.createdAt.toISOString(),
 			accessToken: params.token,
 			session: {
-				...seatingTitlesWithFallback(reservation.eventSession),
+				...seatingTitlesWithFallback(reservation.eventSession, { timeZone: reservation.eventSession.event.timeZone }),
 				startTime: reservation.eventSession.startTime.toISOString(),
 				endTime: reservation.eventSession.endTime.toISOString(),
 				event: reservation.eventSession.event

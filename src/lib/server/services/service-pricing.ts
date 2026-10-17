@@ -19,7 +19,8 @@ import {
 	type RefundPolicy,
 	type RefundTier,
 } from '$lib/utils/refund-policy';
-import { formatTimeOfDay, type ServiceKind } from '$lib/utils/seating-times';
+import type { ServiceKind } from '$lib/utils/seating-times';
+import { clockOf, DEFAULT_EVENT_TIME_ZONE } from '$lib/utils/event-time';
 import { ScheduleSaveRefusedError } from './event-schedule';
 
 /**
@@ -524,6 +525,7 @@ export async function loadPricingEditor(eventId: string): Promise<PricingEditorD
 		refundPolicyTextEn: string | null;
 		refundPolicyTextFr: string | null;
 		refundPolicyTiers: unknown;
+		timeZone: string;
 	}[] = await db
 		.select({
 			depositType: events.depositType,
@@ -532,6 +534,7 @@ export async function loadPricingEditor(eventId: string): Promise<PricingEditorD
 			refundPolicyTextEn: events.refundPolicyTextEn,
 			refundPolicyTextFr: events.refundPolicyTextFr,
 			refundPolicyTiers: events.refundPolicyTiers,
+			timeZone: events.timeZone,
 		})
 		.from(events)
 		.where(eq(events.id, eventId))
@@ -603,7 +606,7 @@ export async function loadPricingEditor(eventId: string): Promise<PricingEditorD
 					seating.legacyPriceAmount !== null && seating.legacyCurrency !== null
 						? [{
 							seatingId: seating.id,
-							start: formatTimeOfDay(seating.startTime.getUTCHours() * 60 + seating.startTime.getUTCMinutes()),
+							start: clockOf(seating.startTime, event?.timeZone ?? DEFAULT_EVENT_TIME_ZONE),
 							priceAmount: seating.legacyPriceAmount,
 							currency: seating.legacyCurrency,
 						}]

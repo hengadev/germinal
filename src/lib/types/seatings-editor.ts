@@ -8,7 +8,7 @@ import type { ServiceKind } from '$lib/utils/seating-times';
 
 export type SeatingBadge = 'none' | 'featured' | 'vip' | 'popular' | 'best_value' | 'limited';
 
-/** One Seating as shown in the editor. Times are `HH:MM` UTC on its Day. */
+/** One Seating as shown in the editor. Times are `HH:MM` on its Day, in the Event's Time Zone. */
 export interface EditorSeating {
 	id: string;
 	start: string;

@@ -41,7 +41,8 @@ export const load: PageServerLoad = async () => {
 						with: {
 							event: {
 								columns: {
-									titleEn: true
+									titleEn: true,
+									timeZone: true
 								}
 							}
 						}
@@ -69,7 +70,7 @@ export const load: PageServerLoad = async () => {
 				totalAmount: p.reservation.totalAmount,
 				currency: p.reservation.currency,
 				status: p.reservation.status,
-				sessionTitle: p.reservation.eventSession ? seatingTitle(p.reservation.eventSession, 'en') : undefined,
+				sessionTitle: p.reservation.eventSession ? seatingTitle(p.reservation.eventSession, 'en', { timeZone: p.reservation.eventSession.event.timeZone }) : undefined,
 				eventTitle: p.reservation.eventSession?.event?.titleEn,
 				sessionStartTime: p.reservation.eventSession?.startTime.toISOString()
 			} : null

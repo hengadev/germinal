@@ -7,8 +7,8 @@ import {
 	DEFAULT_SERVICE_DURATION_MINUTES,
 	EventWithoutSeatingError,
 	formatSeatingOverlapWarning,
+	changeEventTimeZone,
 	loadSeatingsEditor,
-	LUNCH_DINNER_CUTOFF_HOUR,
 	parsePickedDays,
 	parseSeatingsPayload,
 	parseVenueCapacity,
@@ -18,9 +18,11 @@ import {
 	ScheduleSaveRefusedError,
 	seatingsPayloadErrorMessage,
 	seatingTitle,
+	TIME_ZONE_ERROR_MESSAGE,
 	VENUE_CAPACITY_ERROR_MESSAGE,
 	type PickedServiceDay,
 } from '$lib/server/services/event-schedule';
+import { clockOf, dayOf, isValidTimeZone, listTimeZones, serviceKindOf } from '$lib/utils/event-time';
 import { parseServiceRefs, resolveServiceRefs, serviceKey } from '$lib/server/services/new-event-schedule';
 import type { EditorService } from '$lib/types/seatings-editor';
 import type { PricingEditorData } from '$lib/types/pricing-editor';
@@ -59,6 +61,34 @@ async function loadScheduleDays(eventId: string): Promise<PickedServiceDay[]> {
 		}
 	}
 	return days;
+}
+
+/**
+ * Save the Time Zone picked in the Lieu section (ADR 0006), before the rest
+ * of the Event: a change keeps the Seatings' typed times and is refused
+ * once any Seating has a Reservation. Returns the failure to answer with,
+ * or null when there is nothing to refuse. An absent field leaves it as is.
+ */
+async function applyTimeZone(eventId: string, raw: FormDataEntryValue | null) {
+	if (raw === null) return null;
+	const timeZone = String(raw).trim();
+	if (!isValidTimeZone(timeZone)) {
+		return fail(400, { error: TIME_ZONE_ERROR_MESSAGE });
+	}
+	if (env.USE_MOCK_DATA) {
+		const mock = MOCK_EVENTS.find((e) => e.id === eventId);
+		if (mock) mock.timeZone = timeZone;
+		return null;
+	}
+	try {
+		await changeEventTimeZone(eventId, timeZone);
+	} catch (refusal) {
+		if (refusal instanceof ScheduleSaveRefusedError) {
+			return fail(400, { error: refusal.message });
+		}
+		throw refusal;
+	}
+	return null;
 }
 
 export const load: PageServerLoad = async ({ params }) => {
@@ -112,7 +142,7 @@ export const load: PageServerLoad = async ({ params }) => {
 					confirmedAt: r.confirmedAt,
 					eventTitle: evt?.titleEn || '',
 					seatingId: r.eventSessionId,
-					sessionTitle: session ? seatingTitle(session, 'en') : '',
+					sessionTitle: session ? seatingTitle(session, 'en', { timeZone: event.timeZone }) : '',
 					sessionStartTime: session?.startTime?.toISOString() || '',
 					paymentStatus: r.paymentStatus,
 					isComp: (r as { isComp?: boolean }).isComp ?? false
@@ -122,11 +152,12 @@ export const load: PageServerLoad = async ({ params }) => {
 		const talents = MOCK_TALENTS.map(t => ({ id: t.id, firstName: t.firstName, lastName: t.lastName }));
 
 		// Mock mode has no Days table: derive them from the mock Seatings,
-		// lunch before the UTC cut-off and dinner after (same rule as the DB).
+		// on the Event's clock (same rule as the DB, ADR 0006).
+		const zone = event.timeZone;
 		const daysMap = new Map<string, PickedServiceDay>();
 		for (const session of MOCK_SESSIONS.filter(s => s.eventId === id)) {
-			const date = session.startTime.toISOString().slice(0, 10);
-			const kind = session.startTime.getUTCHours() < LUNCH_DINNER_CUTOFF_HOUR ? 'lunch' : 'dinner';
+			const date = dayOf(session.startTime, zone);
+			const kind = serviceKindOf(session.startTime, zone);
 			const day = daysMap.get(date) ?? { date, kinds: [] as ('lunch' | 'dinner')[] };
 			if (!day.kinds.includes(kind)) day.kinds.push(kind);
 			daysMap.set(date, day);
@@ -140,7 +171,7 @@ export const load: PageServerLoad = async ({ params }) => {
 			: null;
 
 		// Mock Seatings editor: one synthetic Service per Day and meal.
-		const clock = (instant: Date) => instant.toISOString().slice(11, 16);
+		const clock = (instant: Date) => clockOf(instant, zone);
 		const schedule: EditorService[] = days.flatMap((day, dayIndex) => (['lunch', 'dinner'] as const).filter((kind) => day.kinds.includes(kind)).map((kind, kindIndex) => ({
 			serviceId: `00000000-0000-4000-8000-${String(dayIndex * 2 + kindIndex).padStart(12, '0')}`,
 			date: day.date,
@@ -148,8 +179,8 @@ export const load: PageServerLoad = async ({ params }) => {
 			defaultDurationMinutes: DEFAULT_SERVICE_DURATION_MINUTES[kind],
 			seatings: sessions
 				.filter((session) =>
-					session.startTime.slice(0, 10) === day.date &&
-					(new Date(session.startTime).getUTCHours() < LUNCH_DINNER_CUTOFF_HOUR ? 'lunch' : 'dinner') === kind)
+					dayOf(session.startTime, zone) === day.date &&
+					serviceKindOf(session.startTime, zone) === kind)
 				.map((session) => ({
 					id: session.id,
 					start: clock(new Date(session.startTime)),
@@ -189,7 +220,7 @@ export const load: PageServerLoad = async ({ params }) => {
 			refundPolicy: refundPolicyOf(event),
 		};
 
-		return { event, sessions, reservations, promoCodes: [], talents, days, schedule, venueCapacity, pricing };
+		return { event, sessions, reservations, promoCodes: [], talents, days, schedule, venueCapacity, pricing, timeZones: listTimeZones(), timeZoneLocked: reservations.length > 0 };
 	}
 
 	// Database mode - fetch from database
@@ -279,7 +310,7 @@ export const load: PageServerLoad = async ({ params }) => {
 				confirmedAt: r.confirmedAt?.toISOString(),
 				eventTitle: event.titleEn,
 				seatingId: r.eventSessionId,
-				sessionTitle: seatingTitle(r.eventSession, 'en'),
+				sessionTitle: seatingTitle(r.eventSession, 'en', { timeZone: event.timeZone }),
 				sessionStartTime: r.eventSession.startTime.toISOString(),
 				paymentStatus: r.payment?.status || 'none',
 				isComp: r.isComp
@@ -287,6 +318,10 @@ export const load: PageServerLoad = async ({ params }) => {
 			eventStaff: [],
 			tasks: [],
 			allStaff: [],
+			// Time Zone picker (Lieu): IANA zones; locked once any Seating
+			// has a Reservation (ADR 0006).
+			timeZones: listTimeZones(),
+			timeZoneLocked: reservationsData.length > 0,
 		};
 	} catch (err) {
 		if (err instanceof Error && err.message === 'Event not found') {
@@ -389,6 +424,11 @@ export const actions: Actions = {
 					throw seatingError;
 				}
 			}
+		}
+
+		const timeZoneRefused = await applyTimeZone(id, formData.get('timeZone'));
+		if (timeZoneRefused) {
+			return timeZoneRefused;
 		}
 
 		if (env.USE_MOCK_DATA) {

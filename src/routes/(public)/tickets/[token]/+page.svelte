@@ -9,6 +9,7 @@
 	import { invalidateAll } from '$app/navigation';
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import RefundPolicyNote from '$lib/components/booking/RefundPolicyNote.svelte';
+	import { formatSeatingDate, formatSeatingTime } from '$lib/utils/event-time';
 
 	let { data }: { data: PageData } = $props();
 
@@ -119,16 +120,18 @@
 		showPaymentFailure = false;
 	}
 
+	// The Seating's Day and time at the venue, whatever the reader's own
+	// zone (ADR 0006), with no zone label.
 	function formatDateTime(dateString: string): string {
-		const date = new Date(dateString);
-		return date.toLocaleString(undefined, {
+		const zone = data.reservation.session.event.timeZone;
+		const lang = $locale === 'fr' ? 'fr' : 'en';
+		const day = formatSeatingDate(dateString, zone, lang, {
 			weekday: 'long',
 			month: 'long',
 			day: 'numeric',
-			year: 'numeric',
-			hour: '2-digit',
-			minute: '2-digit'
+			year: 'numeric'
 		});
+		return `${day}, ${formatSeatingTime(dateString, zone, lang)}`;
 	}
 
 	function downloadCalendar() {

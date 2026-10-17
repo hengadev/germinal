@@ -82,6 +82,7 @@ export const load: PageServerLoad = async ({ params }) => {
 						titleEn: event.titleEn,
 						titleFr: (event as { titleFr?: string }).titleFr ?? event.titleEn,
 						locationEn: event.locationEn,
+						timeZone: event.timeZone,
 						venueNameEn: event.venueNameEn,
 						streetAddressEn: event.streetAddressEn,
 						cityEn: event.cityEn,
@@ -143,7 +144,7 @@ export const load: PageServerLoad = async ({ params }) => {
 				cancelledAt: reservation.cancelledAt?.toISOString(),
 				createdAt: reservation.createdAt.toISOString(),
 				session: {
-					...seatingTitlesWithFallback(reservation.eventSession),
+					...seatingTitlesWithFallback(reservation.eventSession, { timeZone: reservation.eventSession.event.timeZone }),
 					startTime: reservation.eventSession.startTime.toISOString(),
 					endTime: reservation.eventSession.endTime.toISOString(),
 					event: reservation.eventSession.event

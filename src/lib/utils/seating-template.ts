@@ -1,9 +1,5 @@
-import {
-	endAfterDuration,
-	parseTimeOfDay,
-	serviceKindOfMinutes,
-	type ServiceKind,
-} from './seating-times';
+import { endAfterDuration, parseTimeOfDay } from './seating-times';
+import { serviceKindOfMinutes, type ServiceKind } from './event-time';
 
 /**
  * Seating template for one meal kind (Séances editor): the start times and
@@ -26,7 +22,7 @@ export type SeatingTemplateReview =
 /**
  * Check a template: at least one start, a duration of 1 to 1440 minutes,
  * every start a valid `HH:MM` within the meal's window (lunch before the
- * 16:00 UTC cut-off, dinner from it) and ending before midnight. Returns
+ * 16:00 cut-off on the Event's clock, dinner from it) and ending before midnight. Returns
  * the starts in minutes, sorted, without duplicates.
  */
 export function reviewSeatingTemplate(

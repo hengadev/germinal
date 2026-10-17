@@ -1,6 +1,7 @@
 <script lang="ts">
     import type { EventWithMedia } from "$lib/types/events";
     import { locale } from "svelte-i18n";
+    import { formatSeatingDate } from "$lib/utils/event-time";
 
     interface Props {
         event: EventWithMedia;
@@ -9,7 +10,8 @@
     let { event }: Props = $props();
 
     const formattedDate = $derived(
-        new Date(event.startDate).toLocaleDateString($locale === 'fr' ? 'fr-FR' : 'en-US', {
+        // The Event's first Day, at the venue (ADR 0006).
+        formatSeatingDate(new Date(event.startDate), event.timeZone, $locale === 'fr' ? 'fr' : 'en', {
             year: 'numeric',
             month: 'long',
             day: 'numeric',

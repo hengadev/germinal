@@ -120,6 +120,7 @@ export const MOCK_EVENTS = [
         postalCode: '10024',
         countryEn: 'USA',
         countryFr: 'États-Unis',
+        timeZone: 'Europe/Paris',
         collaborators: JSON.stringify([
             { name: 'Electric Dreams Productions', role: 'Event Production' },
             { name: 'Sarah Martinez', role: 'Musical Director' }
@@ -165,6 +166,7 @@ export const MOCK_EVENTS = [
         postalCode: '94103',
         countryEn: 'USA',
         countryFr: 'États-Unis',
+        timeZone: 'Europe/Paris',
         collaborators: JSON.stringify([
             { name: 'TechCorp', role: 'Sponsor' },
             { name: 'Dr. Emily Watson', role: 'Keynote Speaker' }
@@ -215,6 +217,7 @@ export const MOCK_EVENTS = [
         postalCode: 'SE1 9TG',
         countryEn: 'UK',
         countryFr: 'Royaume-Uni',
+        timeZone: 'Europe/Paris',
         collaborators: JSON.stringify([
             { name: 'Emma Rodriguez', role: 'Featured Artist' },
             { name: 'Design Collective UK', role: 'Co-Curator' }
@@ -265,6 +268,7 @@ export const MOCK_EVENTS = [
         postalCode: '94559',
         countryEn: 'USA',
         countryFr: 'États-Unis',
+        timeZone: 'Europe/Paris',
         collaborators: JSON.stringify([
             { name: 'Chef David Thompson', role: 'Culinary Director' },
             { name: 'Sommelier Lisa Chang', role: 'Wine Selection' }
@@ -313,6 +317,7 @@ export const MOCK_EVENTS = [
         postalCode: '02108',
         countryEn: 'USA',
         countryFr: 'États-Unis',
+        timeZone: 'Europe/Paris',
         collaborators: JSON.stringify([
             { name: 'Global Education Fund', role: 'Beneficiary' },
             { name: 'Boston Athletic Club', role: 'Organizer' }
@@ -362,6 +367,7 @@ export const MOCK_EVENTS = [
         postalCode: 'W1S 4BS',
         countryEn: 'UK',
         countryFr: 'Royaume-Uni',
+        timeZone: 'Europe/Paris',
         collaborators: JSON.stringify([
             { name: 'Prof. Alan Waters', role: 'Speaker' },
             { name: 'Philosophy Now', role: 'Media Partner' }
@@ -410,6 +416,7 @@ export const MOCK_EVENTS = [
         postalCode: '97209',
         countryEn: 'USA',
         countryFr: 'États-Unis',
+        timeZone: 'Europe/Paris',
         collaborators: JSON.stringify([
             { name: 'Green Earth Initiative', role: 'Organizer' },
             { name: 'City of Portland Sustainability Office', role: 'Partner' }

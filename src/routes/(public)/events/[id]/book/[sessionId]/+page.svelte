@@ -13,6 +13,7 @@
 	} from 'lucide-svelte';
 	import { page } from '$app/state';
 	import { formatCurrency } from '$lib/utils/currency';
+	import { formatSeatingDate, formatSeatingTime } from '$lib/utils/event-time';
 	import { priceReservation } from '$lib/utils/pricing';
 	import DepositBreakdown from '$lib/components/booking/DepositBreakdown.svelte';
 	import RefundPolicyNote from '$lib/components/booking/RefundPolicyNote.svelte';
@@ -161,14 +162,15 @@
 		}
 	}
 
+	// The Seating's Day and time at the venue (ADR 0006), not the visitor's.
 	function formatDateTime(dateString: string): string {
-		return new Date(dateString).toLocaleString($locale ?? undefined, {
+		const lang = $locale === 'fr' ? 'fr' : 'en';
+		const day = formatSeatingDate(dateString, data.event.timeZone, lang, {
 			weekday: 'short',
 			month: 'short',
-			day: 'numeric',
-			hour: '2-digit',
-			minute: '2-digit'
+			day: 'numeric'
 		});
+		return `${day}, ${formatSeatingTime(dateString, data.event.timeZone, lang)}`;
 	}
 </script>
 

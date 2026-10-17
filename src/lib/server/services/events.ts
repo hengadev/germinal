@@ -165,6 +165,8 @@ export async function createEvent(input: CreateEventInput) {
       postalCode: input.postalCode,
       countryEn: input.countryEn,
       countryFr: input.countryFr,
+      // Time Zone of the venue (ADR 0006); the column defaults to Europe/Paris.
+      ...(input.timeZone ? { timeZone: input.timeZone } : {}),
       collaborators: input.collaborators,
       timings: input.timings,
       curatorEn: input.curatorEn,
@@ -222,8 +224,11 @@ export async function updateEvent(id: string, input: UpdateEventInput) {
       .where(eq(eventDays.eventId, id))
       .limit(1);
     const withSpotlight = spotlight === undefined ? input : { ...input, isSpotlight: spotlight };
-    const { startDate: _startDate, endDate: _endDate, ...rest } = withSpotlight;
-    const writable = day ? rest : withSpotlight;
+    // The Time Zone only changes through changeEventTimeZone, which moves
+    // the Seatings' instants with it (ADR 0006).
+    const { timeZone: _timeZone, ...fields } = withSpotlight;
+    const { startDate: _startDate, endDate: _endDate, ...rest } = fields;
+    const writable = day ? rest : fields;
 
     const [updated] = await tx.update(events)
       .set({

@@ -60,7 +60,7 @@ describe('reviewServiceSeatings (admin Seatings editor, before saving)', () => {
 		expect(reviews[1].overlapsPreviousEndingAt).toBeNull();
 	});
 
-	it('flags a start on the wrong side of the 16:00 UTC cut-off', () => {
+	it('flags a start on the wrong side of the 16:00 cut-off', () => {
 		const lunch = reviewServiceSeatings('lunch', 60, [{ start: '16:00', end: null }]);
 		const dinner = reviewServiceSeatings('dinner', 60, [{ start: '15:59', end: null }]);
 		expect(lunch[0].mealMismatch).toBe(true);
@@ -70,16 +70,18 @@ describe('reviewServiceSeatings (admin Seatings editor, before saving)', () => {
 });
 
 describe('seatingTitle (shared display title)', () => {
-	const startTime = new Date('2099-06-10T19:00:00Z');
+	// 19:00 in Paris (summer time, UTC+2).
+	const startTime = new Date('2099-06-10T17:00:00Z');
+	const paris = { timeZone: 'Europe/Paris' };
 
 	it('derives a never-empty label from Day, Service and time when no title is stored', () => {
-		expect(seatingTitle({ titleEn: null, titleFr: null, startTime }, 'fr')).toBe('Dîner — mercredi 10 juin 2099, 19h00');
-		expect(seatingTitle({ titleEn: null, titleFr: null, startTime }, 'en')).toBe('Dinner — Wednesday, 10 June 2099, 19:00');
+		expect(seatingTitle({ titleEn: null, titleFr: null, startTime }, 'fr', paris)).toBe('Dîner — mercredi 10 juin 2099, 19h00');
+		expect(seatingTitle({ titleEn: null, titleFr: null, startTime }, 'en', paris)).toBe('Dinner — Wednesday, 10 June 2099, 19:00');
 	});
 
 	it('treats blank titles as missing and keeps real ones', () => {
-		expect(seatingTitle({ titleEn: '   ', startTime: startTime.toISOString() }, 'en')).toMatch(/^Dinner — /);
-		expect(seatingTitlesWithFallback({ titleEn: 'Chef’s table', titleFr: '', startTime })).toEqual({
+		expect(seatingTitle({ titleEn: '   ', startTime: startTime.toISOString() }, 'en', paris)).toMatch(/^Dinner — /);
+		expect(seatingTitlesWithFallback({ titleEn: 'Chef’s table', titleFr: '', startTime }, paris)).toEqual({
 			titleEn: 'Chef’s table',
 			titleFr: 'Dîner — mercredi 10 juin 2099, 19h00',
 		});
@@ -87,7 +89,23 @@ describe('seatingTitle (shared display title)', () => {
 
 	it('uses the Service context over the start time when given', () => {
 		expect(
-			seatingTitle({ startTime: '2099-06-10T15:30:00Z' }, 'fr', { serviceKind: 'dinner', dayDate: '2099-06-10' })
+			seatingTitle({ startTime: '2099-06-10T13:30:00Z' }, 'fr', { ...paris, serviceKind: 'dinner', dayDate: '2099-06-10' })
 		).toBe('Dîner — mercredi 10 juin 2099, 15h30');
+	});
+
+	it('reads the time in the Event’s Time Zone, not UTC', () => {
+		// 20:00 in London is 19:00Z; the label says 20h00 whatever the runtime zone.
+		const london = new Date('2099-06-10T19:00:00Z');
+		expect(seatingTitle({ startTime: london }, 'fr', { timeZone: 'Europe/London' })).toBe(
+			'Dîner — mercredi 10 juin 2099, 20h00'
+		);
+		// 15:30Z is 17:30 in Paris: dinner, although it is before 16:00 UTC.
+		expect(seatingTitle({ startTime: '2099-06-10T15:30:00Z' }, 'en', paris)).toBe(
+			'Dinner — Wednesday, 10 June 2099, 17:30'
+		);
+		// 23:30 in Paris on the 10th is 21:30Z, on the 11th in Tokyo.
+		expect(seatingTitle({ startTime: '2099-06-10T21:30:00Z' }, 'fr', paris)).toBe(
+			'Dîner — mercredi 10 juin 2099, 23h30'
+		);
 	});
 });

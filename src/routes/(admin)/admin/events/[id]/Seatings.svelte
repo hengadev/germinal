@@ -23,6 +23,7 @@
 			days?: PickedDay[];
 			schedule?: EditorService[];
 			venueCapacity?: number | null;
+			event?: { timeZone?: string };
 		};
 	} = $props();
 
@@ -130,10 +131,10 @@
 
 <form method="POST" action="?/saveSeatings" use:enhance={saveSeatingsEnhance} novalidate class="space-y-8">
 	<!-- Days & meals: the Event's dates are derived from its Days (ADR 0005) -->
-	<DaysServicesPicker bind:this={daysPicker} bind:days idPrefix="event-days" />
+	<DaysServicesPicker bind:this={daysPicker} bind:days idPrefix="event-days" timeZone={data.event?.timeZone} />
 
 	<input type="hidden" name="serviceRefs" value={serviceRefs} />
-	<SeatingsEditor bind:this={editor} bind:services bind:venueCapacity />
+	<SeatingsEditor bind:this={editor} bind:services bind:venueCapacity timeZone={data.event?.timeZone} />
 
 	<div class="flex flex-col sm:flex-row sm:items-center gap-3 pt-4 border-t border-border-card">
 		<button

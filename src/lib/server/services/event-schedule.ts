@@ -7,10 +7,22 @@ import {
 	endAfterDuration,
 	findSeatingOverlaps,
 	formatTimeOfDay,
-	LUNCH_DINNER_CUTOFF_HOUR,
 	parseTimeOfDay,
-	type ServiceKind,
 } from '$lib/utils/seating-times';
+import {
+	clockOf,
+	dayEnd,
+	dayOf,
+	dayStart,
+	formatDayKey,
+	isValidTimeZone,
+	LUNCH_DINNER_CUTOFF_HOUR,
+	reconvertInstants,
+	serviceKindOf,
+	serviceKindOfMinutes,
+	wallClockToInstant,
+	type ServiceKind,
+} from '$lib/utils/event-time';
 import { seatingTitlesWithFallback } from '$lib/utils/seating-title';
 import { resolveSeatingPrice, type SeatingPrice } from '$lib/utils/seating-price';
 
@@ -22,13 +34,11 @@ import { resolveSeatingPrice, type SeatingPrice } from '$lib/utils/seating-price
  * parented to exactly one Service, and the recomputation of an Event's
  * start/end dates from its first and last Day.
  *
- * The codebase stores timestamps as UTC instants and has no per-Event
- * local time zone, so day boundaries and the lunch/dinner cut-off are
- * evaluated on the UTC clock (stated in issue 018's summary).
+ * Seatings are stored as UTC instants, but Day boundaries, wall-clock
+ * times and the 16:00 lunch/dinner cut-off are read in the Event's Time
+ * Zone (ADR 0006) through the Event time module ($lib/utils/event-time).
  */
 
-// The 16:00 UTC lunch/dinner cut-off (issue 018) lives with the pure
-// time-of-day helpers so the admin editor and public labels share it.
 export { DEFAULT_SERVICE_DURATION_MINUTES, LUNCH_DINNER_CUTOFF_HOUR, type ServiceKind };
 
 const KIND_ORDER: Record<ServiceKind, number> = { lunch: 0, dinner: 1 };
@@ -41,35 +51,28 @@ const ORDERED_SERVICE_KINDS: ServiceKind[] = ['lunch', 'dinner'];
  */
 const LIVE_RESERVATION_STATUSES = ['pending', 'processing', 'confirmed'] as const;
 
-/** Kind of the Service a Seating belongs to, from its start time (UTC). */
-export function classifyServiceKind(startTime: Date): ServiceKind {
-	return startTime.getUTCHours() < LUNCH_DINNER_CUTOFF_HOUR ? 'lunch' : 'dinner';
-}
-
-/** Calendar date (UTC) of a Seating, as a `YYYY-MM-DD` day key. */
-export function utcDayKey(startTime: Date): string {
-	return startTime.toISOString().slice(0, 10);
-}
-
 /** Duration of a Seating in whole minutes, rounded up, at least one. */
 export function seatingDurationMinutes(startTime: Date, endTime: Date): number {
 	return Math.max(1, Math.ceil((endTime.getTime() - startTime.getTime()) / 60000));
 }
 
-/** First instant of a day key, interpreted as UTC (midnight). */
-export function dayStartUtc(day: string): Date {
-	return new Date(`${day}T00:00:00.000Z`);
-}
-
-/** Last representable instant of a day key, interpreted as UTC. */
-export function dayEndUtc(day: string): Date {
-	return new Date(`${day}T23:59:59.999Z`);
+/** The Event's Time Zone (ADR 0006). */
+async function eventTimeZone(tx: typeof db, eventId: string): Promise<string> {
+	const [event] = await tx.select({ timeZone: events.timeZone })
+		.from(events)
+		.where(eq(events.id, eventId))
+		.limit(1);
+	if (!event) {
+		throw new Error('Event not found');
+	}
+	return event.timeZone;
 }
 
 /**
- * Recompute an Event's start/end dates from its Days: the Event starts on
- * its first Day and ends on its last Day. Events is updated in place; an
- * Event with no Days keeps its current dates (nothing to derive from yet).
+ * Recompute an Event's start/end dates from its Days: the Event starts at
+ * midnight of its first Day and ends at the last instant of its last Day,
+ * in its Time Zone. Events is updated in place; an Event with no Days
+ * keeps its current dates (nothing to derive from yet).
  */
 export async function recomputeEventDatesFromDays(tx: typeof db, eventId: string): Promise<void> {
 	const [bounds] = await tx
@@ -84,10 +87,11 @@ export async function recomputeEventDatesFromDays(tx: typeof db, eventId: string
 		return;
 	}
 
+	const zone = await eventTimeZone(tx, eventId);
 	await tx.update(events)
 		.set({
-			startDate: dayStartUtc(bounds.minDate),
-			endDate: dayEndUtc(bounds.maxDate),
+			startDate: dayStart(bounds.minDate, zone),
+			endDate: dayEnd(bounds.maxDate, zone),
 			updatedAt: new Date(),
 		})
 		.where(eq(events.id, eventId));
@@ -105,9 +109,10 @@ export async function findOrAttachService(
 	startTime: Date,
 	endTime: Date
 ): Promise<string> {
+	const zone = await eventTimeZone(tx, eventId);
 	const [day] = await tx
 		.insert(eventDays)
-		.values({ eventId, date: utcDayKey(startTime) })
+		.values({ eventId, date: dayOf(startTime, zone) })
 		.onConflictDoUpdate({
 			target: [eventDays.eventId, eventDays.date],
 			set: { updatedAt: new Date() },
@@ -118,7 +123,7 @@ export async function findOrAttachService(
 		.insert(eventServices)
 		.values({
 			dayId: day.id,
-			kind: classifyServiceKind(startTime),
+			kind: serviceKindOf(startTime, zone),
 			defaultSeatingDurationMinutes: seatingDurationMinutes(startTime, endTime),
 		})
 		.onConflictDoUpdate({
@@ -375,13 +380,7 @@ export class PublishedEventWithoutSeatingError extends ScheduleSaveRefusedError 
 }
 
 function blockerDateLabel(date: string): string {
-	return new Intl.DateTimeFormat('fr-FR', {
-		weekday: 'long',
-		day: 'numeric',
-		month: 'long',
-		year: 'numeric',
-		timeZone: 'UTC',
-	}).format(new Date(`${date}T12:00:00Z`));
+	return formatDayKey(date, 'fr');
 }
 
 function formatRemovalRefusal(blockers: ScheduleRemovalBlocker[]): string {
@@ -403,8 +402,10 @@ function formatRemovalRefusal(blockers: ScheduleRemovalBlocker[]): string {
 	return `Impossible de retirer ${parts.join(' ; ')}. Les jours et repas concernés doivent être conservés.`;
 }
 
+/** A `date` column's value as a Day key (`YYYY-MM-DD`): a calendar date,
+ * whichever form the driver returns it in. */
 function dayKeyOf(date: string | Date): string {
-	return typeof date === 'string' ? date : utcDayKey(date);
+	return typeof date === 'string' ? date : date.toISOString().slice(0, 10);
 }
 
 /**
@@ -604,9 +605,10 @@ export const VENUE_CAPACITY_ERROR_MESSAGE =
 export interface PlannedSeating {
 	/** Existing Seating id, or null to create a new one. */
 	id: string | null;
-	/** Start time on the Service's Day, `HH:MM` UTC. */
+	/** Start time on the Service's Day, `HH:MM` in the Event's Time Zone. */
 	start: string;
-	/** Explicit end `HH:MM` UTC, or null to fill from the default duration. */
+	/** Explicit end `HH:MM` (Event's Time Zone), or null to fill from the
+	 * default duration. */
 	end: string | null;
 	titleEn: string | null;
 	titleFr: string | null;
@@ -819,7 +821,7 @@ export function seatingsPayloadErrorMessage(reason: SeatingsParseFailure): strin
 		case 'duration':
 			return 'La durée par défaut doit être un nombre entier de minutes, entre 1 et 1440.';
 		case 'time':
-			return 'Les heures de séance sont invalides : saisissez HH:MM en UTC, fin après le début et avant minuit.';
+			return 'Les heures de séance sont invalides : saisissez HH:MM, fin après le début et avant minuit.';
 		case 'seating':
 			return 'Une des séances est invalide (titre, capacité ou badge).';
 	}
@@ -915,11 +917,6 @@ export async function assertEventHasSeatings(eventId: string): Promise<void> {
 // Saving the admin Seatings editor (issue 020)
 // ---------------------------------------------------------------------------
 
-/** Full UTC instant of `minutes` since midnight on `day`. */
-function seatingInstantUtc(day: string, minutes: number): Date {
-	return new Date(`${day}T${formatTimeOfDay(minutes)}:00.000Z`);
-}
-
 /** A Seating that cannot be deleted because Reservations still point at
  * it. The Reservations foreign key is RESTRICT, so even past (cancelled or
  * expired) Reservations keep the Seating row — the guest's history keeps
@@ -982,7 +979,7 @@ export interface SeatingServiceMismatch {
 }
 
 /** Refused: a Seating's start does not match its Service's meal — the
- * 16:00 UTC cut-off decides which meal a time belongs to. */
+ * 16:00 cut-off, on the Event's clock, decides which meal a time belongs to. */
 export class SeatingServiceMismatchError extends SeatingSaveRefusedError {
 	constructor(public readonly mismatches: SeatingServiceMismatch[]) {
 		super(formatSeatingServiceMismatch(mismatches));
@@ -994,8 +991,8 @@ function formatSeatingServiceMismatch(mismatches: SeatingServiceMismatch[]): str
 	const parts = mismatches.map((mismatch) => {
 		const meal = mismatch.kind === 'lunch' ? 'déjeuner' : 'dîner';
 		const window = mismatch.kind === 'lunch'
-			? 'avant 16:00 UTC'
-			: 'à partir de 16:00 UTC';
+			? 'avant 16h00'
+			: 'à partir de 16h00';
 		return `la séance de ${frClock(mismatch.start)} du ${meal} du ${blockerDateLabel(mismatch.date)} doit commencer ${window}`;
 	});
 	return `Un horaire ne correspond pas à son repas : ${parts.join(' ; ')}.`;
@@ -1082,6 +1079,7 @@ export async function saveServiceSeatings(
 			id: events.id,
 			visibility: events.visibility,
 			venueCapacity: events.venueCapacity,
+			timeZone: events.timeZone,
 		})
 			.from(events)
 			.where(eq(events.id, eventId))
@@ -1092,6 +1090,8 @@ export async function saveServiceSeatings(
 		}
 		// The Venue Capacity every inheriting Seating ends up with.
 		const venue: number | null = venueCapacity ?? event.venueCapacity;
+		// Times are typed on the Event's clock (ADR 0006).
+		const zone: string = event.timeZone;
 
 		const serviceRows: { id: string; kind: ServiceKind; date: string }[] = await tx.select({
 			id: eventServices.id,
@@ -1162,7 +1162,7 @@ export async function saveServiceSeatings(
 				if (seating.seating.id !== null && sessionById.get(seating.seating.id)?.serviceId !== row.id) {
 					throw new UnknownScheduleServiceError();
 				}
-				if (classifyServiceKind(seatingInstantUtc(row.date, seating.startMinutes)) !== row.kind) {
+				if (serviceKindOfMinutes(seating.startMinutes) !== row.kind) {
 					mismatches.push({ date: row.date, kind: row.kind, start: seating.seating.start });
 				}
 			}
@@ -1207,7 +1207,7 @@ export async function saveServiceSeatings(
 				removalBlockers.push({
 					date: row.date,
 					kind: row.kind,
-					start: utcClock(session.startTime),
+					start: clockOf(session.startTime, zone),
 					liveCount: count.liveCount,
 					totalCount: count.totalCount,
 				});
@@ -1259,7 +1259,7 @@ export async function saveServiceSeatings(
 				capacityBlockers.push({
 					date: row.date,
 					kind: row.kind,
-					start: utcClock(session.startTime),
+					start: clockOf(session.startTime, zone),
 					requestedCapacity: venue!,
 					soldCount: held,
 					inherited: true,
@@ -1309,8 +1309,8 @@ export async function saveServiceSeatings(
 				.where(eq(eventServices.id, service.serviceId));
 
 			for (const seating of service.seatings) {
-				const startTime = seatingInstantUtc(row.date, seating.startMinutes);
-				const endTime = seatingInstantUtc(row.date, seating.endMinutes);
+				const startTime = wallClockToInstant(row.date, seating.startMinutes, zone);
+				const endTime = wallClockToInstant(row.date, seating.endMinutes, zone);
 				const totalCapacity = seating.seating.capacityOverride ?? venue!;
 				const fields = {
 					titleEn: seating.seating.titleEn,
@@ -1368,11 +1368,6 @@ export async function saveVenueCapacity(eventId: string, venueCapacity: number):
 	await saveServiceSeatings(eventId, [], venueCapacity);
 }
 
-/** `HH:MM` (UTC) of an instant. */
-function utcClock(instant: Date): string {
-	return formatTimeOfDay(instant.getUTCHours() * 60 + instant.getUTCMinutes());
-}
-
 /**
  * The Event's Days → Services → Seatings as the admin Seatings editor
  * shows them (issue 020): Services ordered by Day then meal, Seatings by
@@ -1381,6 +1376,7 @@ function utcClock(instant: Date): string {
  * the Admin can add the first one.
  */
 export async function loadSeatingsEditor(eventId: string): Promise<EditorService[]> {
+	const zone = await eventTimeZone(db, eventId);
 	const serviceRows: { id: string; kind: ServiceKind; date: string; duration: number }[] = await db
 		.select({
 			id: eventServices.id,
@@ -1412,8 +1408,8 @@ export async function loadSeatingsEditor(eventId: string): Promise<EditorService
 				.filter((seating) => seating.serviceId === service.id)
 				.map((seating) => ({
 					id: seating.id,
-					start: utcClock(seating.startTime),
-					end: utcClock(seating.endTime),
+					start: clockOf(seating.startTime, zone),
+					end: clockOf(seating.endTime, zone),
 					titleEn: seating.titleEn,
 					titleFr: seating.titleFr,
 					descriptionEn: seating.descriptionEn,
@@ -1498,6 +1494,7 @@ export async function getPublishedScheduleByEventId(
 		serviceKind: (typeof eventServices.$inferSelect)['kind'];
 		servicePriceAmount: number | null;
 		serviceCurrency: string;
+		timeZone: string;
 		session: typeof eventSessions.$inferSelect;
 	}[] = await db
 		.select({
@@ -1505,11 +1502,13 @@ export async function getPublishedScheduleByEventId(
 			serviceKind: eventServices.kind,
 			servicePriceAmount: eventServices.priceAmount,
 			serviceCurrency: eventServices.currency,
+			timeZone: events.timeZone,
 			session: eventSessions,
 		})
 		.from(eventSessions)
 		.innerJoin(eventServices, eq(eventSessions.serviceId, eventServices.id))
 		.innerJoin(eventDays, eq(eventServices.dayId, eventDays.id))
+		.innerJoin(events, eq(eventDays.eventId, events.id))
 		.where(and(
 			eq(eventSessions.eventId, eventId),
 			eq(eventSessions.published, true)
@@ -1524,6 +1523,7 @@ export async function getPublishedScheduleByEventId(
 		item: {
 			...row.session,
 			...seatingTitlesWithFallback(row.session, {
+				timeZone: row.timeZone,
 				dayDate: row.dayDate,
 				serviceKind: row.serviceKind,
 			}),
@@ -1535,4 +1535,81 @@ export async function getPublishedScheduleByEventId(
 			}),
 		},
 	}));
+}
+
+// ---------------------------------------------------------------------------
+// Changing the Event's Time Zone (ADR 0006, issue 034)
+// ---------------------------------------------------------------------------
+
+/** French admin copy for a Time Zone that is not an IANA name. */
+export const TIME_ZONE_ERROR_MESSAGE = 'Le fuseau horaire choisi est invalide.';
+
+/** Refused: the Event already has Reservations, whose Tickets would shift. */
+export class TimeZoneChangeRefusedError extends ScheduleSaveRefusedError {
+	constructor() {
+		super(
+			'Impossible de changer le fuseau horaire : des séances ont déjà des réservations, leurs billets changeraient d’heure.'
+		);
+		this.name = 'TimeZoneChangeRefusedError';
+	}
+}
+
+/**
+ * Change an Event's Time Zone, keeping its Seatings' Days and wall-clock
+ * times: every Seating's instants move to the same times on the new clock,
+ * and the Event's start/end dates follow, in one transaction. Refused with
+ * {@link TimeZoneChangeRefusedError} (nothing written) once any Seating of
+ * the Event has a Reservation, whatever its status. A no-op when the zone
+ * does not change.
+ */
+export async function changeEventTimeZone(eventId: string, timeZone: string): Promise<void> {
+	if (!isValidTimeZone(timeZone)) {
+		throw new Error(`Invalid time zone: ${timeZone}`);
+	}
+
+	await db.transaction(async (tx: typeof db) => {
+		const [event] = await tx.select({ id: events.id, timeZone: events.timeZone })
+			.from(events)
+			.where(eq(events.id, eventId))
+			.limit(1)
+			.for('update');
+		if (!event) {
+			throw new Error('Event not found');
+		}
+		if (event.timeZone === timeZone) {
+			return;
+		}
+
+		const seatings: { id: string; startTime: Date; endTime: Date }[] = await tx
+			.select({ id: eventSessions.id, startTime: eventSessions.startTime, endTime: eventSessions.endTime })
+			.from(eventSessions)
+			.where(eq(eventSessions.eventId, eventId))
+			.for('update');
+
+		if (seatings.length > 0) {
+			const [booked] = await tx.select({ id: reservations.id })
+				.from(reservations)
+				.where(inArray(reservations.eventSessionId, seatings.map((seating) => seating.id)))
+				.limit(1);
+			if (booked) {
+				throw new TimeZoneChangeRefusedError();
+			}
+		}
+
+		for (const seating of seatings) {
+			const [startTime, endTime] = reconvertInstants(
+				[seating.startTime, seating.endTime],
+				event.timeZone,
+				timeZone
+			);
+			await tx.update(eventSessions)
+				.set({ startTime, endTime, updatedAt: new Date() })
+				.where(eq(eventSessions.id, seating.id));
+		}
+
+		await tx.update(events)
+			.set({ timeZone, updatedAt: new Date() })
+			.where(eq(events.id, eventId));
+		await recomputeEventDatesFromDays(tx, eventId);
+	});
 }

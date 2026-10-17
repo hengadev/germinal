@@ -134,6 +134,10 @@ export const events = pgTable('events', {
     postalCode: varchar('postal_code', { length: 20 }),
     countryEn: varchar('country_en', { length: 100 }),
     countryFr: varchar('country_fr', { length: 100 }),
+    // Time Zone (ADR 0006, issue 034): IANA name of the venue's local time.
+    // Seatings are stored as UTC instants but typed, shown and classified
+    // (Day, lunch/dinner) on this clock ($lib/utils/event-time).
+    timeZone: varchar('time_zone', { length: 64 }).notNull().default('Europe/Paris'),
     collaborators: text('collaborators'),
     timings: text('timings'),
     curatorEn: varchar('curator_en', { length: 150 }),

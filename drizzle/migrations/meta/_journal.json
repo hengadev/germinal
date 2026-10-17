@@ -183,6 +183,13 @@
       "when": 1792221249783,
       "tag": "0025_event_visibility",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1792225731758,
+      "tag": "0026_event_time_zone",
+      "breakpoints": true
     }
   ]
 }

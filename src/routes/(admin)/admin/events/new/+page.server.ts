@@ -2,8 +2,6 @@ import { fail, redirect, type Actions } from '@sveltejs/kit';
 import { env } from '$lib/server/env';
 import { MOCK_EVENTS, MOCK_TALENTS } from '$lib/mock-data';
 import {
-	dayEndUtc,
-	dayStartUtc,
 	formatSeatingOverlapWarning,
 	loadSeatingsEditor,
 	parsePickedDays,
@@ -14,6 +12,7 @@ import {
 	saveServiceSeatings,
 	ScheduleSaveRefusedError,
 	seatingsPayloadErrorMessage,
+	TIME_ZONE_ERROR_MESSAGE,
 	VENUE_CAPACITY_ERROR_MESSAGE,
 	type ParsedServiceSeatings,
 } from '$lib/server/services/event-schedule';
@@ -29,18 +28,19 @@ import {
 	serviceKey,
 } from '$lib/server/services/new-event-schedule';
 import type { PricingPayload } from '$lib/types/pricing-editor';
+import { dayEnd, dayStart, DEFAULT_EVENT_TIME_ZONE, isValidTimeZone, listTimeZones } from '$lib/utils/event-time';
 import type { PageServerLoad } from './$types';
 import { requireAdmin } from '$lib/server/auth-guards';
 
 export const load: PageServerLoad = async () => {
 	if (env.USE_MOCK_DATA) {
 		const talents = MOCK_TALENTS.map(t => ({ id: t.id, firstName: t.firstName, lastName: t.lastName }));
-		return { talents };
+		return { talents, timeZones: listTimeZones() };
 	}
 	const { getAllTalents } = await import('$lib/server/services/talents');
 	const talentsData = await getAllTalents({ publishedOnly: false, limit: 1000 });
 	const talents = talentsData.data.map((t: typeof talentsData.data[number]) => ({ id: t.id, firstName: t.firstName, lastName: t.lastName }));
-	return { talents };
+	return { talents, timeZones: listTimeZones() };
 };
 
 export const actions: Actions = {
@@ -99,8 +99,17 @@ export const actions: Actions = {
 		if (!refersOnlyTo(seatingServices, refs) || (pricing && !refersOnlyTo(pricing.services, refs))) {
 			return fail(400, { error: 'Les repas des séances et des tarifs ne correspondent pas aux jours sélectionnés.' });
 		}
-		const start = dayStartUtc(pickedDays.days[0].date);
-		const end = dayEndUtc(pickedDays.days[pickedDays.days.length - 1].date);
+		// Time Zone of the venue (ADR 0006): the Seatings' times are typed on
+		// its clock and the Event's dates are its Days in that zone.
+		const rawTimeZone = formData.get('timeZone');
+		const timeZone = typeof rawTimeZone === 'string' && rawTimeZone.trim() !== ''
+			? rawTimeZone.trim()
+			: DEFAULT_EVENT_TIME_ZONE;
+		if (!isValidTimeZone(timeZone)) {
+			return fail(400, { error: TIME_ZONE_ERROR_MESSAGE });
+		}
+		const start = dayStart(pickedDays.days[0].date, timeZone);
+		const end = dayEnd(pickedDays.days[pickedDays.days.length - 1].date, timeZone);
 		const locationEn = formData.get('locationEn');
 		const locationFr = formData.get('locationFr');
 		const venueNameEn = formData.get('venueNameEn');
@@ -211,6 +220,7 @@ export const actions: Actions = {
 				postalCode: postalCode?.toString() || null,
 				countryEn: countryEn?.toString() || null,
 				countryFr: countryFr?.toString() || null,
+				timeZone,
 				collaborators: collaborators?.toString() || null,
 				timings: timings?.toString() || null,
 				curatorEn: curatorEn?.toString() || null,
@@ -261,6 +271,7 @@ export const actions: Actions = {
 				postalCode: postalCode?.toString() || null,
 				countryEn: countryEn?.toString() || null,
 				countryFr: countryFr?.toString() || null,
+				timeZone,
 				collaborators: collaborators?.toString() || null,
 				timings: timings?.toString() || null,
 				curatorEn: curatorEn?.toString() || null,

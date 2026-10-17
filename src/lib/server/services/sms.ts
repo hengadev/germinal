@@ -1,3 +1,4 @@
+import { formatSeatingDate, formatSeatingTime } from '$lib/utils/event-time';
 import { env } from '../env';
 import { logger } from '$lib/server/logger';
 import { formatCurrency } from '$lib/utils/currency';
@@ -98,16 +99,16 @@ export async function sendTicketConfirmationSMS(options: {
 	guestName: string;
 	eventTitle: string;
 	sessionStartTime: Date;
+	/** The Event's Time Zone. */
+	timeZone: string;
 	accessToken: string;
 }): Promise<void> {
-	const formattedDate = options.sessionStartTime.toLocaleDateString('en-US', {
+	// On the Event's clock (ADR 0006), never the server's.
+	const formattedDate = formatSeatingDate(options.sessionStartTime, options.timeZone, 'en', {
 		month: 'short',
 		day: 'numeric',
 	});
-	const formattedTime = options.sessionStartTime.toLocaleTimeString('en-US', {
-		hour: '2-digit',
-		minute: '2-digit',
-	});
+	const formattedTime = formatSeatingTime(options.sessionStartTime, options.timeZone, 'en');
 
 	const message = `🎫 ${options.eventTitle}
 
@@ -133,17 +134,17 @@ export async function sendEventReminderSMS(options: {
 	guestName: string;
 	eventTitle: string;
 	sessionStartTime: Date;
+	/** The Event's Time Zone. */
+	timeZone: string;
 	accessToken: string;
 	daysUntil: number;
 }): Promise<void> {
-	const formattedDate = options.sessionStartTime.toLocaleDateString('en-US', {
+	// On the Event's clock (ADR 0006), never the server's.
+	const formattedDate = formatSeatingDate(options.sessionStartTime, options.timeZone, 'en', {
 		month: 'short',
 		day: 'numeric',
 	});
-	const formattedTime = options.sessionStartTime.toLocaleTimeString('en-US', {
-		hour: '2-digit',
-		minute: '2-digit',
-	});
+	const formattedTime = formatSeatingTime(options.sessionStartTime, options.timeZone, 'en');
 
 	const timePhrase = options.daysUntil === 1 ? 'tomorrow' : `in ${options.daysUntil} days`;
 
@@ -192,15 +193,15 @@ export async function sendTicketReminderSMS(options: {
 	name: string;
 	eventTitle: string;
 	eventTime: Date;
+	/** The Event's Time Zone. */
+	timeZone: string;
 }): Promise<void> {
-	const formattedDate = options.eventTime.toLocaleDateString('en-US', {
+	// On the Event's clock (ADR 0006), never the server's.
+	const formattedDate = formatSeatingDate(options.eventTime, options.timeZone, 'en', {
 		month: 'short',
 		day: 'numeric',
 	});
-	const formattedTime = options.eventTime.toLocaleTimeString('en-US', {
-		hour: '2-digit',
-		minute: '2-digit',
-	});
+	const formattedTime = formatSeatingTime(options.eventTime, options.timeZone, 'en');
 
 	const message = `🔔 Ticket Reminder: ${options.eventTitle}
 
@@ -225,15 +226,15 @@ export async function sendCancellationSMS(options: {
 	name: string;
 	eventTitle: string;
 	sessionStartTime: Date;
+	/** The Event's Time Zone. */
+	timeZone: string;
 }): Promise<void> {
-	const formattedDate = options.sessionStartTime.toLocaleDateString('en-US', {
+	// On the Event's clock (ADR 0006), never the server's.
+	const formattedDate = formatSeatingDate(options.sessionStartTime, options.timeZone, 'en', {
 		month: 'short',
 		day: 'numeric',
 	});
-	const formattedTime = options.sessionStartTime.toLocaleTimeString('en-US', {
-		hour: '2-digit',
-		minute: '2-digit',
-	});
+	const formattedTime = formatSeatingTime(options.sessionStartTime, options.timeZone, 'en');
 
 	const message = `Reservation Cancelled: ${options.eventTitle}
 

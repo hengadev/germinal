@@ -56,7 +56,8 @@ export const load: PageServerLoad = async ({ url }) => {
 					event: {
 						columns: {
 							id: true,
-							titleEn: true
+							titleEn: true,
+							timeZone: true
 						}
 					}
 				}
@@ -75,7 +76,8 @@ export const load: PageServerLoad = async ({ url }) => {
 		with: {
 			event: {
 				columns: {
-					titleEn: true
+					titleEn: true,
+					timeZone: true
 				}
 			}
 		}
@@ -95,7 +97,7 @@ export const load: PageServerLoad = async ({ url }) => {
 			createdAt: entry.createdAt.toISOString(),
 			session: {
 				id: entry.eventSession.id,
-				title: seatingTitle(entry.eventSession, 'en'),
+				title: seatingTitle(entry.eventSession, 'en', { timeZone: entry.eventSession.event.timeZone }),
 				startTime: entry.eventSession.startTime.toISOString(),
 				eventTitle: entry.eventSession.event?.titleEn || '',
 				eventId: entry.eventSession.eventId
@@ -103,7 +105,7 @@ export const load: PageServerLoad = async ({ url }) => {
 		})),
 		sessions: allSessions.map((s: typeof allSessions[number]) => ({
 			id: s.id,
-			title: `${s.event?.titleEn || ''}: ${seatingTitle(s, 'en')}`,
+			title: `${s.event?.titleEn || ''}: ${seatingTitle(s, 'en', { timeZone: s.event.timeZone })}`,
 			startTime: s.startTime.toISOString()
 		})),
 		filters: {

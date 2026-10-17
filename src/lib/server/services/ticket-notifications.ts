@@ -17,7 +17,7 @@ import { sendTicketConfirmationEmail } from './email';
 export async function sendTicketNotifications(
 	reservation: Reservation & {
 		eventSession: typeof eventSessions.$inferSelect & {
-			event: { id: string; titleEn: string; titleFr: string; locationEn: string };
+			event: { id: string; titleEn: string; titleFr: string; locationEn: string; timeZone: string };
 		};
 	}
 ): Promise<void> {
@@ -42,6 +42,7 @@ export async function sendTicketNotifications(
 				guestName: reservation.guestName,
 				eventTitle: reservation.eventSession.event.titleEn,
 				sessionStartTime: reservation.eventSession.startTime,
+				timeZone: reservation.eventSession.event.timeZone,
 				accessToken: reservation.accessToken,
 			});
 		} catch (error) {

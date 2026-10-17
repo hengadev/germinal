@@ -20,11 +20,14 @@
 	let {
 		isOpen = $bindable(),
 		session,
-		eventTitle
+		eventTitle,
+		timeZone
 	}: {
 		isOpen: boolean;
 		session: Session;
 		eventTitle: string;
+		/** The Event's Time Zone (ADR 0006). */
+		timeZone: string;
 	} = $props();
 
 	// Helper to get localized session title
@@ -37,7 +40,8 @@
 				titleFr: session.titleFr || session.title,
 				startTime: session.startTime,
 			},
-			isEn ? 'en' : 'fr'
+			isEn ? 'en' : 'fr',
+			{ timeZone }
 		);
 	}
 

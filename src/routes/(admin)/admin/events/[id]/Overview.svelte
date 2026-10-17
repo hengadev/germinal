@@ -5,6 +5,7 @@
 	import type { ActionData, PageData } from './$types';
 	import { getToastContext } from '$lib/components/toast/state.svelte';
 	import { VISIBILITIES, VISIBILITY_LABELS, canBeSpotlight, type Visibility } from '$lib/utils/event-access';
+	import TimeZoneField from '$lib/components/admin/TimeZoneField.svelte';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -405,6 +406,9 @@
  </div>
  </div>
  </div>
+
+ <!-- Time Zone of the venue (ADR 0006) -->
+ <TimeZoneField value={data.event.timeZone} zones={data.timeZones ?? []} locked={data.timeZoneLocked ?? false} />
 
  <!-- Collaborators -->
  <div>

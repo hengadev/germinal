@@ -1,6 +1,7 @@
 import postgres from 'postgres';
 import { drizzle } from 'drizzle-orm/postgres-js';
-import { sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
+import { dayOf, DEFAULT_EVENT_TIME_ZONE, serviceKindOf } from '../../src/lib/utils/event-time';
 import * as schema from '../../src/lib/server/db/schema';
 
 export const TEST_DATABASE_URL =
@@ -45,7 +46,7 @@ export async function setupTestDatabase() {
 
 /**
  * Find-or-create the Day and Service a Seating with the given times belongs
- * to (same UTC rules as the migration and event-schedule service), and
+ * to (on the Event's clock, like the event-schedule service), and
  * return the Service id — for tests that insert Seatings directly.
  *
  * Seatings are booked at their Service's price (issue 022): the Service is
@@ -61,8 +62,14 @@ export async function seedServiceForSession(
 ): Promise<string> {
 	const priceAmount = price.priceAmount === undefined ? 2500 : price.priceAmount;
 	const currency = price.currency ?? 'EUR';
-	const dayDate = startTime.toISOString().slice(0, 10);
-	const kind = startTime.getUTCHours() < 16 ? 'lunch' : 'dinner';
+	// The Seating's Day and meal on the Event's clock (ADR 0006).
+	const [event] = await db
+		.select({ timeZone: schema.events.timeZone })
+		.from(schema.events)
+		.where(eq(schema.events.id, eventId));
+	const zone = event?.timeZone ?? DEFAULT_EVENT_TIME_ZONE;
+	const dayDate = dayOf(startTime, zone);
+	const kind = serviceKindOf(startTime, zone);
 
 	const [day] = await db
 		.insert(schema.eventDays)
