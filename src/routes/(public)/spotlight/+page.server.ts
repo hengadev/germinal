@@ -1,5 +1,5 @@
 import { error } from '@sveltejs/kit';
-import { getSpotlightEvent } from '$lib/server/services/events';
+import { getSpotlightEvent, type SpotlightEvent } from '$lib/server/services/events';
 import { MOCK_EVENTS, MOCK_SESSIONS, USE_MOCK_DATA } from '$lib/mock-data';
 import { getSeatingPrices } from '$lib/server/services/service-pricing';
 import { toAccessEvent, toAccessSeating } from '$lib/server/services/event-access';
@@ -15,11 +15,11 @@ export const load: PageServerLoad = async ({ locals }) => {
 			// Attach event sessions to the spotlight event
 			const eventSessions = MOCK_SESSIONS.filter(s => s.eventId === spotlightEvent.id);
 			return {
+				// The Spotlight page never carries Practical Info (issue 040).
 				spotlightEvent: {
-					// The Spotlight page never carries Practical Info (issue 040).
 					...withoutPracticalInfo(spotlightEvent),
 					eventSessions
-				}
+				} as unknown as SpotlightEvent
 			};
 		}
 		return { spotlightEvent: null };

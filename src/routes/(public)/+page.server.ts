@@ -39,6 +39,8 @@ export const load: PageServerLoad = async () => {
         talents: talentsResult.data as TalentWithMedia[],
         heroImage: siteSettings?.heroImage ?? null,
         heroVideo: siteSettings?.heroVideo ?? null,
-        spotlightEvent,
+        // The public Spotlight has no Practical Info (issue 040); the cards
+        // read it like the mock branch's Events do.
+        spotlightEvent: spotlightEvent as EventWithMedia | null,
     };
 };

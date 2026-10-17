@@ -10,7 +10,8 @@ import {
 } from '$lib/utils/pagination';
 import { invalidateCacheTags, CACHE_TAGS } from '$lib/server/cache';
 import { canBeSpotlight, canJoinPortfolio } from '$lib/utils/event-access';
-import { withoutPracticalInfo } from '$lib/utils/practical-info';
+import { withoutPracticalInfo, type WithoutPracticalInfo } from '$lib/utils/practical-info';
+import type { EventWithMedia } from '$lib/types/events';
 import { lastSeatingStartOf, listedEventsCondition, toAccessEvent } from './event-access';
 
 /**
@@ -101,9 +102,15 @@ export async function getEventById(id: string) {
   return event;
 }
 
+/** The Spotlight as any public page sees it: its Event row with its
+ * published Seatings, without its Practical Info (issue 040). */
+export type SpotlightEvent = WithoutPracticalInfo<
+	EventWithMedia & { eventSessions: (typeof eventSessions.$inferSelect)[] }
+>;
+
 /** The Spotlight, or null when there is none or Event access does not let
  * it be the Spotlight (issue 030). */
-export async function getSpotlightEvent() {
+export async function getSpotlightEvent(): Promise<SpotlightEvent | null> {
   const spotlightEvent = await db.query.events.findFirst({
     where: eq(events.isSpotlight, true),
     with: {
