@@ -4,6 +4,7 @@
 	import { t, locale } from 'svelte-i18n';
 	import { reveal } from '$lib/actions/reveal';
 	import { page } from '$app/state';
+	import { localizedText } from '$lib/utils/event-text';
 
 	type LocalizedField =
 		| 'title'
@@ -58,7 +59,7 @@
 			collaborators?: string | null;
 			timings?: string | null;
 			[key: string]: any;
-		} & { [K in EnField]?: string } & { [K in FrField]?: string };
+		} & { [K in EnField]?: string | null } & { [K in FrField]?: string | null };
 		preview?: boolean;
 		children: import('svelte').Snippet;
 	} = $props();
@@ -72,10 +73,11 @@
 	function getEventField(field: LocalizedField): string {
 		const enField = (field + 'En') as EnField;
 		const frField = (field + 'Fr') as FrField;
-		return $locale === 'en' ? event[enField] || '' : event[frField] || '';
+		// Either language may be missing (issue 036): fall back to the other.
+		return localizedText(event[enField], event[frField], $locale);
 	}
 
-	let ogTitle = $derived(`${getEventField('title')} | Germinal`);
+	let ogTitle = $derived(getEventField('title') ? `${getEventField('title')} | Germinal` : 'Germinal');
 	let ogDescription = $derived(getEventField('description').slice(0, 200));
 	let ogImage = $derived(
 		event.coverMedia?.type === 'image' ? event.coverMedia.url : undefined

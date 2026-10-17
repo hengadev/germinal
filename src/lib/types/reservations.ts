@@ -63,10 +63,12 @@ export type TicketEmailData = {
 	reservation: Reservation;
 	session: typeof eventSessions.$inferSelect;
 	event: {
-		titleEn: string;
-		titleFr: string;
+		// Missing on an Event published unfinished (ADR 0008).
+		titleEn: string | null;
+		titleFr: string | null;
 		id: string;
-		locationEn: string;
+		locationEn: string | null;
+		locationFr?: string | null;
 		/** The Event's Time Zone (ADR 0006): times are shown on its clock. */
 		timeZone: string;
 	};

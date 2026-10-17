@@ -10,7 +10,8 @@
         Search,
         X,
     } from "lucide-svelte";
-    import { t } from "svelte-i18n";
+    import { t, locale } from "svelte-i18n";
+    import { localizedText } from "$lib/utils/event-text";
     import { reveal } from "$lib/actions/reveal";
     import { goto } from "$app/navigation";
     import { page } from "$app/state";
@@ -253,7 +254,7 @@
                             {#if event.coverMedia.type === "image"}
                                 <img
                                     src={event.coverMedia.url}
-                                    alt={event.titleEn}
+                                    alt={localizedText(event.titleEn, event.titleFr, $locale)}
                                     class="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-[filter] duration-500"
                                 />
                             {:else}
@@ -274,13 +275,13 @@
                     <div class="flex flex-col justify-between flex-1">
                         <div>
                             <h3 class="text-xl font-medium mb-2">
-                                {event.titleEn}
+                                {localizedText(event.titleEn, event.titleFr, $locale)}
                             </h3>
                             <p class="text-muted-foreground text-sm line-clamp-2 mb-4">
-                                {event.locationEn}
+                                {localizedText(event.locationEn, event.locationFr, $locale)}
                             </p>
                             <p class="text-muted-foreground text-sm line-clamp-3">
-                                {event.descriptionEn}
+                                {localizedText(event.descriptionEn, event.descriptionFr, $locale)}
                             </p>
                         </div>
                         <div

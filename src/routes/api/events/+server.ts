@@ -27,10 +27,10 @@ export const GET: RequestHandler = async ({ url, setHeaders, locals }) => {
     if (search && search.trim()) {
       const query = search.trim().toLowerCase();
       mockEvents = mockEvents.filter(e =>
-        e.titleEn.toLowerCase().includes(query) ||
-        e.titleFr.toLowerCase().includes(query) ||
-        e.descriptionEn.toLowerCase().includes(query) ||
-        e.descriptionFr.toLowerCase().includes(query)
+        (e.titleEn ?? '').toLowerCase().includes(query) ||
+        (e.titleFr ?? '').toLowerCase().includes(query) ||
+        (e.descriptionEn ?? '').toLowerCase().includes(query) ||
+        (e.descriptionFr ?? '').toLowerCase().includes(query)
       );
     }
 
