@@ -16,9 +16,9 @@ export function generateGoogleCalendarUrl(event: Event, session: EventSession): 
 	// Build the URL parameters
 	const params = new URLSearchParams({
 		action: 'TEMPLATE',
-		text: `${event.titleEn} - ${seatingTitle(session, 'en')}`,
+		text: `${event.titleEn} - ${seatingTitle(session, 'en', { timeZone: event.timeZone })}`,
 		dates: `${formatDate(startDate)}/${formatDate(endDate)}`,
-		details: `Event: ${event.titleEn}\nSession: ${seatingTitle(session, 'en')}\n\n${event.descriptionEn?.substring(0, 500) || ''}`,
+		details: `Event: ${event.titleEn}\nSession: ${seatingTitle(session, 'en', { timeZone: event.timeZone })}\n\n${event.descriptionEn?.substring(0, 500) || ''}`,
 		location: event.locationEn || '',
 	});
 
@@ -26,7 +26,8 @@ export function generateGoogleCalendarUrl(event: Event, session: EventSession): 
 }
 
 /**
- * Generate ICS file content for an event session
+ * Generate ICS file content for an event session. Times stay UTC instants
+ * (ADR 0006): calendar apps show them in the reader's own zone.
  */
 export function generateICS(event: Event, session: EventSession): string {
 	const startDate = new Date(session.startTime);
@@ -61,7 +62,7 @@ export function generateICS(event: Event, session: EventSession): string {
 		`DTSTAMP:${formatICSDate(new Date())}`,
 		`DTSTART:${formatICSDate(startDate)}`,
 		`DTEND:${formatICSDate(endDate)}`,
-		`SUMMARY:${escapeICS(`${event.titleEn} - ${seatingTitle(session, 'en')}`)}`,
+		`SUMMARY:${escapeICS(`${event.titleEn} - ${seatingTitle(session, 'en', { timeZone: event.timeZone })}`)}`,
 		`DESCRIPTION:${escapeICS(event.descriptionEn?.substring(0, 500) || 'Event')}`,
 		`LOCATION:${escapeICS(event.locationEn || '')}`,
 		'STATUS:CONFIRMED',

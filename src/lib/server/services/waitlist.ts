@@ -1,3 +1,4 @@
+import { formatSeatingDateTime } from '$lib/utils/event-time';
 import { db } from '../db';
 import { logger } from '$lib/server/logger';
 import { waitlist, eventSessions } from '../db/schema';
@@ -145,7 +146,8 @@ export async function notifyWaitlist(sessionId: string, availableCapacity: numbe
 	return { notified: notifiedCount };
 }
 
-type SessionWithEvent = typeof eventSessions.$inferSelect & { event?: { id: string } | null };
+/** A Seating with its Event's id and Time Zone (ADR 0006: times on the Event's clock). */
+type SessionWithEvent = typeof eventSessions.$inferSelect & { event: { id: string; timeZone: string } };
 
 /** Unit price from the Seating's Service (issue 022); null when not set. */
 type UnitPrice = { amount: number; currency: string } | null;
@@ -163,13 +165,13 @@ Good news, ${entry.name}!
 
 Tickets are now available for:
 
-${seatingTitle(session, 'en')}
-${session.startTime.toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })}
+${seatingTitle(session, 'en', { timeZone: session.event.timeZone })}
+${formatSeatingDateTime(session.startTime, session.event.timeZone, 'en')}
 ${formatUnitPrice(price)} per ticket
 
 You requested ${entry.quantity} ticket(s). Please book soon as availability is limited.
 
-Book now: ${env.PUBLIC_URL}/events/${session.event?.id ?? ''}
+Book now: ${env.PUBLIC_URL}/events/${session.event.id}
 
 This link is valid for 24 hours.
   `.trim();
@@ -192,16 +194,16 @@ function generateWaitlistHtmlTemplate(entry: typeof waitlist.$inferSelect, sessi
 
   <div style="background-color: #ffffff; border: 1px solid #e9ecef; border-radius: 8px; padding: 24px; margin-bottom: 16px;">
     <p style="margin: 0 0 16px 0; font-size: 16px;">Hi ${escapeHtml(entry.name)},</p>
-    <p style="margin: 0 0 16px 0; font-size: 16px;">Tickets for <strong>${escapeHtml(seatingTitle(session, 'en'))}</strong> are now available!</p>
+    <p style="margin: 0 0 16px 0; font-size: 16px;">Tickets for <strong>${escapeHtml(seatingTitle(session, 'en', { timeZone: session.event.timeZone }))}</strong> are now available!</p>
 
     <h3 style="margin: 24px 0 12px 0; color: #495057; font-size: 16px; font-weight: 600;">Event Details</h3>
     <table style="width: 100%; border-collapse: collapse;">
       <tr>
-        <td style="padding: 8px 0; color: #212529;"><strong>${escapeHtml(seatingTitle(session, 'en'))}</strong></td>
+        <td style="padding: 8px 0; color: #212529;"><strong>${escapeHtml(seatingTitle(session, 'en', { timeZone: session.event.timeZone }))}</strong></td>
       </tr>
       <tr>
         <td style="padding: 8px 0; color: #6c757d;">
-          ${session.startTime.toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })}
+          ${formatSeatingDateTime(session.startTime, session.event.timeZone, 'en')}
         </td>
       </tr>
       <tr>
@@ -216,7 +218,7 @@ function generateWaitlistHtmlTemplate(entry: typeof waitlist.$inferSelect, sessi
     </p>
 
     <div style="margin-top: 24px; text-align: center;">
-      <a href="${env.PUBLIC_URL}/events/${session.event?.id ?? ''}"
+      <a href="${env.PUBLIC_URL}/events/${session.event.id}"
          style="display: inline-block; background-color: #007bff; color: white; text-decoration: none; padding: 12px 32px; border-radius: 6px; font-weight: 600;">
         Book Your Tickets
       </a>
@@ -241,7 +243,7 @@ function generateWaitlistHtmlTemplate(entry: typeof waitlist.$inferSelect, sessi
  * Send waitlist notification email
  */
 async function sendWaitlistNotificationEmail(
-	entry: typeof waitlist.$inferSelect & { eventSession: typeof eventSessions.$inferSelect & { event: { id: string } | null } },
+	entry: typeof waitlist.$inferSelect & { eventSession: typeof eventSessions.$inferSelect },
 	session: SessionWithEvent
 ) {
 	const { getSeatingPrice } = await import('./service-pricing');
@@ -252,7 +254,7 @@ async function sendWaitlistNotificationEmail(
 	await queueEmail({
 		type: 'contact_notification',
 		recipient: entry.email,
-		subject: `Tickets Available for ${seatingTitle(session, 'en')}`,
+		subject: `Tickets Available for ${seatingTitle(session, 'en', { timeZone: session.event.timeZone })}`,
 		textBody,
 		htmlBody,
 		metadata: {
@@ -266,7 +268,7 @@ async function sendWaitlistNotificationEmail(
  * Send waitlist notification (both email and SMS based on preference)
  */
 export async function sendWaitlistNotification(
-	entry: typeof waitlist.$inferSelect & { eventSession: typeof eventSessions.$inferSelect & { event: { id: string } | null } },
+	entry: typeof waitlist.$inferSelect & { eventSession: typeof eventSessions.$inferSelect },
 	session: SessionWithEvent
 ) {
 	// Send email if user prefers email or both
@@ -281,7 +283,7 @@ export async function sendWaitlistNotification(
 			await sendWaitlistNotificationSMS({
 				phone: entry.phone,
 				name: entry.name,
-				eventTitle: seatingTitle(session, 'en'),
+				eventTitle: seatingTitle(session, 'en', { timeZone: session.event.timeZone }),
 			});
 		} catch (error) {
 			logger.error({ err: error }, 'Failed to send waitlist notification SMS');

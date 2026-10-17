@@ -1,3 +1,4 @@
+import { DEFAULT_EVENT_TIME_ZONE } from '$lib/utils/event-time';
 import { fail } from '@sveltejs/kit';
 import { env } from '$lib/server/env';
 import { MOCK_EVENTS, MOCK_SESSIONS } from '$lib/mock-data';
@@ -16,7 +17,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 				const event = MOCK_EVENTS.find((e: any) => e.id === s.eventId);
 				return {
 					id: s.id,
-					titleEn: seatingTitle(s, 'en'),
+					titleEn: seatingTitle(s, 'en', { timeZone: event?.timeZone ?? DEFAULT_EVENT_TIME_ZONE }),
 					eventTitle: event?.titleEn || '',
 					startTime: new Date(s.startTime).toISOString(),
 					availableCapacity: s.availableCapacity,
@@ -42,7 +43,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 		orderBy: [asc(eventSessions.startTime)],
 		with: {
 			event: {
-				columns: { titleEn: true },
+				columns: { titleEn: true, timeZone: true },
 			},
 		},
 	});
@@ -53,7 +54,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 	return {
 		sessions: upcomingSessions.map((s: typeof upcomingSessions[number]) => ({
 			id: s.id,
-			titleEn: seatingTitle(s, 'en'),
+			titleEn: seatingTitle(s, 'en', { timeZone: s.event.timeZone }),
 			eventTitle: s.event.titleEn,
 			startTime: s.startTime.toISOString(),
 			availableCapacity: s.availableCapacity,

@@ -10,10 +10,10 @@ import { loadSeatingAccess, toAccessEvent } from '$lib/server/services/event-acc
 import { db } from '$lib/server/db';
 import { eventAccess, seatingBooking, viewerOf } from '$lib/utils/event-access';
 
-function mapSession(s: (typeof MOCK_SESSIONS)[number]) {
+function mapSession(s: (typeof MOCK_SESSIONS)[number], timeZone: string) {
 	return {
 		id: s.id,
-		...seatingTitlesWithFallback(s),
+		...seatingTitlesWithFallback(s, { timeZone }),
 		descriptionEn: (s as any).descriptionEn ?? null,
 		descriptionFr: (s as any).descriptionFr ?? null,
 		startTime: s.startTime.toISOString(),
@@ -40,7 +40,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		);
 		if (!session) throw error(404, 'Session not found');
 
-		return { event, session: mapSession(session), deposit: depositRuleOf(event), refundPolicy: refundPolicyOf(event), isMockMode: true };
+		return { event, session: mapSession(session, event.timeZone), deposit: depositRuleOf(event), refundPolicy: refundPolicyOf(event), isMockMode: true };
 	}
 
 	try {
@@ -62,7 +62,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 			event,
 			session: {
 				id: dbSession.id,
-				...seatingTitlesWithFallback(dbSession),
+				...seatingTitlesWithFallback(dbSession, { timeZone: event.timeZone }),
 				descriptionEn: dbSession.descriptionEn ?? null,
 				descriptionFr: dbSession.descriptionFr ?? null,
 				startTime: dbSession.startTime.toISOString(),

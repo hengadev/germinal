@@ -29,7 +29,7 @@ export const load: PageServerLoad = async ({ url }) => {
 				confirmedAt: r.confirmedAt,
 				eventTitle: event?.titleEn || '',
 				seatingId: r.eventSessionId,
-				sessionTitle: session ? seatingTitle(session, 'en') : '',
+				sessionTitle: session && event ? seatingTitle(session, 'en', { timeZone: event.timeZone }) : '',
 				sessionStartTime: session?.startTime?.toISOString() || '',
 				paymentStatus: r.paymentStatus,
 				isComp: (r as { isComp?: boolean }).isComp ?? false
@@ -71,7 +71,8 @@ export const load: PageServerLoad = async ({ url }) => {
 				with: {
 					event: {
 						columns: {
-							titleEn: true
+							titleEn: true,
+							timeZone: true
 						}
 					}
 				}
@@ -101,7 +102,7 @@ export const load: PageServerLoad = async ({ url }) => {
 			confirmedAt: r.confirmedAt?.toISOString(),
 			eventTitle: r.eventSession.event.titleEn,
 			seatingId: r.eventSessionId,
-			sessionTitle: seatingTitle(r.eventSession, 'en'),
+			sessionTitle: seatingTitle(r.eventSession, 'en', { timeZone: r.eventSession.event.timeZone }),
 			sessionStartTime: r.eventSession.startTime.toISOString(),
 			paymentStatus: r.payment?.status || 'none',
 			isComp: r.isComp

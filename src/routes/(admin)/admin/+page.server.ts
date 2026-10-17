@@ -1,3 +1,4 @@
+import { DEFAULT_EVENT_TIME_ZONE } from '$lib/utils/event-time';
 import { env } from '$lib/server/env';
 import { MOCK_EVENTS, MOCK_SESSIONS, MOCK_RESERVATIONS, MOCK_PAYMENTS } from '$lib/mock-data';
 import type { PageServerLoad } from './$types';
@@ -67,7 +68,7 @@ async function getMockDashboardData() {
 			id: r.id,
 			guestName: r.guestName,
 			eventTitle: event?.titleEn ?? 'Unknown Event',
-			sessionTitle: session ? seatingTitle(session, 'en') : 'Unknown Session',
+			sessionTitle: session ? seatingTitle(session, 'en', { timeZone: event?.timeZone ?? DEFAULT_EVENT_TIME_ZONE }) : 'Unknown Session',
 			quantity: r.quantity,
 			totalAmount: r.totalAmount,
 			currency: r.currency,
@@ -83,7 +84,7 @@ async function getMockDashboardData() {
 			return {
 				id: s.id,
 				eventTitle: event?.titleEn ?? 'Unknown Event',
-				sessionTitle: seatingTitle(s, 'en'),
+				sessionTitle: seatingTitle(s, 'en', { timeZone: event?.timeZone ?? DEFAULT_EVENT_TIME_ZONE }),
 				startTime: new Date(s.startTime).toISOString(),
 				totalCapacity: s.totalCapacity,
 				availableCapacity: s.availableCapacity,
@@ -134,7 +135,7 @@ async function getDbDashboardData() {
 		with: {
 			eventSession: {
 				with: {
-					event: { columns: { id: true, titleEn: true } }
+					event: { columns: { id: true, titleEn: true, timeZone: true } }
 				}
 			}
 		}
@@ -144,7 +145,7 @@ async function getDbDashboardData() {
 		id: r.id,
 		guestName: r.guestName,
 		eventTitle: r.eventSession?.event?.titleEn ?? 'Unknown Event',
-		sessionTitle: r.eventSession ? seatingTitle(r.eventSession, 'en') : 'Unknown Session',
+		sessionTitle: r.eventSession ? seatingTitle(r.eventSession, 'en', { timeZone: r.eventSession.event?.timeZone ?? DEFAULT_EVENT_TIME_ZONE }) : 'Unknown Session',
 		quantity: r.quantity,
 		totalAmount: r.totalAmount,
 		currency: r.currency,
@@ -156,7 +157,7 @@ async function getDbDashboardData() {
 		orderBy: [asc(eventSessions.startTime)],
 		limit: 3,
 		with: {
-			event: { columns: { id: true, titleEn: true } }
+			event: { columns: { id: true, titleEn: true, timeZone: true } }
 		}
 	});
 
@@ -166,7 +167,9 @@ async function getDbDashboardData() {
 	const upcomingSessions: UpcomingSession[] = upcomingDetailed.map((s) => ({
 		id: s.id,
 		eventTitle: (s as typeof s & { event: { titleEn: string } | null }).event?.titleEn ?? 'Unknown Event',
-		sessionTitle: seatingTitle(s, 'en'),
+		sessionTitle: seatingTitle(s, 'en', {
+			timeZone: (s as typeof s & { event: { timeZone: string } | null }).event?.timeZone ?? DEFAULT_EVENT_TIME_ZONE,
+		}),
 		startTime: s.startTime.toISOString(),
 		totalCapacity: s.totalCapacity,
 		availableCapacity: s.availableCapacity,

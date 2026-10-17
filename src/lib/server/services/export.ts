@@ -95,8 +95,8 @@ export async function exportReservationsToCSV(options: {
 			r.guestEmail.toLowerCase().includes(query) ||
 			r.eventSession.event.titleEn.toLowerCase().includes(query) ||
 			r.eventSession.event.titleFr.toLowerCase().includes(query) ||
-			seatingTitle(r.eventSession, 'en').toLowerCase().includes(query) ||
-			seatingTitle(r.eventSession, 'fr').toLowerCase().includes(query)
+			seatingTitle(r.eventSession, 'en', { timeZone: r.eventSession.event.timeZone }).toLowerCase().includes(query) ||
+			seatingTitle(r.eventSession, 'fr', { timeZone: r.eventSession.event.timeZone }).toLowerCase().includes(query)
 		);
 	}
 
@@ -118,7 +118,7 @@ export async function exportReservationsToCSV(options: {
 			'Status': r.status,
 			'Is Comp': r.isComp,
 			'Event': r.eventSession.event.titleEn,
-			'Session': seatingTitle(r.eventSession, 'en'),
+			'Session': seatingTitle(r.eventSession, 'en', { timeZone: r.eventSession.event.timeZone }),
 			'Session Start': r.eventSession.startTime,
 			'Session End': r.eventSession.endTime,
 			'Payment Status': r.payment?.status || (r.isComp ? 'comp' : ''),
@@ -264,7 +264,7 @@ export async function exportWaitlistToCSV(options: { limit?: number } = {}) {
 		'Notified At': w.notifiedAt,
 		'Expires At': w.expiresAt,
 		'Event': w.eventSession.event.titleEn,
-		'Session': seatingTitle(w.eventSession, 'en'),
+		'Session': seatingTitle(w.eventSession, 'en', { timeZone: w.eventSession.event.timeZone }),
 		'Session Start': w.eventSession.startTime,
 		'Created At': w.createdAt,
 	}));

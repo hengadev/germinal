@@ -10,6 +10,7 @@ import {
 	type SendEmailCommandInput,
 } from '@aws-sdk/client-ses';
 import { seatingTitle } from '$lib/utils/seating-title';
+import { formatSeatingDateTime } from '$lib/utils/event-time';
 import { bookedUnitPriceAmount } from '$lib/utils/seating-price';
 
 let sesClient: SESClient | null = null;
@@ -184,8 +185,8 @@ Hi ${data.guestName},
 Your tickets for ${data.event.titleEn} are confirmed!
 
 EVENT DETAILS:
-${seatingTitle(data.session, 'en')}
-${data.session.startTime.toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })}
+${seatingTitle(data.session, 'en', { timeZone: data.event.timeZone })}
+${formatSeatingDateTime(data.session.startTime, data.event.timeZone, 'en')}
 ${data.event.locationEn}
 
 TICKETS:
@@ -229,11 +230,11 @@ function generateTicketHtmlTemplate(data: TicketEmailData): string {
     <h3 style="margin: 24px 0 12px 0; color: #495057; font-size: 16px; font-weight: 600;">Event Details</h3>
     <table style="width: 100%; border-collapse: collapse;">
       <tr>
-        <td style="padding: 8px 0; color: #212529;"><strong>${escapeHtml(seatingTitle(data.session, 'en'))}</strong></td>
+        <td style="padding: 8px 0; color: #212529;"><strong>${escapeHtml(seatingTitle(data.session, 'en', { timeZone: data.event.timeZone }))}</strong></td>
       </tr>
       <tr>
         <td style="padding: 8px 0; color: #6c757d;">
-          ${data.session.startTime.toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })}
+          ${formatSeatingDateTime(data.session.startTime, data.event.timeZone, 'en')}
         </td>
       </tr>
       <tr>
@@ -406,8 +407,8 @@ Hi ${data.guestName},
 This is a friendly reminder that your event is coming up ${timePhrase}!
 
 EVENT DETAILS:
-${seatingTitle(data.session, 'en')}
-${data.session.startTime.toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })}
+${seatingTitle(data.session, 'en', { timeZone: data.event.timeZone })}
+${formatSeatingDateTime(data.session.startTime, data.event.timeZone, 'en')}
 ${data.event.locationEn}
 
 TICKETS:
@@ -450,11 +451,11 @@ function generateEventReminderHtmlTemplate(data: TicketEmailData & { daysUntil: 
     <h3 style="margin: 24px 0 12px 0; color: #495057; font-size: 16px; font-weight: 600;">Event Details</h3>
     <table style="width: 100%; border-collapse: collapse;">
       <tr>
-        <td style="padding: 8px 0; color: #212529;"><strong>${escapeHtml(seatingTitle(data.session, 'en'))}</strong></td>
+        <td style="padding: 8px 0; color: #212529;"><strong>${escapeHtml(seatingTitle(data.session, 'en', { timeZone: data.event.timeZone }))}</strong></td>
       </tr>
       <tr>
         <td style="padding: 8px 0; color: #6c757d;">
-          ${data.session.startTime.toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })}
+          ${formatSeatingDateTime(data.session.startTime, data.event.timeZone, 'en')}
         </td>
       </tr>
       <tr>
@@ -540,6 +541,8 @@ export interface CancellationEmailData {
 	eventTitle: string;
 	sessionTitle: string;
 	sessionStartTime: Date;
+	/** The Event's Time Zone: the Seating's time is shown on its clock. */
+	timeZone: string;
 	reservationId: string;
 }
 
@@ -549,6 +552,8 @@ export interface RefundEmailData {
 	eventTitle: string;
 	sessionTitle: string;
 	sessionStartTime: Date;
+	/** The Event's Time Zone: the Seating's time is shown on its clock. */
+	timeZone: string;
 	reservationId: string;
 	amount: number;
 	currency: string;
@@ -565,7 +570,7 @@ Your reservation for ${data.eventTitle} has been cancelled.
 
 RESERVATION DETAILS:
 ${data.sessionTitle}
-${data.sessionStartTime.toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })}
+${formatSeatingDateTime(data.sessionStartTime, data.timeZone, 'en')}
 
 Reservation ID: ${data.reservationId.substring(0, 8)}
 
@@ -602,7 +607,7 @@ function generateCancellationHtmlTemplate(data: CancellationEmailData): string {
       </tr>
       <tr>
         <td style="padding: 8px 0; color: #6c757d;">
-          ${data.sessionStartTime.toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })}
+          ${formatSeatingDateTime(data.sessionStartTime, data.timeZone, 'en')}
         </td>
       </tr>
     </table>
@@ -667,7 +672,7 @@ Your reservation for ${data.eventTitle} has been cancelled and ${data.isPartialR
 
 RESERVATION DETAILS:
 ${data.sessionTitle}
-${data.sessionStartTime.toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })}
+${formatSeatingDateTime(data.sessionStartTime, data.timeZone, 'en')}
 
 Reservation ID: ${data.reservationId.substring(0, 8)}
 Refund Amount: ${formatCurrency(data.amount, data.currency)}
@@ -710,7 +715,7 @@ function generateRefundHtmlTemplate(data: RefundEmailData): string {
       </tr>
       <tr>
         <td style="padding: 8px 0; color: #6c757d;">
-          ${data.sessionStartTime.toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })}
+          ${formatSeatingDateTime(data.sessionStartTime, data.timeZone, 'en')}
         </td>
       </tr>
       <tr>

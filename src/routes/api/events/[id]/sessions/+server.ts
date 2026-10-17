@@ -18,7 +18,7 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 		return json({
 			sessions: sessions.map((session: typeof sessions[number]) => ({
 				id: session.id,
-				...seatingTitlesWithFallback(session),
+				...seatingTitlesWithFallback(session, { timeZone: event.timeZone }),
 				descriptionEn: session.descriptionEn,
 				descriptionFr: session.descriptionFr,
 				startTime: session.startTime,

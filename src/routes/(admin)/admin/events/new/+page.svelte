@@ -23,6 +23,8 @@
 	import type { PageData } from './$types';
 	import { getToastContext } from '$lib/components/toast/state.svelte';
 	import { cn } from '$lib/utils/design-system';
+	import TimeZoneField from '$lib/components/admin/TimeZoneField.svelte';
+	import { DEFAULT_EVENT_TIME_ZONE } from '$lib/utils/event-time';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -202,6 +204,7 @@
 	let postalCode = $state('');
 	let countryEn = $state('');
 	let countryFr = $state('');
+	let timeZone = $state(DEFAULT_EVENT_TIME_ZONE);
 	let collaborators = $state<Array<{talentId: string, name: string, role: string}>>([]);
 	let timings = $state<Array<{label: string, time: string}>>([]);
 	let curatorEn = $state('');
@@ -651,19 +654,23 @@
 							</div>
 						</div>
 					</details>
+
+					<!-- Time Zone of the venue (ADR 0006): Seatings are typed on its clock -->
+					<TimeZoneField bind:value={timeZone} zones={data.timeZones ?? []} />
 				</div>
 
 				<!-- Tab 3: Dates & séances — the Seatings follow the Days and meals
 				     picked just above (Venue Capacity included, as on the event page) -->
 				<div bind:this={panelEls[2]} hidden={activeTab !== 2} role="tabpanel" id="panel-{TABS[2].id}" aria-labelledby="tab-{TABS[2].id}" class="space-y-8">
 					<!-- Days & meals: the Event's dates are derived from its Days (ADR 0005) -->
-					<DaysServicesPicker bind:this={daysPicker} bind:days idPrefix="new-event-days" />
+					<DaysServicesPicker bind:this={daysPicker} bind:days idPrefix="new-event-days" {timeZone} />
 
 					<input type="hidden" name="serviceRefs" value={serviceRefs} />
 					<SeatingsEditor
 						bind:this={seatingsEditor}
 						bind:services={seatingServices}
 						bind:venueCapacity
+						{timeZone}
 					/>
 				</div>
 

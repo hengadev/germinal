@@ -48,6 +48,8 @@ export type ReservationWithDetails = Reservation & {
 			cityFr: string | null;
 			countryEn: string | null;
 			countryFr: string | null;
+			/** The Event's Time Zone (ADR 0006). */
+			timeZone: string;
 			coverMedia: Media | null;
 		};
 	};
@@ -65,6 +67,8 @@ export type TicketEmailData = {
 		titleFr: string;
 		id: string;
 		locationEn: string;
+		/** The Event's Time Zone (ADR 0006): times are shown on its clock. */
+		timeZone: string;
 	};
 	qrCode?: string;
 	googleCalendarUrl?: string;

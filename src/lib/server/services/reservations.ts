@@ -1,3 +1,4 @@
+import { DEFAULT_EVENT_TIME_ZONE } from '$lib/utils/event-time';
 import { db } from '../db';
 import { logger } from '$lib/server/logger';
 import { eventSessions, reservations, payments } from '../db/schema';
@@ -198,6 +199,7 @@ export async function createReservation(input: CreateReservationInput): Promise<
 			.select({
 				titleEn: events.titleEn,
 				id: events.id,
+				timeZone: events.timeZone,
 				depositType: events.depositType,
 				depositValue: events.depositValue,
 			})
@@ -275,7 +277,7 @@ export async function createReservation(input: CreateReservationInput): Promise<
 		// the Deposit only — one line item whose amount is the Deposit, so
 		// Stripe charges exactly that (the Promo Code is already in it). A
 		// Deposit below the whole total is named as such.
-		const seatingLabel = `${seatingTitle(session, 'en')}${event ? ` — ${event.titleEn}` : ''}`;
+		const seatingLabel = `${seatingTitle(session, 'en', { timeZone: event?.timeZone ?? DEFAULT_EVENT_TIME_ZONE })}${event ? ` — ${event.titleEn}` : ''}`;
 		const checkoutSession = await createCheckoutSession({
 			reservationId: reservation.id,
 			accessToken,
@@ -410,7 +412,7 @@ export async function createCompReservation(input: CreateCompReservationInput) {
 		}).returning();
 
 		const [event] = await tx
-			.select({ titleEn: events.titleEn, titleFr: events.titleFr, id: events.id, locationEn: events.locationEn })
+			.select({ titleEn: events.titleEn, titleFr: events.titleFr, id: events.id, locationEn: events.locationEn, timeZone: events.timeZone })
 			.from(events)
 			.where(eq(events.id, session.eventId));
 
@@ -433,6 +435,7 @@ export async function createCompReservation(input: CreateCompReservationInput) {
 				titleFr: created.event?.titleFr ?? '',
 				id: created.event?.id ?? '',
 				locationEn: created.event?.locationEn ?? '',
+				timeZone: created.event?.timeZone ?? DEFAULT_EVENT_TIME_ZONE,
 			},
 		});
 	} catch (error) {
@@ -459,6 +462,7 @@ export async function getReservationByToken(token: string): Promise<ReservationW
 							titleEn: true,
 							titleFr: true,
 							locationEn: true,
+							timeZone: true,
 							locationFr: true,
 							venueNameEn: true,
 							venueNameFr: true,
@@ -515,6 +519,7 @@ export async function resendTicketsForEmail(email: string): Promise<void> {
 								titleEn: true,
 								titleFr: true,
 								locationEn: true,
+								timeZone: true,
 								locationFr: true,
 								venueNameEn: true,
 								venueNameFr: true,
@@ -548,6 +553,7 @@ export async function resendTicketsForEmail(email: string): Promise<void> {
 					titleFr: reservation.eventSession.event.titleFr,
 					id: reservation.eventSession.event.id,
 					locationEn: reservation.eventSession.event.locationEn,
+					timeZone: reservation.eventSession.event.timeZone,
 				},
 				guestName: reservation.guestName,
 				guestEmail: reservation.guestEmail,
@@ -578,6 +584,7 @@ export async function getReservationById(id: string): Promise<ReservationWithDet
 							titleEn: true,
 							titleFr: true,
 							locationEn: true,
+							timeZone: true,
 							locationFr: true,
 							venueNameEn: true,
 							venueNameFr: true,
@@ -676,8 +683,9 @@ export async function cancelReservationWithRefund(reservationId: string) {
 			guestPhone: reservation.guestPhone,
 			notificationPreference: reservation.notificationPreference,
 			eventTitle: reservation.eventSession.event.titleEn,
-			sessionTitle: seatingTitle(reservation.eventSession, 'en'),
+			sessionTitle: seatingTitle(reservation.eventSession, 'en', { timeZone: reservation.eventSession.event.timeZone }),
 			sessionStartTime: reservation.eventSession.startTime,
+			timeZone: reservation.eventSession.event.timeZone,
 			refundCurrency: reservation.payment.currency,
 		};
 	});
@@ -706,6 +714,7 @@ export async function cancelReservationWithRefund(reservationId: string) {
 			eventTitle: sessionData.eventTitle,
 			sessionTitle: sessionData.sessionTitle,
 			sessionStartTime: sessionData.sessionStartTime,
+			timeZone: sessionData.timeZone,
 			reservationId,
 			amount: sessionData.refund.amount,
 			currency: sessionData.refundCurrency,
@@ -874,7 +883,7 @@ export async function cancelReservation(reservationId: string) {
 
 		// Look up the event title for the cancellation notification
 		const [event] = await tx
-			.select({ titleEn: events.titleEn })
+			.select({ titleEn: events.titleEn, timeZone: events.timeZone })
 			.from(events)
 			.where(eq(events.id, session.eventId));
 
@@ -888,8 +897,9 @@ export async function cancelReservation(reservationId: string) {
 			guestPhone: reservation.guestPhone,
 			notificationPreference: reservation.notificationPreference,
 			eventTitle: event?.titleEn ?? '',
-			sessionTitle: seatingTitle(session, 'en'),
+			sessionTitle: seatingTitle(session, 'en', { timeZone: event?.timeZone ?? DEFAULT_EVENT_TIME_ZONE }),
 			sessionStartTime: session.startTime,
+			timeZone: event?.timeZone ?? DEFAULT_EVENT_TIME_ZONE,
 		};
 	});
 
@@ -903,6 +913,7 @@ export async function cancelReservation(reservationId: string) {
 			eventTitle: result.eventTitle,
 			sessionTitle: result.sessionTitle,
 			sessionStartTime: result.sessionStartTime,
+			timeZone: result.timeZone,
 			reservationId,
 		});
 	} catch (error) {
@@ -918,6 +929,7 @@ export async function cancelReservation(reservationId: string) {
 				name: result.guestName,
 				eventTitle: result.eventTitle,
 				sessionStartTime: result.sessionStartTime,
+				timeZone: result.timeZone,
 			});
 		} catch (error) {
 			logger.error({ err: error }, 'Failed to send cancellation SMS');
@@ -1047,8 +1059,9 @@ export async function processRefund(
 			guestPhone: reservation.guestPhone,
 			notificationPreference: reservation.notificationPreference,
 			eventTitle: reservation.eventSession.event.titleEn,
-			sessionTitle: seatingTitle(reservation.eventSession, 'en'),
+			sessionTitle: seatingTitle(reservation.eventSession, 'en', { timeZone: reservation.eventSession.event.timeZone }),
 			sessionStartTime: reservation.eventSession.startTime,
+			timeZone: reservation.eventSession.event.timeZone,
 			refundCurrency: reservation.payment.currency,
 			newRefundedTotal,
 			paymentAmount: reservation.payment.amount,
@@ -1082,6 +1095,7 @@ export async function processRefund(
 			eventTitle: sessionData.eventTitle,
 			sessionTitle: sessionData.sessionTitle,
 			sessionStartTime: sessionData.sessionStartTime,
+			timeZone: sessionData.timeZone,
 			reservationId,
 			amount: sessionData.refund.amount,
 			currency: sessionData.refundCurrency,
@@ -1131,6 +1145,7 @@ export async function sendReservationReminder(reservationId: string) {
 			titleFr: reservation.eventSession.event.titleFr,
 			id: reservation.eventSession.event.id,
 			locationEn: reservation.eventSession.event.locationEn,
+			timeZone: reservation.eventSession.event.timeZone,
 		},
 		guestName: reservation.guestName,
 		guestEmail: reservation.guestEmail,
@@ -1146,6 +1161,7 @@ export async function sendReservationReminder(reservationId: string) {
 				name: reservation.guestName,
 				eventTitle: reservation.eventSession.event.titleEn,
 				eventTime: reservation.eventSession.startTime,
+				timeZone: reservation.eventSession.event.timeZone,
 			});
 		} catch (error) {
 			logger.error({ err: error }, 'Failed to send reminder SMS');

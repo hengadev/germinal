@@ -194,6 +194,19 @@ export function formatSeatingDate(
 }
 
 /**
+ * A Seating's Day and start time together, e.g. `Wednesday 15 July 2026 at
+ * 20:00`, on the Event's clock (no zone label) — for emails and messages.
+ */
+export function formatSeatingDateTime(instant: Date | string, zone: string, locale: EventTimeLocale): string {
+	return new Intl.DateTimeFormat(intlLocale(locale), {
+		dateStyle: 'full',
+		timeStyle: 'short',
+		hourCycle: 'h23',
+		timeZone: zone,
+	}).format(toInstant(instant));
+}
+
+/**
  * A Day key (`YYYY-MM-DD`) as a calendar date, e.g. `jeudi 16 juillet 2026`.
  * A Day is a calendar date with no instant, so no zone applies.
  */

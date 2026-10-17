@@ -23,7 +23,7 @@ describe('reviewSeatingTemplate', () => {
 		expect(reviewSeatingTemplate('lunch', ['12:00', ''], 90)).toEqual({ ok: false, error: { reason: 'start', index: 1 } });
 	});
 
-	it('keeps each start in its meal window (16:00 UTC cut-off)', () => {
+	it('keeps each start in its meal window (16:00 cut-off, Event’s clock)', () => {
 		expect(reviewSeatingTemplate('lunch', ['16:00'], 60)).toEqual({ ok: false, error: { reason: 'meal', index: 0 } });
 		expect(reviewSeatingTemplate('dinner', ['15:59'], 60)).toEqual({ ok: false, error: { reason: 'meal', index: 0 } });
 		expect(reviewSeatingTemplate('lunch', ['15:59'], 60).ok).toBe(true);

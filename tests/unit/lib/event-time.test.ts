@@ -6,7 +6,9 @@ import {
 	dayEnd,
 	dayOf,
 	dayStart,
+	formatDayKey,
 	formatSeatingDate,
+	formatSeatingDateTime,
 	formatSeatingTime,
 	isValidTimeZone,
 	listTimeZones,
@@ -117,6 +119,18 @@ describe('formatSeatingTime / formatSeatingDate', () => {
 		const instant = wallClockToInstant('2026-07-16', 15, 'Europe/Paris');
 		expect(formatSeatingDate(instant, 'Europe/Paris', 'fr')).toBe('jeudi 16 juillet 2026');
 		expect(formatSeatingDate(instant, 'Europe/Paris', 'en')).toBe('Thursday, 16 July 2026');
+	});
+
+	it('formats Day and time together for emails, in the Event’s zone', () => {
+		const instant = wallClockToInstant('2026-07-15', 20 * 60, 'Europe/London');
+		const text = formatSeatingDateTime(instant, 'Europe/London', 'en');
+		expect(text).toContain('15 July 2026');
+		expect(text).toContain('20:00');
+		expect(text).not.toMatch(/GMT|BST|UTC/);
+	});
+
+	it('formats a Day key as a calendar date', () => {
+		expect(formatDayKey('2026-07-16', 'fr')).toBe('jeudi 16 juillet 2026');
 	});
 });
 

@@ -2,6 +2,7 @@ import { db } from '../db';
 import { logger } from '$lib/server/logger';
 import { reservations, eventSessions } from '../db/schema';
 import { eq, and, gt, lte, sql } from 'drizzle-orm';
+import { DEFAULT_EVENT_TIME_ZONE } from '$lib/utils/event-time';
 
 interface ReminderResult {
 	processed: number;
@@ -140,6 +141,8 @@ async function sendReminder(
 			titleFr: reservation.eventSession.event?.titleFr || 'Événement',
 			id: reservation.eventSession.event?.id || '',
 			locationEn: reservation.eventSession.event?.locationEn || '',
+			// Seating times are shown on the Event's clock (ADR 0006).
+			timeZone: reservation.eventSession.event?.timeZone ?? DEFAULT_EVENT_TIME_ZONE,
 		},
 		guestName: reservation.guestName,
 		guestEmail: reservation.guestEmail,
@@ -156,6 +159,7 @@ async function sendReminder(
 				guestName: reservation.guestName,
 				eventTitle: reservation.eventSession.event?.titleEn || 'Event',
 				sessionStartTime: reservation.eventSession.startTime,
+				timeZone: reservation.eventSession.event?.timeZone ?? DEFAULT_EVENT_TIME_ZONE,
 				accessToken: reservation.accessToken,
 				daysUntil,
 			});

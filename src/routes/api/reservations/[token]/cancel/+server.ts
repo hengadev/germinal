@@ -148,8 +148,9 @@ export const POST: RequestHandler = async ({ params }) => {
 					guestEmail: reservation.guestEmail,
 					guestName: reservation.guestName,
 					eventTitle: reservation.eventSession.event.titleEn,
-					sessionTitle: seatingTitle(reservation.eventSession, 'en'),
+					sessionTitle: seatingTitle(reservation.eventSession, 'en', { timeZone: reservation.eventSession.event.timeZone }),
 					sessionStartTime: reservation.eventSession.startTime,
+					timeZone: reservation.eventSession.event.timeZone,
 					reservationId: reservation.id,
 					amount: refundResult.amount,
 					currency: refundResult.currency,
@@ -161,8 +162,9 @@ export const POST: RequestHandler = async ({ params }) => {
 					guestEmail: reservation.guestEmail,
 					guestName: reservation.guestName,
 					eventTitle: reservation.eventSession.event.titleEn,
-					sessionTitle: seatingTitle(reservation.eventSession, 'en'),
+					sessionTitle: seatingTitle(reservation.eventSession, 'en', { timeZone: reservation.eventSession.event.timeZone }),
 					sessionStartTime: reservation.eventSession.startTime,
+					timeZone: reservation.eventSession.event.timeZone,
 					reservationId: reservation.id,
 				});
 			}
@@ -189,6 +191,7 @@ export const POST: RequestHandler = async ({ params }) => {
 						name: reservation.guestName,
 						eventTitle: reservation.eventSession.event.titleEn,
 						sessionStartTime: reservation.eventSession.startTime,
+						timeZone: reservation.eventSession.event.timeZone,
 					});
 				}
 			} catch (smsError) {
@@ -226,7 +229,7 @@ export const GET: RequestHandler = async ({ params }) => {
 				id: reservation.id,
 				status: reservation.status,
 				eventTitle: reservation.eventSession.event.titleEn,
-				sessionTitle: seatingTitle(reservation.eventSession, 'en'),
+				sessionTitle: seatingTitle(reservation.eventSession, 'en', { timeZone: reservation.eventSession.event.timeZone }),
 				sessionStartTime: reservation.eventSession.startTime,
 			},
 		});
