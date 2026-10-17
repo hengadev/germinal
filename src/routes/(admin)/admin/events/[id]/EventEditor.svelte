@@ -4,7 +4,7 @@
 	// tab keeps its own save; on a new Event the first save of any tab
 	// creates the Draft and lands on its page. All panels stay mounted (just
 	// hidden) so what is typed survives switching tabs.
-	import { ArrowLeft, ChevronRight, Eye } from 'lucide-svelte';
+	import { ArrowLeft, ChevronRight, Copy, Eye } from 'lucide-svelte';
 	import { cn } from '$lib/utils/design-system';
 	import { DEFAULT_EVENT_TIME_ZONE } from '$lib/utils/event-time';
 	import { editorEventWarnings, editorPortfolioWarnings, type EventWarning } from '$lib/utils/event-warnings';
@@ -16,6 +16,8 @@
 	import { mergeFormFields, type EditorEvent } from './editor-forms';
 	import { beforeNavigate, goto } from '$app/navigation';
 	import Modal from '$lib/components/ui/Modal.svelte';
+	import DuplicateEventDialog from '$lib/components/admin/DuplicateEventDialog.svelte';
+	import { servedKinds } from '$lib/utils/schedule-pattern';
 	import { EDITOR_SAVED_EVENT, LeaveGuard, type EditorSavedDetail } from '$lib/utils/leave-guard';
 
 	import Essentiel from './Essentiel.svelte';
@@ -216,6 +218,11 @@
 		proceed?.();
 	}
 
+	// « Dupliquer » (issue 046): the copy's Days are asked first, each
+	// pre-ticked with the meals this Event serves.
+	let duplicateDialogOpen = $state(false);
+	const duplicateKinds = $derived(servedKinds(data.schedule ?? []));
+
 	const headerTitle = $derived(
 		event ? event.titleFr || event.titleEn || 'Sans titre' : 'Nouvel événement'
 	);
@@ -262,6 +269,16 @@
 						<Eye size={14} />
 						Aperçu
 					</a>
+					<span aria-hidden="true">·</span>
+					<button
+						type="button"
+						onclick={() => (duplicateDialogOpen = true)}
+						class="inline-flex items-center gap-1 hover:text-foreground transition-colors cursor-pointer"
+						title="Créer une copie de cet événement sur d’autres jours"
+					>
+						<Copy size={14} />
+						Dupliquer
+					</button>
 				{:else}
 					<span>Rien n’est obligatoire : le premier enregistrement d’un onglet crée le brouillon.</span>
 				{/if}
@@ -428,3 +445,13 @@
 		</button>
 	</div>
 </Modal>
+
+{#if event}
+	<DuplicateEventDialog
+		bind:isOpen={duplicateDialogOpen}
+		eventId={event.id}
+		eventTitle={headerTitle}
+		servedKinds={duplicateKinds}
+		timeZone={event.timeZone}
+	/>
+{/if}

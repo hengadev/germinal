@@ -12,11 +12,13 @@
         X,
         Tag,
         Lock,
+        Copy,
     } from "lucide-svelte";
     import type { PageData, ActionData } from "./$types";
     import { browser } from "$app/environment";
     import Drawer from "$lib/components/ui/Drawer.svelte";
     import Modal from "$lib/components/ui/Modal.svelte";
+    import DuplicateEventDialog from "$lib/components/admin/DuplicateEventDialog.svelte";
     import { getToastContext } from "$lib/components/toast/state.svelte";
     import { VISIBILITY_LABELS } from "$lib/utils/event-access";
     import { adminEventTitle } from "$lib/utils/event-text";
@@ -57,6 +59,14 @@
  }
  await update({ reset: false });
  };
+ }
+
+ // « Dupliquer » (issue 046): asks for the copy's Days first.
+ let duplicateDialogOpen = $state(false);
+ let duplicatedEvent: Event | null = $state(null);
+ function openDuplicateDialog(event: Event) {
+ duplicatedEvent = event;
+ duplicateDialogOpen = true;
  }
 
  function openDeleteDialog(event: Event) {
@@ -248,6 +258,17 @@
  <button
  onclick={(e) => {
  e.stopPropagation();
+ openDuplicateDialog(event);
+ }}
+ class="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+ title="Dupliquer"
+ aria-label="Dupliquer"
+ >
+ <Copy size={18} />
+ </button>
+ <button
+ onclick={(e) => {
+ e.stopPropagation();
  openDeleteDialog(event);
  }}
  class="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
@@ -344,6 +365,16 @@
  <button
  onclick={(e) => {
  e.stopPropagation();
+ openDuplicateDialog(event);
+ }}
+ class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-foreground-alt hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+ >
+ <Copy size={16} />
+ Dupliquer
+ </button>
+ <button
+ onclick={(e) => {
+ e.stopPropagation();
  openDeleteDialog(event);
  }}
  class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors"
@@ -432,3 +463,11 @@
         </form>
     </Modal>
 {/if}
+
+<DuplicateEventDialog
+    bind:isOpen={duplicateDialogOpen}
+    eventId={duplicatedEvent?.id ?? null}
+    eventTitle={duplicatedEvent ? adminEventTitle(duplicatedEvent) : ""}
+    servedKinds={duplicatedEvent ? (data.servedKinds[duplicatedEvent.id] ?? []) : []}
+    timeZone={duplicatedEvent?.timeZone}
+/>
