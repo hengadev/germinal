@@ -9,6 +9,7 @@
     import { page } from "$app/state";
     import { dayOf, formatSeatingDate } from "$lib/utils/event-time";
     import { localizedText } from "$lib/utils/event-text";
+    import { mediaAlt } from "$lib/utils/media-alt";
     let { data }: { data: PageData } = $props();
 
     const hasSpotlightEvent = $derived(page.data.hasSpotlightEvent ?? false);
@@ -149,7 +150,7 @@
                     {#if event.coverMedia}
                         <img
                             src={event.coverMedia.url}
-                            alt={getEventField(event, 'title')}
+                            alt={mediaAlt(event.coverMedia, $locale, getEventField(event, 'title'))}
                             class="w-full max-h-[25rem] md:max-h-[30rem] object-cover"
                         />
                     {:else}
@@ -253,7 +254,7 @@
                             {#if event.coverVideo}
                                 <video src={event.coverVideo.url} class="w-full aspect-[16/9] object-cover mb-6" autoplay muted loop playsinline></video>
                             {:else if event.coverMedia}
-                                <img src={event.coverMedia.url} alt={title} class="w-full aspect-[16/9] object-cover mb-6" loading="lazy" />
+                                <img src={event.coverMedia.url} alt={mediaAlt(event.coverMedia, $locale, title)} class="w-full aspect-[16/9] object-cover mb-6" loading="lazy" />
                             {:else}
                                 <div class="w-full aspect-[16/9] bg-surface mb-6"></div>
                             {/if}
@@ -287,7 +288,7 @@
                             {#if event.coverVideo}
                                 <video src={event.coverVideo.url} class="w-full aspect-[16/9] object-cover mb-6" autoplay muted loop playsinline></video>
                             {:else if event.coverMedia}
-                                <img src={event.coverMedia.url} alt={title} class="w-full aspect-[16/9] object-cover mb-6" loading="lazy" />
+                                <img src={event.coverMedia.url} alt={mediaAlt(event.coverMedia, $locale, title)} class="w-full aspect-[16/9] object-cover mb-6" loading="lazy" />
                             {:else}
                                 <div class="w-full aspect-[16/9] bg-surface mb-6"></div>
                             {/if}

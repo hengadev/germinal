@@ -1,11 +1,16 @@
 <script lang="ts">
     import type { Media } from "$lib/types/media";
+    import { locale } from "svelte-i18n";
+    import { mediaAlt } from "$lib/utils/media-alt";
 
     interface Props {
         media: Media[];
+        /** The alt text of an image without one (issue 043): the Event
+         * title or the Talent's name. */
+        fallbackAlt?: string;
     }
 
-    let { media }: Props = $props();
+    let { media, fallbackAlt = "" }: Props = $props();
 
     let selectedMedia = $state<Media | null>(null);
 
@@ -27,7 +32,7 @@
             {#if item.type === "image"}
                 <img
                     src={item.url}
-                    alt="Event media"
+                    alt={mediaAlt(item, $locale, fallbackAlt)}
                     class="w-full h-full object-cover"
                 />
             {:else}
@@ -58,7 +63,7 @@
         {#if selectedMedia.type === "image"}
             <img
                 src={selectedMedia.url}
-                alt="Full size"
+                alt={mediaAlt(selectedMedia, $locale, fallbackAlt)}
                 class="max-w-full max-h-full object-contain"
             />
         {:else}

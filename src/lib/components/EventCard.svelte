@@ -3,6 +3,7 @@
     import { locale } from "svelte-i18n";
     import { formatSeatingDate } from "$lib/utils/event-time";
     import { localizedText } from "$lib/utils/event-text";
+    import { mediaAlt } from "$lib/utils/media-alt";
 
     interface Props {
         event: EventWithMedia;
@@ -32,7 +33,7 @@
             {#if event.coverMedia.type === "image"}
                 <img
                     src={event.coverMedia.url}
-                    alt={title}
+                    alt={mediaAlt(event.coverMedia, $locale, title)}
                     class="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-[filter] duration-500"
                 />
             {:else}

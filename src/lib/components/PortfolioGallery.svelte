@@ -1,5 +1,8 @@
 <script lang="ts">
     import type { EventWithMedia } from '$lib/types/events';
+    import { locale } from 'svelte-i18n';
+    import { localizedText } from '$lib/utils/event-text';
+    import { mediaAlt } from '$lib/utils/media-alt';
 
     interface Props {
         events: EventWithMedia[];
@@ -41,7 +44,7 @@
             {#if event.coverMedia}
                 <img
                     src={event.coverMedia.url}
-                    alt=""
+                    alt={mediaAlt(event.coverMedia, $locale, localizedText(event.titleEn, event.titleFr, $locale))}
                     class="absolute inset-0 w-full h-full object-cover"
                     loading="lazy"
                     onload={() => handleImageLoad(index)}

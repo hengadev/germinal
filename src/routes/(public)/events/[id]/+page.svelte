@@ -129,7 +129,7 @@
             use:reveal={{ preset: "fade-up", delay: 200 }}
         >
             <h2 class="text-2xl lg:text-3xl font-serif mb-4 lg:mb-6">{$t("events.gallery")}</h2>
-            <EventGallery media={data.event.media} />
+            <EventGallery media={data.event.media} fallbackAlt={getEventTitle()} />
         </section>
     {/if}
 </EventDetailLayout>

@@ -4,6 +4,7 @@ import {Instagram, Globe, Mail} from "lucide-svelte"
 import type {Component} from "svelte"
     import type { PageData } from "./$types";
     import { t, locale } from 'svelte-i18n';
+    import { mediaAlt } from '$lib/utils/media-alt';
     import { reveal } from '$lib/actions/reveal';
     import { page } from '$app/state';
 
@@ -75,7 +76,7 @@ import type {Component} from "svelte"
                 <div class="w-full md:w-96 aspect-3/4 flex-shrink-0">
                     <img
                         src={data.talent.profileMedia.url}
-                        alt="{data.talent.firstName} {data.talent.lastName}"
+                        alt={mediaAlt(data.talent.profileMedia, $locale, `${data.talent.firstName} ${data.talent.lastName}`)}
                         class="w-full h-full object-cover"
                     />
                 </div>
@@ -161,7 +162,7 @@ import type {Component} from "svelte"
     {#if data.talent.media && data.talent.media.length > 0}
         <section class="mt-12" use:reveal={{ preset: 'fade-up', delay: 200 }}>
             <h2 class="text-3xl font-serif mb-6">{$t('talents.gallery')}</h2>
-            <EventGallery media={data.talent.media} />
+            <EventGallery media={data.talent.media} fallbackAlt="{data.talent.firstName} {data.talent.lastName}" />
         </section>
     {/if}
 </article>

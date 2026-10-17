@@ -12,6 +12,7 @@
     } from "lucide-svelte";
     import { t, locale } from "svelte-i18n";
     import { localizedText } from "$lib/utils/event-text";
+    import { mediaAlt } from "$lib/utils/media-alt";
     import { reveal } from "$lib/actions/reveal";
     import { goto } from "$app/navigation";
     import { page } from "$app/state";
@@ -254,7 +255,7 @@
                             {#if event.coverMedia.type === "image"}
                                 <img
                                     src={event.coverMedia.url}
-                                    alt={localizedText(event.titleEn, event.titleFr, $locale)}
+                                    alt={mediaAlt(event.coverMedia, $locale, localizedText(event.titleEn, event.titleFr, $locale))}
                                     class="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-[filter] duration-500"
                                 />
                             {:else}
