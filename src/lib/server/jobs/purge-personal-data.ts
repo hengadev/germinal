@@ -11,6 +11,7 @@ import {
 } from '../db/schema';
 import { and, eq, inArray, isNotNull, lt, ne, notLike, or, sql } from 'drizzle-orm';
 import { jobLogger } from '../logger';
+import { DIETARY_REQUIREMENTS_RETENTION_DAYS } from '$lib/utils/dietary-requirements';
 
 /**
  * GDPR retention: personal data is kept only as long as the privacy page
@@ -28,6 +29,9 @@ export const RETENTION = {
 	abandonedReservationDays: 30,
 	/** IP address and user agent (fraud prevention), from creation. */
 	technicalDataDays: 365,
+	/** Dietary Requirements and their consent (health data, issue 041),
+	 * from the session's start. */
+	dietaryRequirementsAfterSessionStartDays: DIETARY_REQUIREMENTS_RETENTION_DAYS,
 	/** Waitlist entries, from the session's end. */
 	waitlistAfterSessionDays: 30,
 	/** Contact form messages, from receipt. */
@@ -49,6 +53,7 @@ export const FORMER_MEMBER_EMAIL_DOMAIN = 'former-member.invalid';
 export interface PurgePersonalDataResult {
 	reservationsAnonymised: number;
 	technicalDataCleared: number;
+	dietaryRequirementsErased: number;
 	waitlistDeleted: number;
 	contactSubmissionsDeleted: number;
 	emailsDeleted: number;
@@ -98,6 +103,26 @@ export async function purgePersonalData(now: Date = new Date()): Promise<PurgePe
 			and(
 				lt(reservations.createdAt, daysAgo(RETENTION.technicalDataDays, now)),
 				or(isNotNull(reservations.ipAddress), isNotNull(reservations.userAgent))
+			)
+		)
+		.returning({ id: reservations.id });
+
+	// Dietary Requirements are health data (issue 041): the answer and its
+	// consent instant go 30 days after the Seating starts, whatever else the
+	// Reservation keeps.
+	const dietary = await db
+		.update(reservations)
+		.set({ dietaryRequirements: null, dietaryConsentAt: null, updatedAt: now })
+		.where(
+			and(
+				or(isNotNull(reservations.dietaryRequirements), isNotNull(reservations.dietaryConsentAt)),
+				inArray(
+					reservations.eventSessionId,
+					db
+						.select({ id: eventSessions.id })
+						.from(eventSessions)
+						.where(lt(eventSessions.startTime, daysAgo(RETENTION.dietaryRequirementsAfterSessionStartDays, now)))
+				)
 			)
 		)
 		.returning({ id: reservations.id });
@@ -162,6 +187,7 @@ export async function purgePersonalData(now: Date = new Date()): Promise<PurgePe
 	const result = {
 		reservationsAnonymised: anonymised.length,
 		technicalDataCleared: technical.length,
+		dietaryRequirementsErased: dietary.length,
 		waitlistDeleted: waitlistRows.length,
 		contactSubmissionsDeleted: contacts.length,
 		emailsDeleted: emails.length,
