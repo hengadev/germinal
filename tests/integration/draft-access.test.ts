@@ -94,6 +94,7 @@ const ADMIN_LOCALS = {
 };
 
 async function seedEvent(published: boolean, overrides: Partial<typeof events.$inferInsert> = {}) {
+	// A published Event is Public, an unpublished one a Draft (issue 032).
 	const [event] = await testDb
 		.insert(events)
 		.values({
@@ -105,7 +106,7 @@ async function seedEvent(published: boolean, overrides: Partial<typeof events.$i
 			endDate: new Date('2099-06-01'),
 			locationEn: 'Venue',
 			locationFr: 'Salle',
-			published,
+			visibility: published ? 'public' : 'draft',
 			...overrides,
 		})
 		.returning();
