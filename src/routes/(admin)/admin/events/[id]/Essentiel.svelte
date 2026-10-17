@@ -63,9 +63,9 @@
 			return;
 		}
 		saving = true;
-		return async ({ result }: { result: import('@sveltejs/kit').ActionResult }) => {
+		return async ({ result, formElement }: { result: import('@sveltejs/kit').ActionResult; formElement: HTMLFormElement }) => {
 			saving = false;
-			await handleTabResult(result, toast, 'Modifications enregistrées');
+			await handleTabResult(result, toast, 'Modifications enregistrées', formElement);
 		};
 	}
 

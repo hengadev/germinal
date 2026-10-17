@@ -1,5 +1,6 @@
 import { goto, invalidateAll } from '$app/navigation';
 import type { ActionResult } from '@sveltejs/kit';
+import { announceSaved } from '$lib/utils/leave-guard';
 
 /**
  * Shared by the Event editor's tabs (issue 036). Each tab posts its own
@@ -15,10 +16,17 @@ interface Toast {
 /**
  * Answer a tab's save: a toast, then the new Draft's page after a first
  * save, or fresh data for a saved Event. Returns whether the save went
- * through on the same page (so the tab can reset its drafts).
+ * through on the same page (so the tab can reset its drafts). A save that
+ * went through cleans `form` for the leave guard (issue 037).
  */
-export async function handleTabResult(result: ActionResult, toast: Toast, successFallback: string): Promise<boolean> {
+export async function handleTabResult(
+	result: ActionResult,
+	toast: Toast,
+	successFallback: string,
+	form?: HTMLFormElement
+): Promise<boolean> {
 	if (result.type === 'redirect') {
+		announceSaved(form, true);
 		toast.success('Succès', 'Brouillon créé.');
 		await goto(result.location, { invalidateAll: true });
 		return false;
@@ -26,6 +34,7 @@ export async function handleTabResult(result: ActionResult, toast: Toast, succes
 	if (result.type === 'success') {
 		toast.success('Succès', (result.data as { success?: string } | undefined)?.success ?? successFallback);
 		await invalidateAll();
+		announceSaved(form);
 		return true;
 	}
 	if (result.type === 'failure') {

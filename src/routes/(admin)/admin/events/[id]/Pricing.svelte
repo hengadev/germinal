@@ -6,6 +6,7 @@
 	import { enhance } from '$app/forms';
 	import { goto, invalidateAll } from '$app/navigation';
 	import { getToastContext } from '$lib/components/toast/state.svelte';
+	import { announceSaved } from '$lib/utils/leave-guard';
 	import PricingEditor, {
 		toDraftCurrency,
 		toDraftDeposit,
@@ -67,10 +68,11 @@
 		}
 		extend?.(formData);
 		saving = true;
-		return async ({ result }: { result: import('@sveltejs/kit').ActionResult }) => {
+		return async ({ result, formElement }: { result: import('@sveltejs/kit').ActionResult; formElement: HTMLFormElement }) => {
 			saving = false;
 			if (result.type === 'redirect') {
 				// First save of a new Event: on to the Draft's page.
+				announceSaved(formElement, true);
 				toast.success('Succès', 'Brouillon créé.');
 				await goto(result.location, { invalidateAll: true });
 			} else if (result.type === 'success') {
@@ -81,6 +83,7 @@
 				deposit = toDraftDeposit(data.pricing);
 				refund = toDraftRefund(data.pricing);
 				currency = toDraftCurrency(data.pricing);
+				announceSaved(formElement);
 			} else if (result.type === 'failure') {
 				toast.error('Erreur', (result.data as { error?: string })?.error ?? 'Une erreur est survenue');
 			} else if (result.type === 'error') {
