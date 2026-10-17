@@ -196,6 +196,8 @@ const PRICING: PricingEditorData = {
 	],
 	deposit: FULL_PAYMENT_DEPOSIT,
 	refundPolicy: DEFAULT_REFUND_POLICY,
+	currency: 'EUR',
+	currencyLocked: false,
 };
 
 describe('editorEventWarnings', () => {
