@@ -223,7 +223,9 @@ describe('"Projets" lists the Portfolio', () => {
 			locals: ANONYMOUS_LOCALS,
 			setHeaders: () => {},
 		} as any);
-		expect(data.event.id).toBe(priv.id);
+		// A Portfolio Event's page is its project (issue 045).
+		expect(data.view).toBe('portfolio');
+		expect(data.project.id).toBe(priv.id);
 	});
 });
 

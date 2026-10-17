@@ -185,7 +185,7 @@
 		{#if paragraphs.length > 0}
 			<section class="grid gap-6 py-20 lg:grid-cols-12 lg:py-32">
 				<div class="lg:col-span-7 lg:col-start-5 flex flex-col gap-6">
-					<p class="font-serif text-2xl lg:text-[2.125rem] leading-snug text-foreground text-pretty">
+					<p class="font-serif text-2xl lg:text-3xl leading-snug text-foreground text-pretty">
 						{paragraphs[0]}
 					</p>
 					{#each paragraphs.slice(1) as paragraph, i (i)}
