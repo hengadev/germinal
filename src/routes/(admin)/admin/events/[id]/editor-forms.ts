@@ -41,9 +41,8 @@ export async function handleTabResult(result: ActionResult, toast: Toast, succes
  * not hold already: on a new Event, « Dates & séances » and « Menus &
  * tarifs » are saved together by the first save of either.
  */
-export function mergeFormFields(target: FormData, formId: string): void {
-	const form = document.getElementById(formId);
-	if (!(form instanceof HTMLFormElement)) return;
+export function mergeFormFields(target: FormData, form: HTMLFormElement | null): void {
+	if (!form) return;
 	for (const [name, value] of new FormData(form)) {
 		if (!target.has(name)) target.set(name, value);
 	}

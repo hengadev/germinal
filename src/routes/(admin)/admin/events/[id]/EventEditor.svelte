@@ -109,9 +109,12 @@
 
 	// On a new Event, the first save of either schedule tab carries both
 	// (Days, Seatings and prices are saved with it), with the Lieu zone.
-	function extendWith(otherFormId: string) {
+	// The admin layout mounts the page twice (mobile and desktop), so the
+	// other form is looked up within this editor only.
+	let rootEl: HTMLElement | undefined = $state();
+	function extendWith(otherForm: 'seatings' | 'pricing') {
 		return (formData: FormData) => {
-			mergeFormFields(formData, otherFormId);
+			mergeFormFields(formData, rootEl?.querySelector<HTMLFormElement>(`form[data-editor-form="${otherForm}"]`) ?? null);
 			formData.set('timeZone', timeZone);
 		};
 	}
@@ -125,7 +128,7 @@
 	<title>{headerTitle} | Admin</title>
 </svelte:head>
 
-<div class="container mx-auto px-4 py-8 lg:py-12">
+<div bind:this={rootEl} class="container mx-auto px-4 py-8 lg:py-12">
 	<div class="flex items-start gap-3 mb-8">
 		<a
 			href="/admin/events"
@@ -218,7 +221,7 @@
 			{isNew}
 			timeZone={isNew ? timeZone : data.event?.timeZone}
 			bind:services={seatingServices}
-			extend={isNew ? extendWith('event-pricing-form') : undefined}
+			extend={isNew ? extendWith('pricing') : undefined}
 		/>
 	{/snippet}
 	{#snippet pricing()}
@@ -226,7 +229,7 @@
 			{data}
 			follow={isNew ? seatingServices : undefined}
 			seatingCountOf={isNew ? seatingCountOf : undefined}
-			extend={isNew ? extendWith('event-seatings-form') : undefined}
+			extend={isNew ? extendWith('seatings') : undefined}
 		/>
 	{/snippet}
 	{#snippet programme()}<Programme {event} talents={data.talents ?? []} />{/snippet}

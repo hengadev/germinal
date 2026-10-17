@@ -145,7 +145,7 @@
 	}
 </script>
 
-<form id="event-seatings-form" method="POST" action="?/saveSeatings" use:enhance={saveSeatingsEnhance} novalidate class="space-y-8">
+<form data-editor-form="seatings" method="POST" action="?/saveSeatings" use:enhance={saveSeatingsEnhance} novalidate class="space-y-8">
 	<!-- Days & meals: the Event's dates are derived from its Days (ADR 0005) -->
 	<DaysServicesPicker bind:this={daysPicker} bind:days idPrefix="event-days" {timeZone} />
 

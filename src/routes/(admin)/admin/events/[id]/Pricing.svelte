@@ -87,7 +87,7 @@
 	}
 </script>
 
-<form id="event-pricing-form" method="POST" action="?/savePricing" use:enhance={savePricingEnhance} novalidate class="space-y-8">
+<form data-editor-form="pricing" method="POST" action="?/savePricing" use:enhance={savePricingEnhance} novalidate class="space-y-8">
 	<PricingEditor bind:this={editor} bind:menus bind:deposit bind:refund bind:services daysTabName="Dates & séances" {seatingCountOf} />
 
 	<div class="flex flex-col sm:flex-row sm:items-center gap-3 pt-4 border-t border-border-card">
