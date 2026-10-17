@@ -1,14 +1,14 @@
 import { test, expect } from '@playwright/test';
 
 // Mock-data constants (from src/lib/mock-data.ts)
-const SPOTLIGHT_SLUG = 'summer-music-festival-2026';
+const SPOTLIGHT_ID = '1';
 // General Admission session for the spotlight event
 const SESSION_ID = '550e8400-e29b-41d4-a716-446655440001';
-const BOOKING_URL = `/events/${SPOTLIGHT_SLUG}/book/${SESSION_ID}`;
+const BOOKING_URL = `/events/${SPOTLIGHT_ID}/book/${SESSION_ID}`;
 
 // The spotlight event is excluded from the /events listing, so use a different one.
 // "Tech Innovation Summit" (id: '2') is non-spotlight and appears in the listing.
-const LISTING_SLUG = 'tech-innovation-summit';
+const LISTING_ID = '2';
 const LISTING_TITLE_EN = 'Tech Innovation Summit';
 
 // ---------------------------------------------------------------------------
@@ -27,8 +27,8 @@ test.describe('Events listing page', () => {
 	test('event card navigates to event detail', async ({ page }) => {
 		await page.goto('/events');
 		// Use the link href to target the right card (avoids ambiguity in card text)
-		await page.locator(`a[href="/events/${LISTING_SLUG}"]`).first().click();
-		await expect(page).toHaveURL(`/events/${LISTING_SLUG}`);
+		await page.locator(`a[href="/events/${LISTING_ID}"]`).first().click();
+		await expect(page).toHaveURL(`/events/${LISTING_ID}`);
 	});
 });
 
@@ -39,7 +39,7 @@ test.describe('Events listing page', () => {
 test.describe('Event detail page', () => {
 	test.beforeEach(async ({ page }) => {
 		// Use the listing event — spotlight is accessible too but this is more representative
-		await page.goto(`/events/${LISTING_SLUG}`);
+		await page.goto(`/events/${LISTING_ID}`);
 	});
 
 	test('renders an h1 hero heading', async ({ page }) => {

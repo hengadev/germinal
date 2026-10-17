@@ -46,7 +46,7 @@ export async function GET() {
 	if (USE_MOCK_DATA) {
 		for (const event of MOCK_EVENTS.filter(isIndexed)) {
 			entries.push({
-				url: `${SITE_URL}/events/${event.slug}`,
+				url: `${SITE_URL}/events/${event.id}`,
 				lastmod: event.updatedAt?.toISOString().split('T')[0],
 				changefreq: 'weekly',
 				priority: 0.8
@@ -54,14 +54,14 @@ export async function GET() {
 		}
 	} else {
 		try {
-			const allEvents: { slug: string; updatedAt: Date | null; published: boolean }[] = await db.query.events.findMany({
-				columns: { slug: true, updatedAt: true, published: true }
+			const allEvents: { id: string; updatedAt: Date | null; published: boolean }[] = await db.query.events.findMany({
+				columns: { id: true, updatedAt: true, published: true }
 			});
 
 			// Only the Events Event access lets be indexed (issue 030).
 			for (const event of allEvents.filter((e) => isIndexed(toAccessEvent(e)))) {
 				entries.push({
-					url: `${SITE_URL}/events/${event.slug}`,
+					url: `${SITE_URL}/events/${event.id}`,
 					lastmod: event.updatedAt?.toISOString().split('T')[0],
 					changefreq: 'weekly',
 					priority: 0.8

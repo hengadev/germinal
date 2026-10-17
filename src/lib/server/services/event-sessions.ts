@@ -33,7 +33,6 @@ interface SessionWithEventAndSoldCount {
 	// Event fields (prefixed to avoid conflicts)
 	events_id: string;
 	events_title: string;
-	events_slug: string;
 	events_description: string;
 	// Aggregated count (COUNT returns string in PostgreSQL)
 	sold_count: string;
@@ -111,7 +110,6 @@ export async function getSessionById(id: string) {
 					id: true,
 					titleEn: true,
 					titleFr: true,
-					slug: true,
 					startDate: true,
 					endDate: true,
 				},
@@ -173,7 +171,6 @@ export async function getAllSessionsByEventId(eventId: string) {
 			es.*,
 			e.id as events_id,
 			e.title_en as events_title,
-			e.slug as events_slug,
 			e.description_en as events_description,
 			COUNT(r.id) as sold_count
 		FROM event_sessions es
@@ -193,7 +190,6 @@ export async function getAllSessionsByEventId(eventId: string) {
 			event: {
 				id: row.events_id,
 				title: row.events_title,
-				slug: row.events_slug,
 				description: row.events_description,
 			},
 			titleEn: row.title_en,

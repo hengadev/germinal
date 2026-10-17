@@ -138,7 +138,7 @@ async function sendReminder(
 		event: {
 			titleEn: reservation.eventSession.event?.titleEn || 'Event',
 			titleFr: reservation.eventSession.event?.titleFr || 'Événement',
-			slug: reservation.eventSession.event?.slug || '',
+			id: reservation.eventSession.event?.id || '',
 			locationEn: reservation.eventSession.event?.locationEn || '',
 		},
 		guestName: reservation.guestName,

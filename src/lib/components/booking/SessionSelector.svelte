@@ -37,10 +37,10 @@
 		waitlistOpen?: boolean;
 	}
 
-	let { sessions, eventTitle, eventSlug, deposit = FULL_PAYMENT_DEPOSIT, refundPolicy = EMPTY_MANUAL_REFUND_POLICY }: {
+	let { sessions, eventTitle, eventId, deposit = FULL_PAYMENT_DEPOSIT, refundPolicy = EMPTY_MANUAL_REFUND_POLICY }: {
 		sessions: Session[];
 		eventTitle: string;
-		eventSlug: string;
+		eventId: string;
 		/** The Event's Deposit rule (issue 023), for the booking step. */
 		deposit?: DepositRule;
 		/** The Event's Refund Policy (issue 027), for the booking step. */
@@ -288,7 +288,7 @@
 		bind:isOpen={bookingModalOpen}
 		session={{ ...selectedSession, priceAmount: selectedSession.priceAmount }}
 		{eventTitle}
-		{eventSlug}
+		{eventId}
 		{deposit}
 		{refundPolicy}
 	/>

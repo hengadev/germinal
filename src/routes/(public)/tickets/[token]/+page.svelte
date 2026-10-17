@@ -137,7 +137,7 @@
 		const url = URL.createObjectURL(blob);
 		const a = document.createElement('a');
 		a.href = url;
-		a.download = `ticket-${data.reservation.session.event.slug}.ics`;
+		a.download = `ticket-${data.reservation.session.event.id}.ics`;
 		a.click();
 		URL.revokeObjectURL(url);
 	}

@@ -25,7 +25,6 @@ export type EventSessionWithEvent = EventSession & {
 		id: string;
 		titleEn: string;
 		titleFr: string;
-		slug: string;
 		locationEn: string;
 		locationFr: string;
 	};

@@ -71,8 +71,7 @@ export const load: PageServerLoad = async ({ url }) => {
 				with: {
 					event: {
 						columns: {
-							titleEn: true,
-							slug: true
+							titleEn: true
 						}
 					}
 				}
