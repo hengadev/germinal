@@ -336,7 +336,8 @@ export const load: PageServerLoad = async ({ params }) => {
 					sessionTitle: session ? seatingTitle(session, 'en', { timeZone: event.timeZone }) : '',
 					sessionStartTime: session?.startTime?.toISOString() || '',
 					paymentStatus: r.paymentStatus,
-					isComp: (r as { isComp?: boolean }).isComp ?? false
+					isComp: (r as { isComp?: boolean }).isComp ?? false,
+					dietaryRequirements: (r as { dietaryRequirements?: string | null }).dietaryRequirements ?? null
 				};
 			});
 
@@ -517,7 +518,9 @@ export const load: PageServerLoad = async ({ params }) => {
 				sessionTitle: seatingTitle(r.eventSession, 'en', { timeZone: event.timeZone }),
 				sessionStartTime: r.eventSession.startTime.toISOString(),
 				paymentStatus: r.payment?.status || 'none',
-				isComp: r.isComp
+				isComp: r.isComp,
+				// Dietary Requirements (issue 041): Admins only.
+				dietaryRequirements: r.dietaryRequirements
 			})),
 			eventStaff: [],
 			tasks: [],

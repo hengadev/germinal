@@ -123,6 +123,9 @@ export async function exportReservationsToCSV(options: {
 			'Session End': r.eventSession.endTime,
 			'Payment Status': r.payment?.status || (r.isComp ? 'comp' : ''),
 			'Payment Method': r.payment?.stripePaymentMethodId || '',
+			// Dietary Requirements (issue 041): Admin export only.
+			'Dietary Requirements': r.dietaryRequirements ?? '',
+			'Dietary Consent At': r.dietaryConsentAt,
 			'Confirmed At': r.confirmedAt,
 			'Created At': r.createdAt,
 		};
@@ -147,6 +150,8 @@ export async function exportReservationsToCSV(options: {
 		'Session End',
 		'Payment Status',
 		'Payment Method',
+		'Dietary Requirements',
+		'Dietary Consent At',
 		'Confirmed At',
 		'Created At',
 	];

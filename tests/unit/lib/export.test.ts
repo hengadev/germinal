@@ -84,4 +84,42 @@ describe('exportReservationsToCSV', () => {
 		expect(csv).toContain('Opening Night');
 		expect(csv).not.toContain('Winter Gala');
 	});
+	it('exports the Dietary Requirements and their consent instant (issue 041)', async () => {
+		findManyMock.mockReturnValue(
+			Promise.resolve([
+				{
+					id: 'r3',
+					guestName: 'Chloé Example',
+					guestEmail: 'chloe@example.com',
+					guestPhone: null,
+					notificationPreference: 'email',
+					quantity: 2,
+					totalAmount: 5000,
+					currency: 'EUR',
+					status: 'confirmed',
+					dietaryRequirements: 'Allergie aux noix, végétarienne',
+					dietaryConsentAt: new Date('2026-01-01T10:00:00Z'),
+					confirmedAt: new Date('2026-01-01T00:00:00Z'),
+					createdAt: new Date('2026-01-01T00:00:00Z'),
+					payment: null,
+					eventSession: {
+						titleEn: 'Opening Night',
+						titleFr: "Soirée d'ouverture",
+						startTime: new Date('2026-01-02T20:00:00Z'),
+						endTime: new Date('2026-01-02T23:00:00Z'),
+						event: { titleEn: 'Summer Festival', titleFr: "Festival d'été" },
+					},
+				},
+			]),
+		);
+
+		const { exportReservationsToCSV } = await import('../../../src/lib/server/services/export');
+		const [header, row] = (await exportReservationsToCSV()).split('\n');
+
+		const columns = header.split(',');
+		expect(columns).toContain('Dietary Requirements');
+		expect(columns).toContain('Dietary Consent At');
+		expect(row).toContain('"Allergie aux noix, végétarienne"');
+		expect(row).toContain('2026-01-01 10:00:00');
+	});
 });
