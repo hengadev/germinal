@@ -7,6 +7,7 @@
     import { t, locale } from "svelte-i18n";
     import { reveal } from "$lib/actions/reveal";
     import { page } from "$app/state";
+    import { dayOf, formatSeatingDate } from "$lib/utils/event-time";
     let { data }: { data: PageData } = $props();
 
     const hasSpotlightEvent = $derived(page.data.hasSpotlightEvent ?? false);
@@ -133,7 +134,7 @@
             {@const event = data.events.find(e => e.isSpotlight) ?? data.events[0]}
             {@const start = new Date(event.startDate)}
             {@const end = new Date(event.endDate)}
-            {@const isSameDay = start.toDateString() === end.toDateString()}
+            {@const isSameDay = dayOf(start, event.timeZone) === dayOf(end, event.timeZone)}
             {@const admissionInfo = $locale === 'en' ? event.admissionInfoEn : event.admissionInfoFr}
             {@const description = getEventField(event, 'description')}
             <section
@@ -171,8 +172,8 @@
                             <dt class="uppercase text-xxs tracking-widest text-muted-foreground">{$t("home.date")}</dt>
                             <dd class="text-foreground text-sm font-medium">
                                 {isSameDay
-                                    ? start.toLocaleDateString($locale === 'en' ? 'en-US' : 'fr-FR', { month: 'short', day: 'numeric', year: 'numeric' })
-                                    : `${start.toLocaleDateString($locale === 'en' ? 'en-US' : 'fr-FR', { month: 'short', day: 'numeric' })} – ${end.toLocaleDateString($locale === 'en' ? 'en-US' : 'fr-FR', { month: 'short', day: 'numeric', year: 'numeric' })}`}
+                                    ? formatSeatingDate(start, event.timeZone, $locale === 'en' ? 'en' : 'fr', { month: 'short', day: 'numeric', year: 'numeric' })
+                                    : `${formatSeatingDate(start, event.timeZone, $locale === 'en' ? 'en' : 'fr', { month: 'short', day: 'numeric' })} – ${formatSeatingDate(end, event.timeZone, $locale === 'en' ? 'en' : 'fr', { month: 'short', day: 'numeric', year: 'numeric' })}`}
                             </dd>
                         </div>
 
@@ -254,7 +255,7 @@
                                     <h3 class="text-xl md:text-2xl font-normal truncate group-hover:text-muted-foreground transition-colors">{title}</h3>
                                 </div>
                                 <div class="flex items-center gap-4 shrink-0">
-                                    <p class="text-muted-foreground text-sm">{start.toLocaleDateString($locale === 'en' ? 'en-US' : 'fr-FR', { month: 'long', day: 'numeric', year: 'numeric' })}{#if location}<span class="mx-2 text-muted-foreground">·</span>{location}{/if}</p>
+                                    <p class="text-muted-foreground text-sm">{formatSeatingDate(start, event.timeZone, $locale === 'en' ? 'en' : 'fr', { month: 'long', day: 'numeric', year: 'numeric' })}{#if location}<span class="mx-2 text-muted-foreground">·</span>{location}{/if}</p>
                                     <ArrowUpRight size={20} class="text-muted-foreground group-hover:text-foreground transition-colors" />
                                 </div>
                             </div>

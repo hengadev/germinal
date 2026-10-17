@@ -127,10 +127,35 @@ describe('creating an Event with its Seatings and pricing', () => {
 			expect(row.totalCapacity).toBe(24);
 			expect(row.availableCapacity).toBe(24);
 		}
+		// Typed in the default Time Zone, Europe/Paris (UTC+1 in November).
+		expect(event.timeZone).toBe('Europe/Paris');
+		expect(seatings.map((row) => row.startTime.toISOString()).sort()).toEqual([
+			'2099-11-14T18:30:00.000Z',
+			'2099-11-14T20:30:00.000Z',
+		]);
+		expect(event.startDate.toISOString()).toBe('2099-11-13T23:00:00.000Z');
+		expect(event.endDate.toISOString()).toBe('2099-11-14T22:59:59.999Z');
+	});
+
+	it('types the Seatings in the Time Zone picked with the venue', async () => {
+		const form = createForm('London Supper');
+		form.set('timeZone', 'Europe/London');
+		expect(await submit(form)).toMatchObject({ success: expect.stringContaining('créé') });
+
+		const [event] = await testDb.select().from(events).where(eq(events.titleEn, 'London Supper'));
+		expect(event.timeZone).toBe('Europe/London');
+		const seatings = await testDb.select().from(eventSessions).where(eq(eventSessions.eventId, event.id));
 		expect(seatings.map((row) => row.startTime.toISOString()).sort()).toEqual([
 			'2099-11-14T19:30:00.000Z',
 			'2099-11-14T21:30:00.000Z',
 		]);
+		expect(event.startDate.toISOString()).toBe('2099-11-14T00:00:00.000Z');
+	});
+
+	it('refuses a Time Zone that is not an IANA name', async () => {
+		const form = createForm('Nowhere Dinner');
+		form.set('timeZone', 'Mars/Olympus');
+		expect(await submit(form)).toMatchObject({ status: 400, data: { error: 'Le fuseau horaire choisi est invalide.' } });
 	});
 
 	it('creates a second Event with the same title (Events have no slug, issue 031)', async () => {

@@ -216,7 +216,8 @@ describe('savePricing', () => {
 		await savePricing(event.id, payload(false));
 		const [service] = (await loadPricingEditor(event.id)).services;
 		expect(service.legacySeatings).toEqual([
-			{ seatingId: second.id, start: '21:30', priceAmount: 6000, currency: 'EUR' },
+			// 21:30Z read on the Event's clock: 23:30 in Paris.
+			{ seatingId: second.id, start: '23:30', priceAmount: 6000, currency: 'EUR' },
 		]);
 		expect(await getSeatingPrice(testDb, second.id)).toEqual({ amount: 6000, currency: 'EUR', legacy: true });
 

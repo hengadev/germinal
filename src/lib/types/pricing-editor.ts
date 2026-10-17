@@ -21,7 +21,7 @@ export interface EditorMenu {
 /** A migrated Seating that kept its own price (migration 0021). */
 export interface EditorLegacySeatingPrice {
 	seatingId: string;
-	/** `HH:MM` UTC start of the Seating. */
+	/** `HH:MM` start of the Seating, in the Event's Time Zone. */
 	start: string;
 	priceAmount: number;
 	currency: string;

@@ -176,7 +176,7 @@ export async function sendContactEmail(data: ContactEmailData): Promise<void> {
 	}
 }
 
-function generateTicketTextTemplate(data: TicketEmailData): string {
+export function generateTicketTextTemplate(data: TicketEmailData): string {
 	return `
 Your Ticket Confirmation
 
@@ -208,7 +208,7 @@ This is an automated confirmation from Germinal.
   `.trim();
 }
 
-function generateTicketHtmlTemplate(data: TicketEmailData): string {
+export function generateTicketHtmlTemplate(data: TicketEmailData): string {
 	return `
 <!DOCTYPE html>
 <html lang="en">
@@ -396,7 +396,7 @@ export async function verifyEmailConnection(): Promise<boolean> {
 /**
  * Generate event reminder email text template
  */
-function generateEventReminderTextTemplate(data: TicketEmailData & { daysUntil: number }): string {
+export function generateEventReminderTextTemplate(data: TicketEmailData & { daysUntil: number }): string {
 	const timePhrase = data.daysUntil === 1 ? 'tomorrow' : `in ${data.daysUntil} days`;
 
 	return `
@@ -560,7 +560,7 @@ export interface RefundEmailData {
 	isPartialRefund: boolean;
 }
 
-function generateCancellationTextTemplate(data: CancellationEmailData): string {
+export function generateCancellationTextTemplate(data: CancellationEmailData): string {
 	return `
 Reservation Cancelled
 

@@ -196,9 +196,10 @@ describe('createReservation', () => {
 		await createReservation(makeInput(session.id));
 
 		// Stripe rejects empty line-item names: an untitled Seating must
-		// never send one.
+		// never send one. The label reads the Day and time
+		// on the Event's clock: 18:00Z is 20:00 in Paris (ADR 0006).
 		expect(createCheckoutSession).toHaveBeenCalledWith(expect.objectContaining({
-			productName: 'Dinner — Monday, 1 June 2099, 18:00 — Test Event',
+			productName: 'Dinner — Monday, 1 June 2099, 20:00 — Test Event',
 		}));
 	});
 

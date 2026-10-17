@@ -46,7 +46,7 @@ export async function setupTestDatabase() {
 
 /**
  * Find-or-create the Day and Service a Seating with the given times belongs
- * to (same UTC rules as the migration and event-schedule service), and
+ * to (on the Event's clock, like the event-schedule service), and
  * return the Service id — for tests that insert Seatings directly.
  *
  * Seatings are booked at their Service's price (issue 022): the Service is

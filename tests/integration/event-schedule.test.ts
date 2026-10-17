@@ -45,6 +45,9 @@ async function seedEvent() {
 			locationFr: 'Paris',
 			venueCapacity: 20,
 			published: true,
+			// The schedule mechanics below are written on the UTC clock;
+			// Seatings in other Time Zones: event-time-zone.test.ts.
+			timeZone: 'UTC',
 		})
 		.returning();
 	event = row;
