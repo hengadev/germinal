@@ -125,7 +125,6 @@ async function seed() {
       {
         titleEn: 'Urban Canvas - Street Art Festival',
         titleFr: 'Toile Urbaine - Festival d\'Art de Rue',
-        slug: 'urban-canvas-street-art-festival',
         descriptionEn: 'Join us for three days of vibrant street art, live painting, and creative expression. Watch talented street artists transform blank walls into stunning masterpieces right before your eyes. Participate in interactive workshops, meet the artists, and experience the dynamic energy of urban art culture. This festival celebrates the transformative power of public art and brings together local and international street artists for an unforgettable creative experience.',
         descriptionFr: 'Rejoignez-nous pour trois jours d\'art de rue vibrante, de peinture en direct et d\'expression créative. Regardez des artistes de rue talentueux transformer des murs vierges en chefs-d\'œuvre étonnants juste devant vos yeux. Participez à des ateliers interactifs, rencontrez les artistes et découvrez l\'énergie dynamique de la culture de l\'art urbain. Ce festival célèbre le pouvoir transformateur de l\'art public et réunit des artistes de rue locaux et internationaux pour une expérience créative inoubliable.',
         subtitleEn: 'Where the city becomes your canvas',
@@ -179,7 +178,6 @@ async function seed() {
       {
         titleEn: 'Sunset Beats - Electronic Festival',
         titleFr: 'Sunset Beats - Festival Électronique',
-        slug: 'sunset-beats-electronic-festival',
         descriptionEn: 'Experience the ultimate electronic music festival featuring world-renowned DJs and producers. Dance the night away to pulsating beats and immersive soundscapes. With multiple stages, stunning visual effects, and a state-of-the-art sound system, Sunset Beats delivers an unforgettable nightlife experience. From deep house to techno, trance to drum and bass, our carefully curated lineup showcases the best of electronic music culture. Join thousands of music lovers for two nights of pure energy and euphoria.',
         descriptionFr: 'Découvrez le festival de musique électronique ultime présentant des DJs et producteurs de renommée mondiale. Dansez toute la nuit au rythme de beats pulsants et de paysages sonores immersifs. Avec plusieurs scènes, des effets visuels époustouflants et un système de son de pointe, Sunset Beats offre une expérience nocturne inoubliable. De la deep house au techno, de la trance au drum and bass, notre programmation soigneusement sélectionnée présente le meilleur de la culture de la musique électronique. Rejoignez des milliers de mélomanes pour deux nuits d\'énergie pure et d\'euphorie.',
         subtitleEn: 'Two nights of electronic bliss',
@@ -233,7 +231,6 @@ async function seed() {
       {
         titleEn: 'Echoes of Tomorrow - Contemporary Theater',
         titleFr: 'Échos de Demain - Théâtre Contemporain',
-        slug: 'echoes-of-tomorrow-theater',
         descriptionEn: 'A groundbreaking theatrical production exploring themes of identity, memory, and human connection in our rapidly changing world. This intimate theater experience features a talented ensemble cast delivering powerful performances that will resonate long after the curtain falls. Written by an award-winning playwright and directed by a visionary theater director, Echoes of Tomorrow pushes the boundaries of contemporary theater with its innovative staging and thought-provoking narrative. Limited seating ensures an immersive experience for every audience member.',
         descriptionFr: 'Une production théâtrale révolutionnaire explorant les thèmes de l\'identité, de la mémoire et de la connexion humaine dans notre monde en rapide évolution. Cette expérience théâtrale intime présente une distribution d\'ensemble talentueux offrant des performances puissantes qui résonneront longtemps après la chute du rideau. Écrite par un dramaturge primé et mise en scène par un directeur de théâtre visionnaire, Échos de Demain repousse les limites du théâtre contemporain avec sa mise en scène innovante et son récit provocateur. Les places limitées garantissent une expérience immersive pour chaque spectateur.',
         subtitleEn: 'A journey into the heart of human experience',

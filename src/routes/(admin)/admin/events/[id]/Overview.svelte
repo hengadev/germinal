@@ -22,7 +22,6 @@
 
 	let titleEn = $state(data.event.titleEn || "");
 	let titleFr = $state(data.event.titleFr || "");
-	let slug = $state(data.event.slug);
 	let descriptionEn = $state(data.event.descriptionEn || "");
 	let descriptionFr = $state(data.event.descriptionFr || "");
 	let subtitleEn = $state(data.event.subtitleEn || "");
@@ -99,32 +98,6 @@
                     class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent"
                 />
             </div>
-        </div>
-
-        <!-- Slug -->
-        <div>
-            <label for="slug" class="block text-sm font-medium text-foreground-alt mb-2">
-                Slug <span class="text-red-500">*</span>
-            </label>
-            <div class="relative">
-                <Type
-                    size={18}
-                    class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                />
-                <input
-                    id="slug"
-                    name="slug"
-                    type="text"
-                    bind:value={slug}
-                    required
-                    pattern="[a-z0-9-]+"
-                    placeholder="summer-music-festival-2026"
-                    class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent font-mono text-sm"
-                />
-            </div>
-            <p class="mt-1 text-xs text-muted-foreground">
-                Version URL du titre (minuscules, tirets uniquement)
-            </p>
         </div>
 
         <!-- Description (Anglais) -->

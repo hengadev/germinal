@@ -60,7 +60,6 @@ async function seedEvent() {
 		.values({
 			titleEn: 'Promo Test Event',
 			titleFr: 'Événement Test Promo',
-			slug: `promo-test-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
 			descriptionEn: 'Test',
 			descriptionFr: 'Test',
 			startDate: new Date('2099-01-01'),

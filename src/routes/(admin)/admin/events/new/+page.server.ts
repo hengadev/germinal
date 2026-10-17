@@ -49,7 +49,6 @@ export const actions: Actions = {
 		const formData = await request.formData();
 		const titleEn = formData.get('titleEn');
 		const titleFr = formData.get('titleFr');
-		const slug = formData.get('slug');
 		const descriptionEn = formData.get('descriptionEn');
 		const descriptionFr = formData.get('descriptionFr');
 		const subtitleEn = formData.get('subtitleEn');
@@ -152,10 +151,6 @@ export const actions: Actions = {
 			return fail(400, { error: 'Title (French) is required' });
 		}
 
-		if (!slug || typeof slug !== 'string') {
-			return fail(400, { error: 'Slug is required' });
-		}
-
 		if (!descriptionEn || typeof descriptionEn !== 'string') {
 			return fail(400, { error: 'Description (English) is required' });
 		}
@@ -170,11 +165,6 @@ export const actions: Actions = {
 
 		if (!locationFr || typeof locationFr !== 'string') {
 			return fail(400, { error: 'Location (French) is required' });
-		}
-
-		// Validate slug format
-		if (!/^[a-z0-9-]+$/.test(slug)) {
-			return fail(400, { error: 'Slug must contain only lowercase letters, numbers, and hyphens' });
 		}
 
 		if (env.USE_MOCK_DATA) {
@@ -201,7 +191,6 @@ export const actions: Actions = {
 				id: String(MOCK_EVENTS.length + 1),
 				titleEn,
 				titleFr,
-				slug,
 				descriptionEn,
 				descriptionFr,
 				subtitleEn: subtitleEn?.toString() || null,
@@ -252,7 +241,6 @@ export const actions: Actions = {
 			event = await createEvent({
 				titleEn,
 				titleFr,
-				slug,
 				descriptionEn,
 				descriptionFr,
 				subtitleEn: subtitleEn?.toString() || null,
@@ -285,7 +273,7 @@ export const actions: Actions = {
 			});
 		} catch (error) {
 			console.error('Error creating event:', error);
-			return fail(500, { error: 'Failed to create event. The slug may already be in use.' });
+			return fail(500, { error: 'Failed to create event.' });
 		}
 
 		let overlapWarning = '';

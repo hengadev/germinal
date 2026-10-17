@@ -92,7 +92,6 @@ async function seedSeating(options: { policy: 'rules' | 'manual'; hoursAhead: nu
 		.values({
 			titleEn: 'Policy Event',
 			titleFr: 'Événement politique',
-			slug: `policy-event-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
 			descriptionEn: 'Test',
 			descriptionFr: 'Test',
 			startDate: startTime,

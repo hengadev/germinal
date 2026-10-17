@@ -99,7 +99,6 @@ async function seedEvent(published: boolean, overrides: Partial<typeof events.$i
 		.values({
 			titleEn: published ? 'Published Dinner' : 'Draft Dinner',
 			titleFr: published ? 'Dîner publié' : 'Dîner brouillon',
-			slug: `${published ? 'published' : 'draft'}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
 			descriptionEn: 'Test',
 			descriptionFr: 'Test',
 			startDate: new Date('2099-06-01'),
@@ -186,51 +185,67 @@ describe('a Draft is not found', () => {
 		async (_, locals) => {
 			const draft = await seedEvent(false);
 			await seedSeating(draft.id);
-			const { load } = await import('../../src/routes/(public)/events/[slug]/+page.server');
-			await expect(load({ params: { slug: draft.slug }, locals } as any)).rejects.toMatchObject({ status: 404 });
+			const { load } = await import('../../src/routes/(public)/events/[id]/+page.server');
+			await expect(load({ params: { id: draft.id }, locals } as any)).rejects.toMatchObject({ status: 404 });
 		}
 	);
 
 	it('a published Event page still loads', async () => {
 		const event = await seedEvent(true);
 		await seedSeating(event.id);
-		const { load } = await import('../../src/routes/(public)/events/[slug]/+page.server');
-		const data: any = await load({ params: { slug: event.slug }, locals: ANONYMOUS_LOCALS } as any);
+		const { load } = await import('../../src/routes/(public)/events/[id]/+page.server');
+		const data: any = await load({ params: { id: event.id }, locals: ANONYMOUS_LOCALS } as any);
 		expect(data.event.id).toBe(event.id);
 		expect(data.sessions).toHaveLength(1);
+	});
+
+	it('an id that is not an Event\'s answers 404 on the page, the Seatings API and the .ics', async () => {
+		const event = await seedEvent(true);
+		const seating = await seedSeating(event.id);
+		const page = await import('../../src/routes/(public)/events/[id]/+page.server');
+		const sessionsApi = await import('../../src/routes/api/events/[id]/sessions/+server');
+		const ics = await import('../../src/routes/api/events/[id]/sessions/[sessionId]/calendar.ics/+server');
+		for (const id of ['not-a-uuid', crypto.randomUUID()]) {
+			await expect(page.load({ params: { id }, locals: ANONYMOUS_LOCALS } as any)).rejects.toMatchObject({ status: 404 });
+			const response = await sessionsApi.GET({ params: { id }, locals: ANONYMOUS_LOCALS } as any);
+			expect(response.status).toBe(404);
+			await expect(
+				ics.GET({ params: { id, sessionId: seating.id }, locals: ANONYMOUS_LOCALS } as any)
+			).rejects.toMatchObject({ status: 404 });
+		}
 	});
 
 	it('its booking page answers 404', async () => {
 		const draft = await seedEvent(false);
 		const seating = await seedSeating(draft.id);
-		const { load } = await import('../../src/routes/(public)/events/[slug]/book/[sessionId]/+page.server');
+		const { load } = await import('../../src/routes/(public)/events/[id]/book/[sessionId]/+page.server');
 		await expect(
-			load({ params: { slug: draft.slug, sessionId: seating.id }, locals: ANONYMOUS_LOCALS } as any)
+			load({ params: { id: draft.id, sessionId: seating.id }, locals: ANONYMOUS_LOCALS } as any)
 		).rejects.toMatchObject({ status: 404 });
 	});
 
 	it('its .ics endpoint answers 404', async () => {
 		const draft = await seedEvent(false);
 		const seating = await seedSeating(draft.id);
-		const { GET } = await import('../../src/routes/api/events/[slug]/sessions/[sessionId]/calendar.ics/+server');
+		const { GET } = await import('../../src/routes/api/events/[id]/sessions/[sessionId]/calendar.ics/+server');
 		await expect(
-			GET({ params: { slug: draft.slug, sessionId: seating.id }, locals: ANONYMOUS_LOCALS } as any)
+			GET({ params: { id: draft.id, sessionId: seating.id }, locals: ANONYMOUS_LOCALS } as any)
 		).rejects.toMatchObject({ status: 404 });
 	});
 
 	it('the .ics endpoint still serves a published Event', async () => {
 		const event = await seedEvent(true);
 		const seating = await seedSeating(event.id);
-		const { GET } = await import('../../src/routes/api/events/[slug]/sessions/[sessionId]/calendar.ics/+server');
-		const response = await GET({ params: { slug: event.slug, sessionId: seating.id }, locals: ANONYMOUS_LOCALS } as any);
+		const { GET } = await import('../../src/routes/api/events/[id]/sessions/[sessionId]/calendar.ics/+server');
+		const response = await GET({ params: { id: event.id, sessionId: seating.id }, locals: ANONYMOUS_LOCALS } as any);
 		expect(response.status).toBe(200);
 	});
 
 	it('its Seatings API answers 404', async () => {
 		const draft = await seedEvent(false);
 		await seedSeating(draft.id);
-		const { GET } = await import('../../src/routes/api/events/[slug]/sessions/+server');
-		const response = await GET({ params: { slug: draft.slug }, locals: ANONYMOUS_LOCALS } as any);
+		const { GET } = await import('../../src/routes/api/events/[id]/sessions/+server');
+		const response = await GET({ params: { id: draft.id }, locals: ANONYMOUS_LOCALS } as any);
 		expect(response.status).toBe(404);
 	});
 
@@ -384,8 +399,8 @@ describe('a Draft is listed nowhere', () => {
 		const event = await seedEvent(true);
 		const { GET } = await import('../../src/routes/sitemap.xml/+server');
 		const xml = await (await GET()).text();
-		expect(xml).toContain(`/events/${event.slug}`);
-		expect(xml).not.toContain(draft.slug);
+		expect(xml).toContain(`/events/${event.id}`);
+		expect(xml).not.toContain(draft.id);
 	});
 
 	it('the listing query agrees with Event access for every Event', async () => {
@@ -413,8 +428,8 @@ describe('a Seating whose Service has no price', () => {
 	it('is shown as not yet bookable on the public page', async () => {
 		const event = await seedEvent(true);
 		const seating = await seedSeating(event.id, {}, { priceAmount: null });
-		const { load } = await import('../../src/routes/(public)/events/[slug]/+page.server');
-		const data: any = await load({ params: { slug: event.slug }, locals: ANONYMOUS_LOCALS } as any);
+		const { load } = await import('../../src/routes/(public)/events/[id]/+page.server');
+		const data: any = await load({ params: { id: event.id }, locals: ANONYMOUS_LOCALS } as any);
 		const shown = data.sessions.find((s: { id: string }) => s.id === seating.id);
 		expect(shown.bookingRefusal).toBe('not-priced');
 		expect(shown.waitlistOpen).toBe(false);
@@ -423,8 +438,8 @@ describe('a Seating whose Service has no price', () => {
 	it('a priced Seating is shown as bookable', async () => {
 		const event = await seedEvent(true);
 		const seating = await seedSeating(event.id);
-		const { load } = await import('../../src/routes/(public)/events/[slug]/+page.server');
-		const data: any = await load({ params: { slug: event.slug }, locals: ANONYMOUS_LOCALS } as any);
+		const { load } = await import('../../src/routes/(public)/events/[id]/+page.server');
+		const data: any = await load({ params: { id: event.id }, locals: ANONYMOUS_LOCALS } as any);
 		const shown = data.sessions.find((s: { id: string }) => s.id === seating.id);
 		expect(shown.bookingRefusal).toBeNull();
 	});

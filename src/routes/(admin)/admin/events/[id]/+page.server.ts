@@ -307,7 +307,6 @@ export const actions: Actions = {
 		const formData = await request.formData();
 		const titleEn = formData.get('titleEn');
 		const titleFr = formData.get('titleFr');
-		const slug = formData.get('slug');
 		const descriptionEn = formData.get('descriptionEn');
 		const descriptionFr = formData.get('descriptionFr');
 		const subtitleEn = formData.get('subtitleEn');
@@ -346,10 +345,6 @@ export const actions: Actions = {
 			return fail(400, { error: 'Title (French) is required' });
 		}
 
-		if (!slug || typeof slug !== 'string') {
-			return fail(400, { error: 'Slug is required' });
-		}
-
 		if (!descriptionEn || typeof descriptionEn !== 'string') {
 			return fail(400, { error: 'Description (English) is required' });
 		}
@@ -364,11 +359,6 @@ export const actions: Actions = {
 
 		if (!locationFr || typeof locationFr !== 'string') {
 			return fail(400, { error: 'Location (French) is required' });
-		}
-
-		// Validate slug format
-		if (!/^[a-z0-9-]+$/.test(slug)) {
-			return fail(400, { error: 'Slug must contain only lowercase letters, numbers, and hyphens' });
 		}
 
 		// A published Event must have at least one Seating (ADR 0001).
@@ -406,7 +396,6 @@ export const actions: Actions = {
 				...MOCK_EVENTS[eventIndex],
 				titleEn,
 				titleFr,
-				slug,
 				descriptionEn,
 				descriptionFr,
 				subtitleEn: subtitleEn?.toString() || null,
@@ -446,7 +435,6 @@ export const actions: Actions = {
 			await updateEvent(id, {
 				titleEn,
 				titleFr,
-				slug,
 				descriptionEn,
 				descriptionFr,
 				subtitleEn: subtitleEn?.toString() || null,
@@ -478,7 +466,7 @@ export const actions: Actions = {
 			return { success: `Événement « ${titleEn} » mis à jour` };
 		} catch (error) {
 			logger.error({ err: error }, 'Error updating event');
-			return fail(500, { error: 'Failed to update event. The slug may already be in use.' });
+			return fail(500, { error: 'Failed to update event.' });
 		}
 	},
 

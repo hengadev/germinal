@@ -178,9 +178,6 @@
  <p class="font-medium text-foreground truncate">
  {event.titleEn}
  </p>
- <p class="text-sm text-muted-foreground truncate">
- {event.slug}
- </p>
  </div>
  </div>
  </td>
@@ -278,9 +275,6 @@
  <h3 class="font-semibold text-foreground truncate">
  {event.titleEn}
  </h3>
- <p class="text-sm text-muted-foreground truncate">
- {event.slug}
- </p>
  <div class="flex items-center gap-1 text-sm text-foreground-alt mt-1">
  <MapPin size={14} class="flex-shrink-0" />
  <span class="truncate">{event.locationEn}</span>
