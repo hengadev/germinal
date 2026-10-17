@@ -1,5 +1,5 @@
 import { db } from '../db';
-import { eventDays, eventMenus, eventServices, eventSessions, events } from '../db/schema';
+import { coupons, eventDays, eventMenus, eventServices, eventSessions, events, reservations } from '../db/schema';
 import { and, eq, inArray, isNotNull, sql } from 'drizzle-orm';
 import type {
 	EditorMenu,
@@ -21,6 +21,7 @@ import {
 } from '$lib/utils/refund-policy';
 import type { ServiceKind } from '$lib/utils/seating-times';
 import { clockOf, DEFAULT_EVENT_TIME_ZONE } from '$lib/utils/event-time';
+import { DEFAULT_EVENT_CURRENCY, EVENT_CURRENCIES, parseEventCurrency } from '$lib/utils/currency';
 import { ScheduleSaveRefusedError } from './event-schedule';
 
 /**
@@ -40,12 +41,13 @@ import { ScheduleSaveRefusedError } from './event-schedule';
 // ---------------------------------------------------------------------------
 
 /**
- * Columns to select (joined on the Seating's Service) to resolve a
- * Seating's price with {@link resolveSeatingPrice}.
+ * Columns to select (joined on the Seating's Service and Event) to resolve
+ * a Seating's price with {@link resolveSeatingPrice}. The price is in the
+ * Event's currency (issue 042).
  */
 export const seatingPriceColumns = {
 	servicePriceAmount: eventServices.priceAmount,
-	serviceCurrency: eventServices.currency,
+	eventCurrency: events.currency,
 	legacyPriceAmount: eventSessions.legacyPriceAmount,
 	legacyCurrency: eventSessions.legacyCurrency,
 };
@@ -57,6 +59,7 @@ export async function getSeatingPrice(tx: typeof db, seatingId: string): Promise
 		.select(seatingPriceColumns)
 		.from(eventSessions)
 		.innerJoin(eventServices, eq(eventSessions.serviceId, eventServices.id))
+		.innerJoin(events, eq(eventSessions.eventId, events.id))
 		.where(eq(eventSessions.id, seatingId))
 		.limit(1);
 	return row ? resolveSeatingPrice(row) : null;
@@ -69,6 +72,7 @@ export async function getSeatingPrices(seatingIds: string[]): Promise<Map<string
 		.select({ id: eventSessions.id, ...seatingPriceColumns })
 		.from(eventSessions)
 		.innerJoin(eventServices, eq(eventSessions.serviceId, eventServices.id))
+		.innerJoin(events, eq(eventSessions.eventId, events.id))
 		.where(inArray(eventSessions.id, seatingIds));
 	return new Map(rows.map((row) => [row.id, resolveSeatingPrice(row)]));
 }
@@ -84,6 +88,7 @@ export interface PublicServiceOffer {
 	} | null;
 	/** Minor units; null while the price is not set. */
 	priceAmount: number | null;
+	/** The Event's currency (issue 042). */
 	currency: string;
 }
 
@@ -101,7 +106,7 @@ export async function getServiceOffersByEventId(eventId: string): Promise<Map<st
 		.select({
 			serviceId: eventServices.id,
 			priceAmount: eventServices.priceAmount,
-			currency: eventServices.currency,
+			currency: events.currency,
 			menuNameEn: eventMenus.nameEn,
 			menuNameFr: eventMenus.nameFr,
 			menuDescriptionEn: eventMenus.descriptionEn,
@@ -109,6 +114,7 @@ export async function getServiceOffersByEventId(eventId: string): Promise<Map<st
 		})
 		.from(eventServices)
 		.innerJoin(eventDays, eq(eventServices.dayId, eventDays.id))
+		.innerJoin(events, eq(eventDays.eventId, events.id))
 		.leftJoin(eventMenus, eq(eventServices.menuId, eventMenus.id))
 		.where(eq(eventDays.eventId, eventId));
 
@@ -148,9 +154,6 @@ export type PricingParseResult =
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/** Currencies the admin can price a Service in. */
-export const SERVICE_CURRENCIES = ['EUR', 'USD', 'GBP', 'CHF'] as const;
-
 /** Upper bound on a Service price (minor units): 100 000.00. */
 const MAX_PRICE_AMOUNT = 10_000_000;
 
@@ -171,7 +174,8 @@ function optionalText(value: unknown, maxLength: number): string | null | false 
 /**
  * Parse the payload posted by the « Menus & tarifs » tab: the Event's Menus
  * (EN/FR name required, descriptions optional) and each Service's Menu and
- * price (whole minor units, zero allowed, or null for “not set yet”).
+ * price (whole minor units, zero allowed, or null for “not set yet”), and
+ * the Event's currency (issue 042; absent, it is left as is).
  * Returns a failure reason the admin form maps to French copy.
  */
 export function parsePricingPayload(raw: string | null): PricingParseResult {
@@ -187,7 +191,7 @@ export function parsePricingPayload(raw: string | null): PricingParseResult {
 	if (typeof parsed !== 'object' || parsed === null) {
 		return { ok: false, reason: 'malformed' };
 	}
-	const { menus, services, deposit, refundPolicy } = parsed as Record<string, unknown>;
+	const { menus, services, currency, deposit, refundPolicy } = parsed as Record<string, unknown>;
 	if (!Array.isArray(menus) || !Array.isArray(services)) {
 		return { ok: false, reason: 'malformed' };
 	}
@@ -249,12 +253,6 @@ export function parsePricingPayload(raw: string | null): PricingParseResult {
 		) {
 			return { ok: false, reason: 'price' };
 		}
-		if (
-			typeof service.currency !== 'string' ||
-			!(SERVICE_CURRENCIES as readonly string[]).includes(service.currency.toUpperCase())
-		) {
-			return { ok: false, reason: 'currency' };
-		}
 		if (typeof service.clearLegacyPrices !== 'boolean') {
 			return { ok: false, reason: 'malformed' };
 		}
@@ -268,9 +266,18 @@ export function parsePricingPayload(raw: string | null): PricingParseResult {
 			serviceId: service.serviceId,
 			menuKey: service.menuKey as string | null,
 			priceAmount: service.priceAmount as number | null,
-			currency: service.currency.toUpperCase(),
 			clearLegacyPrices: service.clearLegacyPrices,
 		});
+	}
+
+	// The Event's currency (issue 042) is optional: absent, left as is.
+	let parsedCurrency: string | undefined;
+	if (currency !== undefined) {
+		const code = parseEventCurrency(currency);
+		if (!code) {
+			return { ok: false, reason: 'currency' };
+		}
+		parsedCurrency = code;
 	}
 
 	// The Deposit rule (issue 023) is optional: absent, it is left as is.
@@ -304,6 +311,7 @@ export function parsePricingPayload(raw: string | null): PricingParseResult {
 		payload: {
 			menus: parsedMenus,
 			services: parsedServices,
+			...(parsedCurrency ? { currency: parsedCurrency } : {}),
 			...(parsedDeposit ? { deposit: parsedDeposit } : {}),
 			...(parsedRefundPolicy ? { refundPolicy: parsedRefundPolicy } : {}),
 		},
@@ -350,7 +358,7 @@ export function pricingPayloadErrorMessage(reason: PricingParseFailure): string 
 		case 'price':
 			return 'Les prix doivent être des montants positifs ou nuls (0 pour un repas gratuit), au centime près.';
 		case 'currency':
-			return `La devise doit être l’une des suivantes : ${SERVICE_CURRENCIES.join(', ')}.`;
+			return `La devise doit être l’une des suivantes : ${EVENT_CURRENCIES.join(', ')}.`;
 		case 'deposit':
 			return 'L’acompte est invalide : un pourcentage entier entre 1 et 100, ou un montant fixe par convive supérieur à zéro, au centime près.';
 		case 'refund-policy':
@@ -381,25 +389,66 @@ export class MenuInUseError extends ScheduleSaveRefusedError {
 	}
 }
 
+/** Refused: the Event has Reservations, recorded in its current currency. */
+export class CurrencyChangeRefusedError extends ScheduleSaveRefusedError {
+	constructor() {
+		super(
+			'Impossible de changer la devise : l’événement a déjà des réservations, enregistrées dans sa devise actuelle.'
+		);
+		this.name = 'CurrencyChangeRefusedError';
+	}
+}
+
+/**
+ * Whether any Seating of the Event has a Reservation, whatever its status —
+ * what locks the Event's currency (issue 042).
+ */
+export async function eventHasReservations(tx: typeof db, eventId: string): Promise<boolean> {
+	const [booked] = await tx
+		.select({ id: reservations.id })
+		.from(reservations)
+		.innerJoin(eventSessions, eq(reservations.eventSessionId, eventSessions.id))
+		.where(eq(eventSessions.eventId, eventId))
+		.limit(1);
+	return booked !== undefined;
+}
+
 /**
  * Save the « Menus & tarifs » tab in one transaction: new Menus are
  * created, listed ones updated, Menus left out deleted; each listed Service
  * gets its Menu and price (and optionally loses its legacy per-Seating
- * prices), and the Event takes the Deposit rule and the Refund Policy
- * when they are posted.
+ * prices), and the Event takes the currency, the Deposit rule and the
+ * Refund Policy when they are posted.
  * Services outside the payload are untouched. Refuses — with a
  * French message and nothing written — a Menu or Service of another Event,
- * and deleting a Menu still offered on a Service.
+ * deleting a Menu still offered on a Service, and changing the currency
+ * once the Event has a Reservation.
  */
 export async function savePricing(eventId: string, payload: PricingPayload): Promise<void> {
 	await db.transaction(async (tx: typeof db) => {
-		const [event] = await tx.select({ id: events.id })
+		const [event] = await tx.select({ id: events.id, currency: events.currency })
 			.from(events)
 			.where(eq(events.id, eventId))
 			.limit(1)
 			.for('update');
 		if (!event) {
 			throw new Error('Event not found');
+		}
+
+		// The currency is locked once the Event has a Reservation (issue
+		// 042): Reservations and payments keep the one they recorded.
+		if (payload.currency && payload.currency !== event.currency) {
+			if (await eventHasReservations(tx, eventId)) {
+				throw new CurrencyChangeRefusedError();
+			}
+			await tx.update(events)
+				.set({ currency: payload.currency, updatedAt: new Date() })
+				.where(eq(events.id, eventId));
+			// Fixed-amount Coupons are in the Event's currency and follow it;
+			// none has been redeemed yet, as nothing has been booked.
+			await tx.update(coupons)
+				.set({ currency: payload.currency, updatedAt: new Date() })
+				.where(and(eq(coupons.eventId, eventId), eq(coupons.discountType, 'amount')));
 		}
 
 		if (payload.deposit) {
@@ -472,7 +521,6 @@ export async function savePricing(eventId: string, payload: PricingPayload): Pro
 				.set({
 					menuId: service.menuKey === null ? null : menuIdByKey.get(service.menuKey)!,
 					priceAmount: service.priceAmount,
-					currency: service.currency,
 					updatedAt: new Date(),
 				})
 				.where(eq(eventServices.id, service.serviceId));
@@ -515,7 +563,8 @@ const KIND_ORDER: Record<ServiceKind, number> = { lunch: 0, dinner: 1 };
 /**
  * The « Menus & tarifs » tab as loaded for the edit page: the Event's Menus
  * (oldest first) and its Services ordered by Day then meal, each with its
- * Menu, price, Seating count and the Seatings that kept a legacy price.
+ * Menu, price, Seating count and the Seatings that kept a legacy price; the
+ * Event's currency and whether it is locked by a Reservation.
  */
 export async function loadPricingEditor(eventId: string): Promise<PricingEditorData> {
 	const [event]: {
@@ -526,6 +575,7 @@ export async function loadPricingEditor(eventId: string): Promise<PricingEditorD
 		refundPolicyTextFr: string | null;
 		refundPolicyTiers: unknown;
 		timeZone: string;
+		currency: string;
 	}[] = await db
 		.select({
 			depositType: events.depositType,
@@ -535,6 +585,7 @@ export async function loadPricingEditor(eventId: string): Promise<PricingEditorD
 			refundPolicyTextFr: events.refundPolicyTextFr,
 			refundPolicyTiers: events.refundPolicyTiers,
 			timeZone: events.timeZone,
+			currency: events.currency,
 		})
 		.from(events)
 		.where(eq(events.id, eventId))
@@ -558,7 +609,6 @@ export async function loadPricingEditor(eventId: string): Promise<PricingEditorD
 		date: string;
 		menuId: string | null;
 		priceAmount: number | null;
-		currency: string;
 	}[] = await db
 		.select({
 			id: eventServices.id,
@@ -566,7 +616,6 @@ export async function loadPricingEditor(eventId: string): Promise<PricingEditorD
 			date: sql<string>`${eventDays.date}::text`,
 			menuId: eventServices.menuId,
 			priceAmount: eventServices.priceAmount,
-			currency: eventServices.currency,
 		})
 		.from(eventServices)
 		.innerJoin(eventDays, eq(eventServices.dayId, eventDays.id))
@@ -600,7 +649,6 @@ export async function loadPricingEditor(eventId: string): Promise<PricingEditorD
 				kind: service.kind,
 				menuId: service.menuId,
 				priceAmount: service.priceAmount,
-				currency: service.currency,
 				seatingCount: seatings.length,
 				legacySeatings: seatings.flatMap((seating) =>
 					seating.legacyPriceAmount !== null && seating.legacyCurrency !== null
@@ -615,5 +663,12 @@ export async function loadPricingEditor(eventId: string): Promise<PricingEditorD
 			};
 		});
 
-	return { menus, services, deposit: depositRuleOf(event ?? {}), refundPolicy: refundPolicyOf(event ?? {}) };
+	return {
+		menus,
+		services,
+		currency: event?.currency ?? DEFAULT_EVENT_CURRENCY,
+		currencyLocked: await eventHasReservations(db, eventId),
+		deposit: depositRuleOf(event ?? {}),
+		refundPolicy: refundPolicyOf(event ?? {}),
+	};
 }

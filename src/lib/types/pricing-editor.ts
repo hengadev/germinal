@@ -33,9 +33,9 @@ export interface EditorServicePricing {
 	date: string;
 	kind: ServiceKind;
 	menuId: string | null;
-	/** Minor units; null while the price is not set (Seatings unbookable). */
+	/** Minor units, in the Event's currency; null while the price is not
+	 * set (Seatings unbookable). */
 	priceAmount: number | null;
-	currency: string;
 	seatingCount: number;
 	legacySeatings: EditorLegacySeatingPrice[];
 }
@@ -43,6 +43,11 @@ export interface EditorServicePricing {
 export interface PricingEditorData {
 	menus: EditorMenu[];
 	services: EditorServicePricing[];
+	/** The Event's currency (issue 042): every price of the tab is in it. */
+	currency: string;
+	/** True once the Event has a Reservation: the currency can no longer
+	 * change. */
+	currencyLocked: boolean;
 	/** The Event's Deposit rule (issue 023). */
 	deposit: DepositRule;
 	/** The Event's Refund Policy (issue 027). */
@@ -67,7 +72,6 @@ export interface ServicePricingPayload {
 	menuKey: string | null;
 	/** Minor units, zero allowed; null leaves the price unset. */
 	priceAmount: number | null;
-	currency: string;
 	/** Drop the legacy per-Seating prices so every Seating of the Service
 	 * is booked at the Service's price. */
 	clearLegacyPrices: boolean;
@@ -76,6 +80,8 @@ export interface ServicePricingPayload {
 export interface PricingPayload {
 	menus: MenuPayload[];
 	services: ServicePricingPayload[];
+	/** The Event's currency (issue 042); left unchanged when absent. */
+	currency?: string;
 	/** The Event's Deposit rule (issue 023); left unchanged when absent. */
 	deposit?: DepositRule;
 	/** The Event's Refund Policy (issue 027); left unchanged when absent. */

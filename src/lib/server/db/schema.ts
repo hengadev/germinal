@@ -177,6 +177,11 @@ export const events = pgTable('events', {
     // its start).
     bookingOpensAt: timestamp('booking_opens_at', { withTimezone: true }),
     bookingClosesHoursBefore: integer('booking_closes_hours_before'),
+    // Currency (issue 042): ISO code every price of the Event is in — its
+    // Services' prices, the fixed Deposit, fixed-amount Coupons and Stripe
+    // Checkout. Locked once the Event has a Reservation; Reservations and
+    // payments keep the currency they recorded.
+    currency: varchar('currency', { length: 3 }).notNull().default('EUR'),
     coverMediaId: uuid('cover_media_id'),
     coverVideoId: uuid('cover_video_id'),
     visibility: eventVisibilityEnum('visibility').notNull().default('draft'),
@@ -249,7 +254,8 @@ export const eventMenus = pgTable('event_menus', {
 // single Menu, so the price lives here rather than on a Menu/Service join).
 // Both are optional until the Admin sets them: a Service picked on the Days
 // picker starts without a Menu or price, and its Seatings cannot be booked
-// until a price (possibly zero) is set.
+// until a price (possibly zero) is set. The price is in the Event's
+// currency (issue 042).
 export const eventServices = pgTable('event_services', {
     id: uuid('id').defaultRandom().primaryKey(),
     dayId: uuid('day_id')
@@ -266,7 +272,6 @@ export const eventServices = pgTable('event_services', {
         .references(() => eventMenus.id),
     // Minor units (cents), zero allowed (free Events, ADR 0001); NULL until set.
     priceAmount: integer('price_amount'),
-    currency: varchar('currency', { length: 3 }).notNull().default('EUR'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => ({

@@ -84,3 +84,22 @@ export function isValidCurrency(currency: string): boolean {
 	const validCurrencies = ['EUR', 'USD', 'GBP', 'CHF', 'JPY', 'CAD', 'AUD'];
 	return validCurrencies.includes(currency.toUpperCase());
 }
+
+/**
+ * Currencies an Event can be priced in (issue 042). One per Event: its
+ * Service prices, the fixed Deposit, fixed-amount Coupons and Stripe
+ * Checkout all use it.
+ */
+export const EVENT_CURRENCIES = ['EUR', 'USD', 'GBP', 'CHF'] as const;
+export type EventCurrency = (typeof EVENT_CURRENCIES)[number];
+
+/** The currency a new Event starts with, and that of migrated Events. */
+export const DEFAULT_EVENT_CURRENCY: EventCurrency = 'EUR';
+
+/** The upper-cased Event currency, or null when it is not one of
+ * {@link EVENT_CURRENCIES}. */
+export function parseEventCurrency(value: unknown): EventCurrency | null {
+	if (typeof value !== 'string') return null;
+	const code = value.trim().toUpperCase();
+	return (EVENT_CURRENCIES as readonly string[]).includes(code) ? (code as EventCurrency) : null;
+}

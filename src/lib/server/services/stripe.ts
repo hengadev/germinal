@@ -140,7 +140,7 @@ export async function createStripeCoupon(params: {
 		name: params.name,
 		...(params.discountType === 'percent'
 			? { percent_off: params.discountValue }
-			: { amount_off: params.discountValue, currency: params.currency ?? 'eur' }),
+			: { amount_off: params.discountValue, currency: (params.currency ?? 'eur').toLowerCase() }),
 		max_redemptions: params.maxRedemptions ?? undefined,
 		redeem_by: params.expiresAt ? Math.floor(params.expiresAt.getTime() / 1000) : undefined,
 	});

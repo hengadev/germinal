@@ -3,6 +3,7 @@ import { MOCK_TALENTS } from '$lib/mock-data';
 import { listTimeZones } from '$lib/utils/event-time';
 import { FULL_PAYMENT_DEPOSIT } from '$lib/utils/pricing';
 import { DEFAULT_REFUND_POLICY } from '$lib/utils/refund-policy';
+import { DEFAULT_EVENT_CURRENCY } from '$lib/utils/currency';
 import type { PricingEditorData } from '$lib/types/pricing-editor';
 import type { PageServerLoad } from './$types';
 import { actions as eventActions } from '../[id]/+page.server';
@@ -26,11 +27,13 @@ export const load: PageServerLoad = async () => {
 		}));
 	}
 
-	// What a new Event starts with: no Days, Menus or prices, full payment
-	// online and the default Refund Policy.
+	// What a new Event starts with: no Days, Menus or prices, in euros, full
+	// payment online and the default Refund Policy.
 	const pricing: PricingEditorData = {
 		menus: [],
 		services: [],
+		currency: DEFAULT_EVENT_CURRENCY,
+		currencyLocked: false,
 		deposit: FULL_PAYMENT_DEPOSIT,
 		refundPolicy: DEFAULT_REFUND_POLICY,
 	};

@@ -5,7 +5,7 @@ describe('resolveSeatingPrice', () => {
 	it('books a Seating at its Service price', () => {
 		expect(resolveSeatingPrice({
 			servicePriceAmount: 4500,
-			serviceCurrency: 'EUR',
+			eventCurrency: 'EUR',
 			legacyPriceAmount: null,
 			legacyCurrency: null,
 		})).toEqual({ amount: 4500, currency: 'EUR', legacy: false });
@@ -14,7 +14,7 @@ describe('resolveSeatingPrice', () => {
 	it('allows a zero price (free Service)', () => {
 		expect(resolveSeatingPrice({
 			servicePriceAmount: 0,
-			serviceCurrency: 'EUR',
+			eventCurrency: 'EUR',
 			legacyPriceAmount: null,
 			legacyCurrency: null,
 		})).toEqual({ amount: 0, currency: 'EUR', legacy: false });
@@ -23,16 +23,25 @@ describe('resolveSeatingPrice', () => {
 	it('keeps the legacy price a migrated Seating kept, over its Service price', () => {
 		expect(resolveSeatingPrice({
 			servicePriceAmount: 4500,
-			serviceCurrency: 'EUR',
+			eventCurrency: 'EUR',
 			legacyPriceAmount: 6000,
 			legacyCurrency: 'USD',
 		})).toEqual({ amount: 6000, currency: 'USD', legacy: true });
 	});
 
+	it('books a Seating of a non-EUR Event in the Event’s currency (issue 042)', () => {
+		expect(resolveSeatingPrice({
+			servicePriceAmount: 7000,
+			eventCurrency: 'GBP',
+			legacyPriceAmount: null,
+			legacyCurrency: null,
+		})).toEqual({ amount: 7000, currency: 'GBP', legacy: false });
+	});
+
 	it('has no price while the Service price is not set', () => {
 		expect(resolveSeatingPrice({
 			servicePriceAmount: null,
-			serviceCurrency: 'EUR',
+			eventCurrency: 'EUR',
 			legacyPriceAmount: null,
 			legacyCurrency: null,
 		})).toBeNull();

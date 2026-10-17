@@ -75,3 +75,20 @@ describe('isValidCurrency', () => {
 		expect(isValidCurrency('XYZ')).toBe(false);
 	});
 });
+
+describe('Event currency (issue 042)', () => {
+	it('offers EUR, USD, GBP and CHF, EUR by default', async () => {
+		const { EVENT_CURRENCIES, DEFAULT_EVENT_CURRENCY } = await import('../../../src/lib/utils/currency');
+		expect(EVENT_CURRENCIES).toEqual(['EUR', 'USD', 'GBP', 'CHF']);
+		expect(DEFAULT_EVENT_CURRENCY).toBe('EUR');
+	});
+
+	it('parses a listed currency in any case, and nothing else', async () => {
+		const { parseEventCurrency } = await import('../../../src/lib/utils/currency');
+		expect(parseEventCurrency('usd')).toBe('USD');
+		expect(parseEventCurrency(' CHF ')).toBe('CHF');
+		expect(parseEventCurrency('JPY')).toBeNull();
+		expect(parseEventCurrency('')).toBeNull();
+		expect(parseEventCurrency(null)).toBeNull();
+	});
+});

@@ -45,7 +45,7 @@ describe('hasEventText', () => {
 describe('pricingHasContent', () => {
 	const untouched: PricingPayload = {
 		menus: [],
-		services: [{ serviceId: 'x', menuKey: null, priceAmount: null, currency: 'EUR', clearLegacyPrices: false }],
+		services: [{ serviceId: 'x', menuKey: null, priceAmount: null, clearLegacyPrices: false }],
 		deposit: { type: 'percent', value: 100 },
 		refundPolicy: { type: 'rules', textEn: null, textFr: null, tiers: [{ hoursBefore: 24, percent: 100 }] },
 	};
@@ -53,9 +53,11 @@ describe('pricingHasContent', () => {
 	it('is false for what a new Event gets anyway', () => {
 		expect(pricingHasContent(untouched)).toBe(false);
 		expect(pricingHasContent({ menus: [], services: [] })).toBe(false);
+		expect(pricingHasContent({ ...untouched, currency: 'EUR' })).toBe(false);
 	});
 
-	it('is true with a Menu, a price, a Deposit or a Refund Policy of its own', () => {
+	it('is true with a Menu, a price, a currency, a Deposit or a Refund Policy of its own', () => {
+		expect(pricingHasContent({ ...untouched, currency: 'GBP' })).toBe(true);
 		expect(pricingHasContent({
 			...untouched,
 			menus: [{ key: 'new-1', id: null, nameEn: 'Tasting', nameFr: 'Dégustation', descriptionEn: null, descriptionFr: null }],
