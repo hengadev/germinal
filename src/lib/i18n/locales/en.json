@@ -116,7 +116,16 @@
     "free": "Free",
     "priceToBeAnnounced": "Price to be announced",
     "depositPerGuest": "Deposit {amount} per guest, balance at the venue",
-    "noDepositNote": "Paid in full at the venue"
+    "noDepositNote": "Paid in full at the venue",
+    "project": {
+      "backToProjects": "All projects",
+      "photographs": "Photographs",
+      "credits": "Credits",
+      "dates": "Dates",
+      "venue": "Venue",
+      "curator": "Curated by",
+      "collaborators": "In collaboration with"
+    }
   },
   "talents": {
     "pageTitle": "Talents | Germinal",
@@ -286,7 +295,7 @@
     "refundPolicy": {
       "title": "Cancellation and refunds"
     },
-        "continueToPayDeposit": "Continue to pay the deposit",
+    "continueToPayDeposit": "Continue to pay the deposit",
     "confirmBooking": "Confirm booking"
   },
   "waitlist": {

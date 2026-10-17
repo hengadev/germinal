@@ -327,7 +327,7 @@
                     Inclure dans la galerie Portfolio
                 </label>
                 <p class="text-xs text-indigo-600">
-                    Les événements du Portfolio apparaissent dans « Projets » et la galerie de la page d’accueil, les plus récents d’abord. Une image de couverture est requise.
+                    Les événements du Portfolio apparaissent dans « Projets » et la galerie de la page d’accueil, les plus récents d’abord ; sa page présente alors le projet — récap et photos de l’événement, à renseigner dans l’onglet « Portfolio ».
                     {#if !portfolioJoinable}
                         {#if lastSeatingStart}
                             Un événement ne rejoint le Portfolio qu’une fois sa dernière séance commencée, prévue le {new Date(lastSeatingStart).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}.

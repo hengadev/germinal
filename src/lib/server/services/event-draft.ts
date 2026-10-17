@@ -16,8 +16,8 @@ export const NOTHING_TO_SAVE_MESSAGE =
 	'Rien à enregistrer : remplissez au moins un champ pour créer le brouillon.';
 
 /** The Event's own text fields, as posted by the Essentiel (with the
- * Internal Notes, issue 039), Lieu and Programme tabs (each posts only its
- * own). */
+ * Internal Notes, issue 039), Lieu, Programme, Infos pratiques and
+ * Portfolio tabs (each posts only its own). */
 export const EVENT_TEXT_FIELDS = [
 	'titleEn',
 	'titleFr',
@@ -47,6 +47,9 @@ export const EVENT_TEXT_FIELDS = [
 	'internalNotes',
 	'practicalInfoEn',
 	'practicalInfoFr',
+	// The Recap (issue 045), from the « Portfolio » tab.
+	'recapEn',
+	'recapFr',
 ] as const;
 
 export type EventTextField = (typeof EVENT_TEXT_FIELDS)[number];

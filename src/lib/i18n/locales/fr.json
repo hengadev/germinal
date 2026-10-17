@@ -116,7 +116,16 @@
     "free": "Gratuit",
     "priceToBeAnnounced": "Tarif à venir",
     "depositPerGuest": "Acompte de {amount} par convive, le reste sur place",
-    "noDepositNote": "Réglé en totalité sur place"
+    "noDepositNote": "Réglé en totalité sur place",
+    "project": {
+      "backToProjects": "Tous les projets",
+      "photographs": "Photographies",
+      "credits": "Générique",
+      "dates": "Dates",
+      "venue": "Lieu",
+      "curator": "Commissariat",
+      "collaborators": "En collaboration avec"
+    }
   },
   "talents": {
     "pageTitle": "Talents | Germinal",
@@ -286,7 +295,7 @@
     "refundPolicy": {
       "title": "Annulation et remboursement"
     },
-        "continueToPayDeposit": "Continuer vers le paiement de l’acompte",
+    "continueToPayDeposit": "Continuer vers le paiement de l’acompte",
     "confirmBooking": "Confirmer la réservation"
   },
   "waitlist": {

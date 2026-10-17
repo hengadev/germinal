@@ -6,12 +6,14 @@
 	import { getToastContext } from '$lib/components/toast/state.svelte';
 	import type { Media } from '$lib/types/media';
 	import { handleTabResult } from './editor-forms';
+	import { visualsOf } from '$lib/utils/event-photos';
 
 	const toast = getToastContext();
 
 	// « Visuels » tab. On a new Event (`event` null) the uploads are not
 	// linked to any Event yet: the first save creates the Draft with them
-	// (issue 036).
+	// (issue 036). It shows only the Visuals, never the Event Photos of the
+	// « Portfolio » tab (issue 045).
 	let {
 		event,
 		onAltChange,
@@ -23,7 +25,7 @@
 	} = $props();
 
 	const existingCoverMedia = event?.coverMedia ? [event.coverMedia] : [];
-	const existingGalleryMedia = (event?.media || []).filter(
+	const existingGalleryMedia = visualsOf(event?.media).filter(
 		(m: Media) => m && m.id !== event?.coverMediaId
 	);
 
@@ -118,6 +120,7 @@
 				mode="single"
 				entityType="event"
 				entityId={event?.id}
+				role="visual"
 				existingMedia={existingCoverMedia}
 				maxSizeMB={10}
 				onUpload={handleCoverUpload}
@@ -139,6 +142,7 @@
 				mode="multiple"
 				entityType="event"
 				entityId={event?.id}
+				role="visual"
 				existingMedia={existingGalleryMedia}
 				maxSizeMB={10}
 				onUpload={handleGalleryUpload}

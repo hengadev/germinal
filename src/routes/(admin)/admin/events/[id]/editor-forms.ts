@@ -93,6 +93,11 @@ export interface EditorEvent {
 	practicalInfoFr: string | null;
 	/** Whether the booking form asks for Dietary Requirements (issue 041). */
 	askDietaryRequirements?: boolean;
+	/** The Recap (issue 045), for the Portfolio project page. */
+	recapEn?: string | null;
+	recapFr?: string | null;
+	/** Visuals and Event Photos alike (issue 045); each tab reads its own. */
+	media?: import('$lib/types/media').Media[] | null;
 	visibility: 'draft' | 'private' | 'public';
 	isSpotlight: boolean | null;
 	isPortfolio: boolean | null;

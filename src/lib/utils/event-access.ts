@@ -65,9 +65,12 @@ export interface AccessSeating {
 	allowWaitlist: boolean;
 }
 
-/** Which page an Event is shown as: its announcement, or — for an
- * Admin looking at a Draft (issue 033) — the preview of it. */
-export type EventView = 'announcement' | 'preview';
+/** Which page an Event is shown as: its announcement; its Portfolio
+ * project once it is in the Portfolio (issue 045: Recap, Event Photos,
+ * credits, dates and venue, without the announcement text, Seatings,
+ * prices or booking); or — for an Admin looking at a Draft (issue 033) —
+ * the preview of its announcement. */
+export type EventView = 'announcement' | 'portfolio' | 'preview';
 
 export type EventAccessDecision = { visible: true; view: EventView } | { visible: false };
 
@@ -80,6 +83,8 @@ export function eventAccess(event: AccessEvent, viewer: Viewer): EventAccessDeci
 		if (viewer.role === 'admin') return { visible: true, view: 'preview' };
 		return { visible: false };
 	}
+	// A Portfolio Event is shown as a project (ADR 0007, issue 045).
+	if (event.isPortfolio === true) return { visible: true, view: 'portfolio' };
 	return { visible: true, view: 'announcement' };
 }
 

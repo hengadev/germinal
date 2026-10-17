@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, timestamp, boolean, integer, pgEnum, index, check, jsonb, unique, date } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, timestamp, boolean, integer, pgEnum, index, check, jsonb, unique, uniqueIndex, date } from 'drizzle-orm/pg-core';
 import { relations, sql } from 'drizzle-orm';
 
 // ============================================
@@ -6,6 +6,10 @@ import { relations, sql } from 'drizzle-orm';
 // ============================================
 
 export const mediaTypeEnum = pgEnum('media_type', ['image', 'video']);
+// What an Event's media is for (issue 045): a Visual announces the Event,
+// an Event Photo shows it once it took place (its Portfolio project).
+// Talent and site media have no role.
+export const mediaRoleEnum = pgEnum('media_role', ['visual', 'event_photo']);
 
 export const inquiryTypeEnum = pgEnum('inquiry_type', [
     'collaboration',
@@ -196,6 +200,10 @@ export const events = pgTable('events', {
     // Dietary Requirements (issue 041, CONTEXT.md): whether the booking
     // form asks Guests for allergies or a diet (« Infos pratiques » tab).
     askDietaryRequirements: boolean('ask_dietary_requirements').notNull().default(false),
+    // Recap (issue 045, ADR 0007): what took place, written after the Event
+    // for its Portfolio project page, which leads with it.
+    recapEn: text('recap_en'),
+    recapFr: text('recap_fr'),
     coverMediaId: uuid('cover_media_id'),
     coverVideoId: uuid('cover_video_id'),
     visibility: eventVisibilityEnum('visibility').notNull().default('draft'),
@@ -336,6 +344,9 @@ export const media = pgTable('media', {
     eventId: uuid('event_id'),
     talentId: uuid('talent_id'),
     isCover: boolean('is_cover').default(false).notNull(),
+    // Visual or Event Photo (issue 045) for an Event's media, with one
+    // cover per role; null for Talent and site media.
+    role: mediaRoleEnum('role'),
     siteRole: varchar('site_role', { length: 50 }),
     // Alt text per language (issue 043); public pages fall back to the
     // other language, then to the Event title or the Talent's name.
@@ -350,6 +361,11 @@ export const media = pgTable('media', {
     checkEntityMutualExclusion: check('media_entity_mutual_exclusion_check',
         sql`NOT (event_id IS NOT NULL AND talent_id IS NOT NULL)`
     ),
+    // One cover per role on an Event (issue 045): the Visuals' and the
+    // Event Photos' (the Portfolio project's cover).
+    oneCoverPerRole: uniqueIndex('media_event_role_cover_unique')
+        .on(table.eventId, table.role)
+        .where(sql`is_cover AND event_id IS NOT NULL`),
 }));
 
 export const siteSettings = pgTable('site_settings', {

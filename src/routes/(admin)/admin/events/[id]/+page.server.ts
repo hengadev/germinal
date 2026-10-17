@@ -671,27 +671,12 @@ export const actions: Actions = {
 
 		try {
 			const { updateEvent } = await import('$lib/server/services/events');
-			const { db } = await import('$lib/server/db');
-			const { media } = await import('$lib/server/db/schema');
-			const { eq } = await import('drizzle-orm');
+			const { saveEventVisuals } = await import('$lib/server/services/media');
 
-			// Update coverMediaId on the event
-			await updateEvent(id, { coverMediaId: coverMediaId || null });
-
-			// Build ordered list: cover first, then gallery
-			const allMediaIds = coverMediaId
-				? [coverMediaId, ...galleryIds.filter((mid) => mid !== coverMediaId)]
-				: galleryIds;
-
-			// Reset all cover flags for this event
-			await db.update(media).set({ isCover: false }).where(eq(media.eventId, id));
-
-			// Link all media to event and mark cover
-			for (let i = 0; i < allMediaIds.length; i++) {
-				await db.update(media)
-					.set({ eventId: id, isCover: i === 0 })
-					.where(eq(media.id, allMediaIds[i]));
-			}
+			// Link the Visuals to the Event, cover first; Event Photos are
+			// never touched here (issue 045), nor made the Visual cover.
+			const saved = await saveEventVisuals(id, coverMediaId, galleryIds);
+			await updateEvent(id, { coverMediaId: coverMediaId && saved.includes(coverMediaId) ? coverMediaId : null });
 		} catch (error) {
 			logger.error({ err: error }, 'Error updating media');
 			if (!params.id) {
@@ -703,6 +688,46 @@ export const actions: Actions = {
 
 		if (!params.id) redirect(303, draftPage(id));
 		return { success: 'Photos mises à jour' };
+	},
+
+	// Save the « Portfolio » tab's Event Photos (issue 045): the ones it
+	// holds and which is the project cover. Kept apart from the Visuals. On
+	// a new Event (no id), the first save creates the Draft with them.
+	updateEventPhotos: async ({ request, params, locals }) => {
+		requireAdmin(locals);
+
+		const formData = await request.formData();
+		const coverId = formData.get('eventPhotoCoverId')?.toString() || null;
+		let photoIds: string[] = [];
+		try {
+			const parsed = JSON.parse(formData.get('eventPhotoIds')?.toString() || '[]');
+			if (Array.isArray(parsed)) photoIds = parsed.filter((value): value is string => typeof value === 'string');
+		} catch { /* ignore */ }
+
+		if (!params.id && photoIds.length === 0) {
+			return fail(400, { error: NOTHING_TO_SAVE_MESSAGE });
+		}
+		const id = params.id ?? await createDraft({});
+
+		if (env.USE_MOCK_DATA) {
+			if (!params.id) redirect(303, draftPage(id));
+			return { success: 'Photos de l’événement enregistrées (mode démo — non persistées)' };
+		}
+
+		try {
+			const { saveEventPhotos } = await import('$lib/server/services/media');
+			await saveEventPhotos(id, photoIds, coverId);
+		} catch (error) {
+			logger.error({ err: error }, 'Error saving Event Photos');
+			if (!params.id) {
+				const { deleteEvent } = await import('$lib/server/services/events');
+				await deleteEvent(id);
+			}
+			return fail(500, { error: 'Échec de l’enregistrement des photos de l’événement.' });
+		}
+
+		if (!params.id) redirect(303, draftPage(id));
+		return { success: 'Photos de l’événement enregistrées.' };
 	},
 
 	// Delete a single photo immediately

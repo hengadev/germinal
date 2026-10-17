@@ -13,6 +13,9 @@
 		existingMedia?: Media[];
 		entityType: 'talent' | 'event';
 		entityId?: string;
+		/** What an Event's uploads are for (issue 045): Visuals (the
+		 * default) or Event Photos. */
+		role?: 'visual' | 'event_photo';
 		onUpload: (media: Media[]) => void;
 		onRemove: (mediaId: string) => void;
 		onReorder?: (mediaIds: string[]) => void;
@@ -29,6 +32,7 @@
 		existingMedia = [],
 		entityType,
 		entityId,
+		role,
 		onUpload,
 		onRemove,
 		onReorder,
@@ -112,6 +116,7 @@
 				eventId: null,
 				talentId: null,
 				isCover: false,
+				role: entityType === 'event' ? (role ?? 'visual') : null,
 				siteRole: null,
 				altEn: null,
 				altFr: null,
@@ -126,6 +131,7 @@
 			formData.append('file', file);
 			formData.append('entityType', entityType);
 			if (entityId) formData.append('entityId', entityId);
+			if (role) formData.append('role', role);
 
 			xhr.upload.onprogress = (e) => {
 				if (e.lengthComputable) {

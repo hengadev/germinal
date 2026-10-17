@@ -11,6 +11,7 @@ import {
 import { invalidateCacheTags, CACHE_TAGS } from '$lib/server/cache';
 import { canBeSpotlight, canJoinPortfolio } from '$lib/utils/event-access';
 import { withoutPracticalInfo, type WithoutPracticalInfo } from '$lib/utils/practical-info';
+import { withProjectCover } from '$lib/utils/event-photos';
 import type { EventWithMedia } from '$lib/types/events';
 import { lastSeatingStartOf, listedEventsCondition, toAccessEvent } from './event-access';
 
@@ -26,7 +27,9 @@ export const PUBLIC_EVENT_COLUMNS = { internalNotes: false } as const;
  * Events, newest first, paged. `listedOnly` (the default) keeps the Events
  * Event access lets be listed publicly — the Portfolio, of any Visibility
  * except Draft (issues 030 and 044); the admin passes false. A listed page
- * is public: its Events leave without their Practical Info (issue 040).
+ * is public: its Events leave without their Practical Info (issue 040),
+ * and each is shown with its project cover — the Event Photos' cover,
+ * falling back to the Visual one (issue 045).
  */
 export async function getAllEvents(options: { listedOnly?: boolean; excludeSpotlight?: boolean; page?: number; limit?: number; cursor?: string; search?: string }) {
 	const { listedOnly = true, excludeSpotlight = false, page = 1, limit = 20, search } = options;
@@ -76,9 +79,10 @@ export async function getAllEvents(options: { listedOnly?: boolean; excludeSpotl
 	// Calculate pagination metadata
 	const pagination = calculatePagination(page, limit, total);
 
-	// Create response — a public listing never carries Practical Info.
+	// Create response — a public listing never carries Practical Info, and
+	// shows each project with its Event Photos' cover.
 	const publicEvents = listedOnly
-		? paginatedEvents.map((event: (typeof paginatedEvents)[number]) => withoutPracticalInfo(event))
+		? paginatedEvents.map((event: (typeof paginatedEvents)[number]) => withProjectCover(withoutPracticalInfo(event)))
 		: paginatedEvents;
 	return createPaginatedResponse(publicEvents, pagination);
 }
@@ -226,6 +230,9 @@ export async function createEvent(input: CreateEventInput) {
       practicalInfoFr: input.practicalInfoFr,
       // Whether the booking form asks for Dietary Requirements (issue 041).
       askDietaryRequirements: input.askDietaryRequirements ?? false,
+      // The Recap (issue 045): the Portfolio project page leads with it.
+      recapEn: input.recapEn,
+      recapFr: input.recapFr,
       venueCapacity: input.venueCapacity ?? null,
       coverMediaId: input.coverMediaId,
       visibility,

@@ -4,6 +4,7 @@ import { getAllTalents } from '$lib/server/services/talents';
 import { MOCK_EVENTS, MOCK_TALENTS, USE_MOCK_DATA } from '$lib/mock-data';
 import { canBeSpotlight, isListed } from '$lib/utils/event-access';
 import { withoutPracticalInfo } from '$lib/utils/practical-info';
+import { withProjectCover } from '$lib/utils/event-photos';
 import type { PageServerLoad } from './$types';
 import type { EventWithMedia } from '$lib/types/events';
 import type { TalentWithMedia } from '$lib/types/talents';
@@ -17,7 +18,7 @@ export const load: PageServerLoad = async () => {
             // The gallery draws from the Portfolio (issue 044); the upcoming
             // event is the Spotlight, which the Portfolio never holds.
             // Neither carries Practical Info (issue 040).
-            events: MOCK_EVENTS.filter(isListed).map(withoutPracticalInfo) as unknown as EventWithMedia[],
+            events: MOCK_EVENTS.filter(isListed).map((e) => withProjectCover(withoutPracticalInfo(e))) as unknown as EventWithMedia[],
             spotlightEvent: (mockSpotlight ? withoutPracticalInfo(mockSpotlight) : null) as unknown as EventWithMedia | null,
             talents: MOCK_TALENTS as unknown as TalentWithMedia[],
             heroImage: null,

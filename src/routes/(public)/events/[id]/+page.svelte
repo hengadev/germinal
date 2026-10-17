@@ -1,6 +1,7 @@
 <script lang="ts">
     import EventDetailLayout from "$lib/components/EventDetailLayout.svelte";
     import EventGallery from "$lib/components/EventGallery.svelte";
+    import PortfolioProject from "$lib/components/PortfolioProject.svelte";
     import SessionSelector from "$lib/components/booking/SessionSelector.svelte";
     import type { PageData } from "./$types";
     import { reveal } from "$lib/actions/reveal";
@@ -18,7 +19,7 @@
     const canBook = $derived(data.sessions.some((s: { isPast: boolean }) => !s.isPast));
 
     function getEventTitle(): string {
-        return localizedText(data.event.titleEn, data.event.titleFr, $locale);
+        return localizedText(data.event?.titleEn, data.event?.titleFr, $locale);
     }
 
     // A Service's price per guest (issue 022): shown once per Service.
@@ -30,9 +31,9 @@
 
     // The Event's Deposit rule (issue 023): what one guest pays online for
     // a Service's price, shown under it unless the whole price is paid online.
-    const deposit = $derived(depositRuleOf(data.event));
+    const deposit = $derived(depositRuleOf(data.event ?? {}));
     // Its Refund Policy (issue 027), shown at the booking step.
-    const refundPolicy = $derived(refundPolicyOf(data.event));
+    const refundPolicy = $derived(refundPolicyOf(data.event ?? {}));
 
     function depositNote(amount: number | null, currency: string): string | null {
         if (amount === null || amount === 0 || isFullPayment(deposit)) return null;
@@ -61,6 +62,10 @@
     {/if}
 </svelte:head>
 
+{#if data.project}
+    <!-- A Portfolio Event is shown as its project (issue 045). -->
+    <PortfolioProject project={data.project} />
+{:else if data.event}
 <EventDetailLayout event={data.event} preview={data.view === "preview"}>
     {#if canBook}
         <section class="mt-12 lg:mt-16" use:reveal={{ preset: "fade-up", delay: 250 }}>
@@ -133,3 +138,4 @@
         </section>
     {/if}
 </EventDetailLayout>
+{/if}

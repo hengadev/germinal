@@ -7,7 +7,7 @@
 	import { ArrowLeft, ChevronRight, Eye } from 'lucide-svelte';
 	import { cn } from '$lib/utils/design-system';
 	import { DEFAULT_EVENT_TIME_ZONE } from '$lib/utils/event-time';
-	import { editorEventWarnings, type EventWarning } from '$lib/utils/event-warnings';
+	import { editorEventWarnings, editorPortfolioWarnings, type EventWarning } from '$lib/utils/event-warnings';
 	import type { MediaAltText } from '$lib/utils/media-alt';
 	import { getToastContext } from '$lib/components/toast/state.svelte';
 	import { toSeatingDrafts, type DraftSeatingService } from '$lib/components/admin/SeatingsEditor.svelte';
@@ -25,6 +25,7 @@
 	import Programme from './Programme.svelte';
 	import Photos from './Photos.svelte';
 	import PracticalInfo from './PracticalInfo.svelte';
+	import Portfolio from './Portfolio.svelte';
 	import Team from './Team.svelte';
 	import Tasks from './Tasks.svelte';
 	import Reservations from './Reservations.svelte';
@@ -60,6 +61,7 @@
 		{ id: 'programme', title: 'Programme' },
 		{ id: 'visuels', title: 'Visuels' },
 		{ id: 'pratique', title: 'Infos pratiques' },
+		{ id: 'portfolio', title: 'Portfolio' },
 	];
 	// What only a saved Event has: its team, tasks, Reservations and Promo Codes.
 	const OPERATIONAL_TABS = [
@@ -136,10 +138,19 @@
 	function handleAltChange(mediaId: string, alt: MediaAltText) {
 		altOverrides[mediaId] = alt;
 	}
-	const warnings = $derived(
+	const publishingWarnings = $derived(
 		data.event !== null && data.schedule && data.pricing
 			? editorEventWarnings(data.event, data.schedule, data.pricing, altOverrides)
 			: ([] as EventWarning[])
+	);
+	// The Portfolio list (issue 045): the Recap, Event Photos, their cover
+	// and alt text. Always shown in « Portfolio »; joins « À vérifier » once
+	// the Event is in the Portfolio. Warnings only, like publishing's.
+	const portfolioWarnings = $derived(
+		data.event !== null ? editorPortfolioWarnings(data.event, altOverrides) : ([] as EventWarning[])
+	);
+	const warnings = $derived(
+		event?.isPortfolio ? [...publishingWarnings, ...portfolioWarnings] : publishingWarnings
 	);
 
 	// Unsaved-changes guard (issue 037): leaving with an edited tab asks
@@ -342,7 +353,7 @@
 	{/snippet}
 
 	{#snippet essentiel()}
-		<Essentiel {event} lastSeatingStart={saved?.lastSeatingStart ?? null} {warnings} />
+		<Essentiel {event} lastSeatingStart={saved?.lastSeatingStart ?? null} warnings={publishingWarnings} />
 	{/snippet}
 	{#snippet lieu()}
 		<Lieu {event} zones={data.timeZones ?? []} locked={data.timeZoneLocked ?? false} bind:timeZone />
@@ -369,6 +380,9 @@
 	{#snippet pratique()}
 		<PracticalInfo {event} />
 	{/snippet}
+	{#snippet portfolio()}
+		<Portfolio {event} warnings={portfolioWarnings} onAltChange={handleAltChange} />
+	{/snippet}
 
 	{@render panel('essentiel', essentiel)}
 	{@render panel('lieu', lieu)}
@@ -377,6 +391,7 @@
 	{@render panel('programme', programme)}
 	{@render panel('visuels', visuels)}
 	{@render panel('pratique', pratique)}
+	{@render panel('portfolio', portfolio)}
 
 	{#if saved}
 		{@const savedData = saved}
