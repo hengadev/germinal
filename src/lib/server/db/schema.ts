@@ -177,6 +177,10 @@ export const events = pgTable('events', {
     // its start).
     bookingOpensAt: timestamp('booking_opens_at', { withTimezone: true }),
     bookingClosesHoursBefore: integer('booking_closes_hours_before'),
+    // Internal Notes (issue 039): free text only Admins ever see — venue
+    // contact, client, budget. Public and Staff loaders leave it out
+    // (services/events PUBLIC_EVENT_COLUMNS), so it can never reach them.
+    internalNotes: text('internal_notes'),
     coverMediaId: uuid('cover_media_id'),
     coverVideoId: uuid('cover_video_id'),
     visibility: eventVisibilityEnum('visibility').notNull().default('draft'),

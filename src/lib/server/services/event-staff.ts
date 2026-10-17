@@ -182,8 +182,12 @@ export async function getEventsForStaff(userId: string): Promise<EventStaffWithE
 	try {
 		const assignments = await db.query.eventStaff.findMany({
 			where: eq(eventStaff.userId, userId),
+			// Explicit columns: the Staff portal never reads Internal Notes
+			// (issue 039).
 			with: {
-				event: true,
+				event: {
+					columns: { id: true, titleEn: true, titleFr: true, startDate: true, endDate: true },
+				},
 			},
 			orderBy: (eventStaff, { desc }) => [desc(eventStaff.createdAt)],
 		});
