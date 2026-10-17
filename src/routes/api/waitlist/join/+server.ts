@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { logger } from '$lib/server/logger';
 import { z } from 'zod';
-import { joinWaitlist } from '$lib/server/services/waitlist';
+import { joinWaitlist, WaitlistNotAvailableError } from '$lib/server/services/waitlist';
 import { strictRateLimiter, RateLimitUnavailableError } from '$lib/server/rate-limit';
 import { validateCsrfToken } from '$lib/server/csrf';
 import type { RequestHandler } from './$types';
@@ -68,10 +68,16 @@ export const POST: RequestHandler = async ({ request, getClientAddress, locals }
 	} catch (error) {
 		logger.error({ err: error }, 'Waitlist join error');
 
-		if (error instanceof Error) {
-			if (error.message.includes('not available')) {
-				return json({ error: error.message }, { status: 400 });
+		// Event access refused the Waitlist (issue 030): a Seating of an
+		// unpublished Event, or an unpublished one, is simply not found.
+		if (error instanceof WaitlistNotAvailableError) {
+			if (error.reason === 'event-not-published' || error.reason === 'seating-unpublished') {
+				return json({ error: 'Session not found' }, { status: 404 });
 			}
+			return json({ error: error.message }, { status: 400 });
+		}
+
+		if (error instanceof Error) {
 			if (error.message.includes('already on')) {
 				return json({ error: error.message }, { status: 409 });
 			}

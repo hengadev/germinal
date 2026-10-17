@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { logger } from '$lib/server/logger';
 import { createReservationSchema } from '$lib/server/validators/reservations';
-import { createReservation } from '$lib/server/services/reservations';
+import { createReservation, SeatingNotBookableError } from '$lib/server/services/reservations';
 import { strictRateLimiter, RateLimitUnavailableError } from '$lib/server/rate-limit';
 import { validateCsrfToken } from '$lib/server/csrf';
 import type { RequestHandler } from './$types';
@@ -83,28 +83,25 @@ export const POST: RequestHandler = async ({ request, getClientAddress, locals }
 	} catch (error) {
 		logger.error({ err: error }, 'Reservation creation error');
 
-		if (error instanceof Error) {
-			// Handle specific errors
-			if (error.message === 'Not enough tickets available') {
-				return json({ error: 'Session is sold out', code: 'SOLD_OUT' }, { status: 409 });
+		// Event access refused the Seating (issue 030): a Seating of an
+		// unpublished Event, or an unpublished one, is simply not found.
+		if (error instanceof SeatingNotBookableError) {
+			switch (error.reason) {
+				case 'event-not-published':
+				case 'seating-unpublished':
+					return json({ error: 'Session not found', code: 'NOT_FOUND' }, { status: 404 });
+				case 'not-priced':
+					// The Seating's Service has no price yet (issue 022).
+					return json({ error: 'This session is not open for booking yet', code: 'NOT_PRICED' }, { status: 409 });
+				case 'started':
+					return json({ error: 'This session has already started', code: 'SESSION_STARTED' }, { status: 400 });
+				case 'full':
+					return json({ error: 'Session is sold out', code: 'SOLD_OUT' }, { status: 409 });
 			}
+		}
 
-			// The Seating's Service has no price yet (issue 022).
-			if (error.message === 'Seating has no price yet') {
-				return json({ error: 'This session is not open for booking yet', code: 'NOT_PRICED' }, { status: 409 });
-			}
-
-			if (error.message === 'Session not found or not published') {
-				return json({ error: 'Session not found', code: 'NOT_FOUND' }, { status: 404 });
-			}
-
-			if (error.message === 'Invalid submission') {
-				return json({ error: 'Invalid submission', code: 'SPAM_DETECTED' }, { status: 400 });
-			}
-
-			if (error.message.includes('Cannot book tickets for a session that has already started')) {
-				return json({ error: 'This session has already started', code: 'SESSION_STARTED' }, { status: 400 });
-			}
+		if (error instanceof Error && error.message === 'Invalid submission') {
+			return json({ error: 'Invalid submission', code: 'SPAM_DETECTED' }, { status: 400 });
 		}
 
 		return json({ error: 'Failed to create reservation', code: 'INTERNAL_ERROR' }, { status: 500 });
