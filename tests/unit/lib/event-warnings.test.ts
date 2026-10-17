@@ -1,0 +1,230 @@
+import { describe, it, expect } from 'vitest';
+import {
+	editorEventWarnings,
+	eventWarnings,
+	type EditorWarningsEvent,
+	type EventWarningsInput,
+	type EventWarningCode,
+} from '../../../src/lib/utils/event-warnings';
+import type { EditorService } from '../../../src/lib/types/seatings-editor';
+import type { PricingEditorData } from '../../../src/lib/types/pricing-editor';
+import { FULL_PAYMENT_DEPOSIT } from '../../../src/lib/utils/pricing';
+import { DEFAULT_REFUND_POLICY } from '../../../src/lib/utils/refund-policy';
+
+/**
+ * Issue 038 — the Event warnings module: what is missing for publishing,
+ * each item with a code, a French message and the tab that fixes it. Each
+ * item is tested present and absent; publishing is never refused (ADR 0008).
+ */
+
+const ZONE = 'Europe/Paris';
+
+// A complete Event: one dinner Service with a Menu and a price, one
+// Seating, both languages filled in, a Visual and the default window.
+const COMPLETE: EventWarningsInput = {
+	titleEn: 'A Night at the Salon',
+	titleFr: 'Une soirée au salon',
+	descriptionEn: 'An intimate dinner.',
+	descriptionFr: 'Un dîner intimiste.',
+	locationEn: 'The Salon, Paris',
+	locationFr: 'Le Salon, Paris',
+	services: [{ serviceId: 's1', date: '2027-03-12', kind: 'dinner', menuId: 'm1', priceAmount: 9000 }],
+	seatings: [{ startTime: new Date('2027-03-12T19:00:00Z') }],
+	visualCount: 1,
+	bookingWindow: { opensAt: null, closesHoursBefore: null },
+	timeZone: ZONE,
+};
+
+const codes = (input: EventWarningsInput) => eventWarnings(input).map((warning) => warning.code);
+
+describe('eventWarnings', () => {
+	it('lists nothing for a complete Event', () => {
+		expect(eventWarnings(COMPLETE)).toEqual([]);
+	});
+
+	it.each([
+		['no-seating', { seatings: [] }],
+		['service-without-price', { services: [{ serviceId: 's1', date: '2027-03-12', kind: 'dinner', menuId: 'm1', priceAmount: null }] }],
+		['service-without-menu', { services: [{ serviceId: 's1', date: '2027-03-12', kind: 'dinner', menuId: null, priceAmount: 9000 }] }],
+		['missing-title-en', { titleEn: null }],
+		['missing-title-fr', { titleFr: null }],
+		['missing-description-en', { descriptionEn: '  ' }],
+		['missing-description-fr', { descriptionFr: null }],
+		['missing-location-en', { locationEn: null }],
+		['missing-location-fr', { locationFr: null }],
+		['no-visual', { visualCount: 0 }],
+	] as [EventWarningCode, Partial<EventWarningsInput>][])(
+		'warns with %s when it is missing, and not when it is not',
+		(code, missing) => {
+			expect(codes({ ...COMPLETE, ...missing })).toContain(code);
+			expect(codes(COMPLETE)).not.toContain(code);
+		}
+	);
+
+	it('names the Service concerned, in French', () => {
+		const [warning] = eventWarnings({
+			...COMPLETE,
+			services: [{ serviceId: 's1', date: '2027-03-12', kind: 'lunch', menuId: null, priceAmount: null }],
+		}).filter((warning) => warning.code === 'service-without-price');
+		expect(warning.message).toContain('déjeuner du vendredi 12 mars 2027');
+		expect(warning.message).toContain('n’a pas de prix');
+	});
+
+	it('sends each item to the tab that fixes it', () => {
+		const byCode = new Map(
+			eventWarnings({
+				...COMPLETE,
+				titleFr: null,
+				locationEn: null,
+				services: [{ serviceId: 's1', date: '2027-03-12', kind: 'dinner', menuId: null, priceAmount: null }],
+				seatings: [],
+				visualCount: 0,
+			}).map((warning) => [warning.code, warning.tab])
+		);
+		expect(byCode.get('no-seating')).toBe('dates-seances');
+		expect(byCode.get('service-without-price')).toBe('tarifs');
+		expect(byCode.get('service-without-menu')).toBe('tarifs');
+		expect(byCode.get('missing-title-fr')).toBe('essentiel');
+		expect(byCode.get('missing-location-en')).toBe('lieu');
+		expect(byCode.get('no-visual')).toBe('visuels');
+	});
+
+	it('warns on a Booking Window that opens after a Seating closes', () => {
+		// Opens at 20:00 while bookings close at the Seating's 19:00 start.
+		const input: EventWarningsInput = {
+			...COMPLETE,
+			bookingWindow: { opensAt: new Date('2027-03-12T19:00:00Z'), closesHoursBefore: null },
+		};
+		expect(codes(input)).toContain('booking-window-opens-after-close');
+		const [warning] = eventWarnings(input);
+		expect(warning.tab).toBe('dates-seances');
+		// Placed on the Event's clock (Paris, UTC+1 in March).
+		expect(warning.message).toContain('20:00');
+	});
+
+	it('does not warn when the window opens before the Seating closes', () => {
+		// Opens at 12:00, closes 6 hours before the 19:00 start (13:00).
+		expect(
+			codes({
+				...COMPLETE,
+				bookingWindow: { opensAt: new Date('2027-03-12T11:00:00Z'), closesHoursBefore: 6 },
+			})
+		).not.toContain('booking-window-opens-after-close');
+		// Opening exactly at the closing instant is already closed there.
+		expect(
+			codes({
+				...COMPLETE,
+				bookingWindow: { opensAt: new Date('2027-03-12T13:00:00Z'), closesHoursBefore: 6 },
+			})
+		).toContain('booking-window-opens-after-close');
+	});
+
+	it('ignores the window when it has no opening instant', () => {
+		expect(
+			codes({ ...COMPLETE, bookingWindow: { opensAt: null, closesHoursBefore: 48 } })
+		).not.toContain('booking-window-opens-after-close');
+	});
+
+	it('reads absent snapshot fields as missing, never as present', () => {
+		const all = codes({});
+		expect(all).toContain('no-seating');
+		expect(all).toContain('missing-title-en');
+		expect(all).toContain('missing-title-fr');
+		expect(all).toContain('no-visual');
+	});
+
+	it('treats a zero price as set', () => {
+		expect(
+			codes({
+				...COMPLETE,
+				services: [{ serviceId: 's1', date: '2027-03-12', kind: 'dinner', menuId: 'm1', priceAmount: 0 }],
+			})
+		).toEqual([]);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Reading the editor's page data
+// ---------------------------------------------------------------------------
+
+const EVENT: EditorWarningsEvent = {
+	titleEn: 'A Night at the Salon',
+	titleFr: 'Une soirée au salon',
+	descriptionEn: 'An intimate dinner.',
+	descriptionFr: 'Un dîner intimiste.',
+	locationEn: 'The Salon, Paris',
+	locationFr: 'Le Salon, Paris',
+	timeZone: ZONE,
+	bookingOpensAt: null,
+	bookingClosesHoursBefore: null,
+	coverMediaId: 'cover',
+	coverMedia: { id: 'cover' },
+	media: [{ id: 'cover' }, { id: 'gallery' }],
+};
+
+const SCHEDULE: EditorService[] = [
+	{
+		serviceId: 's1',
+		date: '2027-03-12',
+		kind: 'dinner',
+		defaultDurationMinutes: 180,
+		seatings: [
+			{
+				id: 'seating-1',
+				start: '19:00',
+				end: '22:00',
+				titleEn: null,
+				titleFr: null,
+				descriptionEn: null,
+				descriptionFr: null,
+				totalCapacity: 20,
+				availableCapacity: 20,
+				capacityOverridden: false,
+				published: true,
+				allowWaitlist: true,
+				badgeType: 'none',
+				reservationCount: 0,
+			},
+		],
+	},
+];
+
+const PRICING: PricingEditorData = {
+	menus: [{ id: 'm1', nameEn: 'Spring', nameFr: 'Printemps', descriptionEn: null, descriptionFr: null }],
+	services: [
+		{ serviceId: 's1', date: '2027-03-12', kind: 'dinner', menuId: 'm1', priceAmount: 9000, currency: 'EUR', seatingCount: 1, legacySeatings: [] },
+	],
+	deposit: FULL_PAYMENT_DEPOSIT,
+	refundPolicy: DEFAULT_REFUND_POLICY,
+};
+
+describe('editorEventWarnings', () => {
+	it('lists nothing for a complete saved Event', () => {
+		expect(editorEventWarnings(EVENT, SCHEDULE, PRICING)).toEqual([]);
+	});
+
+	it('reads the Seatings and prices off the page data', () => {
+		const warnings = editorEventWarnings(
+			EVENT,
+			SCHEDULE,
+			{ ...PRICING, services: [{ ...PRICING.services[0], menuId: null, priceAmount: null }] }
+		);
+		expect(warnings.map((warning) => warning.code)).toEqual(['service-without-price', 'service-without-menu']);
+	});
+
+	it('places the Seating on the Event’s clock for the Booking Window', () => {
+		const warnings = editorEventWarnings(
+			{ ...EVENT, bookingOpensAt: new Date('2027-03-12T18:00:00.000Z') },
+			SCHEDULE,
+			PRICING
+		);
+		// 18:00 UTC is 19:00 Paris: the window opens exactly when the
+		// Seating's bookings close (at its start), so it warns.
+		expect(warnings.map((warning) => warning.code)).toEqual(['booking-window-opens-after-close']);
+	});
+
+	it('counts only the Visuals the Event has', () => {
+		expect(editorEventWarnings({ ...EVENT, coverMediaId: null, coverMedia: null, media: [] }, SCHEDULE, PRICING).map((w) => w.code)).toContain('no-visual');
+		expect(editorEventWarnings({ ...EVENT, media: [] }, SCHEDULE, PRICING)).toEqual([]);
+	});
+});
