@@ -134,6 +134,10 @@ export const MOCK_EVENTS = [
         curatorFr: 'Michael Chen',
         admissionInfoEn: '$45 General Admission, $120 VIP',
         admissionInfoFr: '45 $ entrée générale, 120 $ VIP',
+        // Practical Info (issue 040): Ticket holders only — mock mode strips
+        // it from every public loader like the database does.
+        practicalInfoEn: 'Enter through the courtyard gate, door code 4512#. Elegant dress required. On the day, call +1 (212) 555-0134.',
+        practicalInfoFr: 'Entrez par le portail de la cour, code 4512#. Tenue élégante exigée. Le jour J, appelez le +1 (212) 555-0134.',
         visibility: 'public' as Visibility,
         isSpotlight: true,
         isPortfolio: false,

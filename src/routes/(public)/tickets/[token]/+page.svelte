@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { localizedText } from '$lib/utils/event-text';
+	import { localizedPracticalInfo } from '$lib/utils/practical-info';
 	import { Download, Printer, CheckCircle2, Clock, MapPin, Calendar, User, Mail, Ticket, CreditCard, AlertCircle, X, XCircle, Loader2 } from 'lucide-svelte';
 	import { locale, t } from 'svelte-i18n';
 	import type { PageData } from './$types';
@@ -229,6 +230,13 @@ END:VCALENDAR`;
 		isFr
 			? (data.reservation.session.event.locationFr ?? data.reservation.session.event.locationEn)
 			: (data.reservation.session.event.locationEn ?? data.reservation.session.event.locationFr)
+	);
+
+	// Practical Info (issue 040): arrival instructions, door code, dress
+	// code, a contact on the day — Ticket holders only, in the Guest's
+	// language falling back to the other one. Empty renders nothing.
+	let practicalInfo = $derived(
+		localizedPracticalInfo(data.reservation.session.event, isFr ? 'fr' : 'en')
 	);
 
 	let googleCalendarUrl = $derived.by(() => {
@@ -530,6 +538,16 @@ END:VCALENDAR`;
 						</address>
 					</div>
 				</div>
+
+				<!-- Practical Info (issue 040): Ticket holders only -->
+				{#if practicalInfo}
+					<div class="border-t border-border-card pt-6">
+						<h3 class="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">
+							{$t('tickets.practicalInfo')}
+						</h3>
+					<p class="text-sm text-foreground-alt leading-relaxed whitespace-pre-line">{practicalInfo}</p>
+				</div>
+				{/if}
 
 				<!-- Actions -->
 				<div class="border-t border-border-card pt-6 space-y-3 print:hidden">

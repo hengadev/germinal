@@ -23,6 +23,7 @@
 	import Pricing from './Pricing.svelte';
 	import Programme from './Programme.svelte';
 	import Photos from './Photos.svelte';
+	import PracticalInfo from './PracticalInfo.svelte';
 	import Team from './Team.svelte';
 	import Tasks from './Tasks.svelte';
 	import Reservations from './Reservations.svelte';
@@ -57,6 +58,7 @@
 		{ id: 'tarifs', title: 'Menus & tarifs' },
 		{ id: 'programme', title: 'Programme' },
 		{ id: 'visuels', title: 'Visuels' },
+		{ id: 'pratique', title: 'Infos pratiques' },
 	];
 	// What only a saved Event has: its team, tasks, Reservations and Promo Codes.
 	const OPERATIONAL_TABS = [
@@ -357,6 +359,9 @@
 	{/snippet}
 	{#snippet programme()}<Programme {event} talents={data.talents ?? []} />{/snippet}
 	{#snippet visuels()}<Photos event={data.event} />{/snippet}
+	{#snippet pratique()}
+		<PracticalInfo {event} />
+	{/snippet}
 
 	{@render panel('essentiel', essentiel)}
 	{@render panel('lieu', lieu)}
@@ -364,6 +369,7 @@
 	{@render panel('tarifs', pricing)}
 	{@render panel('programme', programme)}
 	{@render panel('visuels', visuels)}
+	{@render panel('pratique', pratique)}
 
 	{#if saved}
 		{@const savedData = saved}

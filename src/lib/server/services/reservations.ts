@@ -420,7 +420,26 @@ export async function createCompReservation(input: CreateCompReservationInput) {
 		}).returning();
 
 		const [event] = await tx
-			.select({ titleEn: events.titleEn, titleFr: events.titleFr, id: events.id, locationEn: events.locationEn, timeZone: events.timeZone })
+			.select({
+				titleEn: events.titleEn,
+				titleFr: events.titleFr,
+				id: events.id,
+				locationEn: events.locationEn,
+				locationFr: events.locationFr,
+				timeZone: events.timeZone,
+				venueNameEn: events.venueNameEn,
+				venueNameFr: events.venueNameFr,
+				streetAddressEn: events.streetAddressEn,
+				streetAddressFr: events.streetAddressFr,
+				cityEn: events.cityEn,
+				cityFr: events.cityFr,
+				countryEn: events.countryEn,
+				countryFr: events.countryFr,
+				postalCode: events.postalCode,
+				// Practical Info (issue 040): Ticket holders only.
+				practicalInfoEn: events.practicalInfoEn,
+				practicalInfoFr: events.practicalInfoFr,
+			})
 			.from(events)
 			.where(eq(events.id, session.eventId));
 
@@ -443,7 +462,20 @@ export async function createCompReservation(input: CreateCompReservationInput) {
 				titleFr: created.event?.titleFr ?? '',
 				id: created.event?.id ?? '',
 				locationEn: created.event?.locationEn ?? '',
+				locationFr: created.event?.locationFr ?? null,
 				timeZone: created.event?.timeZone ?? DEFAULT_EVENT_TIME_ZONE,
+				venueNameEn: created.event?.venueNameEn ?? null,
+				venueNameFr: created.event?.venueNameFr ?? null,
+				streetAddressEn: created.event?.streetAddressEn ?? null,
+				streetAddressFr: created.event?.streetAddressFr ?? null,
+				cityEn: created.event?.cityEn ?? null,
+				cityFr: created.event?.cityFr ?? null,
+				countryEn: created.event?.countryEn ?? null,
+				countryFr: created.event?.countryFr ?? null,
+				postalCode: created.event?.postalCode ?? null,
+				// Practical Info (issue 040): Ticket holders only.
+				practicalInfoEn: created.event?.practicalInfoEn ?? null,
+				practicalInfoFr: created.event?.practicalInfoFr ?? null,
 			},
 		});
 	} catch (error) {
@@ -480,6 +512,9 @@ export async function getReservationByToken(token: string): Promise<ReservationW
 							cityFr: true,
 							countryEn: true,
 							countryFr: true,
+							// Practical Info (issue 040): Ticket holders only.
+							practicalInfoEn: true,
+							practicalInfoFr: true,
 							// The Refund Policy shown on the Ticket (issue 027).
 							refundPolicyType: true,
 							refundPolicyTextEn: true,
@@ -537,6 +572,10 @@ export async function resendTicketsForEmail(email: string): Promise<void> {
 								cityFr: true,
 								countryEn: true,
 								countryFr: true,
+								// Practical Info (issue 040): the re-sent confirmation
+								// email carries it, like the Ticket.
+								practicalInfoEn: true,
+								practicalInfoFr: true,
 							},
 						},
 					},
@@ -561,7 +600,20 @@ export async function resendTicketsForEmail(email: string): Promise<void> {
 					titleFr: reservation.eventSession.event.titleFr,
 					id: reservation.eventSession.event.id,
 					locationEn: reservation.eventSession.event.locationEn,
+					locationFr: reservation.eventSession.event.locationFr,
 					timeZone: reservation.eventSession.event.timeZone,
+					venueNameEn: reservation.eventSession.event.venueNameEn,
+					venueNameFr: reservation.eventSession.event.venueNameFr,
+					streetAddressEn: reservation.eventSession.event.streetAddressEn,
+					streetAddressFr: reservation.eventSession.event.streetAddressFr,
+					cityEn: reservation.eventSession.event.cityEn,
+					cityFr: reservation.eventSession.event.cityFr,
+					countryEn: reservation.eventSession.event.countryEn,
+					countryFr: reservation.eventSession.event.countryFr,
+					postalCode: reservation.eventSession.event.postalCode,
+					// Practical Info (issue 040): Ticket holders only.
+					practicalInfoEn: reservation.eventSession.event.practicalInfoEn,
+					practicalInfoFr: reservation.eventSession.event.practicalInfoFr,
 				},
 				guestName: reservation.guestName,
 				guestEmail: reservation.guestEmail,

@@ -88,6 +88,9 @@ export interface EditorEvent {
 	admissionInfoFr: string | null;
 	/** Internal Notes (issue 039): only Admins ever see them. */
 	internalNotes?: string | null;
+	// Practical Info (issue 040): Ticket holders only, never public.
+	practicalInfoEn: string | null;
+	practicalInfoFr: string | null;
 	visibility: 'draft' | 'private' | 'public';
 	isSpotlight: boolean | null;
 	isPortfolio: boolean | null;

@@ -4,6 +4,7 @@ import { updateEventSchema } from '$lib/server/validators/events';
 import { requireAdmin } from '$lib/server/auth-guards';
 import { toAccessEvent } from '$lib/server/services/event-access';
 import { eventAccess, viewerOf } from '$lib/utils/event-access';
+import { withoutPracticalInfo } from '$lib/utils/practical-info';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ params, locals }) => {
@@ -14,12 +15,13 @@ export const GET: RequestHandler = async ({ params, locals }) => {
     throw error(404, 'Event not found');
   }
   // The Admin reads any Event's data; anyone else only an Event Event
-  // access lets them see (issue 030).
+  // access lets them see (issue 030) — and without its Practical Info,
+  // which is for Ticket holders only (issue 040).
   const viewer = viewerOf(locals.user);
   if (viewer.role !== 'admin' && !eventAccess(toAccessEvent(event), viewer).visible) {
     throw error(404, 'Event not found');
   }
-  return json(event);
+  return json(viewer.role === 'admin' ? event : withoutPracticalInfo(event));
 };
 
 export const PUT: RequestHandler = async (event) => {

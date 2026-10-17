@@ -17,7 +17,28 @@ import { sendTicketConfirmationEmail } from './email';
 export async function sendTicketNotifications(
 	reservation: Reservation & {
 		eventSession: typeof eventSessions.$inferSelect & {
-			event: { id: string; titleEn: string | null; titleFr: string | null; locationEn: string | null; timeZone: string };
+			event: {
+				id: string;
+				titleEn: string | null;
+				titleFr: string | null;
+				locationEn: string | null;
+				locationFr?: string | null;
+				timeZone: string;
+				// The venue's name and address, and the Practical Info (issue 040),
+				// carried by the confirmation email. The Event row is loaded in
+				// full, so the optional TicketEmailData fields are all here.
+				venueNameEn?: string | null;
+				venueNameFr?: string | null;
+				streetAddressEn?: string | null;
+				streetAddressFr?: string | null;
+				cityEn?: string | null;
+				cityFr?: string | null;
+				countryEn?: string | null;
+				countryFr?: string | null;
+				postalCode?: string | null;
+				practicalInfoEn?: string | null;
+				practicalInfoFr?: string | null;
+			};
 		};
 	}
 ): Promise<void> {

@@ -218,6 +218,13 @@
       "when": 1792246569492,
       "tag": "0030_internal_notes",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1792246613062,
+      "tag": "0031_practical_info",
+      "breakpoints": true
     }
   ]
 }

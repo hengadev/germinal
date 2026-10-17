@@ -71,6 +71,21 @@ export type TicketEmailData = {
 		locationFr?: string | null;
 		/** The Event's Time Zone (ADR 0006): times are shown on its clock. */
 		timeZone: string;
+		// The venue's name and address, and the Practical Info (issue 040),
+		// shown to Guests in the confirmation and reminder emails. Optional
+		// so callers holding a narrower Event still compile; missing pieces
+		// fall back to the location line and no Practical Info section.
+		venueNameEn?: string | null;
+		venueNameFr?: string | null;
+		streetAddressEn?: string | null;
+		streetAddressFr?: string | null;
+		cityEn?: string | null;
+		cityFr?: string | null;
+		countryEn?: string | null;
+		countryFr?: string | null;
+		postalCode?: string | null;
+		practicalInfoEn?: string | null;
+		practicalInfoFr?: string | null;
 	};
 	qrCode?: string;
 	googleCalendarUrl?: string;
