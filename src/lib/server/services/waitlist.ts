@@ -8,6 +8,27 @@ import { env } from '../env';
 import { escapeHtml } from '$lib/utils/html';
 import { seatingTitle } from '$lib/utils/seating-title';
 import { formatCurrency } from '$lib/utils/currency';
+import { loadSeatingAccess } from './event-access';
+import { ANONYMOUS, waitlistAccess, type WaitlistRefusal } from '$lib/utils/event-access';
+
+/** Thrown when Event access refuses a Seating's Waitlist; `reason` says why. */
+export class WaitlistNotAvailableError extends Error {
+	constructor(public readonly reason: WaitlistRefusal) {
+		super('Waitlist is not available for this session');
+		this.name = 'WaitlistNotAvailableError';
+	}
+}
+
+/**
+ * Whether the Seating's Waitlist can be joined or notified now, as Event
+ * access (issue 030) decides: never for a Seating of an unpublished Event,
+ * an unpublished, unpriced or started Seating, or one without a Waitlist.
+ */
+async function waitlistDecision(sessionId: string) {
+	const found = await loadSeatingAccess(db, sessionId);
+	if (!found) return { allowed: false as const, reason: 'seating-unpublished' as const };
+	return waitlistAccess({ event: found.event, seating: found.access, viewer: ANONYMOUS, now: new Date() });
+}
 
 /**
  * Join a waitlist for a sold-out session
@@ -20,10 +41,9 @@ export async function joinWaitlist(input: {
 	quantity: number;
 	notificationPreference?: 'email' | 'sms' | 'both';
 }) {
-	const session = await getSessionById(input.sessionId);
-
-	if (!session.allowWaitlist) {
-		throw new Error('Waitlist is not available for this session');
+	const decision = await waitlistDecision(input.sessionId);
+	if (!decision.allowed) {
+		throw new WaitlistNotAvailableError(decision.reason);
 	}
 
 	// Check if already on waitlist (not yet notified)
@@ -60,6 +80,11 @@ export async function joinWaitlist(input: {
  * Called after reservations are cancelled or expire
  */
 export async function notifyWaitlist(sessionId: string, availableCapacity: number) {
+	// Nobody is invited to book a Seating Event access would refuse.
+	if (!(await waitlistDecision(sessionId)).allowed) {
+		return { notified: 0 };
+	}
+
 	// Get unnotified, non-expired waitlist entries
 	const entries = await db.query.waitlist.findMany({
 		where: and(

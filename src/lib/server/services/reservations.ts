@@ -11,22 +11,99 @@ import { validatePromoCode, incrementRedemption } from './promo-codes';
 import { FULL_PAYMENT_DEPOSIT, depositRuleOf, priceReservation, type PromoDiscount } from '$lib/utils/pricing';
 import { seatingTitle } from '$lib/utils/seating-title';
 import { getSeatingPrice } from './service-pricing';
+import { loadSeatingAccess } from './event-access';
+import { ANONYMOUS, seatingBooking, type BookingRefusal } from '$lib/utils/event-access';
+
+const BOOKING_REFUSAL_MESSAGES: Record<BookingRefusal, string> = {
+	'event-not-published': 'Session not found or not published',
+	'seating-unpublished': 'Session not found or not published',
+	'not-priced': 'Seating has no price yet',
+	started: 'Cannot book tickets for a session that has already started',
+	full: 'Not enough tickets available',
+};
+
+/** Thrown when Event access refuses to book a Seating; `reason` says why. */
+export class SeatingNotBookableError extends Error {
+	constructor(public readonly reason: BookingRefusal) {
+		super(BOOKING_REFUSAL_MESSAGES[reason]);
+		this.name = 'SeatingNotBookableError';
+	}
+}
 
 /** Thrown when a Seating's Service has no price yet: it cannot be booked. */
-export class SeatingNotPricedError extends Error {
+export class SeatingNotPricedError extends SeatingNotBookableError {
 	constructor() {
-		super('Seating has no price yet');
+		super('not-priced');
 		this.name = 'SeatingNotPricedError';
 	}
 }
 
 /**
- * Lock a Session row and atomically decrement its available capacity.
+ * Atomically decrement a locked Seating's available capacity. The UPDATE
+ * re-checks the capacity, so it can never go negative.
+ */
+async function decrementSessionCapacity(tx: typeof db, sessionId: string, quantity: number) {
+	const [updatedSession] = await tx
+		.update(eventSessions)
+		.set({
+			availableCapacity: sql`${eventSessions.availableCapacity} - ${quantity}`,
+			updatedAt: new Date(),
+		})
+		.where(and(
+			eq(eventSessions.id, sessionId),
+			sql`${eventSessions.availableCapacity} >= ${quantity}` // Double-check in UPDATE
+		))
+		.returning();
+
+	if (!updatedSession) {
+		throw new Error('Failed to reserve tickets (race condition)');
+	}
+}
+
+/**
+ * Lock a Seating a Guest is booking and decrement its capacity, once Event
+ * access (issue 030) agrees it can be booked — re-checked here, inside the
+ * locking transaction, walking Seating → Service → Day → Event, so a Seating
+ * of an unpublished Event, an unpublished or unpriced Seating, a started or
+ * a full one is refused even with valid ids. Returns the Seating and the
+ * price it is booked at.
  *
- * This is the single source of truth for capacity accounting: both paid
- * (Guest checkout) and comp (Admin-initiated) Reservations MUST go through
- * this helper so capacity can never be oversold by paid and comp bookings
- * racing independently against the same Session.
+ * Must be called from within a `db.transaction`.
+ */
+async function lockAndDecrementBookableSeating(tx: typeof db, sessionId: string, quantity: number) {
+	const found = await loadSeatingAccess(tx, sessionId, { lock: true });
+	if (!found) {
+		throw new SeatingNotBookableError('seating-unpublished');
+	}
+
+	// Booking is never wider for an Admin than for anyone (the Admin
+	// preview of a Draft has booking disabled), so it is decided for the
+	// anonymous viewer.
+	const decision = seatingBooking({
+		event: found.event,
+		seating: found.access,
+		viewer: ANONYMOUS,
+		now: new Date(),
+		seats: quantity,
+	});
+	if (!decision.bookable) {
+		throw decision.reason === 'not-priced'
+			? new SeatingNotPricedError()
+			: new SeatingNotBookableError(decision.reason);
+	}
+
+	await decrementSessionCapacity(tx, sessionId, quantity);
+	return { session: found.seating, price: found.price! };
+}
+
+/**
+ * Lock a Session row and atomically decrement its available capacity, for
+ * an Admin's comp Reservation.
+ *
+ * Shares the capacity accounting with the Guest checkout
+ * ({@link lockAndDecrementBookableSeating}): both lock the Seating row and
+ * decrement through {@link decrementSessionCapacity}, so capacity can never
+ * be oversold by paid and comp bookings racing against the same Session.
  *
  * Must be called from within a `db.transaction`.
  */
@@ -60,21 +137,7 @@ async function lockAndDecrementSessionCapacity(
 	}
 
 	// Step 3: Decrement capacity atomically
-	const [updatedSession] = await tx
-		.update(eventSessions)
-		.set({
-			availableCapacity: sql`${eventSessions.availableCapacity} - ${quantity}`,
-			updatedAt: new Date(),
-		})
-		.where(and(
-			eq(eventSessions.id, sessionId),
-			sql`${eventSessions.availableCapacity} >= ${quantity}` // Double-check in UPDATE
-		))
-		.returning();
-
-	if (!updatedSession) {
-		throw new Error('Failed to reserve tickets (race condition)');
-	}
+	await decrementSessionCapacity(tx, sessionId, quantity);
 
 	return session;
 }
@@ -107,15 +170,11 @@ export async function createReservation(input: CreateReservationInput): Promise<
 	let result: CreateReservationResult;
 	try {
 		result = await db.transaction(async (tx: typeof db) => {
-		const session = await lockAndDecrementSessionCapacity(tx, input.sessionId, input.quantity);
+		// Steps 1–3: Event access, then lock and decrement capacity. The
+		// unit price (snapshot at booking time) is the Seating's Service
+		// price (issue 022); a Service without a price yet is refused.
+		const { session, price } = await lockAndDecrementBookableSeating(tx, input.sessionId, input.quantity);
 
-		// Step 4: Calculate total amount (snapshot price at booking time).
-		// The unit price is the Seating's Service price (issue 022); a
-		// Service without a price yet cannot be booked.
-		const price = await getSeatingPrice(tx, session.id);
-		if (!price) {
-			throw new SeatingNotPricedError();
-		}
 		// Step 4a: Validate and claim the promo code if provided
 		let discount: PromoDiscount | null = null;
 		let promotionCodeId: string | null = null;
@@ -305,9 +364,10 @@ async function sendConfirmedTicket(reservationId: string) {
 /**
  * Create a comp (complimentary) Reservation directly from the admin UI.
  *
- * Reuses the exact same capacity-locking transaction as a paying Guest's
- * checkout (`lockAndDecrementSessionCapacity`) so a comp booking and a
- * paid booking can never race each other into overselling a Session.
+ * Locks the Seating row and decrements its capacity the same way as a
+ * paying Guest's checkout (`lockAndDecrementSessionCapacity`) so a comp
+ * booking and a paid booking can never race each other into overselling a
+ * Session.
  *
  * Unlike a paid booking, no Stripe Checkout Session and no Payment record
  * are created — the Reservation is created directly with status

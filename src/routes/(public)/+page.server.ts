@@ -2,6 +2,7 @@ import { getAllEvents } from '$lib/server/services/events';
 import { logger } from '$lib/server/logger';
 import { getAllTalents } from '$lib/server/services/talents';
 import { MOCK_EVENTS, MOCK_TALENTS, USE_MOCK_DATA } from '$lib/mock-data';
+import { isListed } from '$lib/utils/event-access';
 import type { PageServerLoad } from './$types';
 import type { EventWithMedia } from '$lib/types/events';
 import type { TalentWithMedia } from '$lib/types/talents';
@@ -11,7 +12,7 @@ export const load: PageServerLoad = async () => {
     if (USE_MOCK_DATA) {
         logger.info('📦 Using mock data for events');
         return {
-            events: MOCK_EVENTS as unknown as EventWithMedia[],
+            events: MOCK_EVENTS.filter(isListed) as unknown as EventWithMedia[],
             talents: MOCK_TALENTS as unknown as TalentWithMedia[],
             heroImage: null,
             heroVideo: null,
@@ -21,7 +22,7 @@ export const load: PageServerLoad = async () => {
     const { getSiteSettings } = await import('$lib/server/services/site-settings');
 
     const [eventsResult, talentsResult, siteSettings] = await Promise.all([
-        getAllEvents({ publishedOnly: true }),
+        getAllEvents({ listedOnly: true }),
         getAllTalents({ publishedOnly: true }),
         getSiteSettings(),
     ]);

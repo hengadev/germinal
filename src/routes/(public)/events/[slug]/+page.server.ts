@@ -6,6 +6,8 @@ import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { seatingTitlesWithFallback } from '$lib/utils/seating-title';
 import type { ServiceKind } from '$lib/utils/seating-times';
+import { toAccessEvent, toAccessSeating } from '$lib/server/services/event-access';
+import { eventAccess, seatingAvailability, viewerOf } from '$lib/utils/event-access';
 
 /** What a Service offers on the public page (issue 022): its Menu and the
  * price per guest, shown once per Service rather than on every Seating. */
@@ -55,11 +57,14 @@ function buildSchedule<T extends SeatingCard>(
   }));
 }
 
-export const load: PageServerLoad = async ({ params }) => {
+export const load: PageServerLoad = async ({ params, locals }) => {
+  const viewer = viewerOf(locals.user);
+  const now = new Date();
+
   // Use mock data if enabled (no database required!)
   if (USE_MOCK_DATA) {
     const event = MOCK_EVENTS.find((e) => e.slug === params.slug);
-    if (!event) {
+    if (!event || !eventAccess(event, viewer).visible) {
       throw error(404, 'Event not found');
     }
     const rows = MOCK_SESSIONS
@@ -83,7 +88,13 @@ export const load: PageServerLoad = async ({ params }) => {
           allowWaitlist: s.allowWaitlist,
           badgeType: (s as any).badgeType ?? 'none',
           soldOut: s.availableCapacity === 0,
-          isPast: s.startTime < new Date()
+          isPast: s.startTime < now,
+          ...seatingAvailability({
+            event,
+            seating: toAccessSeating(s, s.priceAmount === null ? null : { amount: s.priceAmount, currency: s.currency, legacy: false }),
+            viewer,
+            now,
+          }),
         }
       }));
     // Mock Services have no Menu; their price is their first Seating's.
@@ -99,8 +110,19 @@ export const load: PageServerLoad = async ({ params }) => {
     };
   }
 
+  let event;
   try {
-    const event = await getEventBySlug(params.slug);
+    event = await getEventBySlug(params.slug);
+  } catch {
+    throw error(404, 'Event not found');
+  }
+  // Event access (issue 030): an Event the viewer may not see is not found.
+  const accessEvent = toAccessEvent(event);
+  if (!eventAccess(accessEvent, viewer).visible) {
+    throw error(404, 'Event not found');
+  }
+
+  try {
     const scheduleRows = await getPublishedScheduleByEventId(event.id);
     const offers = await getServiceOffersByEventId(event.id);
 
@@ -123,7 +145,15 @@ export const load: PageServerLoad = async ({ params }) => {
         allowWaitlist: row.item.allowWaitlist,
         badgeType: row.item.badgeType ?? 'none',
         soldOut: row.item.availableCapacity === 0,
-        isPast: row.item.startTime < new Date()
+        isPast: row.item.startTime < now,
+        // Why it cannot be booked (e.g. its Service has no price yet), and
+        // whether its Waitlist is open — as Event access decides.
+        ...seatingAvailability({
+          event: accessEvent,
+          seating: toAccessSeating(row.item, row.item.price),
+          viewer,
+          now,
+        }),
       }
     }));
 

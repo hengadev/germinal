@@ -1,6 +1,6 @@
 import { db } from '$lib/server/db';
-import { events, talents } from '$lib/server/db/schema';
-import { eq } from 'drizzle-orm';
+import { toAccessEvent } from '$lib/server/services/event-access';
+import { isIndexed } from '$lib/utils/event-access';
 import { MOCK_EVENTS, MOCK_TALENTS, USE_MOCK_DATA } from '$lib/mock-data';
 
 const SITE_URL = 'https://germinalstudio.co';
@@ -44,7 +44,7 @@ export async function GET() {
 
 	// Dynamic event pages
 	if (USE_MOCK_DATA) {
-		for (const event of MOCK_EVENTS) {
+		for (const event of MOCK_EVENTS.filter(isIndexed)) {
 			entries.push({
 				url: `${SITE_URL}/events/${event.slug}`,
 				lastmod: event.updatedAt?.toISOString().split('T')[0],
@@ -54,12 +54,12 @@ export async function GET() {
 		}
 	} else {
 		try {
-			const allEvents = await db.query.events.findMany({
-				columns: { slug: true, updatedAt: true },
-				where: eq(events.published, true)
+			const allEvents: { slug: string; updatedAt: Date | null; published: boolean }[] = await db.query.events.findMany({
+				columns: { slug: true, updatedAt: true, published: true }
 			});
 
-			for (const event of allEvents) {
+			// Only the Events Event access lets be indexed (issue 030).
+			for (const event of allEvents.filter((e) => isIndexed(toAccessEvent(e)))) {
 				entries.push({
 					url: `${SITE_URL}/events/${event.slug}`,
 					lastmod: event.updatedAt?.toISOString().split('T')[0],

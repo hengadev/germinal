@@ -9,14 +9,20 @@ import {
 	type PaginatedResponse,
 } from '$lib/utils/pagination';
 import { invalidateCacheTags, CACHE_TAGS } from '$lib/server/cache';
+import { canBeSpotlight } from '$lib/utils/event-access';
+import { listedEventsCondition, toAccessEvent } from './event-access';
 
-export async function getAllEvents(options: { publishedOnly?: boolean; excludeSpotlight?: boolean; page?: number; limit?: number; cursor?: string; search?: string }) {
-	const { publishedOnly = true, excludeSpotlight = false, page = 1, limit = 20, search } = options;
+/**
+ * Events, newest first, paged. `listedOnly` (the default) keeps the Events
+ * Event access lets be listed publicly (issue 030); the admin passes false.
+ */
+export async function getAllEvents(options: { listedOnly?: boolean; excludeSpotlight?: boolean; page?: number; limit?: number; cursor?: string; search?: string }) {
+	const { listedOnly = true, excludeSpotlight = false, page = 1, limit = 20, search } = options;
 
 	// Build where clause
 	let whereClause = undefined;
-	if (publishedOnly) {
-		whereClause = eq(events.published, true);
+	if (listedOnly) {
+		whereClause = listedEventsCondition();
 	}
 
 	if (excludeSpotlight) {
@@ -97,9 +103,11 @@ export async function getEventById(id: string) {
   return event;
 }
 
+/** The Spotlight, or null when there is none or Event access does not let
+ * it be the Spotlight (issue 030). */
 export async function getSpotlightEvent() {
   const spotlightEvent = await db.query.events.findFirst({
-    where: and(eq(events.isSpotlight, true), eq(events.published, true)),
+    where: eq(events.isSpotlight, true),
     with: {
       coverMedia: true,
       coverVideo: true,
@@ -114,7 +122,8 @@ export async function getSpotlightEvent() {
   });
 
   // Returns null if no spotlight event exists (valid state)
-  return spotlightEvent ?? null;
+  if (!spotlightEvent || !canBeSpotlight(toAccessEvent(spotlightEvent))) return null;
+  return spotlightEvent;
 }
 
 export async function createEvent(input: CreateEventInput) {

@@ -11,9 +11,9 @@
 
     let { data }: { data: PageData } = $props();
 
-    const canBook = $derived(
-        data.event.published && data.sessions.some((s: { isPast: boolean }) => !s.isPast)
-    );
+    // The page only loads when Event access lets the viewer see the Event
+    // (issue 030); the Seatings section shows while one has not started.
+    const canBook = $derived(data.sessions.some((s: { isPast: boolean }) => !s.isPast));
 
     function getEventTitle(): string {
         return ($locale === "en" ? data.event.titleEn : data.event.titleFr) || "";

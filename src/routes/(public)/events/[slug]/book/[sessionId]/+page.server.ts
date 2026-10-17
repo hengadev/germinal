@@ -6,6 +6,9 @@ import type { PageServerLoad } from './$types';
 import { seatingTitlesWithFallback } from '$lib/utils/seating-title';
 import { depositRuleOf } from '$lib/utils/pricing';
 import { refundPolicyOf } from '$lib/utils/refund-policy';
+import { loadSeatingAccess, toAccessEvent } from '$lib/server/services/event-access';
+import { db } from '$lib/server/db';
+import { eventAccess, seatingBooking, viewerOf } from '$lib/utils/event-access';
 
 function mapSession(s: (typeof MOCK_SESSIONS)[number]) {
 	return {
@@ -25,10 +28,12 @@ function mapSession(s: (typeof MOCK_SESSIONS)[number]) {
 	};
 }
 
-export const load: PageServerLoad = async ({ params }) => {
+export const load: PageServerLoad = async ({ params, locals }) => {
+	const viewer = viewerOf(locals.user);
+
 	if (USE_MOCK_DATA) {
 		const event = MOCK_EVENTS.find((e) => e.slug === params.slug);
-		if (!event) throw error(404, 'Event not found');
+		if (!event || !eventAccess(event, viewer).visible) throw error(404, 'Event not found');
 
 		const session = MOCK_SESSIONS.find(
 			(s) => s.id === params.sessionId && s.eventId === event.id
@@ -40,11 +45,17 @@ export const load: PageServerLoad = async ({ params }) => {
 
 	try {
 		const event = await getEventBySlug(params.slug);
+		// Event access (issue 030): an Event the viewer may not see is not
+		// found, and neither is a Seating of it that is unpublished or has
+		// no price yet (issue 022) — those cannot be booked.
+		if (!eventAccess(toAccessEvent(event), viewer).visible) throw error(404, 'Event not found');
+		const found = await loadSeatingAccess(db, params.sessionId);
+		if (!found || found.eventId !== event.id) throw error(404, 'Session not found');
+		const booking = seatingBooking({ event: found.event, seating: found.access, viewer, now: new Date() });
+		if (!booking.bookable && booking.reason !== 'started' && booking.reason !== 'full') {
+			throw error(404, 'Session not found');
+		}
 		const dbSession = await getSessionById(params.sessionId);
-
-		if (dbSession.event.id !== event.id) throw error(404, 'Session not found');
-		// Booked at its Service's price (issue 022); a Seating whose Service
-		// has no price yet cannot be booked.
 		if (!dbSession.price) throw error(404, 'Session not found');
 
 		return {
