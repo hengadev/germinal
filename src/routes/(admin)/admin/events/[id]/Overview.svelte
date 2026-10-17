@@ -4,6 +4,7 @@
 	import { MapPin, Type, FileText } from 'lucide-svelte';
 	import type { ActionData, PageData } from './$types';
 	import { getToastContext } from '$lib/components/toast/state.svelte';
+	import { VISIBILITIES, VISIBILITY_LABELS, canBeSpotlight, type Visibility } from '$lib/utils/event-access';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -49,8 +50,20 @@
 	let curatorFr = $state(data.event.curatorFr || "");
 	let admissionInfoEn = $state(data.event.admissionInfoEn || "");
 	let admissionInfoFr = $state(data.event.admissionInfoFr || "");
-	let published = $state(data.event.published);
+	let visibility = $state<Visibility>(data.event.visibility);
 	let isSpotlight = $state(data.event.isSpotlight ?? false);
+	// Only a Public Event can be the Spotlight: choosing Brouillon or Privé
+	// clears it (issue 032).
+	const spotlightAllowed = $derived(canBeSpotlight({ visibility }));
+	$effect(() => {
+		if (!spotlightAllowed) isSpotlight = false;
+	});
+
+	const VISIBILITY_HINTS: Record<Visibility, string> = {
+		draft: 'Visible des seuls administrateurs. Sa page publique répond « introuvable ».',
+		private: 'Visible et réservable par toute personne ayant son lien, mais jamais listé, ni indexé, ni mis à la une.',
+		public: 'Visible et réservable par tous ; peut être mis à la une.',
+	};
 	let isPortfolio = $state(data.event.isPortfolio ?? false);
 </script>
 
@@ -549,25 +562,28 @@
             </div>
         </div>
 
-        <!-- Published Status -->
-        <div class="flex items-center gap-3 p-4 bg-muted rounded-lg">
-            <input
-                id="published"
-                name="published"
-                type="checkbox"
-                bind:checked={published}
-                value="true"
-                class="w-5 h-5 text-foreground border-border-input rounded focus:ring-foreground"
-            />
-            <div>
-                <label for="published" class="block text-sm font-medium text-foreground cursor-pointer">
-                    Publié
-                </label>
-                <p class="text-xs text-muted-foreground">
-                    Décocher pour sauvegarder comme brouillon
-                </p>
+        <!-- Visibility (issue 032): taking an Event out of Brouillon publishes it -->
+        <fieldset class="p-4 bg-muted rounded-lg">
+            <legend class="sr-only">Visibilité</legend>
+            <p class="block text-sm font-medium text-foreground mb-3" aria-hidden="true">Visibilité</p>
+            <div class="grid gap-3 sm:grid-cols-3">
+                {#each VISIBILITIES as option (option)}
+                    <label class="flex items-start gap-3 cursor-pointer">
+                        <input
+                            type="radio"
+                            name="visibility"
+                            value={option}
+                            bind:group={visibility}
+                            class="mt-0.5 w-4 h-4 text-foreground border-border-input focus:ring-foreground"
+                        />
+                        <span>
+                            <span class="block text-sm font-medium text-foreground">{VISIBILITY_LABELS[option]}</span>
+                            <span class="block text-xs text-muted-foreground">{VISIBILITY_HINTS[option]}</span>
+                        </span>
+                    </label>
+                {/each}
             </div>
-        </div>
+        </fieldset>
 
         <!-- Spotlight Status -->
         <div class="flex items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
@@ -577,7 +593,8 @@
                 type="checkbox"
                 bind:checked={isSpotlight}
                 value="true"
-                class="w-5 h-5 text-amber-900 border-amber-300 rounded focus:ring-amber-900"
+                disabled={!spotlightAllowed}
+                class="w-5 h-5 text-amber-900 border-amber-300 rounded focus:ring-amber-900 disabled:opacity-50"
             />
             <div>
                 <label for="isSpotlight" class="block text-sm font-medium text-amber-900 cursor-pointer">
@@ -585,6 +602,7 @@
                 </label>
                 <p class="text-xs text-amber-600">
                     Les événements à la une sont mis en avant sur le site. Un seul événement peut être à la une à la fois.
+                    {#if !spotlightAllowed}Seul un événement Public peut être à la une.{/if}
                 </p>
             </div>
         </div>

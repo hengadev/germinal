@@ -56,6 +56,12 @@ export const discountTypeEnum = pgEnum('discount_type', ['percent', 'amount'] as
 
 // A Service is a meal on a given Day — either lunch or dinner
 // (ADR 0005, CONTEXT.md "Service")
+// Event Visibility (issue 032, ADR 0007): who can see and book an Event.
+// `draft` — Admins only; `private` — anyone holding its id link, never
+// listed, indexed or the Spotlight; `public` — anyone, and it may be the
+// Spotlight. Replaces the `published` flag.
+export const eventVisibilityEnum = pgEnum('event_visibility', ['draft', 'private', 'public'] as const);
+
 export const serviceKindEnum = pgEnum('service_kind', ['lunch', 'dinner'] as const);
 
 // An Event's Deposit rule (issue 023): no Deposit, a fixed amount per seat,
@@ -160,16 +166,16 @@ export const events = pgTable('events', {
         .default(sql`'[{"hoursBefore":24,"percent":100}]'::jsonb`),
     coverMediaId: uuid('cover_media_id'),
     coverVideoId: uuid('cover_video_id'),
-    published: boolean('published').default(false).notNull(),
+    visibility: eventVisibilityEnum('visibility').notNull().default('draft'),
     isSpotlight: boolean('is_spotlight').default(false).notNull(),
     isPortfolio: boolean('is_portfolio').default(false).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => ({
-    publishedIdx: index('events_published_idx').on(table.published),
+    visibilityIdx: index('events_visibility_idx').on(table.visibility),
     startDateIdx: index('events_start_date_idx').on(table.startDate),
-    // Composite index for listing published events sorted by date
-    publishedStartDateIdx: index('events_published_start_date_idx').on(table.published, table.startDate),
+    // Composite index for listing Public events sorted by date
+    visibilityStartDateIdx: index('events_visibility_start_date_idx').on(table.visibility, table.startDate),
     spotlightIdx: index('events_spotlight_idx').on(table.isSpotlight),
     portfolioIdx: index('events_portfolio_idx').on(table.isPortfolio),
     venueCapacityCheck: check('events_venue_capacity_check',

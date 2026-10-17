@@ -66,7 +66,7 @@ async function seedSession(endedDaysAgo: number) {
 			locationFr: 'Paris',
 			startDate: new Date(end.getTime() - DAY),
 			endDate: end,
-			published: true,
+			visibility: 'public',
 		})
 		.returning();
 	const startTime = new Date(end.getTime() - 4 * 60 * 60 * 1000);

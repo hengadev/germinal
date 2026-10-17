@@ -48,7 +48,7 @@ async function seedEventWithTwoSeatings() {
 			endDate: new Date('2099-06-10'),
 			locationEn: 'Paris',
 			locationFr: 'Paris',
-			published: true,
+			visibility: 'public',
 			depositType: 'fixed',
 			depositValue: 2000,
 		})

@@ -122,10 +122,11 @@ export const actions: Actions = {
 		const admissionInfoFr = formData.get('admissionInfoFr');
 		const coverMediaId = formData.get('coverMediaId') as string | null;
 		const galleryMediaIds = formData.get('galleryMediaIds') as string | null;
-		// Events are always created as drafts - publish after adding sessions
-		// const published = formData.get('published') === 'true';
-		const published = false;
-		const isSpotlight = formData.get('isSpotlight') === 'true';
+		// Events are always created as Drafts (issue 032) — the Admin sets
+		// the Visibility on the Event afterwards. A Draft can never be the
+		// Spotlight, so a new Event never is.
+		const visibility = 'draft' as const;
+		const isSpotlight = false;
 
 		// Parse gallery media IDs
 		let galleryIds: string[] = [];
@@ -216,7 +217,7 @@ export const actions: Actions = {
 				curatorFr: curatorFr?.toString() || null,
 				admissionInfoEn: admissionInfoEn?.toString() || null,
 				admissionInfoFr: admissionInfoFr?.toString() || null,
-				published,
+				visibility,
 				isSpotlight,
 				createdAt: new Date(),
 				updatedAt: new Date(),
@@ -268,7 +269,7 @@ export const actions: Actions = {
 				admissionInfoFr: admissionInfoFr?.toString() || null,
 				venueCapacity,
 				coverMediaId: coverMediaId || null,
-				published,
+				visibility,
 				isSpotlight
 			});
 		} catch (error) {

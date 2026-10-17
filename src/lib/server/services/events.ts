@@ -118,7 +118,23 @@ export async function getSpotlightEvent() {
   return spotlightEvent;
 }
 
+/**
+ * Refused: making an Event that is not Public the Spotlight (issue 032,
+ * ADR 0007). A Draft or Private Event can never be the Spotlight.
+ */
+export class SpotlightRequiresPublicError extends Error {
+  constructor() {
+    super('Only a Public Event can be the Spotlight');
+    this.name = 'SpotlightRequiresPublicError';
+  }
+}
+
 export async function createEvent(input: CreateEventInput) {
+  const visibility = input.visibility ?? 'draft';
+  if (input.isSpotlight && !canBeSpotlight({ visibility })) {
+    throw new SpotlightRequiresPublicError();
+  }
+
   return await db.transaction(async (tx: typeof db) => {
     // If new event is spotlight, unset any existing spotlight first
     if (input.isSpotlight) {
@@ -157,7 +173,7 @@ export async function createEvent(input: CreateEventInput) {
       admissionInfoFr: input.admissionInfoFr,
       venueCapacity: input.venueCapacity ?? null,
       coverMediaId: input.coverMediaId,
-      published: input.published ?? false,
+      visibility,
       isSpotlight: input.isSpotlight ?? false,
     }).returning();
 
@@ -168,8 +184,27 @@ export async function createEvent(input: CreateEventInput) {
 
 export async function updateEvent(id: string, input: UpdateEventInput) {
   return await db.transaction(async (tx: typeof db) => {
+    // Only a Public Event can be the Spotlight (issue 032): making any other
+    // the Spotlight is refused, and moving the Spotlight to Draft or Private
+    // clears it.
+    let spotlight = input.isSpotlight;
+    if (input.isSpotlight === true || input.visibility !== undefined) {
+      const [current] = await tx.select({ visibility: events.visibility })
+        .from(events)
+        .where(eq(events.id, id))
+        .limit(1);
+      if (!current) {
+        throw new Error('Event not found');
+      }
+      const visibility = input.visibility ?? current.visibility;
+      if (!canBeSpotlight({ visibility })) {
+        if (input.isSpotlight === true) throw new SpotlightRequiresPublicError();
+        spotlight = false;
+      }
+    }
+
     // If event is being set to spotlight, unset others
-    if (input.isSpotlight === true) {
+    if (spotlight === true) {
       await tx.update(events)
         .set({ isSpotlight: false, updatedAt: new Date() })
         .where(and(
@@ -186,8 +221,9 @@ export async function updateEvent(id: string, input: UpdateEventInput) {
       .from(eventDays)
       .where(eq(eventDays.eventId, id))
       .limit(1);
-    const { startDate: _startDate, endDate: _endDate, ...rest } = input;
-    const writable = day ? rest : input;
+    const withSpotlight = spotlight === undefined ? input : { ...input, isSpotlight: spotlight };
+    const { startDate: _startDate, endDate: _endDate, ...rest } = withSpotlight;
+    const writable = day ? rest : withSpotlight;
 
     const [updated] = await tx.update(events)
       .set({

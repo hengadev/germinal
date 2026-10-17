@@ -1,5 +1,5 @@
 import { json } from '@sveltejs/kit';
-import { getAllEvents, createEvent } from '$lib/server/services/events';
+import { getAllEvents, createEvent, SpotlightRequiresPublicError } from '$lib/server/services/events';
 import { createEventSchema } from '$lib/server/validators/events';
 import { EventWithoutSeatingError } from '$lib/server/services/event-schedule';
 import { requireAdmin } from '$lib/server/auth-guards';
@@ -10,7 +10,7 @@ import { isListed, viewerOf } from '$lib/utils/event-access';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ url, setHeaders, locals }) => {
-  // Unlisted Events (Drafts) only ever go to an Admin asking for them;
+  // Unlisted Events (Drafts, Private Events) only ever go to an Admin asking for them;
   // everyone else gets what Event access lets be listed (issue 030).
   const listedOnly = url.searchParams.get('published') !== 'false' || viewerOf(locals.user).role !== 'admin';
   const excludeSpotlight = url.searchParams.get('excludeSpotlight') === 'true';
@@ -79,11 +79,18 @@ export const POST: RequestHandler = async (event) => {
   }
 
   // A new Event has no Seating yet, and a published Event needs one
-  // (ADR 0001): create it as a draft, publish once Seatings are added.
-  if (parsed.data.published) {
+  // (ADR 0001): create it as a Draft, publish once Seatings are added.
+  if (parsed.data.visibility !== 'draft') {
     return json({ error: new EventWithoutSeatingError().message }, { status: 400 });
   }
 
-  const createdEvent = await createEvent(parsed.data);
-  return json(createdEvent, { status: 201 });
+  try {
+    const createdEvent = await createEvent(parsed.data);
+    return json(createdEvent, { status: 201 });
+  } catch (createError) {
+    if (createError instanceof SpotlightRequiresPublicError) {
+      return json({ error: createError.message }, { status: 400 });
+    }
+    throw createError;
+  }
 };

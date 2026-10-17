@@ -41,7 +41,7 @@ async function seedEvent(name: string) {
 			locationEn: 'Paris',
 			locationFr: 'Paris',
 			venueCapacity: 20,
-			published: true,
+			visibility: 'public',
 		})
 		.returning();
 	return event;

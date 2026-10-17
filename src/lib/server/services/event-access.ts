@@ -2,7 +2,7 @@ import { db } from '../db';
 import { events, eventDays, eventServices, eventSessions } from '../db/schema';
 import { eq } from 'drizzle-orm';
 import { resolveSeatingPrice, type SeatingPrice } from '$lib/utils/seating-price';
-import type { AccessEvent, AccessSeating } from '$lib/utils/event-access';
+import type { AccessEvent, AccessSeating, Visibility } from '$lib/utils/event-access';
 
 /**
  * The database side of Event access (issue 030): turns rows into the
@@ -12,8 +12,8 @@ import type { AccessEvent, AccessSeating } from '$lib/utils/event-access';
  */
 
 /** The Event access snapshot of an Event row. */
-export function toAccessEvent(event: { published: boolean }): AccessEvent {
-	return { published: event.published };
+export function toAccessEvent(event: { visibility: Visibility }): AccessEvent {
+	return { visibility: event.visibility };
 }
 
 /** The Event access snapshot of a Seating row and the price it is booked at. */
@@ -35,7 +35,7 @@ export function toAccessSeating(
  * through them. Kept equal to `isListed` by tests/integration/draft-access.
  */
 export function listedEventsCondition() {
-	return eq(events.published, true);
+	return eq(events.visibility, 'public');
 }
 
 export interface SeatingAccess {
@@ -61,7 +61,7 @@ export async function loadSeatingAccess(
 		.select({
 			seating: eventSessions,
 			eventId: events.id,
-			eventPublished: events.published,
+			eventVisibility: events.visibility,
 			servicePriceAmount: eventServices.priceAmount,
 			serviceCurrency: eventServices.currency,
 		})
@@ -75,7 +75,7 @@ export async function loadSeatingAccess(
 	const [row]: {
 		seating: typeof eventSessions.$inferSelect;
 		eventId: string;
-		eventPublished: boolean;
+		eventVisibility: Visibility;
 		servicePriceAmount: number | null;
 		serviceCurrency: string;
 	}[] = lock ? await query.for('update', { of: eventSessions }) : await query;
@@ -93,7 +93,7 @@ export async function loadSeatingAccess(
 		seating: row.seating,
 		eventId: row.eventId,
 		price,
-		event: toAccessEvent({ published: row.eventPublished }),
+		event: toAccessEvent({ visibility: row.eventVisibility }),
 		access: toAccessSeating(row.seating, price),
 	};
 }

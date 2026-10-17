@@ -12,7 +12,7 @@ export const load: PageServerLoad = async ({ url }) => {
     const searchQuery = url.searchParams.get('q') || undefined;
 
     if (env.USE_MOCK_DATA) {
-        // Mock mode - return all events (published and unpublished)
+        // Mock mode - return all events, whatever their Visibility
         let filteredEvents = MOCK_EVENTS;
 
         // Apply search filter if provided

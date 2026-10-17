@@ -429,7 +429,7 @@ export async function saveEventSchedule(eventId: string, picked: PickedServiceDa
 	}
 
 	await db.transaction(async (tx: typeof db) => {
-		const [event] = await tx.select({ id: events.id, published: events.published })
+		const [event] = await tx.select({ id: events.id, visibility: events.visibility })
 			.from(events)
 			.where(eq(events.id, eventId))
 			.limit(1);
@@ -517,7 +517,7 @@ export async function saveEventSchedule(eventId: string, picked: PickedServiceDa
 		// Removed Services take their unbooked Seatings with them (cascade):
 		// a published Event must keep at least one (ADR 0001). Only checked
 		// when Seatings were actually removed; throwing rolls the deletions back.
-		if (event.published && removesSeatings) {
+		if (event.visibility !== 'draft' && removesSeatings) {
 			const [remaining] = await tx.select({ id: eventSessions.id })
 				.from(eventSessions)
 				.where(eq(eventSessions.eventId, eventId))
@@ -1080,7 +1080,7 @@ export async function saveServiceSeatings(
 	const removedSeatingIds: string[] = await db.transaction(async (tx: typeof db) => {
 		const [event] = await tx.select({
 			id: events.id,
-			published: events.published,
+			visibility: events.visibility,
 			venueCapacity: events.venueCapacity,
 		})
 			.from(events)
@@ -1274,7 +1274,7 @@ export async function saveServiceSeatings(
 
 		// A published Event must keep at least one Seating (ADR 0001).
 		if (
-			event.published &&
+			event.visibility !== 'draft' &&
 			removedIds.length > 0 &&
 			sessionRows.length - removedIds.length + insertCount === 0
 		) {

@@ -28,6 +28,9 @@ import { depositRuleOf } from '$lib/utils/pricing';
 import { refundPolicyOf } from '$lib/utils/refund-policy';
 import type { PageServerLoad } from './$types';
 import { requireAdmin } from '$lib/server/auth-guards';
+import { canBeSpotlight, parseVisibility } from '$lib/utils/event-access';
+
+const SPOTLIGHT_REQUIRES_PUBLIC_MESSAGE = 'Seul un événement Public peut être mis en avant (Spotlight).';
 
 /**
  * The Event's Days with their lunch/dinner Services, ordered by date then
@@ -332,9 +335,18 @@ export const actions: Actions = {
 		const curatorFr = formData.get('curatorFr');
 		const admissionInfoEn = formData.get('admissionInfoEn');
 		const admissionInfoFr = formData.get('admissionInfoFr');
-		const published = formData.get('published') === 'true';
+		const visibility = parseVisibility(formData.get('visibility'));
 		const isSpotlight = formData.get('isSpotlight') === 'true';
 		const isPortfolio = formData.get('isPortfolio') === 'true';
+
+		if (!visibility) {
+			return fail(400, { error: 'Visibilité invalide' });
+		}
+
+		// Only a Public Event can be the Spotlight (issue 032).
+		if (isSpotlight && !canBeSpotlight({ visibility })) {
+			return fail(400, { error: SPOTLIGHT_REQUIRES_PUBLIC_MESSAGE });
+		}
 
 		// Validation
 		if (!titleEn || typeof titleEn !== 'string') {
@@ -362,7 +374,7 @@ export const actions: Actions = {
 		}
 
 		// A published Event must have at least one Seating (ADR 0001).
-		if (published) {
+		if (visibility !== 'draft') {
 			if (env.USE_MOCK_DATA) {
 				if (!MOCK_SESSIONS.some(s => s.eventId === id)) {
 					return fail(400, { error: new EventWithoutSeatingError().message });
@@ -419,7 +431,7 @@ export const actions: Actions = {
 				curatorFr: curatorFr?.toString() || null,
 				admissionInfoEn: admissionInfoEn?.toString() || null,
 				admissionInfoFr: admissionInfoFr?.toString() || null,
-				published,
+				visibility,
 				isSpotlight,
 				isPortfolio,
 				updatedAt: new Date()
@@ -458,13 +470,17 @@ export const actions: Actions = {
 				curatorFr: curatorFr?.toString() || null,
 				admissionInfoEn: admissionInfoEn?.toString() || null,
 				admissionInfoFr: admissionInfoFr?.toString() || null,
-				published,
+				visibility,
 				isSpotlight,
 				isPortfolio
 			});
 
 			return { success: `Événement « ${titleEn} » mis à jour` };
 		} catch (error) {
+			const { SpotlightRequiresPublicError } = await import('$lib/server/services/events');
+			if (error instanceof SpotlightRequiresPublicError) {
+				return fail(400, { error: SPOTLIGHT_REQUIRES_PUBLIC_MESSAGE });
+			}
 			logger.error({ err: error }, 'Error updating event');
 			return fail(500, { error: 'Failed to update event.' });
 		}

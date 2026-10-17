@@ -7,20 +7,30 @@ import {
 	isListed,
 	isIndexed,
 	canBeSpotlight,
+	parseVisibility,
+	VISIBILITIES,
 	seatingBooking,
 	waitlistAccess,
 	seatingAvailability,
+	type EventAccessDecision,
 	type AccessEvent,
 	type AccessSeating,
 	type Viewer,
+	type Visibility,
 } from '../../../src/lib/utils/event-access';
 
 const NOW = new Date('2099-06-01T12:00:00Z');
 const LATER = new Date('2099-06-01T19:00:00Z');
 const EARLIER = new Date('2099-06-01T11:00:00Z');
 
-const PUBLISHED: AccessEvent = { published: true };
-const UNPUBLISHED: AccessEvent = { published: false };
+const DRAFT: AccessEvent = { visibility: 'draft' };
+const PRIVATE: AccessEvent = { visibility: 'private' };
+const PUBLIC: AccessEvent = { visibility: 'public' };
+const EVENTS: [Visibility, AccessEvent][] = [
+	['draft', DRAFT],
+	['private', PRIVATE],
+	['public', PUBLIC],
+];
 
 function seating(overrides: Partial<AccessSeating> = {}): AccessSeating {
 	return {
@@ -52,34 +62,53 @@ describe('viewerOf', () => {
 });
 
 describe('eventAccess', () => {
-	it.each(VIEWERS)('a published Event is seen by the %s viewer, as its announcement', (_, viewer) => {
-		expect(eventAccess(PUBLISHED, viewer)).toEqual({ visible: true, view: 'announcement' });
-	});
+	// Every Visibility × viewer combination. A Draft is not found for
+	// everyone but an Admin, who sees it as a preview (033).
+	const cases: [Visibility, string, Viewer, EventAccessDecision][] = [];
+	for (const [visibility] of EVENTS) {
+		for (const [viewerName, viewer] of VIEWERS) {
+			cases.push([
+				visibility,
+				viewerName,
+				viewer,
+				visibility !== 'draft'
+					? { visible: true, view: 'announcement' }
+					: viewer.role === 'admin'
+						? { visible: true, view: 'preview' }
+						: { visible: false },
+			]);
+		}
+	}
 
-	// The Admin preview (033): a Draft is "not found" for everyone but an
-	// Admin, who sees its real page as a preview (booking stays off).
-	it('an unpublished Event is seen by the Admin, as a preview', () => {
-		expect(eventAccess(UNPUBLISHED, ADMIN)).toEqual({ visible: true, view: 'preview' });
-	});
-
-	it('an unpublished Event is hidden from the anonymous viewer', () => {
-		expect(eventAccess(UNPUBLISHED, ANONYMOUS)).toEqual({ visible: false });
+	it.each(cases)('a %s Event, %s viewer', (visibility, _, viewer, expected) => {
+		expect(eventAccess({ visibility }, viewer)).toEqual(expected);
 	});
 });
 
 describe('listing, indexing and the Spotlight', () => {
 	it.each([
-		[PUBLISHED, true],
-		[UNPUBLISHED, false],
-	])('event %o — listed, indexed and Spotlight-able: %s', (event, expected) => {
+		['draft', DRAFT, false],
+		['private', PRIVATE, false],
+		['public', PUBLIC, true],
+	] as const)('a %s Event — listed, indexed and Spotlight-able: %s', (_, event, expected) => {
 		expect(isListed(event)).toBe(expected);
 		expect(isIndexed(event)).toBe(expected);
 		expect(canBeSpotlight(event)).toBe(expected);
 	});
 });
 
+describe('parseVisibility', () => {
+	it.each(VISIBILITIES.map((v) => [v]))('accepts %s', (value) => {
+		expect(parseVisibility(value)).toBe(value);
+	});
+
+	it.each([[null], [undefined], [''], ['published'], ['PUBLIC'], [true]])('rejects %o', (value) => {
+		expect(parseVisibility(value)).toBeNull();
+	});
+});
+
 describe('seatingBooking', () => {
-	// Every published × viewer × Seating-state combination. The first
+	// Every Visibility × viewer × Seating-state combination. The first
 	// matching refusal wins, in this order: Event not published, Seating
 	// unpublished, no price on its Service, Seating started, full. The Admin
 	// preview (033) shows a Draft's page but never books it: a Draft's
@@ -97,7 +126,7 @@ describe('seatingBooking', () => {
 	];
 
 	const cases: [string, AccessEvent, string, Viewer, string, AccessSeating, string | null][] = [];
-	for (const [eventName, event] of [['published', PUBLISHED], ['unpublished', UNPUBLISHED]] as const) {
+	for (const [eventName, event] of EVENTS) {
 		for (const [viewerName, viewer] of VIEWERS) {
 			for (const [stateName, state, reason] of SEATING_STATES) {
 				cases.push([
@@ -107,7 +136,7 @@ describe('seatingBooking', () => {
 					viewer,
 					stateName,
 					state,
-					event.published ? reason : 'event-not-published',
+					event.visibility === 'draft' ? 'event-not-published' : reason,
 				]);
 			}
 		}
@@ -123,30 +152,32 @@ describe('seatingBooking', () => {
 
 	it('is full when fewer seats are left than asked for', () => {
 		const state = seating({ availableCapacity: 2 });
-		expect(seatingBooking({ event: PUBLISHED, seating: state, viewer: ANONYMOUS, now: NOW, seats: 2 }))
+		expect(seatingBooking({ event: PUBLIC, seating: state, viewer: ANONYMOUS, now: NOW, seats: 2 }))
 			.toEqual({ bookable: true });
-		expect(seatingBooking({ event: PUBLISHED, seating: state, viewer: ANONYMOUS, now: NOW, seats: 3 }))
+		expect(seatingBooking({ event: PUBLIC, seating: state, viewer: ANONYMOUS, now: NOW, seats: 3 }))
 			.toEqual({ bookable: false, reason: 'full' });
 	});
 });
 
 describe('waitlistAccess', () => {
-	it.each(VIEWERS)('a full Seating of a published Event can be wait-listed (%s viewer)', (_, viewer) => {
-		expect(waitlistAccess({ event: PUBLISHED, seating: seating({ availableCapacity: 0 }), viewer, now: NOW }))
-			.toEqual({ allowed: true });
+	it.each(VIEWERS)('a full Seating of a Public or Private Event can be wait-listed (%s viewer)', (_, viewer) => {
+		for (const event of [PUBLIC, PRIVATE]) {
+			expect(waitlistAccess({ event, seating: seating({ availableCapacity: 0 }), viewer, now: NOW }))
+				.toEqual({ allowed: true });
+		}
 	});
 
 	it('being full is not a reason to refuse it', () => {
-		expect(waitlistAccess({ event: PUBLISHED, seating: seating(), viewer: ANONYMOUS, now: NOW }))
+		expect(waitlistAccess({ event: PUBLIC, seating: seating(), viewer: ANONYMOUS, now: NOW }))
 			.toEqual({ allowed: true });
 	});
 
 	it.each([
-		['an unpublished Event', UNPUBLISHED, seating({ availableCapacity: 0 }), 'event-not-published'],
-		['an unpublished Seating', PUBLISHED, seating({ published: false }), 'seating-unpublished'],
-		['an unpriced Seating', PUBLISHED, seating({ priced: false }), 'not-priced'],
-		['a started Seating', PUBLISHED, seating({ startTime: EARLIER }), 'started'],
-		['a Seating without a Waitlist', PUBLISHED, seating({ allowWaitlist: false }), 'waitlist-not-offered'],
+		['a Draft', DRAFT, seating({ availableCapacity: 0 }), 'event-not-published'],
+		['an unpublished Seating', PUBLIC, seating({ published: false }), 'seating-unpublished'],
+		['an unpriced Seating', PUBLIC, seating({ priced: false }), 'not-priced'],
+		['a started Seating', PUBLIC, seating({ startTime: EARLIER }), 'started'],
+		['a Seating without a Waitlist', PUBLIC, seating({ allowWaitlist: false }), 'waitlist-not-offered'],
 	])('refuses %s', (_, event, state, reason) => {
 		for (const [, viewer] of VIEWERS) {
 			expect(waitlistAccess({ event, seating: state, viewer, now: NOW })).toEqual({ allowed: false, reason });
@@ -156,11 +187,11 @@ describe('waitlistAccess', () => {
 
 describe('seatingAvailability', () => {
 	it.each([
-		['an open Seating', PUBLISHED, seating(), { bookingRefusal: null, waitlistOpen: false }],
-		['a full Seating with a Waitlist', PUBLISHED, seating({ availableCapacity: 0 }), { bookingRefusal: 'full', waitlistOpen: true }],
-		['a full Seating without one', PUBLISHED, seating({ availableCapacity: 0, allowWaitlist: false }), { bookingRefusal: 'full', waitlistOpen: false }],
-		['a full, unpriced Seating', PUBLISHED, seating({ availableCapacity: 0, priced: false }), { bookingRefusal: 'not-priced', waitlistOpen: false }],
-		['a Seating of an unpublished Event', UNPUBLISHED, seating({ availableCapacity: 0 }), { bookingRefusal: 'event-not-published', waitlistOpen: false }],
+		['an open Seating', PUBLIC, seating(), { bookingRefusal: null, waitlistOpen: false }],
+		['a full Seating with a Waitlist', PUBLIC, seating({ availableCapacity: 0 }), { bookingRefusal: 'full', waitlistOpen: true }],
+		['a full Seating without one', PUBLIC, seating({ availableCapacity: 0, allowWaitlist: false }), { bookingRefusal: 'full', waitlistOpen: false }],
+		['a full, unpriced Seating', PUBLIC, seating({ availableCapacity: 0, priced: false }), { bookingRefusal: 'not-priced', waitlistOpen: false }],
+		['a Seating of a Draft', DRAFT, seating({ availableCapacity: 0 }), { bookingRefusal: 'event-not-published', waitlistOpen: false }],
 	])('%s', (_, event, state, expected) => {
 		expect(seatingAvailability({ event, seating: state, viewer: ANONYMOUS, now: NOW })).toEqual(expected);
 	});
@@ -168,7 +199,7 @@ describe('seatingAvailability', () => {
 	// In the Admin preview (033) every Seating is shown unbookable and no
 	// Waitlist opens, so the page can leave the booking links out.
 	it.each(VIEWERS)('in the preview of a Draft, every Seating is unbookable and no Waitlist opens (%s viewer)', (_, viewer) => {
-		expect(seatingAvailability({ event: UNPUBLISHED, seating: seating({ availableCapacity: 0 }), viewer, now: NOW }))
+		expect(seatingAvailability({ event: DRAFT, seating: seating({ availableCapacity: 0 }), viewer, now: NOW }))
 			.toEqual({ bookingRefusal: 'event-not-published', waitlistOpen: false });
 	});
 });

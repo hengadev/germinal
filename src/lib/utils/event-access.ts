@@ -10,9 +10,10 @@
  * checks publication on its own.
  *
  * Inputs are plain snapshots so later rules slot in by widening them:
- * Visibility (032) replaces `published`, the Booking Window (035) adds
- * refusals before opening and after closing, and the Portfolio (044) adds a
- * view and a listing rule.
+ * Visibility (032) replaced `published`, the Admin preview (033) adds a
+ * view for the Admin viewer, the Booking Window (035) adds refusals before
+ * opening and after closing, and the Portfolio (044) adds a view and a
+ * listing rule.
  */
 
 /** Who is looking: anyone, or a signed-in Admin. */
@@ -26,9 +27,18 @@ export function viewerOf(user: { role: string } | null | undefined): Viewer {
 	return user?.role === 'admin' ? ADMIN : ANONYMOUS;
 }
 
+/**
+ * Who can see and book an Event (ADR 0007). `draft`: Admins only. `private`:
+ * anyone holding its id link, but never listed, indexed or the Spotlight.
+ * `public`: anyone, and it may be the Spotlight.
+ */
+export type Visibility = 'draft' | 'private' | 'public';
+
+export const VISIBILITIES: readonly Visibility[] = ['draft', 'private', 'public'];
+
 /** What Event access needs to know about an Event. */
 export interface AccessEvent {
-	published: boolean;
+	visibility: Visibility;
 }
 
 /** What Event access needs to know about a Seating. */
@@ -50,7 +60,7 @@ export type EventAccessDecision = { visible: true; view: EventView } | { visible
 
 /** May this viewer see the Event's page, and as what. Hidden means "not found". */
 export function eventAccess(event: AccessEvent, viewer: Viewer): EventAccessDecision {
-	if (!event.published) {
+	if (event.visibility === 'draft') {
 		// The Admin preview (issue 033): an Admin sees a Draft's real page,
 		// as a Guest would, with booking disabled; everyone else gets
 		// "not found".
@@ -60,19 +70,20 @@ export function eventAccess(event: AccessEvent, viewer: Viewer): EventAccessDeci
 	return { visible: true, view: 'announcement' };
 }
 
-/** May the Event appear in public listings (Events listing, homepage gallery). */
+/** May the Event appear in public listings (Events listing, homepage
+ * gallery): Public Events only — a Private one is reached by its link. */
 export function isListed(event: AccessEvent): boolean {
-	return event.published;
+	return event.visibility === 'public';
 }
 
-/** May the Event's page be indexed (sitemap). */
+/** May the Event's page be indexed (sitemap, no `noindex`): Public only. */
 export function isIndexed(event: AccessEvent): boolean {
-	return event.published;
+	return event.visibility === 'public';
 }
 
-/** May the Event be shown as the Spotlight. */
+/** May the Event be shown as the Spotlight: Public only. */
 export function canBeSpotlight(event: AccessEvent): boolean {
-	return event.published;
+	return event.visibility === 'public';
 }
 
 /** Why a Seating cannot be booked, in the order the rules are checked. */
@@ -144,3 +155,17 @@ export function seatingAvailability(input: SeatingAccessInput): SeatingAvailabil
 		waitlistOpen: !booking.bookable && booking.reason === 'full' && waitlistAccess(input).allowed,
 	};
 }
+
+/** A Visibility from untrusted input (a form field), or null. */
+export function parseVisibility(value: unknown): Visibility | null {
+	return typeof value === 'string' && (VISIBILITIES as readonly string[]).includes(value)
+		? (value as Visibility)
+		: null;
+}
+
+/** The Admin's French name for each Visibility. */
+export const VISIBILITY_LABELS: Record<Visibility, string> = {
+	draft: 'Brouillon',
+	private: 'Privé',
+	public: 'Public',
+};

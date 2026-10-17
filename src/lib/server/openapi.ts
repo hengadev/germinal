@@ -52,7 +52,7 @@ export const openApiSpec = {
 						name: 'published',
 						in: 'query',
 						schema: { type: 'boolean', default: true },
-						description: 'Filter to show only published events'
+						description: 'Only Public Events (the default). An Admin may pass false to include Draft and Private Events.'
 					},
 					{
 						name: 'page',
@@ -422,7 +422,7 @@ export const openApiSpec = {
 					endDate: { type: 'string', format: 'date-time', description: 'Event end date and time' },
 					location: { type: 'string', description: 'Event location' },
 					coverMedia: { $ref: '#/components/schemas/Media' },
-					published: { type: 'boolean', description: 'Whether the event is published' }
+					visibility: { type: 'string', enum: ['draft', 'private', 'public'], description: 'Who can see and book the event: draft (Admins only), private (anyone with its link, never listed) or public' }
 				}
 			},
 			Talent: {
@@ -462,7 +462,7 @@ export const openApiSpec = {
 					startDate: { type: 'string', format: 'date-time', description: 'Event start date and time' },
 					endDate: { type: 'string', format: 'date-time', description: 'Event end date and time' },
 					location: { type: 'string', description: 'Event location' },
-					published: { type: 'boolean', description: 'Whether the event should be published immediately' }
+					visibility: { type: 'string', enum: ['draft'], default: 'draft', description: 'A new event is always created as a draft' }
 				}
 			},
 			CreateTalent: {

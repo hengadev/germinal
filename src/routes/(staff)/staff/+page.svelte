@@ -198,7 +198,7 @@
                                             {assignment.event.titleEn || assignment.event.title}
                                         </h3>
                                         <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {statusBadge.class}">
-                                            {assignment.event.published ? 'Published' : 'Draft'}
+                                            {assignment.event.visibility === 'draft' ? 'Draft' : 'Published'}
                                         </span>
                                     </div>
                                     <p class="text-sm text-muted-foreground mb-2">
