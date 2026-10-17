@@ -7,6 +7,7 @@ import {
 	isListed,
 	isIndexed,
 	canBeSpotlight,
+	canJoinPortfolio,
 	parseVisibility,
 	VISIBILITIES,
 	seatingBooking,
@@ -90,10 +91,54 @@ describe('listing, indexing and the Spotlight', () => {
 		['draft', DRAFT, false],
 		['private', PRIVATE, false],
 		['public', PUBLIC, true],
-	] as const)('a %s Event — listed, indexed and Spotlight-able: %s', (_, event, expected) => {
-		expect(isListed(event)).toBe(expected);
+	] as const)('a %s Event — indexed and Spotlight-able: %s', (_, event, expected) => {
 		expect(isIndexed(event)).toBe(expected);
 		expect(canBeSpotlight(event)).toBe(expected);
+		// Listing is the Portfolio's alone (issue 044): an Event that is
+		// over and not in it is listed nowhere.
+		expect(isListed(event)).toBe(false);
+	});
+
+	// "Projets" and the homepage gallery list Portfolio Events of any
+	// Visibility except Draft (issue 044) — a Private Event joins the
+	// Portfolio only once it is over, so listing it is safe.
+	it.each([
+		['draft', false, false],
+		['draft', true, false],
+		['private', false, false],
+		['private', true, true],
+		['public', false, false],
+		['public', true, true],
+	] as const)('a %s Event in the Portfolio (%s) — listed: %s', (visibility, inPortfolio, expected) => {
+		expect(isListed({ visibility, isPortfolio: inPortfolio })).toBe(expected);
+	});
+
+	it('an Event whose Portfolio flag is unknown is not listed', () => {
+		expect(isListed(PUBLIC)).toBe(false);
+	});
+
+	it('a Portfolio Event stays un-indexed unless Public', () => {
+		expect(isIndexed({ visibility: 'private', isPortfolio: true })).toBe(false);
+		expect(isIndexed({ visibility: 'public', isPortfolio: true })).toBe(true);
+	});
+});
+
+describe('canJoinPortfolio', () => {
+	// The one hard rule (ADR 0007): an Event joins the Portfolio only once
+	// its last Seating has started, whatever its Visibility.
+	it.each([
+		['no Seating at all', null, false],
+		['a last Seating still to come', LATER, false],
+		['a last Seating starting now', NOW, true],
+		['a last Seating already started', EARLIER, true],
+	] as const)('%s → %s', (_, lastSeatingStart, expected) => {
+		for (const event of [DRAFT, PRIVATE, PUBLIC]) {
+			expect(canJoinPortfolio({ ...event, lastSeatingStart }, NOW)).toBe(expected);
+		}
+	});
+
+	it('a last Seating start that is unknown refuses', () => {
+		expect(canJoinPortfolio(PUBLIC, NOW)).toBe(false);
 	});
 });
 

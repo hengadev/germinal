@@ -14,8 +14,8 @@ import { bookingWindowState, DEFAULT_BOOKING_WINDOW, type BookingWindow } from '
  * Inputs are plain snapshots so later rules slot in by widening them:
  * Visibility (032) replaced `published`, the Admin preview (033) adds a
  * view for the Admin viewer, the Booking Window (035) adds refusals before
- * opening and after closing, and the Portfolio (044) adds a view and a
- * listing rule.
+ * opening and after closing, and the Portfolio (044) adds a listing rule
+ * and decides when an Event may join it.
  */
 
 /** Who is looking: anyone, or a signed-in Admin. */
@@ -38,12 +38,20 @@ export type Visibility = 'draft' | 'private' | 'public';
 
 export const VISIBILITIES: readonly Visibility[] = ['draft', 'private', 'public'];
 
-/** What Event access needs to know about an Event. */
+/** What Event access needs to know about an Event. The Portfolio fields
+ * (issue 044) may be unknown to a caller that does not need them: an
+ * absent flag means "not in the Portfolio", an absent last Seating start
+ * means "may not join it yet" — both fail closed. */
 export interface AccessEvent {
 	visibility: Visibility;
 	/** Its Booking Window (035); absent: the default one (open as soon as
 	 * published, closing at each Seating's start). */
 	bookingWindow?: BookingWindow;
+	/** Whether the Event is part of the Portfolio (ADR 0007), the
+	 * post-event showcase "Projets" and the homepage gallery list. */
+	isPortfolio?: boolean;
+	/** When the Event's last Seating starts; null when it has none. */
+	lastSeatingStart?: Date | null;
 }
 
 /** What Event access needs to know about a Seating. */
@@ -75,13 +83,17 @@ export function eventAccess(event: AccessEvent, viewer: Viewer): EventAccessDeci
 	return { visible: true, view: 'announcement' };
 }
 
-/** May the Event appear in public listings (Events listing, homepage
- * gallery): Public Events only — a Private one is reached by its link. */
+/** May the Event appear in public listings (the Events listing, homepage
+ * gallery): Portfolio Events of any Visibility except Draft, most recent
+ * first (issue 044). A Private Event joins the Portfolio only once it is
+ * over, so listing it no longer exposes a bookable link; an Event that is
+ * over and not in the Portfolio is listed nowhere. */
 export function isListed(event: AccessEvent): boolean {
-	return event.visibility === 'public';
+	return event.isPortfolio === true && event.visibility !== 'draft';
 }
 
-/** May the Event's page be indexed (sitemap, no `noindex`): Public only. */
+/** May the Event's page be indexed (sitemap, no `noindex`): Public only —
+ * even a Portfolio one, a Private Event stays out of the sitemap. */
 export function isIndexed(event: AccessEvent): boolean {
 	return event.visibility === 'public';
 }
@@ -89,6 +101,15 @@ export function isIndexed(event: AccessEvent): boolean {
 /** May the Event be shown as the Spotlight: Public only. */
 export function canBeSpotlight(event: AccessEvent): boolean {
 	return event.visibility === 'public';
+}
+
+/** May the Event join the Portfolio: only once its last Seating has
+ * started (ADR 0007) — the one hard rule, so a Private Event's link is
+ * never listed while its Event can still be booked. An Event without
+ * Seatings never can. */
+export function canJoinPortfolio(event: AccessEvent, now: Date): boolean {
+	const lastSeatingStart = event.lastSeatingStart ?? null;
+	return lastSeatingStart !== null && lastSeatingStart.getTime() <= now.getTime();
 }
 
 /** Why a Seating cannot be booked, in the order the rules are checked. */

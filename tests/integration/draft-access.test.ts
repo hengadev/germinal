@@ -368,7 +368,7 @@ describe('a Draft is listed nowhere', () => {
 
 	it('is absent from the Events listing', async () => {
 		const draft = await seedEvent(false);
-		const event = await seedEvent(true);
+		const event = await seedEvent(true, { isPortfolio: true });
 		const { load } = await import('../../src/routes/(public)/events/+page.server');
 		const data: any = await load({ url: new URL('http://x/events'), locals: ANONYMOUS_LOCALS } as any);
 		const ids = data.events.map((e: { id: string }) => e.id);
@@ -378,7 +378,7 @@ describe('a Draft is listed nowhere', () => {
 
 	it('is absent from the Events API, even when asking for unpublished Events', async () => {
 		const draft = await seedEvent(false);
-		await seedEvent(true);
+		await seedEvent(true, { isPortfolio: true });
 		const { GET } = await import('../../src/routes/api/events/+server');
 		for (const query of ['', '?published=false', '?q=Dinner', '?published=false&q=Dinner']) {
 			const response = await GET({
@@ -394,7 +394,7 @@ describe('a Draft is listed nowhere', () => {
 
 	it('is absent from the homepage gallery', async () => {
 		const draft = await seedEvent(false);
-		const event = await seedEvent(true);
+		const event = await seedEvent(true, { isPortfolio: true });
 		const { load } = await import('../../src/routes/(public)/+page.server');
 		const data: any = await load({ locals: ANONYMOUS_LOCALS } as any);
 		const ids = data.events.map((e: { id: string }) => e.id);
@@ -428,7 +428,12 @@ describe('a Draft is listed nowhere', () => {
 	});
 
 	it('the listing query agrees with Event access for every Event', async () => {
-		const seeded = [await seedEvent(false), await seedEvent(true)];
+		const seeded = [
+			await seedEvent(false),
+			await seedEvent(false, { isPortfolio: true }),
+			await seedEvent(true),
+			await seedEvent(true, { isPortfolio: true }),
+		];
 		const { listedEventsCondition, toAccessEvent } = await import('../../src/lib/server/services/event-access');
 		const { isListed } = await import('../../src/lib/utils/event-access');
 		const listed = await testDb.select({ id: events.id }).from(events).where(listedEventsCondition());
@@ -436,6 +441,8 @@ describe('a Draft is listed nowhere', () => {
 		for (const event of seeded) {
 			expect(listedIds.has(event.id)).toBe(isListed(toAccessEvent(event)));
 		}
+		// Only the published Event in the Portfolio is listed.
+		expect(listedIds.size).toBe(1);
 	});
 });
 

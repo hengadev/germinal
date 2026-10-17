@@ -4,7 +4,7 @@
 	import { MapPin, Type, FileText } from 'lucide-svelte';
 	import type { ActionData, PageData } from './$types';
 	import { getToastContext } from '$lib/components/toast/state.svelte';
-	import { VISIBILITIES, VISIBILITY_LABELS, canBeSpotlight, type Visibility } from '$lib/utils/event-access';
+	import { VISIBILITIES, VISIBILITY_LABELS, canBeSpotlight, canJoinPortfolio, type Visibility } from '$lib/utils/event-access';
 	import TimeZoneField from '$lib/components/admin/TimeZoneField.svelte';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -66,6 +66,14 @@
 		public: 'Visible et réservable par tous ; peut être mis à la une.',
 	};
 	let isPortfolio = $state(data.event.isPortfolio ?? false);
+	// The Portfolio (issue 044): an Event joins it only once its last
+	// Seating has started — until then the choice is the server's to refuse.
+	const portfolioJoinable = $derived(
+		canJoinPortfolio(
+			{ visibility, isPortfolio, lastSeatingStart: data.lastSeatingStart },
+			new Date()
+		)
+	);
 </script>
 
 <div class="bg-background rounded-lg border border-border-card p-6 lg:p-8">
@@ -619,14 +627,22 @@
                 type="checkbox"
                 bind:checked={isPortfolio}
                 value="true"
-                class="w-5 h-5 text-indigo-900 border-indigo-300 rounded focus:ring-indigo-900"
+                disabled={!portfolioJoinable}
+                class="w-5 h-5 text-indigo-900 border-indigo-300 rounded focus:ring-indigo-900 disabled:opacity-50"
             />
             <div>
                 <label for="isPortfolio" class="block text-sm font-medium text-indigo-900 cursor-pointer">
                     Inclure dans la galerie Portfolio
                 </label>
                 <p class="text-xs text-indigo-600">
-                    Les événements portfolio apparaissent dans la galerie visuelle de la page d'accueil. Une image de couverture est requise.
+                    Les événements du Portfolio apparaissent dans « Projets » et la galerie de la page d’accueil, les plus récents d’abord. Une image de couverture est requise.
+                    {#if !portfolioJoinable}
+                        {#if data.lastSeatingStart}
+                            Un événement ne rejoint le Portfolio qu’une fois sa dernière séance commencée, prévue le {new Date(data.lastSeatingStart).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}.
+                        {:else}
+                            Un événement ne rejoint le Portfolio qu’une fois sa dernière séance commencée ; celui-ci n’a pas encore de séance.
+                        {/if}
+                    {/if}
                 </p>
             </div>
         </div>

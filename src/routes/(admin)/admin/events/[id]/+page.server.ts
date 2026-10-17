@@ -33,9 +33,26 @@ import { depositRuleOf } from '$lib/utils/pricing';
 import { refundPolicyOf } from '$lib/utils/refund-policy';
 import type { PageServerLoad } from './$types';
 import { requireAdmin } from '$lib/server/auth-guards';
-import { canBeSpotlight, parseVisibility } from '$lib/utils/event-access';
+import { canBeSpotlight, canJoinPortfolio, parseVisibility } from '$lib/utils/event-access';
 
 const SPOTLIGHT_REQUIRES_PUBLIC_MESSAGE = 'Seul un événement Public peut être mis en avant (Spotlight).';
+const PORTFOLIO_REQUIRES_OVER_MESSAGE =
+	'Un événement ne rejoint le Portfolio qu’une fois sa dernière séance commencée.';
+
+/**
+ * When the Event's last Seating starts — what Event access needs to decide
+ * whether it may join the Portfolio (issue 044). Mock mode has no Seatings
+ * table: its Sessions stand in for them.
+ */
+async function lastSeatingStart(eventId: string): Promise<Date | null> {
+	if (env.USE_MOCK_DATA) {
+		const starts = MOCK_SESSIONS.filter((s) => s.eventId === eventId).map((s) => s.startTime.getTime());
+		return starts.length > 0 ? new Date(Math.max(...starts)) : null;
+	}
+	const { db } = await import('$lib/server/db');
+	const { lastSeatingStartOf } = await import('$lib/server/services/event-access');
+	return lastSeatingStartOf(db, eventId);
+}
 
 /**
  * The Event's Days with their lunch/dinner Services, ordered by date then
@@ -223,7 +240,13 @@ export const load: PageServerLoad = async ({ params }) => {
 			refundPolicy: refundPolicyOf(event),
 		};
 
-		return { event, sessions, reservations, promoCodes: [], talents, days, schedule, venueCapacity, pricing, timeZones: listTimeZones(), timeZoneLocked: reservations.length > 0 };
+		// When the Event's last Seating starts (issue 044): what decides
+		// whether it may join the Portfolio. Mock mode has no Seatings table,
+		// so its Sessions stand in for them.
+		const seatingStarts = sessions.map((s) => new Date(s.startTime).getTime());
+		const lastSeatingStart = seatingStarts.length > 0 ? new Date(Math.max(...seatingStarts)) : null;
+
+		return { event, sessions, reservations, promoCodes: [], talents, days, schedule, venueCapacity, pricing, timeZones: listTimeZones(), timeZoneLocked: reservations.length > 0, lastSeatingStart };
 	}
 
 	// Database mode - fetch from database
@@ -276,6 +299,11 @@ export const load: PageServerLoad = async ({ params }) => {
 		const { loadPricingEditor } = await import('$lib/server/services/service-pricing');
 		const pricing = await loadPricingEditor(id);
 
+		// When the Event's last Seating starts (issue 044): what decides
+		// whether it may join the Portfolio. Its Seatings are already loaded.
+		const seatingStarts = sessionsData.map((s: typeof sessionsData[number]) => s.startTime.getTime());
+		const lastSeatingStart = seatingStarts.length > 0 ? new Date(Math.max(...seatingStarts)) : null;
+
 		return {
 			event,
 			promoCodes,
@@ -325,6 +353,7 @@ export const load: PageServerLoad = async ({ params }) => {
 			// has a Reservation (ADR 0006).
 			timeZones: listTimeZones(),
 			timeZoneLocked: reservationsData.length > 0,
+			lastSeatingStart,
 		};
 	} catch (err) {
 		if (err instanceof Error && err.message === 'Event not found') {
@@ -384,6 +413,12 @@ export const actions: Actions = {
 		// Only a Public Event can be the Spotlight (issue 032).
 		if (isSpotlight && !canBeSpotlight({ visibility })) {
 			return fail(400, { error: SPOTLIGHT_REQUIRES_PUBLIC_MESSAGE });
+		}
+
+		// The Portfolio (issue 044): an Event joins it only once its last
+		// Seating has started. updateEvent refuses it again on the database.
+		if (isPortfolio && !canJoinPortfolio({ visibility, isPortfolio, lastSeatingStart: await lastSeatingStart(id) }, new Date())) {
+			return fail(400, { error: PORTFOLIO_REQUIRES_OVER_MESSAGE });
 		}
 
 		// Validation
@@ -520,9 +555,12 @@ export const actions: Actions = {
 
 			return { success: `Événement « ${titleEn} » mis à jour` };
 		} catch (error) {
-			const { SpotlightRequiresPublicError } = await import('$lib/server/services/events');
+			const { SpotlightRequiresPublicError, PortfolioRequiresOverEventError } = await import('$lib/server/services/events');
 			if (error instanceof SpotlightRequiresPublicError) {
 				return fail(400, { error: SPOTLIGHT_REQUIRES_PUBLIC_MESSAGE });
+			}
+			if (error instanceof PortfolioRequiresOverEventError) {
+				return fail(400, { error: PORTFOLIO_REQUIRES_OVER_MESSAGE });
 			}
 			logger.error({ err: error }, 'Error updating event');
 			return fail(500, { error: 'Failed to update event.' });

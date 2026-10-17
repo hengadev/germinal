@@ -9,12 +9,13 @@ import {
 	type PaginatedResponse,
 } from '$lib/utils/pagination';
 import { invalidateCacheTags, CACHE_TAGS } from '$lib/server/cache';
-import { canBeSpotlight } from '$lib/utils/event-access';
-import { listedEventsCondition, toAccessEvent } from './event-access';
+import { canBeSpotlight, canJoinPortfolio } from '$lib/utils/event-access';
+import { lastSeatingStartOf, listedEventsCondition, toAccessEvent } from './event-access';
 
 /**
  * Events, newest first, paged. `listedOnly` (the default) keeps the Events
- * Event access lets be listed publicly (issue 030); the admin passes false.
+ * Event access lets be listed publicly — the Portfolio, of any Visibility
+ * except Draft (issues 030 and 044); the admin passes false.
  */
 export async function getAllEvents(options: { listedOnly?: boolean; excludeSpotlight?: boolean; page?: number; limit?: number; cursor?: string; search?: string }) {
 	const { listedOnly = true, excludeSpotlight = false, page = 1, limit = 20, search } = options;
@@ -129,10 +130,28 @@ export class SpotlightRequiresPublicError extends Error {
   }
 }
 
+/**
+ * Refused: adding an Event to the Portfolio before its last Seating has
+ * started (issue 044, ADR 0007). A Private Event's link must never be
+ * listed while its Event can still be booked, so an Event joins the
+ * Portfolio only once it is over.
+ */
+export class PortfolioRequiresOverEventError extends Error {
+  constructor() {
+    super('Only an Event whose last Seating has started can join the Portfolio');
+    this.name = 'PortfolioRequiresOverEventError';
+  }
+}
+
 export async function createEvent(input: CreateEventInput) {
   const visibility = input.visibility ?? 'draft';
   if (input.isSpotlight && !canBeSpotlight({ visibility })) {
     throw new SpotlightRequiresPublicError();
+  }
+  // A new Event has no Seating yet, so its last one can never have started:
+  // it cannot join the Portfolio at creation (issue 044).
+  if (input.isPortfolio) {
+    throw new PortfolioRequiresOverEventError();
   }
 
   return await db.transaction(async (tx: typeof db) => {
@@ -188,9 +207,10 @@ export async function updateEvent(id: string, input: UpdateEventInput) {
   return await db.transaction(async (tx: typeof db) => {
     // Only a Public Event can be the Spotlight (issue 032): making any other
     // the Spotlight is refused, and moving the Spotlight to Draft or Private
-    // clears it.
+    // clears it. The Portfolio (issue 044) is joined only once the Event's
+    // last Seating has started; the server refuses it earlier.
     let spotlight = input.isSpotlight;
-    if (input.isSpotlight === true || input.visibility !== undefined) {
+    if (input.isSpotlight === true || input.visibility !== undefined || input.isPortfolio === true) {
       const [current] = await tx.select({ visibility: events.visibility })
         .from(events)
         .where(eq(events.id, id))
@@ -202,6 +222,14 @@ export async function updateEvent(id: string, input: UpdateEventInput) {
       if (!canBeSpotlight({ visibility })) {
         if (input.isSpotlight === true) throw new SpotlightRequiresPublicError();
         spotlight = false;
+      }
+      if (input.isPortfolio === true) {
+        const event = toAccessEvent({
+          visibility,
+          isPortfolio: true,
+          lastSeatingStart: await lastSeatingStartOf(tx, id),
+        });
+        if (!canJoinPortfolio(event, new Date())) throw new PortfolioRequiresOverEventError();
       }
     }
 

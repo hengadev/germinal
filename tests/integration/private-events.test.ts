@@ -275,7 +275,7 @@ describe('a Private Event is listed nowhere', () => {
 
 	it('is absent from the Events listing', async () => {
 		const priv = await seedEvent('private');
-		const pub = await seedEvent('public');
+		const pub = await seedEvent('public', { isPortfolio: true });
 		const { load } = await import('../../src/routes/(public)/events/+page.server');
 		const data: any = await load({ url: new URL('http://x/events'), locals: ANONYMOUS_LOCALS } as any);
 		const ids = data.events.map((e: { id: string }) => e.id);
@@ -285,7 +285,7 @@ describe('a Private Event is listed nowhere', () => {
 
 	it('is absent from the Events API for anyone but an Admin asking for unlisted Events', async () => {
 		const priv = await seedEvent('private');
-		await seedEvent('public');
+		await seedEvent('public', { isPortfolio: true });
 		const { GET } = await import('../../src/routes/api/events/+server');
 		for (const query of ['', '?published=false', '?q=Dinner']) {
 			const response = await GET({
@@ -301,7 +301,7 @@ describe('a Private Event is listed nowhere', () => {
 
 	it('is absent from the homepage gallery', async () => {
 		const priv = await seedEvent('private');
-		const pub = await seedEvent('public');
+		const pub = await seedEvent('public', { isPortfolio: true });
 		const { load } = await import('../../src/routes/(public)/+page.server');
 		const data: any = await load({ locals: ANONYMOUS_LOCALS } as any);
 		const ids = data.events.map((e: { id: string }) => e.id);
@@ -329,7 +329,13 @@ describe('a Private Event is listed nowhere', () => {
 	});
 
 	it('the listing query agrees with Event access for every Visibility', async () => {
-		const seeded = [await seedEvent('draft'), await seedEvent('private'), await seedEvent('public')];
+		const seeded = [
+			await seedEvent('draft'),
+			await seedEvent('private'),
+			await seedEvent('public'),
+			await seedEvent('public', { isPortfolio: true }),
+			await seedEvent('private', { isPortfolio: true }),
+		];
 		const { listedEventsCondition, toAccessEvent } = await import('../../src/lib/server/services/event-access');
 		const { isListed } = await import('../../src/lib/utils/event-access');
 		const listed = await testDb.select({ id: events.id }).from(events).where(listedEventsCondition());
@@ -337,7 +343,8 @@ describe('a Private Event is listed nowhere', () => {
 		for (const event of seeded) {
 			expect(listedIds.has(event.id)).toBe(isListed(toAccessEvent(event)));
 		}
-		expect(listedIds.size).toBe(1);
+		// The Portfolio is listed whatever its Visibility, except a Draft.
+		expect(listedIds.size).toBe(2);
 	});
 });
 
