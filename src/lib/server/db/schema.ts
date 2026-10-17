@@ -113,16 +113,19 @@ export const talentCategories = pgTable('talent_categories', {
 
 export const events = pgTable('events', {
     id: uuid('id').defaultRandom().primaryKey(),
-    titleEn: varchar('title_en', { length: 255 }).notNull(),
-    titleFr: varchar('title_fr', { length: 255 }).notNull(),
-    descriptionEn: text('description_en').notNull(),
-    descriptionFr: text('description_fr').notNull(),
+    // Nothing is required to save a Draft (ADR 0008, issue 036): the texts,
+    // locations and dates may all be missing. The dates follow the Days, so
+    // an Event without Days has none.
+    titleEn: varchar('title_en', { length: 255 }),
+    titleFr: varchar('title_fr', { length: 255 }),
+    descriptionEn: text('description_en'),
+    descriptionFr: text('description_fr'),
     subtitleEn: text('subtitle_en'),
     subtitleFr: text('subtitle_fr'),
-    startDate: timestamp('start_date', { withTimezone: true }).notNull(),
-    endDate: timestamp('end_date', { withTimezone: true }).notNull(),
-    locationEn: varchar('location_en', { length: 500 }).notNull(),
-    locationFr: varchar('location_fr', { length: 500 }).notNull(),
+    startDate: timestamp('start_date', { withTimezone: true }),
+    endDate: timestamp('end_date', { withTimezone: true }),
+    locationEn: varchar('location_en', { length: 500 }),
+    locationFr: varchar('location_fr', { length: 500 }),
     venueNameEn: varchar('venue_name_en', { length: 200 }),
     venueNameFr: varchar('venue_name_fr', { length: 200 }),
     streetAddressEn: varchar('street_address_en', { length: 255 }),

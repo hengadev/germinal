@@ -2,11 +2,9 @@ import type { events, media } from '$lib/server/db/schema';
 import type { InferSelectModel } from 'drizzle-orm';
 
 export type Event = InferSelectModel<typeof events>;
-// Venue Capacity is optional on creation (issue 021): an Event may get one
-// later, before its first Seating inherits it.
-export type CreateEventInput = Omit<Event, 'id' | 'createdAt' | 'updatedAt' | 'venueCapacity'> & {
-  venueCapacity?: number | null;
-};
+// Nothing is required on creation (ADR 0008, issue 036): a Draft is saved
+// with whatever has been filled in, the rest left to its column default.
+export type CreateEventInput = Partial<Omit<Event, 'id' | 'createdAt' | 'updatedAt'>>;
 export type UpdateEventInput = Partial<CreateEventInput>;
 
 export type EventWithMedia = Event & {

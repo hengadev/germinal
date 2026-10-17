@@ -19,6 +19,7 @@
     import Modal from "$lib/components/ui/Modal.svelte";
     import { getToastContext } from "$lib/components/toast/state.svelte";
     import { VISIBILITY_LABELS } from "$lib/utils/event-access";
+    import { adminEventTitle } from "$lib/utils/event-text";
 
     let {
         data,
@@ -63,7 +64,9 @@
  deleteDialogOpen = true;
  }
 
- function formatDate(date: Date | string): string {
+ // A Draft may have no Days, hence no dates (issue 036).
+ function formatDate(date: Date | string | null): string {
+ if (!date) return "—";
  return new Date(date).toLocaleDateString("en-US", {
  year: "numeric",
  month: "short",
@@ -178,7 +181,7 @@
  {/if}
  <div class="min-w-0">
  <p class="font-medium text-foreground truncate">
- {event.titleEn}
+ {adminEventTitle(event)}
  </p>
  </div>
  </div>
@@ -196,7 +199,7 @@
  <td class="px-6 py-4">
  <div class="flex items-center gap-1 text-sm text-foreground-alt">
  <MapPin size={16} class="flex-shrink-0" />
- <span class="truncate">{event.locationEn}</span>
+ <span class="truncate">{event.locationEn ?? event.locationFr ?? "—"}</span>
  </div>
  </td>
  <td class="px-6 py-4">
@@ -282,11 +285,11 @@
  {/if}
  <div class="min-w-0 flex-1">
  <h3 class="font-semibold text-foreground truncate">
- {event.titleEn}
+ {adminEventTitle(event)}
  </h3>
  <div class="flex items-center gap-1 text-sm text-foreground-alt mt-1">
  <MapPin size={14} class="flex-shrink-0" />
- <span class="truncate">{event.locationEn}</span>
+ <span class="truncate">{event.locationEn ?? event.locationFr ?? "—"}</span>
  </div>
  </div>
  </div>
@@ -375,7 +378,7 @@
                 </button>
             </div>
             <p class="text-muted-foreground text-sm">
-                Êtes-vous sûr de vouloir supprimer "{selectedEvent?.titleEn}" ? Cette
+                Êtes-vous sûr de vouloir supprimer "{selectedEvent ? adminEventTitle(selectedEvent) : ""}" ? Cette
                 action ne peut pas être annulée.
             </p>
         </div>
@@ -406,7 +409,7 @@
     <Modal
         bind:isOpen={deleteDialogOpen}
         title="Supprimer l'Événement"
- description="Êtes-vous sûr de vouloir supprimer '{selectedEvent?.titleEn}' ? Cette action ne peut pas être annulée."
+ description="Êtes-vous sûr de vouloir supprimer '{selectedEvent ? adminEventTitle(selectedEvent) : ""}' ? Cette action ne peut pas être annulée."
     >
         <form method="POST" action="?/deleteEvent" use:enhance={deleteEventEnhance} class="mt-6">
             <input type="hidden" name="id" value={selectedEvent?.id} />

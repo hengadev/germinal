@@ -7,6 +7,7 @@
 	import type { PageData } from './$types';
 	import { reveal } from '$lib/actions/reveal';
 	import { t, locale } from 'svelte-i18n';
+	import { localizedText } from '$lib/utils/event-text';
 
 	let { data }: { data: PageData } = $props();
 
@@ -26,7 +27,7 @@
 		if (!spotlightEvent) return '';
 		const enField = (field + 'En') as 'titleEn' | 'descriptionEn' | 'subtitleEn';
 		const frField = (field + 'Fr') as 'titleFr' | 'descriptionFr' | 'subtitleFr';
-		return $locale === 'en' ? (spotlightEvent[enField] || '') : (spotlightEvent[frField] || '');
+		return localizedText(spotlightEvent[enField], spotlightEvent[frField], $locale);
 	}
 </script>
 

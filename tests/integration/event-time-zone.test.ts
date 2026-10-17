@@ -141,8 +141,8 @@ describe('Seatings in the Event’s Time Zone', () => {
 
 		// The Event's dates are its Days, in its zone.
 		const [saved] = await testDb.select().from(events).where(eq(events.id, event.id));
-		expect(saved.startDate.toISOString()).toBe('2099-07-14T23:00:00.000Z');
-		expect(saved.endDate.toISOString()).toBe('2099-07-15T22:59:59.999Z');
+		expect(saved.startDate!.toISOString()).toBe('2099-07-14T23:00:00.000Z');
+		expect(saved.endDate!.toISOString()).toBe('2099-07-15T22:59:59.999Z');
 	});
 
 	it('the Ticket, the emails and the .ics place the London dinner right, whatever the server’s zone', async () => {
@@ -174,7 +174,7 @@ describe('Seatings in the Event’s Time Zone', () => {
 			generateCancellationTextTemplate({
 				guestEmail: reservation.guestEmail,
 				guestName: reservation.guestName,
-				eventTitle: event.titleEn,
+				eventTitle: event.titleEn!,
 				sessionTitle: 'Dinner',
 				sessionStartTime: seating.startTime,
 				timeZone: event.timeZone,
@@ -274,8 +274,8 @@ describe('Seatings in the Event’s Time Zone', () => {
 		]);
 		const [saved] = await testDb.select().from(events).where(eq(events.id, event.id));
 		expect(saved.timeZone).toBe('Europe/London');
-		expect(saved.startDate.toISOString()).toBe('2099-07-14T23:00:00.000Z');
-		expect(saved.endDate.toISOString()).toBe('2099-12-10T23:59:59.999Z');
+		expect(saved.startDate!.toISOString()).toBe('2099-07-14T23:00:00.000Z');
+		expect(saved.endDate!.toISOString()).toBe('2099-12-10T23:59:59.999Z');
 	});
 
 	it('refuses to change the Time Zone once a Seating has a Reservation, writing nothing', async () => {
@@ -304,16 +304,12 @@ describe('Seatings in the Event’s Time Zone', () => {
 		const { actions } = await import('../../src/routes/(admin)/admin/events/[id]/+page.server');
 		const submit = (timeZone: string) => {
 			const form = new FormData();
+			// What the Lieu tab posts (issue 036).
 			for (const [name, value] of Object.entries({
-				titleEn: event.titleEn,
-				titleFr: event.titleFr,
-				descriptionEn: event.descriptionEn,
-				descriptionFr: event.descriptionFr,
 				locationEn: event.locationEn,
 				locationFr: event.locationFr,
-				visibility: 'public',
 				timeZone,
-			})) form.set(name, value);
+			})) form.set(name, value ?? '');
 			return actions.updateEvent!({
 				locals: { user: { id: 'admin', email: 'admin@example.com', role: 'admin' } },
 				request: new Request('http://x', { method: 'POST', body: form }),

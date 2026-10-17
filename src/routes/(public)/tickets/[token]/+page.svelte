@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { localizedText } from '$lib/utils/event-text';
 	import { Download, Printer, CheckCircle2, Clock, MapPin, Calendar, User, Mail, Ticket, CreditCard, AlertCircle, X, XCircle, Loader2 } from 'lucide-svelte';
 	import { locale, t } from 'svelte-i18n';
 	import type { PageData } from './$types';
@@ -167,7 +168,7 @@
 			? (event.event.locationFr ?? event.event.locationEn ?? '')
 			: (event.event.locationEn ?? event.event.locationFr ?? '');
 
-		const description = `Your ticket for ${isFr ? event.event.titleFr : event.event.titleEn}\\nQuantity: ${data.reservation.quantity}\\nConfirmation: ${data.reservation.id}`;
+		const description = `Your ticket for ${localizedText(event.event.titleEn, event.event.titleFr, isFr ? 'fr' : 'en')}\\nQuantity: ${data.reservation.quantity}\\nConfirmation: ${data.reservation.id}`;
 
 		return `BEGIN:VCALENDAR
 VERSION:2.0
@@ -177,7 +178,7 @@ UID:${data.reservation.id}@germinalstudio.co
 DTSTAMP:${formatICSDate(new Date())}
 DTSTART:${formatICSDate(startDate)}
 DTEND:${formatICSDate(endDate)}
-SUMMARY:${escapeICS(`${isFr ? event.event.titleFr : event.event.titleEn} - ${isFr ? event.titleFr : event.titleEn}`)}
+SUMMARY:${escapeICS(`${localizedText(event.event.titleEn, event.event.titleFr, isFr ? 'fr' : 'en')} - ${isFr ? event.titleFr : event.titleEn}`)}
 DESCRIPTION:${escapeICS(description)}
 LOCATION:${escapeICS(locationStr)}
 STATUS:CONFIRMED
@@ -240,21 +241,21 @@ END:VCALENDAR`;
 			: (session.event.locationEn ?? session.event.locationFr ?? '');
 		const params = new URLSearchParams({
 			action: 'TEMPLATE',
-			text: `${isFr ? session.event.titleFr : session.event.titleEn} — ${isFr ? session.titleFr : session.titleEn}`,
+			text: `${localizedText(session.event.titleEn, session.event.titleFr, isFr ? 'fr' : 'en')} — ${isFr ? session.titleFr : session.titleEn}`,
 			dates: `${formatDate(startDate)}/${formatDate(endDate)}`,
-			details: `${isFr ? 'Billet pour' : 'Ticket for'} ${isFr ? session.event.titleFr : session.event.titleEn}\n${isFr ? 'Quantité' : 'Quantity'}: ${data.reservation.quantity}\n${isFr ? 'Confirmation' : 'Confirmation'}: ${data.reservation.id}`,
+			details: `${isFr ? 'Billet pour' : 'Ticket for'} ${localizedText(session.event.titleEn, session.event.titleFr, isFr ? 'fr' : 'en')}\n${isFr ? 'Quantité' : 'Quantity'}: ${data.reservation.quantity}\n${isFr ? 'Confirmation' : 'Confirmation'}: ${data.reservation.id}`,
 			location
 		});
 		return `https://calendar.google.com/calendar/render?${params.toString()}`;
 	});
 
 	let ogTitle = $derived(
-		$t('tickets.pageTitle', { values: { eventTitle: isFr ? data.reservation.session.event.titleFr : data.reservation.session.event.titleEn } })
+		$t('tickets.pageTitle', { values: { eventTitle: localizedText(data.reservation.session.event.titleEn, data.reservation.session.event.titleFr, isFr ? 'fr' : 'en') } })
 	);
 	let ogDescription = $derived(
 		$t('tickets.ogDescription', {
 			values: {
-				eventTitle: isFr ? data.reservation.session.event.titleFr : data.reservation.session.event.titleEn,
+				eventTitle: localizedText(data.reservation.session.event.titleEn, data.reservation.session.event.titleFr, isFr ? 'fr' : 'en'),
 				date: formatDateTime(data.reservation.session.startTime),
 				quantity: data.reservation.quantity
 			}
@@ -280,7 +281,7 @@ END:VCALENDAR`;
 	<meta property="og:url" content={ogUrl} />
 	{#if ogImage}
 		<meta property="og:image" content={ogImage} />
-		<meta property="og:image:alt" content={isFr ? data.reservation.session.event.titleFr : data.reservation.session.event.titleEn} />
+		<meta property="og:image:alt" content={localizedText(data.reservation.session.event.titleEn, data.reservation.session.event.titleFr, isFr ? 'fr' : 'en')} />
 	{/if}
 
 	<!-- Twitter Card -->
@@ -353,7 +354,7 @@ END:VCALENDAR`;
 				<div class="flex items-start justify-between gap-4 mb-5">
 					<div>
 						<p class="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-1.5">{$t('tickets.ticketLabel')}</p>
-						<h1 class="text-3xl font-serif leading-tight">{isFr ? data.reservation.session.event.titleFr : data.reservation.session.event.titleEn}</h1>
+						<h1 class="text-3xl font-serif leading-tight">{localizedText(data.reservation.session.event.titleEn, data.reservation.session.event.titleFr, isFr ? 'fr' : 'en')}</h1>
 						<p class="text-muted-foreground mt-1 text-sm">{isFr ? data.reservation.session.titleFr : data.reservation.session.titleEn}</p>
 					</div>
 					<span class={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold flex-shrink-0 ${statusBadge.class}`}>
@@ -617,7 +618,7 @@ END:VCALENDAR`;
 	<Modal
 		bind:isOpen={showCancelModal}
 		title={$t('tickets.cancellation.modalTitle')}
-		description={$t('tickets.cancellation.modalDescription', { values: { eventTitle: isFr ? data.reservation.session.event.titleFr : data.reservation.session.event.titleEn } })}
+		description={$t('tickets.cancellation.modalDescription', { values: { eventTitle: localizedText(data.reservation.session.event.titleEn, data.reservation.session.event.titleFr, isFr ? 'fr' : 'en') } })}
 	>
 		{#if refundPreview !== null}
 			<p class="font-serif text-sm text-foreground-alt leading-relaxed mb-4">

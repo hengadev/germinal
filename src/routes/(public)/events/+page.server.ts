@@ -21,10 +21,10 @@ export const load: PageServerLoad = async ({ url }) => {
         if (searchQuery) {
             const query = searchQuery.toLowerCase();
             filteredEvents = filteredEvents.filter(e =>
-                e.titleEn.toLowerCase().includes(query) ||
-                e.titleFr.toLowerCase().includes(query) ||
-                e.descriptionEn.toLowerCase().includes(query) ||
-                e.descriptionFr.toLowerCase().includes(query)
+                (e.titleEn ?? '').toLowerCase().includes(query) ||
+                (e.titleFr ?? '').toLowerCase().includes(query) ||
+                (e.descriptionEn ?? '').toLowerCase().includes(query) ||
+                (e.descriptionFr ?? '').toLowerCase().includes(query)
             );
         }
 

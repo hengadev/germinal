@@ -205,6 +205,7 @@ export async function createReservation(input: CreateReservationInput): Promise<
 		const [event] = await tx
 			.select({
 				titleEn: events.titleEn,
+				titleFr: events.titleFr,
 				id: events.id,
 				timeZone: events.timeZone,
 				depositType: events.depositType,
@@ -284,7 +285,7 @@ export async function createReservation(input: CreateReservationInput): Promise<
 		// the Deposit only — one line item whose amount is the Deposit, so
 		// Stripe charges exactly that (the Promo Code is already in it). A
 		// Deposit below the whole total is named as such.
-		const seatingLabel = `${seatingTitle(session, 'en', { timeZone: event?.timeZone ?? DEFAULT_EVENT_TIME_ZONE })}${event ? ` — ${event.titleEn}` : ''}`;
+		const seatingLabel = `${seatingTitle(session, 'en', { timeZone: event?.timeZone ?? DEFAULT_EVENT_TIME_ZONE })}${event && (event.titleEn || event.titleFr) ? ` — ${event.titleEn || event.titleFr}` : ''}`;
 		const checkoutSession = await createCheckoutSession({
 			reservationId: reservation.id,
 			accessToken,

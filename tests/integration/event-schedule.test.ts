@@ -105,8 +105,8 @@ describe('event schedule (Days → Services → Seatings)', () => {
 		]);
 
 		const [updated] = await testDb.select().from(events).where(eq(events.id, event.id));
-		expect(updated.startDate.toISOString()).toBe('2099-06-10T00:00:00.000Z');
-		expect(updated.endDate.toISOString()).toBe('2099-06-10T23:59:59.999Z');
+		expect(updated.startDate!.toISOString()).toBe('2099-06-10T00:00:00.000Z');
+		expect(updated.endDate!.toISOString()).toBe('2099-06-10T23:59:59.999Z');
 	});
 
 	it('Seatings on the same Day and meal share one Service; other meals get their own', async () => {
@@ -148,8 +148,8 @@ describe('event schedule (Days → Services → Seatings)', () => {
 		}));
 
 		const [updated] = await testDb.select().from(events).where(eq(events.id, event.id));
-		expect(updated.startDate.toISOString()).toBe('2099-06-03T00:00:00.000Z');
-		expect(updated.endDate.toISOString()).toBe('2099-06-10T23:59:59.999Z');
+		expect(updated.startDate!.toISOString()).toBe('2099-06-03T00:00:00.000Z');
+		expect(updated.endDate!.toISOString()).toBe('2099-06-10T23:59:59.999Z');
 	});
 
 	it('moving a Seating across the cut-off re-attaches it and keeps the Day and Service it left', async () => {
@@ -178,8 +178,8 @@ describe('event schedule (Days → Services → Seatings)', () => {
 		expect(lunch.map((service) => service.kind)).toEqual(['lunch']);
 
 		const [updated] = await testDb.select().from(events).where(eq(events.id, event.id));
-		expect(updated.startDate.toISOString()).toBe('2099-06-10T00:00:00.000Z');
-		expect(updated.endDate.toISOString()).toBe('2099-06-12T23:59:59.999Z');
+		expect(updated.startDate!.toISOString()).toBe('2099-06-10T00:00:00.000Z');
+		expect(updated.endDate!.toISOString()).toBe('2099-06-12T23:59:59.999Z');
 	});
 
 	it('a Seating outside the hand-set window is rejected while the Event has no Days', async () => {
@@ -230,8 +230,8 @@ describe('event schedule (Days → Services → Seatings)', () => {
 		const newEnd = new Date('2099-03-31T23:59:59Z');
 		await updateEvent(event.id, { startDate: newStart, endDate: newEnd });
 		let [row] = await testDb.select().from(events).where(eq(events.id, event.id));
-		expect(row.startDate.toISOString()).toBe(newStart.toISOString());
-		expect(row.endDate.toISOString()).toBe(newEnd.toISOString());
+		expect(row.startDate!.toISOString()).toBe(newStart.toISOString());
+		expect(row.endDate!.toISOString()).toBe(newEnd.toISOString());
 
 		await createEventSession(sessionInput({
 			startTime: new Date('2099-03-10T19:00:00Z'),
@@ -239,8 +239,8 @@ describe('event schedule (Days → Services → Seatings)', () => {
 		}));
 		await updateEvent(event.id, { startDate: newStart, endDate: newEnd });
 		[row] = await testDb.select().from(events).where(eq(events.id, event.id));
-		expect(row.startDate.toISOString()).toBe('2099-03-10T00:00:00.000Z');
-		expect(row.endDate.toISOString()).toBe('2099-03-10T23:59:59.999Z');
+		expect(row.startDate!.toISOString()).toBe('2099-03-10T00:00:00.000Z');
+		expect(row.endDate!.toISOString()).toBe('2099-03-10T23:59:59.999Z');
 	});
 });
 
@@ -313,8 +313,8 @@ describe('saveEventSchedule (admin Days picker)', () => {
 		]);
 
 		const [row] = await testDb.select().from(events).where(eq(events.id, event.id));
-		expect(row.startDate.toISOString()).toBe('2099-06-08T00:00:00.000Z');
-		expect(row.endDate.toISOString()).toBe('2099-06-10T23:59:59.999Z');
+		expect(row.startDate!.toISOString()).toBe('2099-06-08T00:00:00.000Z');
+		expect(row.endDate!.toISOString()).toBe('2099-06-10T23:59:59.999Z');
 
 		// Services created by the picker get a meal-default duration until a
 		// Seating carries one over.
@@ -343,8 +343,8 @@ describe('saveEventSchedule (admin Days picker)', () => {
 		]);
 
 		const [row] = await testDb.select().from(events).where(eq(events.id, event.id));
-		expect(row.startDate.toISOString()).toBe('2099-06-08T00:00:00.000Z');
-		expect(row.endDate.toISOString()).toBe('2099-06-11T23:59:59.999Z');
+		expect(row.startDate!.toISOString()).toBe('2099-06-08T00:00:00.000Z');
+		expect(row.endDate!.toISOString()).toBe('2099-06-11T23:59:59.999Z');
 	});
 
 	it('attaches a later Seating to the picked Service instead of creating a duplicate', async () => {
@@ -381,8 +381,8 @@ describe('saveEventSchedule (admin Days picker)', () => {
 			{ date: '2099-06-12', kinds: ['dinner'] },
 		]);
 		const [row] = await testDb.select().from(events).where(eq(events.id, event.id));
-		expect(row.startDate.toISOString()).toBe('2099-06-10T00:00:00.000Z');
-		expect(row.endDate.toISOString()).toBe('2099-06-12T23:59:59.999Z');
+		expect(row.startDate!.toISOString()).toBe('2099-06-10T00:00:00.000Z');
+		expect(row.endDate!.toISOString()).toBe('2099-06-12T23:59:59.999Z');
 	});
 
 	it('refuses to remove a meal on a kept Day when its Seating is booked', async () => {
@@ -430,8 +430,8 @@ describe('saveEventSchedule (admin Days picker)', () => {
 		]);
 
 		const [row] = await testDb.select().from(events).where(eq(events.id, event.id));
-		expect(row.startDate.toISOString()).toBe('2099-06-12T00:00:00.000Z');
-		expect(row.endDate.toISOString()).toBe('2099-06-12T23:59:59.999Z');
+		expect(row.startDate!.toISOString()).toBe('2099-06-12T00:00:00.000Z');
+		expect(row.endDate!.toISOString()).toBe('2099-06-12T23:59:59.999Z');
 	});
 
 	it('refuses removals that would leave a published Event without any Seating', async () => {

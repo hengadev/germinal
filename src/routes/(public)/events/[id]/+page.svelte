@@ -9,6 +9,7 @@
     import { depositRuleOf, isFullPayment, priceReservation } from "$lib/utils/pricing";
     import { refundPolicyOf } from "$lib/utils/refund-policy";
     import { formatDayKey } from "$lib/utils/event-time";
+    import { localizedText } from "$lib/utils/event-text";
 
     let { data }: { data: PageData } = $props();
 
@@ -17,7 +18,7 @@
     const canBook = $derived(data.sessions.some((s: { isPast: boolean }) => !s.isPast));
 
     function getEventTitle(): string {
-        return ($locale === "en" ? data.event.titleEn : data.event.titleFr) || "";
+        return localizedText(data.event.titleEn, data.event.titleFr, $locale);
     }
 
     // A Service's price per guest (issue 022): shown once per Service.
@@ -44,7 +45,7 @@
     }
 
     function localized(en: string | null, fr: string | null): string {
-        return ($locale === "en" ? en : fr) ?? "";
+        return localizedText(en, fr, $locale);
     }
 
     function formatDay(date: string): string {

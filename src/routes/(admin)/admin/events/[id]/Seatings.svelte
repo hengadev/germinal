@@ -6,7 +6,7 @@
 	// id, which `serviceRefs` maps to its Day and meal for the server.
 	import { untrack } from 'svelte';
 	import { enhance } from '$app/forms';
-	import { invalidateAll } from '$app/navigation';
+	import { goto, invalidateAll } from '$app/navigation';
 	import { getToastContext } from '$lib/components/toast/state.svelte';
 	import DaysServicesPicker, { type PickedDay } from '$lib/components/admin/DaysServicesPicker.svelte';
 	import SeatingsEditor, {
@@ -19,6 +19,10 @@
 
 	let {
 		data,
+		isNew = false,
+		timeZone = data.event?.timeZone,
+		services = $bindable(toSeatingDrafts(data.schedule ?? [])),
+		extend,
 	}: {
 		data: {
 			days?: PickedDay[];
@@ -28,8 +32,16 @@
 				timeZone?: string;
 				bookingOpensAt?: Date | string | null;
 				bookingClosesHoursBefore?: number | null;
-			};
+			} | null;
 		};
+		/** A new Event (issue 036): no Day is required, and the first save
+		 * creates the Draft. */
+		isNew?: boolean;
+		/** Clock the Seatings are typed on; a new Event follows the Lieu pick. */
+		timeZone?: string;
+		services?: DraftSeatingService[];
+		/** Adds other tabs' fields to the posted form (new Event). */
+		extend?: (formData: FormData) => void;
 	} = $props();
 
 	const toast = getToastContext();
@@ -40,7 +52,6 @@
 
 	let days: PickedDay[] = $state(pickedDaysOf(data.days));
 	let daysPicker: ReturnType<typeof DaysServicesPicker> | undefined = $state();
-	let services: DraftSeatingService[] = $state(toSeatingDrafts(data.schedule ?? []));
 	let venueCapacity: number | null = $state(data.venueCapacity ?? null);
 	let saving = $state(false);
 
@@ -100,7 +111,7 @@
 
 	// The Days cannot use browser validity (the payload is a hidden input).
 	function pickedDaysError(): string | null {
-		if (days.length === 0) {
+		if (days.length === 0 && !isNew) {
 			return 'Sélectionnez au moins un jour sur le calendrier.';
 		}
 		if (days.some((day) => day.kinds.length === 0)) {
@@ -109,7 +120,7 @@
 		return null;
 	}
 
-	function saveSeatingsEnhance({ cancel }: { cancel: () => void }) {
+	function saveSeatingsEnhance({ formData, cancel }: { formData: FormData; cancel: () => void }) {
 		const dayError = pickedDaysError();
 		if (dayError !== null) {
 			cancel();
@@ -124,10 +135,15 @@
 			requestAnimationFrame(() => document.getElementById(blocking.id)?.focus());
 			return;
 		}
+		extend?.(formData);
 		saving = true;
 		return async ({ result }: { result: import('@sveltejs/kit').ActionResult }) => {
 			saving = false;
-			if (result.type === 'success') {
+			if (result.type === 'redirect') {
+				// First save of a new Event: on to the Draft's page.
+				toast.success('Succès', 'Brouillon créé.');
+				await goto(result.location, { invalidateAll: true });
+			} else if (result.type === 'success') {
 				toast.success('Succès', (result.data as { success?: string })?.success ?? 'Séances enregistrées');
 				await invalidateAll();
 				dropped = new Map();
@@ -146,12 +162,12 @@
 	}
 </script>
 
-<form method="POST" action="?/saveSeatings" use:enhance={saveSeatingsEnhance} novalidate class="space-y-8">
+<form data-editor-form="seatings" method="POST" action="?/saveSeatings" use:enhance={saveSeatingsEnhance} novalidate class="space-y-8">
 	<!-- Days & meals: the Event's dates are derived from its Days (ADR 0005) -->
-	<DaysServicesPicker bind:this={daysPicker} bind:days idPrefix="event-days" timeZone={data.event?.timeZone} />
+	<DaysServicesPicker bind:this={daysPicker} bind:days idPrefix="event-days" {timeZone} />
 
 	<input type="hidden" name="serviceRefs" value={serviceRefs} />
-	<SeatingsEditor bind:this={editor} bind:services bind:venueCapacity timeZone={data.event?.timeZone} />
+	<SeatingsEditor bind:this={editor} bind:services bind:venueCapacity {timeZone} />
 
 	<!-- Booking Window (issue 035): both optional; empty keeps bookings open
 	     from publication until each Seating starts. -->

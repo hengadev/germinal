@@ -36,14 +36,14 @@ describe('admin/events/+page.server actions — auth guard', () => {
 });
 
 describe('admin/events/new/+page.server actions — auth guard', () => {
-	it('default (create event) rejects unauthenticated request', async () => {
+	it('updateEvent (first save, creates the Draft) rejects unauthenticated request', async () => {
 		const { actions } = await import('../../../src/routes/(admin)/admin/events/new/+page.server');
-		await expectRejectedWith(actions.default!(unauthEvent()), 401);
+		await expectRejectedWith(actions.updateEvent!(unauthEvent()), 401);
 	});
 
-	it('default (create event) rejects non-admin (staff) session', async () => {
+	it('saveSeatings (first save, creates the Draft) rejects non-admin (staff) session', async () => {
 		const { actions } = await import('../../../src/routes/(admin)/admin/events/new/+page.server');
-		await expectRejectedWith(actions.default!(staffEvent()), 403);
+		await expectRejectedWith(actions.saveSeatings!(staffEvent()), 403);
 	});
 });
 

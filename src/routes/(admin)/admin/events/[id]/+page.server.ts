@@ -22,18 +22,29 @@ import {
 	seatingTitle,
 	TIME_ZONE_ERROR_MESSAGE,
 	VENUE_CAPACITY_ERROR_MESSAGE,
+	type ParsedServiceSeatings,
 	type PickedServiceDay,
 } from '$lib/server/services/event-schedule';
 import { clockOf, dayOf, DEFAULT_EVENT_TIME_ZONE, isValidTimeZone, listTimeZones, serviceKindOf, wallClockToInstant } from '$lib/utils/event-time';
 import { BOOKING_WINDOW_ERROR_MESSAGES, parseBookingWindow } from '$lib/utils/booking-window';
-import { parseServiceRefs, resolveServiceRefs, serviceKey } from '$lib/server/services/new-event-schedule';
+import { parseServiceRefs, refersOnlyTo, resolveServiceRefs, serviceKey } from '$lib/server/services/new-event-schedule';
+import {
+	createDraftEvent,
+	EVENT_TEXT_FIELDS,
+	hasEventText,
+	NOTHING_TO_SAVE_MESSAGE,
+	pricingHasContent,
+	readEventTextFields,
+} from '$lib/server/services/event-draft';
+import type { CreateEventInput } from '$lib/types/events';
+import type { PricingPayload } from '$lib/types/pricing-editor';
 import type { EditorService } from '$lib/types/seatings-editor';
 import type { PricingEditorData } from '$lib/types/pricing-editor';
 import { depositRuleOf } from '$lib/utils/pricing';
 import { refundPolicyOf } from '$lib/utils/refund-policy';
 import type { PageServerLoad } from './$types';
 import { requireAdmin } from '$lib/server/auth-guards';
-import { canBeSpotlight, canJoinPortfolio, parseVisibility } from '$lib/utils/event-access';
+import { canBeSpotlight, canJoinPortfolio, parseVisibility, type Visibility } from '$lib/utils/event-access';
 
 const SPOTLIGHT_REQUIRES_PUBLIC_MESSAGE = 'Seul un événement Public peut être mis en avant (Spotlight).';
 const PORTFOLIO_REQUIRES_OVER_MESSAGE =
@@ -109,6 +120,167 @@ async function applyTimeZone(eventId: string, raw: FormDataEntryValue | null) {
 		throw refusal;
 	}
 	return null;
+}
+
+/**
+ * The Time Zone posted with a new Event's first save: the default one when
+ * absent or blank, null when it is not an IANA name.
+ */
+function parseNewEventTimeZone(raw: FormDataEntryValue | null): string | null {
+	const timeZone = typeof raw === 'string' && raw.trim() !== '' ? raw.trim() : DEFAULT_EVENT_TIME_ZONE;
+	return isValidTimeZone(timeZone) ? timeZone : null;
+}
+
+/**
+ * Create the Draft a new Event's first save lands on (ADR 0008, issue 036),
+ * with what that save holds. Returns its id.
+ */
+async function createDraft(input: CreateEventInput): Promise<string> {
+	if (env.USE_MOCK_DATA) {
+		const id = crypto.randomUUID();
+		const blank = Object.fromEntries(EVENT_TEXT_FIELDS.map((field) => [field, null]));
+		MOCK_EVENTS.push({
+			...blank,
+			startDate: null,
+			endDate: null,
+			timeZone: DEFAULT_EVENT_TIME_ZONE,
+			coverMediaId: null,
+			coverMedia: null,
+			media: [],
+			isPortfolio: false,
+			...input,
+			id,
+			visibility: 'draft',
+			isSpotlight: false,
+			createdAt: new Date(),
+			updatedAt: new Date(),
+		} as unknown as typeof MOCK_EVENTS[number]);
+		return id;
+	}
+	return createDraftEvent(input);
+}
+
+/** Where a new Event's first save lands: the Draft's own page. */
+function draftPage(id: string): string {
+	return `/admin/events/${id}`;
+}
+
+const SERVICE_REFS_MISMATCH_MESSAGE = 'Les repas des séances et des tarifs ne correspondent pas aux jours sélectionnés.';
+
+/**
+ * First save of « Dates & séances » or « Menus & tarifs » on a new Event
+ * (issue 036): both tabs post the Days and meals picked, the Seatings and
+ * the pricing together, the meals being named by placeholder ids (see
+ * new-event-schedule.ts), with the Time Zone picked in Lieu. Everything is
+ * checked before the Draft is created, and nothing is left half-created
+ * when a save is refused.
+ */
+async function saveNewEventSchedule(formData: FormData) {
+	const rawDays = formData.get('days');
+	const pickedDays = parsePickedDays(typeof rawDays === 'string' ? rawDays : null);
+	let days: PickedServiceDay[] = [];
+	if (pickedDays.ok) {
+		days = pickedDays.days;
+	} else if (pickedDays.reason !== 'missing' && pickedDays.reason !== 'empty') {
+		// A Draft may have no Days; a malformed pick is still refused.
+		return fail(400, { error: pickedDaysErrorMessage(pickedDays.reason) });
+	}
+	const rawRefs = formData.get('serviceRefs');
+	const refs = parseServiceRefs(typeof rawRefs === 'string' ? rawRefs : null, days);
+	if (!refs) {
+		return fail(400, { error: SERVICE_REFS_MISMATCH_MESSAGE });
+	}
+	const rawSeatings = formData.get('services');
+	let seatingServices: ParsedServiceSeatings[] = [];
+	if (typeof rawSeatings === 'string' && rawSeatings.trim() !== '') {
+		const parsedSeatings = parseSeatingsPayload(rawSeatings);
+		if (!parsedSeatings.ok) {
+			return fail(400, { error: seatingsPayloadErrorMessage(parsedSeatings.reason) });
+		}
+		seatingServices = parsedSeatings.services;
+	}
+	const { parsePricingPayload, pricingPayloadErrorMessage, savePricing } = await import(
+		'$lib/server/services/service-pricing'
+	);
+	const rawPricing = formData.get('pricing');
+	let pricing: PricingPayload | null = null;
+	if (typeof rawPricing === 'string' && rawPricing.trim() !== '') {
+		const parsedPricing = parsePricingPayload(rawPricing);
+		if (!parsedPricing.ok) {
+			return fail(400, { error: pricingPayloadErrorMessage(parsedPricing.reason) });
+		}
+		pricing = parsedPricing.payload;
+	}
+	if (!refersOnlyTo(seatingServices, refs) || (pricing && !refersOnlyTo(pricing.services, refs))) {
+		return fail(400, { error: SERVICE_REFS_MISMATCH_MESSAGE });
+	}
+	const rawVenueCapacity = formData.get('venueCapacity');
+	const venue = parseVenueCapacity(typeof rawVenueCapacity === 'string' ? rawVenueCapacity : null);
+	if (!venue.ok) {
+		return fail(400, { error: VENUE_CAPACITY_ERROR_MESSAGE });
+	}
+	// The Seatings' times are typed on the venue's clock (ADR 0006).
+	const timeZone = parseNewEventTimeZone(formData.get('timeZone'));
+	if (!timeZone) {
+		return fail(400, { error: TIME_ZONE_ERROR_MESSAGE });
+	}
+	// The Booking Window (issue 035), its opening typed on that clock too.
+	const rawOpensAt = formData.get('bookingOpensAt');
+	const rawClosesHoursBefore = formData.get('bookingClosesHoursBefore');
+	const bookingWindow = parseBookingWindow(
+		typeof rawOpensAt === 'string' ? rawOpensAt : null,
+		typeof rawClosesHoursBefore === 'string' ? rawClosesHoursBefore : null,
+		(day, minutes) => wallClockToInstant(day, minutes, timeZone)
+	);
+	if (!bookingWindow.ok) {
+		return fail(400, { error: BOOKING_WINDOW_ERROR_MESSAGES[bookingWindow.reason] });
+	}
+	const { opensAt, closesHoursBefore } = bookingWindow.window;
+
+	if (
+		days.length === 0 &&
+		venue.venueCapacity === undefined &&
+		opensAt === null &&
+		closesHoursBefore === null &&
+		!(pricing && pricingHasContent(pricing))
+	) {
+		return fail(400, { error: NOTHING_TO_SAVE_MESSAGE });
+	}
+
+	const id = await createDraft({ timeZone, venueCapacity: venue.venueCapacity ?? null });
+	if (env.USE_MOCK_DATA) {
+		redirect(303, draftPage(id));
+	}
+
+	try {
+		if (days.length > 0) {
+			// The Days first; this also sets the Event's start/end dates.
+			await saveEventSchedule(id, days);
+		}
+		// Then the Seatings and pricing, on the Services just created.
+		const realIds = new Map(
+			(await loadSeatingsEditor(id)).map((service) => [serviceKey(service.date, service.kind), service.serviceId])
+		);
+		if (seatingServices.length > 0) {
+			await saveServiceSeatings(id, resolveServiceRefs(seatingServices, refs, realIds), venue.venueCapacity);
+		}
+		if (pricing) {
+			await savePricing(id, { ...pricing, services: resolveServiceRefs(pricing.services, refs, realIds) });
+		}
+		await saveBookingWindow(id, bookingWindow.window);
+	} catch (err) {
+		// Nothing half-created: the Draft goes, with its Days, Services,
+		// Seatings and Menus (cascade).
+		const { deleteEvent } = await import('$lib/server/services/events');
+		await deleteEvent(id);
+		if (err instanceof ScheduleSaveRefusedError) {
+			return fail(400, { error: err.message });
+		}
+		logger.error({ err }, 'Save new event schedule error');
+		return fail(500, { error: 'Échec de l’enregistrement des séances et des tarifs : le brouillon n’a pas été créé.' });
+	}
+
+	redirect(303, draftPage(id));
 }
 
 export const load: PageServerLoad = async ({ params }) => {
@@ -364,104 +536,67 @@ export const load: PageServerLoad = async ({ params }) => {
 };
 
 export const actions: Actions = {
-	// Update event action
+	// Save the Essentiel, Lieu or Programme tab: each posts only its own
+	// fields, and only those change (ADR 0008 — nothing is required). On a
+	// new Event (no id), the first save creates the Draft with them.
 	updateEvent: async ({ request, params, locals }) => {
 		requireAdmin(locals);
-		const { id } = params;
-
-		// Validate id
-		if (!id) {
-			return fail(400, { error: 'Event ID is required' });
-		}
+		const id = params.id ?? null;
 
 		const formData = await request.formData();
-		const titleEn = formData.get('titleEn');
-		const titleFr = formData.get('titleFr');
-		const descriptionEn = formData.get('descriptionEn');
-		const descriptionFr = formData.get('descriptionFr');
-		const subtitleEn = formData.get('subtitleEn');
-		const subtitleFr = formData.get('subtitleFr');
-		// The Days, and the start/end dates derived from them, are saved
-		// with the Seatings (« Dates & séances » tab, `saveSeatings`).
-		const locationEn = formData.get('locationEn');
-		const locationFr = formData.get('locationFr');
-		const venueNameEn = formData.get('venueNameEn');
-		const venueNameFr = formData.get('venueNameFr');
-		const streetAddressEn = formData.get('streetAddressEn');
-		const streetAddressFr = formData.get('streetAddressFr');
-		const districtEn = formData.get('districtEn');
-		const districtFr = formData.get('districtFr');
-		const cityEn = formData.get('cityEn');
-		const cityFr = formData.get('cityFr');
-		const postalCode = formData.get('postalCode');
-		const countryEn = formData.get('countryEn');
-		const countryFr = formData.get('countryFr');
-		const collaborators = formData.get('collaborators');
-		const timings = formData.get('timings');
-		const curatorEn = formData.get('curatorEn');
-		const curatorFr = formData.get('curatorFr');
-		const admissionInfoEn = formData.get('admissionInfoEn');
-		const admissionInfoFr = formData.get('admissionInfoFr');
-		const visibility = parseVisibility(formData.get('visibility'));
-		const isSpotlight = formData.get('isSpotlight') === 'true';
-		const isPortfolio = formData.get('isPortfolio') === 'true';
+		const fields = readEventTextFields(formData);
 
-		if (!visibility) {
-			return fail(400, { error: 'Visibilité invalide' });
-		}
+		// Visibility, Spotlight and Portfolio come with the Essentiel tab of
+		// a saved Event; other tabs leave them as they are.
+		let publishing: { visibility: Visibility; isSpotlight: boolean; isPortfolio: boolean } | undefined;
+		if (id && formData.has('visibility')) {
+			const visibility = parseVisibility(formData.get('visibility'));
+			if (!visibility) {
+				return fail(400, { error: 'Visibilité invalide' });
+			}
+			const isSpotlight = formData.get('isSpotlight') === 'true';
+			// Only a Public Event can be the Spotlight (issue 032).
+			if (isSpotlight && !canBeSpotlight({ visibility })) {
+				return fail(400, { error: SPOTLIGHT_REQUIRES_PUBLIC_MESSAGE });
+			}
+			const isPortfolio = formData.get('isPortfolio') === 'true';
+			// The Portfolio (issue 044): an Event joins it only once its last
+			// Seating has started. updateEvent refuses it again on the database.
+			if (isPortfolio && !canJoinPortfolio({ visibility, isPortfolio, lastSeatingStart: await lastSeatingStart(id) }, new Date())) {
+				return fail(400, { error: PORTFOLIO_REQUIRES_OVER_MESSAGE });
+			}
+			publishing = { visibility, isSpotlight, isPortfolio };
 
-		// Only a Public Event can be the Spotlight (issue 032).
-		if (isSpotlight && !canBeSpotlight({ visibility })) {
-			return fail(400, { error: SPOTLIGHT_REQUIRES_PUBLIC_MESSAGE });
-		}
-
-		// The Portfolio (issue 044): an Event joins it only once its last
-		// Seating has started. updateEvent refuses it again on the database.
-		if (isPortfolio && !canJoinPortfolio({ visibility, isPortfolio, lastSeatingStart: await lastSeatingStart(id) }, new Date())) {
-			return fail(400, { error: PORTFOLIO_REQUIRES_OVER_MESSAGE });
-		}
-
-		// Validation
-		if (!titleEn || typeof titleEn !== 'string') {
-			return fail(400, { error: 'Title (English) is required' });
-		}
-
-		if (!titleFr || typeof titleFr !== 'string') {
-			return fail(400, { error: 'Title (French) is required' });
-		}
-
-		if (!descriptionEn || typeof descriptionEn !== 'string') {
-			return fail(400, { error: 'Description (English) is required' });
-		}
-
-		if (!descriptionFr || typeof descriptionFr !== 'string') {
-			return fail(400, { error: 'Description (French) is required' });
-		}
-
-		if (!locationEn || typeof locationEn !== 'string') {
-			return fail(400, { error: 'Location (English) is required' });
-		}
-
-		if (!locationFr || typeof locationFr !== 'string') {
-			return fail(400, { error: 'Location (French) is required' });
-		}
-
-		// A published Event must have at least one Seating (ADR 0001).
-		if (visibility !== 'draft') {
-			if (env.USE_MOCK_DATA) {
-				if (!MOCK_SESSIONS.some(s => s.eventId === id)) {
-					return fail(400, { error: new EventWithoutSeatingError().message });
-				}
-			} else {
-				try {
-					await assertEventHasSeatings(id);
-				} catch (seatingError) {
-					if (seatingError instanceof EventWithoutSeatingError) {
-						return fail(400, { error: seatingError.message });
+			// A published Event must have at least one Seating (ADR 0001).
+			if (visibility !== 'draft') {
+				if (env.USE_MOCK_DATA) {
+					if (!MOCK_SESSIONS.some(s => s.eventId === id)) {
+						return fail(400, { error: new EventWithoutSeatingError().message });
 					}
-					throw seatingError;
+				} else {
+					try {
+						await assertEventHasSeatings(id);
+					} catch (seatingError) {
+						if (seatingError instanceof EventWithoutSeatingError) {
+							return fail(400, { error: seatingError.message });
+						}
+						throw seatingError;
+					}
 				}
 			}
+		}
+
+		if (!id) {
+			const timeZone = parseNewEventTimeZone(formData.get('timeZone'));
+			if (!timeZone) {
+				return fail(400, { error: TIME_ZONE_ERROR_MESSAGE });
+			}
+			// The Time Zone alone counts once it is not the default one.
+			if (!hasEventText(fields) && timeZone === DEFAULT_EVENT_TIME_ZONE) {
+				return fail(400, { error: NOTHING_TO_SAVE_MESSAGE });
+			}
+			const created = await createDraft({ ...fields, timeZone });
+			redirect(303, draftPage(created));
 		}
 
 		const timeZoneRefused = await applyTimeZone(id, formData.get('timeZone'));
@@ -478,82 +613,26 @@ export const actions: Actions = {
 			}
 
 			// If isSpotlight is true, unset others in mock array
-			if (isSpotlight) {
+			if (publishing?.isSpotlight) {
 				MOCK_EVENTS.forEach(e => e.isSpotlight = false);
 			}
 
 			MOCK_EVENTS[eventIndex] = {
 				...MOCK_EVENTS[eventIndex],
-				titleEn,
-				titleFr,
-				descriptionEn,
-				descriptionFr,
-				subtitleEn: subtitleEn?.toString() || null,
-				subtitleFr: subtitleFr?.toString() || null,
-				locationEn,
-				locationFr,
-				venueNameEn: venueNameEn?.toString() || null,
-				venueNameFr: venueNameFr?.toString() || null,
-				streetAddressEn: streetAddressEn?.toString() || null,
-				streetAddressFr: streetAddressFr?.toString() || null,
-				districtEn: districtEn?.toString() || null,
-				districtFr: districtFr?.toString() || null,
-				cityEn: cityEn?.toString() || null,
-				cityFr: cityFr?.toString() || null,
-				postalCode: postalCode?.toString() || null,
-				countryEn: countryEn?.toString() || null,
-				countryFr: countryFr?.toString() || null,
-				collaborators: collaborators?.toString() || null,
-				timings: timings?.toString() || null,
-				curatorEn: curatorEn?.toString() || null,
-				curatorFr: curatorFr?.toString() || null,
-				admissionInfoEn: admissionInfoEn?.toString() || null,
-				admissionInfoFr: admissionInfoFr?.toString() || null,
-				visibility,
-				isSpotlight,
-				isPortfolio,
+				...fields,
+				...publishing,
 				updatedAt: new Date()
 			} as typeof MOCK_EVENTS[number];
 
-			return { success: `Event "${titleEn}" updated successfully (mock mode - not persisted)` };
+			return { success: 'Modifications enregistrées (mode démo — non persistées)' };
 		}
 
 		// Database mode - use actual database functions
 		const { updateEvent } = await import('$lib/server/services/events');
 
 		try {
-			await updateEvent(id, {
-				titleEn,
-				titleFr,
-				descriptionEn,
-				descriptionFr,
-				subtitleEn: subtitleEn?.toString() || null,
-				subtitleFr: subtitleFr?.toString() || null,
-				locationEn,
-				locationFr,
-				venueNameEn: venueNameEn?.toString() || null,
-				venueNameFr: venueNameFr?.toString() || null,
-				streetAddressEn: streetAddressEn?.toString() || null,
-				streetAddressFr: streetAddressFr?.toString() || null,
-				districtEn: districtEn?.toString() || null,
-				districtFr: districtFr?.toString() || null,
-				cityEn: cityEn?.toString() || null,
-				cityFr: cityFr?.toString() || null,
-				postalCode: postalCode?.toString() || null,
-				countryEn: countryEn?.toString() || null,
-				countryFr: countryFr?.toString() || null,
-				collaborators: collaborators?.toString() || null,
-				timings: timings?.toString() || null,
-				curatorEn: curatorEn?.toString() || null,
-				curatorFr: curatorFr?.toString() || null,
-				admissionInfoEn: admissionInfoEn?.toString() || null,
-				admissionInfoFr: admissionInfoFr?.toString() || null,
-				visibility,
-				isSpotlight,
-				isPortfolio
-			});
-
-			return { success: `Événement « ${titleEn} » mis à jour` };
+			await updateEvent(id, { ...fields, ...publishing });
+			return { success: 'Modifications enregistrées.' };
 		} catch (error) {
 			const { SpotlightRequiresPublicError, PortfolioRequiresOverEventError } = await import('$lib/server/services/events');
 			if (error instanceof SpotlightRequiresPublicError) {
@@ -563,15 +642,14 @@ export const actions: Actions = {
 				return fail(400, { error: PORTFOLIO_REQUIRES_OVER_MESSAGE });
 			}
 			logger.error({ err: error }, 'Error updating event');
-			return fail(500, { error: 'Failed to update event.' });
+			return fail(500, { error: 'Échec de l’enregistrement de l’événement.' });
 		}
 	},
 
-	// Update media action (Photos tab)
+	// Update media action (Visuels tab). On a new Event (no id), the first
+	// save creates the Draft with the uploaded Visuals.
 	updateMedia: async ({ request, params, locals }) => {
 		requireAdmin(locals);
-		const { id } = params;
-		if (!id) return fail(400, { error: 'Event ID is required' });
 
 		const formData = await request.formData();
 		const coverMediaId = formData.get('coverMediaId')?.toString() || null;
@@ -579,6 +657,11 @@ export const actions: Actions = {
 
 		let galleryIds: string[] = [];
 		try { galleryIds = galleryMediaIdsRaw ? JSON.parse(galleryMediaIdsRaw) : []; } catch { /* ignore */ }
+
+		if (!params.id && !coverMediaId && galleryIds.length === 0) {
+			return fail(400, { error: NOTHING_TO_SAVE_MESSAGE });
+		}
+		const id = params.id ?? await createDraft({});
 
 		if (env.USE_MOCK_DATA) {
 			const eventIndex = MOCK_EVENTS.findIndex((e) => e.id === id);
@@ -588,6 +671,7 @@ export const actions: Actions = {
 				coverMediaId: coverMediaId || null,
 				updatedAt: new Date()
 			} as typeof MOCK_EVENTS[number];
+			if (!params.id) redirect(303, draftPage(id));
 			return { success: 'Photos mises à jour' };
 		}
 
@@ -614,12 +698,17 @@ export const actions: Actions = {
 					.set({ eventId: id, isCover: i === 0 })
 					.where(eq(media.id, allMediaIds[i]));
 			}
-
-			return { success: 'Photos mises à jour' };
 		} catch (error) {
 			logger.error({ err: error }, 'Error updating media');
+			if (!params.id) {
+				const { deleteEvent } = await import('$lib/server/services/events');
+				await deleteEvent(id);
+			}
 			return fail(500, { error: 'Échec de la mise à jour des photos' });
 		}
+
+		if (!params.id) redirect(303, draftPage(id));
+		return { success: 'Photos mises à jour' };
 	},
 
 	// Delete a single photo immediately
@@ -664,11 +753,12 @@ export const actions: Actions = {
 	saveSeatings: async ({ request, params, locals }) => {
 		requireAdmin(locals);
 		const { id } = params;
+		const formData = await request.formData();
+		// A new Event: the first save creates the Draft (issue 036).
 		if (!id) {
-			return fail(400, { error: 'L’identifiant de l’événement est requis.' });
+			return saveNewEventSchedule(formData);
 		}
 
-		const formData = await request.formData();
 		const pickedDays = parsePickedDays(
 			typeof formData.get('days') === 'string' ? formData.get('days') as string : null
 		);
@@ -770,14 +860,15 @@ export const actions: Actions = {
 	savePricing: async ({ request, params, locals }) => {
 		requireAdmin(locals);
 		const { id } = params;
+		const formData = await request.formData();
+		// A new Event: the first save creates the Draft (issue 036).
 		if (!id) {
-			return fail(400, { error: 'L’identifiant de l’événement est requis.' });
+			return saveNewEventSchedule(formData);
 		}
 
 		const { parsePricingPayload, pricingPayloadErrorMessage, savePricing } = await import(
 			'$lib/server/services/service-pricing'
 		);
-		const formData = await request.formData();
 		const raw = formData.get('pricing');
 		const parsed = parsePricingPayload(typeof raw === 'string' ? raw : null);
 		if (!parsed.ok) {

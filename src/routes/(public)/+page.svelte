@@ -8,6 +8,7 @@
     import { reveal } from "$lib/actions/reveal";
     import { page } from "$app/state";
     import { dayOf, formatSeatingDate } from "$lib/utils/event-time";
+    import { localizedText } from "$lib/utils/event-text";
     let { data }: { data: PageData } = $props();
 
     const hasSpotlightEvent = $derived(page.data.hasSpotlightEvent ?? false);
@@ -36,7 +37,8 @@
     function getEventField(event: typeof data.events[0], field: 'title' | 'description' | 'subtitle'): string {
         const enField = (field + 'En') as 'titleEn' | 'descriptionEn' | 'subtitleEn';
         const frField = (field + 'Fr') as 'titleFr' | 'descriptionFr' | 'subtitleFr';
-        return $locale === 'en' ? (event[enField] || '') : (event[frField] || '');
+        // Either language may be missing (issue 036): fall back to the other.
+        return localizedText(event[enField], event[frField], $locale);
     }
 </script>
 
@@ -133,9 +135,10 @@
         <!-- Upcoming event (Spotlight) -->
         {#if data.spotlightEvent}
             {@const event = data.spotlightEvent}
-            {@const start = new Date(event.startDate)}
-            {@const end = new Date(event.endDate)}
-            {@const isSameDay = dayOf(start, event.timeZone) === dayOf(end, event.timeZone)}
+            {@const start = event.startDate ? new Date(event.startDate) : null}
+            {@const end = event.endDate ? new Date(event.endDate) : start}
+            {@const isSameDay = !start || !end || dayOf(start, event.timeZone) === dayOf(end, event.timeZone)}
+            {@const location = localizedText(event.locationEn, event.locationFr, $locale)}
             {@const admissionInfo = $locale === 'en' ? event.admissionInfoEn : event.admissionInfoFr}
             {@const description = getEventField(event, 'description')}
             <section
@@ -168,6 +171,7 @@
                         {/if}
                     </div>
                     <dl class="grid grid-cols-2 gap-x-6 md:gap-x-12 gap-y-6 border-t border-border-input-hover pt-6">
+                        {#if start && end}
                         <!-- Date range -->
                         <div class="grid gap-0.5">
                             <dt class="uppercase text-xxs tracking-widest text-muted-foreground">{$t("home.date")}</dt>
@@ -185,12 +189,15 @@
                                 {start.toLocaleTimeString($locale === 'en' ? 'en-US' : 'fr-FR', { hour: '2-digit', minute: '2-digit' })}
                             </dd>
                         </div>
+                        {/if}
 
                         <!-- Location -->
+                        {#if location}
                         <div class="grid gap-0.5">
                             <dt class="uppercase text-xxs tracking-widest text-muted-foreground">{$t("home.location")}</dt>
-                            <dd class="text-foreground text-sm font-medium">{$locale === 'en' ? event.locationEn : event.locationFr}</dd>
+                            <dd class="text-foreground text-sm font-medium">{location}</dd>
                         </div>
+                        {/if}
 
                         <!-- Admission info -->
                         {#if admissionInfo}
@@ -239,9 +246,9 @@
             {:else}
                 <div class="hidden md:block">
                     {#each listedEvents.slice(0, 3) as event, index}
-                        {@const start = new Date(event.startDate)}
-                        {@const title = $locale === 'en' ? event.titleEn : event.titleFr}
-                        {@const location = $locale === 'en' ? event.locationEn : event.locationFr}
+                        {@const start = event.startDate ? new Date(event.startDate) : null}
+                        {@const title = localizedText(event.titleEn, event.titleFr, $locale)}
+                        {@const location = localizedText(event.locationEn, event.locationFr, $locale)}
                         <a href="/events/{event.id}" class="block pt-8 pb-10 group" use:reveal={{ preset: "fade-up", delay: 100 + index * 80 }}>
                             {#if event.coverVideo}
                                 <video src={event.coverVideo.url} class="w-full aspect-[16/9] object-cover mb-6" autoplay muted loop playsinline></video>
@@ -256,7 +263,7 @@
                                     <h3 class="text-xl md:text-2xl font-normal truncate group-hover:text-muted-foreground transition-colors">{title}</h3>
                                 </div>
                                 <div class="flex items-center gap-4 shrink-0">
-                                    <p class="text-muted-foreground text-sm">{formatSeatingDate(start, event.timeZone, $locale === 'en' ? 'en' : 'fr', { month: 'long', day: 'numeric', year: 'numeric' })}{#if location}<span class="mx-2 text-muted-foreground">·</span>{location}{/if}</p>
+                                    <p class="text-muted-foreground text-sm">{#if start}{formatSeatingDate(start, event.timeZone, $locale === 'en' ? 'en' : 'fr', { month: 'long', day: 'numeric', year: 'numeric' })}{/if}{#if start && location}<span class="mx-2 text-muted-foreground">·</span>{/if}{location}</p>
                                     <ArrowUpRight size={20} class="text-muted-foreground group-hover:text-foreground transition-colors" />
                                 </div>
                             </div>
@@ -273,9 +280,9 @@
             {:else}
                 <div class="md:hidden">
                     {#each listedEvents.slice(0, 3) as event, index}
-                        {@const start = new Date(event.startDate)}
-                        {@const title = $locale === 'en' ? event.titleEn : event.titleFr}
-                        {@const location = $locale === 'en' ? event.locationEn : event.locationFr}
+                        {@const start = event.startDate ? new Date(event.startDate) : null}
+                        {@const title = localizedText(event.titleEn, event.titleFr, $locale)}
+                        {@const location = localizedText(event.locationEn, event.locationFr, $locale)}
                         <a href="/events/{event.id}" class="block pt-8 pb-10 group" use:reveal={{ preset: "fade-up", delay: 100 + index * 80 }}>
                             {#if event.coverVideo}
                                 <video src={event.coverVideo.url} class="w-full aspect-[16/9] object-cover mb-6" autoplay muted loop playsinline></video>
