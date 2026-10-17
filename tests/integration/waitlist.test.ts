@@ -65,7 +65,7 @@ async function seedEvent() {
 			endDate: new Date('2099-12-31'),
 			locationEn: 'Venue',
 			locationFr: 'Salle',
-			published: true,
+			visibility: 'public',
 		})
 		.returning();
 	return event;

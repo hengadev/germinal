@@ -1,6 +1,6 @@
 import { db } from '$lib/server/db';
 import { toAccessEvent } from '$lib/server/services/event-access';
-import { isIndexed } from '$lib/utils/event-access';
+import { isIndexed, type Visibility } from '$lib/utils/event-access';
 import { MOCK_EVENTS, MOCK_TALENTS, USE_MOCK_DATA } from '$lib/mock-data';
 
 const SITE_URL = 'https://germinalstudio.co';
@@ -54,8 +54,8 @@ export async function GET() {
 		}
 	} else {
 		try {
-			const allEvents: { id: string; updatedAt: Date | null; published: boolean }[] = await db.query.events.findMany({
-				columns: { id: true, updatedAt: true, published: true }
+			const allEvents: { id: string; updatedAt: Date | null; visibility: Visibility }[] = await db.query.events.findMany({
+				columns: { id: true, updatedAt: true, visibility: true }
 			});
 
 			// Only the Events Event access lets be indexed (issue 030).

@@ -48,7 +48,7 @@ const baseEventSchema = z.object({
   admissionInfoEn: z.string().max(150).optional().transform(v => v ?? null),
   admissionInfoFr: z.string().max(150).optional().transform(v => v ?? null),
   coverMediaId: z.string().uuid().optional().transform(v => v ?? null),
-  published: z.boolean().default(false),
+  visibility: z.enum(['draft', 'private', 'public']).default('draft'),
   isSpotlight: z.boolean().default(false),
 });
 

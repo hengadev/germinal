@@ -7,7 +7,18 @@ import type { PageServerLoad } from './$types';
 import { seatingTitlesWithFallback } from '$lib/utils/seating-title';
 import type { ServiceKind } from '$lib/utils/seating-times';
 import { toAccessEvent, toAccessSeating } from '$lib/server/services/event-access';
-import { eventAccess, seatingAvailability, viewerOf } from '$lib/utils/event-access';
+import { eventAccess, isIndexed, seatingAvailability, viewerOf, type AccessEvent } from '$lib/utils/event-access';
+
+/**
+ * A Private Event's page is reachable by its link but never indexed
+ * (issue 032): it answers with `X-Robots-Tag: noindex`, and the page adds
+ * the matching robots meta from `indexed`.
+ */
+function robots(event: AccessEvent, setHeaders: (headers: Record<string, string>) => void): boolean {
+  const indexed = isIndexed(event);
+  if (!indexed) setHeaders({ 'X-Robots-Tag': 'noindex' });
+  return indexed;
+}
 
 /** What a Service offers on the public page (issue 022): its Menu and the
  * price per guest, shown once per Service rather than on every Seating. */
@@ -57,7 +68,7 @@ function buildSchedule<T extends SeatingCard>(
   }));
 }
 
-export const load: PageServerLoad = async ({ params, locals }) => {
+export const load: PageServerLoad = async ({ params, locals, setHeaders }) => {
   const viewer = viewerOf(locals.user);
   const now = new Date();
 
@@ -67,6 +78,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
     if (!event || !eventAccess(event, viewer).visible) {
       throw error(404, 'Event not found');
     }
+    const indexed = robots(event, setHeaders);
     const rows = MOCK_SESSIONS
       .filter((s) => s.eventId === event.id && s.published)
       .map((s) => ({
@@ -105,6 +117,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
     }));
     return {
       event,
+      indexed,
       schedule,
       sessions: rows.map((row) => row.item)
     };
@@ -121,6 +134,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
   if (!eventAccess(accessEvent, viewer).visible) {
     throw error(404, 'Event not found');
   }
+  const indexed = robots(accessEvent, setHeaders);
 
   try {
     const scheduleRows = await getPublishedScheduleByEventId(event.id);
@@ -168,6 +182,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
     return {
       event,
+      indexed,
       schedule,
       sessions: rows.map((row) => row.item)
     };

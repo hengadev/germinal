@@ -317,11 +317,11 @@ export async function deleteEventSession(id: string) {
 		if (!deleted) return;
 
 		// A published Event must keep at least one Seating (ADR 0001).
-		const [event]: { published: boolean }[] = await tx.select({ published: events.published })
+		const [event]: { visibility: string }[] = await tx.select({ visibility: events.visibility })
 			.from(events)
 			.where(eq(events.id, deleted.eventId))
 			.limit(1);
-		if (event?.published) {
+		if (event && event.visibility !== 'draft') {
 			const [remaining] = await tx.select({ id: eventSessions.id })
 				.from(eventSessions)
 				.where(eq(eventSessions.eventId, deleted.eventId))

@@ -44,7 +44,7 @@ async function seedEvent() {
 			locationEn: 'Paris',
 			locationFr: 'Paris',
 			venueCapacity: 20,
-			published: true,
+			visibility: 'public',
 		})
 		.returning();
 	event = row;
@@ -195,7 +195,7 @@ describe('event schedule (Days → Services → Seatings)', () => {
 
 	it('deleting the last Seating of a draft keeps its picked Day and Service', async () => {
 		const { createEventSession, deleteEventSession } = await import('../../src/lib/server/services/event-sessions');
-		await testDb.update(events).set({ published: false }).where(eq(events.id, event.id));
+		await testDb.update(events).set({ visibility: 'draft' }).where(eq(events.id, event.id));
 
 		const session = await createEventSession(sessionInput());
 		await deleteEventSession(session.id);
@@ -414,7 +414,7 @@ describe('saveEventSchedule (admin Days picker)', () => {
 
 	it('removes a Day whose Seatings were never reserved, cascading the Seatings', async () => {
 		const { saveEventSchedule } = await import('../../src/lib/server/services/event-schedule');
-		await testDb.update(events).set({ published: false }).where(eq(events.id, event.id));
+		await testDb.update(events).set({ visibility: 'draft' }).where(eq(events.id, event.id));
 
 		const session = await seedSeating(new Date('2099-06-10T19:00:00Z'), new Date('2099-06-10T22:00:00Z'));
 		await saveEventSchedule(event.id, [{ date: '2099-06-10', kinds: ['dinner'] }]);
@@ -466,7 +466,7 @@ describe('saveServiceSeatings (admin Seatings editor)', () => {
 		vi.clearAllMocks();
 		await setupTestDatabase();
 		await seedEvent();
-		await testDb.update(events).set({ published: false }).where(eq(events.id, event.id));
+		await testDb.update(events).set({ visibility: 'draft' }).where(eq(events.id, event.id));
 	});
 
 	/** Pick Days/Services, then return the editor's Services. */
@@ -658,7 +658,7 @@ describe('saveServiceSeatings (admin Seatings editor)', () => {
 		const { loadSeatingsEditor, PublishedEventWithoutSeatingError } = await import('../../src/lib/server/services/event-schedule');
 		const [lunch] = await pickAndLoad([{ date: '2099-06-10', kinds: ['lunch'] }]);
 		await save([{ serviceId: lunch.serviceId, defaultDurationMinutes: 90, seatings: [seating('12:00')] }]);
-		await testDb.update(events).set({ published: true }).where(eq(events.id, event.id));
+		await testDb.update(events).set({ visibility: 'public' }).where(eq(events.id, event.id));
 
 		await expect(save([{ serviceId: lunch.serviceId, defaultDurationMinutes: 90, seatings: [] }]))
 			.rejects.toBeInstanceOf(PublishedEventWithoutSeatingError);

@@ -93,7 +93,7 @@ async function seedPublishedSession(
 			endDate: new Date('2099-12-31'),
 			locationEn: 'Test Location',
 			locationFr: 'Lieu Test',
-			published: true,
+			visibility: 'public',
 		})
 		.returning();
 

@@ -208,9 +208,8 @@
 	let curatorFr = $state('');
 	let admissionInfoEn = $state('');
 	let admissionInfoFr = $state('');
-	// Events are created as drafts; publish after adding sessions
-	// let published = $state(false);
-	let isSpotlight = $state(false);
+	// Events are created as Drafts (Visibility « Brouillon »); a Draft can
+	// never be the Spotlight, so it is chosen on the Event once Public.
 
 	// Media upload state
 	let coverMediaId: string | null = $state(null);
@@ -873,26 +872,6 @@
 							onRemove={handleGalleryRemove}
 						/>
 						<input type="hidden" name="galleryMediaIds" value={JSON.stringify(galleryMediaIds)} />
-					</div>
-
-					<!-- Spotlight Status -->
-					<div class="flex items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-						<input
-							id="isSpotlight"
-							name="isSpotlight"
-							type="checkbox"
-							value="true"
-							bind:checked={isSpotlight}
-							class="w-5 h-5 text-amber-900 border-amber-300 rounded focus:ring-amber-900"
-						/>
-						<div>
-							<label for="isSpotlight" class="block text-sm font-medium text-amber-900 cursor-pointer">
-								Marquer comme Événement à la Une
-							</label>
-							<p class="text-xs text-amber-600">
-								Les événements à la une sont mis en vedette sur le site. Un seul événement peut être à la une à la fois.
-							</p>
-						</div>
 					</div>
 				</div>
 

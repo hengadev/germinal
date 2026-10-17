@@ -1,5 +1,5 @@
 import { json, error } from '@sveltejs/kit';
-import { getEventById, updateEvent, deleteEvent } from '$lib/server/services/events';
+import { getEventById, updateEvent, deleteEvent, SpotlightRequiresPublicError } from '$lib/server/services/events';
 import { updateEventSchema } from '$lib/server/validators/events';
 import { assertEventHasSeatings, EventWithoutSeatingError } from '$lib/server/services/event-schedule';
 import { requireAdmin } from '$lib/server/auth-guards';
@@ -34,7 +34,7 @@ export const PUT: RequestHandler = async (event) => {
   }
 
   // A published Event must have at least one Seating (ADR 0001).
-  if (parsed.data.published) {
+  if (parsed.data.visibility !== undefined && parsed.data.visibility !== 'draft') {
     try {
       await assertEventHasSeatings(event.params.id);
     } catch (seatingError) {
@@ -48,7 +48,10 @@ export const PUT: RequestHandler = async (event) => {
   try {
     const updatedEvent = await updateEvent(event.params.id, parsed.data);
     return json(updatedEvent);
-  } catch {
+  } catch (updateError) {
+    if (updateError instanceof SpotlightRequiresPublicError) {
+      return json({ error: updateError.message }, { status: 400 });
+    }
     throw error(404, 'Event not found');
   }
 };

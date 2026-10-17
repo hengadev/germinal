@@ -55,6 +55,13 @@
     }
 </script>
 
+<svelte:head>
+    <!-- A Private Event is reached by its link, never indexed (issue 032). -->
+    {#if !data.indexed}
+        <meta name="robots" content="noindex" />
+    {/if}
+</svelte:head>
+
 <EventDetailLayout event={data.event}>
     {#if canBook}
         <section class="mt-12 lg:mt-16" use:reveal={{ preset: "fade-up", delay: 250 }}>

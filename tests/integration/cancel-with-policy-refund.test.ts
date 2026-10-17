@@ -98,7 +98,7 @@ async function seedSeating(options: { policy: 'rules' | 'manual'; hoursAhead: nu
 			endDate: endTime,
 			locationEn: 'Paris',
 			locationFr: 'Paris',
-			published: true,
+			visibility: 'public',
 			refundPolicyType: options.policy,
 			refundPolicyTextEn: options.policy === 'manual' ? 'Contact us.' : null,
 			refundPolicyTextFr: options.policy === 'manual' ? MANUAL_TEXT_FR : null,

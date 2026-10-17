@@ -11,12 +11,14 @@
         Trash2,
         X,
         Tag,
+        Lock,
     } from "lucide-svelte";
     import type { PageData, ActionData } from "./$types";
     import { browser } from "$app/environment";
     import Drawer from "$lib/components/ui/Drawer.svelte";
     import Modal from "$lib/components/ui/Modal.svelte";
     import { getToastContext } from "$lib/components/toast/state.svelte";
+    import { VISIBILITY_LABELS } from "$lib/utils/event-access";
 
     let {
         data,
@@ -146,7 +148,7 @@
  <th
  class="px-6 py-4 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider"
  >
- Statut
+ Visibilité
  </th>
  <th
  class="px-6 py-4 text-right text-xs font-semibold text-foreground-alt uppercase tracking-wider"
@@ -199,19 +201,26 @@
  </td>
  <td class="px-6 py-4">
  <div class="flex items-center gap-2">
- {#if event.published}
+ {#if event.visibility === 'public'}
  <span
  class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-green-50 text-green-700"
  >
  <Eye size={12} />
- Publié
+ {VISIBILITY_LABELS.public}
+ </span>
+ {:else if event.visibility === 'private'}
+ <span
+ class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-sky-50 text-sky-700"
+ >
+ <Lock size={12} />
+ {VISIBILITY_LABELS.private}
  </span>
  {:else}
  <span
  class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-muted text-foreground-alt"
  >
  <EyeOff size={12} />
- Brouillon
+ {VISIBILITY_LABELS.draft}
  </span>
  {/if}
  {#if event.isSpotlight}
@@ -283,19 +292,26 @@
  </div>
 
  <div class="flex flex-wrap items-center gap-2 mb-3">
- {#if event.published}
+ {#if event.visibility === 'public'}
  <span
  class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-green-50 text-green-700"
  >
  <Eye size={12} />
- Publié
+ {VISIBILITY_LABELS.public}
+ </span>
+ {:else if event.visibility === 'private'}
+ <span
+ class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-sky-50 text-sky-700"
+ >
+ <Lock size={12} />
+ {VISIBILITY_LABELS.private}
  </span>
  {:else}
  <span
  class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-muted text-foreground-alt"
  >
  <EyeOff size={12} />
- Brouillon
+ {VISIBILITY_LABELS.draft}
  </span>
  {/if}
  {#if event.isSpotlight}
