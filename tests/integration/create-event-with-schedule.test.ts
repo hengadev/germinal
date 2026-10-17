@@ -1,18 +1,22 @@
 // @vitest-environment node
 import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest';
 import { eq } from 'drizzle-orm';
+import { isRedirect } from '@sveltejs/kit';
 import {
 	events,
 	eventDays,
 	eventMenus,
 	eventServices,
 	eventSessions,
+	media,
 } from '../../src/lib/server/db/schema';
 import { getTestDatabase, setupTestDatabase, closeTestDatabase } from '../fixtures/database';
 
 // ---------------------------------------------------------------------------
-// The new-event form saves everything in one submit: the Event, its Days
-// and meals, the Seatings and « Menus & tarifs » — the last two posted for
+// « Nouvel événement » is the Event editor with no Event (ADR 0008, issue
+// 036): the first save of any tab creates a Draft with what it holds and
+// lands on its page. The schedule tabs save the Days and meals, the
+// Seatings and « Menus & tarifs » together — the last two posted for
 // Services that do not exist yet, named by placeholder ids.
 // ---------------------------------------------------------------------------
 
@@ -49,15 +53,9 @@ function seating(start: string) {
 	};
 }
 
-function createForm(titleEn: string, dinnerStart = '19:30'): FormData {
+function createForm(dinnerStart = '19:30'): FormData {
 	const form = new FormData();
 	const fields: Record<string, string> = {
-		titleEn,
-		titleFr: 'Dîner des Moissons',
-		descriptionEn: 'A dinner.',
-		descriptionFr: 'Un dîner.',
-		locationEn: 'Paris',
-		locationFr: 'Paris',
 		venueCapacity: '24',
 		days: JSON.stringify([{ date: '2099-11-14', kinds: ['lunch', 'dinner'] }]),
 		serviceRefs: JSON.stringify([
@@ -82,27 +80,51 @@ function createForm(titleEn: string, dinnerStart = '19:30'): FormData {
 	return form;
 }
 
-async function submit(form: FormData) {
+type NewEventAction = 'updateEvent' | 'updateMedia' | 'saveSeatings' | 'savePricing';
+
+/** Post a tab of the new-Event editor; a redirect (first save) is returned
+ * as `{ location }` instead of thrown. */
+async function submit(form: FormData, action: NewEventAction = 'saveSeatings') {
 	const { actions } = await import('../../src/routes/(admin)/admin/events/new/+page.server');
-	return actions.default!({
-		locals: { user: admin },
-		request: new Request('http://x/admin/events/new', { method: 'POST', body: form }),
-		params: {},
-		url: new URL('http://x/admin/events/new'),
-	} as never);
+	try {
+		return await actions[action]({
+			locals: { user: admin },
+			request: new Request(`http://x/admin/events/new?/${action}`, { method: 'POST', body: form }),
+			params: {},
+			url: new URL(`http://x/admin/events/new?/${action}`),
+		} as never);
+	} catch (thrown) {
+		if (isRedirect(thrown)) return { status: thrown.status, location: thrown.location };
+		throw thrown;
+	}
 }
 
-describe('creating an Event with its Seatings and pricing', () => {
+/** The redirect a first save answers with: the new Draft's page. */
+const DRAFT_PAGE = { status: 303, location: expect.stringMatching(/^\/admin\/events\/[0-9a-f-]{36}$/) };
+
+/** The id of the Draft a first save landed on. */
+function draftIdOf(result: unknown): string {
+	expect(result).toMatchObject(DRAFT_PAGE);
+	return (result as { location: string }).location.split('/').pop()!;
+}
+
+async function eventById(id: string) {
+	const [event] = await testDb.select().from(events).where(eq(events.id, id));
+	return event;
+}
+
+describe('first save of « Dates & séances » on a new Event', () => {
 	beforeEach(async () => {
 		await setupTestDatabase();
 	});
 
-	it('saves the Days, Seatings, Menu, price, Deposit and Refund Policy in one submit', async () => {
-		const result = await submit(createForm('Harvest Dinner'));
-		expect(result).toMatchObject({ success: expect.stringContaining('créé') });
-
-		const [event] = await testDb.select().from(events).where(eq(events.titleEn, 'Harvest Dinner'));
+	it('creates a Draft with the Days, Seatings, Menu, price, Deposit and Refund Policy', async () => {
+		const event = await eventById(draftIdOf(await submit(createForm())));
 		expect(event).toMatchObject({
+			visibility: 'draft',
+			isSpotlight: false,
+			titleEn: null,
+			titleFr: null,
 			venueCapacity: 24,
 			depositType: 'percent',
 			depositValue: 30,
@@ -133,58 +155,178 @@ describe('creating an Event with its Seatings and pricing', () => {
 			'2099-11-14T18:30:00.000Z',
 			'2099-11-14T20:30:00.000Z',
 		]);
-		expect(event.startDate.toISOString()).toBe('2099-11-13T23:00:00.000Z');
-		expect(event.endDate.toISOString()).toBe('2099-11-14T22:59:59.999Z');
+		expect(event.startDate!.toISOString()).toBe('2099-11-13T23:00:00.000Z');
+		expect(event.endDate!.toISOString()).toBe('2099-11-14T22:59:59.999Z');
+	});
+
+	it('saves the same schedule from « Menus & tarifs »', async () => {
+		const event = await eventById(draftIdOf(await submit(createForm(), 'savePricing')));
+		expect(await testDb.select().from(eventSessions).where(eq(eventSessions.eventId, event.id))).toHaveLength(2);
+		expect(await testDb.select().from(eventMenus).where(eq(eventMenus.eventId, event.id))).toHaveLength(1);
 	});
 
 	it('types the Seatings in the Time Zone picked with the venue', async () => {
-		const form = createForm('London Supper');
+		const form = createForm();
 		form.set('timeZone', 'Europe/London');
-		expect(await submit(form)).toMatchObject({ success: expect.stringContaining('créé') });
-
-		const [event] = await testDb.select().from(events).where(eq(events.titleEn, 'London Supper'));
+		const event = await eventById(draftIdOf(await submit(form)));
 		expect(event.timeZone).toBe('Europe/London');
 		const seatings = await testDb.select().from(eventSessions).where(eq(eventSessions.eventId, event.id));
 		expect(seatings.map((row) => row.startTime.toISOString()).sort()).toEqual([
 			'2099-11-14T19:30:00.000Z',
 			'2099-11-14T21:30:00.000Z',
 		]);
-		expect(event.startDate.toISOString()).toBe('2099-11-14T00:00:00.000Z');
+		expect(event.startDate!.toISOString()).toBe('2099-11-14T00:00:00.000Z');
 	});
 
 	it('refuses a Time Zone that is not an IANA name', async () => {
-		const form = createForm('Nowhere Dinner');
+		const form = createForm();
 		form.set('timeZone', 'Mars/Olympus');
 		expect(await submit(form)).toMatchObject({ status: 400, data: { error: 'Le fuseau horaire choisi est invalide.' } });
+		expect(await testDb.select().from(events)).toHaveLength(0);
 	});
 
-	it('creates a second Event with the same title (Events have no slug, issue 031)', async () => {
-		expect(await submit(createForm('Harvest Dinner'))).toMatchObject({ success: expect.stringContaining('créé') });
-		expect(await submit(createForm('Harvest Dinner'))).toMatchObject({ success: expect.stringContaining('créé') });
-
-		const created = await testDb.select().from(events).where(eq(events.titleEn, 'Harvest Dinner'));
-		expect(created).toHaveLength(2);
-		expect(created[0].id).not.toBe(created[1].id);
+	it('creates a Draft from the Venue Capacity alone, without Days', async () => {
+		const form = new FormData();
+		form.set('days', '[]');
+		form.set('venueCapacity', '30');
+		const event = await eventById(draftIdOf(await submit(form)));
+		expect(event).toMatchObject({ venueCapacity: 30, startDate: null, endDate: null, visibility: 'draft' });
+		expect(await testDb.select().from(eventDays).where(eq(eventDays.eventId, event.id))).toHaveLength(0);
 	});
 
 	it('creates nothing when a Seating is refused', async () => {
 		// A dinner Seating starting at lunch time is refused by the save.
-		const result = await submit(createForm('Refused Dinner', '12:00'));
+		const result = await submit(createForm('12:00'));
 		expect(result).toMatchObject({
 			status: 400,
 			data: { error: expect.stringContaining('ne correspond pas à son repas') },
 		});
 
-		expect(await testDb.select().from(events).where(eq(events.titleEn, 'Refused Dinner'))).toHaveLength(0);
+		expect(await testDb.select().from(events)).toHaveLength(0);
 		expect(await testDb.select().from(eventDays)).toHaveLength(0);
 		expect(await testDb.select().from(eventMenus)).toHaveLength(0);
 	});
 
 	it('refuses a placeholder that names no picked meal, before creating anything', async () => {
-		const form = createForm('stray-ref');
+		const form = createForm();
 		form.set('serviceRefs', JSON.stringify([{ ref: DINNER_REF, date: '2099-11-15', kind: 'dinner' }]));
 		const result = await submit(form);
 		expect(result).toMatchObject({ status: 400 });
 		expect(await testDb.select().from(events)).toHaveLength(0);
+	});
+});
+
+describe('first save of the other tabs on a new Event', () => {
+	beforeEach(async () => {
+		await setupTestDatabase();
+	});
+
+	it('creates a Draft from a single field, and nothing else', async () => {
+		const form = new FormData();
+		form.set('titleFr', 'Dîner des Moissons');
+		form.set('titleEn', '');
+		form.set('descriptionEn', '');
+		form.set('descriptionFr', '');
+		form.set('subtitleEn', '');
+		form.set('subtitleFr', '');
+		const event = await eventById(draftIdOf(await submit(form, 'updateEvent')));
+
+		expect(event).toMatchObject({
+			titleFr: 'Dîner des Moissons',
+			titleEn: null,
+			descriptionEn: null,
+			descriptionFr: null,
+			locationEn: null,
+			locationFr: null,
+			startDate: null,
+			endDate: null,
+			venueCapacity: null,
+			visibility: 'draft',
+			isSpotlight: false,
+			timeZone: 'Europe/Paris',
+		});
+		expect(await testDb.select().from(events)).toHaveLength(1);
+		expect(await testDb.select().from(eventDays)).toHaveLength(0);
+	});
+
+	it('creates a Draft from the Lieu tab with its Time Zone', async () => {
+		const form = new FormData();
+		form.set('cityEn', 'London');
+		form.set('locationEn', '');
+		form.set('timeZone', 'Europe/London');
+		const event = await eventById(draftIdOf(await submit(form, 'updateEvent')));
+		expect(event).toMatchObject({ cityEn: 'London', locationEn: null, timeZone: 'Europe/London' });
+	});
+
+	it('creates nothing when nothing is filled in, whichever tab is saved', async () => {
+		const essentiel = new FormData();
+		for (const name of ['titleEn', 'titleFr', 'descriptionEn', 'descriptionFr', 'subtitleEn', 'subtitleFr']) {
+			essentiel.set(name, ' ');
+		}
+		const programme = new FormData();
+		programme.set('collaborators', '[]');
+		programme.set('timings', '[]');
+		const lieu = new FormData();
+		lieu.set('locationEn', '');
+		lieu.set('timeZone', 'Europe/Paris');
+		const visuels = new FormData();
+		visuels.set('coverMediaId', '');
+		visuels.set('galleryMediaIds', '[]');
+		const schedule = new FormData();
+		schedule.set('days', '[]');
+		schedule.set('serviceRefs', '[]');
+		schedule.set('services', '[]');
+		schedule.set('venueCapacity', '');
+		schedule.set('pricing', JSON.stringify({
+			menus: [],
+			services: [],
+			deposit: { type: 'percent', value: 100 },
+			refundPolicy: { type: 'rules', textEn: null, textFr: null, tiers: [{ hoursBefore: 24, percent: 100 }] },
+		}));
+
+		const nothing = { status: 400, data: { error: expect.stringContaining('Rien à enregistrer') } };
+		expect(await submit(essentiel, 'updateEvent')).toMatchObject(nothing);
+		expect(await submit(programme, 'updateEvent')).toMatchObject(nothing);
+		expect(await submit(lieu, 'updateEvent')).toMatchObject(nothing);
+		expect(await submit(visuels, 'updateMedia')).toMatchObject(nothing);
+		expect(await submit(schedule, 'saveSeatings')).toMatchObject(nothing);
+		expect(await submit(schedule, 'savePricing')).toMatchObject(nothing);
+		expect(await testDb.select().from(events)).toHaveLength(0);
+	});
+
+	it('creates a Draft from the Visuels tab and links the uploads to it', async () => {
+		const [upload] = await testDb.insert(media).values({
+			type: 'image',
+			url: 'https://cdn.test/cover.jpg',
+			s3Key: 'events/cover.jpg',
+			mimeType: 'image/jpeg',
+			size: 1000,
+		}).returning();
+		const form = new FormData();
+		form.set('coverMediaId', upload.id);
+		form.set('galleryMediaIds', '[]');
+		const event = await eventById(draftIdOf(await submit(form, 'updateMedia')));
+
+		expect(event.coverMediaId).toBe(upload.id);
+		const [linked] = await testDb.select().from(media).where(eq(media.id, upload.id));
+		expect(linked).toMatchObject({ eventId: event.id, isCover: true });
+	});
+
+	it('updates only the posted tab’s fields once the Draft exists', async () => {
+		const first = new FormData();
+		first.set('titleFr', 'Dîner des Moissons');
+		const id = draftIdOf(await submit(first, 'updateEvent'));
+
+		const { actions } = await import('../../src/routes/(admin)/admin/events/[id]/+page.server');
+		const lieu = new FormData();
+		lieu.set('cityFr', 'Lyon');
+		const result = await actions.updateEvent!({
+			locals: { user: admin },
+			request: new Request(`http://x/admin/events/${id}?/updateEvent`, { method: 'POST', body: lieu }),
+			params: { id },
+			url: new URL(`http://x/admin/events/${id}?/updateEvent`),
+		} as never);
+		expect(result).toMatchObject({ success: expect.any(String) });
+		expect(await eventById(id)).toMatchObject({ titleFr: 'Dîner des Moissons', cityFr: 'Lyon', visibility: 'draft' });
 	});
 });

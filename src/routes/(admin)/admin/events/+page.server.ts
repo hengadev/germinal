@@ -19,8 +19,8 @@ export const load: PageServerLoad = async ({ url }) => {
         if (searchQuery) {
             const query = searchQuery.toLowerCase();
             filteredEvents = MOCK_EVENTS.filter(e =>
-                e.titleEn.toLowerCase().includes(query) ||
-                e.titleFr.toLowerCase().includes(query)
+                (e.titleEn ?? '').toLowerCase().includes(query) ||
+                (e.titleFr ?? '').toLowerCase().includes(query)
             );
         }
 
@@ -64,7 +64,7 @@ export const actions: Actions = {
             const event = MOCK_EVENTS[eventIndex];
             MOCK_EVENTS.splice(eventIndex, 1);
 
-            return { success: `Event "${event.titleEn}" deleted successfully` };
+            return { success: `Event "${event.titleEn ?? ''}" deleted successfully` };
         }
 
         // Database mode - use actual database functions

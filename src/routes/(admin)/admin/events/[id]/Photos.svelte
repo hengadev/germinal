@@ -4,19 +4,26 @@
 	import MediaUpload from '$lib/components/MediaUpload.svelte';
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import { getToastContext } from '$lib/components/toast/state.svelte';
-	import type { ActionData, PageData } from './$types';
 	import type { Media } from '$lib/types/media';
+	import { handleTabResult } from './editor-forms';
 
 	const toast = getToastContext();
 
-	let { data, form }: { data: PageData; form: ActionData } = $props();
+	// « Visuels » tab. On a new Event (`event` null) the uploads are not
+	// linked to any Event yet: the first save creates the Draft with them
+	// (issue 036).
+	let {
+		event,
+	}: {
+		event: { id: string; coverMediaId: string | null; coverMedia?: Media | null; media?: Media[] } | null;
+	} = $props();
 
-	const existingCoverMedia = data.event.coverMedia ? [data.event.coverMedia] : [];
-	const existingGalleryMedia = (data.event.media || []).filter(
-		(m: Media) => m && m.id !== data.event.coverMediaId
+	const existingCoverMedia = event?.coverMedia ? [event.coverMedia] : [];
+	const existingGalleryMedia = (event?.media || []).filter(
+		(m: Media) => m && m.id !== event?.coverMediaId
 	);
 
-	let coverMediaId = $state(data.event.coverMediaId ?? null);
+	let coverMediaId = $state(event?.coverMediaId ?? null);
 	let galleryMediaIds = $state(existingGalleryMedia.map((m: Media) => m.id));
 
 	// Delete confirmation modal state
@@ -92,14 +99,8 @@
 
 <div class="bg-background rounded-lg border border-border-card p-6 lg:p-8">
 	<form method="POST" action="?/updateMedia" use:enhance={() => {
-		return async ({ result, update }) => {
-			await update({ reset: false });
-			if (result.type === 'success') {
-				toast.success('Succès', 'Photos mises à jour');
-			} else if (result.type === 'failure') {
-				const data = result.data as { error?: string } | undefined;
-				toast.error('Erreur', data?.error ?? 'Échec de la mise à jour des photos');
-			}
+		return async ({ result }) => {
+			await handleTabResult(result, toast, 'Photos mises à jour');
 		};
 	}} class="space-y-8">
 
@@ -112,12 +113,12 @@
 			<MediaUpload
 				mode="single"
 				entityType="event"
-				entityId={data.event.id}
+				entityId={event?.id}
 				existingMedia={existingCoverMedia}
 				maxSizeMB={10}
 				onUpload={handleCoverUpload}
 				onRemove={handleCoverRemove}
-				onBeforeRemove={beforeRemove}
+				onBeforeRemove={event ? beforeRemove : undefined}
 			/>
 			<input type="hidden" name="coverMediaId" value={coverMediaId ?? ''} />
 		</div>
@@ -131,13 +132,13 @@
 			<MediaUpload
 				mode="multiple"
 				entityType="event"
-				entityId={data.event.id}
+				entityId={event?.id}
 				existingMedia={existingGalleryMedia}
 				maxSizeMB={10}
 				onUpload={handleGalleryUpload}
 				onRemove={handleGalleryRemove}
 				onReorder={handleGalleryReorder}
-				onBeforeRemove={beforeRemove}
+				onBeforeRemove={event ? beforeRemove : undefined}
 			/>
 			<input type="hidden" name="galleryMediaIds" value={JSON.stringify(galleryMediaIds)} />
 		</div>
