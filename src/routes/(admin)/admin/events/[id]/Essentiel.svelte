@@ -36,7 +36,9 @@
 	let publishDialogWasOpen = false;
 
 	// Closing the dialog without publishing (Annuler, Échap) leaves the
-	// Event in Brouillon, as it was.
+	// Event in Brouillon, as it was. The confirmation flag is consumed here:
+	// « Publier quand même » closes the dialog and submits, so the revert
+	// must not run for that close.
 	$effect(() => {
 		if (publishDialogOpen) {
 			publishDialogWasOpen = true;
@@ -46,6 +48,7 @@
 			visibility = 'draft';
 		}
 		publishDialogWasOpen = false;
+		publishConfirmed = false;
 	});
 
 	function saveEnhance({ cancel }: { cancel: () => void }) {
@@ -61,7 +64,6 @@
 		}
 		saving = true;
 		return async ({ result }: { result: import('@sveltejs/kit').ActionResult }) => {
-			publishConfirmed = false;
 			saving = false;
 			await handleTabResult(result, toast, 'Modifications enregistrées');
 		};
