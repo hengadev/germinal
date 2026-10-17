@@ -28,7 +28,15 @@ export const POST: RequestHandler = async (event) => {
   const entityType = formData.get('entityType') as 'event' | 'talent' | null;
   const entityId = formData.get('entityId') as string | null;
 
-  logger.info({ entityType, entityId }, 'Upload entity info');
+  // An Event's media is a Visual (the default) or an Event Photo (issue
+  // 045); Talent media have no role.
+  const rawRole = formData.get('role');
+  if (rawRole !== null && rawRole !== 'visual' && rawRole !== 'event_photo') {
+    return error(400, 'Invalid media role');
+  }
+  const role = entityType === 'event' ? (rawRole ?? 'visual') : null;
+
+  logger.info({ entityType, entityId, role }, 'Upload entity info');
 
   if (!entityType) {
     return error(400, 'Entity type required');
@@ -88,6 +96,7 @@ export const POST: RequestHandler = async (event) => {
         eventId: entityType === 'event' ? (entityId ?? null) : null,
         talentId: entityType === 'talent' ? (entityId ?? null) : null,
         isCover: false,
+        role,
       });
 
       logger.info({ mediaId: mediaRecord.id }, 'Media record created');

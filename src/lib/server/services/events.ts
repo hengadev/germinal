@@ -228,6 +228,9 @@ export async function createEvent(input: CreateEventInput) {
       // Practical Info (issue 040): Ticket-holders only, never public.
       practicalInfoEn: input.practicalInfoEn,
       practicalInfoFr: input.practicalInfoFr,
+      // The Recap (issue 045): the Portfolio project page leads with it.
+      recapEn: input.recapEn,
+      recapFr: input.recapFr,
       venueCapacity: input.venueCapacity ?? null,
       coverMediaId: input.coverMediaId,
       visibility,

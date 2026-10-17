@@ -91,6 +91,11 @@ export interface EditorEvent {
 	// Practical Info (issue 040): Ticket holders only, never public.
 	practicalInfoEn: string | null;
 	practicalInfoFr: string | null;
+	/** The Recap (issue 045), for the Portfolio project page. */
+	recapEn?: string | null;
+	recapFr?: string | null;
+	/** Visuals and Event Photos alike (issue 045); each tab reads its own. */
+	media?: import('$lib/types/media').Media[] | null;
 	visibility: 'draft' | 'private' | 'public';
 	isSpotlight: boolean | null;
 	isPortfolio: boolean | null;
