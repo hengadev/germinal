@@ -240,7 +240,7 @@
                         {@const start = new Date(event.startDate)}
                         {@const title = $locale === 'en' ? event.titleEn : event.titleFr}
                         {@const location = $locale === 'en' ? event.locationEn : event.locationFr}
-                        <a href="/events/{event.slug}" class="block pt-8 pb-10 group" use:reveal={{ preset: "fade-up", delay: 100 + index * 80 }}>
+                        <a href="/events/{event.id}" class="block pt-8 pb-10 group" use:reveal={{ preset: "fade-up", delay: 100 + index * 80 }}>
                             {#if event.coverVideo}
                                 <video src={event.coverVideo.url} class="w-full aspect-[16/9] object-cover mb-6" autoplay muted loop playsinline></video>
                             {:else if event.coverMedia}
@@ -274,7 +274,7 @@
                         {@const start = new Date(event.startDate)}
                         {@const title = $locale === 'en' ? event.titleEn : event.titleFr}
                         {@const location = $locale === 'en' ? event.locationEn : event.locationFr}
-                        <a href="/events/{event.slug}" class="block pt-8 pb-10 group" use:reveal={{ preset: "fade-up", delay: 100 + index * 80 }}>
+                        <a href="/events/{event.id}" class="block pt-8 pb-10 group" use:reveal={{ preset: "fade-up", delay: 100 + index * 80 }}>
                             {#if event.coverVideo}
                                 <video src={event.coverVideo.url} class="w-full aspect-[16/9] object-cover mb-6" autoplay muted loop playsinline></video>
                             {:else if event.coverMedia}

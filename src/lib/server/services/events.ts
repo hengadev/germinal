@@ -67,32 +67,24 @@ export async function getAllEvents(options: { listedOnly?: boolean; excludeSpotl
 	return createPaginatedResponse(paginatedEvents, pagination);
 }
 
-export async function getEventBySlug(slug: string) {
+/** Event ids are random UUIDs and public URLs carry them (ADR 0007). */
+const EVENT_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export async function getEventById(id: string) {
+  // Anything that is not a UUID cannot be an Event: not found, rather than
+  // a database error on the cast.
+  if (!EVENT_ID.test(id)) {
+    throw new Error('Event not found');
+  }
+
   const event = await db.query.events.findFirst({
-    where: eq(events.slug, slug),
+    where: eq(events.id, id),
     with: {
       coverMedia: true,
       coverVideo: true,
       media: {
         orderBy: [desc(media.createdAt)],
       },
-    },
-  });
-
-  if (!event) {
-    throw new Error('Event not found');
-  }
-
-  return event;
-}
-
-export async function getEventById(id: string) {
-  const event = await db.query.events.findFirst({
-    where: eq(events.id, id),
-    with: {
-      coverMedia: true,
-      coverVideo: true,
-      media: true,
     },
   });
 
@@ -138,7 +130,6 @@ export async function createEvent(input: CreateEventInput) {
     const [event] = await tx.insert(events).values({
       titleEn: input.titleEn,
       titleFr: input.titleFr,
-      slug: input.slug,
       descriptionEn: input.descriptionEn,
       descriptionFr: input.descriptionFr,
       subtitleEn: input.subtitleEn,

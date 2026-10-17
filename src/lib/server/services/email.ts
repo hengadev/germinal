@@ -332,7 +332,7 @@ export async function sendTicketConfirmationEmail(data: TicketEmailData): Promis
 	// Generate calendar links
 	const { generateGoogleCalendarUrl } = await import('../utils/calendar');
 	const googleCalendarUrl = generateGoogleCalendarUrl(data.event, data.session);
-	const icsUrl = `${env.PUBLIC_URL}/api/events/${data.event.slug}/sessions/${data.session.id}/calendar.ics`;
+	const icsUrl = `${env.PUBLIC_URL}/api/events/${data.event.id}/sessions/${data.session.id}/calendar.ics`;
 
 	const textBody = generateTicketTextTemplate({
 		...data,

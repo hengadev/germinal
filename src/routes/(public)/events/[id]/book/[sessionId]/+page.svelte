@@ -178,7 +178,7 @@
 
 <div class="container mx-auto px-4 py-32 max-w-2xl">
 	<a
-		href="/events/{data.event.slug}"
+		href="/events/{data.event.id}"
 		class="flex items-center gap-2 mb-8 text-muted-foreground hover:text-foreground transition-colors"
 	>
 		<ArrowLeft size={18} />
@@ -197,7 +197,7 @@
 					: $t('booking.emailHint')}
 			</p>
 			<a
-				href="/events/{data.event.slug}"
+				href="/events/{data.event.id}"
 				class="inline-flex items-center justify-center gap-2 px-6 py-3 border border-border-input text-foreground-alt rounded-none hover:bg-surface transition-colors font-medium"
 			>
 				<ArrowLeft size={18} />
@@ -433,7 +433,7 @@
 			<!-- Submit -->
 			<div class="flex items-center justify-end gap-3 pt-2">
 				<a
-					href="/events/{data.event.slug}"
+					href="/events/{data.event.id}"
 					class="px-6 py-2.5 border border-border-input text-foreground-alt rounded-none hover:bg-surface transition-colors font-medium"
 				>
 					{$t('booking.cancel')}

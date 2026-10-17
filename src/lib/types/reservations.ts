@@ -38,7 +38,6 @@ export type ReservationWithDetails = Reservation & {
 			id: string;
 			titleEn: string;
 			titleFr: string;
-			slug: string;
 			locationEn: string;
 			locationFr: string;
 			venueNameEn: string | null;
@@ -64,7 +63,7 @@ export type TicketEmailData = {
 	event: {
 		titleEn: string;
 		titleFr: string;
-		slug: string;
+		id: string;
 		locationEn: string;
 	};
 	qrCode?: string;

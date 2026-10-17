@@ -417,7 +417,6 @@ export const openApiSpec = {
 				properties: {
 					id: { type: 'string', format: 'uuid', description: 'Unique event identifier' },
 					title: { type: 'string', description: 'Event title' },
-					slug: { type: 'string', description: 'URL-friendly event identifier', example: 'summer-music-festival' },
 					description: { type: 'string', description: 'Event description' },
 					startDate: { type: 'string', format: 'date-time', description: 'Event start date and time' },
 					endDate: { type: 'string', format: 'date-time', description: 'Event end date and time' },
@@ -456,10 +455,9 @@ export const openApiSpec = {
 			},
 			CreateEvent: {
 				type: 'object',
-				required: ['title', 'slug', 'description', 'startDate', 'endDate', 'location'],
+				required: ['title', 'description', 'startDate', 'endDate', 'location'],
 				properties: {
 					title: { type: 'string', minLength: 1, maxLength: 255, description: 'Event title' },
-					slug: { type: 'string', pattern: '^[a-z0-9-]+$', maxLength: 255, description: 'URL-friendly slug for the event' },
 					description: { type: 'string', minLength: 1, description: 'Event description' },
 					startDate: { type: 'string', format: 'date-time', description: 'Event start date and time' },
 					endDate: { type: 'string', format: 'date-time', description: 'Event end date and time' },

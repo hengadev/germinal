@@ -145,7 +145,7 @@ export async function notifyWaitlist(sessionId: string, availableCapacity: numbe
 	return { notified: notifiedCount };
 }
 
-type SessionWithEvent = typeof eventSessions.$inferSelect & { event?: { slug: string } | null };
+type SessionWithEvent = typeof eventSessions.$inferSelect & { event?: { id: string } | null };
 
 /** Unit price from the Seating's Service (issue 022); null when not set. */
 type UnitPrice = { amount: number; currency: string } | null;
@@ -169,7 +169,7 @@ ${formatUnitPrice(price)} per ticket
 
 You requested ${entry.quantity} ticket(s). Please book soon as availability is limited.
 
-Book now: ${env.PUBLIC_URL}/events/${session.event?.slug ?? ''}
+Book now: ${env.PUBLIC_URL}/events/${session.event?.id ?? ''}
 
 This link is valid for 24 hours.
   `.trim();
@@ -216,7 +216,7 @@ function generateWaitlistHtmlTemplate(entry: typeof waitlist.$inferSelect, sessi
     </p>
 
     <div style="margin-top: 24px; text-align: center;">
-      <a href="${env.PUBLIC_URL}/events/${session.event?.slug ?? ''}"
+      <a href="${env.PUBLIC_URL}/events/${session.event?.id ?? ''}"
          style="display: inline-block; background-color: #007bff; color: white; text-decoration: none; padding: 12px 32px; border-radius: 6px; font-weight: 600;">
         Book Your Tickets
       </a>
@@ -241,7 +241,7 @@ function generateWaitlistHtmlTemplate(entry: typeof waitlist.$inferSelect, sessi
  * Send waitlist notification email
  */
 async function sendWaitlistNotificationEmail(
-	entry: typeof waitlist.$inferSelect & { eventSession: typeof eventSessions.$inferSelect & { event: { slug: string } | null } },
+	entry: typeof waitlist.$inferSelect & { eventSession: typeof eventSessions.$inferSelect & { event: { id: string } | null } },
 	session: SessionWithEvent
 ) {
 	const { getSeatingPrice } = await import('./service-pricing');
@@ -266,7 +266,7 @@ async function sendWaitlistNotificationEmail(
  * Send waitlist notification (both email and SMS based on preference)
  */
 export async function sendWaitlistNotification(
-	entry: typeof waitlist.$inferSelect & { eventSession: typeof eventSessions.$inferSelect & { event: { slug: string } | null } },
+	entry: typeof waitlist.$inferSelect & { eventSession: typeof eventSessions.$inferSelect & { event: { id: string } | null } },
 	session: SessionWithEvent
 ) {
 	// Send email if user prefers email or both

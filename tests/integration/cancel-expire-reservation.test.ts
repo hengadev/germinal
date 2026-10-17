@@ -100,7 +100,6 @@ async function seedPublishedSession(overrides?: Partial<typeof eventSessions.$in
 		.values({
 			titleEn: 'Test Event',
 			titleFr: 'Événement Test',
-			slug: `test-event-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
 			descriptionEn: 'Test description',
 			descriptionFr: 'Description test',
 			startDate: new Date('2099-01-01'),

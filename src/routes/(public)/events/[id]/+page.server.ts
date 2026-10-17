@@ -1,4 +1,4 @@
-import { getEventBySlug } from '$lib/server/services/events';
+import { getEventById } from '$lib/server/services/events';
 import { getPublishedScheduleByEventId, classifyServiceKind, utcDayKey, groupScheduleByDayAndService } from '$lib/server/services/event-schedule';
 import { MOCK_EVENTS, MOCK_SESSIONS, USE_MOCK_DATA } from '$lib/mock-data';
 import { getServiceOffersByEventId } from '$lib/server/services/service-pricing';
@@ -63,7 +63,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
   // Use mock data if enabled (no database required!)
   if (USE_MOCK_DATA) {
-    const event = MOCK_EVENTS.find((e) => e.slug === params.slug);
+    const event = MOCK_EVENTS.find((e) => e.id === params.id);
     if (!event || !eventAccess(event, viewer).visible) {
       throw error(404, 'Event not found');
     }
@@ -112,7 +112,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
   let event;
   try {
-    event = await getEventBySlug(params.slug);
+    event = await getEventById(params.id);
   } catch {
     throw error(404, 'Event not found');
   }

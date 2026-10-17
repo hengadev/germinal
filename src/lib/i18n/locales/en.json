@@ -578,7 +578,6 @@
         },
         "fields": {
           "title": "Title",
-          "slug": "Slug",
           "description": "Description",
           "startDate": "Start Date",
           "endDate": "End Date",

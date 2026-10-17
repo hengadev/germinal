@@ -132,7 +132,6 @@
 
 	let titleEn = $state('');
 	let titleFr = $state('');
-	let slug = $state('');
 	let descriptionEn = $state('');
 	let descriptionFr = $state('');
 	let subtitleEn = $state('');
@@ -249,16 +248,6 @@
 	function handleGalleryReorder(mediaIds: string[]) {
 		galleryMediaIds = mediaIds;
 	}
-
-	// Auto-generate slug from English title
-	$effect(() => {
-		if (titleEn && !slug) {
-			slug = titleEn
-				.toLowerCase()
-				.replace(/[^a-z0-9]+/g, '-')
-				.replace(/^-|-$/g, '');
-		}
-	});
 </script>
 
 <svelte:head>
@@ -356,32 +345,6 @@
 								/>
 							</div>
 						</div>
-					</div>
-
-					<!-- Slug -->
-					<div>
-						<label for="slug" class="block text-sm font-medium text-foreground-alt mb-2">
-							Slug <span class="text-red-500">*</span>
-						</label>
-						<div class="relative">
-							<Type
-								size={18}
-								class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-							/>
-							<input
-								id="slug"
-								name="slug"
-								type="text"
-								bind:value={slug}
-								required
-								pattern="[a-z0-9-]+"
-								placeholder="summer-music-festival-2026"
-								class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent font-mono text-sm"
-							/>
-						</div>
-						<p class="mt-1 text-xs text-muted-foreground">
-							URL-friendly version of the title (lowercase, hyphens only)
-						</p>
 					</div>
 
 					<!-- Subtitles: side by side on desktop -->

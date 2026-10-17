@@ -42,7 +42,6 @@ async function seedEventWithTwoSeatings() {
 		.values({
 			titleEn: 'Summer Table',
 			titleFr: "Table d'été",
-			slug: `summer-table-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
 			descriptionEn: 'd',
 			descriptionFr: 'd',
 			startDate: new Date('2099-06-10'),

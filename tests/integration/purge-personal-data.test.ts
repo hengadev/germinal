@@ -60,7 +60,6 @@ async function seedSession(endedDaysAgo: number) {
 		.values({
 			titleEn: 'Test Event',
 			titleFr: 'Événement Test',
-			slug: `purge-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
 			descriptionEn: 'Test',
 			descriptionFr: 'Test',
 			locationEn: 'Paris',

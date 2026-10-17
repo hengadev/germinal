@@ -28,13 +28,12 @@ afterAll(async () => {
 	await closeTestDatabase();
 });
 
-async function seedEvent(slug: string) {
+async function seedEvent(name: string) {
 	const [event] = await testDb
 		.insert(events)
 		.values({
-			titleEn: 'Pricing Event',
+			titleEn: `Pricing Event ${name}`,
 			titleFr: 'Événement Tarifs',
-			slug: `${slug}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
 			descriptionEn: 'Test',
 			descriptionFr: 'Test',
 			startDate: new Date('2099-01-01T00:00:00Z'),

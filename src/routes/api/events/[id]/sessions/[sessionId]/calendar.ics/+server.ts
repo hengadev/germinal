@@ -1,18 +1,18 @@
 import { error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { generateICS } from '$lib/server/utils/calendar';
-import { getEventBySlug } from '$lib/server/services/events';
+import { getEventById } from '$lib/server/services/events';
 import { db } from '$lib/server/db';
 import { eventSessions } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
 import { toAccessEvent } from '$lib/server/services/event-access';
 import { eventAccess, viewerOf } from '$lib/utils/event-access';
 
-// GET /api/events/[slug]/sessions/[sessionId]/calendar.ics - Get ICS calendar file for a session
+// GET /api/events/[id]/sessions/[sessionId]/calendar.ics - Get ICS calendar file for a session
 export const GET: RequestHandler = async ({ params, locals }) => {
 	let event;
 	try {
-		event = await getEventBySlug(params.slug);
+		event = await getEventById(params.id);
 	} catch {
 		throw error(404, 'Event not found');
 	}
@@ -44,7 +44,7 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 	return new Response(icsContent, {
 		headers: {
 			'Content-Type': 'text/calendar; charset=utf-8',
-			'Content-Disposition': `attachment; filename="event-${params.slug}-${params.sessionId}.ics"`,
+			'Content-Disposition': `attachment; filename="event-${params.id}-${params.sessionId}.ics"`,
 			'Cache-Control': 'public, max-age=3600',
 		},
 	});

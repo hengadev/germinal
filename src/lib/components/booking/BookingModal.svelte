@@ -30,14 +30,14 @@
 		isOpen = $bindable(),
 		session,
 		eventTitle,
-		eventSlug,
+		eventId,
 		deposit = FULL_PAYMENT_DEPOSIT,
 		refundPolicy = EMPTY_MANUAL_REFUND_POLICY
 	}: {
 		isOpen: boolean;
 		session: Session;
 		eventTitle: string;
-		eventSlug: string;
+		eventId: string;
 		/** The Event's Deposit rule (issue 023). */
 		deposit?: DepositRule;
 		/** The Event's Refund Policy (issue 027), shown before paying. */

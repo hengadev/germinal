@@ -27,7 +27,7 @@
 <div class="flex h-[50vh] max-h-[520px] gap-1.5" role="list">
     {#each events as event, index}
         <a
-            href="/events/{event.slug}"
+            href="/events/{event.id}"
             role="listitem"
             class="relative overflow-hidden cursor-pointer"
             style="flex: {panelFlex(index)}; transition: flex 420ms cubic-bezier(0.25, 0.46, 0.45, 0.94);"

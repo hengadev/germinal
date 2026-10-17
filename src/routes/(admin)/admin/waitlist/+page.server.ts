@@ -56,8 +56,7 @@ export const load: PageServerLoad = async ({ url }) => {
 					event: {
 						columns: {
 							id: true,
-							titleEn: true,
-							slug: true
+							titleEn: true
 						}
 					}
 				}
@@ -99,7 +98,7 @@ export const load: PageServerLoad = async ({ url }) => {
 				title: seatingTitle(entry.eventSession, 'en'),
 				startTime: entry.eventSession.startTime.toISOString(),
 				eventTitle: entry.eventSession.event?.titleEn || '',
-				eventSlug: entry.eventSession.event?.slug || ''
+				eventId: entry.eventSession.eventId
 			}
 		})),
 		sessions: allSessions.map((s: typeof allSessions[number]) => ({

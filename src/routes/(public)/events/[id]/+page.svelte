@@ -104,7 +104,7 @@
                                 <SessionSelector
                                     sessions={service.sessions}
                                     eventTitle={getEventTitle()}
-                                    eventSlug={data.event.slug}
+                                    eventId={data.event.id}
                                     {deposit}
                                     {refundPolicy}
                                 />

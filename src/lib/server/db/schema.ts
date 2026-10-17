@@ -109,7 +109,6 @@ export const events = pgTable('events', {
     id: uuid('id').defaultRandom().primaryKey(),
     titleEn: varchar('title_en', { length: 255 }).notNull(),
     titleFr: varchar('title_fr', { length: 255 }).notNull(),
-    slug: varchar('slug', { length: 255 }).notNull().unique(),
     descriptionEn: text('description_en').notNull(),
     descriptionFr: text('description_fr').notNull(),
     subtitleEn: text('subtitle_en'),
@@ -167,7 +166,6 @@ export const events = pgTable('events', {
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => ({
-    slugIdx: index('events_slug_idx').on(table.slug),
     publishedIdx: index('events_published_idx').on(table.published),
     startDateIdx: index('events_start_date_idx').on(table.startDate),
     // Composite index for listing published events sorted by date

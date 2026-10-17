@@ -17,7 +17,7 @@
     );
 </script>
 
-<a href="/events/{event.slug}" class="block bg-white overflow-hidden group">
+<a href="/events/{event.id}" class="block bg-white overflow-hidden group">
     {#if event.coverMedia}
         <div class="aspect-video overflow-hidden">
             {#if event.coverMedia.type === "image"}

@@ -17,7 +17,7 @@ import { sendTicketConfirmationEmail } from './email';
 export async function sendTicketNotifications(
 	reservation: Reservation & {
 		eventSession: typeof eventSessions.$inferSelect & {
-			event: { titleEn: string; titleFr: string; slug: string; locationEn: string };
+			event: { id: string; titleEn: string; titleFr: string; locationEn: string };
 		};
 	}
 ): Promise<void> {

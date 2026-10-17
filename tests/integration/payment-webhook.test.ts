@@ -89,7 +89,6 @@ async function seedPublishedSession(overrides?: Partial<typeof eventSessions.$in
 		.values({
 			titleEn: 'Webhook Test Event',
 			titleFr: 'Événement Test Webhook',
-			slug: `test-event-wh-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
 			descriptionEn: 'Test description',
 			descriptionFr: 'Description test',
 			startDate: new Date('2099-01-01'),

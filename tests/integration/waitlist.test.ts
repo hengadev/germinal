@@ -59,7 +59,6 @@ async function seedEvent() {
 		.values({
 			titleEn: 'Waitlist Test Event',
 			titleFr: 'Événement Test Liste',
-			slug: `waitlist-test-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
 			descriptionEn: 'Test',
 			descriptionFr: 'Test',
 			startDate: new Date('2099-01-01'),

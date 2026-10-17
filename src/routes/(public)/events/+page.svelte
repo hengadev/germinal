@@ -239,7 +239,7 @@
         <div class="flex flex-col gap-6">
             {#each allEvents as event, index}
                 <a
-                    href="/events/{event.slug}"
+                    href="/events/{event.id}"
                     use:reveal={{
                         preset: "fade-up",
                         delay: Math.min(index * 60, 300),

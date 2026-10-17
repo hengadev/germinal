@@ -49,12 +49,11 @@ function seating(start: string) {
 	};
 }
 
-function createForm(slug: string, dinnerStart = '19:30'): FormData {
+function createForm(titleEn: string, dinnerStart = '19:30'): FormData {
 	const form = new FormData();
 	const fields: Record<string, string> = {
-		titleEn: 'Harvest Dinner',
+		titleEn,
 		titleFr: 'Dîner des Moissons',
-		slug,
 		descriptionEn: 'A dinner.',
 		descriptionFr: 'Un dîner.',
 		locationEn: 'Paris',
@@ -99,10 +98,10 @@ describe('creating an Event with its Seatings and pricing', () => {
 	});
 
 	it('saves the Days, Seatings, Menu, price, Deposit and Refund Policy in one submit', async () => {
-		const result = await submit(createForm('harvest-dinner'));
+		const result = await submit(createForm('Harvest Dinner'));
 		expect(result).toMatchObject({ success: expect.stringContaining('créé') });
 
-		const [event] = await testDb.select().from(events).where(eq(events.slug, 'harvest-dinner'));
+		const [event] = await testDb.select().from(events).where(eq(events.titleEn, 'Harvest Dinner'));
 		expect(event).toMatchObject({
 			venueCapacity: 24,
 			depositType: 'percent',
@@ -134,15 +133,24 @@ describe('creating an Event with its Seatings and pricing', () => {
 		]);
 	});
 
+	it('creates a second Event with the same title (Events have no slug, issue 031)', async () => {
+		expect(await submit(createForm('Harvest Dinner'))).toMatchObject({ success: expect.stringContaining('créé') });
+		expect(await submit(createForm('Harvest Dinner'))).toMatchObject({ success: expect.stringContaining('créé') });
+
+		const created = await testDb.select().from(events).where(eq(events.titleEn, 'Harvest Dinner'));
+		expect(created).toHaveLength(2);
+		expect(created[0].id).not.toBe(created[1].id);
+	});
+
 	it('creates nothing when a Seating is refused', async () => {
 		// A dinner Seating starting at lunch time is refused by the save.
-		const result = await submit(createForm('refused-dinner', '12:00'));
+		const result = await submit(createForm('Refused Dinner', '12:00'));
 		expect(result).toMatchObject({
 			status: 400,
 			data: { error: expect.stringContaining('ne correspond pas à son repas') },
 		});
 
-		expect(await testDb.select().from(events).where(eq(events.slug, 'refused-dinner'))).toHaveLength(0);
+		expect(await testDb.select().from(events).where(eq(events.titleEn, 'Refused Dinner'))).toHaveLength(0);
 		expect(await testDb.select().from(eventDays)).toHaveLength(0);
 		expect(await testDb.select().from(eventMenus)).toHaveLength(0);
 	});

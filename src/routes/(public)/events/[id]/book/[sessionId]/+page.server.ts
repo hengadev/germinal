@@ -1,4 +1,4 @@
-import { getEventBySlug } from '$lib/server/services/events';
+import { getEventById } from '$lib/server/services/events';
 import { getSessionById } from '$lib/server/services/event-sessions';
 import { MOCK_EVENTS, MOCK_SESSIONS, USE_MOCK_DATA } from '$lib/mock-data';
 import { error } from '@sveltejs/kit';
@@ -32,7 +32,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	const viewer = viewerOf(locals.user);
 
 	if (USE_MOCK_DATA) {
-		const event = MOCK_EVENTS.find((e) => e.slug === params.slug);
+		const event = MOCK_EVENTS.find((e) => e.id === params.id);
 		if (!event || !eventAccess(event, viewer).visible) throw error(404, 'Event not found');
 
 		const session = MOCK_SESSIONS.find(
@@ -44,7 +44,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	}
 
 	try {
-		const event = await getEventBySlug(params.slug);
+		const event = await getEventById(params.id);
 		// Event access (issue 030): an Event the viewer may not see is not
 		// found, and neither is a Seating of it that is unpublished or has
 		// no price yet (issue 022) — those cannot be booked.

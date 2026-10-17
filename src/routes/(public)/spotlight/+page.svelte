@@ -40,7 +40,7 @@
 				<SessionSelector
 					sessions={sessions}
 					eventTitle={getEventField('title')}
-					eventSlug={spotlightEvent.slug}
+					eventId={spotlightEvent.id}
 					deposit={depositRuleOf(spotlightEvent)}
 					refundPolicy={refundPolicyOf(spotlightEvent)}
 				/>

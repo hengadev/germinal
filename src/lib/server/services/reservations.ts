@@ -197,7 +197,7 @@ export async function createReservation(input: CreateReservationInput): Promise<
 		const [event] = await tx
 			.select({
 				titleEn: events.titleEn,
-				slug: events.slug,
+				id: events.id,
 				depositType: events.depositType,
 				depositValue: events.depositValue,
 			})
@@ -293,7 +293,7 @@ export async function createReservation(input: CreateReservationInput): Promise<
 			},
 			successUrl: `${env.PUBLIC_URL}/tickets/${accessToken}?success=true`,
 			cancelUrl: event
-				? `${env.PUBLIC_URL}/events/${event.slug}`
+				? `${env.PUBLIC_URL}/events/${event.id}`
 				: `${env.PUBLIC_URL}/events`,
 			expiresAt,
 		});
@@ -410,7 +410,7 @@ export async function createCompReservation(input: CreateCompReservationInput) {
 		}).returning();
 
 		const [event] = await tx
-			.select({ titleEn: events.titleEn, titleFr: events.titleFr, slug: events.slug, locationEn: events.locationEn })
+			.select({ titleEn: events.titleEn, titleFr: events.titleFr, id: events.id, locationEn: events.locationEn })
 			.from(events)
 			.where(eq(events.id, session.eventId));
 
@@ -431,7 +431,7 @@ export async function createCompReservation(input: CreateCompReservationInput) {
 			event: {
 				titleEn: created.event?.titleEn ?? '',
 				titleFr: created.event?.titleFr ?? '',
-				slug: created.event?.slug ?? '',
+				id: created.event?.id ?? '',
 				locationEn: created.event?.locationEn ?? '',
 			},
 		});
@@ -458,7 +458,6 @@ export async function getReservationByToken(token: string): Promise<ReservationW
 							id: true,
 							titleEn: true,
 							titleFr: true,
-							slug: true,
 							locationEn: true,
 							locationFr: true,
 							venueNameEn: true,
@@ -515,7 +514,6 @@ export async function resendTicketsForEmail(email: string): Promise<void> {
 								id: true,
 								titleEn: true,
 								titleFr: true,
-								slug: true,
 								locationEn: true,
 								locationFr: true,
 								venueNameEn: true,
@@ -548,7 +546,7 @@ export async function resendTicketsForEmail(email: string): Promise<void> {
 				event: {
 					titleEn: reservation.eventSession.event.titleEn,
 					titleFr: reservation.eventSession.event.titleFr,
-					slug: reservation.eventSession.event.slug,
+					id: reservation.eventSession.event.id,
 					locationEn: reservation.eventSession.event.locationEn,
 				},
 				guestName: reservation.guestName,
@@ -579,7 +577,6 @@ export async function getReservationById(id: string): Promise<ReservationWithDet
 							id: true,
 							titleEn: true,
 							titleFr: true,
-							slug: true,
 							locationEn: true,
 							locationFr: true,
 							venueNameEn: true,
@@ -1132,7 +1129,7 @@ export async function sendReservationReminder(reservationId: string) {
 		event: {
 			titleEn: reservation.eventSession.event.titleEn,
 			titleFr: reservation.eventSession.event.titleFr,
-			slug: reservation.eventSession.event.slug,
+			id: reservation.eventSession.event.id,
 			locationEn: reservation.eventSession.event.locationEn,
 		},
 		guestName: reservation.guestName,

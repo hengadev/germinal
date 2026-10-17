@@ -1,5 +1,5 @@
 import { json } from '@sveltejs/kit';
-import { getEventBySlug } from '$lib/server/services/events';
+import { getEventById } from '$lib/server/services/events';
 import { getPublishedSessionsByEventId } from '$lib/server/services/event-sessions';
 import { toAccessEvent } from '$lib/server/services/event-access';
 import { eventAccess, viewerOf } from '$lib/utils/event-access';
@@ -8,7 +8,7 @@ import { seatingTitlesWithFallback } from '$lib/utils/seating-title';
 
 export const GET: RequestHandler = async ({ params, locals }) => {
 	try {
-		const event = await getEventBySlug(params.slug);
+		const event = await getEventById(params.id);
 		// Event access (issue 030): an Event the viewer may not see is not found.
 		if (!eventAccess(toAccessEvent(event), viewerOf(locals.user)).visible) {
 			return json({ error: 'Event not found' }, { status: 404 });
