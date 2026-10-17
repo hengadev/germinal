@@ -318,6 +318,10 @@ export const media = pgTable('media', {
     talentId: uuid('talent_id'),
     isCover: boolean('is_cover').default(false).notNull(),
     siteRole: varchar('site_role', { length: 50 }),
+    // Alt text per language (issue 043); public pages fall back to the
+    // other language, then to the Event title or the Talent's name.
+    altEn: text('alt_en'),
+    altFr: text('alt_fr'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => ({
     eventIdIdx: index('media_event_id_idx').on(table.eventId),
