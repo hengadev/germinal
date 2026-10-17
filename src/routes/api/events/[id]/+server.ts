@@ -3,15 +3,24 @@ import { getEventById, updateEvent, deleteEvent } from '$lib/server/services/eve
 import { updateEventSchema } from '$lib/server/validators/events';
 import { assertEventHasSeatings, EventWithoutSeatingError } from '$lib/server/services/event-schedule';
 import { requireAdmin } from '$lib/server/auth-guards';
+import { toAccessEvent } from '$lib/server/services/event-access';
+import { eventAccess, viewerOf } from '$lib/utils/event-access';
 import type { RequestHandler } from './$types';
 
-export const GET: RequestHandler = async ({ params }) => {
+export const GET: RequestHandler = async ({ params, locals }) => {
+  let event;
   try {
-    const event = await getEventById(params.id);
-    return json(event);
+    event = await getEventById(params.id);
   } catch {
     throw error(404, 'Event not found');
   }
+  // The Admin reads any Event's data; anyone else only an Event Event
+  // access lets them see (issue 030).
+  const viewer = viewerOf(locals.user);
+  if (viewer.role !== 'admin' && !eventAccess(toAccessEvent(event), viewer).visible) {
+    throw error(404, 'Event not found');
+  }
+  return json(event);
 };
 
 export const PUT: RequestHandler = async (event) => {

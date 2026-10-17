@@ -120,3 +120,18 @@ export function waitlistAccess(input: SeatingAccessInput): WaitlistDecision {
 	if (!input.seating.allowWaitlist) return { allowed: false, reason: 'waitlist-not-offered' };
 	return { allowed: true };
 }
+
+/** How a public page shows a Seating: why it cannot be booked (null when it
+ * can) and whether its Waitlist is open. */
+export interface SeatingAvailability {
+	bookingRefusal: BookingRefusal | null;
+	waitlistOpen: boolean;
+}
+
+export function seatingAvailability(input: SeatingAccessInput): SeatingAvailability {
+	const booking = seatingBooking(input);
+	return {
+		bookingRefusal: booking.bookable ? null : booking.reason,
+		waitlistOpen: !booking.bookable && booking.reason === 'full' && waitlistAccess(input).allowed,
+	};
+}

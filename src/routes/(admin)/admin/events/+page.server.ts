@@ -32,7 +32,7 @@ export const load: PageServerLoad = async ({ url }) => {
 
     // Database mode - import and use actual database functions
     const { getAllEvents } = await import('$lib/server/services/events');
-    const result = await getAllEvents({ publishedOnly: false, search: searchQuery });
+    const result = await getAllEvents({ listedOnly: false, search: searchQuery });
 
     return {
         events: result.data as EventWithMedia[],

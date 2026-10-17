@@ -6,10 +6,13 @@ import { requireAdmin } from '$lib/server/auth-guards';
 import { parsePagination, calculatePagination, createPaginatedResponse } from '$lib/utils/pagination';
 import { getCached, CACHE_TAGS } from '$lib/server/cache';
 import { MOCK_EVENTS, USE_MOCK_DATA } from '$lib/mock-data';
+import { isListed, viewerOf } from '$lib/utils/event-access';
 import type { RequestHandler } from './$types';
 
-export const GET: RequestHandler = async ({ url, setHeaders }) => {
-  const publishedOnly = url.searchParams.get('published') !== 'false';
+export const GET: RequestHandler = async ({ url, setHeaders, locals }) => {
+  // Unlisted Events (Drafts) only ever go to an Admin asking for them;
+  // everyone else gets what Event access lets be listed (issue 030).
+  const listedOnly = url.searchParams.get('published') !== 'false' || viewerOf(locals.user).role !== 'admin';
   const excludeSpotlight = url.searchParams.get('excludeSpotlight') === 'true';
   const search = url.searchParams.get('q') || undefined;
   const pagination = parsePagination(url.searchParams);
@@ -18,7 +21,8 @@ export const GET: RequestHandler = async ({ url, setHeaders }) => {
   if (USE_MOCK_DATA) {
     const page = pagination.page ?? 1;
     const limit = pagination.limit ?? 20;
-    let mockEvents = excludeSpotlight ? MOCK_EVENTS.filter(e => !e.isSpotlight) : MOCK_EVENTS;
+    let mockEvents = MOCK_EVENTS.filter(e => !listedOnly || isListed(e));
+    if (excludeSpotlight) mockEvents = mockEvents.filter(e => !e.isSpotlight);
 
     if (search && search.trim()) {
       const query = search.trim().toLowerCase();
@@ -42,13 +46,13 @@ export const GET: RequestHandler = async ({ url, setHeaders }) => {
   // Search results aren't cached — keyword queries are too varied to be worth caching,
   // and skipping the cache keeps `q` from bloating the events cache key space.
   if (search) {
-    const result = await getAllEvents({ publishedOnly, excludeSpotlight, search, ...pagination });
+    const result = await getAllEvents({ listedOnly, excludeSpotlight, search, ...pagination });
     return json(result);
   }
 
   const result = await getCached(
-    `events:${publishedOnly}:${excludeSpotlight}:page:${pagination.page}:limit:${pagination.limit}`,
-    () => getAllEvents({ publishedOnly, excludeSpotlight, ...pagination }),
+    `events:${listedOnly}:${excludeSpotlight}:page:${pagination.page}:limit:${pagination.limit}`,
+    () => getAllEvents({ listedOnly, excludeSpotlight, ...pagination }),
     {
       ttl: 60000, // 1 minute cache
       tags: [CACHE_TAGS.EVENTS]

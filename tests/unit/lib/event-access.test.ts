@@ -9,6 +9,7 @@ import {
 	canBeSpotlight,
 	seatingBooking,
 	waitlistAccess,
+	seatingAvailability,
 	type AccessEvent,
 	type AccessSeating,
 	type Viewer,
@@ -144,5 +145,17 @@ describe('waitlistAccess', () => {
 		for (const [, viewer] of VIEWERS) {
 			expect(waitlistAccess({ event, seating: state, viewer, now: NOW })).toEqual({ allowed: false, reason });
 		}
+	});
+});
+
+describe('seatingAvailability', () => {
+	it.each([
+		['an open Seating', PUBLISHED, seating(), { bookingRefusal: null, waitlistOpen: false }],
+		['a full Seating with a Waitlist', PUBLISHED, seating({ availableCapacity: 0 }), { bookingRefusal: 'full', waitlistOpen: true }],
+		['a full Seating without one', PUBLISHED, seating({ availableCapacity: 0, allowWaitlist: false }), { bookingRefusal: 'full', waitlistOpen: false }],
+		['a full, unpriced Seating', PUBLISHED, seating({ availableCapacity: 0, priced: false }), { bookingRefusal: 'not-priced', waitlistOpen: false }],
+		['a Seating of an unpublished Event', UNPUBLISHED, seating({ availableCapacity: 0 }), { bookingRefusal: 'event-not-published', waitlistOpen: false }],
+	])('%s', (_, event, state, expected) => {
+		expect(seatingAvailability({ event, seating: state, viewer: ANONYMOUS, now: NOW })).toEqual(expected);
 	});
 });

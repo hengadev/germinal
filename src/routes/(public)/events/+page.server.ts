@@ -2,6 +2,7 @@ import { getAllEvents } from '$lib/server/services/events';
 import { logger } from '$lib/server/logger';
 import { MOCK_EVENTS, USE_MOCK_DATA } from '$lib/mock-data';
 import { calculatePagination, DEFAULT_LIMIT } from '$lib/utils/pagination';
+import { isListed } from '$lib/utils/event-access';
 import type { PageServerLoad } from './$types';
 import type { EventWithMedia } from '$lib/types/events';
 
@@ -14,7 +15,7 @@ export const load: PageServerLoad = async ({ url }) => {
     // Use mock data if enabled (no database required!)
     if (USE_MOCK_DATA) {
         logger.info('📦 Using mock data for events');
-        let filteredEvents = MOCK_EVENTS.filter(e => !e.isSpotlight);
+        let filteredEvents = MOCK_EVENTS.filter(e => isListed(e) && !e.isSpotlight);
 
         // Apply search filter if provided
         if (searchQuery) {
@@ -39,7 +40,7 @@ export const load: PageServerLoad = async ({ url }) => {
     }
 
     const result = await getAllEvents({
-        publishedOnly: true,
+        listedOnly: true,
         excludeSpotlight: true,
         page: 1,
         limit: INITIAL_PAGE_SIZE,

@@ -6,6 +6,7 @@
 	import { formatCurrencyAmount, getCurrencySymbol } from '$lib/utils/currency';
 	import { FULL_PAYMENT_DEPOSIT, type DepositRule } from '$lib/utils/pricing';
 	import { EMPTY_MANUAL_REFUND_POLICY, type RefundPolicy } from '$lib/utils/refund-policy';
+	import type { BookingRefusal } from '$lib/utils/event-access';
 
 	interface Session {
 		id: string;
@@ -29,6 +30,11 @@
 		soldOut: boolean;
 		isPast: boolean;
 		badgeType?: 'none' | 'featured' | 'vip' | 'popular' | 'best_value' | 'limited';
+		/** Why Event access refuses to book it (issue 030), null when it can
+		 * be booked; absent on pages that do not say. */
+		bookingRefusal?: BookingRefusal | null;
+		/** Whether its Waitlist is open, as Event access decides. */
+		waitlistOpen?: boolean;
 	}
 
 	let { sessions, eventTitle, eventSlug, deposit = FULL_PAYMENT_DEPOSIT, refundPolicy = EMPTY_MANUAL_REFUND_POLICY }: {
@@ -65,10 +71,14 @@
 	type CardState = 'default' | 'limited' | 'waitlist' | 'unavailable' | 'past' | 'unpriced';
 
 	function getCardState(s: Session): CardState {
-		if (s.isPast) return 'past';
-		if (s.soldOut && s.allowWaitlist) return 'waitlist';
-		if (s.soldOut) return 'unavailable';
-		if (s.priceAmount === null) return 'unpriced';
+		if (s.isPast || s.bookingRefusal === 'started') return 'past';
+		// A Seating whose Service has no price yet is not yet bookable, nor
+		// wait-listed, whether or not it is full.
+		if (s.bookingRefusal === 'not-priced' || s.priceAmount == null) return 'unpriced';
+		if (s.bookingRefusal === 'event-not-published' || s.bookingRefusal === 'seating-unpublished') return 'unavailable';
+		if (s.soldOut || s.bookingRefusal === 'full') {
+			return (s.waitlistOpen ?? s.allowWaitlist) ? 'waitlist' : 'unavailable';
+		}
 		if (s.badgeType === 'limited') return 'limited';
 		return 'default';
 	}
