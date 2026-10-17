@@ -12,6 +12,9 @@
 	import type { ActionData, PageData as EventPageData } from './$types';
 	import type { PageData as NewEventPageData } from '../new/$types';
 	import { mergeFormFields, type EditorEvent } from './editor-forms';
+	import { beforeNavigate, goto } from '$app/navigation';
+	import Modal from '$lib/components/ui/Modal.svelte';
+	import { EDITOR_SAVED_EVENT, LeaveGuard, type EditorSavedDetail } from '$lib/utils/leave-guard';
 
 	import Essentiel from './Essentiel.svelte';
 	import Lieu from './Lieu.svelte';
@@ -119,6 +122,69 @@
 		};
 	}
 
+	// Unsaved-changes guard (issue 037): leaving with an edited tab asks
+	// first — an in-page dialog for in-app moves, the browser's own prompt
+	// for closing or reloading. Switching tabs is not leaving. Only the
+	// Event's own tabs are guarded, not the operational ones.
+	const guard = new LeaveGuard();
+	let leaveDialogOpen = $state(false);
+	let pendingLeave: (() => void) | null = null;
+	let leaving = false;
+
+	function guardedForm(target: EventTarget | null): HTMLFormElement | null {
+		const form = target instanceof Element ? target.closest('form') : null;
+		return form?.closest('[data-leave-guard]') && rootEl?.contains(form) ? form : null;
+	}
+	// The first interaction with a form, before it changes anything.
+	function touchForm(domEvent: Event) {
+		const form = guardedForm(domEvent.target);
+		if (form) guard.touch(form);
+	}
+
+	$effect(() => {
+		const root = rootEl;
+		if (!root) return;
+		const onSaved = (domEvent: Event) => {
+			const form = domEvent.target;
+			if ((domEvent as CustomEvent<EditorSavedDetail>).detail?.leaving) {
+				// A new Event's first save moves on to its Draft's page.
+				guard.clear();
+				leaving = true;
+			} else if (form instanceof HTMLFormElement) {
+				guard.saved(form);
+			}
+		};
+		root.addEventListener(EDITOR_SAVED_EVENT, onSaved);
+		return () => root.removeEventListener(EDITOR_SAVED_EVENT, onSaved);
+	});
+
+	beforeNavigate((navigation) => {
+		if (leaving || !guard.isDirty()) return;
+		navigation.cancel();
+		// Closing, reloading or leaving the site: the browser asks.
+		if (navigation.type === 'leave' || !navigation.to) return;
+		const url = navigation.to.url;
+		const { type, delta, willUnload } = navigation;
+		pendingLeave = () => {
+			leaving = true;
+			if (type === 'popstate' && delta) history.go(delta);
+			else if (willUnload) location.assign(url);
+			else void goto(url).finally(() => (leaving = false));
+		};
+		leaveDialogOpen = true;
+	});
+
+	function stay() {
+		pendingLeave = null;
+		leaveDialogOpen = false;
+	}
+	function leave() {
+		const proceed = pendingLeave;
+		pendingLeave = null;
+		leaveDialogOpen = false;
+		proceed?.();
+	}
+
 	const headerTitle = $derived(
 		event ? event.titleFr || event.titleEn || 'Sans titre' : 'Nouvel événement'
 	);
@@ -128,7 +194,16 @@
 	<title>{headerTitle} | Admin</title>
 </svelte:head>
 
-<div bind:this={rootEl} class="container mx-auto px-4 py-8 lg:py-12">
+<div
+	bind:this={rootEl}
+	onfocusincapture={touchForm}
+	onpointerdowncapture={touchForm}
+	onkeydowncapture={touchForm}
+	ondragentercapture={touchForm}
+	oninputcapture={touchForm}
+	onchangecapture={touchForm}
+	class="container mx-auto px-4 py-8 lg:py-12"
+>
 	<div class="flex items-start gap-3 mb-8">
 		<a
 			href="/admin/events"
@@ -199,8 +274,9 @@
 		</div>
 	</div>
 
-	{#snippet panel(id: string, content: import('svelte').Snippet)}
+	{#snippet panel(id: string, content: import('svelte').Snippet, guarded = true)}
 		<div
+			data-leave-guard={guarded ? '' : undefined}
 			hidden={activeTab !== panelIndex(id)}
 			role="tabpanel"
 			id="panel-{id}"
@@ -248,9 +324,32 @@
 		{#snippet tasks()}<Tasks data={savedData} {form} />{/snippet}
 		{#snippet reservations()}<Reservations data={savedData} />{/snippet}
 		{#snippet promotions()}<PromoCodes data={savedData} {form} />{/snippet}
-		{@render panel('team', team)}
-		{@render panel('tasks', tasks)}
-		{@render panel('reservations', reservations)}
-		{@render panel('promotions', promotions)}
+		{@render panel('team', team, false)}
+		{@render panel('tasks', tasks, false)}
+		{@render panel('reservations', reservations, false)}
+		{@render panel('promotions', promotions, false)}
 	{/if}
 </div>
+
+<Modal
+	bind:isOpen={leaveDialogOpen}
+	title="Quitter sans enregistrer ?"
+	description="Les modifications non enregistrées de cet événement seront perdues."
+>
+	<div class="flex justify-end gap-3 mt-4">
+		<button
+			type="button"
+			onclick={stay}
+			class="px-4 py-2 text-sm font-medium text-foreground-alt bg-background border border-border-card rounded-lg hover:bg-surface transition-colors"
+		>
+			Rester
+		</button>
+		<button
+			type="button"
+			onclick={leave}
+			class="px-4 py-2 text-sm font-medium text-background bg-foreground rounded-lg hover:opacity-90 transition-colors"
+		>
+			Quitter
+		</button>
+	</div>
+</Modal>

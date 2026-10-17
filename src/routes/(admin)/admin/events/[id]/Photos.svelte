@@ -99,8 +99,8 @@
 
 <div class="bg-background rounded-lg border border-border-card p-6 lg:p-8">
 	<form method="POST" action="?/updateMedia" use:enhance={() => {
-		return async ({ result }) => {
-			await handleTabResult(result, toast, 'Photos mises à jour');
+		return async ({ result, formElement }) => {
+			await handleTabResult(result, toast, 'Photos mises à jour', formElement);
 		};
 	}} class="space-y-8">
 
