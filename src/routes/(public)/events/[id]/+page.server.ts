@@ -47,6 +47,12 @@ function projectPage<E extends {
   };
 }
 
+/** The Event as its announcement shows it: with its Visuals only, never
+ * its Event Photos (issue 045). */
+function onlyVisuals<E extends { media?: { id: string; role?: 'visual' | 'event_photo' | null }[] | null }>(event: E): E {
+  return { ...event, media: visualsOf(event.media) };
+}
+
 /** The Event's Days (`YYYY-MM-DD`), first to last. */
 async function eventDaysOf(eventId: string): Promise<string[]> {
   const { db } = await import('$lib/server/db');
@@ -176,7 +182,7 @@ export const load: PageServerLoad = async ({ params, locals, setHeaders }) => {
       project: null,
       // The public page never carries Practical Info (issue 040), and the
       // announcement shows only the Visuals (issue 045).
-      event: { ...withoutPracticalInfo(event), media: visualsOf(event.media) },
+      event: onlyVisuals(withoutPracticalInfo(event)),
       indexed,
       schedule,
       sessions: rows.map((row) => row.item),
@@ -255,7 +261,7 @@ export const load: PageServerLoad = async ({ params, locals, setHeaders }) => {
       // The public page never carries Practical Info (issue 040) — not even
       // for the Admin previewing a Draft — and the announcement shows only
       // the Visuals, never the Event Photos (issue 045).
-      event: { ...withoutPracticalInfo(event), media: visualsOf(event.media) },
+      event: onlyVisuals(withoutPracticalInfo(event)),
       indexed,
       schedule,
       sessions: rows.map((row) => row.item),
