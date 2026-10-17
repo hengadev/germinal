@@ -241,6 +241,8 @@
     "doors": "Ouverture",
     "capacity": "Capacité",
     "soldOut": "Épuisé",
+    "bookingOpensOn": "Réservations à partir du {date}",
+    "bookingClosed": "Réservations closes",
     "sessionEnded": "Session terminée",
     "notAvailable": "Non disponible",
     "joinWaitlist": "Rejoindre la liste d'attente",

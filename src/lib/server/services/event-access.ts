@@ -11,15 +11,20 @@ import type { AccessEvent, AccessSeating, Visibility } from '$lib/utils/event-ac
  * entry point reads an Event's publication anywhere else.
  */
 
-/** The Event access snapshot of an Event row, with its Booking Window (035). */
+/**
+ * The Event access snapshot of an Event row, with its Booking Window (035).
+ * A row selected without the Booking Window columns (for listing or
+ * indexing only) gets the default window; deciding on a Seating needs the
+ * full row.
+ */
 export function toAccessEvent(event: {
 	visibility: Visibility;
-	bookingOpensAt: Date | null;
-	bookingClosesHoursBefore: number | null;
+	bookingOpensAt?: Date | null;
+	bookingClosesHoursBefore?: number | null;
 }): AccessEvent {
 	return {
 		visibility: event.visibility,
-		bookingWindow: { opensAt: event.bookingOpensAt, closesHoursBefore: event.bookingClosesHoursBefore },
+		bookingWindow: { opensAt: event.bookingOpensAt ?? null, closesHoursBefore: event.bookingClosesHoursBefore ?? null },
 	};
 }
 

@@ -20,12 +20,18 @@ const BOOKING_REFUSAL_MESSAGES: Record<BookingRefusal, string> = {
 	'seating-unpublished': 'Session not found or not published',
 	'not-priced': 'Seating has no price yet',
 	started: 'Cannot book tickets for a session that has already started',
+	'not-open': 'Bookings for this session are not open yet',
+	closed: 'Bookings for this session are closed',
 	full: 'Not enough tickets available',
 };
 
 /** Thrown when Event access refuses to book a Seating; `reason` says why. */
 export class SeatingNotBookableError extends Error {
-	constructor(public readonly reason: BookingRefusal) {
+	constructor(
+		public readonly reason: BookingRefusal,
+		/** When bookings open, for a `not-open` refusal (Booking Window, 035). */
+		public readonly opensAt: Date | null = null
+	) {
 		super(BOOKING_REFUSAL_MESSAGES[reason]);
 		this.name = 'SeatingNotBookableError';
 	}
@@ -66,7 +72,8 @@ async function decrementSessionCapacity(tx: typeof db, sessionId: string, quanti
  * access (issue 030) agrees it can be booked — re-checked here, inside the
  * locking transaction, walking Seating → Service → Day → Event, so a Seating
  * of an unpublished Event, an unpublished or unpriced Seating, a started or
- * a full one is refused even with valid ids. Returns the Seating and the
+ * a full one, or one outside its Booking Window (035) is refused even with
+ * valid ids. Returns the Seating and the
  * price it is booked at.
  *
  * Must be called from within a `db.transaction`.
@@ -90,7 +97,7 @@ async function lockAndDecrementBookableSeating(tx: typeof db, sessionId: string,
 	if (!decision.bookable) {
 		throw decision.reason === 'not-priced'
 			? new SeatingNotPricedError()
-			: new SeatingNotBookableError(decision.reason);
+			: new SeatingNotBookableError(decision.reason, decision.reason === 'not-open' ? decision.opensAt : null);
 	}
 
 	await decrementSessionCapacity(tx, sessionId, quantity);
