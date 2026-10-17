@@ -53,6 +53,7 @@ describe('eventWarnings', () => {
 		['missing-location-en', { locationEn: null }],
 		['missing-location-fr', { locationFr: null }],
 		['no-visual', { visualCount: 0 }],
+		['visual-without-alt', { visualsWithoutAlt: 1 }],
 	] as [EventWarningCode, Partial<EventWarningsInput>][])(
 		'warns with %s when it is missing, and not when it is not',
 		(code, missing) => {
@@ -87,6 +88,17 @@ describe('eventWarnings', () => {
 		expect(byCode.get('missing-title-fr')).toBe('essentiel');
 		expect(byCode.get('missing-location-en')).toBe('lieu');
 		expect(byCode.get('no-visual')).toBe('visuels');
+		expect(
+			eventWarnings({ ...COMPLETE, visualsWithoutAlt: 2 }).find((w) => w.code === 'visual-without-alt')?.tab
+		).toBe('visuels');
+	});
+
+	it('lists a Visual without alt text, in French (issue 043)', () => {
+		const [one] = eventWarnings({ ...COMPLETE, visualsWithoutAlt: 1 });
+		expect(one.message).toContain('Visuel sans texte alternatif');
+		expect(one.message).toContain('un visuel n’a pas');
+		const [two] = eventWarnings({ ...COMPLETE, visualsWithoutAlt: 2 });
+		expect(two.message).toContain('2 visuels n’ont pas');
 	});
 
 	it('warns on a Booking Window that opens after a Seating closes', () => {
@@ -158,8 +170,11 @@ const EVENT: EditorWarningsEvent = {
 	bookingOpensAt: null,
 	bookingClosesHoursBefore: null,
 	coverMediaId: 'cover',
-	coverMedia: { id: 'cover' },
-	media: [{ id: 'cover' }, { id: 'gallery' }],
+	coverMedia: { id: 'cover', altEn: 'A laid table', altFr: 'Une table dressée' },
+	media: [
+		{ id: 'cover', altEn: 'A laid table', altFr: 'Une table dressée' },
+		{ id: 'gallery', altEn: 'The chef', altFr: 'Le chef' },
+	],
 };
 
 const SCHEDULE: EditorService[] = [
@@ -226,5 +241,36 @@ describe('editorEventWarnings', () => {
 	it('counts only the Visuals the Event has', () => {
 		expect(editorEventWarnings({ ...EVENT, coverMediaId: null, coverMedia: null, media: [] }, SCHEDULE, PRICING).map((w) => w.code)).toContain('no-visual');
 		expect(editorEventWarnings({ ...EVENT, media: [] }, SCHEDULE, PRICING)).toEqual([]);
+	});
+
+	it('counts the Visuals lacking alt text in either language (issue 043)', () => {
+		const warnings = editorEventWarnings(
+			{
+				...EVENT,
+				coverMedia: { id: 'cover', altEn: 'A laid table', altFr: null },
+				media: [{ id: 'cover' }, { id: 'gallery', altEn: '  ', altFr: '  ' }],
+			},
+			SCHEDULE,
+			PRICING
+		);
+		expect(warnings.map((w) => w.code)).toEqual(['visual-without-alt']);
+		expect(warnings[0].message).toContain('2 visuels');
+	});
+
+	it('reads a cover known only by its id as lacking alt text', () => {
+		expect(
+			editorEventWarnings({ ...EVENT, coverMedia: null, media: [] }, SCHEDULE, PRICING).map((w) => w.code)
+		).toEqual(['visual-without-alt']);
+	});
+
+	it('follows the alt texts saved since the page data was loaded', () => {
+		const event = { ...EVENT, media: [{ id: 'cover' }, { id: 'gallery' }], coverMedia: { id: 'cover' } };
+		expect(editorEventWarnings(event, SCHEDULE, PRICING).map((w) => w.code)).toEqual(['visual-without-alt']);
+		expect(
+			editorEventWarnings(event, SCHEDULE, PRICING, {
+				cover: { altEn: 'A laid table', altFr: 'Une table dressée' },
+				gallery: { altEn: 'The chef', altFr: 'Le chef' },
+			})
+		).toEqual([]);
 	});
 });

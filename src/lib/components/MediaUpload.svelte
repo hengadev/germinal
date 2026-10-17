@@ -17,6 +17,8 @@
 		onRemove: (mediaId: string) => void;
 		onReorder?: (mediaIds: string[]) => void;
 		onBeforeRemove?: (mediaId: string) => Promise<boolean>;
+		/** Called once an image's alt texts are saved (issue 043). */
+		onAltChange?: (mediaId: string, alt: { altEn: string | null; altFr: string | null }) => void;
 	}
 
 	let {
@@ -30,7 +32,8 @@
 		onUpload,
 		onRemove,
 		onReorder,
-		onBeforeRemove
+		onBeforeRemove,
+		onAltChange
 	}: Props = $props();
 
 	// Track current uploaded media (new uploads + existing)
@@ -109,6 +112,9 @@
 				eventId: null,
 				talentId: null,
 				isCover: false,
+				siteRole: null,
+				altEn: null,
+				altFr: null,
 				createdAt: new Date()
 			};
 		}
@@ -286,11 +292,98 @@
 		}
 	}
 
+	// Alt text per image (issue 043): typed under each image and saved on
+	// its own as soon as a field is left, so it is editable after upload.
+	type AltKey = 'altEn' | 'altFr';
+	let altSaving: Record<string, boolean> = $state({});
+	let altSaved: Record<string, boolean> = $state({});
+
+	async function saveAlt(mediaId: string, key: AltKey, value: string) {
+		const item = uploadedMedia.find((m) => m.id === mediaId);
+		if (!item) return;
+		const text = value.trim() === '' ? null : value.trim();
+		if ((item[key] ?? null) === text) return;
+
+		const previous = item[key] ?? null;
+		item[key] = text;
+		altSaved[mediaId] = false;
+
+		if (import.meta.env.VITE_USE_MOCK_DATA === 'true') {
+			onAltChange?.(mediaId, { altEn: item.altEn ?? null, altFr: item.altFr ?? null });
+			altSaved[mediaId] = true;
+			return;
+		}
+
+		altSaving[mediaId] = true;
+		try {
+			const res = await fetch(`/api/media/${mediaId}`, {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ [key]: text })
+			});
+			if (!res.ok) {
+				let message = 'Échec de l’enregistrement du texte alternatif';
+				try {
+					const parsed = await res.json();
+					if (parsed?.message) message = parsed.message;
+				} catch {
+					// keep the default message
+				}
+				throw new Error(message);
+			}
+			onAltChange?.(mediaId, { altEn: item.altEn ?? null, altFr: item.altFr ?? null });
+			altSaved[mediaId] = true;
+		} catch (err) {
+			item[key] = previous;
+			toast?.error('Erreur', err instanceof Error ? err.message : 'Échec de l’enregistrement');
+		} finally {
+			altSaving[mediaId] = false;
+		}
+	}
+
 	// Sync with existingMedia prop changes
 	$effect(() => {
 		uploadedMedia = existingMedia.map((m) => ({ ...m, isNew: false }));
 	});
 </script>
+
+{#snippet altFields(media: Media)}
+	{#if media.type === 'image'}
+		<div class="media-alt">
+			<label class="alt-label">
+				<span>Texte alternatif (FR)</span>
+				<input
+					type="text"
+					class="alt-input"
+					maxlength="500"
+					value={media.altFr ?? ''}
+					placeholder="Décrire l’image"
+					onchange={(e) => saveAlt(media.id, 'altFr', e.currentTarget.value)}
+				/>
+			</label>
+			<label class="alt-label">
+				<span>Texte alternatif (EN)</span>
+				<input
+					type="text"
+					class="alt-input"
+					maxlength="500"
+					value={media.altEn ?? ''}
+					placeholder="Describe the image"
+					onchange={(e) => saveAlt(media.id, 'altEn', e.currentTarget.value)}
+				/>
+			</label>
+			<p class="alt-status" aria-live="polite">
+				{#if altSaving[media.id]}
+					Enregistrement…
+				{:else if altSaved[media.id]}
+					Texte alternatif enregistré
+				{:else if !media.altFr?.trim() || !media.altEn?.trim()}
+					Texte alternatif manquant
+				{/if}
+			</p>
+		</div>
+	{/if}
+{/snippet}
 
 <div class="media-upload">
 	<!-- Hidden file input — always in the DOM so fileInput binding is never undefined -->
@@ -309,8 +402,9 @@
 		<!-- Single mode with existing upload - show replace button -->
 		<div class="media-grid">
 			{#each uploadedMedia as media (media.id)}
+				<div class="media-cell">
 				<div class="media-item">
-					<img src={media.url} alt="Média envoyé" class="media-preview" />
+					<img src={media.url} alt={media.altFr || media.altEn || 'Média envoyé'} class="media-preview" />
 					<button
 						type="button"
 						class="remove-btn"
@@ -320,6 +414,8 @@
 						<X size={16} />
 					</button>
 					<div class="media-badge">Couverture</div>
+				</div>
+				{@render altFields(media)}
 				</div>
 			{/each}
 		</div>
@@ -403,6 +499,7 @@
 	{#if mode === 'multiple' && uploadedMedia.length > 0}
 		<div class="media-grid">
 			{#each uploadedMedia as media, index (media.id)}
+				<div class="media-cell">
 				<div
 					class="media-item"
 					draggable={!!onReorder}
@@ -410,7 +507,7 @@
 					ondragover={(e) => handleDragOverItem(e, index)}
 					ondrop={(e) => handleDropItem(e, index)}
 				>
-					<img src={media.url} alt="Média envoyé" class="media-preview" />
+					<img src={media.url} alt={media.altFr || media.altEn || 'Média envoyé'} class="media-preview" />
 					<button
 						type="button"
 						class="remove-btn"
@@ -429,6 +526,8 @@
 							<GripVertical size={16} />
 						</div>
 					{/if}
+				</div>
+				{@render altFields(media)}
 				</div>
 			{/each}
 		</div>
@@ -599,7 +698,7 @@
 	/* Media Grid */
 	.media-grid {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+		grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
 		gap: 0.75rem;
 		margin-top: 1rem;
 	}
@@ -611,6 +710,48 @@
 		overflow: hidden;
 		background-color: #f3f4f6;
 		cursor: grab;
+	}
+
+	.media-cell {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		min-width: 0;
+	}
+
+	.media-alt {
+		display: flex;
+		flex-direction: column;
+		gap: 0.375rem;
+	}
+
+	.alt-label {
+		display: flex;
+		flex-direction: column;
+		gap: 0.125rem;
+		font-size: 0.75rem;
+		color: #6b7280;
+	}
+
+	.alt-input {
+		width: 100%;
+		padding: 0.25rem 0.5rem;
+		font-size: 0.8125rem;
+		border: 1px solid #e5e7eb;
+		border-radius: 0.375rem;
+		background-color: #fff;
+		color: #111827;
+	}
+
+	.alt-input:focus {
+		outline: 2px solid #111827;
+		outline-offset: 1px;
+	}
+
+	.alt-status {
+		min-height: 1rem;
+		font-size: 0.75rem;
+		color: #6b7280;
 	}
 
 	.media-item:active {

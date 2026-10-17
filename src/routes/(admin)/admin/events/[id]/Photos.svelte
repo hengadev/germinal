@@ -14,8 +14,12 @@
 	// (issue 036).
 	let {
 		event,
+		onAltChange,
 	}: {
 		event: { id: string; coverMediaId: string | null; coverMedia?: Media | null; media?: Media[] } | null;
+		/** An image's alt texts were saved (issue 043): the editor's
+		 * warnings follow them. */
+		onAltChange?: (mediaId: string, alt: { altEn: string | null; altFr: string | null }) => void;
 	} = $props();
 
 	const existingCoverMedia = event?.coverMedia ? [event.coverMedia] : [];
@@ -119,6 +123,7 @@
 				onUpload={handleCoverUpload}
 				onRemove={handleCoverRemove}
 				onBeforeRemove={event ? beforeRemove : undefined}
+				{onAltChange}
 			/>
 			<input type="hidden" name="coverMediaId" value={coverMediaId ?? ''} />
 		</div>
@@ -127,7 +132,8 @@
 		<div>
 			<h2 class="text-base font-semibold text-foreground mb-1">Galerie</h2>
 			<p class="text-sm text-muted-foreground mb-4">
-				Photos supplémentaires. Glissez pour réorganiser.
+				Photos supplémentaires. Glissez pour réorganiser. Le texte alternatif de chaque
+				image, en français et en anglais, est enregistré dès qu’un champ est quitté.
 			</p>
 			<MediaUpload
 				mode="multiple"
@@ -139,6 +145,7 @@
 				onRemove={handleGalleryRemove}
 				onReorder={handleGalleryReorder}
 				onBeforeRemove={event ? beforeRemove : undefined}
+				{onAltChange}
 			/>
 			<input type="hidden" name="galleryMediaIds" value={JSON.stringify(galleryMediaIds)} />
 		</div>

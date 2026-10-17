@@ -70,3 +70,17 @@ export async function setCoverMedia(
 
   return updated;
 }
+
+/** Sets an image's alt texts (issue 043); a language left out is kept. */
+export async function updateMediaAlt(
+  id: string,
+  alt: { altEn?: string | null; altFr?: string | null }
+) {
+  const [updated] = await db.update(media).set(alt).where(eq(media.id, id)).returning();
+
+  if (!updated) {
+    throw new Error('Media not found');
+  }
+
+  return updated;
+}
