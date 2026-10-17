@@ -252,8 +252,8 @@ export function editorEventWarnings(
 		seatings,
 		visualCount,
 		bookingWindow: {
-			opensAt: event.bookingOpensAt === null ? null : new Date(event.bookingOpensAt),
-			closesHoursBefore: event.bookingClosesHoursBefore,
+			opensAt: event.bookingOpensAt ? new Date(event.bookingOpensAt) : null,
+			closesHoursBefore: event.bookingClosesHoursBefore ?? null,
 		},
 		timeZone: zone,
 	});
