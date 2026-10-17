@@ -5,6 +5,7 @@
 	import { reveal } from '$lib/actions/reveal';
 	import { page } from '$app/state';
 	import { localizedText } from '$lib/utils/event-text';
+	import { mediaAlt } from '$lib/utils/media-alt';
 
 	type LocalizedField =
 		| 'title'
@@ -124,7 +125,7 @@
 	{:else}
 		<img
 			src={event.coverMedia?.url ?? ''}
-			alt={getEventField('title')}
+			alt={mediaAlt(event.coverMedia, $locale, getEventField('title'))}
 			class="absolute inset-0 w-full h-full object-cover"
 		/>
 	{/if}

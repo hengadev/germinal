@@ -1,5 +1,7 @@
 <script lang="ts">
     import type { TalentWithMedia } from "$lib/types/talents";
+    import { locale } from "svelte-i18n";
+    import { mediaAlt } from "$lib/utils/media-alt";
 
     interface Props {
         talent: TalentWithMedia;
@@ -16,7 +18,7 @@
         {#if talent.profileMedia}
             <img
                 src={talent.profileMedia.url}
-                alt="{talent.firstName} {talent.lastName}"
+                alt={mediaAlt(talent.profileMedia, $locale, `${talent.firstName} ${talent.lastName}`)}
                 class="w-full h-full grayscale object-cover group-hover:grayscale-0 transition-[filter] duration-500"
             />
         {:else}

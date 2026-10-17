@@ -8,6 +8,7 @@
 	import { cn } from '$lib/utils/design-system';
 	import { DEFAULT_EVENT_TIME_ZONE } from '$lib/utils/event-time';
 	import { editorEventWarnings, type EventWarning } from '$lib/utils/event-warnings';
+	import type { MediaAltText } from '$lib/utils/media-alt';
 	import { getToastContext } from '$lib/components/toast/state.svelte';
 	import { toSeatingDrafts, type DraftSeatingService } from '$lib/components/admin/SeatingsEditor.svelte';
 	import type { ActionData, PageData as EventPageData } from './$types';
@@ -129,9 +130,15 @@
 	// read off the saved Event's page data. A new Event has nothing saved
 	// yet, so there is nothing to check; the list stays visible once the
 	// Event is published.
+	// Alt texts are saved per image as soon as they are typed in « Visuels »
+	// (issue 043), without reloading the page data: the list follows them.
+	let altOverrides: Record<string, MediaAltText> = $state({});
+	function handleAltChange(mediaId: string, alt: MediaAltText) {
+		altOverrides[mediaId] = alt;
+	}
 	const warnings = $derived(
 		data.event !== null && data.schedule && data.pricing
-			? editorEventWarnings(data.event, data.schedule, data.pricing)
+			? editorEventWarnings(data.event, data.schedule, data.pricing, altOverrides)
 			: ([] as EventWarning[])
 	);
 
@@ -358,7 +365,7 @@
 		/>
 	{/snippet}
 	{#snippet programme()}<Programme {event} talents={data.talents ?? []} />{/snippet}
-	{#snippet visuels()}<Photos event={data.event} />{/snippet}
+	{#snippet visuels()}<Photos event={data.event} onAltChange={handleAltChange} />{/snippet}
 	{#snippet pratique()}
 		<PracticalInfo {event} />
 	{/snippet}

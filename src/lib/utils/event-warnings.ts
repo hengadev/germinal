@@ -12,6 +12,7 @@ import {
 import type { ServiceKind } from './event-time';
 import type { EditorService } from '$lib/types/seatings-editor';
 import type { PricingEditorData } from '$lib/types/pricing-editor';
+import { lacksAltText, type MediaAltText } from './media-alt';
 
 /**
  * Event warnings (issue 038, ADR 0008) — pure, no database.
@@ -48,6 +49,7 @@ export type EventWarningCode =
 	| 'missing-location-en'
 	| 'missing-location-fr'
 	| 'no-visual'
+	| 'visual-without-alt'
 	| 'booking-window-opens-after-close';
 
 /** A Service as the warnings read it: a Day's meal with its Menu and price. */
@@ -84,6 +86,9 @@ export interface EventWarningsInput {
 	seatings?: readonly WarningSeating[];
 	/** How many Visuals (cover and gallery) the Event has. */
 	visualCount?: number;
+	/** How many of those Visuals lack alt text in English or in French
+	 * (issue 043); absent: none known. */
+	visualsWithoutAlt?: number;
 	/** The Event's Booking Window; absent: the default one. */
 	bookingWindow?: BookingWindow;
 	/** The Event's Time Zone, to place the Booking Window's instants in
@@ -167,6 +172,17 @@ export function eventWarnings(input: EventWarningsInput): EventWarning[] {
 		});
 	}
 
+	const withoutAlt = input.visualsWithoutAlt ?? 0;
+	if (withoutAlt > 0) {
+		warnings.push({
+			code: 'visual-without-alt',
+			message: `Visuel sans texte alternatif : ${
+				withoutAlt === 1 ? 'un visuel n’a' : `${withoutAlt} visuels n’ont`
+			} pas de texte alternatif en français ou en anglais.`,
+			tab: 'visuels',
+		});
+	}
+
 	// A Booking Window that opens after a Seating's bookings have closed
 	// leaves that Seating forever unbookable (booking-window.ts's window is
 	// empty for it).
@@ -210,20 +226,22 @@ export interface EditorWarningsEvent {
 	bookingOpensAt: Date | string | null;
 	bookingClosesHoursBefore: number | null;
 	coverMediaId: string | null;
-	coverMedia?: { id: string } | null;
-	media?: { id: string }[] | null;
+	coverMedia?: ({ id: string } & MediaAltText) | null;
+	media?: ({ id: string } & MediaAltText)[] | null;
 }
 
 /**
  * The warnings for the Event the editor shows, read from its page data:
  * the Event's texts and Booking Window, its Seatings (« Dates & séances »,
  * typed on its clock) and each Service's Menu and price (« Menus &
- * tarifs »).
+ * tarifs »). `altOverrides` holds the alt texts saved in « Visuels »
+ * since the page data was loaded, by media id.
  */
 export function editorEventWarnings(
 	event: EditorWarningsEvent,
 	schedule: EditorService[],
-	pricing: PricingEditorData
+	pricing: PricingEditorData,
+	altOverrides: Readonly<Record<string, MediaAltText>> = {}
 ): EventWarning[] {
 	const zone = event.timeZone;
 	const seatings: WarningSeating[] = schedule.flatMap((service) =>
@@ -239,8 +257,19 @@ export function editorEventWarnings(
 		priceAmount: service.priceAmount,
 	}));
 	const cover = event.coverMediaId ?? event.coverMedia?.id ?? null;
-	const visualCount =
-		(cover !== null ? 1 : 0) + (event.media ?? []).filter((medium) => medium.id !== cover).length;
+	const gallery = (event.media ?? []).filter((medium) => medium.id !== cover);
+	const visualCount = (cover !== null ? 1 : 0) + gallery.length;
+	// A cover known only by its id reads as lacking alt text.
+	const coverMedium =
+		cover === null
+			? null
+			: event.coverMedia?.id === cover
+				? event.coverMedia
+				: ((event.media ?? []).find((medium) => medium.id === cover) ?? { id: cover });
+	const visuals = [...(coverMedium ? [coverMedium] : []), ...gallery];
+	const visualsWithoutAlt = visuals.filter((medium) =>
+		lacksAltText({ ...medium, ...altOverrides[medium.id] })
+	).length;
 	return eventWarnings({
 		titleEn: event.titleEn,
 		titleFr: event.titleFr,
@@ -251,6 +280,7 @@ export function editorEventWarnings(
 		services,
 		seatings,
 		visualCount,
+		visualsWithoutAlt,
 		bookingWindow: {
 			opensAt: event.bookingOpensAt ? new Date(event.bookingOpensAt) : null,
 			closesHoursBefore: event.bookingClosesHoursBefore ?? null,

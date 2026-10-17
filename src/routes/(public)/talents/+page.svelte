@@ -4,6 +4,7 @@
     import type { TalentWithMedia } from "$lib/types/talents";
     import { Grid2x2, LayoutList, ArrowDown, ArrowRight, Loader2 } from "lucide-svelte";
     import { t, locale } from 'svelte-i18n';
+    import { mediaAlt } from '$lib/utils/media-alt';
     import { reveal } from '$lib/actions/reveal';
 
     const VIEW_MODE = {
@@ -188,7 +189,7 @@
                         >
                             <img
                                 src={talent.profileMedia.url}
-                                alt="{talent.firstName} {talent.lastName}"
+                                alt={mediaAlt(talent.profileMedia, $locale, `${talent.firstName} ${talent.lastName}`)}
                                 class="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-[filter] duration-500"
                             />
                         </div>
