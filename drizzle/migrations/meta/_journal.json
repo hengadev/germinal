@@ -225,6 +225,13 @@
       "when": 1792246613062,
       "tag": "0031_practical_info",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1792246799831,
+      "tag": "0032_dietary_requirements",
+      "breakpoints": true
     }
   ]
 }
