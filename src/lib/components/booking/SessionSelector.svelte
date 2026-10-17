@@ -3,7 +3,7 @@
 	import WaitlistForm from './WaitlistForm.svelte';
 	import { t, locale } from 'svelte-i18n';
 	import { seatingTitle } from '$lib/utils/seating-title';
-	import { formatSeatingDate, formatSeatingTime } from '$lib/utils/event-time';
+	import { formatSeatingDate, formatSeatingDateTime, formatSeatingTime } from '$lib/utils/event-time';
 	import { formatCurrencyAmount, getCurrencySymbol } from '$lib/utils/currency';
 	import { FULL_PAYMENT_DEPOSIT, type DepositRule } from '$lib/utils/pricing';
 	import { EMPTY_MANUAL_REFUND_POLICY, type RefundPolicy } from '$lib/utils/refund-policy';
@@ -34,6 +34,8 @@
 		/** Why Event access refuses to book it (issue 030), null when it can
 		 * be booked; absent on pages that do not say. */
 		bookingRefusal?: BookingRefusal | null;
+		/** When booking opens, before the Booking Window does (035). */
+		bookingOpensAt?: Date | string | null;
 		/** Whether its Waitlist is open, as Event access decides. */
 		waitlistOpen?: boolean;
 	}
@@ -72,7 +74,7 @@
 		'Limited':     'color:oklch(0.45 0.07 30);background:oklch(0.96 0.020 30);border-color:oklch(0.86 0.040 30)',
 	};
 
-	type CardState = 'default' | 'limited' | 'waitlist' | 'unavailable' | 'past' | 'unpriced';
+	type CardState = 'default' | 'limited' | 'waitlist' | 'unavailable' | 'past' | 'unpriced' | 'not-open' | 'closed';
 
 	function getCardState(s: Session): CardState {
 		if (s.isPast || s.bookingRefusal === 'started') return 'past';
@@ -80,6 +82,9 @@
 		// wait-listed, whether or not it is full.
 		if (s.bookingRefusal === 'not-priced' || s.priceAmount == null) return 'unpriced';
 		if (s.bookingRefusal === 'event-not-published' || s.bookingRefusal === 'seating-unpublished') return 'unavailable';
+		// Outside the Booking Window (035): no booking, no Waitlist.
+		if (s.bookingRefusal === 'not-open') return 'not-open';
+		if (s.bookingRefusal === 'closed') return 'closed';
 		if (s.soldOut || s.bookingRefusal === 'full') {
 			return (s.waitlistOpen ?? s.allowWaitlist) ? 'waitlist' : 'unavailable';
 		}
@@ -116,6 +121,11 @@
 		return formatSeatingTime(iso, timeZone, $locale === 'en' ? 'en' : 'fr');
 	}
 
+	// When booking opens, on the Event's clock (ADR 0006).
+	function formatOpensAt(s: Session): string {
+		return s.bookingOpensAt ? formatSeatingDateTime(s.bookingOpensAt, timeZone, $locale === 'en' ? 'en' : 'fr') : '';
+	}
+
 	function openBooking(s: Session) { selectedSession = s; bookingModalOpen = true; }
 	function openWaitlist(s: Session) { selectedSession = s; waitlistModalOpen = true; }
 
@@ -129,7 +139,7 @@
 <div class="grid gap-6" style="grid-template-columns: repeat(auto-fit, minmax(420px, 1fr))">
 	{#each sortedSessions as session (session.id)}
 		{@const state = getCardState(session)}
-		{@const muted = state === 'past' || state === 'unavailable' || state === 'unpriced'}
+		{@const muted = state === 'past' || state === 'unavailable' || state === 'unpriced' || state === 'closed'}
 		{@const badge = getBadgeLabel(session)}
 		{@const dp = getDateParts(session.startTime)}
 		{@const symbol = getCurrencySymbol(session.currency, $locale ?? 'en')}
@@ -252,6 +262,14 @@
 				{:else if state === 'unpriced'}
 					<div style="border-top:1px solid #ededeb; padding:12px 0; font-family:var(--font-sans),Georgia,serif; font-size:15px; font-weight:400; font-style:italic; color:#a3a3a3; letter-spacing:0.01em; text-align:center">
 						{$t('events.priceToBeAnnounced')}
+					</div>
+				{:else if state === 'not-open'}
+					<div style="border-top:1px solid #ededeb; padding:12px 0; font-family:var(--font-sans),Georgia,serif; font-size:15px; font-weight:400; font-style:italic; color:#525252; letter-spacing:0.01em; text-align:center">
+						{$t('booking.bookingOpensOn', { values: { date: formatOpensAt(session) } })}
+					</div>
+				{:else if state === 'closed'}
+					<div style="border-top:1px solid #ededeb; padding:12px 0; font-family:var(--font-sans),Georgia,serif; font-size:15px; font-weight:400; font-style:italic; color:#a3a3a3; letter-spacing:0.01em; text-align:center">
+						{$t('booking.bookingClosed')}
 					</div>
 				{:else if state === 'unavailable'}
 					<div style="border-top:1px solid #ededeb; padding:12px 0; font-family:var(--font-sans),Georgia,serif; font-size:15px; font-weight:400; font-style:italic; color:#a3a3a3; letter-spacing:0.01em; text-align:center">

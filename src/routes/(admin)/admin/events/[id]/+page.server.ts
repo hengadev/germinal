@@ -13,6 +13,8 @@ import {
 	parseSeatingsPayload,
 	parseVenueCapacity,
 	pickedDaysErrorMessage,
+	getEventTimeZone,
+	saveBookingWindow,
 	saveEventSchedule,
 	saveServiceSeatings,
 	ScheduleSaveRefusedError,
@@ -22,7 +24,8 @@ import {
 	VENUE_CAPACITY_ERROR_MESSAGE,
 	type PickedServiceDay,
 } from '$lib/server/services/event-schedule';
-import { clockOf, dayOf, isValidTimeZone, listTimeZones, serviceKindOf } from '$lib/utils/event-time';
+import { clockOf, dayOf, DEFAULT_EVENT_TIME_ZONE, isValidTimeZone, listTimeZones, serviceKindOf, wallClockToInstant } from '$lib/utils/event-time';
+import { BOOKING_WINDOW_ERROR_MESSAGES, parseBookingWindow } from '$lib/utils/booking-window';
 import { parseServiceRefs, resolveServiceRefs, serviceKey } from '$lib/server/services/new-event-schedule';
 import type { EditorService } from '$lib/types/seatings-editor';
 import type { PricingEditorData } from '$lib/types/pricing-editor';
@@ -650,6 +653,29 @@ export const actions: Actions = {
 			return fail(400, { error: VENUE_CAPACITY_ERROR_MESSAGE });
 		}
 
+		// The Booking Window (issue 035): the opening is typed on the
+		// Event's clock; both settings may be left empty.
+		let timeZone = DEFAULT_EVENT_TIME_ZONE;
+		if (env.USE_MOCK_DATA) {
+			timeZone = MOCK_EVENTS.find((e: typeof MOCK_EVENTS[number]) => e.id === id)?.timeZone ?? timeZone;
+		} else {
+			const eventTimeZone = await getEventTimeZone(id).catch(() => null);
+			if (!eventTimeZone) {
+				return fail(404, { error: 'Événement introuvable.' });
+			}
+			timeZone = eventTimeZone;
+		}
+		const rawOpensAt = formData.get('bookingOpensAt');
+		const rawClosesHoursBefore = formData.get('bookingClosesHoursBefore');
+		const bookingWindow = parseBookingWindow(
+			typeof rawOpensAt === 'string' ? rawOpensAt : null,
+			typeof rawClosesHoursBefore === 'string' ? rawClosesHoursBefore : null,
+			(day, minutes) => wallClockToInstant(day, minutes, timeZone)
+		);
+		if (!bookingWindow.ok) {
+			return fail(400, { error: BOOKING_WINDOW_ERROR_MESSAGES[bookingWindow.reason] });
+		}
+
 		if (env.USE_MOCK_DATA) {
 			return { success: 'Séances enregistrées (mode démo — non persistées)' };
 		}
@@ -671,6 +697,7 @@ export const actions: Actions = {
 				...resolveServiceRefs(parsed.services.filter((service) => placeholderIds.has(service.serviceId)), refs, realIds),
 			];
 			const result = await saveServiceSeatings(id, services, venue.venueCapacity);
+			await saveBookingWindow(id, bookingWindow.window);
 
 			if (result.removedSeatingIds.length > 0) {
 				const { recordAuditLog } = await import('$lib/server/services/audit-log');

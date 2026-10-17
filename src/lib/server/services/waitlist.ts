@@ -1,8 +1,8 @@
 import { formatSeatingDateTime } from '$lib/utils/event-time';
 import { db } from '../db';
 import { logger } from '$lib/server/logger';
-import { waitlist, eventSessions } from '../db/schema';
-import { eq, and, gt } from 'drizzle-orm';
+import { waitlist, eventSessions, events } from '../db/schema';
+import { eq, and, gt, sql, inArray } from 'drizzle-orm';
 import { getSessionById } from './event-sessions';
 import { queueEmail } from '../jobs/process-email-queue';
 import { env } from '../env';
@@ -11,6 +11,7 @@ import { seatingTitle } from '$lib/utils/seating-title';
 import { formatCurrency } from '$lib/utils/currency';
 import { loadSeatingAccess } from './event-access';
 import { ANONYMOUS, waitlistAccess, type WaitlistRefusal } from '$lib/utils/event-access';
+import { bookingClosesAt, DEFAULT_BOOKING_WINDOW } from '$lib/utils/booking-window';
 
 /** Thrown when Event access refuses a Seating's Waitlist; `reason` says why. */
 export class WaitlistNotAvailableError extends Error {
@@ -23,12 +24,19 @@ export class WaitlistNotAvailableError extends Error {
 /**
  * Whether the Seating's Waitlist can be joined or notified now, as Event
  * access (issue 030) decides: never for a Seating of an unpublished Event,
- * an unpublished, unpriced or started Seating, or one without a Waitlist.
+ * an unpublished, unpriced or started Seating, one without a Waitlist, or
+ * one outside its Booking Window (035). When allowed, also gives the
+ * instant the Seating's Booking Window closes.
  */
 async function waitlistDecision(sessionId: string) {
 	const found = await loadSeatingAccess(db, sessionId);
 	if (!found) return { allowed: false as const, reason: 'seating-unpublished' as const };
-	return waitlistAccess({ event: found.event, seating: found.access, viewer: ANONYMOUS, now: new Date() });
+	const decision = waitlistAccess({ event: found.event, seating: found.access, viewer: ANONYMOUS, now: new Date() });
+	if (!decision.allowed) return decision;
+	return {
+		allowed: true as const,
+		closesAt: bookingClosesAt(found.event.bookingWindow ?? DEFAULT_BOOKING_WINDOW, found.access.startTime),
+	};
 }
 
 /**
@@ -60,8 +68,9 @@ export async function joinWaitlist(input: {
 		throw new Error('You are already on the waitlist for this session');
 	}
 
-	// Add to waitlist (expires in 7 days)
-	const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+	// Add to waitlist: it expires in 7 days, or when the Seating's Booking
+	// Window closes (035) if that comes first.
+	const expiresAt = new Date(Math.min(Date.now() + 7 * 24 * 60 * 60 * 1000, decision.closesAt.getTime()));
 
 	const [entry] = await db.insert(waitlist).values({
 		eventSessionId: input.sessionId,
@@ -74,6 +83,32 @@ export async function joinWaitlist(input: {
 	}).returning();
 
 	return entry;
+}
+
+/**
+ * Expire the Waitlist entries, not yet notified, of every Seating whose
+ * Booking Window has closed (issue 035): once a Seating's bookings close,
+ * its Waitlist stops. Run by the `expire-closed-waitlists` job; also
+ * catches Seatings whose window an Admin moved after Guests joined.
+ */
+export async function expireClosedWaitlistEntries(now: Date = new Date()): Promise<{ expired: number }> {
+	const closedSeatings = db
+		.select({ id: eventSessions.id })
+		.from(eventSessions)
+		.innerJoin(events, eq(eventSessions.eventId, events.id))
+		.where(
+			sql`${eventSessions.startTime} - make_interval(hours => coalesce(${events.bookingClosesHoursBefore}, 0)) <= ${now.toISOString()}::timestamptz`
+		);
+	const expired = await db
+		.update(waitlist)
+		.set({ expiresAt: now })
+		.where(and(
+			eq(waitlist.notified, false),
+			gt(waitlist.expiresAt, now),
+			inArray(waitlist.eventSessionId, closedSeatings)
+		))
+		.returning({ id: waitlist.id });
+	return { expired: expired.length };
 }
 
 /**

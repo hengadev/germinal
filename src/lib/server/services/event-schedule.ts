@@ -1,3 +1,4 @@
+import type { BookingWindow } from '$lib/utils/booking-window';
 import { db } from '../db';
 import { eventDays, eventServices, eventSessions, events, reservations } from '../db/schema';
 import { and, eq, getTableColumns, inArray, sql } from 'drizzle-orm';
@@ -1568,7 +1569,7 @@ export async function changeEventTimeZone(eventId: string, timeZone: string): Pr
 	}
 
 	await db.transaction(async (tx: typeof db) => {
-		const [event] = await tx.select({ id: events.id, timeZone: events.timeZone })
+		const [event] = await tx.select({ id: events.id, timeZone: events.timeZone, bookingOpensAt: events.bookingOpensAt })
 			.from(events)
 			.where(eq(events.id, eventId))
 			.limit(1)
@@ -1607,9 +1608,35 @@ export async function changeEventTimeZone(eventId: string, timeZone: string): Pr
 				.where(eq(eventSessions.id, seating.id));
 		}
 
+		// The Booking Window's opening was typed on the Event's clock too
+		// (035): it keeps its wall-clock time.
+		const bookingOpensAt = event.bookingOpensAt
+			? reconvertInstants([event.bookingOpensAt], event.timeZone, timeZone)[0]
+			: null;
+
 		await tx.update(events)
-			.set({ timeZone, updatedAt: new Date() })
+			.set({ timeZone, bookingOpensAt, updatedAt: new Date() })
 			.where(eq(events.id, eventId));
 		await recomputeEventDatesFromDays(tx, eventId);
 	});
+}
+
+/** An Event's Time Zone, or null when there is no such Event. */
+export async function getEventTimeZone(eventId: string): Promise<string | null> {
+	const [row] = await db.select({ timeZone: events.timeZone }).from(events).where(eq(events.id, eventId)).limit(1);
+	return row?.timeZone ?? null;
+}
+
+/**
+ * Save an Event's Booking Window (issue 035), set in « Dates & séances »:
+ * when bookings open and how many hours before each Seating they close.
+ */
+export async function saveBookingWindow(eventId: string, window: BookingWindow): Promise<void> {
+	await db.update(events)
+		.set({
+			bookingOpensAt: window.opensAt,
+			bookingClosesHoursBefore: window.closesHoursBefore,
+			updatedAt: new Date(),
+		})
+		.where(eq(events.id, eventId));
 }

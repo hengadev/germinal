@@ -11,9 +11,21 @@ import type { AccessEvent, AccessSeating, Visibility } from '$lib/utils/event-ac
  * entry point reads an Event's publication anywhere else.
  */
 
-/** The Event access snapshot of an Event row. */
-export function toAccessEvent(event: { visibility: Visibility }): AccessEvent {
-	return { visibility: event.visibility };
+/**
+ * The Event access snapshot of an Event row, with its Booking Window (035).
+ * A row selected without the Booking Window columns (for listing or
+ * indexing only) gets the default window; deciding on a Seating needs the
+ * full row.
+ */
+export function toAccessEvent(event: {
+	visibility: Visibility;
+	bookingOpensAt?: Date | null;
+	bookingClosesHoursBefore?: number | null;
+}): AccessEvent {
+	return {
+		visibility: event.visibility,
+		bookingWindow: { opensAt: event.bookingOpensAt ?? null, closesHoursBefore: event.bookingClosesHoursBefore ?? null },
+	};
 }
 
 /** The Event access snapshot of a Seating row and the price it is booked at. */
@@ -62,6 +74,8 @@ export async function loadSeatingAccess(
 			seating: eventSessions,
 			eventId: events.id,
 			eventVisibility: events.visibility,
+			bookingOpensAt: events.bookingOpensAt,
+			bookingClosesHoursBefore: events.bookingClosesHoursBefore,
 			servicePriceAmount: eventServices.priceAmount,
 			serviceCurrency: eventServices.currency,
 		})
@@ -76,6 +90,8 @@ export async function loadSeatingAccess(
 		seating: typeof eventSessions.$inferSelect;
 		eventId: string;
 		eventVisibility: Visibility;
+		bookingOpensAt: Date | null;
+		bookingClosesHoursBefore: number | null;
 		servicePriceAmount: number | null;
 		serviceCurrency: string;
 	}[] = lock ? await query.for('update', { of: eventSessions }) : await query;
@@ -93,7 +109,11 @@ export async function loadSeatingAccess(
 		seating: row.seating,
 		eventId: row.eventId,
 		price,
-		event: toAccessEvent({ visibility: row.eventVisibility }),
+		event: toAccessEvent({
+			visibility: row.eventVisibility,
+			bookingOpensAt: row.bookingOpensAt,
+			bookingClosesHoursBefore: row.bookingClosesHoursBefore,
+		}),
 		access: toAccessSeating(row.seating, price),
 	};
 }

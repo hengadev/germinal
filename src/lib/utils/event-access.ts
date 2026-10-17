@@ -1,3 +1,5 @@
+import { bookingWindowState, DEFAULT_BOOKING_WINDOW, type BookingWindow } from './booking-window';
+
 /**
  * Event access (issue 030, ADR 0007) — pure, no database.
  *
@@ -39,6 +41,9 @@ export const VISIBILITIES: readonly Visibility[] = ['draft', 'private', 'public'
 /** What Event access needs to know about an Event. */
 export interface AccessEvent {
 	visibility: Visibility;
+	/** Its Booking Window (035); absent: the default one (open as soon as
+	 * published, closing at each Seating's start). */
+	bookingWindow?: BookingWindow;
 }
 
 /** What Event access needs to know about a Seating. */
@@ -92,9 +97,15 @@ export type BookingRefusal =
 	| 'seating-unpublished'
 	| 'not-priced'
 	| 'started'
+	| 'not-open'
+	| 'closed'
 	| 'full';
 
-export type SeatingBookingDecision = { bookable: true } | { bookable: false; reason: BookingRefusal };
+export type SeatingBookingDecision =
+	| { bookable: true }
+	| { bookable: false; reason: Exclude<BookingRefusal, 'not-open'> }
+	/** Before the Booking Window opens (035): when it opens. */
+	| { bookable: false; reason: 'not-open'; opensAt: Date };
 
 export interface SeatingAccessInput {
 	event: AccessEvent;
@@ -103,15 +114,22 @@ export interface SeatingAccessInput {
 	now: Date;
 }
 
+type Refusal = { reason: Exclude<BookingRefusal, 'full' | 'not-open'> } | { reason: 'not-open'; opensAt: Date };
+
 /** Refusals shared by booking and the Waitlist, before capacity. */
-function refusalBeforeCapacity({ event, seating, viewer, now }: SeatingAccessInput): BookingRefusal | null {
+function refusalBeforeCapacity({ event, seating, viewer, now }: SeatingAccessInput): Refusal | null {
 	const access = eventAccess(event, viewer);
 	// The Admin preview (033) may show a Draft's page, but no viewer ever
 	// books one: the preview view refuses like a hidden Event does.
-	if (!access.visible || access.view === 'preview') return 'event-not-published';
-	if (!seating.published) return 'seating-unpublished';
-	if (!seating.priced) return 'not-priced';
-	if (seating.startTime.getTime() <= now.getTime()) return 'started';
+	if (!access.visible || access.view === 'preview') return { reason: 'event-not-published' };
+	if (!seating.published) return { reason: 'seating-unpublished' };
+	if (!seating.priced) return { reason: 'not-priced' };
+	if (seating.startTime.getTime() <= now.getTime()) return { reason: 'started' };
+	// The Booking Window (035): before it opens, or once it has closed
+	// for this Seating, it can neither be booked nor wait-listed.
+	const window = bookingWindowState(event.bookingWindow ?? DEFAULT_BOOKING_WINDOW, seating.startTime, now);
+	if (window.state === 'not-open') return { reason: 'not-open', opensAt: window.opensAt };
+	if (window.state === 'closed') return { reason: 'closed' };
 	return null;
 }
 
@@ -121,7 +139,7 @@ function refusalBeforeCapacity({ event, seating, viewer, now }: SeatingAccessInp
  */
 export function seatingBooking(input: SeatingAccessInput & { seats?: number }): SeatingBookingDecision {
 	const refusal = refusalBeforeCapacity(input);
-	if (refusal) return { bookable: false, reason: refusal };
+	if (refusal) return { bookable: false, ...refusal };
 	if (input.seating.availableCapacity < (input.seats ?? 1)) return { bookable: false, reason: 'full' };
 	return { bookable: true };
 }
@@ -136,7 +154,7 @@ export type WaitlistDecision = { allowed: true } | { allowed: false; reason: Wai
  */
 export function waitlistAccess(input: SeatingAccessInput): WaitlistDecision {
 	const refusal = refusalBeforeCapacity(input);
-	if (refusal) return { allowed: false, reason: refusal as WaitlistRefusal };
+	if (refusal) return { allowed: false, reason: refusal.reason };
 	if (!input.seating.allowWaitlist) return { allowed: false, reason: 'waitlist-not-offered' };
 	return { allowed: true };
 }
@@ -145,6 +163,9 @@ export function waitlistAccess(input: SeatingAccessInput): WaitlistDecision {
  * can) and whether its Waitlist is open. */
 export interface SeatingAvailability {
 	bookingRefusal: BookingRefusal | null;
+	/** When booking opens, while the Booking Window has not (035); null
+	 * otherwise. */
+	bookingOpensAt: Date | null;
 	waitlistOpen: boolean;
 }
 
@@ -152,6 +173,7 @@ export function seatingAvailability(input: SeatingAccessInput): SeatingAvailabil
 	const booking = seatingBooking(input);
 	return {
 		bookingRefusal: booking.bookable ? null : booking.reason,
+		bookingOpensAt: !booking.bookable && booking.reason === 'not-open' ? booking.opensAt : null,
 		waitlistOpen: !booking.bookable && booking.reason === 'full' && waitlistAccess(input).allowed,
 	};
 }
