@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { ArrowLeft, User, Mail, Phone, Ticket, Calendar, Clock, MapPin, CreditCard, CheckCircle2, ExternalLink, Download, Printer, XCircle, MailCheck, RotateCcw, AlertCircle, Gift } from 'lucide-svelte';
+	import { ArrowLeft, User, Mail, Phone, Ticket, Calendar, Clock, MapPin, CreditCard, CheckCircle2, ExternalLink, Download, Printer, XCircle, MailCheck, RotateCcw, AlertCircle, Gift, Utensils } from 'lucide-svelte';
 	import type { PageData, ActionData } from './$types';
 	import { formatCurrency } from '$lib/utils/currency';
 	import { reservationAmounts, balanceToCollect } from '$lib/utils/balance-due';
@@ -341,6 +341,23 @@ END:VCALENDAR`;
 							<div class="font-medium text-foreground">{data.reservation.quantity} billet{data.reservation.quantity > 1 ? 's' : ''}</div>
 						</div>
 					</div>
+					<!-- Dietary Requirements (issue 041): Admins only, erased 30 days after the Seating. -->
+					{#if data.reservation.dietaryRequirements}
+						<div class="flex items-start gap-3">
+							<div class="w-10 h-10 bg-muted rounded-full flex items-center justify-center flex-shrink-0">
+								<Utensils size={18} class="text-muted-foreground" />
+							</div>
+							<div>
+								<div class="text-sm text-muted-foreground">Allergies ou régime alimentaire</div>
+								<div class="font-medium text-foreground whitespace-pre-line">{data.reservation.dietaryRequirements}</div>
+								{#if data.reservation.dietaryConsentAt}
+									<div class="text-xs text-muted-foreground mt-1">
+										Consentement donné le {new Date(data.reservation.dietaryConsentAt).toLocaleString('fr-FR', { dateStyle: 'long', timeStyle: 'short' })} — effacé 30 jours après la séance.
+									</div>
+								{/if}
+							</div>
+						</div>
+					{/if}
 				</div>
 			</div>
 

@@ -237,3 +237,18 @@ describe('settings admin actions — auth guard', () => {
 		);
 	});
 });
+
+describe('reservation admin pages — Dietary Requirements stay with Admins (issue 041)', () => {
+	it('the reservations list rejects a staff session', async () => {
+		const { load } = await import('../../../src/routes/(admin)/admin/reservations/+page.server');
+		await expectRejectedWith(
+			load({ locals: { user: staffUser }, url: new URL('http://x/admin/reservations') } as any),
+			403
+		);
+	});
+
+	it('a Reservation\'s page rejects a staff session', async () => {
+		const { load } = await import('../../../src/routes/(admin)/admin/reservations/[id]/+page.server');
+		await expectRejectedWith(load({ locals: { user: staffUser }, params: { id: 'r1' } } as any), 403);
+	});
+});

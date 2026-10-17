@@ -56,7 +56,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 			throw error(404, 'Session not found');
 		}
 
-		return { event: withoutPracticalInfo(event), session: mapSession(session, event.timeZone), deposit: depositRuleOf(event), refundPolicy: refundPolicyOf(event), isMockMode: true };
+		return { event: withoutPracticalInfo(event), session: mapSession(session, event.timeZone), deposit: depositRuleOf(event), refundPolicy: refundPolicyOf(event), asksDietaryRequirements: (event as { askDietaryRequirements?: boolean }).askDietaryRequirements ?? false, isMockMode: true };
 	}
 
 	try {
@@ -98,6 +98,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 			deposit: depositRuleOf(event),
 			// Its Refund Policy (issue 027), shown before paying.
 			refundPolicy: refundPolicyOf(event),
+			// Whether the form asks for Dietary Requirements (issue 041).
+			asksDietaryRequirements: event.askDietaryRequirements,
 			isMockMode: false
 		};
 	} catch {

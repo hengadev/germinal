@@ -72,6 +72,15 @@ export function readEventTextFields(formData: FormData): EventTextFields {
 	return fields;
 }
 
+/** The « Infos pratiques » switch « Demander les allergies et régimes
+ * alimentaires » (issue 041). The tab posts a hidden `false` before the
+ * checkbox's `true`, so the field is present whenever the tab is saved;
+ * a tab that does not post it leaves the switch alone (undefined). */
+export function readAskDietaryRequirements(formData: FormData): boolean | undefined {
+	if (!formData.has('askDietaryRequirements')) return undefined;
+	return formData.getAll('askDietaryRequirements').includes('true');
+}
+
 /** Whether any of the fields holds a value. */
 export function hasEventText(fields: EventTextFields): boolean {
 	return Object.values(fields).some((value) => value !== null && value !== undefined);

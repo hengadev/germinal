@@ -12,6 +12,10 @@ export type CreateReservationInput = {
 	quantity: number;
 	notificationPreference?: 'email' | 'sms' | 'both';
 	promoCode?: string;
+	/** Dietary Requirements (issue 041): stored only on an Event that asks,
+	 * and only with `dietaryConsent`. */
+	dietaryRequirements?: string;
+	dietaryConsent?: boolean;
 	honeypot?: string;
 	ipAddress?: string | null;
 	userAgent?: string | null;

@@ -224,6 +224,8 @@ export async function createEvent(input: CreateEventInput) {
       // Practical Info (issue 040): Ticket-holders only, never public.
       practicalInfoEn: input.practicalInfoEn,
       practicalInfoFr: input.practicalInfoFr,
+      // Whether the booking form asks for Dietary Requirements (issue 041).
+      askDietaryRequirements: input.askDietaryRequirements ?? false,
       venueCapacity: input.venueCapacity ?? null,
       coverMediaId: input.coverMediaId,
       visibility,

@@ -32,6 +32,7 @@ import {
 	hasEventText,
 	NOTHING_TO_SAVE_MESSAGE,
 	pricingHasContent,
+	readAskDietaryRequirements,
 	readEventTextFields,
 } from '$lib/server/services/event-draft';
 import type { CreateEventInput } from '$lib/types/events';
@@ -335,7 +336,8 @@ export const load: PageServerLoad = async ({ params }) => {
 					sessionTitle: session ? seatingTitle(session, 'en', { timeZone: event.timeZone }) : '',
 					sessionStartTime: session?.startTime?.toISOString() || '',
 					paymentStatus: r.paymentStatus,
-					isComp: (r as { isComp?: boolean }).isComp ?? false
+					isComp: (r as { isComp?: boolean }).isComp ?? false,
+					dietaryRequirements: (r as { dietaryRequirements?: string | null }).dietaryRequirements ?? null
 				};
 			});
 
@@ -516,7 +518,9 @@ export const load: PageServerLoad = async ({ params }) => {
 				sessionTitle: seatingTitle(r.eventSession, 'en', { timeZone: event.timeZone }),
 				sessionStartTime: r.eventSession.startTime.toISOString(),
 				paymentStatus: r.payment?.status || 'none',
-				isComp: r.isComp
+				isComp: r.isComp,
+				// Dietary Requirements (issue 041): Admins only.
+				dietaryRequirements: r.dietaryRequirements
 			})),
 			eventStaff: [],
 			tasks: [],
@@ -544,7 +548,10 @@ export const actions: Actions = {
 		const id = params.id ?? null;
 
 		const formData = await request.formData();
-		const fields = readEventTextFields(formData);
+		const textFields = readEventTextFields(formData);
+		// The Dietary Requirements switch, from « Infos pratiques » (issue 041).
+		const askDietaryRequirements = readAskDietaryRequirements(formData);
+		const fields = askDietaryRequirements === undefined ? textFields : { ...textFields, askDietaryRequirements };
 
 		// Visibility, Spotlight and Portfolio come with the Essentiel tab of
 		// a saved Event; other tabs leave them as they are.
@@ -578,7 +585,8 @@ export const actions: Actions = {
 				return fail(400, { error: TIME_ZONE_ERROR_MESSAGE });
 			}
 			// The Time Zone alone counts once it is not the default one.
-			if (!hasEventText(fields) && timeZone === DEFAULT_EVENT_TIME_ZONE) {
+			// So does the Dietary Requirements switch once turned on.
+			if (!hasEventText(textFields) && !askDietaryRequirements && timeZone === DEFAULT_EVENT_TIME_ZONE) {
 				return fail(400, { error: NOTHING_TO_SAVE_MESSAGE });
 			}
 			const created = await createDraft({ ...fields, timeZone });

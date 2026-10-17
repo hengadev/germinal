@@ -14,6 +14,7 @@ import { seatingTitle } from '$lib/utils/seating-title';
 import { getSeatingPrice } from './service-pricing';
 import { loadSeatingAccess } from './event-access';
 import { ANONYMOUS, seatingBooking, type BookingRefusal } from '$lib/utils/event-access';
+import { dietaryAnswerOf, needsDietaryConsent } from '$lib/utils/dietary-requirements';
 
 const BOOKING_REFUSAL_MESSAGES: Record<BookingRefusal, string> = {
 	'event-not-published': 'Session not found or not published',
@@ -34,6 +35,15 @@ export class SeatingNotBookableError extends Error {
 	) {
 		super(BOOKING_REFUSAL_MESSAGES[reason]);
 		this.name = 'SeatingNotBookableError';
+	}
+}
+
+/** Thrown when a Guest fills in Dietary Requirements (issue 041) without
+ * consenting: health data is never stored without explicit consent. */
+export class DietaryConsentRequiredError extends Error {
+	constructor() {
+		super('Consent is required to share dietary requirements');
+		this.name = 'DietaryConsentRequiredError';
 	}
 }
 
@@ -172,6 +182,11 @@ export async function createReservation(input: CreateReservationInput): Promise<
 		throw new Error('Invalid submission');
 	}
 
+	// Dietary Requirements are given only with explicit consent (issue 041).
+	if (needsDietaryConsent(input.dietaryRequirements, input.dietaryConsent)) {
+		throw new DietaryConsentRequiredError();
+	}
+
 	// Track Checkout Session ID for cleanup in case of transaction failure
 	let checkoutSessionId: string | null = null;
 
@@ -210,9 +225,22 @@ export async function createReservation(input: CreateReservationInput): Promise<
 				timeZone: events.timeZone,
 				depositType: events.depositType,
 				depositValue: events.depositValue,
+				askDietaryRequirements: events.askDietaryRequirements,
 			})
 			.from(events)
 			.where(eq(events.id, session.eventId));
+
+		// Dietary Requirements (issue 041): kept only on an Event that asks,
+		// with the instant the Guest consented. Consent was checked above.
+		const dietaryAnswer = dietaryAnswerOf({
+			asked: event?.askDietaryRequirements ?? false,
+			answer: input.dietaryRequirements,
+			consent: input.dietaryConsent,
+			now: new Date(),
+		});
+		const dietary = dietaryAnswer === 'consent-required'
+			? { dietaryRequirements: null, dietaryConsentAt: null }
+			: dietaryAnswer;
 
 		const pricing = priceReservation({
 			unitPrice: price.amount,
@@ -251,6 +279,7 @@ export async function createReservation(input: CreateReservationInput): Promise<
 				userAgent: input.userAgent ?? null,
 				promotionCodeId,
 				discountAmount: pricing.discount,
+				...dietary,
 			}).returning();
 
 			return { reservation, checkoutUrl: null, expiresAt: null };
@@ -279,6 +308,7 @@ export async function createReservation(input: CreateReservationInput): Promise<
 			userAgent: input.userAgent ?? null,
 			promotionCodeId,
 			discountAmount: pricing.discount,
+			...dietary,
 		}).returning();
 
 		// Step 8: Create Stripe Checkout Session (hosted payment page) for

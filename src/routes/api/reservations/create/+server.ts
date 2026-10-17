@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { logger } from '$lib/server/logger';
 import { createReservationSchema } from '$lib/server/validators/reservations';
-import { createReservation, SeatingNotBookableError } from '$lib/server/services/reservations';
+import { createReservation, DietaryConsentRequiredError, SeatingNotBookableError } from '$lib/server/services/reservations';
 import { strictRateLimiter, RateLimitUnavailableError } from '$lib/server/rate-limit';
 import { validateCsrfToken } from '$lib/server/csrf';
 import type { RequestHandler } from './$types';
@@ -106,6 +106,10 @@ export const POST: RequestHandler = async ({ request, getClientAddress, locals }
 				case 'full':
 					return json({ error: 'Session is sold out', code: 'SOLD_OUT' }, { status: 409 });
 			}
+		}
+
+		if (error instanceof DietaryConsentRequiredError) {
+			return json({ error: error.message, code: 'DIETARY_CONSENT_REQUIRED' }, { status: 400 });
 		}
 
 		if (error instanceof Error && error.message === 'Invalid submission') {

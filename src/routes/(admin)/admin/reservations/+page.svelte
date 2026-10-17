@@ -2,6 +2,7 @@
 	import { Eye, CheckCircle2, Clock, XCircle, AlertCircle, Search, Calendar, User, Mail, Ticket, CreditCard, ArrowRight, Download, Gift } from 'lucide-svelte';
 	import type { PageData } from './$types';
 	import { formatCurrency } from '$lib/utils/currency';
+	import DietaryRequirementsBadge from '$lib/components/admin/DietaryRequirementsBadge.svelte';
 	import {
 		balanceToCollect,
 		filterReservations,
@@ -295,6 +296,7 @@
 											Comp
 										</span>
 									{/if}
+									<DietaryRequirementsBadge dietaryRequirements={reservation.dietaryRequirements} />
 								</div>
 							</td>
 							<td class="px-6 py-4">
@@ -355,6 +357,7 @@
 											Comp
 										</span>
 									{/if}
+									<DietaryRequirementsBadge dietaryRequirements={reservation.dietaryRequirements} compact />
 								</div>
 							</div>
 							<p class="text-sm text-muted-foreground truncate">{reservation.guestEmail}</p>

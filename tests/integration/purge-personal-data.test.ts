@@ -169,6 +169,48 @@ describe('purgePersonalData', () => {
 		expect(row.guestEmail).toBe('guest@example.com');
 	});
 
+	it('erases Dietary Requirements and their consent 30 days after the Seating starts, not before (issue 041)', async () => {
+		const HOUR = 1 / 24;
+		// seedSession takes days since the Seating ended; it started 4 hours earlier.
+		const startedDaysAgo = (days: number) => seedSession(days - 4 * HOUR);
+		const answer = { dietaryRequirements: 'Allergie aux fruits à coque', dietaryConsentAt: daysBefore(40) };
+		const past = await seedReservation((await startedDaysAgo(30 + HOUR)).id, answer);
+		const justBefore = await seedReservation((await startedDaysAgo(30 - HOUR)).id, answer);
+		const upcoming = await seedReservation((await startedDaysAgo(-5)).id, answer);
+
+		const result = await purgePersonalData(NOW);
+
+		expect(result.dietaryRequirementsErased).toBe(1);
+		const erased = await reservation(past.id);
+		expect(erased.dietaryRequirements).toBeNull();
+		expect(erased.dietaryConsentAt).toBeNull();
+		// The rest of the Reservation stays until its own retention.
+		expect(erased).toMatchObject({ guestEmail: 'guest@example.com', guestName: 'Real Guest', totalAmount: 2500 });
+		for (const kept of [justBefore, upcoming]) {
+			const row = await reservation(kept.id);
+			expect(row.dietaryRequirements).toBe('Allergie aux fruits à coque');
+			expect(row.dietaryConsentAt).toEqual(daysBefore(40));
+		}
+
+		// A second run has nothing left to erase.
+		expect((await purgePersonalData(NOW)).dietaryRequirementsErased).toBe(0);
+	});
+
+	it('erases Dietary Requirements together with the identity of a year-old Reservation', async () => {
+		const old = await seedReservation((await seedSession(400)).id, {
+			dietaryRequirements: 'Végétarien',
+			dietaryConsentAt: daysBefore(420),
+		});
+
+		await purgePersonalData(NOW);
+
+		expect(await reservation(old.id)).toMatchObject({
+			guestEmail: ANONYMISED_EMAIL,
+			dietaryRequirements: null,
+			dietaryConsentAt: null,
+		});
+	});
+
 	it('deletes old waitlist entries, contact messages and sent emails, and nothing recent', async () => {
 		const ended = await seedSession(31);
 		const upcoming = await seedSession(-10);
@@ -227,6 +269,7 @@ describe('purgePersonalData', () => {
 		expect(second).toEqual({
 			reservationsAnonymised: 0,
 			technicalDataCleared: 0,
+			dietaryRequirementsErased: 0,
 			waitlistDeleted: 0,
 			contactSubmissionsDeleted: 0,
 			emailsDeleted: 0,

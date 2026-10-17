@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { config } from '../env';
+import { DIETARY_REQUIREMENTS_MAX_LENGTH, needsDietaryConsent } from '$lib/utils/dietary-requirements';
 
 export const createReservationSchema = z.object({
 	sessionId: z.string().uuid('Invalid session ID'),
@@ -24,9 +25,18 @@ export const createReservationSchema = z.object({
 	notificationPreference: z.enum(['email', 'sms', 'both']).default('both'),
 	// Optional promotion code
 	promoCode: z.string().max(50).optional().transform(v => v?.trim().toUpperCase() || undefined),
+	// Dietary Requirements (issue 041): optional, and only with the Guest's
+	// explicit consent (health data). Ignored on an Event that does not ask.
+	dietaryRequirements: z.string()
+		.max(DIETARY_REQUIREMENTS_MAX_LENGTH, 'Dietary requirements are too long')
+		.optional(),
+	dietaryConsent: z.boolean().optional(),
 	// Honeypot for spam protection
 	honeypot: z.string().optional(),
 }).refine(data => !data.honeypot || data.honeypot.trim() === '', {
 	message: 'Invalid submission detected',
 	path: ['honeypot'],
+}).refine(data => !needsDietaryConsent(data.dietaryRequirements, data.dietaryConsent), {
+	message: 'Consent is required to share dietary requirements',
+	path: ['dietaryConsent'],
 });

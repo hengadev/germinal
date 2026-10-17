@@ -12,7 +12,9 @@ function isCancellable(status: string): boolean {
 	return status !== 'cancelled' && status !== 'expired';
 }
 
-export const load: PageServerLoad = async ({ params }) => {
+export const load: PageServerLoad = async ({ params, locals }) => {
+	// Carries Dietary Requirements (health data, issue 041): Admins only.
+	requireAdmin(locals);
 	if (env.USE_MOCK_DATA) {
 		// Mock mode - find reservation by ID
 		const reservation = MOCK_RESERVATIONS.find(r => r.id === params.id);
@@ -67,6 +69,8 @@ export const load: PageServerLoad = async ({ params }) => {
 				currency: reservation.currency,
 				status: reservation.status,
 				isComp: (reservation as { isComp?: boolean }).isComp ?? false,
+				dietaryRequirements: (reservation as { dietaryRequirements?: string | null }).dietaryRequirements ?? null,
+				dietaryConsentAt: null as string | null,
 				accessToken: reservation.accessToken,
 				expiresAt: reservation.expiresAt,
 				confirmedAt: reservation.confirmedAt,
@@ -138,6 +142,9 @@ export const load: PageServerLoad = async ({ params }) => {
 				currency: reservation.currency,
 				status: reservation.status,
 				isComp: reservation.isComp,
+				// Dietary Requirements (issue 041): Admins only, with the consent instant.
+				dietaryRequirements: reservation.dietaryRequirements,
+				dietaryConsentAt: reservation.dietaryConsentAt?.toISOString() ?? null,
 				accessToken: reservation.accessToken,
 				expiresAt: reservation.expiresAt.toISOString(),
 				confirmedAt: reservation.confirmedAt?.toISOString(),

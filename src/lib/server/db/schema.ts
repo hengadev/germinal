@@ -193,6 +193,9 @@ export const events = pgTable('events', {
     // contact, client, budget. Public and Staff loaders leave it out
     // (services/events PUBLIC_EVENT_COLUMNS), so it can never reach them.
     internalNotes: text('internal_notes'),
+    // Dietary Requirements (issue 041, CONTEXT.md): whether the booking
+    // form asks Guests for allergies or a diet (« Infos pratiques » tab).
+    askDietaryRequirements: boolean('ask_dietary_requirements').notNull().default(false),
     coverMediaId: uuid('cover_media_id'),
     coverVideoId: uuid('cover_video_id'),
     visibility: eventVisibilityEnum('visibility').notNull().default('draft'),
@@ -736,6 +739,13 @@ export const reservations = pgTable('reservations', {
     // venue. deposit_amount + balance_amount = total_amount.
     depositAmount: integer('deposit_amount').notNull(),
     balanceAmount: integer('balance_amount').notNull(),
+    // Dietary Requirements (issue 041, CONTEXT.md): allergies or a diet the
+    // Guest declared for the whole Reservation, on an Event that asks. Health
+    // data: stored only with the instant the Guest consented, shown only to
+    // Admins, erased with its consent 30 days after the Seating starts
+    // (jobs/purge-personal-data).
+    dietaryRequirements: text('dietary_requirements'),
+    dietaryConsentAt: timestamp('dietary_consent_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => ({
@@ -752,6 +762,10 @@ export const reservations = pgTable('reservations', {
     statusCreatedAtIdx: index('reservations_status_created_at_idx')
         .on(table.status, table.createdAt),
     isCompIdx: index('reservations_is_comp_idx').on(table.isComp),
+    // Dietary Requirements are never stored without the Guest's consent.
+    dietaryConsentCheck: check('reservations_dietary_consent_check',
+        sql`dietary_requirements IS NULL OR dietary_consent_at IS NOT NULL`
+    ),
     quantityCheck: check('reservations_quantity_check', sql`quantity > 0`),
     amountCheck: check('reservations_amount_check', sql`total_amount >= 0`),
     discountCheck: check('reservations_discount_check', sql`discount_amount >= 0`),

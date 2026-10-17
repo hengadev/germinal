@@ -3,8 +3,11 @@ import { MOCK_EVENTS, MOCK_SESSIONS, MOCK_RESERVATIONS } from '$lib/mock-data';
 import type { PageServerLoad } from './$types';
 import { or, ilike } from 'drizzle-orm';
 import { seatingTitle } from '$lib/utils/seating-title';
+import { requireAdmin } from '$lib/server/auth-guards';
 
-export const load: PageServerLoad = async ({ url }) => {
+export const load: PageServerLoad = async ({ url, locals }) => {
+	// Carries Dietary Requirements (health data, issue 041): Admins only.
+	requireAdmin(locals);
 	// Get search query from URL
 	const searchQuery = url.searchParams.get('q') || undefined;
 
@@ -32,7 +35,9 @@ export const load: PageServerLoad = async ({ url }) => {
 				sessionTitle: session && event ? seatingTitle(session, 'en', { timeZone: event.timeZone }) : '',
 				sessionStartTime: session?.startTime?.toISOString() || '',
 				paymentStatus: r.paymentStatus,
-				isComp: (r as { isComp?: boolean }).isComp ?? false
+				isComp: (r as { isComp?: boolean }).isComp ?? false,
+				// Dietary Requirements (issue 041): Admins only.
+				dietaryRequirements: (r as { dietaryRequirements?: string | null }).dietaryRequirements ?? null
 			};
 		});
 
@@ -105,7 +110,9 @@ export const load: PageServerLoad = async ({ url }) => {
 			sessionTitle: seatingTitle(r.eventSession, 'en', { timeZone: r.eventSession.event.timeZone }),
 			sessionStartTime: r.eventSession.startTime.toISOString(),
 			paymentStatus: r.payment?.status || 'none',
-			isComp: r.isComp
+			isComp: r.isComp,
+			// Dietary Requirements (issue 041): Admins only.
+			dietaryRequirements: r.dietaryRequirements
 		})),
 		searchQuery,
 	};
