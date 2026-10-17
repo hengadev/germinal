@@ -26,6 +26,12 @@ describe('readEventTextFields', () => {
 		});
 	});
 
+	it('reads the Internal Notes posted by « Essentiel », blank ones as null (issue 039)', () => {
+		expect(readEventTextFields(formOf({ internalNotes: 'Client : Maison Lenoir' }))).toEqual({ internalNotes: 'Client : Maison Lenoir' });
+		expect(readEventTextFields(formOf({ internalNotes: '   ' }))).toEqual({ internalNotes: null });
+		expect(hasEventText(readEventTextFields(formOf({ internalNotes: 'Budget 4 000 €' })))).toBe(true);
+	});
+
 	it('ignores fields that are not the Event’s texts', () => {
 		expect(readEventTextFields(formOf({ visibility: 'public', timeZone: 'Europe/London' }))).toEqual({});
 	});
