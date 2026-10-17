@@ -9,6 +9,7 @@ import { refundPolicyOf } from '$lib/utils/refund-policy';
 import { loadSeatingAccess, toAccessEvent, toAccessSeating } from '$lib/server/services/event-access';
 import { db } from '$lib/server/db';
 import { eventAccess, seatingBooking, viewerOf } from '$lib/utils/event-access';
+import { withoutPracticalInfo } from '$lib/utils/practical-info';
 
 function mapSession(s: (typeof MOCK_SESSIONS)[number], timeZone: string) {
 	return {
@@ -55,7 +56,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 			throw error(404, 'Session not found');
 		}
 
-		return { event, session: mapSession(session, event.timeZone), deposit: depositRuleOf(event), refundPolicy: refundPolicyOf(event), isMockMode: true };
+		return { event: withoutPracticalInfo(event), session: mapSession(session, event.timeZone), deposit: depositRuleOf(event), refundPolicy: refundPolicyOf(event), isMockMode: true };
 	}
 
 	try {
@@ -74,7 +75,9 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		if (!dbSession.price) throw error(404, 'Session not found');
 
 		return {
-			event,
+			// The booking page never carries Practical Info (issue 040) — it is
+			// given on the Ticket and in the emails, once the booking is made.
+			event: withoutPracticalInfo(event),
 			session: {
 				id: dbSession.id,
 				...seatingTitlesWithFallback(dbSession, { timeZone: event.timeZone }),

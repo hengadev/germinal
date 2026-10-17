@@ -4,6 +4,7 @@ import { MOCK_EVENTS, MOCK_SESSIONS, USE_MOCK_DATA } from '$lib/mock-data';
 import { getSeatingPrices } from '$lib/server/services/service-pricing';
 import { toAccessEvent, toAccessSeating } from '$lib/server/services/event-access';
 import { canBeSpotlight, seatingAvailability, viewerOf } from '$lib/utils/event-access';
+import { withoutPracticalInfo } from '$lib/utils/practical-info';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -15,7 +16,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 			const eventSessions = MOCK_SESSIONS.filter(s => s.eventId === spotlightEvent.id);
 			return {
 				spotlightEvent: {
-					...spotlightEvent,
+					// The Spotlight page never carries Practical Info (issue 040).
+					...withoutPracticalInfo(spotlightEvent),
 					eventSessions
 				}
 			};

@@ -42,6 +42,8 @@ export const EVENT_TEXT_FIELDS = [
 	'curatorFr',
 	'admissionInfoEn',
 	'admissionInfoFr',
+	'practicalInfoEn',
+	'practicalInfoFr',
 ] as const;
 
 export type EventTextField = (typeof EVENT_TEXT_FIELDS)[number];

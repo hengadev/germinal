@@ -147,6 +147,13 @@ export const events = pgTable('events', {
     curatorFr: varchar('curator_fr', { length: 150 }),
     admissionInfoEn: varchar('admission_info_en', { length: 150 }),
     admissionInfoFr: varchar('admission_info_fr', { length: 150 }),
+    // Practical Info (issue 040, CONTEXT.md): arrival instructions, door
+    // code, dress code, a contact on the day — written per Event in EN/FR
+    // and given only to Guests holding a Ticket (Ticket page, confirmation
+    // and reminder emails), never on the public Event page or in any
+    // public loader (which strip it, `$lib/utils/practical-info`).
+    practicalInfoEn: text('practical_info_en'),
+    practicalInfoFr: text('practical_info_fr'),
     // Venue Capacity (issue 021): how many guests the venue holds at once.
     // Every Seating inherits it unless it overrides its own capacity. Null
     // only on an Event that has never been given one (no Seating yet).

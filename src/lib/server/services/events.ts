@@ -10,12 +10,14 @@ import {
 } from '$lib/utils/pagination';
 import { invalidateCacheTags, CACHE_TAGS } from '$lib/server/cache';
 import { canBeSpotlight, canJoinPortfolio } from '$lib/utils/event-access';
+import { withoutPracticalInfo } from '$lib/utils/practical-info';
 import { lastSeatingStartOf, listedEventsCondition, toAccessEvent } from './event-access';
 
 /**
  * Events, newest first, paged. `listedOnly` (the default) keeps the Events
  * Event access lets be listed publicly — the Portfolio, of any Visibility
- * except Draft (issues 030 and 044); the admin passes false.
+ * except Draft (issues 030 and 044); the admin passes false. A listed page
+ * is public: its Events leave without their Practical Info (issue 040).
  */
 export async function getAllEvents(options: { listedOnly?: boolean; excludeSpotlight?: boolean; page?: number; limit?: number; cursor?: string; search?: string }) {
 	const { listedOnly = true, excludeSpotlight = false, page = 1, limit = 20, search } = options;
@@ -64,8 +66,11 @@ export async function getAllEvents(options: { listedOnly?: boolean; excludeSpotl
 	// Calculate pagination metadata
 	const pagination = calculatePagination(page, limit, total);
 
-	// Create response
-	return createPaginatedResponse(paginatedEvents, pagination);
+	// Create response — a public listing never carries Practical Info.
+	const publicEvents = listedOnly
+		? paginatedEvents.map((event: (typeof paginatedEvents)[number]) => withoutPracticalInfo(event))
+		: paginatedEvents;
+	return createPaginatedResponse(publicEvents, pagination);
 }
 
 /** Event ids are random UUIDs and public URLs carry them (ADR 0007). */
@@ -115,8 +120,9 @@ export async function getSpotlightEvent() {
   });
 
   // Returns null if no spotlight event exists (valid state)
+  // The Spotlight is public: it leaves without its Practical Info (issue 040).
   if (!spotlightEvent || !canBeSpotlight(toAccessEvent(spotlightEvent))) return null;
-  return spotlightEvent;
+  return withoutPracticalInfo(spotlightEvent);
 }
 
 /**
@@ -192,6 +198,9 @@ export async function createEvent(input: CreateEventInput) {
       curatorFr: input.curatorFr,
       admissionInfoEn: input.admissionInfoEn,
       admissionInfoFr: input.admissionInfoFr,
+      // Practical Info (issue 040): Ticket-holders only, never public.
+      practicalInfoEn: input.practicalInfoEn,
+      practicalInfoFr: input.practicalInfoFr,
       venueCapacity: input.venueCapacity ?? null,
       coverMediaId: input.coverMediaId,
       visibility,

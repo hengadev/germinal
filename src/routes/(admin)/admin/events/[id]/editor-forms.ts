@@ -77,6 +77,9 @@ export interface EditorEvent {
 	curatorFr: string | null;
 	admissionInfoEn: string | null;
 	admissionInfoFr: string | null;
+	// Practical Info (issue 040): Ticket holders only, never public.
+	practicalInfoEn: string | null;
+	practicalInfoFr: string | null;
 	visibility: 'draft' | 'private' | 'public';
 	isSpotlight: boolean | null;
 	isPortfolio: boolean | null;

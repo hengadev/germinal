@@ -19,6 +19,15 @@ describe('readEventTextFields', () => {
 		expect('locationEn' in fields).toBe(false);
 	});
 
+	it('reads the « Infos pratiques » tab’s fields like any other text (issue 040)', () => {
+		expect(readEventTextFields(formOf({ practicalInfoFr: 'Code 4512B.', practicalInfoEn: '' }))).toEqual({
+			practicalInfoFr: 'Code 4512B.',
+			practicalInfoEn: null,
+		});
+		// A tab that does not post them leaves them alone.
+		expect(readEventTextFields(formOf({ titleFr: 'Dîner' }))).toEqual({ titleFr: 'Dîner' });
+	});
+
 	it('reads an empty Collaborators or timings list as nothing', () => {
 		expect(readEventTextFields(formOf({ collaborators: '[]', timings: '[{"label":"a","time":"b"}]' }))).toEqual({
 			collaborators: null,

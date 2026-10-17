@@ -12,6 +12,7 @@ import {
 import { seatingTitle } from '$lib/utils/seating-title';
 import { formatSeatingDateTime } from '$lib/utils/event-time';
 import { bookedUnitPriceAmount } from '$lib/utils/seating-price';
+import { localizedPracticalInfo } from '$lib/utils/practical-info';
 
 // An Event may be published with English text missing (ADR 0008): the
 // emails fall back to the French text rather than print "null".
@@ -21,6 +22,45 @@ function eventTitleOf(event: { titleEn: string | null; titleFr: string | null })
 
 function eventLocationOf(event: { locationEn: string | null; locationFr?: string | null }): string {
 	return event.locationEn || event.locationFr || '';
+}
+
+/** The Event's venue columns the emails may show (issue 040). */
+interface VenueAddressEvent {
+	locationEn: string | null;
+	locationFr?: string | null;
+	venueNameEn?: string | null;
+	venueNameFr?: string | null;
+	streetAddressEn?: string | null;
+	streetAddressFr?: string | null;
+	cityEn?: string | null;
+	cityFr?: string | null;
+	countryEn?: string | null;
+	countryFr?: string | null;
+	postalCode?: string | null;
+	practicalInfoEn?: string | null;
+	practicalInfoFr?: string | null;
+}
+
+/**
+ * The venue's name and address (issue 040), one line each: English first —
+ * the emails are in English — falling back to the French text. Empty when
+ * the Event has no address, so the location line stands in.
+ */
+function venueAddressLinesOf(event: VenueAddressEvent): string[] {
+	const venue = event.venueNameEn || event.venueNameFr || '';
+	const street = event.streetAddressEn || event.streetAddressFr || '';
+	const cityLine = [event.postalCode ?? '', event.cityEn || event.cityFr || '']
+		.filter((part) => part.trim() !== '')
+		.join(' ');
+	const country = event.countryEn || event.countryFr || '';
+	return [venue, street, cityLine, country].map((line) => line.trim()).filter(Boolean);
+}
+
+/** Where the email points the Guest: the venue's address when there is
+ * one, else the Event's location line. */
+function venueOf(event: VenueAddressEvent): string[] {
+	const lines = venueAddressLinesOf(event);
+	return lines.length > 0 ? lines : [eventLocationOf(event)].filter((line) => line !== '');
 }
 
 let sesClient: SESClient | null = null;
@@ -187,6 +227,12 @@ export async function sendContactEmail(data: ContactEmailData): Promise<void> {
 }
 
 export function generateTicketTextTemplate(data: TicketEmailData): string {
+	// The venue's address and the Practical Info (issue 040): what a Guest
+	// needs to arrive. The Practical Info falls back to the other language;
+	// empty renders no section at all.
+	const where = venueOf(data.event);
+	const practicalInfo = localizedPracticalInfo(data.event, 'en');
+
 	return `
 Your Ticket Confirmation
 
@@ -197,7 +243,8 @@ Your tickets for ${eventTitleOf(data.event)} are confirmed!
 EVENT DETAILS:
 ${seatingTitle(data.session, 'en', { timeZone: data.event.timeZone })}
 ${formatSeatingDateTime(data.session.startTime, data.event.timeZone, 'en')}
-${eventLocationOf(data.event)}
+${where.join('\n')}
+${practicalInfo ? `\nPRACTICAL INFO:\n${practicalInfo}` : ''}
 
 TICKETS:
 ${data.reservation.quantity} × ${formatCurrency(bookedUnitPriceAmount(data.reservation), data.reservation.currency)}
@@ -219,6 +266,12 @@ This is an automated confirmation from Germinal.
 }
 
 export function generateTicketHtmlTemplate(data: TicketEmailData): string {
+	// The venue's address and the Practical Info (issue 040): what a Guest
+	// needs to arrive. The Practical Info falls back to the other language;
+	// empty renders no section at all.
+	const where = venueOf(data.event);
+	const practicalInfo = localizedPracticalInfo(data.event, 'en');
+
 	return `
 <!DOCTYPE html>
 <html lang="en">
@@ -247,12 +300,17 @@ export function generateTicketHtmlTemplate(data: TicketEmailData): string {
           ${formatSeatingDateTime(data.session.startTime, data.event.timeZone, 'en')}
         </td>
       </tr>
+      ${where.map((line) => `
       <tr>
-        <td style="padding: 8px 0; color: #6c757d;">
-          ${escapeHtml(eventLocationOf(data.event))}
+        <td style="padding: 4px 0; color: #6c757d;">
+          ${escapeHtml(line)}
         </td>
-      </tr>
+      </tr>`).join('')}
     </table>
+${practicalInfo ? `
+    <h3 style="margin: 24px 0 12px 0; color: #495057; font-size: 16px; font-weight: 600;">Practical Info</h3>
+    <p style="margin: 0; color: #212529; white-space: pre-wrap;">${escapeHtml(practicalInfo)}</p>
+` : ''}
 
     <h3 style="margin: 24px 0 12px 0; color: #495057; font-size: 16px; font-weight: 600;">Tickets</h3>
     <table style="width: 100%; border-collapse: collapse;">
@@ -408,6 +466,11 @@ export async function verifyEmailConnection(): Promise<boolean> {
  */
 export function generateEventReminderTextTemplate(data: TicketEmailData & { daysUntil: number }): string {
 	const timePhrase = data.daysUntil === 1 ? 'tomorrow' : `in ${data.daysUntil} days`;
+	// The venue's address and the Practical Info (issue 040): what a Guest
+	// needs to arrive. The Practical Info falls back to the other language;
+	// empty renders no section at all.
+	const where = venueOf(data.event);
+	const practicalInfo = localizedPracticalInfo(data.event, 'en');
 
 	return `
 Event Reminder: ${eventTitleOf(data.event)}
@@ -419,7 +482,8 @@ This is a friendly reminder that your event is coming up ${timePhrase}!
 EVENT DETAILS:
 ${seatingTitle(data.session, 'en', { timeZone: data.event.timeZone })}
 ${formatSeatingDateTime(data.session.startTime, data.event.timeZone, 'en')}
-${eventLocationOf(data.event)}
+${where.join('\n')}
+${practicalInfo ? `\nPRACTICAL INFO:\n${practicalInfo}` : ''}
 
 TICKETS:
 ${data.reservation.quantity} × ${formatCurrency(bookedUnitPriceAmount(data.reservation), data.reservation.currency)}
@@ -437,8 +501,13 @@ This is an automated reminder from Germinal.
 /**
  * Generate event reminder email HTML template
  */
-function generateEventReminderHtmlTemplate(data: TicketEmailData & { daysUntil: number }): string {
+export function generateEventReminderHtmlTemplate(data: TicketEmailData & { daysUntil: number }): string {
 	const timePhrase = data.daysUntil === 1 ? 'tomorrow' : `in ${data.daysUntil} days`;
+	// The venue's address and the Practical Info (issue 040): what a Guest
+	// needs to arrive. The Practical Info falls back to the other language;
+	// empty renders no section at all.
+	const where = venueOf(data.event);
+	const practicalInfo = localizedPracticalInfo(data.event, 'en');
 
 	return `
 <!DOCTYPE html>
@@ -468,12 +537,17 @@ function generateEventReminderHtmlTemplate(data: TicketEmailData & { daysUntil: 
           ${formatSeatingDateTime(data.session.startTime, data.event.timeZone, 'en')}
         </td>
       </tr>
+      ${where.map((line) => `
       <tr>
-        <td style="padding: 8px 0; color: #6c757d;">
-          ${escapeHtml(eventLocationOf(data.event))}
+        <td style="padding: 4px 0; color: #6c757d;">
+          ${escapeHtml(line)}
         </td>
-      </tr>
+      </tr>`).join('')}
     </table>
+${practicalInfo ? `
+    <h3 style="margin: 24px 0 12px 0; color: #495057; font-size: 16px; font-weight: 600;">Practical Info</h3>
+    <p style="margin: 0; color: #212529; white-space: pre-wrap;">${escapeHtml(practicalInfo)}</p>
+` : ''}
 
     <h3 style="margin: 24px 0 12px 0; color: #495057; font-size: 16px; font-weight: 600;">Your Tickets</h3>
     <table style="width: 100%; border-collapse: collapse;">

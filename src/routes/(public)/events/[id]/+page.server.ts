@@ -9,6 +9,7 @@ import { seatingTitlesWithFallback } from '$lib/utils/seating-title';
 import type { ServiceKind } from '$lib/utils/seating-times';
 import { toAccessEvent, toAccessSeating } from '$lib/server/services/event-access';
 import { eventAccess, isIndexed, seatingAvailability, viewerOf, type AccessEvent } from '$lib/utils/event-access';
+import { withoutPracticalInfo } from '$lib/utils/practical-info';
 
 /**
  * A Private Event's page is reachable by its link but never indexed
@@ -119,7 +120,8 @@ export const load: PageServerLoad = async ({ params, locals, setHeaders }) => {
       currency: items[0].currency,
     }));
     return {
-      event,
+      // The public page never carries Practical Info (issue 040).
+      event: withoutPracticalInfo(event),
       indexed,
       schedule,
       sessions: rows.map((row) => row.item),
@@ -188,7 +190,9 @@ export const load: PageServerLoad = async ({ params, locals, setHeaders }) => {
     });
 
     return {
-      event,
+      // The public page never carries Practical Info (issue 040) — not even
+      // for the Admin previewing a Draft.
+      event: withoutPracticalInfo(event),
       indexed,
       schedule,
       sessions: rows.map((row) => row.item),
