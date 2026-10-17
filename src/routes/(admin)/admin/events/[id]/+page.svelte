@@ -1,6 +1,6 @@
 <script lang="ts">
     import { enhance } from "$app/forms";
-    import { ArrowLeft, Calendar, MapPin, Type, FileText } from "lucide-svelte";
+    import { ArrowLeft, Calendar, MapPin, Type, FileText, Eye } from "lucide-svelte";
     import type { ActionData, PageData } from "./$types";
 
     import Tabs from "$lib/components/ui/bits-components/Tabs.svelte";
@@ -68,7 +68,22 @@
         </a>
         <div>
             <h1 class="text-3xl lg:text-4xl font-bold mb-2">{data.event.titleEn}</h1>
-            <p class="text-muted-foreground">Gérer cet événement</p>
+            <p class="text-muted-foreground flex items-center gap-2 flex-wrap">
+                <span>Gérer cet événement</span>
+                <span aria-hidden="true">·</span>
+                <!-- Aperçu (issue 033) : ouvre la page publique — un brouillon
+                     n'y est visible que pour un Admin, avec la réservation coupée. -->
+                <a
+                    href="/events/{data.event.id}"
+                    target="_blank"
+                    rel="noopener"
+                    class="inline-flex items-center gap-1 hover:text-foreground transition-colors"
+                    title="Voir la page publique"
+                >
+                    <Eye size={14} />
+                    Aperçu
+                </a>
+            </p>
         </div>
     </div>
 

@@ -64,9 +64,11 @@ export const load: PageServerLoad = async ({ params, locals }) => {
   // Use mock data if enabled (no database required!)
   if (USE_MOCK_DATA) {
     const event = MOCK_EVENTS.find((e) => e.id === params.id);
-    if (!event || !eventAccess(event, viewer).visible) {
+    const access = event && eventAccess(event, viewer);
+    if (!event || !access?.visible) {
       throw error(404, 'Event not found');
     }
+    const view = access.view;
     const rows = MOCK_SESSIONS
       .filter((s) => s.eventId === event.id && s.published)
       .map((s) => ({
@@ -106,7 +108,10 @@ export const load: PageServerLoad = async ({ params, locals }) => {
     return {
       event,
       schedule,
-      sessions: rows.map((row) => row.item)
+      sessions: rows.map((row) => row.item),
+      // Which page this is: the announcement, or the Admin preview of a
+      // Draft (issue 033) — the banner and disabled booking hang off it.
+      view,
     };
   }
 
@@ -118,7 +123,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
   }
   // Event access (issue 030): an Event the viewer may not see is not found.
   const accessEvent = toAccessEvent(event);
-  if (!eventAccess(accessEvent, viewer).visible) {
+  const access = eventAccess(accessEvent, viewer);
+  if (!access.visible) {
     throw error(404, 'Event not found');
   }
 
@@ -169,7 +175,10 @@ export const load: PageServerLoad = async ({ params, locals }) => {
     return {
       event,
       schedule,
-      sessions: rows.map((row) => row.item)
+      sessions: rows.map((row) => row.item),
+      // Which page this is: the announcement, or the Admin preview of a
+      // Draft (issue 033) — the banner and disabled booking hang off it.
+      view: access.view
     };
   } catch {
     throw error(404, 'Event not found');

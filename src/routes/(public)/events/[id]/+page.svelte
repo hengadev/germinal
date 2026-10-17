@@ -55,7 +55,7 @@
     }
 </script>
 
-<EventDetailLayout event={data.event}>
+<EventDetailLayout event={data.event} preview={data.view === "preview"}>
     {#if canBook}
         <section class="mt-12 lg:mt-16" use:reveal={{ preset: "fade-up", delay: 250 }}>
             <h2 class="text-2xl lg:text-3xl font-serif mb-6 lg:mb-8">{$t("events.bookTickets")}</h2>

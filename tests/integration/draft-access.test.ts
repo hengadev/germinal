@@ -139,7 +139,11 @@ async function seedSeating(
 	return seating;
 }
 
-function postJson(url: string, body: unknown, locals = ANONYMOUS_LOCALS) {
+function postJson(
+	url: string,
+	body: unknown,
+	locals: typeof ANONYMOUS_LOCALS | typeof ADMIN_LOCALS = ANONYMOUS_LOCALS
+) {
 	return {
 		request: new Request(url, {
 			method: 'POST',
@@ -180,22 +184,34 @@ describe('a Draft is not found', () => {
 		await setupTestDatabase();
 	});
 
-	it.each([['anonymous', ANONYMOUS_LOCALS], ['Admin', ADMIN_LOCALS]])(
-		'its page answers 404 to the %s viewer',
-		async (_, locals) => {
-			const draft = await seedEvent(false);
-			await seedSeating(draft.id);
-			const { load } = await import('../../src/routes/(public)/events/[id]/+page.server');
-			await expect(load({ params: { id: draft.id }, locals } as any)).rejects.toMatchObject({ status: 404 });
-		}
-	);
+	it('its page answers 404 to the anonymous viewer', async () => {
+		const draft = await seedEvent(false);
+		await seedSeating(draft.id);
+		const { load } = await import('../../src/routes/(public)/events/[id]/+page.server');
+		await expect(load({ params: { id: draft.id }, locals: ANONYMOUS_LOCALS } as any)).rejects.toMatchObject({ status: 404 });
+	});
 
-	it('a published Event page still loads', async () => {
+	// The Admin preview (033): the Admin sees the Draft's real page, its
+	// Seatings shown but none of them bookable.
+	it('the Admin sees it as a preview, its Seatings shown unbookable', async () => {
+		const draft = await seedEvent(false);
+		const seating = await seedSeating(draft.id);
+		const { load } = await import('../../src/routes/(public)/events/[id]/+page.server');
+		const data: any = await load({ params: { id: draft.id }, locals: ADMIN_LOCALS } as any);
+		expect(data.event.id).toBe(draft.id);
+		expect(data.view).toBe('preview');
+		expect(data.sessions).toHaveLength(1);
+		expect(data.sessions[0].bookingRefusal).toBe('event-not-published');
+		expect(data.sessions[0].waitlistOpen).toBe(false);
+	});
+
+	it('a published Event page still loads, as its announcement', async () => {
 		const event = await seedEvent(true);
 		await seedSeating(event.id);
 		const { load } = await import('../../src/routes/(public)/events/[id]/+page.server');
 		const data: any = await load({ params: { id: event.id }, locals: ANONYMOUS_LOCALS } as any);
 		expect(data.event.id).toBe(event.id);
+		expect(data.view).toBe('announcement');
 		expect(data.sessions).toHaveLength(1);
 	});
 
@@ -215,13 +231,15 @@ describe('a Draft is not found', () => {
 		}
 	});
 
-	it('its booking page answers 404', async () => {
+	it('its booking page answers 404, the Admin preview included', async () => {
 		const draft = await seedEvent(false);
 		const seating = await seedSeating(draft.id);
 		const { load } = await import('../../src/routes/(public)/events/[id]/book/[sessionId]/+page.server');
-		await expect(
-			load({ params: { id: draft.id, sessionId: seating.id }, locals: ANONYMOUS_LOCALS } as any)
-		).rejects.toMatchObject({ status: 404 });
+		for (const locals of [ANONYMOUS_LOCALS, ADMIN_LOCALS]) {
+			await expect(
+				load({ params: { id: draft.id, sessionId: seating.id }, locals } as any)
+			).rejects.toMatchObject({ status: 404 });
+		}
 	});
 
 	it('its .ics endpoint answers 404', async () => {
@@ -241,12 +259,15 @@ describe('a Draft is not found', () => {
 		expect(response.status).toBe(200);
 	});
 
-	it('its Seatings API answers 404', async () => {
+	it('its Seatings API answers 404 to the anonymous viewer and serves the preview to the Admin', async () => {
 		const draft = await seedEvent(false);
 		await seedSeating(draft.id);
 		const { GET } = await import('../../src/routes/api/events/[id]/sessions/+server');
 		const response = await GET({ params: { id: draft.id }, locals: ANONYMOUS_LOCALS } as any);
 		expect(response.status).toBe(404);
+		const preview = await GET({ params: { id: draft.id }, locals: ADMIN_LOCALS } as any);
+		expect(preview.status).toBe(200);
+		expect((await preview.json()).sessions).toHaveLength(1);
 	});
 
 	it('the Event API answers 404 to an anonymous viewer, not to the Admin', async () => {
@@ -282,12 +303,14 @@ describe('a Draft cannot be booked or wait-listed', () => {
 		expect(createCheckoutSessionMock).not.toHaveBeenCalled();
 	});
 
-	it('the reservation API answers 404', async () => {
+	it('the reservation API answers 404, an Admin session included', async () => {
 		const draft = await seedEvent(false);
 		const seating = await seedSeating(draft.id);
 		const { POST } = await import('../../src/routes/api/reservations/create/+server');
-		const response = await POST(postJson('http://x/api/reservations/create', reservationBody(seating.id)));
-		expect(response.status).toBe(404);
+		for (const locals of [ANONYMOUS_LOCALS, ADMIN_LOCALS]) {
+			const response = await POST(postJson('http://x/api/reservations/create', reservationBody(seating.id), locals));
+			expect(response.status).toBe(404);
+		}
 		expect(await testDb.select().from(reservations)).toHaveLength(0);
 	});
 
