@@ -9,12 +9,14 @@
 		Loader2,
 		CheckCircle2,
 		Tag,
-		X
+		X,
+		Utensils
 	} from 'lucide-svelte';
 	import { page } from '$app/state';
 	import { formatCurrency } from '$lib/utils/currency';
 	import { formatSeatingDate, formatSeatingTime } from '$lib/utils/event-time';
 	import { priceReservation } from '$lib/utils/pricing';
+	import { DIETARY_REQUIREMENTS_MAX_LENGTH, needsDietaryConsent } from '$lib/utils/dietary-requirements';
 	import DepositBreakdown from '$lib/components/booking/DepositBreakdown.svelte';
 	import RefundPolicyNote from '$lib/components/booking/RefundPolicyNote.svelte';
 	import { t, locale } from 'svelte-i18n';
@@ -34,6 +36,15 @@
 	let quantity = $state(1);
 	let notificationPreference = $state<NotificationPreference>('both');
 	let isSubmitting = $state(false);
+
+	// Dietary Requirements (issue 041): asked only on an Event that asks,
+	// optional, and sent only with the Guest's explicit consent.
+	let asksDietaryRequirements = $derived(data.asksDietaryRequirements === true);
+	let dietaryRequirements = $state('');
+	let dietaryConsent = $state(false);
+	let dietaryConsentMissing = $derived(
+		asksDietaryRequirements && needsDietaryConsent(dietaryRequirements, dietaryConsent)
+	);
 	let error = $state<string | null>(null);
 	let success = $state(false);
 
@@ -112,7 +123,8 @@
 			email.trim().length > 0 &&
 			email.includes('@') &&
 			quantity >= 1 &&
-			quantity <= Math.min(data.session.availableCapacity, 10)
+			quantity <= Math.min(data.session.availableCapacity, 10) &&
+			!dietaryConsentMissing
 	);
 
 	async function handleSubmit() {
@@ -143,6 +155,9 @@
 					quantity,
 					notificationPreference,
 					promoCode: appliedPromoCode?.code ?? undefined,
+					...(asksDietaryRequirements && dietaryRequirements.trim()
+						? { dietaryRequirements: dietaryRequirements.trim(), dietaryConsent }
+						: {}),
 					honeypot: ''
 				})
 			});
@@ -341,6 +356,45 @@
 					{$t('booking.maxTickets', { values: { max: Math.min(data.session.availableCapacity, 10) } })}
 				</p>
 			</div>
+
+			<!-- Dietary Requirements (issue 041) -->
+			{#if asksDietaryRequirements}
+				<div>
+					<label for="dietaryRequirements" class="block text-sm font-medium text-foreground-alt mb-2">
+						{$t('booking.dietary.label')}
+						<span class="text-muted-foreground text-xs">{$t('booking.optional')}</span>
+					</label>
+					<div class="relative">
+						<Utensils size={18} class="absolute left-3 top-3 text-muted-foreground" />
+						<textarea
+							id="dietaryRequirements"
+							bind:value={dietaryRequirements}
+							rows="2"
+							maxlength={DIETARY_REQUIREMENTS_MAX_LENGTH}
+							placeholder={$t('booking.dietary.placeholder')}
+							disabled={isSubmitting}
+							aria-describedby="dietaryRequirementsHint"
+							class="w-full pl-10 pr-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm resize-y disabled:bg-surface disabled:cursor-not-allowed"
+						></textarea>
+					</div>
+					<p id="dietaryRequirementsHint" class="text-xs text-muted-foreground mt-1">{$t('booking.dietary.hint')}</p>
+					{#if dietaryRequirements.trim()}
+						<label class="flex items-start gap-2 mt-3 text-sm text-foreground-alt cursor-pointer">
+							<input
+								type="checkbox"
+								bind:checked={dietaryConsent}
+								required
+								disabled={isSubmitting}
+								class="mt-0.5 w-4 h-4 border-border-input"
+							/>
+							<span>{$t('booking.dietary.consent')}</span>
+						</label>
+						{#if dietaryConsentMissing}
+							<p class="text-xs text-red-600 mt-1">{$t('booking.dietary.consentRequired')}</p>
+						{/if}
+					{/if}
+				</div>
+			{/if}
 
 			<!-- Promo code -->
 			<div>

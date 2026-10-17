@@ -91,6 +91,8 @@ export interface EditorEvent {
 	// Practical Info (issue 040): Ticket holders only, never public.
 	practicalInfoEn: string | null;
 	practicalInfoFr: string | null;
+	/** Whether the booking form asks for Dietary Requirements (issue 041). */
+	askDietaryRequirements?: boolean;
 	visibility: 'draft' | 'private' | 'public';
 	isSpotlight: boolean | null;
 	isPortfolio: boolean | null;

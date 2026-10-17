@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
 	hasEventText,
 	pricingHasContent,
+	readAskDietaryRequirements,
 	readEventTextFields,
 } from '../../../src/lib/server/services/event-draft';
 import type { PricingPayload } from '../../../src/lib/types/pricing-editor';
@@ -87,5 +88,22 @@ describe('pricingHasContent', () => {
 			...untouched,
 			refundPolicy: { type: 'manual', textEn: null, textFr: 'Sur demande.', tiers: [] },
 		})).toBe(true);
+	});
+});
+
+describe('readAskDietaryRequirements (issue 041)', () => {
+	it('reads the switch when the « Infos pratiques » tab posts it', () => {
+		const on = new FormData();
+		on.append('askDietaryRequirements', 'false');
+		on.append('askDietaryRequirements', 'true');
+		expect(readAskDietaryRequirements(on)).toBe(true);
+
+		const off = new FormData();
+		off.append('askDietaryRequirements', 'false');
+		expect(readAskDietaryRequirements(off)).toBe(false);
+	});
+
+	it('leaves the switch alone when another tab is saved', () => {
+		expect(readAskDietaryRequirements(formOf({ titleFr: 'Dîner' }))).toBeUndefined();
 	});
 });

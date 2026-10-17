@@ -24,6 +24,8 @@
 
 	let practicalInfoFr = $state(event?.practicalInfoFr ?? '');
 	let practicalInfoEn = $state(event?.practicalInfoEn ?? '');
+	// Dietary Requirements (issue 041): whether the booking form asks.
+	let askDietaryRequirements = $state(event?.askDietaryRequirements ?? false);
 </script>
 
 <div class="bg-background rounded-lg border border-border-card p-6 lg:p-8">
@@ -68,6 +70,31 @@
 			<p class="text-xs text-muted-foreground mt-2">
 				Chaque langue manquante retombe sur l'autre ; laissées vides, aucune section ne s'affiche.
 			</p>
+		</div>
+
+		<!-- Allergies et régimes (Dietary Requirements, issue 041) -->
+		<div class="flex items-start gap-3 p-4 border border-border-card rounded-lg">
+			<!-- Posted even when unchecked, so turning the switch off is saved. -->
+			<input type="hidden" name="askDietaryRequirements" value="false" />
+			<input
+				id="askDietaryRequirements"
+				name="askDietaryRequirements"
+				type="checkbox"
+				role="switch"
+				value="true"
+				bind:checked={askDietaryRequirements}
+				class="mt-0.5 w-5 h-5 border-border-input rounded focus:ring-foreground"
+			/>
+			<div>
+				<label for="askDietaryRequirements" class="block text-sm font-medium text-foreground cursor-pointer">
+					Demander les allergies et régimes alimentaires
+				</label>
+				<p class="text-xs text-muted-foreground">
+					Le formulaire de réservation propose un champ facultatif « Allergies ou régime alimentaire »
+					pour toute la réservation, rempli uniquement avec le consentement explicite de l'invité.
+					Les réponses ne sont visibles que des administrateurs et sont effacées 30 jours après la séance.
+				</p>
+			</div>
 		</div>
 
 		<div class="flex flex-col sm:flex-row sm:items-center gap-3 pt-4 border-t border-border-card">

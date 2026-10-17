@@ -8,7 +8,7 @@
 
 <div>
     <h1 class="text-3xl md:text-4xl font-serif mb-4">{$t("legal.privacy.title")}</h1>
-    <p class="text-muted-foreground text-sm mb-12">{$t("legal.lastUpdated", { date: "2026-10-08" })}</p>
+    <p class="text-muted-foreground text-sm mb-12">{$t("legal.lastUpdated", { date: "2026-10-17" })}</p>
 
     <div class="grid gap-10 text-foreground-alt leading-relaxed">
         <!-- Intro -->
@@ -32,6 +32,7 @@
             <ul class="list-disc pl-6 grid gap-2">
                 <li>{$t("legal.privacy.dataReservation")}</li>
                 <li>{$t("legal.privacy.dataTechnical")}</li>
+                <li>{$t("legal.privacy.dataDietary")}</li>
                 <li>{$t("legal.privacy.dataContact")}</li>
             </ul>
         </section>
@@ -43,6 +44,7 @@
                 <li>{$t("legal.privacy.basisContractual")}</li>
                 <li>{$t("legal.privacy.basisLegitimate")}</li>
                 <li>{$t("legal.privacy.basisContact")}</li>
+                <li>{$t("legal.privacy.basisDietary")}</li>
             </ul>
         </section>
 
@@ -53,6 +55,7 @@
             <ul class="list-disc pl-6 grid gap-2">
                 <li>{$t("legal.privacy.retentionReservation")}</li>
                 <li>{$t("legal.privacy.retentionUnpaid")}</li>
+                <li>{$t("legal.privacy.retentionDietary")}</li>
                 <li>{$t("legal.privacy.retentionWaitlist")}</li>
                 <li>{$t("legal.privacy.retentionContact")}</li>
                 <li>{$t("legal.privacy.retentionTechnical")}</li>
