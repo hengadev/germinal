@@ -3,9 +3,7 @@ import { logger } from '$lib/server/logger';
 import { env } from '$lib/server/env';
 import { MOCK_EVENTS, MOCK_SESSIONS, MOCK_RESERVATIONS, MOCK_TALENTS } from '$lib/mock-data';
 import {
-	assertEventHasSeatings,
 	DEFAULT_SERVICE_DURATION_MINUTES,
-	EventWithoutSeatingError,
 	formatSeatingOverlapWarning,
 	changeEventTimeZone,
 	loadSeatingsEditor,
@@ -567,23 +565,9 @@ export const actions: Actions = {
 			}
 			publishing = { visibility, isSpotlight, isPortfolio };
 
-			// A published Event must have at least one Seating (ADR 0001).
-			if (visibility !== 'draft') {
-				if (env.USE_MOCK_DATA) {
-					if (!MOCK_SESSIONS.some(s => s.eventId === id)) {
-						return fail(400, { error: new EventWithoutSeatingError().message });
-					}
-				} else {
-					try {
-						await assertEventHasSeatings(id);
-					} catch (seatingError) {
-						if (seatingError instanceof EventWithoutSeatingError) {
-							return fail(400, { error: seatingError.message });
-						}
-						throw seatingError;
-					}
-				}
-			}
+			// Publishing is never refused (ADR 0008, which supersedes ADR 0001):
+			// an Event without a Seating is announced but not bookable, and the
+			// editor's « À vérifier » list shows the gap (issue 038).
 		}
 
 		if (!id) {

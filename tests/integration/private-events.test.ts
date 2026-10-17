@@ -447,6 +447,30 @@ describe('the Admin chooses Brouillon / Privé / Public', () => {
 		expect(row.visibility).toBe('private');
 	});
 
+	it('publishes an Event without any Seating (ADR 0008 supersedes ADR 0001)', async () => {
+		const event = await seedEvent('draft');
+		const { actions } = await import('../../src/routes/(admin)/admin/events/[id]/+page.server');
+		const result: any = await actions.updateEvent(updateEventForm(event.id, { visibility: 'public' }));
+		expect(result?.status).toBeUndefined();
+		const [row] = await testDb.select().from(events).where(eq(events.id, event.id));
+		expect(row.visibility).toBe('public');
+	});
+
+	it('the Event API publishes an Event without any Seating', async () => {
+		const event = await seedEvent('draft');
+		const { PUT } = await import('../../src/routes/api/events/[id]/+server');
+		const response = await PUT({
+			params: { id: event.id },
+			request: new Request(`http://x/api/events/${event.id}`, {
+				method: 'PUT',
+				body: JSON.stringify({ visibility: 'private' }),
+			}),
+			locals: ADMIN_LOCALS,
+		} as any);
+		expect(response.status).toBe(200);
+		expect((await response.json()).visibility).toBe('private');
+	});
+
 	it('refuses Privé with the Spotlight, in French', async () => {
 		const event = await seedEvent('public');
 		await seedSeating(event.id);

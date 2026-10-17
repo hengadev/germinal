@@ -890,30 +890,6 @@ export {
 	type SeatingLabelContext,
 } from '$lib/utils/seating-title';
 
-/**
- * Refused: publishing an Event that has no Seating — every published Event
- * must be bookable (ADR 0001).
- */
-export class EventWithoutSeatingError extends ScheduleSaveRefusedError {
-	constructor() {
-		super(
-			'Un événement ne peut pas être publié sans au moins une séance. Ajoutez une séance dans l’onglet Séances, puis publiez à nouveau.'
-		);
-		this.name = 'EventWithoutSeatingError';
-	}
-}
-
-/** Throw {@link EventWithoutSeatingError} unless the Event has a Seating. */
-export async function assertEventHasSeatings(eventId: string): Promise<void> {
-	const [seating] = await db.select({ id: eventSessions.id })
-		.from(eventSessions)
-		.where(eq(eventSessions.eventId, eventId))
-		.limit(1);
-	if (!seating) {
-		throw new EventWithoutSeatingError();
-	}
-}
-
 // ---------------------------------------------------------------------------
 // Saving the admin Seatings editor (issue 020)
 // ---------------------------------------------------------------------------
