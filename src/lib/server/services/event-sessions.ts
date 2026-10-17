@@ -4,12 +4,11 @@ import { eq, and, desc, sql } from 'drizzle-orm';
 import type { CreateEventSessionInput, UpdateEventSessionInput } from '$lib/types/event-sessions';
 import { resolveSeatingPrice } from '$lib/utils/seating-price';
 import {
-	classifyServiceKind,
 	findOrAttachService,
 	PublishedEventWithoutSeatingError,
 	recomputeEventDatesFromDays,
-	utcDayKey,
 } from './event-schedule';
+import { dayOf, serviceKindOf } from '$lib/utils/event-time';
 
 /**
  * Define result type for raw SQL query
@@ -112,6 +111,7 @@ export async function getSessionById(id: string) {
 					titleFr: true,
 					startDate: true,
 					endDate: true,
+					timeZone: true,
 				},
 			},
 			reservations: {
@@ -239,8 +239,9 @@ export async function updateEventSession(id: string, input: UpdateEventSessionIn
 				with: { day: true },
 			});
 
-			const dayMoved = !parent || parent.day.date !== utcDayKey(effectiveStartTime);
-			const kindMoved = !parent || parent.kind !== classifyServiceKind(effectiveStartTime);
+			const zone = session.event.timeZone;
+			const dayMoved = !parent || parent.day.date !== dayOf(effectiveStartTime, zone);
+			const kindMoved = !parent || parent.kind !== serviceKindOf(effectiveStartTime, zone);
 
 			if (dayMoved || kindMoved) {
 				const serviceId = await findOrAttachService(tx, session.eventId, effectiveStartTime, effectiveEndTime);

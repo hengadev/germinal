@@ -12,22 +12,26 @@
 	// Event's start/end dates are derived from the first and last Day.
 	import { Popover } from 'bits-ui';
 	import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-svelte';
+	import { DEFAULT_EVENT_TIME_ZONE, dayOf, formatDayKey } from '$lib/utils/event-time';
 
 	let {
 		days = $bindable(),
 		idPrefix = 'days-picker',
+		timeZone = DEFAULT_EVENT_TIME_ZONE,
 	}: {
 		/** The picked Days, kept sorted by date; two-way bound. */
 		days: PickedDay[];
 		/** Prefix for element ids, unique per form. */
 		idPrefix?: string;
+		/** The Event's Time Zone: "today" is today at the venue. */
+		timeZone?: string;
 	} = $props();
 
 	const WEEKDAY_LABELS = ['lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.', 'dim.'];
 	const ORDERED_KINDS: PickerServiceKind[] = ['lunch', 'dinner'];
 
 	function todayKey(): string {
-		return new Date().toISOString().slice(0, 10);
+		return dayOf(new Date(), timeZone);
 	}
 
 	function toKey(year: number, month: number, day: number): string {
@@ -46,13 +50,12 @@
 	}
 
 	function shiftMonth(delta: number) {
-		const anchor = new Date(Date.UTC(view.year, view.month + delta, 1));
-		view = { year: anchor.getUTCFullYear(), month: anchor.getUTCMonth() };
+		const index = view.year * 12 + view.month + delta;
+		view = { year: Math.floor(index / 12), month: ((index % 12) + 12) % 12 };
 	}
 
 	function monthLabel(): string {
-		return new Intl.DateTimeFormat('fr-FR', { month: 'long', year: 'numeric', timeZone: 'UTC' })
-			.format(new Date(Date.UTC(view.year, view.month, 15, 12)));
+		return formatDayKey(toKey(view.year, view.month, 15), 'fr', { month: 'long', year: 'numeric' });
 	}
 
 	interface CalendarCell {
@@ -61,9 +64,10 @@
 	}
 
 	// Monday-first grid of the viewed month, padded with empty cells.
+	// Calendar arithmetic on Day keys: a Day is a date, not an instant, so
+	// no Time Zone applies (Date's UTC fields are only a calendar here).
 	const cells = $derived.by(() => {
-		const first = new Date(Date.UTC(view.year, view.month, 1));
-		const leading = (first.getUTCDay() + 6) % 7;
+		const leading = (new Date(Date.UTC(view.year, view.month, 1)).getUTCDay() + 6) % 7;
 		const daysInMonth = new Date(Date.UTC(view.year, view.month + 1, 0)).getUTCDate();
 		const out: (CalendarCell | null)[] = Array.from({ length: leading }, () => null);
 		for (let day = 1; day <= daysInMonth; day++) {
@@ -133,9 +137,7 @@
 	});
 
 	function frDate(key: string, options: Intl.DateTimeFormatOptions): string {
-		// Noon UTC keeps the date stable under any local time zone offset.
-		return new Intl.DateTimeFormat('fr-FR', { timeZone: 'UTC', ...options })
-			.format(new Date(`${key}T12:00:00Z`));
+		return formatDayKey(key, 'fr', options);
 	}
 
 	// The Event's window follows from its first and last Day (ADR 0005).

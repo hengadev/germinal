@@ -1,5 +1,6 @@
 import { getEventById } from '$lib/server/services/events';
-import { getPublishedScheduleByEventId, classifyServiceKind, utcDayKey, groupScheduleByDayAndService } from '$lib/server/services/event-schedule';
+import { getPublishedScheduleByEventId, groupScheduleByDayAndService } from '$lib/server/services/event-schedule';
+import { dayOf, serviceKindOf } from '$lib/utils/event-time';
 import { MOCK_EVENTS, MOCK_SESSIONS, USE_MOCK_DATA } from '$lib/mock-data';
 import { getServiceOffersByEventId } from '$lib/server/services/service-pricing';
 import { error } from '@sveltejs/kit';
@@ -70,13 +71,13 @@ export const load: PageServerLoad = async ({ params, locals }) => {
     const rows = MOCK_SESSIONS
       .filter((s) => s.eventId === event.id && s.published)
       .map((s) => ({
-        dayDate: utcDayKey(s.startTime),
-        serviceKind: classifyServiceKind(s.startTime),
+        dayDate: dayOf(s.startTime, event.timeZone),
+        serviceKind: serviceKindOf(s.startTime, event.timeZone),
         item: {
           id: s.id,
           // Mock mode has no Services table: one synthetic Service per Day and meal.
-          serviceId: `${utcDayKey(s.startTime)}:${classifyServiceKind(s.startTime)}`,
-          ...seatingTitlesWithFallback(s),
+          serviceId: `${dayOf(s.startTime, event.timeZone)}:${serviceKindOf(s.startTime, event.timeZone)}`,
+          ...seatingTitlesWithFallback(s, { timeZone: event.timeZone }),
           descriptionEn: (s as any).descriptionEn ?? null,
           descriptionFr: (s as any).descriptionFr ?? null,
           startTime: s.startTime.toISOString(),

@@ -3,6 +3,7 @@
 	import WaitlistForm from './WaitlistForm.svelte';
 	import { t, locale } from 'svelte-i18n';
 	import { seatingTitle } from '$lib/utils/seating-title';
+	import { formatSeatingDate, formatSeatingTime } from '$lib/utils/event-time';
 	import { formatCurrencyAmount, getCurrencySymbol } from '$lib/utils/currency';
 	import { FULL_PAYMENT_DEPOSIT, type DepositRule } from '$lib/utils/pricing';
 	import { EMPTY_MANUAL_REFUND_POLICY, type RefundPolicy } from '$lib/utils/refund-policy';
@@ -37,10 +38,13 @@
 		waitlistOpen?: boolean;
 	}
 
-	let { sessions, eventTitle, eventId, deposit = FULL_PAYMENT_DEPOSIT, refundPolicy = EMPTY_MANUAL_REFUND_POLICY }: {
+	let { sessions, eventTitle, eventId, timeZone, deposit = FULL_PAYMENT_DEPOSIT, refundPolicy = EMPTY_MANUAL_REFUND_POLICY }: {
 		sessions: Session[];
 		eventTitle: string;
 		eventId: string;
+		/** The Event's Time Zone: Seatings show the venue's local time,
+		 * whatever the visitor's own zone (ADR 0006). */
+		timeZone: string;
 		/** The Event's Deposit rule (issue 023), for the booking step. */
 		deposit?: DepositRule;
 		/** The Event's Refund Policy (issue 027), for the booking step. */
@@ -90,28 +94,26 @@
 
 	// Untitled Seatings get the label derived from Day, Service and time.
 	function getTitle(s: Session): string {
-		return seatingTitle(s, $locale === 'en' ? 'en' : 'fr');
+		return seatingTitle(s, $locale === 'en' ? 'en' : 'fr', { timeZone });
 	}
 
 	function getDescription(s: Session): string {
 		return (($locale === 'en' ? s.descriptionEn : s.descriptionFr) ?? '') || '';
 	}
 
+	// Day and time on the Event's clock, never the visitor's.
 	function getDateParts(iso: string) {
-		const d = new Date(iso);
+		const lang = $locale === 'en' ? 'en' : 'fr';
 		return {
-			day: d.getDate(),
-			month: d.toLocaleDateString('en-US', { month: 'short' }).toUpperCase(),
-			weekday: d.toLocaleDateString($locale ?? 'en', { weekday: 'long' }),
-			year: d.getFullYear(),
+			day: Number(formatSeatingDate(iso, timeZone, 'en', { day: 'numeric' })),
+			month: formatSeatingDate(iso, timeZone, 'en', { month: 'short' }).toUpperCase(),
+			weekday: formatSeatingDate(iso, timeZone, lang, { weekday: 'long' }),
+			year: Number(formatSeatingDate(iso, timeZone, 'en', { year: 'numeric' })),
 		};
 	}
 
 	function formatTime(iso: string): string {
-		return new Date(iso).toLocaleTimeString($locale ?? undefined, {
-			hour: '2-digit',
-			minute: '2-digit',
-		});
+		return formatSeatingTime(iso, timeZone, $locale === 'en' ? 'en' : 'fr');
 	}
 
 	function openBooking(s: Session) { selectedSession = s; bookingModalOpen = true; }
@@ -289,6 +291,7 @@
 		session={{ ...selectedSession, priceAmount: selectedSession.priceAmount }}
 		{eventTitle}
 		{eventId}
+		{timeZone}
 		{deposit}
 		{refundPolicy}
 	/>
@@ -299,5 +302,6 @@
 		bind:isOpen={waitlistModalOpen}
 		session={selectedSession}
 		{eventTitle}
+		{timeZone}
 	/>
 {/if}

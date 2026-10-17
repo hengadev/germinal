@@ -2,7 +2,8 @@
  * Pure time-of-day helpers for Seatings (issue 020).
  *
  * A Seating belongs to a Service, and a Service to one Day — so a Seating's
- * times are expressed as minutes since UTC midnight on its Day and never
+ * times are expressed as minutes since midnight on its Day, on the Event's
+ * clock (its Time Zone, ADR 0006), and never
  * span two Days (the venue turns over between sittings; a meal that would
  * cross midnight is not a Seating of that Day).
  *
@@ -11,16 +12,11 @@
  * always agree on the arithmetic.
  */
 
+import { serviceKindOfMinutes, type ServiceKind } from './event-time';
+
+export type { ServiceKind };
+
 export const MINUTES_PER_DAY = 24 * 60;
-
-/**
- * Hour (UTC) at which a Seating stops counting as lunch: a start time
- * before 16:00 is lunch, 16:00 and later is dinner. Cut-off confirmed
- * in issue 018.
- */
-export const LUNCH_DINNER_CUTOFF_HOUR = 16;
-
-export type ServiceKind = 'lunch' | 'dinner';
 
 /**
  * Default Seating duration (minutes) given to a new Service, which has no
@@ -30,11 +26,6 @@ export const DEFAULT_SERVICE_DURATION_MINUTES: Record<ServiceKind, number> = {
 	lunch: 90,
 	dinner: 180,
 };
-
-/** Meal a time of day (minutes since UTC midnight) belongs to. */
-export function serviceKindOfMinutes(minutes: number): ServiceKind {
-	return minutes < LUNCH_DINNER_CUTOFF_HOUR * 60 ? 'lunch' : 'dinner';
-}
 
 /** Parse an `HH:MM` time-of-day into minutes since midnight; null if invalid. */
 export function parseTimeOfDay(value: string): number | null {
@@ -107,7 +98,7 @@ export interface SeatingReview {
 	/** Explicit end, or the one filled from the default duration. */
 	endMinutes: number | null;
 	timeError: SeatingTimeError | null;
-	/** The start falls on the other meal's side of the 16:00 UTC cut-off. */
+	/** The start falls on the other meal's side of the 16:00 cut-off. */
 	mealMismatch: boolean;
 	/** End (minutes) of the earlier Seating this one starts before, if any. */
 	overlapsPreviousEndingAt: number | null;

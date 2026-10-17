@@ -7,6 +7,7 @@
 	import { formatCurrency } from '$lib/utils/currency';
 	import { t, locale } from 'svelte-i18n';
 	import { seatingTitle } from '$lib/utils/seating-title';
+	import { formatSeatingDate, formatSeatingTime } from '$lib/utils/event-time';
 	import { FULL_PAYMENT_DEPOSIT, priceReservation, type DepositRule } from '$lib/utils/pricing';
 	import DepositBreakdown from './DepositBreakdown.svelte';
 	import RefundPolicyNote from './RefundPolicyNote.svelte';
@@ -31,6 +32,7 @@
 		session,
 		eventTitle,
 		eventId,
+		timeZone,
 		deposit = FULL_PAYMENT_DEPOSIT,
 		refundPolicy = EMPTY_MANUAL_REFUND_POLICY
 	}: {
@@ -38,6 +40,8 @@
 		session: Session;
 		eventTitle: string;
 		eventId: string;
+		/** The Event's Time Zone (ADR 0006): times show the venue's clock. */
+		timeZone: string;
 		/** The Event's Deposit rule (issue 023). */
 		deposit?: DepositRule;
 		/** The Event's Refund Policy (issue 027), shown before paying. */
@@ -54,7 +58,8 @@
 				titleFr: session.titleFr || session.title,
 				startTime: session.startTime,
 			},
-			isEn ? 'en' : 'fr'
+			isEn ? 'en' : 'fr',
+			{ timeZone }
 		);
 	}
 
@@ -162,13 +167,11 @@
 			<div class="text-sm text-muted-foreground mb-1">{eventTitle}</div>
 			<div class="font-semibold text-foreground">{getSessionTitle(session)}</div>
 			<div class="text-sm text-muted-foreground mt-1">
-				{new Date(session.startTime).toLocaleString($locale ?? undefined, {
+				{formatSeatingDate(session.startTime, timeZone, $locale === 'en' ? 'en' : 'fr', {
 					weekday: 'short',
 					month: 'short',
 					day: 'numeric',
-					hour: '2-digit',
-					minute: '2-digit'
-				})}
+				})}, {formatSeatingTime(session.startTime, timeZone, $locale === 'en' ? 'en' : 'fr')}
 			</div>
 		</div>
 

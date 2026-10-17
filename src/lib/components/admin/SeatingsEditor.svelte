@@ -103,9 +103,14 @@
 		endAfterDuration,
 		formatTimeOfDay,
 		reviewServiceSeatings,
-		serviceKindOfMinutes,
 		type SeatingReview,
 	} from '$lib/utils/seating-times';
+	import {
+		DEFAULT_EVENT_TIME_ZONE,
+		formatDayKey,
+		serviceKindOfMinutes,
+		wallClockToInstant,
+	} from '$lib/utils/event-time';
 	import { derivedSeatingTitle } from '$lib/utils/seating-title';
 	import {
 		reviewSeatingTemplate,
@@ -117,10 +122,22 @@
 	let {
 		services = $bindable(),
 		venueCapacity = $bindable(),
+		timeZone = DEFAULT_EVENT_TIME_ZONE,
 	}: {
 		services: DraftSeatingService[];
 		venueCapacity: number | null;
+		/** The Event's Time Zone: times are typed and shown on its clock. */
+		timeZone?: string;
 	} = $props();
+
+	/** Untitled Seating's label, read on the Event's clock. */
+	function derivedTitle(date: string, kind: ServiceKind, startMinutes: number, locale: 'en' | 'fr'): string {
+		return derivedSeatingTitle(
+			wallClockToInstant(date, startMinutes, timeZone),
+			{ timeZone, dayDate: date, serviceKind: kind },
+			locale
+		);
+	}
 
 	const reviews: SeatingReview[][] = $derived(
 		services.map((service) =>
@@ -165,13 +182,7 @@
 	const DEFAULT_START = { lunch: '12:00', dinner: '19:30' } as const;
 
 	function dayLabel(date: string): string {
-		return new Intl.DateTimeFormat('fr-FR', {
-			weekday: 'long',
-			day: 'numeric',
-			month: 'long',
-			year: 'numeric',
-			timeZone: 'UTC',
-		}).format(new Date(`${date}T12:00:00Z`));
+		return formatDayKey(date, 'fr');
 	}
 
 	function frClock(minutes: number): string {
@@ -285,8 +296,8 @@
 				return 'Saisissez chaque heure de début au format HH:MM.';
 			case 'meal':
 				return kind === 'lunch'
-					? 'Une séance du déjeuner doit commencer avant 16:00 UTC.'
-					: 'Une séance du dîner doit commencer à partir de 16:00 UTC.';
+					? 'Une séance du déjeuner doit commencer avant 16h00.'
+					: 'Une séance du dîner doit commencer à partir de 16h00.';
 			case 'midnight':
 				return `Avec cette durée, la séance de ${starts[error.index]} dépasserait minuit.`;
 		}
@@ -407,8 +418,8 @@
 					return {
 						id: `seating-${seating.key}-start`,
 						message: service.kind === 'lunch'
-							? `Une séance du déjeuner doit commencer avant 16:00 UTC (${label}).`
-							: `Une séance du dîner doit commencer à partir de 16:00 UTC (${label}).`,
+							? `Une séance du déjeuner doit commencer avant 16h00 (${label}).`
+							: `Une séance du dîner doit commencer à partir de 16h00 (${label}).`,
 					};
 				}
 				if (!seating.capacityOverridden) {
@@ -493,7 +504,7 @@
 	{:else}
 		<p class="text-sm text-muted-foreground">
 			Pour chaque repas, saisissez les heures de début des séances : la fin est calculée à partir de la durée
-			par défaut et reste modifiable. Les heures sont en UTC. Une séance sans titre est affichée avec son
+			par défaut et reste modifiable. Les heures sont celles du lieu, dans le fuseau horaire de l’événement. Une séance sans titre est affichée avec son
 			repas, son jour et son heure. Le menu et le prix se règlent par repas dans l’onglet « Menus &amp;
 			tarifs ».
 		</p>
@@ -622,7 +633,7 @@
 										{@const review = serviceReviews[seatingIndex]}
 										{@const timeError = review ? timeErrorMessage(review) : null}
 										{@const derived = review?.startMinutes != null
-											? derivedSeatingTitle(`${service.date}T${formatTimeOfDay(review.startMinutes)}:00Z`, { dayDate: service.date, serviceKind: service.kind }, 'fr')
+											? derivedTitle(service.date, service.kind, review.startMinutes, 'fr')
 											: ''}
 										<div class="px-4 lg:px-6 py-4 space-y-3">
 											<div class="grid grid-cols-2 gap-3 @md:grid-cols-3 @md:items-end @3xl:grid-cols-[7rem_9rem_9rem_auto_auto_1fr]">
@@ -740,8 +751,8 @@
 													<p class="flex items-center gap-1.5 text-xs text-red-600">
 														<AlertTriangle size={14} class="shrink-0" />
 														{service.kind === 'lunch'
-															? 'Une séance du déjeuner doit commencer avant 16:00 UTC.'
-															: 'Une séance du dîner doit commencer à partir de 16:00 UTC.'}
+															? 'Une séance du déjeuner doit commencer avant 16h00.'
+															: 'Une séance du dîner doit commencer à partir de 16h00.'}
 													</p>
 												{/if}
 												{#if review?.overlapsPreviousEndingAt != null}
@@ -768,7 +779,7 @@
 															maxlength="255"
 															bind:value={seating.titleEn}
 															placeholder={review?.startMinutes != null
-																? derivedSeatingTitle(`${service.date}T${formatTimeOfDay(review.startMinutes)}:00Z`, { dayDate: service.date, serviceKind: service.kind }, 'en')
+																? derivedTitle(service.date, service.kind, review.startMinutes, 'en')
 																: ''}
 															class={INPUT_CLASS}
 														/>

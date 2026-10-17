@@ -8,6 +8,7 @@
     import { formatCurrency } from "$lib/utils/currency";
     import { depositRuleOf, isFullPayment, priceReservation } from "$lib/utils/pricing";
     import { refundPolicyOf } from "$lib/utils/refund-policy";
+    import { formatDayKey } from "$lib/utils/event-time";
 
     let { data }: { data: PageData } = $props();
 
@@ -47,11 +48,8 @@
     }
 
     function formatDay(date: string): string {
-        // Day keys are UTC calendar dates — render them in the reader's locale
-        return new Date(`${date}T00:00:00.000Z`).toLocaleDateString(
-            $locale === "fr" ? "fr-FR" : "en-US",
-            { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }
-        );
+        // A Day is a calendar date at the venue, rendered in the reader's language.
+        return formatDayKey(date, $locale === "en" ? "en" : "fr");
     }
 </script>
 
@@ -105,6 +103,7 @@
                                     sessions={service.sessions}
                                     eventTitle={getEventTitle()}
                                     eventId={data.event.id}
+                                    timeZone={data.event.timeZone}
                                     {deposit}
                                     {refundPolicy}
                                 />

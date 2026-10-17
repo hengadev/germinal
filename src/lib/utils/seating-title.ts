@@ -7,15 +7,23 @@
  * a label derived from the Seating's Day, Service (meal) and start time.
  *
  * Pure and dependency-free so both server code and Svelte components use the
- * one derivation. UTC throughout: Day keys and the lunch/dinner cut-off are
- * evaluated on the UTC clock, like the rest of the schedule (ADR 0005).
+ * one derivation. The Day, the meal and the start time are read in the
+ * Event's Time Zone (ADR 0006), never the server's or the visitor's.
  */
 
-import { LUNCH_DINNER_CUTOFF_HOUR, type ServiceKind } from './seating-times';
+import {
+	clockOf,
+	dayOf,
+	formatDayKey,
+	serviceKindOf,
+	type ServiceKind,
+} from './event-time';
 
 export type SeatingLocale = 'en' | 'fr';
 
 export interface SeatingLabelContext {
+	/** The Event's IANA Time Zone: the clock the label is read on. */
+	timeZone: string;
 	/** Day key (`YYYY-MM-DD`) when known; derived from the start time if not. */
 	dayDate?: string;
 	/** Service kind when known; derived from the start time if not. */
@@ -40,28 +48,21 @@ function clean(title: string | null | undefined): string | null {
  */
 export function derivedSeatingTitle(
 	startTime: Date | string,
-	context: SeatingLabelContext = {},
+	context: SeatingLabelContext,
 	locale: SeatingLocale = 'fr'
 ): string {
 	const start = typeof startTime === 'string' ? new Date(startTime) : startTime;
-	const kind: ServiceKind =
-		context.serviceKind ?? (start.getUTCHours() < LUNCH_DINNER_CUTOFF_HOUR ? 'lunch' : 'dinner');
-	const day = context.dayDate ?? start.toISOString().slice(0, 10);
+	const zone = context.timeZone;
+	const kind: ServiceKind = context.serviceKind ?? serviceKindOf(start, zone);
+	const day = context.dayDate ?? dayOf(start, zone);
 
 	const meal =
 		locale === 'fr'
 			? kind === 'lunch' ? 'Déjeuner' : 'Dîner'
 			: kind === 'lunch' ? 'Lunch' : 'Dinner';
-	const date = new Intl.DateTimeFormat(locale === 'fr' ? 'fr-FR' : 'en-GB', {
-		weekday: 'long',
-		day: 'numeric',
-		month: 'long',
-		year: 'numeric',
-		timeZone: 'UTC',
-	}).format(new Date(`${day}T12:00:00Z`));
-	const hours = String(start.getUTCHours()).padStart(2, '0');
-	const minutes = String(start.getUTCMinutes()).padStart(2, '0');
-	const clock = locale === 'fr' ? `${hours}h${minutes}` : `${hours}:${minutes}`;
+	const date = formatDayKey(day, locale);
+	const time = clockOf(start, zone);
+	const clock = locale === 'fr' ? time.replace(':', 'h') : time;
 	return `${meal} — ${date}, ${clock}`;
 }
 
@@ -72,7 +73,7 @@ export function derivedSeatingTitle(
 export function seatingTitle(
 	seating: TitledSeating,
 	locale: SeatingLocale,
-	context: SeatingLabelContext = {}
+	context: SeatingLabelContext
 ): string {
 	const stored = clean(locale === 'en' ? seating.titleEn : seating.titleFr);
 	return stored ?? derivedSeatingTitle(seating.startTime, context, locale);
@@ -84,7 +85,7 @@ export function seatingTitle(
  */
 export function seatingTitlesWithFallback(
 	seating: TitledSeating,
-	context: SeatingLabelContext = {}
+	context: SeatingLabelContext
 ): { titleEn: string; titleFr: string } {
 	return {
 		titleEn: seatingTitle(seating, 'en', context),

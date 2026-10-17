@@ -160,6 +160,7 @@
 <script lang="ts">
 	import { AlertTriangle, CalendarDays, Plus, Trash2, UtensilsCrossed } from 'lucide-svelte';
 	import { formatCurrency } from '$lib/utils/currency';
+	import { formatDayKey } from '$lib/utils/event-time';
 	import type { PricingPayload } from '$lib/types/pricing-editor';
 	import {
 		MAX_FIXED_DEPOSIT,
@@ -328,13 +329,7 @@
 	const MEAL_LABEL = { lunch: 'Déjeuner', dinner: 'Dîner' } as const;
 
 	function dayLabel(date: string): string {
-		return new Intl.DateTimeFormat('fr-FR', {
-			weekday: 'long',
-			day: 'numeric',
-			month: 'long',
-			year: 'numeric',
-			timeZone: 'UTC',
-		}).format(new Date(`${date}T12:00:00Z`));
+		return formatDayKey(date, 'fr');
 	}
 
 	function menuLabel(menu: DraftMenu, index: number): string {
