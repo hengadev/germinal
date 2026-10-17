@@ -84,6 +84,19 @@ describe('eventAccess', () => {
 	it.each(cases)('a %s Event, %s viewer', (visibility, _, viewer, expected) => {
 		expect(eventAccess({ visibility }, viewer)).toEqual(expected);
 	});
+
+	// Issue 045: a Portfolio Event is shown as its project, to everyone; a
+	// Draft stays the Admin's preview (and not found for anyone else).
+	it.each([
+		['private', ANONYMOUS, { visible: true, view: 'portfolio' }],
+		['private', ADMIN, { visible: true, view: 'portfolio' }],
+		['public', ANONYMOUS, { visible: true, view: 'portfolio' }],
+		['public', ADMIN, { visible: true, view: 'portfolio' }],
+		['draft', ADMIN, { visible: true, view: 'preview' }],
+		['draft', ANONYMOUS, { visible: false }],
+	] as const)('a %s Portfolio Event', (visibility, viewer, expected) => {
+		expect(eventAccess({ visibility, isPortfolio: true }, viewer)).toEqual(expected);
+	});
 });
 
 describe('listing, indexing and the Spotlight', () => {
