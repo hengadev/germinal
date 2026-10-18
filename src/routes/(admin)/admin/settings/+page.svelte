@@ -49,10 +49,12 @@
     let maintenanceForm: HTMLFormElement;
 
     function handleSenderEmailResult() {
-        return async ({ result, update }: { result: import('@sveltejs/kit').ActionResult; update: () => Promise<void> }) => {
+        return async ({ result, update }: { result: import('@sveltejs/kit').ActionResult; update: (opts?: { reset?: boolean }) => Promise<void> }) => {
             if (result.type === 'success') {
                 toast.success('Succès', 'Adresse expéditeur mise à jour');
-                await update();
+                // No form reset: it would put the field back to its page-load value
+                // without telling the bound state, so screen and state disagree.
+                await update({ reset: false });
             } else if (result.type === 'failure') {
                 const err = (result.data as { error?: string })?.error ?? 'Une erreur est survenue';
                 toast.error('Erreur', err);
@@ -61,10 +63,12 @@
     }
 
     function handleMaintenanceResult() {
-        return async ({ result, update }: { result: import('@sveltejs/kit').ActionResult; update: () => Promise<void> }) => {
+        return async ({ result, update }: { result: import('@sveltejs/kit').ActionResult; update: (opts?: { reset?: boolean }) => Promise<void> }) => {
             if (result.type === 'success') {
                 toast.success('Succès', maintenanceMode ? 'Mode maintenance activé' : 'Mode maintenance désactivé');
-                await update();
+                // No form reset: it would put the field back to its page-load value
+                // without telling the bound state, so screen and state disagree.
+                await update({ reset: false });
             } else if (result.type === 'failure') {
                 maintenanceMode = !maintenanceMode; // revert optimistic toggle
                 const err = (result.data as { error?: string })?.error ?? 'Une erreur est survenue';
