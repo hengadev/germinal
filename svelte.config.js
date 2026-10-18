@@ -1,14 +1,18 @@
 import adapter from '@sveltejs/adapter-node';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 
-// Dev-only allowance so impeccable live mode can load. Guarded by NODE_ENV.
-const __impeccableLiveDev =
-    process.env.NODE_ENV === "development" ? ["http://localhost:8400"] : [];
+// Only a production build (`vite build`) drops the dev allowances below.
+// Keying them on NODE_ENV broke local dev: the running dev server came to
+// evaluate this file with NODE_ENV=production, and the CSP it served then
+// blocked every local MinIO image.
+const __productionBuild = process.argv.includes("build");
+
+// Dev-only allowance so impeccable live mode can load.
+const __impeccableLiveDev = __productionBuild ? [] : ["http://localhost:8400"];
 
 // Local MinIO (docker-compose.yml) serves uploaded media over plain http.
 // Outside production builds only; production media stays https-only.
-const __localMediaDev =
-    process.env.NODE_ENV !== "production" ? ["http://localhost:9000"] : [];
+const __localMediaDev = __productionBuild ? [] : ["http://localhost:9000"];
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
