@@ -103,8 +103,12 @@ _Avoid_: Artist, creator, performer
 ### Booking Flow
 
 **Reservation**:
-The record created when a guest books one or more seats for a Seating. Holds guest identity, quantity, payment status, and an access token. One Reservation may cover any number of seats, limited only by the Seating's remaining capacity — there is deliberately no per-Reservation cap.
+The record created when a guest books one or more seats for a Seating. Holds guest identity, quantity, payment status, and an access token. One Reservation may cover several seats, up to the Seating's remaining capacity. On an Event without a Deposit it is also capped per Event (10 seats by default, set by the Admin); on an Event with a Deposit there is no cap. Comps an Admin issues ignore the cap.
 _Avoid_: Booking (use as a verb only), order, purchase
+
+**Cancelled**:
+A Seating or an Event that Germinal called off. Its Reservations are cancelled with every Deposit refunded in full and its Guests notified; it takes no new Reservations or Waitlist entries. A cancelled Event stays reachable at its link, marked as cancelled, but is never listed, Spotlight or Portfolio. An Event whose every Seating is cancelled is cancelled.
+_Avoid_: Annulled, called off (in code/docs)
 
 **Dietary Requirements**:
 Allergies or a diet a Guest declares when booking, for the whole Reservation, on Events that ask for them. Health data: given only with the Guest's explicit consent, seen only by Admins, and erased 30 days after the Seating.
