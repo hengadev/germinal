@@ -130,7 +130,7 @@
                         <rect width="7" height="9" x="14" y="12" rx="1" />
                         <rect width="7" height="5" x="3" y="16" rx="1" />
                     </svg>
-                    <span class="text-[10px] font-medium">Tableau de bord</span>
+                    <span class="text-[10px] font-medium">Accueil</span>
                 </a>
             {:else}
                 <a
@@ -153,7 +153,7 @@
                         <rect width="7" height="9" x="14" y="12" rx="1" />
                         <rect width="7" height="5" x="3" y="16" rx="1" />
                     </svg>
-                    <span class="text-[10px] font-medium">Tableau de bord</span>
+                    <span class="text-[10px] font-medium">Accueil</span>
                 </a>
             {/if}
 
