@@ -8,19 +8,31 @@ import { MOCK_EVENTS } from '$lib/mock-data';
 import type { EventWithMedia } from '$lib/types/events';
 import type { ServiceKind } from '$lib/utils/event-time';
 import { parsePickedDays, pickedDaysErrorMessage } from '$lib/server/services/event-schedule';
+import { parseVisibility } from '$lib/utils/event-access';
+
+/** The list's filter: one Visibility, the Portfolio, or every Event. */
+export type EventListFilter = 'all' | 'draft' | 'private' | 'public' | 'portfolio';
+
+function parseFilter(value: string | null): EventListFilter {
+    if (value === 'portfolio') return 'portfolio';
+    return parseVisibility(value) ?? 'all';
+}
 
 export const load: PageServerLoad = async ({ url }) => {
     // Get search query from URL
     const searchQuery = url.searchParams.get('q') || undefined;
+    const filter = parseFilter(url.searchParams.get('filter'));
 
     if (env.USE_MOCK_DATA) {
         // Mock mode - return all events, whatever their Visibility
-        let filteredEvents = MOCK_EVENTS;
+        let filteredEvents = MOCK_EVENTS.filter((e) =>
+            filter === 'all' ? true : filter === 'portfolio' ? e.isPortfolio : e.visibility === filter
+        );
 
         // Apply search filter if provided
         if (searchQuery) {
             const query = searchQuery.toLowerCase();
-            filteredEvents = MOCK_EVENTS.filter(e =>
+            filteredEvents = filteredEvents.filter(e =>
                 (e.titleEn ?? '').toLowerCase().includes(query) ||
                 (e.titleFr ?? '').toLowerCase().includes(query)
             );
@@ -30,13 +42,21 @@ export const load: PageServerLoad = async ({ url }) => {
             events: filteredEvents as unknown as EventWithMedia[],
             servedKinds: {} as Record<string, ServiceKind[]>,
             searchQuery,
+            filter,
         };
     }
 
     // Database mode - import and use actual database functions
     const { getAllEvents } = await import('$lib/server/services/events');
     const { getServedKindsByEventIds } = await import('$lib/server/services/event-duplicate');
-    const result = await getAllEvents({ listedOnly: false, search: searchQuery });
+    // The list has no pagination: every Event shows, whatever the filter.
+    const result = await getAllEvents({
+        listedOnly: false,
+        search: searchQuery,
+        limit: 500,
+        visibility: filter === 'all' || filter === 'portfolio' ? undefined : filter,
+        portfolioOnly: filter === 'portfolio',
+    });
     const eventsData = result.data as EventWithMedia[];
 
     return {
@@ -44,6 +64,7 @@ export const load: PageServerLoad = async ({ url }) => {
         // The meals each Event serves: « Dupliquer » pre-ticks them (issue 046).
         servedKinds: await getServedKindsByEventIds(eventsData.map((event) => event.id)),
         searchQuery,
+        filter,
     };
 };
 

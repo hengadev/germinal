@@ -1,6 +1,6 @@
 import { db } from '../db';
 import { events, media, eventSessions, eventDays } from '../db/schema';
-import { eq, desc, and, isNull, sql, or, ilike } from 'drizzle-orm';
+import { eq, desc, and, isNull, sql, or, ilike, type SQL } from 'drizzle-orm';
 import type { Event, CreateEventInput, UpdateEventInput } from '$lib/types/events';
 import {
 	parsePagination,
@@ -9,7 +9,7 @@ import {
 	type PaginatedResponse,
 } from '$lib/utils/pagination';
 import { invalidateCacheTags, CACHE_TAGS } from '$lib/server/cache';
-import { canBeSpotlight, canJoinPortfolio } from '$lib/utils/event-access';
+import { canBeSpotlight, canJoinPortfolio, type Visibility } from '$lib/utils/event-access';
 import { withoutPracticalInfo, type WithoutPracticalInfo } from '$lib/utils/practical-info';
 import { withProjectCover } from '$lib/utils/event-photos';
 import type { EventWithMedia } from '$lib/types/events';
@@ -31,13 +31,34 @@ export const PUBLIC_EVENT_COLUMNS = { internalNotes: false } as const;
  * and each is shown with its project cover — the Event Photos' cover,
  * falling back to the Visual one (issue 045).
  */
-export async function getAllEvents(options: { listedOnly?: boolean; excludeSpotlight?: boolean; page?: number; limit?: number; cursor?: string; search?: string }) {
-	const { listedOnly = true, excludeSpotlight = false, page = 1, limit = 20, search } = options;
+export async function getAllEvents(options: {
+	listedOnly?: boolean;
+	excludeSpotlight?: boolean;
+	page?: number;
+	limit?: number;
+	cursor?: string;
+	search?: string;
+	/** Only the Events of this Visibility (the admin list's filter). */
+	visibility?: Visibility;
+	/** Only the Portfolio Events (the admin list's filter). */
+	portfolioOnly?: boolean;
+}) {
+	const { listedOnly = true, excludeSpotlight = false, page = 1, limit = 20, search, visibility, portfolioOnly = false } = options;
 
 	// Build where clause
-	let whereClause = undefined;
+	let whereClause: SQL | undefined = undefined;
 	if (listedOnly) {
 		whereClause = listedEventsCondition();
+	}
+
+	if (visibility) {
+		const visibilityClause = eq(events.visibility, visibility);
+		whereClause = whereClause ? and(whereClause, visibilityClause) : visibilityClause;
+	}
+
+	if (portfolioOnly) {
+		const portfolioClause = eq(events.isPortfolio, true);
+		whereClause = whereClause ? and(whereClause, portfolioClause) : portfolioClause;
 	}
 
 	if (excludeSpotlight) {

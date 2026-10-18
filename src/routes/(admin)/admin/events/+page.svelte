@@ -43,6 +43,21 @@
     // Event type
     type Event = (typeof data.events)[number];
 
+    // The list's filter, kept in the URL so it survives a reload.
+    const FILTERS = [
+        { value: "all", label: "Tous" },
+        { value: "draft", label: "Brouillons" },
+        { value: "private", label: "Privés" },
+        { value: "public", label: "Publics" },
+        { value: "portfolio", label: "Portfolio" },
+    ] as const;
+    const EMPTY_FILTER_LABELS: Record<string, string> = {
+        draft: "Aucun brouillon",
+        private: "Aucun événement privé",
+        public: "Aucun événement public",
+        portfolio: "Aucun événement dans le Portfolio",
+    };
+
     // Dialog state
     let deleteDialogOpen = $state(false);
 
@@ -116,7 +131,25 @@
  </a>
  </div>
 
- {#if data.events.length === 0}
+ <nav aria-label="Filtrer les événements" class="flex flex-wrap gap-2 mb-6">
+ {#each FILTERS as f (f.value)}
+ <a
+ href={f.value === "all" ? "/admin/events" : `/admin/events?filter=${f.value}`}
+ aria-current={data.filter === f.value ? "page" : undefined}
+ class="px-3 py-1.5 text-sm rounded-full border transition-colors {data.filter === f.value
+ ? 'bg-foreground text-background border-foreground'
+ : 'border-border-card text-foreground-alt hover:bg-muted'}"
+ >
+ {f.label}
+ </a>
+ {/each}
+ </nav>
+
+ {#if data.events.length === 0 && data.filter !== "all"}
+ <div class="bg-background rounded-lg border border-border-card p-12 text-center">
+ <p class="text-muted-foreground">{EMPTY_FILTER_LABELS[data.filter]}</p>
+ </div>
+ {:else if data.events.length === 0}
  <div
  class="bg-background rounded-lg border border-border-card p-12 text-center"
  >
