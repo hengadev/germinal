@@ -402,8 +402,9 @@
             ></div>
         </section>
 
-        <!-- Stats -->
-        <section use:reveal={{ preset: "fade-up", delay: 100 }}>
+        <!-- Stats — uncomment when real figures are available (commented out with the
+             newsletter below, so the light/dark alternation of the sections holds) -->
+        <!--        <section use:reveal={{ preset: "fade-up", delay: 100 }}>
             <p class="text-muted-foreground uppercase text-sm tracking-widest mb-8">{$t("home.statsEyebrow")}</p>
             <div class="grid grid-cols-1 md:grid-cols-3">
                 <div class="py-10 px-6 text-center grid gap-2">
@@ -419,7 +420,7 @@
                     <p class="text-muted-foreground text-xs uppercase tracking-widest">{$t("home.statsYears")}</p>
                 </div>
             </div>
-        </section>
+        </section> -->
 
         <!-- Partners — uncomment when real partner names are available -->
         <!-- <section use:reveal={{ preset: "fade-up", delay: 100 }}>
@@ -446,8 +447,9 @@
 
     </div>
 
-    <!-- Newsletter — full-bleed dark band -->
-    <section class="bg-foreground text-white">
+    <!-- Newsletter — full-bleed dark band; uncomment once it is wired to a real list
+         (commented out with the Stats above, so the light/dark alternation holds) -->
+    <!--    <section class="bg-foreground text-white">
         <div
             class="max-w-lg mx-auto text-center grid gap-6 px-4 py-24 md:py-32"
             use:reveal={{ preset: "fade-up", delay: 100 }}
@@ -477,7 +479,7 @@
                 </form>
             {/if}
         </div>
-    </section>
+    </section> -->
 
     <div class="container mx-auto mb-32 px-4 pt-20 md:pt-28">
         <!-- CTA -->
