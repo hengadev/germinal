@@ -7,7 +7,8 @@
 # is serving (see infrastructure/compose/README.md for 'deploy <stack> <sha>').
 
 .PHONY: help pull \
-        dev-mock dev-up dev-down dev-reset dev-migrate dev dev-logs studio try try-setup env
+        dev-mock dev-up dev-down dev-reset dev-migrate dev dev-logs studio try try-setup env \
+        dev-db-reset dev-db-prune
 
 # Default target
 help:
@@ -26,10 +27,13 @@ help:
 	@echo "  make try                - Zero-account run: cp .env.example .env, then seeded app + dev server"
 	@echo "  make env                - Render .env from Infisical dev (invited contributors; needs infisical login)"
 	@echo "  make dev                - Start db+redis+minio, migrate, then run the dev server (all-in-one)"
+	@echo "                            Off main, it uses the branch's own copy of the dev DB"
 	@echo "  make dev-up             - Start db+redis+minio in the background (idempotent)"
 	@echo "  make dev-down           - Stop db+redis+minio (keeps data)"
 	@echo "  make dev-reset          - Stop db+redis+minio and WIPE their local data volumes"
 	@echo "  make dev-migrate        - Apply schema to the local dev database"
+	@echo "  make dev-db-reset       - Off main: drop this branch's DB copy (re-copied on next make dev)"
+	@echo "  make dev-db-prune       - Drop the DB copies of branches that no longer exist"
 	@echo "  make dev-logs           - Follow db+redis+minio container logs"
 	@echo "  make studio             - Open Drizzle Studio (DB browser) at localhost:4983"
 	@echo "  make dev-mock           - Start local dev server with mock data (no DB required)"
@@ -69,23 +73,42 @@ dev-reset:
 	@echo "Stopping local db+redis+minio and WIPING their data volumes..."
 	docker compose down -v
 
+# Off main, the DB targets below run against the branch's own copy of the
+# dev DB (germinal_br_<branch>), so a branch's migrations never touch the
+# `germinal` DB main uses. See scripts/dev-branch-env.sh.
+BRANCH_ENV = branch_env=$$(sh scripts/dev-branch-env.sh) && eval "$$branch_env"
+
 # Same migration files and entry point as production and `make try`, so the
 # local schema can't drift from what gets deployed.
 dev-migrate: dev-up
 	@echo "Applying migrations to local dev database..."
-	node scripts/migrate.js
+	@$(BRANCH_ENV) && node scripts/migrate.js
+
+dev-db-reset: dev-up
+	@branch=$$(git rev-parse --abbrev-ref HEAD); \
+	if [ "$$branch" = main ]; then echo "On main: use make dev-reset to wipe the shared dev DB."; exit 1; fi; \
+	db=germinal_br_$$(printf '%s' "$$branch" | tr 'A-Z' 'a-z' | tr -c 'a-z0-9' '_' | cut -c1-48); \
+	docker compose -p germinal exec -T db dropdb -U postgres --if-exists --force "$$db" && echo "Dropped $$db."
+
+dev-db-prune: dev-up
+	@keep=$$(git for-each-ref --format='%(refname:short)' refs/heads | while read -r b; do \
+		echo "germinal_br_$$(printf '%s' "$$b" | tr 'A-Z' 'a-z' | tr -c 'a-z0-9' '_' | cut -c1-48)"; done); \
+	for db in $$(docker compose -p germinal exec -T db psql -U postgres -tAc \
+		"select datname from pg_database where datname like 'germinal\_br\_%'"); do \
+		echo "$$keep" | grep -qx "$$db" || { docker compose -p germinal exec -T db dropdb -U postgres --force "$$db" && echo "Dropped $$db."; }; \
+	done
 
 dev-logs:
 	docker compose logs -f db redis minio
 
 # All-in-one: ensure services are up and migrated, then run the dev server.
-dev: dev-migrate
-	pnpm dev
+dev: dev-up
+	@$(BRANCH_ENV) && echo "Applying migrations..." && node scripts/migrate.js && pnpm dev
 
 # Runs Drizzle Studio via pnpm on the host — pnpm is already required to
 # run `pnpm dev`, so this starts instantly with no separate container.
 studio: dev-up
-	pnpm drizzle-kit studio --port 4983
+	@$(BRANCH_ENV) && pnpm drizzle-kit studio --port 4983
 
 dev-mock:
 	@echo "Starting local development with mock data..."

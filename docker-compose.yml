@@ -1,3 +1,8 @@
+# Fixed project name: without it Compose names the project after the
+# directory, so `make dev` in a git worktree (germinal-<something>/) would
+# start a second db/redis/minio stack fighting for the same ports.
+name: germinal
+
 services:
   # PostgreSQL - local development database
   # Run the app itself with `pnpm dev` or `./dev.sh` (see DEV_SETUP.md)
