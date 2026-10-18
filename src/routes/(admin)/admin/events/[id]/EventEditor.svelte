@@ -398,7 +398,7 @@
 		<PracticalInfo {event} />
 	{/snippet}
 	{#snippet portfolio()}
-		<Portfolio {event} warnings={portfolioWarnings} onAltChange={handleAltChange} />
+		<Portfolio {event} lastSeatingStart={saved?.lastSeatingStart ?? null} warnings={portfolioWarnings} onAltChange={handleAltChange} />
 	{/snippet}
 
 	{@render panel('essentiel', essentiel)}

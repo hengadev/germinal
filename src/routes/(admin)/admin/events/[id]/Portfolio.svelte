@@ -13,14 +13,18 @@
 	import type { EventWarning } from '$lib/utils/event-warnings';
 	import { eventPhotosOf } from '$lib/utils/event-photos';
 	import { mediaAlt } from '$lib/utils/media-alt';
+	import { canJoinPortfolio } from '$lib/utils/event-access';
 	import { handleTabResult, type EditorEvent } from './editor-forms';
 
 	let {
 		event,
+		lastSeatingStart = null,
 		warnings = [],
 		onAltChange,
 	}: {
 		event: EditorEvent | null;
+		/** When the Event's last Seating starts: until then the tab is locked. */
+		lastSeatingStart?: Date | string | null;
 		/** The Portfolio list (issue 045): warnings only, never blocking. */
 		warnings?: EventWarning[];
 		onAltChange?: (mediaId: string, alt: { altEn: string | null; altFr: string | null }) => void;
@@ -114,7 +118,31 @@
 	}
 
 	const inPortfolio = $derived(event?.isPortfolio === true);
+	// The Recap and Event Photos are written after the Event (ADR 0007): the
+	// tab stays visible so the feature is known, but opens once it is over.
+	const over = $derived(
+		canJoinPortfolio(
+			{ visibility: event?.visibility ?? 'draft', lastSeatingStart: lastSeatingStart ? new Date(lastSeatingStart) : null },
+			new Date()
+		)
+	);
 </script>
+
+{#if !over}
+	<div class="bg-background rounded-lg border border-border-card p-6 lg:p-8">
+		<h2 class="text-lg font-semibold text-foreground mb-1">Portfolio</h2>
+		<p class="text-sm text-foreground-alt">Disponible une fois l’événement terminé.</p>
+		<p class="text-sm text-muted-foreground mt-2">
+			{#if lastSeatingStart}
+				Le récap et les photos de l’événement s’ajoutent après sa dernière séance, prévue le
+				{new Date(lastSeatingStart).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}.
+			{:else}
+				Le récap et les photos de l’événement s’ajoutent après sa dernière séance ; renseignez d’abord ses
+				dates dans « Dates & séances ». Pour un événement passé, saisissez ses vraies dates : l’onglet s’ouvre aussitôt.
+			{/if}
+		</p>
+	</div>
+{:else}
 
 <div class="space-y-6">
 	<div class="bg-background rounded-lg border border-border-card p-6 lg:p-8">
@@ -257,6 +285,7 @@
 		</form>
 	</div>
 </div>
+{/if}
 
 <Modal bind:isOpen={showDeleteModal} title="Supprimer la photo" description="Cette action est irréversible. La photo sera définitivement supprimée.">
 	<div class="flex justify-end gap-3 mt-4">
