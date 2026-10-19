@@ -3,7 +3,7 @@
  * Events (six in the Portfolio, one not) and three upcoming ones (rich,
  * sparse and free, booking not open yet), with Days, Services, Seatings,
  * Menus, Collaborators, Visuals, Event Photos, Recaps and alt text, and the
- * six Talents they credit.
+ * six Talents they credit, each with a photograph of their work.
  *
  * Additive and re-runnable: it only removes what it created before (Events
  * whose Internal Notes carry SEED_MARK, their media, and the seeded
@@ -140,9 +140,9 @@ async function photoBytes(photo: Photo): Promise<Buffer> {
 	return bytes;
 }
 
-async function upload(photo: Photo): Promise<{ url: string; key: string; size: number }> {
+async function upload(photo: Photo, folder: 'events' | 'talents' = 'events'): Promise<{ url: string; key: string; size: number }> {
 	const bytes = await photoBytes(photo);
-	const key = `events/${randomUUID()}.jpg`;
+	const key = `${folder}/${randomUUID()}.jpg`;
 	await s3.send(new PutObjectCommand({ Bucket: process.env.S3_BUCKET_NAME, Key: key, Body: bytes, ContentType: 'image/jpeg' }));
 	return { url: `${process.env.MEDIA_URL || process.env.S3_PUBLIC_URL}/${key}`, key, size: bytes.length };
 }
@@ -152,27 +152,27 @@ async function upload(photo: Photo): Promise<{ url: string; key: string; size: n
 // ---------------------------------------------------------------------------
 
 const TALENTS = [
-	{ key: 'chef', category: 'chefs', firstName: 'Margaux', lastName: 'Ferrand', roleFr: 'Cheffe', roleEn: 'Chef', city: 'Paris',
+	{ key: 'chef', portrait: P.knife, category: 'chefs', firstName: 'Margaux', lastName: 'Ferrand', roleFr: 'Cheffe', roleEn: 'Chef', city: 'Paris',
 		bioFr: 'Margaux Ferrand cuisine au rythme des saisons et des producteurs qu’elle connaît par leur prénom. Formée chez des maisons classiques, elle a choisi les tables éphémères pour leur liberté : un lieu, un soir, un menu qui ne se refera pas.',
 		bioEn: 'Margaux Ferrand cooks to the rhythm of the seasons and of growers she knows by name. Trained in classic kitchens, she chose pop-up tables for their freedom: one place, one night, a menu that will not be made again.',
 		quoteFr: 'Un plat, c’est d’abord un endroit et un moment.', quoteEn: 'A dish is first of all a place and a moment.' },
-	{ key: 'ceramist', category: 'ceramistes', firstName: 'Inès', lastName: 'Morel', roleFr: 'Céramiste', roleEn: 'Ceramicist', city: 'Montreuil',
+	{ key: 'ceramist', portrait: P.wheel, category: 'ceramistes', firstName: 'Inès', lastName: 'Morel', roleFr: 'Céramiste', roleEn: 'Ceramicist', city: 'Montreuil',
 		bioFr: 'Inès Morel tourne le grès et la faïence dans son atelier de Montreuil. Ses pièces, pensées pour la table, portent les traces du geste : un bord irrégulier, une glaçure qui coule, une empreinte de doigt laissée exprès.',
 		bioEn: 'Inès Morel throws stoneware and earthenware in her Montreuil studio. Her pieces, made for the table, keep the marks of the hand: an uneven rim, a running glaze, a fingerprint left on purpose.',
 		quoteFr: 'Un bol n’est fini que quand on mange dedans.', quoteEn: 'A bowl is only finished once someone eats from it.' },
-	{ key: 'sommelier', category: 'chefs', firstName: 'Antoine', lastName: 'Lacaze', roleFr: 'Sommelier', roleEn: 'Sommelier', city: 'Montpellier',
+	{ key: 'sommelier', portrait: P.wineGlassVines, category: 'chefs', firstName: 'Antoine', lastName: 'Lacaze', roleFr: 'Sommelier', roleEn: 'Sommelier', city: 'Montpellier',
 		bioFr: 'Antoine Lacaze défend les vins vivants du Languedoc et les vignerons qui travaillent à la main. Il accorde les verres comme on écrit une partition, en laissant de la place au silence.',
 		bioEn: 'Antoine Lacaze champions the living wines of the Languedoc and the growers who work by hand. He pairs glasses the way one writes a score, leaving room for silence.',
 		quoteFr: null, quoteEn: null },
-	{ key: 'baker', category: 'chefs', firstName: 'Lucas', lastName: 'Besson', roleFr: 'Boulanger', roleEn: 'Baker', city: 'Paris',
+	{ key: 'baker', portrait: P.bakeryShelf, category: 'chefs', firstName: 'Lucas', lastName: 'Besson', roleFr: 'Boulanger', roleEn: 'Baker', city: 'Paris',
 		bioFr: 'Lucas Besson travaille le levain et les farines anciennes de petits moulins. Son fournil est ouvert : on y apprend autant la patience que le pétrissage.',
 		bioEn: 'Lucas Besson works with sourdough and heritage flours from small mills. His bakehouse is open: you learn patience there as much as kneading.',
 		quoteFr: 'Le pain, c’est du temps qu’on partage.', quoteEn: 'Bread is time you share.' },
-	{ key: 'musician', category: 'musiciens', firstName: 'Nora', lastName: 'Saïdi', roleFr: 'Musicienne', roleEn: 'Musician', city: 'Marseille',
+	{ key: 'musician', portrait: P.trombone, category: 'musiciens', firstName: 'Nora', lastName: 'Saïdi', roleFr: 'Musicienne', roleEn: 'Musician', city: 'Marseille',
 		bioFr: 'Nora Saïdi est percussionniste et compositrice. Elle crée des pièces pour des lieux précis, écrites pour la résonance d’une salle et l’écoute d’un public assis à table.',
 		bioEn: 'Nora Saïdi is a percussionist and composer. She creates pieces for specific places, written for the resonance of a room and a seated audience listening at the table.',
 		quoteFr: null, quoteEn: null },
-	{ key: 'scenographer', category: 'scenographes', firstName: 'Paul', lastName: 'Arnaud', roleFr: 'Scénographe', roleEn: 'Set designer', city: 'Lyon',
+	{ key: 'scenographer', portrait: P.tableSet, category: 'scenographes', firstName: 'Paul', lastName: 'Arnaud', roleFr: 'Scénographe', roleEn: 'Set designer', city: 'Lyon',
 		bioFr: 'Paul Arnaud conçoit des espaces pour une soirée : lumière, matières, circulation. Il travaille avec ce qui est déjà là et retire plus qu’il n’ajoute.',
 		bioEn: 'Paul Arnaud designs spaces for a single evening: light, materials, movement. He works with what is already there and takes away more than he adds.',
 		quoteFr: null, quoteEn: null },
@@ -212,6 +212,8 @@ type EventSpec = {
 	visuals: Photo[]; photos: Photo[];
 	recapFr?: string; recapEn?: string;
 	portfolio: boolean;
+	/** The home page's Spotlight, unless the database already has one. */
+	spotlight?: boolean;
 	/** Booking Window opening, ISO with offset; null: open once published. */
 	bookingOpensAt?: string;
 	refundTiers?: { hoursBefore: number; percent: number }[];
@@ -367,7 +369,7 @@ const EVENTS: EventSpec[] = [
 	},
 	// Upcoming Events, for the bookable states of the Event page.
 	{
-		titleFr: 'Braises', titleEn: 'Embers',
+		titleFr: 'Braises', titleEn: 'Embers', spotlight: true,
 		subtitleFr: 'Deux jours de cuisine au feu de bois, du déjeuner au dernier service', subtitleEn: 'Two days of wood-fire cooking, from lunch to the last sitting',
 		descriptionFr: 'Margaux Ferrand installe sa cuisine autour d’un foyer ouvert, au milieu de la salle. Tout ce qui est servi passe par le feu : les légumes enfouis sous la cendre, le poisson à la flamme, le pain cuit sur la pierre, le dessert fumé au dernier moment.\n\nInès Morel a tourné la vaisselle dans une terre qui supporte la braise. Paul Arnaud a réduit la lumière à celle du foyer et de quelques lampes basses. Antoine Lacaze accorde des vins de la vallée du Rhône, servis à la température de la pièce.\n\nLe vendredi soir, deux services. Le samedi, un déjeuner plus court et un dîner long, qui se termine quand le feu s’éteint.',
 		descriptionEn: 'Margaux Ferrand sets up her kitchen around an open hearth in the middle of the room. Everything served goes through the fire: vegetables buried in the ashes, fish cooked over the flame, bread baked on the stone, dessert smoked at the last moment.\n\nInès Morel threw the tableware in a clay that can take the embers. Paul Arnaud reduced the light to the hearth and a few low lamps. Antoine Lacaze pairs wines from the Rhône valley, served at room temperature.\n\nOn Friday evening, two sittings. On Saturday, a shorter lunch and a long dinner that ends when the fire goes out.',
@@ -461,7 +463,10 @@ async function clean() {
 		await db.delete(events).where(inArray(events.id, ids));
 	}
 	for (const t of TALENTS) {
-		await db.delete(talents).where(and(eq(talents.firstName, t.firstName), eq(talents.lastName, t.lastName)));
+		const where = and(eq(talents.firstName, t.firstName), eq(talents.lastName, t.lastName));
+		const rows = await db.select({ id: talents.id }).from(talents).where(where);
+		if (rows.length > 0) await db.delete(media).where(inArray(media.talentId, rows.map((r) => r.id)));
+		await db.delete(talents).where(where);
 	}
 	return ids.length;
 }
@@ -479,6 +484,13 @@ async function seedTalents(): Promise<Record<TalentKey, { id: string; name: stri
 			bioFr: t.bioFr, bioEn: t.bioEn, quoteFr: t.quoteFr, quoteEn: t.quoteEn,
 			city: t.city, country: 'France', categoryId: categoryIds[t.category], published: true,
 		}).returning();
+		// Their work stands in for a portrait.
+		const up = await upload(t.portrait, 'talents');
+		const [photo] = await db.insert(media).values({
+			type: 'image', url: up.url, s3Key: up.key, mimeType: 'image/jpeg', size: up.size,
+			talentId: row.id, altFr: t.portrait.altFr, altEn: t.portrait.altEn,
+		}).returning();
+		await db.update(talents).set({ profileMediaId: photo.id }).where(eq(talents.id, row.id));
 		out[t.key] = { id: row.id, name: `${t.firstName} ${t.lastName}`, role: t.roleFr };
 	}
 	return out;
@@ -486,6 +498,8 @@ async function seedTalents(): Promise<Record<TalentKey, { id: string; name: stri
 
 async function seedEvent(spec: EventSpec, people: Awaited<ReturnType<typeof seedTalents>>) {
 	const allDays = spec.days.map((d) => d.date).sort();
+	// Only one Spotlight at a time, and never in place of one of your own.
+	const spotlight = spec.spotlight ? !(await db.query.events.findFirst({ where: eq(events.isSpotlight, true), columns: { id: true } })) : false;
 	const [event] = await db.insert(events).values({
 		titleFr: spec.titleFr, titleEn: spec.titleEn, subtitleFr: spec.subtitleFr, subtitleEn: spec.subtitleEn,
 		descriptionFr: spec.descriptionFr, descriptionEn: spec.descriptionEn,
@@ -500,7 +514,7 @@ async function seedEvent(spec: EventSpec, people: Awaited<ReturnType<typeof seed
 		curatorFr: spec.curator ?? null, curatorEn: spec.curator ?? null,
 		admissionInfoFr: spec.admissionFr ?? null, admissionInfoEn: spec.admissionEn ?? null,
 		venueCapacity: spec.capacity, depositType: spec.deposit.type, depositValue: spec.deposit.value,
-		currency: 'EUR', visibility: 'public', isPortfolio: spec.portfolio,
+		currency: 'EUR', visibility: 'public', isPortfolio: spec.portfolio, isSpotlight: spotlight,
 		recapFr: spec.recapFr ?? null, recapEn: spec.recapEn ?? null,
 		internalNotes: credits(spec),
 		bookingOpensAt: spec.bookingOpensAt ? new Date(spec.bookingOpensAt) : null,
