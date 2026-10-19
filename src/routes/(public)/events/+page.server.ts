@@ -1,43 +1,23 @@
 import { getAllEvents } from '$lib/server/services/events';
 import { logger } from '$lib/server/logger';
 import { MOCK_EVENTS, USE_MOCK_DATA } from '$lib/mock-data';
-import { calculatePagination, DEFAULT_LIMIT } from '$lib/utils/pagination';
 import { isListed } from '$lib/utils/event-access';
 import { withoutPracticalInfo } from '$lib/utils/practical-info';
 import { withProjectCover } from '$lib/utils/event-photos';
 import type { PageServerLoad } from './$types';
 import type { EventWithMedia } from '$lib/types/events';
 
-const INITIAL_PAGE_SIZE = 6;
+// « Projets » is an index: every listed Event on one page.
+const PROJECTS_LIMIT = 100;
 
-export const load: PageServerLoad = async ({ url }) => {
-    // Get search query from URL
-    const searchQuery = url.searchParams.get('q') || undefined;
-
+export const load: PageServerLoad = async () => {
     // Use mock data if enabled (no database required!)
     if (USE_MOCK_DATA) {
         logger.info('📦 Using mock data for events');
-        let filteredEvents = MOCK_EVENTS.filter(e => isListed(e) && !e.isSpotlight);
-
-        // Apply search filter if provided
-        if (searchQuery) {
-            const query = searchQuery.toLowerCase();
-            filteredEvents = filteredEvents.filter(e =>
-                (e.titleEn ?? '').toLowerCase().includes(query) ||
-                (e.titleFr ?? '').toLowerCase().includes(query) ||
-                (e.descriptionEn ?? '').toLowerCase().includes(query) ||
-                (e.descriptionFr ?? '').toLowerCase().includes(query)
-            );
-        }
-
-        const totalEvents = filteredEvents.length;
-        const initialEvents = filteredEvents.slice(0, INITIAL_PAGE_SIZE).map((e) => withProjectCover(withoutPracticalInfo(e))) as unknown as EventWithMedia[];
-        const pagination = calculatePagination(1, INITIAL_PAGE_SIZE, totalEvents);
-
         return {
-            events: initialEvents,
-            pagination,
-            searchQuery,
+            events: MOCK_EVENTS.filter((e) => isListed(e) && !e.isSpotlight)
+                .slice(0, PROJECTS_LIMIT)
+                .map((e) => withProjectCover(withoutPracticalInfo(e))) as unknown as EventWithMedia[],
         };
     }
 
@@ -45,13 +25,10 @@ export const load: PageServerLoad = async ({ url }) => {
         listedOnly: true,
         excludeSpotlight: true,
         page: 1,
-        limit: INITIAL_PAGE_SIZE,
-        search: searchQuery
+        limit: PROJECTS_LIMIT,
     });
 
     return {
         events: result.data as EventWithMedia[],
-        pagination: result.pagination,
-        searchQuery,
     };
 };
