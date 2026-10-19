@@ -190,47 +190,123 @@
     }
   },
   "manifesto": {
-    "pageTitle": "Our Expertise | Germinal",
-    "eyebrow": "Expertise",
-    "title": "What we create",
-    "introLabel": "Our positioning",
-    "intro": "We don't manage events. We architect experiences — moments built with method, intention, and sensitivity. Every project is born from our clients' vision and takes shape through a rigorous process, led by a collective of talents who share a single standard: nothing left to chance.",
+    "pageTitle": "Manifesto | Germinal",
+    "metaDescription": "Germinal is a cultural studio in Paris. Dinners, exhibitions and workshops with chefs, craftspeople and artists, for a few people at a time.",
+    "label": "Manifesto",
+    "title": "One table, one place, one night.",
+    "intro": "Germinal is a cultural studio, in Paris since [year]. We make dinners, exhibitions and workshops with chefs, craftspeople and artists, for a few people at a time. This is what we hold to.",
+    "signature": "Germinal, Paris, since [year]",
+    "theses": {
+      "table": {
+        "word": "Table",
+        "gram": "n.",
+        "common": "A piece of furniture you eat at.",
+        "when": "8:00 pm",
+        "statement": "We set a table, not a room.",
+        "body": "A few places, laid so that people talk from one end to the other. Filling seats is never the point: a good evening is a table people stay at.",
+        "phon": "/ˈteɪb(ə)l/"
+      },
+      "authors": {
+        "word": "Author",
+        "gram": "n.",
+        "common": "Someone who writes a book.",
+        "when": "Months before",
+        "statement": "Every evening has its authors.",
+        "body": "A chef, a ceramicist, a musician. We invite them to do what they do, their way, and their name is on the project.",
+        "phon": "/ˈɔːθə/"
+      },
+      "place": {
+        "word": "Place",
+        "gram": "n.",
+        "common": "A portion of space.",
+        "when": "Weeks before",
+        "statement": "The place comes before the set.",
+        "body": "A workshop, a garden, a cellar. We start from what is there, the walls, the light, the noise of the street, and add as little as we can.",
+        "phon": "/pleɪs/"
+      },
+      "backstage": {
+        "word": "Backstage",
+        "gram": "n.",
+        "common": "The part of a theatre hidden from the audience.",
+        "when": "On the day",
+        "statement": "The work should not show.",
+        "body": "The light, the plates, the time between two courses: everything is settled beforehand, so that nobody gives it a thought once seated.",
+        "phon": "/ˈbakˌsteɪdʒ/"
+      },
+      "guests": {
+        "word": "Guest",
+        "gram": "n.",
+        "common": "Someone who shares a meal.",
+        "when": "7:45 pm",
+        "statement": "You are not an audience.",
+        "body": "Nobody comes to watch: you sit down, eat, talk to the person next to you. The evening happens at the table, with whoever is there.",
+        "phon": "/ɡɛst/"
+      },
+      "once": {
+        "word": "Ephemeral",
+        "gram": "adj.",
+        "common": "Lasting a single day.",
+        "when": "The day after",
+        "statement": "It only happens once.",
+        "body": "We never stage the same evening twice. What happened stays here, in photographs, and we move on to the next.",
+        "phon": "/ɪˈfɛm(ə)rəl/"
+      }
+    },
+    "germinalSense": "At Germinal:",
+    "servicesTitle": "What we do",
+    "servicesIntro": "We produce our own evenings, and we make them for others too. Three crafts, from the first sketch to the last candle.",
     "artDirection": {
       "number": "01",
-      "title": "Art Direction",
-      "tagline": "Giving shape to your vision.",
-      "body": "Before a space is defined, before a material is selected, there is an idea. Our role is to capture it, refine it, and give it an aesthetic and emotional coherence that runs through every detail of the event. From initial intention to final delivery, we are the guardians of the vision.",
-      "point1": "Global visual concept creation and event identity",
-      "point2": "Sensory palette definition: light, texture, colour, sound",
-      "point3": "Creative direction of all artistic contributors",
-      "point4": "Mood boards, trend books, and visual reference curation",
-      "imageAlt": "An elaborately styled table setting under dramatic golden light, illustrating the precision and intention behind every detail of art direction"
+      "title": "Art direction",
+      "tagline": "One idea, carried all the way.",
+      "body": "Every project starts from an idea that fits in one sentence. We hold on to it from the first sketch to the last course: light, materials, sound, tableware, invitations.",
+      "point1": "Concept and identity of the project",
+      "point2": "Light, material, colour, sound",
+      "point3": "Direction of the invited talents",
+      "point4": "Mood boards and references"
     },
     "scenography": {
       "number": "02",
       "title": "Scenography",
-      "tagline": "Space as language.",
-      "body": "We think of space not as décor, but as language. Every volume, every texture, every sightline is designed to guide the experience, to establish an atmosphere that asserts itself without explanation. Scenography is the art of making visible what cannot be said.",
-      "point1": "Spatial design and bespoke ephemeral architecture",
-      "point2": "Furniture, material, and texture selection and arrangement",
-      "point3": "Architectural, scenic, and ambient lighting design",
-      "point4": "Custom floral, botanical, and artistic installations",
-      "imageAlt": "Wide shot of a scenographed event space featuring bold architectural volumes, sophisticated drapery, and subdued lighting creating a dramatic, luxurious atmosphere"
+      "tagline": "Working with the place.",
+      "body": "We read a space before we touch it: where people come in, where they sit, where the light comes from. Then we place a few things, in the right spot.",
+      "point1": "Room and table plans",
+      "point2": "Furniture, materials, tableware",
+      "point3": "Ambient and stage lighting",
+      "point4": "Plants and installations"
     },
     "production": {
       "number": "03",
-      "title": "Creative Production",
-      "tagline": "The discipline of the invisible.",
-      "body": "A successful project is one where the effort is unseen. Behind the apparent elegance lies absolute rigour: team coordination, vendor management, anticipation of the unexpected. We carry this complexity so that you can simply live the experience.",
-      "point1": "Coordination of artistic, technical, and logistics teams",
-      "point2": "Vendor and supplier selection and management",
-      "point3": "Detailed budget tracking and operational oversight",
-      "point4": "Day-of installation, operations, and on-site presence",
-      "imageAlt": "Behind-the-scenes photograph of a production team installing scenographic elements in a large empty space, illustrating the rigour and precision of the production process"
+      "title": "Production",
+      "tagline": "What nobody sees.",
+      "body": "The teams, the suppliers, the budget, the surprise at 7:30 pm. We carry it, so the talents can do their work and the guests never think about it.",
+      "point1": "Team coordination",
+      "point2": "Venues, suppliers and contractors",
+      "point3": "Budget and schedule",
+      "point4": "Set-up and running the day itself"
     },
-    "approach": {
-      "title": "Our approach",
-      "body": "Every project is singular. No formula, no standard answer. We begin by listening — to your vision, your constraints, the emotion you want to create. Then we build, with rigour and method, the experience that reflects you. From the first conversation to the last light switched off, we are there."
+    "photoOf": "{title}, {year}",
+    "germinal": {
+      "word": "Germinal",
+      "gram": "n.",
+      "phon": "[ʒɛʁminal]",
+      "sense1": "The seventh month of the French Republican calendar, the first of spring, from March to April. From the Latin germen, ‘sprout’.",
+      "sense2": "A novel by Émile Zola (1885).",
+      "sense3": "A cultural studio in Paris, since [year]: dinners, exhibitions and workshops with chefs, craftspeople and artists, for a few people at a time.",
+      "seeAlso": "See also"
+    },
+    "stage": {
+      "progress": "{current} of {total}",
+      "complete": "The manifesto, in full."
+    },
+    "newProjectCta": "Tell us about your project",
+    "closingLetter": {
+      "title": "Write to us.",
+      "body": "Three things are enough to begin, and none of them needs to be certain:",
+      "place": "A place, if you have one.",
+      "date": "A date, if you know it.",
+      "idea": "An idea, however vague.",
+      "orWrite": "or write directly to"
     }
   },
   "upcoming": {

@@ -1,170 +1,39 @@
 <script lang="ts">
-    import { t } from "svelte-i18n";
-    import { reveal } from "$lib/actions/reveal";
+	// PROTOTYPE — the Manifesto in variants to choose from: the manifesto
+	// itself (?v=…). « Ce que nous faisons » (Planches) and the ending
+	// (Lettre) are settled. The chosen one replaces this switch.
+	import { t } from 'svelte-i18n';
+	import { page } from '$app/state';
+	import VariantA2 from './prototype-manifesto/VariantA2.svelte';
+	import VariantA3 from './prototype-manifesto/VariantA3.svelte';
+	import DisciplinesPlanches from './prototype-manifesto/DisciplinesPlanches.svelte';
+	import ClosingLettre from './prototype-manifesto/ClosingLettre.svelte';
+	import Switcher from './prototype-manifesto/Switcher.svelte';
 
-    const servicePoints = [1, 2, 3, 4] as const;
+	let { data } = $props();
+
+	const manifestos = [
+		{ id: 'a2', name: 'Relais', component: VariantA2 },
+		{ id: 'a3', name: 'Composition', component: VariantA3 },
+	];
+	const manifesto = $derived(manifestos.find((v) => v.id === page.url.searchParams.get('v')) ?? manifestos[0]);
 </script>
 
 <svelte:head>
-    <title>{$t("manifesto.pageTitle")}</title>
+	<title>{$t('manifesto.pageTitle')}</title>
+	<meta name="description" content={$t('manifesto.metaDescription')} />
 </svelte:head>
 
-<div class="container mx-auto px-4 py-32 max-w-8xl">
+{#key manifesto.id}
+	<manifesto.component photos={data.photos} />
+{/key}
 
-    <!-- Header -->
-    <div class="mb-24 lg:mb-40" use:reveal={{ preset: "fade-down" }}>
-        <p class="uppercase text-muted-foreground text-xxs tracking-widest mb-6">
-            {$t("manifesto.eyebrow")}
-        </p>
-        <h1 class="text-4xl lg:text-7xl font-serif max-w-3xl leading-tight">
-            {$t("manifesto.title")}
-        </h1>
-    </div>
+<DisciplinesPlanches photos={data.photos} />
 
-    <!-- Intro -->
-    <div class="grid lg:grid-cols-[1fr_2fr] gap-12 mb-32 lg:mb-56" use:reveal={{ preset: "fade-up" }}>
-        <div>
-            <p class="uppercase text-muted-foreground text-xxs tracking-widest">
-                {$t("manifesto.introLabel")}
-            </p>
-        </div>
-        <p class="text-foreground-alt text-xl lg:text-2xl leading-relaxed">
-            {$t("manifesto.intro")}
-        </p>
-    </div>
+<ClosingLettre />
 
-    <!-- Service 01: Art Direction -->
-    <section id="art-direction" class="mb-32 lg:mb-56 scroll-mt-24">
-        <div use:reveal={{ preset: "fade-up" }}>
-            <p class="uppercase text-muted-foreground text-xxs tracking-widest mb-6">
-                {$t("manifesto.artDirection.number")}
-            </p>
-            <img
-                src="https://images.unsplash.com/photo-1493246507139-91e8fad9978e?w=1600&h=700&fit=crop&q=80"
-                alt={$t("manifesto.artDirection.imageAlt")}
-                class="w-full aspect-[4/3] lg:aspect-[21/9] object-cover mb-12 lg:mb-16"
-                loading="lazy"
-            />
-        </div>
-        <div class="grid lg:grid-cols-2 gap-16 lg:gap-24 items-start">
-            <div use:reveal={{ preset: "fade-up" }}>
-                <h2 class="text-3xl lg:text-5xl font-serif mb-3">
-                    {$t("manifesto.artDirection.title")}
-                </h2>
-                <p class="text-muted-foreground text-lg lg:text-xl mb-10">
-                    {$t("manifesto.artDirection.tagline")}
-                </p>
-                <p class="text-foreground-alt text-base lg:text-lg leading-relaxed max-w-prose">
-                    {$t("manifesto.artDirection.body")}
-                </p>
-            </div>
-            <div use:reveal={{ preset: "fade-up", delay: 150 }}>
-                <ul class="flex flex-col gap-0">
-                    {#each servicePoints as i}
-                        <li class="flex items-start gap-5 border-t border-border-input-hover py-5">
-                            <span class="text-muted-foreground mt-0.5 shrink-0">—</span>
-                            <span class="text-foreground-alt text-sm lg:text-base">
-                                {$t(`manifesto.artDirection.point${i}`)}
-                            </span>
-                        </li>
-                    {/each}
-                </ul>
-            </div>
-        </div>
-    </section>
-
-    <!-- Service 02: Scenography -->
-    <section id="scenography" class="mb-32 lg:mb-56 scroll-mt-24">
-        <div use:reveal={{ preset: "fade-up" }}>
-            <p class="uppercase text-muted-foreground text-xxs tracking-widest mb-6">
-                {$t("manifesto.scenography.number")}
-            </p>
-            <img
-                src="https://images.unsplash.com/photo-1503095396549-807759245b35?w=1600&h=700&fit=crop&q=80"
-                alt={$t("manifesto.scenography.imageAlt")}
-                class="w-full aspect-[4/3] lg:aspect-[21/9] object-cover mb-12 lg:mb-16"
-                loading="lazy"
-            />
-        </div>
-        <div class="grid lg:grid-cols-2 gap-16 lg:gap-24 items-start">
-            <div use:reveal={{ preset: "fade-up" }}>
-                <h2 class="text-3xl lg:text-5xl font-serif mb-3">
-                    {$t("manifesto.scenography.title")}
-                </h2>
-                <p class="text-muted-foreground text-lg lg:text-xl mb-10">
-                    {$t("manifesto.scenography.tagline")}
-                </p>
-                <p class="text-foreground-alt text-base lg:text-lg leading-relaxed max-w-prose">
-                    {$t("manifesto.scenography.body")}
-                </p>
-            </div>
-            <div use:reveal={{ preset: "fade-up", delay: 150 }}>
-                <ul class="flex flex-col gap-0">
-                    {#each servicePoints as i}
-                        <li class="flex items-start gap-5 border-t border-border-input-hover py-5">
-                            <span class="text-muted-foreground mt-0.5 shrink-0">—</span>
-                            <span class="text-foreground-alt text-sm lg:text-base">
-                                {$t(`manifesto.scenography.point${i}`)}
-                            </span>
-                        </li>
-                    {/each}
-                </ul>
-            </div>
-        </div>
-    </section>
-
-    <!-- Service 03: Creative Production -->
-    <section id="production" class="mb-32 lg:mb-56 scroll-mt-24">
-        <div use:reveal={{ preset: "fade-up" }}>
-            <p class="uppercase text-muted-foreground text-xxs tracking-widest mb-6">
-                {$t("manifesto.production.number")}
-            </p>
-            <img
-                src="https://images.unsplash.com/photo-1492619375914-88005aa9e8fb?w=1600&h=700&fit=crop&q=80"
-                alt={$t("manifesto.production.imageAlt")}
-                class="w-full aspect-[4/3] lg:aspect-[21/9] object-cover mb-12 lg:mb-16"
-                loading="lazy"
-            />
-        </div>
-        <div class="grid lg:grid-cols-2 gap-16 lg:gap-24 items-start">
-            <div use:reveal={{ preset: "fade-up" }}>
-                <h2 class="text-3xl lg:text-5xl font-serif mb-3">
-                    {$t("manifesto.production.title")}
-                </h2>
-                <p class="text-muted-foreground text-lg lg:text-xl mb-10">
-                    {$t("manifesto.production.tagline")}
-                </p>
-                <p class="text-foreground-alt text-base lg:text-lg leading-relaxed max-w-prose">
-                    {$t("manifesto.production.body")}
-                </p>
-            </div>
-            <div use:reveal={{ preset: "fade-up", delay: 150 }}>
-                <ul class="flex flex-col gap-0">
-                    {#each servicePoints as i}
-                        <li class="flex items-start gap-5 border-t border-border-input-hover py-5">
-                            <span class="text-muted-foreground mt-0.5 shrink-0">—</span>
-                            <span class="text-foreground-alt text-sm lg:text-base">
-                                {$t(`manifesto.production.point${i}`)}
-                            </span>
-                        </li>
-                    {/each}
-                </ul>
-            </div>
-        </div>
-    </section>
-
-    <!-- Approach / closing -->
-    <section class="border-t border-border-input-hover pt-16 lg:pt-24" use:reveal={{ preset: "fade-up" }}>
-        <div class="grid lg:grid-cols-[1fr_2fr] gap-12 lg:gap-24">
-            <div>
-                <h2 class="text-2xl lg:text-3xl font-serif">
-                    {$t("manifesto.approach.title")}
-                </h2>
-            </div>
-            <p class="text-foreground-alt text-base lg:text-lg leading-relaxed max-w-prose">
-                {$t("manifesto.approach.body")}
-            </p>
-        </div>
-    </section>
-
-</div>
+<Switcher
+	groups={[
+		{ param: 'v', label: 'Manifeste', variants: manifestos, current: manifesto.id },
+	]}
+/>

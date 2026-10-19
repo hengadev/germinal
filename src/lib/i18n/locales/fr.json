@@ -190,47 +190,123 @@
     }
   },
   "manifesto": {
-    "pageTitle": "Nos Savoir-Faire | Germinal",
-    "eyebrow": "Savoir-faire",
-    "title": "Ce que nous créons",
-    "introLabel": "Notre positionnement",
-    "intro": "Nous ne gérons pas des événements. Nous architecturons des expériences — des instants construits avec méthode, intention et sensibilité. Chaque projet naît de la vision de nos clients et prend forme à travers un processus rigoureux, mené par un collectif de talents qui partagent une seule exigence : que rien ne soit laissé au hasard.",
+    "pageTitle": "Manifeste | Germinal",
+    "metaDescription": "Germinal est un studio culturel à Paris. Dîners, expositions et ateliers avec des chefs, des artisans et des artistes, pour peu de monde à la fois.",
+    "label": "Manifeste",
+    "title": "Une table, un lieu, un soir.",
+    "intro": "Germinal est un studio culturel installé à Paris depuis [année]. Nous faisons des dîners, des expositions et des ateliers avec des chefs, des artisans et des artistes, pour peu de monde à la fois. Voici ce à quoi nous tenons.",
+    "signature": "Germinal, Paris, depuis [année]",
+    "theses": {
+      "table": {
+        "word": "Table",
+        "gram": "n.f.",
+        "common": "Meuble sur lequel on mange.",
+        "when": "20:00",
+        "statement": "Nous mettons une table, pas une salle.",
+        "body": "Peu de couverts, posés pour qu’on se parle d’un bout à l’autre. Remplir n’est jamais le but : une soirée réussie, c’est une table où l’on reste.",
+        "phon": "[tabl]"
+      },
+      "authors": {
+        "word": "Auteur",
+        "gram": "n.m.",
+        "common": "Personne qui écrit un livre.",
+        "when": "Des mois avant",
+        "statement": "Chaque soirée a ses auteurs.",
+        "body": "Une cheffe, un céramiste, une musicienne. Nous les invitons à faire ce qu’ils font, à leur façon, et leur nom est sur le projet.",
+        "phon": "[otœʁ]"
+      },
+      "place": {
+        "word": "Lieu",
+        "gram": "n.m.",
+        "common": "Portion d’espace.",
+        "when": "Des semaines avant",
+        "statement": "Le lieu passe avant le décor.",
+        "body": "Un atelier, un jardin, une cave. Nous partons de ce qui est là, les murs, la lumière, le bruit de la rue, et nous ajoutons le moins possible.",
+        "phon": "[ljø]"
+      },
+      "backstage": {
+        "word": "Coulisses",
+        "gram": "n.f. pl.",
+        "common": "Partie d’un théâtre cachée au public.",
+        "when": "Le jour même",
+        "statement": "Le travail ne doit pas se voir.",
+        "body": "La lumière, la vaisselle, le temps entre deux plats : tout est réglé à l’avance, pour que personne n’y pense une fois à table.",
+        "phon": "[kulis]"
+      },
+      "guests": {
+        "word": "Convive",
+        "gram": "n.",
+        "common": "Personne qui prend part à un repas.",
+        "when": "19:45",
+        "statement": "Vous n’êtes pas un public.",
+        "body": "On ne vient pas regarder : on s’assoit, on mange, on parle à son voisin. La soirée se fait à table, avec ceux qui sont là.",
+        "phon": "[kɔ̃viv]"
+      },
+      "once": {
+        "word": "Éphémère",
+        "gram": "adj.",
+        "common": "Qui ne dure qu’un jour.",
+        "when": "Le lendemain",
+        "statement": "Ça n’a lieu qu’une fois.",
+        "body": "Nous ne refaisons jamais une soirée à l’identique. Ce qui a eu lieu reste ici, en photos, et nous passons à la suivante.",
+        "phon": "[efemɛʁ]"
+      }
+    },
+    "germinalSense": "Chez Germinal :",
+    "servicesTitle": "Ce que nous faisons",
+    "servicesIntro": "Nous produisons nos propres soirées, et nous en imaginons pour d’autres. Trois métiers, du premier croquis à la dernière bougie.",
     "artDirection": {
       "number": "01",
-      "title": "Direction Artistique",
-      "tagline": "Donner un visage à votre vision.",
-      "body": "Avant qu'un espace soit défini, avant qu'un matériau soit sélectionné, il y a une idée. Notre rôle est de la saisir, de l'affiner, de lui donner une cohérence esthétique et émotionnelle qui traversera chaque détail de l'événement. De l'intention initiale au rendu final, nous sommes les gardiens de la vision.",
-      "point1": "Création du concept visuel global et de l'identité de l'événement",
-      "point2": "Définition de la palette sensorielle : lumière, matière, couleur, son",
-      "point3": "Direction créative de l'ensemble des prestataires artistiques",
-      "point4": "Moodboards, carnets de tendances et références visuelles",
-      "imageAlt": "Mise en scène d'une table élaborée sous une lumière dorée et dramatique, illustrant la précision et l'intention derrière chaque détail de direction artistique"
+      "title": "Direction artistique",
+      "tagline": "Une idée, tenue jusqu’au bout.",
+      "body": "Chaque projet part d’une idée qui tient en une phrase. Nous la gardons du premier croquis au dernier service : la lumière, les matières, le son, la vaisselle, les invitations.",
+      "point1": "Concept et identité du projet",
+      "point2": "Lumière, matière, couleur, son",
+      "point3": "Direction des talents invités",
+      "point4": "Planches et références"
     },
     "scenography": {
       "number": "02",
       "title": "Scénographie",
-      "tagline": "L'espace comme langage.",
-      "body": "Nous pensons l'espace non pas comme un décor, mais comme un langage. Chaque volume, chaque texture, chaque axe de regard est conçu pour guider l'expérience, installer une atmosphère qui s'impose sans se justifier. La scénographie est l'art de rendre visible ce qui ne peut être dit.",
-      "point1": "Design spatial et architecture éphémère sur mesure",
-      "point2": "Sélection et agencement du mobilier, des matières et des textures",
-      "point3": "Mise en lumière architecturale, scénique et d'ambiance",
-      "point4": "Habillage floral, végétal et installation artistique",
-      "imageAlt": "Vue large d'un espace scénographié avec des volumes architecturaux audacieux, des drapés sophistiqués et un éclairage tamisé créant une atmosphère à la fois dramatique et luxueuse"
+      "tagline": "Faire avec le lieu.",
+      "body": "Nous lisons un espace avant d’y toucher : par où l’on entre, où l’on s’assoit, d’où vient la lumière. Puis nous posons peu de choses, au bon endroit.",
+      "point1": "Plan de salle et de tables",
+      "point2": "Mobilier, matières, vaisselle",
+      "point3": "Lumière d’ambiance et de scène",
+      "point4": "Végétal et installations"
     },
     "production": {
       "number": "03",
-      "title": "Production Créative",
-      "tagline": "L'exigence de l'invisible.",
-      "body": "Un projet réussi est celui où l'effort ne se voit pas. Derrière l'élégance apparente se cache une rigueur absolue : coordination des équipes, gestion des prestataires, anticipation des imprévus. Nous portons cette complexité pour que vous puissiez simplement vivre l'expérience.",
-      "point1": "Coordination des équipes artistiques, techniques et logistiques",
-      "point2": "Sélection et gestion des prestataires et fournisseurs",
-      "point3": "Suivi budgétaire détaillé et pilotage opérationnel",
-      "point4": "Installation, régie et accompagnement le jour J",
-      "imageAlt": "Photographie en coulisses d'une équipe installant des éléments scénographiques dans un vaste espace vide, illustrant la rigueur et la précision du processus de production"
+      "title": "Production",
+      "tagline": "Ce qu’on ne voit pas.",
+      "body": "Les équipes, les fournisseurs, le budget, l’imprévu de 19 h 30. Nous le portons, pour que les talents fassent leur travail et que les invités n’y pensent pas.",
+      "point1": "Coordination des équipes",
+      "point2": "Lieux, fournisseurs et prestataires",
+      "point3": "Budget et calendrier",
+      "point4": "Installation et régie le jour J"
     },
-    "approach": {
-      "title": "Notre approche",
-      "body": "Chaque projet est unique. Pas de formule, pas de réponse standard. Nous commençons par écouter — votre vision, vos contraintes, l'émotion que vous souhaitez faire naître. Puis nous bâtissons, avec exigence et méthode, l'expérience qui vous ressemble. De la première conversation à la dernière lumière éteinte, nous sommes là."
+    "photoOf": "{title}, {year}",
+    "germinal": {
+      "word": "Germinal",
+      "gram": "n.m.",
+      "phon": "[ʒɛʁminal]",
+      "sense1": "Septième mois du calendrier républicain, le premier du printemps, de mars à avril. Du latin germen, « germe ».",
+      "sense2": "Roman d’Émile Zola (1885).",
+      "sense3": "Studio culturel à Paris, depuis [année] : des dîners, des expositions et des ateliers avec des chefs, des artisans et des artistes, pour peu de monde à la fois.",
+      "seeAlso": "Voir aussi"
+    },
+    "stage": {
+      "progress": "{current} sur {total}",
+      "complete": "Le manifeste, en entier."
+    },
+    "newProjectCta": "Nous parler de votre projet",
+    "closingLetter": {
+      "title": "Écrivez-nous.",
+      "body": "Pour commencer, trois choses suffisent, et aucune n’a besoin d’être sûre :",
+      "place": "Un lieu, si vous l’avez.",
+      "date": "Une date, si vous la connaissez.",
+      "idea": "Une idée, même vague.",
+      "orWrite": "ou directement à"
     }
   },
   "upcoming": {
