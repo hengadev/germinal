@@ -1,10 +1,11 @@
-import { getEventById } from '$lib/server/services/events';
+import { getAllEvents, getEventById } from '$lib/server/services/events';
 import { getPublishedScheduleByEventId, groupScheduleByDayAndService } from '$lib/server/services/event-schedule';
 import { dayOf, serviceKindOf } from '$lib/utils/event-time';
 import { MOCK_EVENTS, MOCK_SESSIONS, USE_MOCK_DATA } from '$lib/mock-data';
 import { getServiceOffersByEventId } from '$lib/server/services/service-pricing';
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
+import type { EventWithMedia } from '$lib/types/events';
 import { seatingTitlesWithFallback } from '$lib/utils/seating-title';
 import type { ServiceKind } from '$lib/utils/seating-times';
 import { toAccessEvent, toAccessSeating } from '$lib/server/services/event-access';
@@ -64,6 +65,26 @@ async function eventDaysOf(eventId: string): Promise<string[]> {
     .where(eq(eventDays.eventId, eventId))
     .orderBy(asc(eventDays.date));
   return rows.map((row) => row.date);
+}
+
+// « Projets » lists every project on one page.
+const PROJECTS_LIMIT = 100;
+
+/**
+ * The project listed after this one on « Projets », wrapping to the first,
+ * for the project page's « Projet suivant ». Null without another project.
+ */
+async function nextProjectOf(eventId: string) {
+  const { data } = await getAllEvents({ listedOnly: true, portfolioOnly: true, page: 1, limit: PROJECTS_LIMIT });
+  const projects = data as EventWithMedia[];
+  if (projects.length < 2) return null;
+  const index = projects.findIndex((e) => e.id === eventId);
+  const next = projects[(index + 1) % projects.length];
+  return {
+    id: next.id,
+    titleEn: next.titleEn,
+    titleFr: next.titleFr,
+  };
 }
 
 /**
@@ -209,7 +230,8 @@ export const load: PageServerLoad = async ({ params, locals, setHeaders }) => {
   if (access.view === 'portfolio') {
     // No Seatings, prices or booking on a project page (issue 045).
     const days = await eventDaysOf(event.id);
-    return { view: access.view, indexed, ...projectPage(withoutPracticalInfo(event), days), event: null, schedule: [], sessions: [] };
+    const page = projectPage(withoutPracticalInfo(event), days);
+    return { view: access.view, indexed, project: { ...page.project, next: await nextProjectOf(event.id) }, event: null, schedule: [], sessions: [] };
   }
 
   try {

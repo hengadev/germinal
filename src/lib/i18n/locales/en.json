@@ -95,19 +95,8 @@
       "workshops": "Workshops"
     },
     "noEvents": "No projects yet.",
-    "backToAll": "Back to all events",
-    "inCollaborationWith": "in collaboration with",
-    "location": "location",
-    "timings": "timings",
-    "seeEventDates": "See event dates above",
-    "details": "details",
-    "curator": "curator",
-    "materials": "materials",
-    "admission": "admission",
-    "gallery": "Gallery",
     "lunch": "Lunch",
     "dinner": "Dinner",
-    "bookTickets": "Book Tickets",
     "viewDetails": "View Details",
     "searchPlaceholder": "Search events…",
     "clearSearch": "Clear search",
@@ -121,10 +110,44 @@
       "backToProjects": "All projects",
       "photographs": "Photographs",
       "credits": "Credits",
-      "dates": "Dates",
       "venue": "Venue",
+      "curator": "Curated by"
+    },
+    "page": {
+      "book": "Book",
+      "joinWaitlist": "Join the waitlist",
+      "onTheMenu": "On the menu",
       "curator": "Curated by",
-      "collaborators": "In collaboration with"
+      "venue": "Venue",
+      "previewDraft": "Preview — draft",
+      "nextProject": "Next project",
+      "dietaryNote": "You will be asked about allergies and diets when booking.",
+      "seating": {
+        "ended": "Ended",
+        "unavailable": "Unavailable",
+        "opensSoon": "Booking opens soon",
+        "waitlist": "Full — waitlist open",
+        "full": "Full",
+        "lastSeat": "Last seat",
+        "seatsLeft": "{count} seats left",
+        "seats": "{count} seats"
+      },
+      "summary": {
+        "waitlist": "Full — join the waitlist",
+        "past": "Took place"
+      },
+      "price": {
+        "each": "{amount} per guest",
+        "from": "From {amount} per guest",
+        "freeBooking": "Free, booking required"
+      },
+      "viewer": {
+        "close": "Close",
+        "previous": "Previous photo",
+        "next": "Next photo",
+        "open": "Enlarge photo {index}"
+      },
+      "comingUp": "Coming up"
     }
   },
   "talents": {
@@ -252,17 +275,9 @@
     "cancel": "Cancel",
     "continueToPay": "Continue to Payment",
     "processing": "Processing...",
-    "perTicket": "per ticket",
-    "ticketsAvailable": "tickets available",
-    "doors": "Doors",
-    "capacity": "Capacity",
-    "soldOut": "Sold Out",
     "bookingOpensOn": "Bookings open on {date}",
     "bookingClosed": "Bookings closed",
-    "sessionEnded": "Session ended",
-    "notAvailable": "Not Available",
     "joinWaitlist": "Join Waitlist",
-    "bookNow": "Book Now",
     "backToEvent": "Back to event",
     "demoNotice": "Demo mode — fill in the form to preview the booking experience. No real reservation will be created.",
     "demoSuccessMessage": "Demo mode: your booking would be confirmed here. A confirmation email would be sent to {email}",

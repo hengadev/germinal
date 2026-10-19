@@ -20,7 +20,7 @@ test.describe('Events listing page', () => {
 		await page.goto('/events');
 		// h1 exists (text is locale-dependent; don't assert specific string)
 		await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-		// EventCard renders event.titleEn directly (not via $t), so always English
+		// Playwright's en-US locale reads the site in English
 		await expect(page.getByText(LISTING_TITLE_EN)).toBeVisible();
 	});
 
@@ -43,8 +43,7 @@ test.describe('Event detail page', () => {
 	});
 
 	test('renders an h1 hero heading', async ({ page }) => {
-		// Text depends on $locale === 'en' string-check in EventDetailLayout;
-		// Playwright locale 'en-US' won't satisfy that, so just verify the element exists.
+		// The title is the Event's own text; just verify the element exists.
 		await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 	});
 
@@ -60,7 +59,7 @@ test.describe('Event detail page', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Spotlight page — session selector + booking modal
+// Spotlight — leads to its Event's page: Seatings + booking modal
 // ---------------------------------------------------------------------------
 
 test.describe('Spotlight page', () => {
@@ -68,24 +67,21 @@ test.describe('Spotlight page', () => {
 		await page.goto('/spotlight');
 	});
 
-	test('renders spotlight hero and Book Tickets section', async ({ page }) => {
-		// h1 exists (title text uses $locale==='en' check, not $t(); don't assert wording)
+	test('leads to the Event page and its Book section', async ({ page }) => {
+		await expect(page).toHaveURL(`/events/${SPOTLIGHT_ID}`);
 		await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-		// "Book Tickets" h2 is rendered via $t(), which correctly resolves en-US → en
-		await expect(
-			page.getByRole('heading', { name: 'Book Tickets' }).first()
-		).toBeVisible();
+		await expect(page.getByRole('heading', { name: 'Book', level: 2 })).toBeVisible();
 	});
 
-	test('shows session cards with Book Now buttons', async ({ page }) => {
+	test('shows Seatings with Book buttons', async ({ page }) => {
 		// Summer Music Festival 2026 has multiple published sessions, all with capacity > 0
 		await expect(
-			page.getByRole('button', { name: 'Book Now' }).first()
+			page.getByRole('button', { name: 'Book', exact: true }).first()
 		).toBeVisible();
 	});
 
-	test('Book Now opens booking modal with form fields', async ({ page }) => {
-		await page.getByRole('button', { name: 'Book Now' }).first().click();
+	test('Book opens booking modal with form fields', async ({ page }) => {
+		await page.getByRole('button', { name: 'Book', exact: true }).first().click();
 		// Modal renders — heading and core inputs should appear
 		await expect(page.getByLabel('Full Name')).toBeVisible();
 		await expect(page.getByLabel('Email')).toBeVisible();
@@ -93,7 +89,7 @@ test.describe('Spotlight page', () => {
 	});
 
 	test('booking modal Cancel button closes the modal', async ({ page }) => {
-		await page.getByRole('button', { name: 'Book Now' }).first().click();
+		await page.getByRole('button', { name: 'Book', exact: true }).first().click();
 		await expect(page.getByLabel('Full Name')).toBeVisible();
 		await page.getByRole('button', { name: 'Cancel' }).click();
 		await expect(page.getByLabel('Full Name')).not.toBeVisible();

@@ -16,11 +16,9 @@
     let scrolled = $state(false);
     let isMobileMenuOpen = $state(false);
 
-    const isHeroPage = $derived(
-        page.url.pathname === "/" ||
-        page.url.pathname === "/spotlight" ||
-        page.url.pathname.startsWith("/events/")
-    );
+    // Only the home page opens on a full-screen photograph; the Event pages
+    // keep theirs beside the text, under a solid bar.
+    const isHeroPage = $derived(page.url.pathname === "/");
     const showScrolledState = $derived(!isHeroPage || scrolled);
 
     function handleScroll() {

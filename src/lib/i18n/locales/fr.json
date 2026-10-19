@@ -95,19 +95,8 @@
       "workshops": "Ateliers"
     },
     "noEvents": "Aucun projet pour le moment.",
-    "backToAll": "Retour à tous les événements",
-    "inCollaborationWith": "en collaboration avec",
-    "location": "lieu",
-    "timings": "horaires",
-    "seeEventDates": "Voir les dates de l'événement ci-dessus",
-    "details": "détails",
-    "curator": "commissaire",
-    "materials": "matériaux",
-    "admission": "admission",
-    "gallery": "Galerie",
     "lunch": "Déjeuner",
     "dinner": "Dîner",
-    "bookTickets": "Réserver des billets",
     "viewDetails": "Voir les détails",
     "searchPlaceholder": "Rechercher des événements…",
     "clearSearch": "Effacer la recherche",
@@ -121,10 +110,44 @@
       "backToProjects": "Tous les projets",
       "photographs": "Photographies",
       "credits": "Générique",
-      "dates": "Dates",
       "venue": "Lieu",
+      "curator": "Commissariat"
+    },
+    "page": {
+      "book": "Réserver",
+      "joinWaitlist": "Liste d’attente",
+      "onTheMenu": "Au menu",
       "curator": "Commissariat",
-      "collaborators": "En collaboration avec"
+      "venue": "Lieu",
+      "previewDraft": "Aperçu — brouillon",
+      "nextProject": "Projet suivant",
+      "dietaryNote": "Allergies et régimes vous seront demandés à la réservation.",
+      "seating": {
+        "ended": "Terminée",
+        "unavailable": "Indisponible",
+        "opensSoon": "Réservations bientôt ouvertes",
+        "waitlist": "Complet — liste d’attente ouverte",
+        "full": "Complet",
+        "lastSeat": "Dernière place",
+        "seatsLeft": "Il reste {count} places",
+        "seats": "{count} places"
+      },
+      "summary": {
+        "waitlist": "Complet — liste d’attente",
+        "past": "A eu lieu"
+      },
+      "price": {
+        "each": "{amount} par convive",
+        "from": "À partir de {amount} par convive",
+        "freeBooking": "Gratuit, sur réservation"
+      },
+      "viewer": {
+        "close": "Fermer",
+        "previous": "Photo précédente",
+        "next": "Photo suivante",
+        "open": "Agrandir la photo {index}"
+      },
+      "comingUp": "À venir"
     }
   },
   "talents": {
@@ -252,17 +275,9 @@
     "cancel": "Annuler",
     "continueToPay": "Continuer vers le paiement",
     "processing": "Traitement en cours...",
-    "perTicket": "par billet",
-    "ticketsAvailable": "billets disponibles",
-    "doors": "Ouverture",
-    "capacity": "Capacité",
-    "soldOut": "Épuisé",
     "bookingOpensOn": "Réservations à partir du {date}",
     "bookingClosed": "Réservations closes",
-    "sessionEnded": "Session terminée",
-    "notAvailable": "Non disponible",
     "joinWaitlist": "Rejoindre la liste d'attente",
-    "bookNow": "Réserver",
     "backToEvent": "Retour à l'événement",
     "demoNotice": "Mode démo — remplissez le formulaire pour prévisualiser le parcours de réservation. Aucune réservation réelle ne sera créée.",
     "demoSuccessMessage": "Mode démo : votre réservation serait confirmée ici. Un email de confirmation serait envoyé à {email}",

@@ -29,7 +29,7 @@ export function formatCurrency(
  *
  * Trailing zero decimals are dropped so whole amounts stay compact
  * (2500 => '25') — pairs with getCurrencySymbol() for split symbol/amount
- * typography like the SessionSelector price display.
+ * typography.
  */
 export function formatCurrencyAmount(
 	amountInCents: number,
