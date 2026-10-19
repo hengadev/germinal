@@ -748,5 +748,29 @@
       "passwordHelp": "Must be at least 8 characters long",
       "updatePassword": "Update Password"
     }
+  },
+  "homeNext": {
+    "metaTitle": "Germinal, a cultural studio in Paris",
+    "metaDescription": "Germinal makes dinners, exhibitions and workshops in Paris, with chefs, craftspeople and artists, for a few people at a time.",
+    "studioTitle": "Evenings for a few people.",
+    "studioBody": "Germinal is a cultural studio in Paris. We make dinners, exhibitions and workshops with chefs, craftspeople and artists, and we imagine them for others.",
+    "readManifesto": "Read the manifesto",
+    "next": "Next,",
+    "invites": "Germinal invites you to",
+    "guests": "{count} guests",
+    "reserve": "Book",
+    "seeEvent": "See the evening",
+    "noNext": "The next date will be announced here.",
+    "dateline": "Paris, {date}",
+    "studioLine": "Cultural studio",
+    "cardLine": "Cultural studio, Paris",
+    "writeUs": "Write to us",
+    "projectsTitle": "What we have made",
+    "allProjects": "All projects",
+    "latest": "The latest,",
+    "talentsTitle": "At our table",
+    "talentsBody": "The chefs, craftspeople and artists we make our evenings with.",
+    "allTalents": "All talents",
+    "disciplinesTitle": "What we do"
   }
 }

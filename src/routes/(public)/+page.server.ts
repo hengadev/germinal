@@ -6,6 +6,9 @@ import { canBeSpotlight, isListed } from '$lib/utils/event-access';
 import { withoutPracticalInfo } from '$lib/utils/practical-info';
 import { withProjectCover } from '$lib/utils/event-photos';
 import type { PageServerLoad } from './$types';
+import { db } from '$lib/server/db';
+import { events as eventsTable } from '$lib/server/db/schema';
+import { and, asc, eq, gt } from 'drizzle-orm';
 import type { EventWithMedia } from '$lib/types/events';
 import type { TalentWithMedia } from '$lib/types/talents';
 
@@ -23,6 +26,7 @@ export const load: PageServerLoad = async () => {
             talents: MOCK_TALENTS as unknown as TalentWithMedia[],
             heroImage: null,
             heroVideo: null,
+            prototypeStandIn: null,
         };
     }
 
@@ -35,7 +39,13 @@ export const load: PageServerLoad = async () => {
         getSpotlightEvent(),
     ]);
 
+    // PROTOTYPE — wipe me with prototype-home: without a Spotlight, the
+    // nearest upcoming public Event stands in, so that the home variants
+    // can be seen in both states (?spot=on|off). Read-only.
+    const prototypeStandIn = spotlightEvent ? null : await nearestUpcomingEvent();
+
     return {
+        prototypeStandIn,
         events: eventsResult.data as EventWithMedia[],
         talents: talentsResult.data as TalentWithMedia[],
         heroImage: siteSettings?.heroImage ?? null,
@@ -45,3 +55,14 @@ export const load: PageServerLoad = async () => {
         spotlightEvent: spotlightEvent as EventWithMedia | null,
     };
 };
+
+// PROTOTYPE — see prototypeStandIn above.
+async function nearestUpcomingEvent(): Promise<EventWithMedia | null> {
+    const event = await db.query.events.findFirst({
+        where: and(eq(eventsTable.visibility, 'public'), eq(eventsTable.isPortfolio, false), gt(eventsTable.startDate, new Date())),
+        orderBy: [asc(eventsTable.startDate)],
+        columns: { internalNotes: false },
+        with: { coverMedia: true, coverVideo: true, media: true },
+    });
+    return event ? (withoutPracticalInfo(event) as unknown as EventWithMedia) : null;
+}

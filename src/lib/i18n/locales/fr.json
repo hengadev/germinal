@@ -748,5 +748,29 @@
       "passwordHelp": "Doit contenir au moins 8 caractères",
       "updatePassword": "Mettre à jour le mot de passe"
     }
+  },
+  "homeNext": {
+    "metaTitle": "Germinal, studio culturel à Paris",
+    "metaDescription": "Germinal fait des dîners, des expositions et des ateliers à Paris, avec des chefs, des artisans et des artistes, pour peu de monde à la fois.",
+    "studioTitle": "Des soirées pour peu de monde.",
+    "studioBody": "Germinal est un studio culturel à Paris. Nous faisons des dîners, des expositions et des ateliers avec des chefs, des artisans et des artistes, et nous en imaginons pour d’autres.",
+    "readManifesto": "Lire le manifeste",
+    "next": "La prochaine,",
+    "invites": "Germinal vous invite à",
+    "guests": "{count} convives",
+    "reserve": "Réserver",
+    "seeEvent": "Voir la soirée",
+    "noNext": "La prochaine date sera annoncée ici.",
+    "dateline": "Paris, {date}",
+    "studioLine": "Studio culturel",
+    "cardLine": "Studio culturel, Paris",
+    "writeUs": "Nous écrire",
+    "projectsTitle": "Ce que nous avons fait",
+    "allProjects": "Tous les projets",
+    "latest": "Le dernier,",
+    "talentsTitle": "À notre table",
+    "talentsBody": "Les chefs, les artisans et les artistes avec qui nous faisons nos soirées.",
+    "allTalents": "Tous les talents",
+    "disciplinesTitle": "Ce que nous faisons"
   }
 }
