@@ -24,7 +24,8 @@
     let filters = $derived(
         filterKeys.map((key) => $t(`contact.filters.${key}`)),
     );
-    let selectedIndex = $state(0);
+    // A link can choose the subject: /contact?subject=new_project.
+    let selectedIndex = $state(Math.max(filterValues.indexOf(page.url.searchParams.get("subject") ?? ""), 0));
     let isSubmitting = $state(false);
 
     interface Link {
