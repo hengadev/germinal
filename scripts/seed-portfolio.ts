@@ -1,6 +1,7 @@
 /**
  * Local dev data for designing "Projets" and the Event page: seven past
- * Events (six in the Portfolio, one not), with Days, Services, Seatings,
+ * Events (six in the Portfolio, one not) and three upcoming ones (rich,
+ * sparse and free, booking not open yet), with Days, Services, Seatings,
  * Menus, Collaborators, Visuals, Event Photos, Recaps and alt text, and the
  * six Talents they credit.
  *
@@ -107,6 +108,19 @@ const P = {
 	singer: { file: 'Simphiwe Dana Wien2007a.jpg', author: 'Tsui', license: 'CC BY-SA 3.0', altFr: 'Une chanteuse au micro, tête baissée', altEn: 'A singer at the microphone, head bowed' },
 } satisfies Record<string, Photo>;
 
+/** Commons rate-limits bursts (429, or a plain-text refusal): wait and retry. */
+async function politeFetch(url: URL | string): Promise<Buffer> {
+	const headers = { 'User-Agent': 'germinal-dev-seed/1.0 (local development data)' };
+	for (let attempt = 1; ; attempt++) {
+		const response = await fetch(url, { headers });
+		const body = Buffer.from(await response.arrayBuffer());
+		const refused = !response.ok || body.subarray(0, 40).toString().includes('too many requests');
+		if (!refused) return body;
+		if (attempt === 8) throw new Error(`Commons kept refusing ${url} (${response.status})`);
+		await new Promise((resolve) => setTimeout(resolve, attempt * 10_000));
+	}
+}
+
 async function photoBytes(photo: Photo): Promise<Buffer> {
 	await mkdir(CACHE, { recursive: true });
 	const path = join(CACHE, photo.file.replace(/[^\w.-]+/g, '_'));
@@ -118,11 +132,10 @@ async function photoBytes(photo: Photo): Promise<Buffer> {
 	}
 	const api = new URL('https://commons.wikimedia.org/w/api.php');
 	api.search = new URLSearchParams({ action: 'query', format: 'json', titles: `File:${photo.file}`, prop: 'imageinfo', iiprop: 'url', iiurlwidth: '2000' }).toString();
-	const headers = { 'User-Agent': 'germinal-dev-seed/1.0 (local development data)' };
-	const info = (await (await fetch(api, { headers })).json()) as { query: { pages: Record<string, { imageinfo?: { thumburl: string }[] }> } };
+	const info = JSON.parse((await politeFetch(api)).toString()) as { query: { pages: Record<string, { imageinfo?: { thumburl: string }[] }> } };
 	const url = Object.values(info.query.pages)[0]?.imageinfo?.[0]?.thumburl;
 	if (!url) throw new Error(`Commons has no file "${photo.file}"`);
-	const bytes = Buffer.from(await (await fetch(url, { headers })).arrayBuffer());
+	const bytes = await politeFetch(url);
 	await writeFile(path, bytes);
 	return bytes;
 }
@@ -177,13 +190,21 @@ const CATEGORIES = [
 // ---------------------------------------------------------------------------
 
 type TalentKey = (typeof TALENTS)[number]['key'];
-type ServiceSpec = { kind: 'lunch' | 'dinner'; seatings: string[]; durationMinutes: number; price: number };
+type MenuSpec = { nameFr: string; nameEn: string; descriptionFr: string; descriptionEn: string };
+type SeatingSpec = {
+	time: string; badge?: 'vip' | 'limited' | 'featured' | 'popular' | 'best_value';
+	/** Places left; 10% of capacity by default. */
+	available?: number; waitlist?: boolean;
+	titleFr?: string; titleEn?: string; descriptionFr?: string; descriptionEn?: string;
+};
+/** `price: null` is « prix communiqué prochainement »; `menu` overrides the Event's. */
+type ServiceSpec = { kind: 'lunch' | 'dinner'; seatings: (string | SeatingSpec)[]; durationMinutes: number; price: number | null; menu?: MenuSpec };
 type EventSpec = {
-	titleFr: string; titleEn: string; subtitleFr: string; subtitleEn: string;
+	titleFr: string; titleEn: string; subtitleFr?: string; subtitleEn?: string;
 	descriptionFr: string; descriptionEn: string;
 	venueNameFr: string; venueNameEn?: string; streetAddress: string; district?: string; city: string; postalCode: string;
 	capacity: number; deposit: { type: 'none' | 'fixed' | 'percent'; value: number };
-	menu: { nameFr: string; nameEn: string; descriptionFr: string; descriptionEn: string };
+	menu: MenuSpec;
 	days: { date: string; services: ServiceSpec[] }[];
 	collaborators: { talent: TalentKey; roleFr: string }[];
 	timings: { label: string; time: string }[];
@@ -191,6 +212,10 @@ type EventSpec = {
 	visuals: Photo[]; photos: Photo[];
 	recapFr?: string; recapEn?: string;
 	portfolio: boolean;
+	/** Booking Window opening, ISO with offset; null: open once published. */
+	bookingOpensAt?: string;
+	refundTiers?: { hoursBefore: number; percent: number }[];
+	askDietary?: boolean;
 };
 
 const EVENTS: EventSpec[] = [
@@ -211,7 +236,10 @@ const EVENTS: EventSpec[] = [
 		collaborators: [{ talent: 'chef', roleFr: 'Cuisine' }, { talent: 'scenographer', roleFr: 'Scénographie et lumière' }],
 		timings: [{ label: 'Accueil', time: '19:45' }, { label: 'Dîner', time: '20:00' }],
 		admissionFr: 'Table partagée. Le dîner se déroule à la seule lumière des bougies.', admissionEn: 'Shared table. Dinner is served by candlelight only.',
-		visuals: [P.candles, P.candleOrb], photos: [P.diningRoom, P.breadWine, P.pastries, P.dessertWine, P.cheeseAsh],
+		visuals: [P.candles, P.candleOrb],
+		// A full series (20 photos), to design the project page for 10–30 photos.
+		photos: [P.diningRoom, P.breadWine, P.pastries, P.dessertWine, P.cheeseAsh, P.candles, P.candleOrb, P.whiteTable, P.glassesTable, P.tableSet,
+			P.castella, P.cheeseSlate, P.knife, P.wineGlassVines, P.vineHills, P.crumbDetail, P.breadPlate, P.kifli, P.loaf, P.teapots],
 		recapFr: 'Deux nuits, soixante-douze convives, et pas une ampoule allumée. On est arrivés en parlant fort, on est repartis en chuchotant.\n\nLe bouillon de cèpes a ouvert la soirée dans des bols tenus à deux mains. Le chevreuil est arrivé sur de grands plats que chacun faisait passer à son voisin. Au dessert, plusieurs tables ont soufflé leurs bougies d’elles-mêmes pour finir la poire dans le noir complet.\n\nCe qu’on retient : la lumière basse change la façon de manger. On goûte plus lentement, on écoute davantage.',
 		recapEn: 'Two nights, seventy-two guests, and not a single bulb switched on. People arrived talking loudly and left whispering.\n\nThe porcini broth opened the evening in bowls held with both hands. The venison came on large platters that everyone passed to their neighbour. At dessert, several tables blew out their candles on their own to finish the pear in complete darkness.\n\nWhat stays with us: low light changes how people eat. They taste more slowly and listen more.',
 		portfolio: true,
@@ -337,6 +365,80 @@ const EVENTS: EventSpec[] = [
 		visuals: [P.percussion, P.trombone, P.singer], photos: [],
 		portfolio: false,
 	},
+	// Upcoming Events, for the bookable states of the Event page.
+	{
+		titleFr: 'Braises', titleEn: 'Embers',
+		subtitleFr: 'Deux jours de cuisine au feu de bois, du déjeuner au dernier service', subtitleEn: 'Two days of wood-fire cooking, from lunch to the last sitting',
+		descriptionFr: 'Margaux Ferrand installe sa cuisine autour d’un foyer ouvert, au milieu de la salle. Tout ce qui est servi passe par le feu : les légumes enfouis sous la cendre, le poisson à la flamme, le pain cuit sur la pierre, le dessert fumé au dernier moment.\n\nInès Morel a tourné la vaisselle dans une terre qui supporte la braise. Paul Arnaud a réduit la lumière à celle du foyer et de quelques lampes basses. Antoine Lacaze accorde des vins de la vallée du Rhône, servis à la température de la pièce.\n\nLe vendredi soir, deux services. Le samedi, un déjeuner plus court et un dîner long, qui se termine quand le feu s’éteint.',
+		descriptionEn: 'Margaux Ferrand sets up her kitchen around an open hearth in the middle of the room. Everything served goes through the fire: vegetables buried in the ashes, fish cooked over the flame, bread baked on the stone, dessert smoked at the last moment.\n\nInès Morel threw the tableware in a clay that can take the embers. Paul Arnaud reduced the light to the hearth and a few low lamps. Antoine Lacaze pairs wines from the Rhône valley, served at room temperature.\n\nOn Friday evening, two sittings. On Saturday, a shorter lunch and a long dinner that ends when the fire goes out.',
+		venueNameFr: 'Ancienne imprimerie', venueNameEn: 'The former printworks', streetAddress: '12 rue des Vinaigriers', district: 'Canal Saint-Martin', city: 'Paris', postalCode: '75010',
+		capacity: 28, deposit: { type: 'percent', value: 30 },
+		refundTiers: [{ hoursBefore: 168, percent: 100 }, { hoursBefore: 48, percent: 50 }],
+		askDietary: true,
+		menu: { nameFr: 'Menu du foyer', nameEn: 'Hearth menu',
+			descriptionFr: 'Pain cuit sur la pierre, beurre fumé\nPoireaux sous la cendre, vinaigrette aux noisettes\nTruite à la flamme, oseille\nCôte de cochon fermier, pommes de terre en croûte de braise\nFromage de chèvre passé au feu, miel\nPoire fumée, crème crue',
+			descriptionEn: 'Stone-baked bread, smoked butter\nLeeks in the ashes, hazelnut vinaigrette\nFlame-cooked trout, sorrel\nFarm pork chop, ember-crusted potatoes\nFire-kissed goat cheese, honey\nSmoked pear, raw cream' },
+		days: [
+			{ date: '2026-11-27', services: [{ kind: 'dinner', durationMinutes: 150, price: 9500, seatings: [
+				{ time: '19:30', available: 9 },
+				{ time: '21:30', badge: 'vip', available: 4, titleFr: 'La table du chef', titleEn: 'The chef’s table',
+					descriptionFr: 'Six places au comptoir, face au foyer. Un plat de plus, servi par Margaux Ferrand.', descriptionEn: 'Six seats at the counter, facing the hearth. One extra course, served by Margaux Ferrand.' },
+			] }] },
+			{ date: '2026-11-28', services: [
+				{ kind: 'lunch', durationMinutes: 120, price: 6500, seatings: [{ time: '12:30', badge: 'limited', available: 3 }],
+					menu: { nameFr: 'Déjeuner du foyer', nameEn: 'Hearth lunch',
+						descriptionFr: 'Pain cuit sur la pierre, beurre fumé\nSoupe de courge cuite sous la cendre\nTruite à la flamme, oseille\nPoire fumée, crème crue',
+						descriptionEn: 'Stone-baked bread, smoked butter\nSquash soup cooked under the ashes\nFlame-cooked trout, sorrel\nSmoked pear, raw cream' } },
+				{ kind: 'dinner', durationMinutes: 210, price: 9500, seatings: [{ time: '20:00', available: 0, waitlist: true }] },
+			] },
+		],
+		collaborators: [{ talent: 'chef', roleFr: 'Cuisine' }, { talent: 'ceramist', roleFr: 'Vaisselle' }, { talent: 'scenographer', roleFr: 'Scénographie et lumière' }, { talent: 'sommelier', roleFr: 'Vins' }],
+		timings: [{ label: 'Accueil', time: '19:15' }, { label: 'Premier service', time: '19:30' }, { label: 'Second service', time: '21:30' }],
+		curator: 'Margaux Ferrand',
+		admissionFr: 'Table partagée autour du foyer. Tenue chaude conseillée : la salle n’est chauffée que par le feu.', admissionEn: 'Shared table around the hearth. Dress warmly: the room is heated by the fire alone.',
+		// Many Visuals (16), to design the announcement for 10–30 photos.
+		visuals: [P.knife, P.breadWine, P.cheeseAsh, P.glassesTable, P.dessertWine, P.candles, P.candleOrb, P.diningRoom,
+			P.pastries, P.whiteTable, P.tableSet, P.oysterPlate, P.castella, P.cheeseSlate, P.loaf, P.kifli], photos: [],
+		portfolio: false,
+	},
+	{
+		titleFr: 'Atelier ouvert', titleEn: 'Open studio',
+		descriptionFr: 'Inès Morel ouvre son atelier de Montreuil pour un déjeuner simple, servi dans les pièces de la dernière cuisson.',
+		descriptionEn: 'Inès Morel opens her Montreuil studio for a simple lunch, served in the pieces from the latest firing.',
+		venueNameFr: 'Atelier Inès Morel', venueNameEn: 'Inès Morel’s studio', streetAddress: '14 rue de l’Église', city: 'Montreuil', postalCode: '93100',
+		capacity: 20, deposit: { type: 'none', value: 0 },
+		menu: { nameFr: 'Déjeuner d’atelier', nameEn: 'Studio lunch',
+			descriptionFr: 'Soupe du jour\nPain et fromages\nFruits de saison',
+			descriptionEn: 'Soup of the day\nBread and cheeses\nSeasonal fruit' },
+		days: [{ date: '2026-11-14', services: [{ kind: 'lunch', durationMinutes: 120, price: 0, seatings: [{ time: '12:30', available: 14 }] }] }],
+		collaborators: [{ talent: 'ceramist', roleFr: 'Céramique' }],
+		timings: [],
+		visuals: [P.teapots], photos: [],
+		portfolio: false,
+	},
+	{
+		titleFr: 'Fournée de décembre', titleEn: 'December bake',
+		subtitleFr: 'Le fournil ouvert pour les fêtes', subtitleEn: 'The bakehouse open for the holidays',
+		descriptionFr: 'Lucas Besson rallume le four à bois pour deux journées de fête : un atelier le matin pour façonner sa brioche, un dîner le soir autour des pains de Noël.\n\nLe prix du déjeuner sera annoncé avec l’ouverture des réservations.',
+		descriptionEn: 'Lucas Besson relights the wood-fired oven for two festive days: a morning workshop to shape your brioche, a dinner in the evening around the Christmas breads.\n\nThe lunch price will be announced when booking opens.',
+		venueNameFr: 'Le fournil de la rue Oberkampf', venueNameEn: 'The rue Oberkampf bakehouse', streetAddress: '91 rue Oberkampf', city: 'Paris', postalCode: '75011',
+		capacity: 16, deposit: { type: 'fixed', value: 2000 },
+		bookingOpensAt: '2026-11-02T10:00:00+01:00',
+		menu: { nameFr: 'Dîner du fournil', nameEn: 'Bakehouse dinner',
+			descriptionFr: 'Pain d’épices et foie gras\nVelouté de châtaigne\nVolaille rôtie au four à pain\nBrioche des rois, crème d’agrumes',
+			descriptionEn: 'Gingerbread and foie gras\nChestnut velouté\nBread-oven roast poultry\nKings’ brioche, citrus cream' },
+		days: [
+			{ date: '2026-12-19', services: [
+				{ kind: 'lunch', durationMinutes: 150, price: null, seatings: [{ time: '12:00', available: 16 }] },
+				{ kind: 'dinner', durationMinutes: 180, price: 8000, seatings: [{ time: '20:00', available: 16 }] },
+			] },
+			{ date: '2026-12-20', services: [{ kind: 'dinner', durationMinutes: 180, price: 8000, seatings: [{ time: '20:00', available: 16 }] }] },
+		],
+		collaborators: [{ talent: 'baker', roleFr: 'Atelier et pain' }],
+		timings: [{ label: 'Atelier', time: '09:30' }, { label: 'Dîner', time: '20:00' }],
+		visuals: [P.kifli, P.loaf], photos: [],
+		portfolio: false,
+	},
 ];
 
 // ---------------------------------------------------------------------------
@@ -401,23 +503,29 @@ async function seedEvent(spec: EventSpec, people: Awaited<ReturnType<typeof seed
 		currency: 'EUR', visibility: 'public', isPortfolio: spec.portfolio,
 		recapFr: spec.recapFr ?? null, recapEn: spec.recapEn ?? null,
 		internalNotes: credits(spec),
+		bookingOpensAt: spec.bookingOpensAt ? new Date(spec.bookingOpensAt) : null,
+		...(spec.refundTiers ? { refundPolicyTiers: spec.refundTiers } : {}),
+		askDietaryRequirements: spec.askDietary ?? false,
 	}).returning();
 
 	const [menu] = await db.insert(eventMenus).values({ eventId: event.id, ...spec.menu }).returning();
 	for (const day of spec.days) {
 		const [dayRow] = await db.insert(eventDays).values({ eventId: event.id, date: day.date }).returning();
 		for (const svc of day.services) {
+			const menuId = svc.menu ? (await db.insert(eventMenus).values({ eventId: event.id, ...svc.menu }).returning())[0].id : menu.id;
 			const [service] = await db.insert(eventServices).values({
-				dayId: dayRow.id, kind: svc.kind, defaultSeatingDurationMinutes: svc.durationMinutes, menuId: menu.id, priceAmount: svc.price,
+				dayId: dayRow.id, kind: svc.kind, defaultSeatingDurationMinutes: svc.durationMinutes, menuId, priceAmount: svc.price,
 			}).returning();
-			for (const clock of svc.seatings) {
-				const start = wallClockToInstant(day.date, minutes(clock), ZONE);
-				const reserved = Math.round(spec.capacity * 0.9);
+			for (const entry of svc.seatings) {
+				const seating: SeatingSpec = typeof entry === 'string' ? { time: entry } : entry;
+				const start = wallClockToInstant(day.date, minutes(seating.time), ZONE);
 				await db.insert(eventSessions).values({
 					eventId: event.id, serviceId: service.id,
 					startTime: start, endTime: new Date(start.getTime() + svc.durationMinutes * 60_000),
-					totalCapacity: spec.capacity, availableCapacity: spec.capacity - reserved,
-					published: true, allowWaitlist: false,
+					totalCapacity: spec.capacity, availableCapacity: seating.available ?? spec.capacity - Math.round(spec.capacity * 0.9),
+					published: true, allowWaitlist: seating.waitlist ?? false, badgeType: seating.badge ?? 'none',
+					titleFr: seating.titleFr ?? null, titleEn: seating.titleEn ?? null,
+					descriptionFr: seating.descriptionFr ?? null, descriptionEn: seating.descriptionEn ?? null,
 				});
 			}
 		}
@@ -443,7 +551,8 @@ if (removed) console.log(`Removed ${removed} previously seeded Events.`);
 const people = await seedTalents();
 for (const spec of EVENTS) {
 	const id = await seedEvent(spec, people);
-	console.log(`${spec.portfolio ? 'Portfolio' : 'Past     '}  ${spec.days[0].date}  ${spec.titleFr}  /events/${id}`);
+	const label = spec.portfolio ? 'Portfolio' : spec.days[0].date > new Date().toISOString().slice(0, 10) ? 'Upcoming ' : 'Past     ';
+	console.log(`${label}  ${spec.days[0].date}  ${spec.titleFr}  /events/${id}`);
 }
 console.log(`Seeded ${EVENTS.length} Events and ${TALENTS.length} Talents.`);
 await client.end();
