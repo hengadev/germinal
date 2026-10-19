@@ -76,7 +76,7 @@ components:
 
 Germinal reads like a magazine profiling a studio, not a platform selling tickets. The default register is calm and restrained: near-black ink on white paper, a display serif carrying the emotional weight of headlines, generous whitespace, and thin dividers standing in for card chrome. Nothing about the resting state raises its voice — no shadows, no rounded softness, no color noise. That calm is deliberate, not timid: the confidence is in what's left out.
 
-> **Deferred:** an access-tiering treatment (an inverted block marking VIP/"Members only" sessions as behind a threshold) was explored during init and parked — not active guidance. The parked spec lives in §4 Elevation and §5 Components, clearly marked, in case this gets revived later.
+The one deliberate exception to that flatness is the Threshold Rule (§4): a VIP Seating inverts to an ink block, marking it as behind a threshold.
 
 This system explicitly rejects two things named in PRODUCT.md: the generic ticketing-platform look (thumbnail card grids, marketplace density, badges scattered everywhere) and the corporate SaaS aesthetic (startup-cream backgrounds, hero-metric sections, dashboard chrome bleeding into public pages). Germinal is a cultural brand being read, not a product being adopted.
 
@@ -135,7 +135,7 @@ The resting system is flat by default: no box-shadows, no rounded corners on int
 ### Named Rules
 **The Flat-By-Default Rule.** No component may introduce a shadow or non-zero border-radius on public pages without a specific, stated reason (the ticket confirmation card's `rounded-xl`/`shadow-mini` is the one existing exception, justified by its receipt-like, physical-object framing — not a precedent for general use).
 
-> **Deferred — The Threshold Rule (parked, not active).** An access-tiering treatment was explored: content behind a threshold (a VIP-badged Session, or one carrying restrictive Admission Info like "Members only") would flip to an inverted block — ink background (#171717), paper text, generous internal padding (24px+), still flat. The idea was tabled because "VIP"/"Members only" are currently editorial-only labels with no actual access enforcement behind them (see `CONTEXT.md`) — the visual signal would have implied a gate that doesn't exist. Revisit if/when real access tiering is built. Until then, this rule is not in effect: nothing should invert.
+**The Threshold Rule.** Content behind a threshold flips to an inverted block: ink background (#171717), paper text, still flat, with padding of its own (16px+). Today the one trigger is a VIP-badged Seating, in the Event page's booking list; restrictive Admission Info (e.g. "Members only") will join it once the model can say an Event is restricted. Never invert open content for emphasis or decoration: the block's meaning depends on its rarity. Other Seating badges (featured, popular, best value) are not shown publicly; Limited reads as its status line ("Il reste 3 places"), not as a badge.
 
 ## 5. Components
 
@@ -144,7 +144,7 @@ The resting system is flat by default: no box-shadows, no rounded corners on int
 - **Primary:** ink background (#171717), paper text, 12–16px vertical / 24–32px horizontal padding, medium weight label.
 - **Hover:** background steps to Ink Soft (#525252); no scale, no shadow — a color-only transition.
 - **Outline/Secondary:** paper background, 1px border in `border-input` (ink at 17% opacity), Ink Soft text; hover fills to Surface (#ededed).
-- **Threshold variant (new):** same sharp geometry, but rendered inside an inverted block (see §4) — an ink-background button becomes a paper-background button with ink text, inverting to stay legible against the dark surface.
+- **Threshold variant:** same sharp geometry, inside an inverted block (see §4): the ink button becomes a paper button with ink text, to stay legible on the dark surface.
 
 ### Cards (Event / Talent listings)
 - **Corner Style:** none — flat rectangular image with no radius.
@@ -153,8 +153,17 @@ The resting system is flat by default: no box-shadows, no rounded corners on int
 - **Divider:** a single 1px horizontal rule (`border-border-card` at ~40% opacity) between image and text block, standing in for a card boundary.
 - **Internal spacing:** text block sits 16–24px below the divider; title (medium weight body), location (small, muted), date (label style, uppercase, tracked).
 
-### Threshold Block (deferred — not built, not in use)
-Parked spec, kept for reference only: an inverted block (ink background, paper text) wrapping a Session's booking panel when access-gated. See §4 Elevation for why this was tabled. Do not implement until access tiering is a real, revisited decision.
+### Event page (announcement and Portfolio project)
+- **Layout — the photographs are the page:** on desktop a still left column (4–5 of 12 columns, its own scroll when it runs long) holds the title, dates and venue, the price and « Réserver », the text and credits, the Menus and the booking list; the photographs stream down the right at full width and their own proportions, each with a small mono count (« 03 / 16 »). On phones: the head, the photographs, then the rest, with a fixed « Réserver » bar at the bottom while booking is open.
+- **Photographs:** full colour (grayscale is a listing treatment), no crop. Any photograph opens a full-screen viewer on paper: count, title, caption from its alt text, ← / → and swipe, Escape to close.
+- **Booking list:** Days in display type, each Service's price once (mono), the Deposit note under it, then Seatings as flat rows separated by hairlines, in time order: time (mono), optional title, the status in italic (« 9 places », « Il reste 3 places », « Complet — liste d'attente ouverte »), and the action. A VIP Seating is a Threshold Block. What is paid when, the Refund Policy and the dietary question close the list in small muted text.
+- **Project page:** the same layout, with the Recap (first paragraph as the lead), credits, venue and « Projet suivant » in the column, and the Event Photos as the stream.
+
+### « Projets » index
+A typographic list, one row per project: year (mono), title in display type, venue and city. On desktop the cover of the row under the pointer floats in the right column at the pointer's height, easing after it as the pointer moves or the page scrolls; the other titles step back to muted. Keyboard focus brings the cover to the focused row. On phones each row carries its cover, grayscale.
+
+### Threshold Block
+An inverted block (ink background, paper text, flat) around one item behind a threshold — today a VIP Seating's row in the booking list. Its button is the threshold variant (see Buttons). See §4 for when it applies.
 
 ### Inputs / Fields
 - **Style:** flat, bordered with `border-input` (ink at 17% opacity), no fill color change at rest.
@@ -162,7 +171,7 @@ Parked spec, kept for reference only: an inverted block (ink background, paper t
 - **Height:** matches the `--spacing-input` (3rem) / `--spacing-input-sm` (2.5rem) tokens already defined in the theme scale.
 
 ### Navigation
-- **Style:** fixed header, transparent over hero imagery (white text/logo), crossfades to a solid paper background with a bottom border once scrolled or on non-hero pages.
+- **Style:** fixed header, transparent over the home page's hero imagery (white text/logo), crossfades to a solid paper background with a bottom border once scrolled; solid on every other page, the Event pages included.
 - **Typography:** wordmark in Gilda Display, uppercase; nav links in medium-weight body text; active link gets full ink weight (bold) rather than an underline or color accent.
 - **Mobile:** slide-in drawer; active item gets a filled `surface-hover` background block with rounded corners (`rounded-lg`) — the one place rounded corners are standard, scoped to the mobile drawer's list-item affordance.
 
