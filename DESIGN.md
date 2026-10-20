@@ -32,6 +32,18 @@ typography:
     fontWeight: 500
     lineHeight: 1.4
     letterSpacing: "0.15em"
+  poster:
+    fontFamily: "Gilda Display, serif"
+    fontSize: "3.4rem"
+    fontWeight: 400
+    lineHeight: 1.12
+    letterSpacing: "normal"
+  poster-sm:
+    fontFamily: "Gilda Display, serif"
+    fontSize: "1.65rem"
+    fontWeight: 400
+    lineHeight: 1.18
+    letterSpacing: "normal"
   mono:
     fontFamily: "Source Code Pro, monospace"
     fontSize: "0.875rem"
@@ -123,17 +135,22 @@ Almost monochrome: ink and paper carry the entire resting-state palette, with gr
 - **Headline** (400, 1.75–3rem, Gilda Display): section headings within a page (manifesto service titles, event page section titles).
 - **Body** (400, 1rem–1.25rem, line-height 1.6, Newsreader): running copy, capped at 65–75ch (`max-w-prose`). Primary body copy uses Ink Soft (#525252), not full ink — a deliberate softening for long reads.
 - **Label** (500, 0.625rem, letter-spacing 0.15em, uppercase, Newsreader): the "eyebrow" register — section labels, dates, category tags. Always uppercase, always widely tracked, always small. This is the one recurring structural device in the system; use it for genuine section labels, not as a decorative flourish on every block.
+- **Poster** (400, 1.65rem on phones / 3.4rem from `lg`, line-height 1.18 / 1.12, Gilda Display): the Manifesto's six sentences set as one running paragraph. Between Headline and Display on purpose: the whole poster has to fit one pinned screen, at every width.
 - **Mono/Data** (500, 0.875rem, Source Code Pro): prices, reservation codes, countdown timers, ticket tokens. Signals "this is a real, exact value," distinct from editorial prose.
 
 ### Named Rules
+**The Hair-Space Rule.** Gilda Display sets an apostrophe over the accent of the letter after it (« n’êtes »). Where Gilda sets running French at poster size, a hair space (U+200A) goes between them (`apostrophes()` in `$lib/components/manifesto/manifesto.ts`).
+
 **The One Serif Family Per Role Rule.** Display text is always Gilda Display; body and label text are always Newsreader. Never substitute a sans-serif into either role — the sans imports present in the codebase (Inter) are reserved for non-brand system chrome (e.g. install prompts) and must not leak into public-facing pages.
 
 ## 4. Elevation
 
-The resting system is flat by default: no box-shadows, no rounded corners on interactive elements, no card chrome. Structure is conveyed through whitespace, thin 1px dividers (`border-border-card` at 10% opacity), and — for imagery — a grayscale-to-full-color transition on hover, which is the system's only "reveal" gesture at rest.
+The resting system is flat by default: no box-shadows, no rounded corners on interactive elements, no card chrome. Structure is conveyed through whitespace, thin 1px dividers (`border-border-card` at 10% opacity), and — for imagery — a grayscale-to-full-color transition on hover, which is the system's only "reveal" gesture at rest. The Manifesto's poster is the one place scrolling itself composes the page (see Components).
 
 ### Named Rules
 **The Flat-By-Default Rule.** No component may introduce a shadow or non-zero border-radius on public pages without a specific, stated reason (the ticket confirmation card's `rounded-xl`/`shadow-mini` is the one existing exception, justified by its receipt-like, physical-object framing — not a precedent for general use).
+
+**The Visible-Continuation Rule.** A section that pins under the navigation while scrolling drives it must show from its first screen that more follows: lines still to come in faint proof (ink at 12%), never one finished-looking slide replaced by the next. Each step stays set once read, the last step shows the whole, and it holds for one more step before scrolling away with the page. A visitor must never have to guess that scrolling does something. Text inside the staging is `aria-hidden`, with the same text for screen readers beside it, and nothing inside it takes keyboard focus.
 
 **The Threshold Rule.** Content behind a threshold flips to an inverted block: ink background (#171717), paper text, still flat, with padding of its own (16px+). Today the one trigger is a VIP-badged Seating, in the Event page's booking list; restrictive Admission Info (e.g. "Members only") will join it once the model can say an Event is restricted. Never invert open content for emphasis or decoration: the block's meaning depends on its rarity. Other Seating badges (featured, popular, best value) are not shown publicly; Limited reads as its status line ("Il reste 3 places"), not as a badge.
 
@@ -162,6 +179,23 @@ The resting system is flat by default: no box-shadows, no rounded corners on int
 ### « Projets » index
 A typographic list, one row per project: year (mono), title in display type, venue and city. On desktop the cover of the row under the pointer floats in the right column at the pointer's height, easing after it as the pointer moves or the page scrolls; the other titles step back to muted. Keyboard focus brings the cover to the focused row. On phones each row carries its cover, grayscale.
 
+### Home page
+Top to bottom:
+- **Hero:** one photograph, edge to edge and full height (`h-svh`), under a shade from 60% at the top (so the navigation reads) through 30% to 82% at the bottom (so the words read). With a Spotlight: its cover, « Prochainement » in italic over its title in display type, the dates (paper) and the place, and a paper « Réserver » button. Without one: the hero image or video chosen in Admin › Settings, else the latest project's cover with its title and year as an italic caption bottom right; the Manifesto's title as the h1, « Tous les projets » and « Lire le manifeste ». A hero video holds still under reduced motion.
+- **The studio, always:** its title in display type on the left, the paragraph and « Lire le manifeste » on the right.
+- **« Ce que nous avons fait »:** the Portfolio as panels side by side. One is always open (five times as wide, full colour, title, subtitle, place and year over a bottom gradient); the others are narrow, at 60% grayscale, with their title written up the edge. The pointer or keyboard focus opens a panel, and it stays open when the pointer leaves; focus draws a 2px paper ring inside the panel. On phones: a strip of 4:5 photographs to swipe. Hidden when there is no project.
+- **« À notre table »:** the Talents as a frieze, photographs of uneven heights standing on one line, grayscale except the current one, name and craft beneath; the current Talent's quote set large under the row. On phones: a strip to swipe.
+- **« Ce que nous faisons »:** the three disciplines as three ruled lines, the name in display type and its tagline in italic, each linking to its plate in the Manifesto.
+- **« Écrivez-nous. »** (below).
+
+### Manifesto
+- **Poster:** the title and the intro, then the six sentences as one paragraph in the Poster style on a stage that pins under the navigation (see the Visible-Continuation Rule). Each scroll step (0.8 of the viewport) brings one sentence from proof to ink, opens a small photograph of a past project inside the line (after its first comma, or where the locale's `photoAfter` says), and shows its gloss beneath on the right; sentences already read step back to Ink Soft. The last step shows the poster complete with the signature.
+- **« Ce que nous faisons » — plates:** each discipline as a plate in a monograph: a large photograph (square from `lg`, grayscale until hovered) on one side, the name in display type set across its edge with `mix-blend-mode: difference` (ink on the paper, paper on the photograph), the tagline in italic, the description and four points between hairlines on the other. The plates alternate sides; each carries the anchor the home page links to.
+- **« Écrivez-nous. »** (below).
+
+### « Écrivez-nous. » (closing letter)
+Shared by the home page and the Manifesto. The title and a short paragraph on the left; on the right, what is needed to begin, as three lines in display type between hairlines (« Un lieu, si vous l’avez. »…), then the ink « Nous parler de votre projet » button (to the contact form with its subject chosen) and the email address, and the signature in italic. No rule above the section.
+
 ### Threshold Block
 An inverted block (ink background, paper text, flat) around one item behind a threshold — today a VIP Seating's row in the booking list. Its button is the threshold variant (see Buttons). See §4 for when it applies.
 
@@ -181,6 +215,7 @@ An inverted block (ink background, paper text, flat) around one item behind a th
 - **Do** keep the resting state flat: paper background, ink text, thin dividers, zero shadow, zero radius on primary buttons and cards.
 - **Do** use the grayscale→color image hover as the primary "alive" moment in listings, rather than introducing shadow-lift or scale-up hover effects.
 - **Do** cap body copy at 65–75ch and keep the display heading ceiling at 6rem, per the house type scale.
+- **Do** let a scroll-driven section show that more follows from its first screen (the Visible-Continuation Rule).
 - **Do** use Source Code Pro exclusively for real data values (prices, codes, timers) so its appearance itself signals "this number is exact."
 
 ### Don't:
