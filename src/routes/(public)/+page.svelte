@@ -67,7 +67,6 @@
 				<p class="mt-6 flex flex-wrap gap-x-5 gap-y-1 text-lg text-white/85">
 					<span class="text-white">{datesOf(spotlight, $locale)}</span>
 					<span>{placeOf(spotlight, $locale)}</span>
-					{#if spotlight.venueCapacity}<span>{$t('home.guests', { values: { count: spotlight.venueCapacity } })}</span>{/if}
 				</p>
 				<div class="mt-8 flex flex-wrap items-center gap-6">
 					<a href="/spotlight" class="group inline-flex items-center gap-3 bg-white px-6 py-3.5 text-foreground transition-colors hover:bg-white/85">

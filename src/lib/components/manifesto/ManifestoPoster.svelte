@@ -5,7 +5,7 @@
 	// comes up to ink in turn, its photograph opening in the line and its
 	// gloss beneath. The ones already read stay set, so the last step shows
 	// the poster complete.
-	import { t, locale } from 'svelte-i18n';
+	import { t, json, locale } from 'svelte-i18n';
 	import { mediaAlt } from '$lib/utils/media-alt';
 	import type { ManifestoPhoto } from '$lib/types/manifesto';
 	import PinnedStage from './PinnedStage.svelte';
@@ -13,10 +13,15 @@
 
 	let { photos }: { photos: ManifestoPhoto[] } = $props();
 
-	function split(sentence: string): [string, string] {
+	/**
+	 * The sentence either side of its photograph: after `photoAfter` words
+	 * when the language says where, else after the first comma, else
+	 * halfway.
+	 */
+	function split(sentence: string, photoAfter: unknown): [string, string] {
 		const words = sentence.split(' ');
 		const comma = words.findIndex((w) => /[,:;]$/.test(w));
-		const at = comma >= 0 ? comma + 1 : Math.ceil(words.length / 2);
+		const at = typeof photoAfter === 'number' ? photoAfter : comma >= 0 ? comma + 1 : Math.ceil(words.length / 2);
 		return [words.slice(0, at).join(' '), words.slice(at).join(' ')];
 	}
 
@@ -44,7 +49,7 @@
 		<div class="container mx-auto flex h-full max-w-8xl flex-col justify-center gap-10 px-4 lg:gap-16" aria-hidden="true">
 			<p class="font-serif text-[1.65rem] leading-[1.18] lg:text-[3.4rem] lg:leading-[1.12]">
 				{#each THESES as key, i (key)}
-					{@const [before, after] = split(apostrophes($t(`manifesto.theses.${key}.statement`)))}
+					{@const [before, after] = split(apostrophes($t(`manifesto.theses.${key}.statement`)), $json(`manifesto.theses.${key}.photoAfter`))}
 					{@const photo = photoAt(photos, i)}
 					<span class="sentence {i === index || complete ? 'is-on' : i < index ? 'is-set' : 'is-proof'}"
 						>{before}{' '}{#if photo}<a

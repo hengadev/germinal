@@ -41,14 +41,13 @@
   },
   "home": {
     "metaTitle": "Germinal, a cultural studio in Paris",
-    "metaDescription": "Germinal makes dinners, exhibitions and workshops in Paris, with chefs, craftspeople and artists, for a few people at a time.",
-    "next": "Next,",
-    "guests": "{count} guests",
+    "metaDescription": "Germinal makes dinners, exhibitions and workshops in Paris, with chefs, craftspeople and artists, and imagines them for others, shaped to each project.",
+    "next": "Coming up",
     "reserve": "Book",
     "allProjects": "All projects",
     "readManifesto": "Read the manifesto",
-    "studioTitle": "Evenings for a few people.",
-    "studioBody": "Germinal is a cultural studio in Paris. We make dinners, exhibitions and workshops with chefs, craftspeople and artists, and we imagine them for others.",
+    "studioTitle": "Evenings made to measure.",
+    "studioBody": "Germinal is a cultural studio in Paris. We make dinners, exhibitions and workshops with chefs, craftspeople and artists, and we imagine them for others, shaped to each project.",
     "projectsTitle": "What we have made",
     "talentsTitle": "At our table",
     "talentsBody": "The chefs, craftspeople and artists we make our evenings with.",
@@ -163,14 +162,14 @@
   },
   "manifesto": {
     "pageTitle": "Manifesto | Germinal",
-    "metaDescription": "Germinal is a cultural studio in Paris. Dinners, exhibitions and workshops with chefs, craftspeople and artists, for a few people at a time.",
+    "metaDescription": "Germinal is a cultural studio in Paris. Dinners, exhibitions and workshops with chefs, craftspeople and artists. This is what we hold to.",
     "title": "One table, one place, one night.",
-    "intro": "Germinal is a cultural studio, in Paris since [year]. We make dinners, exhibitions and workshops with chefs, craftspeople and artists, for a few people at a time. This is what we hold to.",
-    "signature": "Germinal, Paris, since [year]",
+    "intro": "Germinal is a cultural studio, in Paris since 2026. We make dinners, exhibitions and workshops with chefs, craftspeople and artists. This is what we hold to.",
+    "signature": "Germinal, Paris, since 2026",
     "theses": {
       "table": {
         "statement": "We set a table, not a room.",
-        "body": "A few places, laid so that people talk from one end to the other. Filling seats is never the point: a good evening is a table people stay at."
+        "body": "The places are laid so that people talk from one end to the other."
       },
       "authors": {
         "statement": "Every evening has its authors.",
@@ -189,8 +188,9 @@
         "body": "Nobody comes to watch: you sit down, eat, talk to the person next to you. The evening happens at the table, with whoever is there."
       },
       "once": {
-        "statement": "It only happens once.",
-        "body": "We never stage the same evening twice. What happened stays here, in photographs, and we move on to the next."
+        "statement": "What happened stays here.",
+        "photoAfter": 2,
+        "body": "The photographs of every evening are kept here, among our projects. Then we move on to the next."
       }
     },
     "servicesTitle": "What we do",

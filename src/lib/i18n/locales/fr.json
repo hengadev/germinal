@@ -41,14 +41,13 @@
   },
   "home": {
     "metaTitle": "Germinal, studio culturel à Paris",
-    "metaDescription": "Germinal fait des dîners, des expositions et des ateliers à Paris, avec des chefs, des artisans et des artistes, pour peu de monde à la fois.",
-    "next": "La prochaine,",
-    "guests": "{count} convives",
+    "metaDescription": "Germinal fait des dîners, des expositions et des ateliers à Paris, avec des chefs, des artisans et des artistes, et en imagine pour d’autres, à la mesure de chaque projet.",
+    "next": "Prochainement",
     "reserve": "Réserver",
     "allProjects": "Tous les projets",
     "readManifesto": "Lire le manifeste",
-    "studioTitle": "Des soirées pour peu de monde.",
-    "studioBody": "Germinal est un studio culturel à Paris. Nous faisons des dîners, des expositions et des ateliers avec des chefs, des artisans et des artistes, et nous en imaginons pour d’autres.",
+    "studioTitle": "Des soirées sur mesure.",
+    "studioBody": "Germinal est un studio culturel à Paris. Nous faisons des dîners, des expositions et des ateliers avec des chefs, des artisans et des artistes, et nous en imaginons pour d’autres, à la mesure de chaque projet.",
     "projectsTitle": "Ce que nous avons fait",
     "talentsTitle": "À notre table",
     "talentsBody": "Les chefs, les artisans et les artistes avec qui nous faisons nos soirées.",
@@ -163,14 +162,14 @@
   },
   "manifesto": {
     "pageTitle": "Manifeste | Germinal",
-    "metaDescription": "Germinal est un studio culturel à Paris. Dîners, expositions et ateliers avec des chefs, des artisans et des artistes, pour peu de monde à la fois.",
+    "metaDescription": "Germinal est un studio culturel à Paris. Dîners, expositions et ateliers avec des chefs, des artisans et des artistes. Voici ce à quoi nous tenons.",
     "title": "Une table, un lieu, un soir.",
-    "intro": "Germinal est un studio culturel installé à Paris depuis [année]. Nous faisons des dîners, des expositions et des ateliers avec des chefs, des artisans et des artistes, pour peu de monde à la fois. Voici ce à quoi nous tenons.",
-    "signature": "Germinal, Paris, depuis [année]",
+    "intro": "Germinal est un studio culturel installé à Paris depuis 2026. Nous faisons des dîners, des expositions et des ateliers avec des chefs, des artisans et des artistes. Voici ce à quoi nous tenons.",
+    "signature": "Germinal, Paris, depuis 2026",
     "theses": {
       "table": {
         "statement": "Nous mettons une table, pas une salle.",
-        "body": "Peu de couverts, posés pour qu’on se parle d’un bout à l’autre. Remplir n’est jamais le but : une soirée réussie, c’est une table où l’on reste."
+        "body": "Les couverts sont posés pour qu’on se parle d’un bout à l’autre."
       },
       "authors": {
         "statement": "Chaque soirée a ses auteurs.",
@@ -189,8 +188,9 @@
         "body": "On ne vient pas regarder : on s’assoit, on mange, on parle à son voisin. La soirée se fait à table, avec ceux qui sont là."
       },
       "once": {
-        "statement": "Ça n’a lieu qu’une fois.",
-        "body": "Nous ne refaisons jamais une soirée à l’identique. Ce qui a eu lieu reste ici, en photos, et nous passons à la suivante."
+        "statement": "Ce qui a eu lieu reste ici.",
+        "photoAfter": 5,
+        "body": "Les photos de chaque soirée sont gardées ici, dans nos projets. Puis nous passons à la suivante."
       }
     },
     "servicesTitle": "Ce que nous faisons",
