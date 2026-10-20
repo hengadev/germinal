@@ -21,7 +21,16 @@
 	// The Portfolio, newest first, each with a cover.
 	const projects = $derived(data.events.filter((e) => e.isPortfolio && e.coverMedia && !e.isSpotlight));
 	const talents = $derived(data.talents);
-	const cover = $derived(spotlight ? spotlight : projects[0]);
+	// Without a Spotlight, the hero chosen in the admin's settings, else the
+	// latest project's photograph.
+	const heroMedia = $derived(spotlight ? null : (data.heroVideo ?? data.heroImage));
+	const cover = $derived(spotlight ?? (heroMedia ? null : projects[0]));
+
+	// The hero video holds still for visitors who ask for less motion.
+	let heroVideo: HTMLVideoElement | undefined = $state();
+	$effect(() => {
+		if (heroVideo && matchMedia('(prefers-reduced-motion: reduce)').matches) heroVideo.pause();
+	});
 </script>
 
 <svelte:head>
@@ -31,7 +40,11 @@
 
 <!-- The photograph, and who speaks over it. -->
 <section class="relative flex h-svh min-h-[36rem] flex-col justify-end overflow-hidden bg-foreground text-white">
-	{#if cover?.coverMedia}
+	{#if !spotlight && data.heroVideo}
+		<video bind:this={heroVideo} src={data.heroVideo.url} class="absolute inset-0 h-full w-full object-cover" autoplay muted loop playsinline></video>
+	{:else if !spotlight && data.heroImage}
+		<img src={data.heroImage.url} alt={mediaAlt(data.heroImage, $locale, 'Germinal')} class="absolute inset-0 h-full w-full object-cover" />
+	{:else if cover?.coverMedia}
 		<img
 			src={cover.coverMedia.url}
 			alt={mediaAlt(cover.coverMedia, $locale, titleOf(cover, $locale))}
