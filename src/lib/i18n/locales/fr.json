@@ -40,48 +40,20 @@
     "faq": "FAQ"
   },
   "home": {
-    "heroTitle": "Sublimer l'éphémère",
-    "heroSubtitle": "Un collectif dédié à l'architecture des expériences sensorielles. Nous façonnons des instants où le goût, le son et l'espace entrent en résonance.",
-    "viewUpcoming": "Voir le prochain événement",
-    "viewCreations": "Voir nos créations",
-    "selectedEvents": "Nos créations",
-    "noEvents": "Aucun projet pour le moment",
-    "featuredTalents": "Talents en vedette",
-    "heroDescription": "Une exploration du goût sans le son. Une expérience culinaire de privation sensorielle conçue pour affiner le palais et concentrer l'esprit. Quatre plats, zéro mot.",
-    "reserveSeat": "Réservez votre place",
-    "viewEvents": "Voir les projets",
-    "viewTalents": "Voir les talents",
-    "date": "Date",
-    "time": "Heure",
-    "location": "Lieu",
-    "admission": "Admission",
-    "metaTitle": "Germinal - Sublimer l'éphémère",
-    "metaDescription": "Germinal est un collectif dédié à l'architecture des expériences sensorielles. Nous façonnons des instants où le goût, le son et l'espace entrent en résonance à travers des événements et expositions curatoriaux.",
-    "aboutTitle": "Un collectif à l'intersection de l'art, de l'espace et de l'expérience vécue.",
-    "aboutBody": "Nous réunissons scénographes, artistes et producteurs autour d'une seule ambition : créer des événements qui perdurent longtemps après l'extinction des lumières. Chaque projet est construit avec intention — rien n'est laissé au hasard.",
-    "aboutManifestoLink": "Lire le manifeste",
-    "servicesEyebrow": "Ce que nous faisons",
-    "servicesTitle": "Nos disciplines",
-    "viewServices": "Voir notre expertise",
-    "statsEyebrow": "En chiffres",
-    "statsProductions": "Productions",
-    "statsArtists": "Artistes",
-    "statsYears": "Années",
-    "partnersEyebrow": "Ils nous font confiance",
-    "partnersTitle": "Partenaires sélectionnés",
-    "newsletter": {
-      "eyebrow": "Restez informé",
-      "title": "Recevez nos envois.",
-      "subtitle": "Annonces d'événements, coulisses et notes culturelles — livrés au bon moment.",
-      "placeholder": "Votre adresse email",
-      "button": "S'abonner",
-      "success": "Vous êtes sur la liste."
-    },
-    "cta": {
-      "eyebrow": "Travaillons ensemble",
-      "title": "Créons quelque chose qui compte.",
-      "button": "Prendre contact"
-    }
+    "metaTitle": "Germinal, studio culturel à Paris",
+    "metaDescription": "Germinal fait des dîners, des expositions et des ateliers à Paris, avec des chefs, des artisans et des artistes, pour peu de monde à la fois.",
+    "next": "La prochaine,",
+    "guests": "{count} convives",
+    "reserve": "Réserver",
+    "allProjects": "Tous les projets",
+    "readManifesto": "Lire le manifeste",
+    "studioTitle": "Des soirées pour peu de monde.",
+    "studioBody": "Germinal est un studio culturel à Paris. Nous faisons des dîners, des expositions et des ateliers avec des chefs, des artisans et des artistes, et nous en imaginons pour d’autres.",
+    "projectsTitle": "Ce que nous avons fait",
+    "talentsTitle": "À notre table",
+    "talentsBody": "Les chefs, les artisans et les artistes avec qui nous faisons nos soirées.",
+    "allTalents": "Tous les talents",
+    "disciplinesTitle": "Ce que nous faisons"
   },
   "events": {
     "pageTitle": "Projets | Germinal",
@@ -224,7 +196,6 @@
     "servicesTitle": "Ce que nous faisons",
     "servicesIntro": "Nous produisons nos propres soirées, et nous en imaginons pour d’autres. Trois métiers, du premier croquis à la dernière bougie.",
     "artDirection": {
-      "number": "01",
       "title": "Direction artistique",
       "tagline": "Une idée, tenue jusqu’au bout.",
       "body": "Chaque projet part d’une idée qui tient en une phrase. Nous la gardons du premier croquis au dernier service : la lumière, les matières, le son, la vaisselle, les invitations.",
@@ -234,7 +205,6 @@
       "point4": "Planches et références"
     },
     "scenography": {
-      "number": "02",
       "title": "Scénographie",
       "tagline": "Faire avec le lieu.",
       "body": "Nous lisons un espace avant d’y toucher : par où l’on entre, où l’on s’assoit, d’où vient la lumière. Puis nous posons peu de choses, au bon endroit.",
@@ -244,7 +214,6 @@
       "point4": "Végétal et installations"
     },
     "production": {
-      "number": "03",
       "title": "Production",
       "tagline": "Ce qu’on ne voit pas.",
       "body": "Les équipes, les fournisseurs, le budget, l’imprévu de 19 h 30. Nous le portons, pour que les talents fassent leur travail et que les invités n’y pensent pas.",
@@ -703,29 +672,5 @@
       "passwordHelp": "Doit contenir au moins 8 caractères",
       "updatePassword": "Mettre à jour le mot de passe"
     }
-  },
-  "homeNext": {
-    "metaTitle": "Germinal, studio culturel à Paris",
-    "metaDescription": "Germinal fait des dîners, des expositions et des ateliers à Paris, avec des chefs, des artisans et des artistes, pour peu de monde à la fois.",
-    "studioTitle": "Des soirées pour peu de monde.",
-    "studioBody": "Germinal est un studio culturel à Paris. Nous faisons des dîners, des expositions et des ateliers avec des chefs, des artisans et des artistes, et nous en imaginons pour d’autres.",
-    "readManifesto": "Lire le manifeste",
-    "next": "La prochaine,",
-    "invites": "Germinal vous invite à",
-    "guests": "{count} convives",
-    "reserve": "Réserver",
-    "seeEvent": "Voir la soirée",
-    "noNext": "La prochaine date sera annoncée ici.",
-    "dateline": "Paris, {date}",
-    "studioLine": "Studio culturel",
-    "cardLine": "Studio culturel, Paris",
-    "writeUs": "Nous écrire",
-    "projectsTitle": "Ce que nous avons fait",
-    "allProjects": "Tous les projets",
-    "latest": "Le dernier,",
-    "talentsTitle": "À notre table",
-    "talentsBody": "Les chefs, les artisans et les artistes avec qui nous faisons nos soirées.",
-    "allTalents": "Tous les talents",
-    "disciplinesTitle": "Ce que nous faisons"
   }
 }

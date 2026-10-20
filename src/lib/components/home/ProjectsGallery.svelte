@@ -1,13 +1,12 @@
 <script lang="ts">
-	// PROTOTYPE — the past projects as panels side by side, from the home
-	// page as it was: the one under the pointer (or the keyboard) opens
+	// The past projects as panels side by side: the one under the pointer (or the keyboard) opens
 	// wide and says its name, the others narrow and keep theirs written up
 	// their edge. One is always open, the latest first, and it stays open
 	// when the pointer leaves. On phones, a strip of photographs to swipe.
 	import { locale } from 'svelte-i18n';
 	import { mediaAlt } from '$lib/utils/media-alt';
 	import type { EventWithMedia } from '$lib/types/events';
-	import { placeOf, subtitleOf, titleOf, yearOf } from './shared';
+	import { placeOf, subtitleOf, titleOf, yearOf } from './home';
 
 	let { projects }: { projects: EventWithMedia[] } = $props();
 
@@ -21,7 +20,7 @@
 		<li class="panel relative min-w-0 overflow-hidden" style="flex: {i === open ? 5 : 1}">
 			<a
 				href="/events/{project.id}"
-				class="group absolute inset-0 block text-white outline-offset-[-3px]"
+				class="group focus-override absolute inset-0 block text-white outline-none after:pointer-events-none after:absolute after:inset-0 after:content-[''] focus-visible:after:shadow-[inset_0_0_0_2px_white]"
 				onmouseenter={() => (open = i)}
 				onfocus={() => (open = i)}
 				aria-label={title}

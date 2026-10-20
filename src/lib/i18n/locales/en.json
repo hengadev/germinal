@@ -40,48 +40,20 @@
     "faq": "FAQ"
   },
   "home": {
-    "heroTitle": "Elevating the Ephemeral",
-    "heroSubtitle": "A collective dedicated to the architecture of sensory experiences. We craft moments where taste, sound and space resonate together.",
-    "viewUpcoming": "View upcoming event",
-    "viewCreations": "See our creations",
-    "selectedEvents": "Our work",
-    "noEvents": "No projects yet",
-    "featuredTalents": "Featured Talents",
-    "heroDescription": "An exploration of taste without sound. A sensory deprivation dining experience designed to heighten the palate and focus the mind. Four courses, zero words.",
-    "reserveSeat": "Reserve your seat",
-    "viewEvents": "View projects",
-    "viewTalents": "View Talents",
-    "date": "Date",
-    "time": "Time",
-    "location": "Location",
-    "admission": "Admission",
-    "metaTitle": "Germinal - Elevating the Ephemeral",
-    "metaDescription": "Germinal is a collective dedicated to the architecture of sensory experiences. We craft moments where taste, sound and space resonate together through curated events and exhibitions.",
-    "aboutTitle": "A collective at the intersection of art, space, and lived experience.",
-    "aboutBody": "We bring together scenographers, artists, and producers around a single ambition: crafting events that linger long after the lights go out. Every project is built with intention — nothing left to chance.",
-    "aboutManifestoLink": "Read the manifesto",
-    "servicesEyebrow": "What we do",
-    "servicesTitle": "Our disciplines",
-    "viewServices": "View our expertise",
-    "statsEyebrow": "In numbers",
-    "statsProductions": "Productions",
-    "statsArtists": "Artists",
-    "statsYears": "Years",
-    "partnersEyebrow": "They trust us",
-    "partnersTitle": "Selected partners",
-    "newsletter": {
-      "eyebrow": "Stay in the loop",
-      "title": "Receive our dispatches.",
-      "subtitle": "Event announcements, behind-the-scenes, and cultural notes — delivered when it counts.",
-      "placeholder": "Your email address",
-      "button": "Subscribe",
-      "success": "You're on the list."
-    },
-    "cta": {
-      "eyebrow": "Work with us",
-      "title": "Let's create something that matters.",
-      "button": "Get in touch"
-    }
+    "metaTitle": "Germinal, a cultural studio in Paris",
+    "metaDescription": "Germinal makes dinners, exhibitions and workshops in Paris, with chefs, craftspeople and artists, for a few people at a time.",
+    "next": "Next,",
+    "guests": "{count} guests",
+    "reserve": "Book",
+    "allProjects": "All projects",
+    "readManifesto": "Read the manifesto",
+    "studioTitle": "Evenings for a few people.",
+    "studioBody": "Germinal is a cultural studio in Paris. We make dinners, exhibitions and workshops with chefs, craftspeople and artists, and we imagine them for others.",
+    "projectsTitle": "What we have made",
+    "talentsTitle": "At our table",
+    "talentsBody": "The chefs, craftspeople and artists we make our evenings with.",
+    "allTalents": "All talents",
+    "disciplinesTitle": "What we do"
   },
   "events": {
     "pageTitle": "Projects | Germinal",
@@ -224,7 +196,6 @@
     "servicesTitle": "What we do",
     "servicesIntro": "We produce our own evenings, and we make them for others too. Three crafts, from the first sketch to the last candle.",
     "artDirection": {
-      "number": "01",
       "title": "Art direction",
       "tagline": "One idea, carried all the way.",
       "body": "Every project starts from an idea that fits in one sentence. We hold on to it from the first sketch to the last course: light, materials, sound, tableware, invitations.",
@@ -234,7 +205,6 @@
       "point4": "Mood boards and references"
     },
     "scenography": {
-      "number": "02",
       "title": "Scenography",
       "tagline": "Working with the place.",
       "body": "We read a space before we touch it: where people come in, where they sit, where the light comes from. Then we place a few things, in the right spot.",
@@ -244,7 +214,6 @@
       "point4": "Plants and installations"
     },
     "production": {
-      "number": "03",
       "title": "Production",
       "tagline": "What nobody sees.",
       "body": "The teams, the suppliers, the budget, the surprise at 7:30 pm. We carry it, so the talents can do their work and the guests never think about it.",
@@ -703,29 +672,5 @@
       "passwordHelp": "Must be at least 8 characters long",
       "updatePassword": "Update Password"
     }
-  },
-  "homeNext": {
-    "metaTitle": "Germinal, a cultural studio in Paris",
-    "metaDescription": "Germinal makes dinners, exhibitions and workshops in Paris, with chefs, craftspeople and artists, for a few people at a time.",
-    "studioTitle": "Evenings for a few people.",
-    "studioBody": "Germinal is a cultural studio in Paris. We make dinners, exhibitions and workshops with chefs, craftspeople and artists, and we imagine them for others.",
-    "readManifesto": "Read the manifesto",
-    "next": "Next,",
-    "invites": "Germinal invites you to",
-    "guests": "{count} guests",
-    "reserve": "Book",
-    "seeEvent": "See the evening",
-    "noNext": "The next date will be announced here.",
-    "dateline": "Paris, {date}",
-    "studioLine": "Cultural studio",
-    "cardLine": "Cultural studio, Paris",
-    "writeUs": "Write to us",
-    "projectsTitle": "What we have made",
-    "allProjects": "All projects",
-    "latest": "The latest,",
-    "talentsTitle": "At our table",
-    "talentsBody": "The chefs, craftspeople and artists we make our evenings with.",
-    "allTalents": "All talents",
-    "disciplinesTitle": "What we do"
   }
 }

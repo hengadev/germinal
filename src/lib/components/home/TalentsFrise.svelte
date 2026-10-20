@@ -1,12 +1,12 @@
 <script lang="ts">
-	// PROTOTYPE — T3 « Frise »: the Talents in one row, as a frieze of
+	// The Talents in one row, as a frieze of
 	// photographs of uneven heights standing on one line, the name and
 	// craft beneath each. Under the row, the words of the one under the
 	// pointer (or the keyboard), set large. On phones, a strip to swipe.
 	import { locale } from 'svelte-i18n';
 	import { mediaAlt } from '$lib/utils/media-alt';
 	import type { TalentWithMedia } from '$lib/types/talents';
-	import { nameOf, quoteOf, quoted, roleOf } from './shared';
+	import { nameOf, quoteOf, quoted, roleOf } from './home';
 
 	let { talents }: { talents: TalentWithMedia[] } = $props();
 

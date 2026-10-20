@@ -1,18 +1,9 @@
-// PROTOTYPE — wipe me once a home variant is chosen.
-// What the home variants share: how they name an Event's dates, place and
-// year, and what each variant is handed.
+// What the home page says about an Event and a Talent: its dates, place
+// and year, a Talent's name, craft and words.
 import { dayOf, formatSeatingDate } from '$lib/utils/event-time';
 import { localizedText } from '$lib/utils/event-text';
 import type { EventWithMedia } from '$lib/types/events';
 import type { TalentWithMedia } from '$lib/types/talents';
-
-export interface HomeProps {
-	/** The Spotlight, or null: then the studio leads. */
-	spotlight: EventWithMedia | null;
-	/** The Portfolio, newest first, each with a cover. */
-	projects: EventWithMedia[];
-	talents: TalentWithMedia[];
-}
 
 type Lang = 'fr' | 'en';
 const langOf = (locale: string | null | undefined): Lang => (locale === 'en' ? 'en' : 'fr');
@@ -66,10 +57,3 @@ export function quoteOf(talent: TalentWithMedia, locale: string | null | undefin
 export function quoted(text: string, locale: string | null | undefined): string {
 	return langOf(locale) === 'en' ? `“${text}”` : `« ${text} »`;
 }
-
-/** The disciplines, with the anchors the manifesto gives them. */
-export const DISCIPLINES = [
-	{ key: 'artDirection', anchor: 'art-direction' },
-	{ key: 'scenography', anchor: 'scenography' },
-	{ key: 'production', anchor: 'production' },
-] as const;
