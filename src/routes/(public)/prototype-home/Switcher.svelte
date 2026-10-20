@@ -1,6 +1,6 @@
 <script lang="ts">
-	// PROTOTYPE — the bar to switch between the Manifesto variants: one
-	// group per half of the page, each with its own search param.
+	// PROTOTYPE — the bar to switch between the home page variants: one
+	// group per choice, each with its own search param.
 	import { page } from '$app/state';
 
 	interface Group {

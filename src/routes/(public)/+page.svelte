@@ -7,7 +7,7 @@
 	import type { PageData } from './$types';
 	import HomeActuel from './prototype-home/HomeActuel.svelte';
 	import HomeAssemblage from './prototype-home/HomeAssemblage.svelte';
-	import Switcher from './manifesto/prototype-manifesto/Switcher.svelte';
+	import Switcher from './prototype-home/Switcher.svelte';
 
 	let { data }: { data: PageData } = $props();
 

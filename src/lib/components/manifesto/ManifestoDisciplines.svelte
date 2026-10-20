@@ -1,5 +1,5 @@
 <script lang="ts">
-	// PROTOTYPE — M2 « Planches »: each discipline is a plate, as in a
+	// « Ce que nous faisons »: each discipline is a plate, as in a
 	// monograph. A large photograph of a past project on one side, the
 	// name set across its edge — ink on the paper, paper on the picture —
 	// and the description beside it. The plates alternate sides, and the
@@ -7,8 +7,8 @@
 	// reads across them.
 	import { t, locale } from 'svelte-i18n';
 	import { mediaAlt } from '$lib/utils/media-alt';
-	import type { ManifestoPhoto } from '../+page.server';
-	import { DISCIPLINES, POINTS, THESES, photoAt, photoTitle } from './shared';
+	import type { ManifestoPhoto } from '$lib/types/manifesto';
+	import { DISCIPLINES, POINTS, THESES, photoAt, photoTitle } from './manifesto';
 
 	let { photos }: { photos: ManifestoPhoto[] } = $props();
 </script>
@@ -38,7 +38,7 @@
 							alt={mediaAlt(photo, $locale, photoTitle(photo, $locale))}
 							class="aspect-[4/3] w-full object-cover lg:aspect-square lg:grayscale lg:transition-[filter] lg:duration-700 lg:group-hover:grayscale-0"
 						/>
-						<span class="mt-3 block text-sm text-muted-foreground italic transition-colors group-hover:text-foreground-alt {flip ? 'lg:text-right' : ''}">
+						<span class="mt-3 block text-sm text-foreground-alt italic transition-colors group-hover:text-foreground {flip ? 'lg:text-right' : ''}">
 							{$t('manifesto.photoOf', { values: { title: photoTitle(photo, $locale), year: photo.year } })}
 						</span>
 					</a>

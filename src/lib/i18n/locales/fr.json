@@ -192,67 +192,35 @@
   "manifesto": {
     "pageTitle": "Manifeste | Germinal",
     "metaDescription": "Germinal est un studio culturel à Paris. Dîners, expositions et ateliers avec des chefs, des artisans et des artistes, pour peu de monde à la fois.",
-    "label": "Manifeste",
     "title": "Une table, un lieu, un soir.",
     "intro": "Germinal est un studio culturel installé à Paris depuis [année]. Nous faisons des dîners, des expositions et des ateliers avec des chefs, des artisans et des artistes, pour peu de monde à la fois. Voici ce à quoi nous tenons.",
     "signature": "Germinal, Paris, depuis [année]",
     "theses": {
       "table": {
-        "word": "Table",
-        "gram": "n.f.",
-        "common": "Meuble sur lequel on mange.",
-        "when": "20:00",
         "statement": "Nous mettons une table, pas une salle.",
-        "body": "Peu de couverts, posés pour qu’on se parle d’un bout à l’autre. Remplir n’est jamais le but : une soirée réussie, c’est une table où l’on reste.",
-        "phon": "[tabl]"
+        "body": "Peu de couverts, posés pour qu’on se parle d’un bout à l’autre. Remplir n’est jamais le but : une soirée réussie, c’est une table où l’on reste."
       },
       "authors": {
-        "word": "Auteur",
-        "gram": "n.m.",
-        "common": "Personne qui écrit un livre.",
-        "when": "Des mois avant",
         "statement": "Chaque soirée a ses auteurs.",
-        "body": "Une cheffe, un céramiste, une musicienne. Nous les invitons à faire ce qu’ils font, à leur façon, et leur nom est sur le projet.",
-        "phon": "[otœʁ]"
+        "body": "Une cheffe, un céramiste, une musicienne. Nous les invitons à faire ce qu’ils font, à leur façon, et leur nom est sur le projet."
       },
       "place": {
-        "word": "Lieu",
-        "gram": "n.m.",
-        "common": "Portion d’espace.",
-        "when": "Des semaines avant",
         "statement": "Le lieu passe avant le décor.",
-        "body": "Un atelier, un jardin, une cave. Nous partons de ce qui est là, les murs, la lumière, le bruit de la rue, et nous ajoutons le moins possible.",
-        "phon": "[ljø]"
+        "body": "Un atelier, un jardin, une cave. Nous partons de ce qui est là, les murs, la lumière, le bruit de la rue, et nous ajoutons le moins possible."
       },
       "backstage": {
-        "word": "Coulisses",
-        "gram": "n.f. pl.",
-        "common": "Partie d’un théâtre cachée au public.",
-        "when": "Le jour même",
         "statement": "Le travail ne doit pas se voir.",
-        "body": "La lumière, la vaisselle, le temps entre deux plats : tout est réglé à l’avance, pour que personne n’y pense une fois à table.",
-        "phon": "[kulis]"
+        "body": "La lumière, la vaisselle, le temps entre deux plats : tout est réglé à l’avance, pour que personne n’y pense une fois à table."
       },
       "guests": {
-        "word": "Convive",
-        "gram": "n.",
-        "common": "Personne qui prend part à un repas.",
-        "when": "19:45",
         "statement": "Vous n’êtes pas un public.",
-        "body": "On ne vient pas regarder : on s’assoit, on mange, on parle à son voisin. La soirée se fait à table, avec ceux qui sont là.",
-        "phon": "[kɔ̃viv]"
+        "body": "On ne vient pas regarder : on s’assoit, on mange, on parle à son voisin. La soirée se fait à table, avec ceux qui sont là."
       },
       "once": {
-        "word": "Éphémère",
-        "gram": "adj.",
-        "common": "Qui ne dure qu’un jour.",
-        "when": "Le lendemain",
         "statement": "Ça n’a lieu qu’une fois.",
-        "body": "Nous ne refaisons jamais une soirée à l’identique. Ce qui a eu lieu reste ici, en photos, et nous passons à la suivante.",
-        "phon": "[efemɛʁ]"
+        "body": "Nous ne refaisons jamais une soirée à l’identique. Ce qui a eu lieu reste ici, en photos, et nous passons à la suivante."
       }
     },
-    "germinalSense": "Chez Germinal :",
     "servicesTitle": "Ce que nous faisons",
     "servicesIntro": "Nous produisons nos propres soirées, et nous en imaginons pour d’autres. Trois métiers, du premier croquis à la dernière bougie.",
     "artDirection": {
@@ -286,19 +254,6 @@
       "point4": "Installation et régie le jour J"
     },
     "photoOf": "{title}, {year}",
-    "germinal": {
-      "word": "Germinal",
-      "gram": "n.m.",
-      "phon": "[ʒɛʁminal]",
-      "sense1": "Septième mois du calendrier républicain, le premier du printemps, de mars à avril. Du latin germen, « germe ».",
-      "sense2": "Roman d’Émile Zola (1885).",
-      "sense3": "Studio culturel à Paris, depuis [année] : des dîners, des expositions et des ateliers avec des chefs, des artisans et des artistes, pour peu de monde à la fois.",
-      "seeAlso": "Voir aussi"
-    },
-    "stage": {
-      "progress": "{current} sur {total}",
-      "complete": "Le manifeste, en entier."
-    },
     "newProjectCta": "Nous parler de votre projet",
     "closingLetter": {
       "title": "Écrivez-nous.",

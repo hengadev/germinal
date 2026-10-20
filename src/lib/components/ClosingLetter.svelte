@@ -1,7 +1,8 @@
 <script lang="ts">
-	// PROTOTYPE — « Lettre », the ending: the old « Un lieu, une idée, une date ? »,
-	// spelled out. It says what we need to begin — three things, none of
-	// them certain — and then how to send them.
+	// « Écrivez-nous. », the ending of the Manifesto and the home page:
+	// the old « Un lieu, une idée, une date ? », spelled out. It says what
+	// we need to begin — three things, none of them certain — and then how
+	// to send them.
 	import { ArrowRight } from 'lucide-svelte';
 	import { t } from 'svelte-i18n';
 
@@ -37,7 +38,7 @@
 					>
 				</p>
 			</div>
-			<p class="mt-16 font-serif text-lg text-muted-foreground italic">{$t('manifesto.signature')}</p>
+			<p class="mt-16 font-serif text-lg text-foreground-alt italic">{$t('manifesto.signature')}</p>
 		</div>
 	</div>
 </section>

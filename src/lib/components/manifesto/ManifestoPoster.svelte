@@ -1,14 +1,15 @@
 <script lang="ts">
-	// PROTOTYPE — A3 « Composition »: the whole manifesto is one poster on a
-	// stage that holds still, and scrolling composes it. Each sentence comes
-	// up from a faint proof to ink in turn, its photograph opening in the
-	// line and its gloss beneath; the ones already read stay set, so the
-	// last step shows the poster complete.
+	// The manifesto as one poster on a stage that holds still, which
+	// scrolling composes. The whole poster shows from the start in a faint
+	// proof, so the reader sees there is more to come; each sentence then
+	// comes up to ink in turn, its photograph opening in the line and its
+	// gloss beneath. The ones already read stay set, so the last step shows
+	// the poster complete.
 	import { t, locale } from 'svelte-i18n';
 	import { mediaAlt } from '$lib/utils/media-alt';
-	import type { ManifestoPhoto } from '../+page.server';
+	import type { ManifestoPhoto } from '$lib/types/manifesto';
 	import PinnedStage from './PinnedStage.svelte';
-	import { THESES, photoAt, photoTitle } from './shared';
+	import { THESES, apostrophes, photoAt, photoTitle } from './manifesto';
 
 	let { photos }: { photos: ManifestoPhoto[] } = $props();
 
@@ -43,12 +44,12 @@
 		<div class="container mx-auto flex h-full max-w-8xl flex-col justify-center gap-10 px-4 lg:gap-16" aria-hidden="true">
 			<p class="font-serif text-[1.65rem] leading-[1.18] lg:text-[3.4rem] lg:leading-[1.12]">
 				{#each THESES as key, i (key)}
-					{@const [before, after] = split($t(`manifesto.theses.${key}.statement`))}
+					{@const [before, after] = split(apostrophes($t(`manifesto.theses.${key}.statement`)))}
 					{@const photo = photoAt(photos, i)}
 					<span class="sentence {i === index || complete ? 'is-on' : i < index ? 'is-set' : 'is-proof'}"
 						>{before}{' '}{#if photo}<a
 								href="/events/{photo.eventId}"
-								tabindex={i === index ? 0 : -1}
+								tabindex={-1}
 								class="photo {i === index ? 'is-open' : ''}"
 								><img src={photo.url} alt={mediaAlt(photo, $locale, photoTitle(photo, $locale))} class="h-full w-full object-cover" /></a
 							>{/if}{after}</span
@@ -67,7 +68,7 @@
 					</p>
 				{/each}
 				<p
-					class="col-start-1 row-start-1 font-serif text-lg italic text-muted-foreground transition-opacity duration-700 {complete
+					class="col-start-1 row-start-1 font-serif text-lg italic text-foreground-alt transition-opacity duration-700 {complete
 						? 'opacity-100 delay-200'
 						: 'opacity-0'}"
 				>

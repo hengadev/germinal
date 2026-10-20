@@ -1,8 +1,7 @@
-// PROTOTYPE — wipe me once a Manifesto variant is chosen.
-// What the variants share: the theses, the three disciplines, and a
-// photograph's caption.
+// What the Manifesto's parts share: the theses, the three disciplines,
+// and a photograph's caption.
 import { localizedText } from '$lib/utils/event-text';
-import type { ManifestoPhoto } from '../+page.server';
+import type { ManifestoPhoto } from '$lib/types/manifesto';
 
 export type ThesisKey = 'table' | 'authors' | 'place' | 'backstage' | 'guests' | 'once';
 
@@ -20,6 +19,14 @@ export const POINTS = [1, 2, 3, 4] as const;
 
 export function photoTitle(photo: ManifestoPhoto, locale: string | null | undefined): string {
 	return localizedText(photo.titleEn, photo.titleFr, locale);
+}
+
+/**
+ * Gilda Display sets the apostrophe over the accent of the letter after it
+ * (« n’êtes »): a hair space keeps them apart.
+ */
+export function apostrophes(text: string): string {
+	return text.replace(/’(?=[àâäéèêëîïôöùûüÀÂÄÉÈÊËÎÏÔÖÙÛÜ])/g, '’\u200A');
 }
 
 /** The photograph for the n-th item, cycling when there are fewer photographs. */

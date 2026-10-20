@@ -192,67 +192,35 @@
   "manifesto": {
     "pageTitle": "Manifesto | Germinal",
     "metaDescription": "Germinal is a cultural studio in Paris. Dinners, exhibitions and workshops with chefs, craftspeople and artists, for a few people at a time.",
-    "label": "Manifesto",
     "title": "One table, one place, one night.",
     "intro": "Germinal is a cultural studio, in Paris since [year]. We make dinners, exhibitions and workshops with chefs, craftspeople and artists, for a few people at a time. This is what we hold to.",
     "signature": "Germinal, Paris, since [year]",
     "theses": {
       "table": {
-        "word": "Table",
-        "gram": "n.",
-        "common": "A piece of furniture you eat at.",
-        "when": "8:00 pm",
         "statement": "We set a table, not a room.",
-        "body": "A few places, laid so that people talk from one end to the other. Filling seats is never the point: a good evening is a table people stay at.",
-        "phon": "/ˈteɪb(ə)l/"
+        "body": "A few places, laid so that people talk from one end to the other. Filling seats is never the point: a good evening is a table people stay at."
       },
       "authors": {
-        "word": "Author",
-        "gram": "n.",
-        "common": "Someone who writes a book.",
-        "when": "Months before",
         "statement": "Every evening has its authors.",
-        "body": "A chef, a ceramicist, a musician. We invite them to do what they do, their way, and their name is on the project.",
-        "phon": "/ˈɔːθə/"
+        "body": "A chef, a ceramicist, a musician. We invite them to do what they do, their way, and their name is on the project."
       },
       "place": {
-        "word": "Place",
-        "gram": "n.",
-        "common": "A portion of space.",
-        "when": "Weeks before",
         "statement": "The place comes before the set.",
-        "body": "A workshop, a garden, a cellar. We start from what is there, the walls, the light, the noise of the street, and add as little as we can.",
-        "phon": "/pleɪs/"
+        "body": "A workshop, a garden, a cellar. We start from what is there, the walls, the light, the noise of the street, and add as little as we can."
       },
       "backstage": {
-        "word": "Backstage",
-        "gram": "n.",
-        "common": "The part of a theatre hidden from the audience.",
-        "when": "On the day",
         "statement": "The work should not show.",
-        "body": "The light, the plates, the time between two courses: everything is settled beforehand, so that nobody gives it a thought once seated.",
-        "phon": "/ˈbakˌsteɪdʒ/"
+        "body": "The light, the plates, the time between two courses: everything is settled beforehand, so that nobody gives it a thought once seated."
       },
       "guests": {
-        "word": "Guest",
-        "gram": "n.",
-        "common": "Someone who shares a meal.",
-        "when": "7:45 pm",
         "statement": "You are not an audience.",
-        "body": "Nobody comes to watch: you sit down, eat, talk to the person next to you. The evening happens at the table, with whoever is there.",
-        "phon": "/ɡɛst/"
+        "body": "Nobody comes to watch: you sit down, eat, talk to the person next to you. The evening happens at the table, with whoever is there."
       },
       "once": {
-        "word": "Ephemeral",
-        "gram": "adj.",
-        "common": "Lasting a single day.",
-        "when": "The day after",
         "statement": "It only happens once.",
-        "body": "We never stage the same evening twice. What happened stays here, in photographs, and we move on to the next.",
-        "phon": "/ɪˈfɛm(ə)rəl/"
+        "body": "We never stage the same evening twice. What happened stays here, in photographs, and we move on to the next."
       }
     },
-    "germinalSense": "At Germinal:",
     "servicesTitle": "What we do",
     "servicesIntro": "We produce our own evenings, and we make them for others too. Three crafts, from the first sketch to the last candle.",
     "artDirection": {
@@ -286,19 +254,6 @@
       "point4": "Set-up and running the day itself"
     },
     "photoOf": "{title}, {year}",
-    "germinal": {
-      "word": "Germinal",
-      "gram": "n.",
-      "phon": "[ʒɛʁminal]",
-      "sense1": "The seventh month of the French Republican calendar, the first of spring, from March to April. From the Latin germen, ‘sprout’.",
-      "sense2": "A novel by Émile Zola (1885).",
-      "sense3": "A cultural studio in Paris, since [year]: dinners, exhibitions and workshops with chefs, craftspeople and artists, for a few people at a time.",
-      "seeAlso": "See also"
-    },
-    "stage": {
-      "progress": "{current} of {total}",
-      "complete": "The manifesto, in full."
-    },
     "newProjectCta": "Tell us about your project",
     "closingLetter": {
       "title": "Write to us.",

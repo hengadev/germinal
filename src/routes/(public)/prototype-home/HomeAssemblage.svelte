@@ -9,7 +9,7 @@
 	import { ArrowRight } from 'lucide-svelte';
 	import { t, locale } from 'svelte-i18n';
 	import { mediaAlt } from '$lib/utils/media-alt';
-	import ClosingLettre from '../manifesto/prototype-manifesto/ClosingLettre.svelte';
+	import ClosingLetter from '$lib/components/ClosingLetter.svelte';
 	import ProjectsGallery from './ProjectsGallery.svelte';
 	import TalentsFrise from './TalentsFrise.svelte';
 	import { DISCIPLINES, datesOf, placeOf, titleOf, yearOf, type HomeProps } from './shared';
@@ -130,5 +130,5 @@
 	</ul>
 </section>
 
-<ClosingLettre />
+<ClosingLetter />
 
