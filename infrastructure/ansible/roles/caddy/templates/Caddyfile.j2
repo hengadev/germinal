@@ -3,6 +3,16 @@
 {
   # ACME configuration
   email {{ caddy_acme_email | default('admin@' + app_domain) }}
+
+  # Real client IP (issue 012): every hostname is proxied by Cloudflare, so
+  # the TCP peer is a Cloudflare edge. Trust only Cloudflare's ranges as
+  # proxies and take the client IP from the header they set; {client_ip}
+  # is then the visitor's IP. Safe only because the origin firewall
+  # (Terraform firewall.tf) accepts HTTP(S) from Cloudflare alone.
+  servers {
+    trusted_proxies static {{ caddy_trusted_proxies | join(' ') }}
+    client_ip_headers CF-Connecting-IP
+  }
 }
 
 {% if staging_enabled | default(false) %}
@@ -17,8 +27,10 @@ admin-staging.{{ app_domain }} {
     # Hold requests while the app container is recreated (deploy or config
     # change) instead of returning 502s (issue 008)
     lb_try_duration 30s
-    header_up X-Real-IP {remote_host}
-    header_up X-Forwarded-For {remote_host}
+    # The app reads the client IP from X-Real-IP (ADDRESS_HEADER); an
+    # inbound X-Forwarded-For is never passed on.
+    header_up X-Real-IP {client_ip}
+    header_up -X-Forwarded-For
     header_up X-Forwarded-Proto {scheme}
   }
 
@@ -41,8 +53,10 @@ staff-staging.{{ app_domain }} {
     # Hold requests while the app container is recreated (deploy or config
     # change) instead of returning 502s (issue 008)
     lb_try_duration 30s
-    header_up X-Real-IP {remote_host}
-    header_up X-Forwarded-For {remote_host}
+    # The app reads the client IP from X-Real-IP (ADDRESS_HEADER); an
+    # inbound X-Forwarded-For is never passed on.
+    header_up X-Real-IP {client_ip}
+    header_up -X-Forwarded-For
     header_up X-Forwarded-Proto {scheme}
   }
 
@@ -65,8 +79,10 @@ staging.{{ app_domain }} {
     # Hold requests while the app container is recreated (deploy or config
     # change) instead of returning 502s (issue 008)
     lb_try_duration 30s
-    header_up X-Real-IP {remote_host}
-    header_up X-Forwarded-For {remote_host}
+    # The app reads the client IP from X-Real-IP (ADDRESS_HEADER); an
+    # inbound X-Forwarded-For is never passed on.
+    header_up X-Real-IP {client_ip}
+    header_up -X-Forwarded-For
     header_up X-Forwarded-Proto {scheme}
   }
 
@@ -106,8 +122,10 @@ admin.{{ app_domain }} {
     # Hold requests while the app container is recreated (deploy or config
     # change) instead of returning 502s (issue 008)
     lb_try_duration 30s
-    header_up X-Real-IP {remote_host}
-    header_up X-Forwarded-For {remote_host}
+    # The app reads the client IP from X-Real-IP (ADDRESS_HEADER); an
+    # inbound X-Forwarded-For is never passed on.
+    header_up X-Real-IP {client_ip}
+    header_up -X-Forwarded-For
     header_up X-Forwarded-Proto {scheme}
   }
 
@@ -132,8 +150,10 @@ staff.{{ app_domain }} {
     # Hold requests while the app container is recreated (deploy or config
     # change) instead of returning 502s (issue 008)
     lb_try_duration 30s
-    header_up X-Real-IP {remote_host}
-    header_up X-Forwarded-For {remote_host}
+    # The app reads the client IP from X-Real-IP (ADDRESS_HEADER); an
+    # inbound X-Forwarded-For is never passed on.
+    header_up X-Real-IP {client_ip}
+    header_up -X-Forwarded-For
     header_up X-Forwarded-Proto {scheme}
   }
 
@@ -168,8 +188,10 @@ www.{{ app_domain }} {
     # Hold requests while the app container is recreated (deploy or config
     # change) instead of returning 502s (issue 008)
     lb_try_duration 30s
-    header_up X-Real-IP {remote_host}
-    header_up X-Forwarded-For {remote_host}
+    # The app reads the client IP from X-Real-IP (ADDRESS_HEADER); an
+    # inbound X-Forwarded-For is never passed on.
+    header_up X-Real-IP {client_ip}
+    header_up -X-Forwarded-For
     header_up X-Forwarded-Proto {scheme}
   }
 

@@ -4,9 +4,12 @@
 
 [Definition]
 
-# Match 429 (rate limited) and 403 (forbidden) status codes in Caddy JSON log format
-# Caddy logs JSON: {"status":429,"request":{"remote_ip":"1.2.3.4"},...}
-failregex = ^.*"status":429.*"request".*?"remote_ip":"<HOST>".*$
-            ^.*"status":403.*"request".*?"remote_ip":"<HOST>".*$
+# Match 429 (rate limited) and 403 (forbidden) status codes in Caddy JSON log format.
+# Ban the visitor, not the proxy: remote_ip is the Cloudflare edge that
+# connected; client_ip is the visitor's IP Caddy took from CF-Connecting-IP
+# (trusted_proxies, issue 012).
+# Caddy logs JSON: {"request":{"remote_ip":"162.158.1.2","client_ip":"1.2.3.4",...},...,"status":429}
+failregex = ^.*"request".*?"client_ip":"<HOST>".*"status":429.*$
+            ^.*"request".*?"client_ip":"<HOST>".*"status":403.*$
 
 ignoreregex =

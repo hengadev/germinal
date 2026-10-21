@@ -24,7 +24,7 @@ Cloudflare token never reaches anything but Caddy.
 
 | Folder | Keys | `prod` | `staging` | `dev` | Rendered into → read by |
 | --- | --- | :-: | :-: | :-: | --- |
-| `/app` | `PUBLIC_URL`, `PROTOCOL_HEADER`, `CONTACT_EMAIL`, `MAINTENANCE_MODE`, `USE_SCHEDULER`, `USE_MOCK_DATA`, `ALLOW_DEMO_MODE`, `RESERVATION_EXPIRY_MINUTES`, `MAX_FILE_SIZE`, `BODY_SIZE_LIMIT`, `ALLOWED_IMAGE_TYPES`, `ALLOWED_VIDEO_TYPES` | ✓ | ✓ | ✓ | `app.env` → the app |
+| `/app` | `PUBLIC_URL`, `PROTOCOL_HEADER`, `ADDRESS_HEADER`, `CONTACT_EMAIL`, `MAINTENANCE_MODE`, `USE_SCHEDULER`, `USE_MOCK_DATA`, `ALLOW_DEMO_MODE`, `RESERVATION_EXPIRY_MINUTES`, `MAX_FILE_SIZE`, `BODY_SIZE_LIMIT`, `ALLOWED_IMAGE_TYPES`, `ALLOWED_VIDEO_TYPES` | ✓ | ✓ | ✓ | `app.env` → the app |
 | `/db` | `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `POSTGRES_HOST`, `POSTGRES_PORT` | ✓ | ✓ | ✓ | `postgres.env` → Postgres (prod only); assembled into `DATABASE_URL` in `app.env`; `POSTGRES_USER`/`POSTGRES_DB` into `backup.env` |
 | `/redis` | `REDIS_HOST`, `REDIS_PORT`, `REDIS_DB` (`0` prod, `1` staging) | ✓ | ✓ | ✓ | `app.env` |
 | `/stripe` | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` (live in prod, **test mode** in staging and dev) | ✓ | ✓ | ✓ | `app.env` |
@@ -58,6 +58,14 @@ bootstrap only get the rewritten file; they read it the next time they run.
   `PROTOCOL_HEADER=x-forwarded-proto` is what tells the app it runs behind
   HTTPS (Caddy ends TLS). Dev, which has a single `localhost` origin, may
   set `ORIGIN`.
+- **`ADDRESS_HEADER=x-real-ip` in `prod/app` and `staging/app`.** Without
+  it, adapter-node takes the client IP from the TCP peer, which is the Caddy
+  container, so every visitor shares one rate-limit counter. Caddy trusts
+  only Cloudflare's ranges, takes the visitor's IP from `CF-Connecting-IP`
+  and passes it as `X-Real-IP` (issue 012). That header is trustworthy only
+  because the origin firewall admits HTTP(S) from Cloudflare alone
+  (`infrastructure/terraform/firewall.tf`). Dev, without Caddy, leaves it
+  unset.
 - **`USE_MOCK_DATA` stays unset in staging and prod.** Mock data replaces
   real authentication with env-defined credentials and in-memory login
   sessions, so a production build refuses to start with it unless

@@ -25,6 +25,9 @@
 #       healthy as its own user with no capabilities, and its data survives
 #       a recreate
 #   9.  data survives container recreation (bind mounts, not scratch space)
+#   10. real client IP (issue 012): a request through Caddy from a trusted
+#       proxy carrying CF-Connecting-IP is counted by the app's rate limiter
+#       under that IP; from an untrusted peer the header is ignored
 #
 # Harness hygiene: distinct compose project names (germinal-harness-*), its
 # own network (germinal-harness-network), no fixed host ports (Caddy's 80/443
@@ -51,6 +54,13 @@ REPO_ROOT=$(cd "$COMPOSE_DIR/../.." && pwd)
 DEPLOY=$COMPOSE_DIR/deploy
 
 NETWORK=germinal-harness-network
+# Fixed subnet so the client-IP case can stand in for a Cloudflare edge
+# (trusted, fixture Caddyfile) and a direct caller (untrusted) at known
+# addresses. Compose containers get addresses from the lower half only.
+NETWORK_SUBNET=10.213.77.0/24
+NETWORK_IP_RANGE=10.213.77.0/25
+TRUSTED_PEER_IP=10.213.77.200   # inside the fixture's trusted_proxies (.192/26)
+UNTRUSTED_PEER_IP=10.213.77.150 # outside it
 PROJ_PROD=germinal-harness-prod
 PROJ_STAGING=germinal-harness-staging
 REPO=henga/germinal
@@ -227,7 +237,7 @@ networks:
     external: true
 EOF
 
-	if ! docker network create "$NETWORK" >/dev/null; then
+	if ! docker network create --subnet "$NETWORK_SUBNET" --ip-range "$NETWORK_IP_RANGE" "$NETWORK" >/dev/null; then
 		echo "could not create harness network $NETWORK" >&2
 		exit 1
 	fi
@@ -501,6 +511,46 @@ case_container_hardening() {
 	done
 }
 
+# ── issue 012: real client IP ───────────────────────────────────────────────
+# The app counts each rate-limited request under the client IP it sees
+# (ADDRESS_HEADER=x-real-ip, set by Caddy from {client_ip}), so the Redis key
+# of a promo-code validation shows which IP reached the app.
+rate_limit_key_exists() { # $1 ip
+	[ -n "$(docker exec germinal_redis redis-cli --scan --pattern "ratelimit:promo-code-validation:$1")" ]
+}
+request_from() { # $1 source ip, $2 CF-Connecting-IP value
+	docker run --rm --network "$NETWORK" --ip "$1" busybox:latest \
+		wget -q -O /dev/null -T 10 \
+		--header 'Host: harness.germinal.test' --header "CF-Connecting-IP: $2" \
+		--header 'X-Forwarded-For: 192.0.2.99' \
+		'http://germinal_caddy/api/promo-codes/validate?code=HARNESS' >/dev/null 2>&1 || true
+}
+
+case_client_ip() {
+	section "case 10: the app sees the real client IP (issue 012)"
+
+	request_from "$TRUSTED_PEER_IP" 203.0.113.77
+	rate_limit_key_exists 203.0.113.77 &&
+		ok "via a trusted proxy, CF-Connecting-IP reaches the app as the client IP" ||
+		bad "via a trusted proxy, the app did not see CF-Connecting-IP as the client IP"
+	rate_limit_key_exists "$TRUSTED_PEER_IP" &&
+		bad "via a trusted proxy, the app counted the proxy's own IP" ||
+		ok "via a trusted proxy, the proxy's own IP is not counted"
+
+	request_from "$UNTRUSTED_PEER_IP" 198.51.100.66
+	rate_limit_key_exists 198.51.100.66 &&
+		bad "an untrusted peer could spoof CF-Connecting-IP" ||
+		ok "from an untrusted peer, CF-Connecting-IP is ignored"
+	rate_limit_key_exists "$UNTRUSTED_PEER_IP" &&
+		ok "from an untrusted peer, the app sees the peer's own IP" ||
+		bad "from an untrusted peer, the app did not see the peer's IP"
+
+	# An inbound X-Forwarded-For is never what the app counts.
+	rate_limit_key_exists 192.0.2.99 &&
+		bad "an inbound X-Forwarded-For reached the app as the client IP" ||
+		ok "an inbound X-Forwarded-For is not used as the client IP"
+}
+
 case_data_survives() {
 	section "case 9: data survives container recreation (docker compose down model)"
 	dc_prod up -d --wait --force-recreate postgres >/dev/null 2>&1 ||
@@ -522,6 +572,7 @@ case_sha_mismatch
 case_staging_alongside
 case_no_admin_env
 case_container_hardening
+case_client_ip
 case_data_survives
 
 section "result"
