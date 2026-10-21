@@ -12,9 +12,9 @@ function formatDate(date: Date): string {
 }
 
 /**
- * Convert data to CSV format
+ * Convert data to CSV format — the one CSV writer every export goes through.
  */
-function arrayToCSV(data: Record<string, unknown>[], headers: string[]): string {
+export function arrayToCSV(data: Record<string, unknown>[], headers: string[]): string {
 	const csvRows: string[] = [];
 
 	// Add header row
@@ -36,21 +36,31 @@ function arrayToCSV(data: Record<string, unknown>[], headers: string[]): string 
  * Escape a value for CSV
  */
 function escapeCSV(value: string): string {
-	if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+	if (value.includes(',') || value.includes('"') || value.includes('\n') || value.includes('\r')) {
 		return `"${value.replace(/"/g, '""')}"`;
 	}
 	return value;
 }
 
 /**
- * Format a cell value for CSV
+ * Characters a spreadsheet reads as the start of a formula. A text cell
+ * starting with one (e.g. a Guest's Dietary Requirements "=HYPERLINK(…)")
+ * would run as a formula when an Admin opens the export.
+ */
+const FORMULA_TRIGGER = /^[=+\-@\t\r]/;
+
+/**
+ * Format a cell value for CSV. Only string values are neutralised (prefixed
+ * with a single quote): numbers and dates are formatted here, so amounts
+ * such as negative refunds stay numeric.
  */
 function formatCellValue(value: unknown): string {
 	if (value === null || value === undefined) return '';
 	if (value instanceof Date) return formatDate(value);
 	if (typeof value === 'boolean') return value ? 'Yes' : 'No';
 	if (typeof value === 'number') return value.toString();
-	return String(value);
+	const text = String(value);
+	return FORMULA_TRIGGER.test(text) ? `'${text}` : text;
 }
 
 /**
