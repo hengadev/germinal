@@ -28,6 +28,8 @@
 #   10. real client IP (issue 012): a request through Caddy from a trusted
 #       proxy carrying CF-Connecting-IP is counted by the app's rate limiter
 #       under that IP; from an untrusted peer the header is ignored
+#   11. /metrics answers 404 through Caddy on the public and admin
+#       hostnames, and stays reachable on the app port in-network (issue 027)
 #
 # Harness hygiene: distinct compose project names (germinal-harness-*), its
 # own network (germinal-harness-network), no fixed host ports (Caddy's 80/443
@@ -551,6 +553,31 @@ case_client_ip() {
 		ok "an inbound X-Forwarded-For is not used as the client IP"
 }
 
+# ── issue 027: /metrics is not public ─────────────────────────────────────
+status_via_caddy() { # $1 Host header, $2 path -> prints the HTTP status
+	docker exec germinal_app node -e '
+		require("http").get(
+			{ host: "germinal_caddy", port: 80, path: process.argv[2], headers: { Host: process.argv[1] }, timeout: 5000 },
+			(res) => { console.log(res.statusCode); res.resume(); }
+		).on("error", (e) => { console.error(e.message); process.exit(1); });
+	' "$1" "$2"
+}
+
+case_metrics_hidden() {
+	section "case 11: /metrics is not public (issue 027)"
+	local host code
+	for host in harness.germinal.test harness-admin.germinal.test; do
+		code=$(status_via_caddy "$host" /metrics || true)
+		[ "$code" = 404 ] && ok "$host/metrics answers 404 through Caddy" ||
+			bad "$host/metrics answered '$code' through Caddy"
+	done
+	code=$(docker exec germinal_app node -e '
+		require("http").get("http://localhost:3001/metrics", (res) => { console.log(res.statusCode); res.resume(); })
+	' || true)
+	[ "$code" = 200 ] && ok "/metrics still answers on the app port in-network" ||
+		bad "/metrics on the app port answered '$code'"
+}
+
 case_data_survives() {
 	section "case 9: data survives container recreation (docker compose down model)"
 	dc_prod up -d --wait --force-recreate postgres >/dev/null 2>&1 ||
@@ -573,6 +600,7 @@ case_staging_alongside
 case_no_admin_env
 case_container_hardening
 case_client_ip
+case_metrics_hidden
 case_data_survives
 
 section "result"

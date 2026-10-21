@@ -4,6 +4,13 @@ import { isSMTPEnabled, isS3Enabled, env } from '$lib/server/env';
 import { logger } from '$lib/server/logger';
 import type { RequestHandler } from './$types';
 
+/**
+ * The public health answer: overall status, timestamp and commit SHA only
+ * (issue 027). That is all the deploy script's SHA check, the container
+ * healthcheck and the Promote workflow need; the detailed checks (database
+ * latency, storage, scheduler, query statistics) and any error text are
+ * logged, never returned.
+ */
 interface HealthStatus {
 	status: 'healthy' | 'degraded' | 'unhealthy';
 	timestamp: string;
@@ -12,17 +19,6 @@ interface HealthStatus {
 	// (see Dockerfile); `dev` when no SHA was provided (pnpm dev, ad-hoc
 	// builds) — never a fake version.
 	sha: string;
-	checks: {
-		database: { status: 'healthy' | 'degraded' | 'unhealthy'; message?: string; latency?: number };
-		smtp: { status: 'healthy' | 'unhealthy' | 'disabled'; message?: string };
-		storage: { status: 'healthy' | 'unhealthy' | 'disabled'; message?: string };
-		scheduler: { status: 'healthy' | 'unhealthy' | 'disabled'; message?: string };
-	};
-	metrics: {
-		totalQueries: number;
-		slowQueries: number;
-		avgQueryTime: number;
-	};
 }
 
 export const GET: RequestHandler = async () => {
@@ -49,15 +45,9 @@ export const GET: RequestHandler = async () => {
 		status: overallStatus,
 		timestamp: new Date().toISOString(),
 		sha: process.env.COMMIT_SHA || 'dev',
-		checks,
-		metrics: {
-			totalQueries: metrics.totalQueries,
-			slowQueries: metrics.slowQueries,
-			avgQueryTime: Math.round(metrics.avgQueryTime),
-		},
 	};
 
-	// Log health status
+	// The details go to the log only
 	logger.info(
 		{
 			status: overallStatus,

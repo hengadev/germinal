@@ -62,22 +62,11 @@ describe('GET /api/health — build SHA reporting', () => {
 		expect(response.status).toBe(200);
 		const body = await response.json();
 		expect(body.sha).toBe('dev');
-		// Everything except the SHA reporting keeps its existing shape
+		// The public body holds status, timestamp and SHA only
 		expect(body).toEqual({
 			status: 'healthy',
 			timestamp: expect.any(String),
 			sha: 'dev',
-			checks: {
-				database: { status: 'healthy', latency: expect.any(Number) },
-				smtp: { status: 'disabled', message: 'SMTP not configured' },
-				storage: { status: 'disabled', message: 'S3 not configured' },
-				scheduler: { status: 'disabled', message: 'Scheduler not enabled' },
-			},
-			metrics: {
-				totalQueries: 0,
-				slowQueries: 0,
-				avgQueryTime: 0,
-			},
 		});
 	});
 
@@ -89,5 +78,25 @@ describe('GET /api/health — build SHA reporting', () => {
 
 		const body = await response.json();
 		expect(body.sha).toBe('dev');
+	});
+});
+
+describe('GET /api/health — nothing internal is public (issue 027)', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		getQueryStats.mockReturnValue({ totalQueries: 42, slowQueries: 3, avgQueryTime: 12 });
+	});
+
+	it('an unhealthy database still answers 503, without its error text or any detail', async () => {
+		dbExecute.mockRejectedValue(new Error('password authentication failed for user "germinal" at 10.0.0.5'));
+		const { GET } = await import('../../../src/routes/api/health/+server');
+
+		const response = await GET(makeEvent());
+
+		expect(response.status).toBe(503);
+		const text = await response.text();
+		expect(text).not.toMatch(/password|germinal|10\.0\.0\.5|latency|queries/i);
+		expect(Object.keys(JSON.parse(text)).sort()).toEqual(['sha', 'status', 'timestamp']);
+		expect(JSON.parse(text).status).toBe('unhealthy');
 	});
 });
