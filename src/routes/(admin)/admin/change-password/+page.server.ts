@@ -4,6 +4,8 @@ import { users } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
 import { verifyPassword, hashPassword, verifyPasswordMock } from '$lib/server/auth';
 import { env } from '$lib/server/env';
+import { revokeUserSessions } from '$lib/server/session';
+import { getSessionCookieName } from '$lib/server/hostname';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -14,7 +16,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 };
 
 export const actions: Actions = {
-	default: async ({ request, locals }) => {
+	default: async ({ request, locals, cookies, url }) => {
 		if (!locals.user) {
 			return fail(401, { error: 'Unauthorized' });
 		}
@@ -85,6 +87,11 @@ export const actions: Actions = {
 				updatedAt: new Date()
 			})
 			.where(eq(users.id, locals.user.id));
+
+		// End the user's other login sessions; this one stays signed in.
+		await revokeUserSessions(locals.user.id, {
+			except: cookies.get(getSessionCookieName(url.hostname))
+		});
 
 		return { success: true, message: 'Password updated successfully' };
 	}

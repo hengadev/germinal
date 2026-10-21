@@ -5,6 +5,7 @@ import { db } from '$lib/server/db';
 import { users } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
 import { isAppError } from '$lib/server/errors';
+import { revokeUserSessions } from '$lib/server/session';
 
 // POST /api/admin/team/admin/deactivate - Deactivate an admin account
 export const POST: RequestHandler = async ({ locals, request }) => {
@@ -49,6 +50,9 @@ export const POST: RequestHandler = async ({ locals, request }) => {
                 updatedAt: new Date(),
             })
             .where(eq(users.id, adminId));
+
+        // A deactivated account keeps no login session.
+        await revokeUserSessions(adminId);
 
         return json({ success: `Admin ${user.email} has been deactivated` });
     } catch (error) {

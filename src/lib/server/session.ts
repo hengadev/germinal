@@ -1,7 +1,7 @@
 import { db } from './db';
 import { sessions, users } from './db/schema';
-import { eq, and, gt, lt } from 'drizzle-orm';
-import { randomBytes } from 'crypto';
+import { eq, and, gt, lt, ne } from 'drizzle-orm';
+import { createHash, randomBytes } from 'crypto';
 import { env } from './env';
 
 const SESSION_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
@@ -10,10 +10,20 @@ const SESSION_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
 const mockSessions = new Map<string, { user: any; expiresAt: number }>();
 
 /**
- * Generate a cryptographically secure random session ID
+ * Generate a cryptographically secure random session token
  */
 function generateSessionId(): string {
 	return randomBytes(32).toString('base64url');
+}
+
+/**
+ * The login session store keeps only the SHA-256 hash of each token: the
+ * browser's cookie carries the token, the `sessions.id` column its hash, so
+ * a leaked backup or database dump yields no working login. Every lookup
+ * and deletion hashes the token first.
+ */
+export function hashSessionToken(token: string): string {
+	return createHash('sha256').update(token).digest('hex');
 }
 
 /**
@@ -44,16 +54,14 @@ export async function createSession(userId: string, role: 'admin' | 'staff' = 'a
 	const sessionId = generateSessionId();
 	const expiresAt = new Date(Date.now() + SESSION_DURATION);
 
-	const [session] = await db
-		.insert(sessions)
-		.values({
-			id: sessionId,
-			userId,
-			expiresAt
-		})
-		.returning();
+	await db.insert(sessions).values({
+		id: hashSessionToken(sessionId),
+		userId,
+		expiresAt
+	});
 
-	return session;
+	// The raw token goes to the browser's cookie and is never stored.
+	return { id: sessionId, expiresAt };
 }
 
 /**
@@ -87,7 +95,7 @@ export async function validateSession(sessionId: string) {
 		})
 		.from(sessions)
 		.innerJoin(users, eq(sessions.userId, users.id))
-		.where(and(eq(sessions.id, sessionId), gt(sessions.expiresAt, new Date())))
+		.where(and(eq(sessions.id, hashSessionToken(sessionId)), gt(sessions.expiresAt, new Date())))
 		.limit(1);
 
 	if (!result) {
@@ -114,7 +122,25 @@ export async function deleteSession(sessionId: string): Promise<void> {
 	}
 
 	// Database mode: delete from database
-	await db.delete(sessions).where(eq(sessions.id, sessionId));
+	await db.delete(sessions).where(eq(sessions.id, hashSessionToken(sessionId)));
+}
+
+/**
+ * Revoke every login session of a user, optionally keeping one (the
+ * session making the request, given by its raw token). Used when a
+ * password changes (keep the current session), a reset completes or an
+ * account is deactivated (revoke all).
+ */
+export async function revokeUserSessions(userId: string, options: { except?: string } = {}): Promise<void> {
+	if (env.USE_MOCK_DATA) {
+		// Mock mode keeps its in-memory sessions as they are.
+		return;
+	}
+
+	const keep = options.except ? hashSessionToken(options.except) : null;
+	await db
+		.delete(sessions)
+		.where(keep ? and(eq(sessions.userId, userId), ne(sessions.id, keep)) : eq(sessions.userId, userId));
 }
 
 /**

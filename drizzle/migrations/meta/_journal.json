@@ -246,6 +246,13 @@
       "when": 1792261408656,
       "tag": "0034_portfolio_content",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1792261409656,
+      "tag": "0035_hashed_login_sessions",
+      "breakpoints": true
     }
   ]
 }

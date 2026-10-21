@@ -3,6 +3,7 @@ import { db } from '$lib/server/db';
 import { users } from '$lib/server/db/schema';
 import { eq, and, gt } from 'drizzle-orm';
 import { hashPassword } from '$lib/server/auth';
+import { revokeUserSessions } from '$lib/server/session';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
     const { token } = params;
@@ -88,6 +89,9 @@ export const actions: Actions = {
                 updatedAt: new Date(),
             })
             .where(eq(users.id, user.id));
+
+        // A completed reset ends every login session of the user.
+        await revokeUserSessions(user.id);
 
         // Redirect to success state (same page but with success flag)
         return { success: 'Mot de passe défini avec succès' };
