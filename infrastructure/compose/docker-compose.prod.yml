@@ -138,15 +138,14 @@ services:
     restart: unless-stopped
     mem_limit: 128m
     command: redis-server --appendonly yes
-    # Least privilege (issue 028), verified by the compose harness: all
-    # capabilities dropped, then only the three the official entrypoint
-    # proves to need added back — CHOWN (it chowns /data when started as
-    # root) and SETUID + SETGID (su-exec's drop to the redis user). The
-    # redis-server process itself ends up with none (non-root, no caps).
-    # Read-only root filesystem: the only write target is /data, a bind
-    # mount. no-new-privileges keeps the su-exec drop one-way.
+    # Least privilege (issue 028), verified by the compose harness: Redis
+    # runs as the image's own redis user (999:1000) from the start, so the
+    # official entrypoint skips its chown of /data and its su-exec drop and
+    # needs no Linux capabilities at all. /data is pre-owned by that user
+    # (Ansible app role, redis_container_uid/gid). Read-only root
+    # filesystem: the only write target is /data, a bind mount.
+    user: "999:1000"
     cap_drop: [ALL]
-    cap_add: [CHOWN, SETGID, SETUID]
     security_opt: [no-new-privileges:true]
     pids_limit: 64
     read_only: true

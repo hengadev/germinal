@@ -22,8 +22,8 @@
 #   8.  container hardening (issue 028): the running app containers have no
 #       capabilities, no-new-privileges, a read-only root filesystem and a
 #       pids limit (asserted on the live container AND its PID 1); Redis is
-#       healthy with only its entrypoint's three capabilities, and its data
-#       survives a recreate
+#       healthy as its own user with no capabilities, and its data survives
+#       a recreate
 #   9.  data survives container recreation (bind mounts, not scratch space)
 #
 # Harness hygiene: distinct compose project names (germinal-harness-*), its
@@ -181,6 +181,10 @@ setup() {
 
 	# CI (issues 009/010) copies the compose files from the deployed commit
 	# to the stack roots under the Agent's expected name.
+	# Like Ansible (app role), the Redis data dir is pre-owned by the image's
+	# redis user, which the container runs as (issue 028).
+	docker run --rm -v "$TMP/prod/data/redis:/d" busybox:latest chown 999:1000 /d
+
 	cp "$COMPOSE_DIR/docker-compose.prod.yml" "$TMP/prod/docker-compose.yml"
 	cp "$COMPOSE_DIR/docker-compose.staging.yml" "$TMP/staging/docker-compose.yml"
 	cp -r "$HARNESS_DIR/fixtures/prod/env/." "$TMP/prod/env/"
@@ -450,21 +454,20 @@ case_container_hardening() {
 	hardened_app_settings germinal_app
 	hardened_app_settings germinal_staging_app
 
-	# Redis: healthy with all capabilities dropped except the three its
-	# entrypoint needs (chown /data, su-exec down to the redis user).
+	# Redis: healthy with every capability dropped, running as its own user
+	# from the start (the entrypoint then needs no chown/su-exec).
 	[ "$(docker inspect -f '{{.State.Health.Status}}' germinal_redis)" = healthy ] &&
 		ok "redis healthy with reduced privileges" || bad "redis not healthy with reduced privileges"
-	local redis_capadd redis_caps
+	local redis_capadd
 	redis_capadd=$(docker inspect -f '{{json .HostConfig.CapAdd}}' germinal_redis)
-	redis_caps=$(printf '%s' "$redis_capadd" | tr -d '[]"' | tr ',' '\n' | sort | tr '\n' ' ' | sed 's/ *$//')
-	[ "$redis_caps" = "CHOWN SETGID SETUID" ] &&
-		ok "redis adds back only CHOWN, SETGID, SETUID" || bad "redis capabilities are '$redis_caps' (want CHOWN SETGID SETUID)"
+	case $redis_capadd in '' | '[]' | 'null') ok "redis: no capabilities added" ;; *) bad "redis has capabilities added ($redis_capadd)" ;; esac
+	[ "$(docker inspect -f '{{.Config.User}}' germinal_redis)" = "999:1000" ] &&
+		ok "redis runs as its own user" || bad "redis does not run as 999:1000"
 	docker inspect -f '{{json .HostConfig.CapDrop}}' germinal_redis | grep -q '"ALL"' &&
 		ok "redis drops ALL capabilities" || bad "redis does not drop ALL capabilities"
 	[ "$(docker inspect -f '{{.HostConfig.ReadonlyRootfs}}' germinal_redis)" = true ] &&
 		ok "redis: read-only root filesystem" || bad "redis: root filesystem is writable"
-	# The entrypoint's capabilities exist only for the chown + su-exec drop:
-	# PID 1 (redis-server, as the redis user) ends up with none.
+	# PID 1 (redis-server, as the redis user) holds no capabilities.
 	docker exec germinal_redis sh -c 'grep -q "^CapEff:[[:space:]]*0000000000000000$" /proc/1/status' &&
 		ok "redis PID 1 has no effective capabilities" || bad "redis PID 1 holds effective capabilities"
 	local ro_err
@@ -475,10 +478,12 @@ case_container_hardening() {
 	# every-second, hence the settle before the recreate).
 	docker exec germinal_redis redis-cli set harness:persist survives >/dev/null
 	sleep 2
-	if dc_prod up -d --wait --force-recreate redis >/dev/null 2>&1; then
+	local recreate_out
+	if recreate_out=$(dc_prod up -d --wait --force-recreate redis 2>&1); then
 		ok "redis recreated with reduced privileges"
 	else
-		bad "redis did not come back after recreate"
+		bad "redis did not come back after recreate: $(printf '%s' "$recreate_out" | tail -3)"
+		docker logs --tail 20 germinal_redis >&2 || true
 		return
 	fi
 	[ "$(docker exec germinal_redis redis-cli get harness:persist)" = survives ] &&

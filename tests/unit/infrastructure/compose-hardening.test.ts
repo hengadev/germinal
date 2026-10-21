@@ -131,10 +131,11 @@ describe('compose files: least-privilege containers (issue 028)', () => {
 		expect(asList(staging['staging_app']?.['volumes']).join('\n')).toMatch(/:\/app\/uploads$/m);
 	});
 
-	it('drops all capabilities on redis, adding back only the entrypoint three', () => {
+	it('runs redis as its own user with every capability dropped', () => {
 		const redis = prod['redis'];
+		expect(asScalar(redis?.['user'])).toBe('"999:1000"');
 		expect(asList(redis?.['cap_drop'])).toContain('ALL');
-		expect([...asList(redis?.['cap_add'])].sort()).toEqual(['CHOWN', 'SETGID', 'SETUID']);
+		expect(asList(redis?.['cap_add'])).toEqual([]);
 		expect(
 			asList(redis?.['security_opt']).some((opt) => opt.includes('no-new-privileges'))
 		).toBe(true);

@@ -200,9 +200,8 @@ alongside prod (no DNS/network/name collisions, staging role can't reach the
 prod database), no `ADMIN_*` in running app containers, container hardening
 (issue 028: the running app containers have no capabilities,
 `no-new-privileges`, a read-only root filesystem and a pids limit — asserted
-on the container config **and** empirically on its PID 1; Redis healthy with
-only the three capabilities its entrypoint needs and its data surviving a
-recreate; Postgres/Caddy with `no-new-privileges` + a pids limit), and data
+on the container config **and** empirically on its PID 1; Redis healthy as its
+own user with no capabilities and its data surviving a recreate; Postgres/Caddy with `no-new-privileges` + a pids limit), and data
 surviving container recreation.
 
 Harness hygiene — it must never collide with a developer's running
