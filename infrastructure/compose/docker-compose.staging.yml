@@ -1,17 +1,21 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # Germinal staging stack (issue 007, PRD module M5).
 #
-# App + its one-off admin bootstrap ONLY: staging shares production's
-# Postgres, Redis and Caddy by joining the external germinal_network. Its
-# app.env points DATABASE_URL at `postgres`/germinal_staging (a dedicated
-# role/database the Ansible setup creates — PRD M4) and REDIS_DB=1.
+# App, its one-off admin bootstrap and its OWN Redis (issue 029): staging
+# shares production's Postgres and Caddy by joining the external
+# germinal_network, but never production's Redis — database indexes are not
+# a boundary, so staging code could otherwise reset or flush production's
+# rate-limit counters. Its app.env points DATABASE_URL at
+# `postgres`/germinal_staging (a dedicated role/database the Ansible setup
+# creates — PRD M4) and REDIS_HOST at staging_redis.
 #
 # Each deploy installs this file from the deployed commit to
 # /opt/germinal-staging/docker-compose.yml (root 0644; the server reads it
 # from the repo, issue 017). Layout:
 #   /opt/germinal-staging/docker-compose.yml   this file
-#   /opt/germinal-staging/env/{app,admin}.env  Agent-rendered, root 0600
+#   /opt/germinal-staging/env/{app,admin,redis}.env  Agent-rendered, root 0600
 #   /opt/germinal-staging/data/uploads/        persistent uploads
+#   /opt/germinal-staging/data/redis/          staging Redis data (999:1000)
 #
 # SERVICE NAMES: compose registers every service name as a DNS alias on each
 # network it joins. Prod's app service is named `app`, so a staging service
@@ -45,9 +49,9 @@ services:
       - "3001"
     env_file:
       - env/app.env
-    # No depends_on: postgres/redis/caddy belong to prod's compose project.
-    # A staging deploy on a cold server fails its migration step instead —
-    # visibly, at the right place.
+    # No depends_on: postgres/caddy belong to prod's compose project (a
+    # staging deploy on a cold server fails its migration step instead —
+    # visibly, at the right place); the deploy script starts staging_redis.
     volumes:
       - /opt/germinal-staging/data/uploads:/app/uploads
     networks:
@@ -84,6 +88,40 @@ services:
       - env/admin.env
     networks:
       - germinal_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Staging's own Redis (issue 029), hardened and memory-limited like prod's
+  # (issue 028): its own user from the start, no capabilities, read-only
+  # root filesystem, data under the staging data root. Password from its own
+  # env/redis.env, read by the container's shell (`$$`: no compose
+  # substitution). The staging_ prefix keeps it from registering a `redis`
+  # alias next to prod's on the shared network.
+  staging_redis:
+    image: redis:7-alpine
+    container_name: germinal_staging_redis
+    restart: unless-stopped
+    mem_limit: 128m
+    env_file:
+      - env/redis.env
+    command: ["sh", "-c", "exec redis-server --appendonly yes --requirepass \"$$REDIS_PASSWORD\""]
+    user: "999:1000"
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 64
+    read_only: true
+    volumes:
+      - /opt/germinal-staging/data/redis:/data
+    networks:
+      - germinal_network
+    healthcheck:
+      test: ["CMD-SHELL", "REDISCLI_AUTH=\"$$REDIS_PASSWORD\" redis-cli ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     logging:
       driver: "json-file"
       options:

@@ -26,7 +26,7 @@ Cloudflare token never reaches anything but Caddy.
 | --- | --- | :-: | :-: | :-: | --- |
 | `/app` | `PUBLIC_URL`, `PROTOCOL_HEADER`, `ADDRESS_HEADER`, `CONTACT_EMAIL`, `MAINTENANCE_MODE`, `USE_SCHEDULER`, `USE_MOCK_DATA`, `ALLOW_DEMO_MODE`, `RESERVATION_EXPIRY_MINUTES`, `MAX_FILE_SIZE`, `BODY_SIZE_LIMIT`, `ALLOWED_IMAGE_TYPES`, `ALLOWED_VIDEO_TYPES` | ✓ | ✓ | ✓ | `app.env` → the app |
 | `/db` | `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `POSTGRES_HOST`, `POSTGRES_PORT` | ✓ | ✓ | ✓ | `postgres.env` → Postgres (prod only); assembled into `DATABASE_URL` in `app.env`; `POSTGRES_USER`/`POSTGRES_DB` into `backup.env` |
-| `/redis` | `REDIS_HOST`, `REDIS_PORT`, `REDIS_DB` (`0` prod, `1` staging) | ✓ | ✓ | ✓ | `app.env` |
+| `/redis` | `REDIS_HOST` (`redis` prod, `staging_redis` staging), `REDIS_PORT`, `REDIS_DB` (`0` both), `REDIS_PASSWORD` | ✓ | ✓ | ✓ | `app.env`; `REDIS_PASSWORD` alone into `redis.env` → that stack's Redis (prod and staging) |
 | `/stripe` | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` (live in prod, **test mode** in staging and dev) | ✓ | ✓ | ✓ | `app.env` |
 | `/s3` | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`, `S3_BUCKET_NAME`, `MEDIA_URL` (**written by Terraform** in prod and staging), `S3_PUBLIC_URL`; dev only: `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` (local MinIO) | ✓ | ✓ | ✓ | `app.env`. The AWS key also sends email through SES. |
 | `/smtp` | `SMTP_FROM_EMAIL`, `SMTP_FROM_NAME` | ✓ | ✓ | ✓ | `app.env` |
@@ -75,8 +75,12 @@ bootstrap only get the rewritten file; they read it the next time they run.
 - **`MAINTENANCE_MODE=true` in `prod/app`** forces the maintenance page. It
   takes priority over the admin toggle in site settings.
 - **Staging is not a copy of prod:** its own database and role
-  (`germinal_staging`), Redis database `1`, Stripe test mode, its own bucket
-  and AWS key.
+  (`germinal_staging`), its own Redis (`staging_redis`, its own
+  `REDIS_PASSWORD`; issue 029), Stripe test mode, its own bucket and AWS key.
+- **Every Redis requires a password.** `REDIS_PASSWORD` in `prod/redis` and
+  `staging/redis` (different values); letters and digits only. The
+  production env schema refuses to start without it. Dev's local Redis has
+  none: leave it unset there.
 - **`dev` must never hold anything that can spend money or reach real data.**
   On the free Infisical plan, the server's read-only identity can also read
   `dev`, and contributors get `dev` read-only. That's why `dev` keeps

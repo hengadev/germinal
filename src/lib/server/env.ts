@@ -8,7 +8,9 @@ const devEnvSchema = z.object({
     DATABASE_URL: z.string().default('postgresql://postgres:postgres@localhost:5432/germinal'),
     REDIS_HOST: z.string().default('localhost'),
     REDIS_PORT: z.string().default('6379').transform(Number),
-    // Redis database index: staging shares prod's Redis server on index 1
+    // Redis password (/redis REDIS_PASSWORD); the local dev Redis has none
+    REDIS_PASSWORD: z.string().optional(),
+    // Redis database index: 0 everywhere (staging runs its own Redis, issue 029)
     REDIS_DB: z.string().default('0').transform(Number),
     USE_MOCK_DATA: z.string().default('false').transform(v => v === 'true'),
     // Lets a production build run with USE_MOCK_DATA (the germinal.henga.dev demo only)
@@ -67,7 +69,9 @@ const prodEnvSchema = z.object({
     DATABASE_URL: z.string().url(),
     REDIS_HOST: z.string().min(1),
     REDIS_PORT: z.string().transform(Number),
-    // Redis database index: staging shares prod's Redis server on index 1
+    // Every deployed Redis requires a password (issue 029)
+    REDIS_PASSWORD: z.string().min(1),
+    // Redis database index: 0 everywhere (staging runs its own Redis, issue 029)
     REDIS_DB: z.string().default('0').transform(Number),
     USE_MOCK_DATA: z.string().default('false').transform(v => v === 'true'),
     // Lets a production build run with USE_MOCK_DATA (the germinal.henga.dev demo only)

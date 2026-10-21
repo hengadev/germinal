@@ -58,6 +58,8 @@ return current
 const redis = new Redis({
 	host: env.REDIS_HOST,
 	port: env.REDIS_PORT,
+	// Required by every deployed Redis (issue 029); unset for local dev
+	password: env.REDIS_PASSWORD || undefined,
 	db: env.REDIS_DB,
 	// Bound how long a command waits during a reconnect before failing, so a
 	// fail-closed rejection comes back quickly (~tens of ms) during a real

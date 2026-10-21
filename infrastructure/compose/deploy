@@ -16,7 +16,8 @@
 # Sequence — every failed step exits non-zero BEFORE the next one runs:
 #   1. pull henga/germinal:<sha> from Docker Hub
 #   2. pin the stack's local image tag (henga/germinal:prod|staging)
-#   3. prod only: bring up the shared postgres + redis (no-op when running)
+#   3. bring up dependencies (no-op when running): prod the shared postgres +
+#      redis, staging its own staging_redis (issue 029)
 #   4. migrations — one-off through the app service (DATABASE_URL from
 #      env/app.env); a failure aborts before the app is recreated
 #   5. admin bootstrap — one-off through the profile-gated admin service
@@ -111,7 +112,7 @@ restore_pin() {
 trap restore_pin EXIT
 docker tag "$image" "$pinned" || die "failed to pin $pinned"
 
-# ── 3. shared dependencies (prod only; idempotent) ──────────────────────────
+# ── 3. dependencies (idempotent): prod's shared services, staging's Redis ───
 # First deploy on empty directories needs postgres/redis before the migration
 # one-off can connect. postgres is only recreated if its env actually
 # changed (rotation is manual, ADR 0004).
@@ -119,6 +120,11 @@ if [ "$stack" = prod ]; then
 	log "ensuring postgres + redis are up"
 	"${compose[@]}" up -d --wait --wait-timeout 180 postgres redis ||
 		die "shared services did not become healthy"
+else
+	# Staging's own Redis (issue 029); Postgres stays prod's.
+	log "ensuring staging_redis is up"
+	"${compose[@]}" up -d --wait --wait-timeout 180 staging_redis ||
+		die "staging_redis did not become healthy"
 fi
 
 # ── 4. migrations ────────────────────────────────────────────────────────────

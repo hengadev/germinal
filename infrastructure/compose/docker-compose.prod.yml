@@ -137,7 +137,13 @@ services:
     container_name: germinal_redis
     restart: unless-stopped
     mem_limit: 128m
-    command: redis-server --appendonly yes
+    # A password is required (issue 029). It comes from env/redis.env (the
+    # Agent renders /redis REDIS_PASSWORD only) and is read by the container's
+    # own shell: `$$` keeps compose from substituting it (no variable
+    # substitution in these files, ADR 0004).
+    env_file:
+      - env/redis.env
+    command: ["sh", "-c", "exec redis-server --appendonly yes --requirepass \"$$REDIS_PASSWORD\""]
     # Least privilege (issue 028), verified by the compose harness: Redis
     # runs as the image's own redis user (999:1000) from the start, so the
     # official entrypoint skips its chown of /data and its su-exec drop and
@@ -154,7 +160,8 @@ services:
     networks:
       - germinal_network
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      # Authenticates (REDISCLI_AUTH keeps the password off the command line)
+      test: ["CMD-SHELL", "REDISCLI_AUTH=\"$$REDIS_PASSWORD\" redis-cli ping | grep -q PONG"]
       interval: 10s
       timeout: 5s
       retries: 5
