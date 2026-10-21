@@ -1,0 +1,8 @@
+{# psql variables for files/app-db-role.sql, fed to psql on stdin before it
+   (roles/shared_services). Set from single-quoted literals (backslashes and
+   quotes escaped) and used through psql's own quoting, so no value is
+   spliced into SQL text. #}
+{% macro psql_literal(value) %}'{{ value | replace('\\', '\\\\') | replace("'", "''") }}'{% endmacro %}
+\set role {{ psql_literal(shared_services_db.prod.APP_DB_USER) }}
+\set password {{ psql_literal(shared_services_db.prod.APP_DB_PASSWORD) }}
+\set db {{ psql_literal(shared_services_db.prod.POSTGRES_DB) }}

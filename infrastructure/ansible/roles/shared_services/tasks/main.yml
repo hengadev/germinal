@@ -4,6 +4,8 @@
 #   so staging has something to join before production's first deploy (010)
 # - Create the germinal_staging database role and database (PRD M4): it owns
 #   only germinal_staging and cannot connect to production's database
+# - Create the production app's database role (issue 018, PRD M3): not a
+#   superuser, owner of the production database, CONNECT on it only
 #
 # Needs the Agent-rendered env files (roles/infisical_agent) and the
 # operator's `infisical login` on the control node.
@@ -104,6 +106,25 @@
   loop: [prod, staging]
   no_log: true
 
+- name: Check the app has its own non-bootstrap role in every environment
+  ansible.builtin.assert:
+    that:
+      - shared_services_db[item].APP_DB_USER | default('') | length > 0
+      - shared_services_db[item].APP_DB_PASSWORD | default('') | length > 0
+    fail_msg: >-
+      Infisical {{ item }}/db needs APP_DB_USER and APP_DB_PASSWORD (issue 018):
+      the app's DATABASE_URL is built from them, never from POSTGRES_USER.
+    quiet: true
+  loop: [prod, staging]
+  no_log: true
+
+- name: Check production's app role is not the bootstrap superuser
+  ansible.builtin.assert:
+    that:
+      - shared_services_db.prod.APP_DB_USER != shared_services_db.prod.POSTGRES_USER
+    fail_msg: "prod/db APP_DB_USER must differ from POSTGRES_USER, the bootstrap superuser (issue 018)."
+    quiet: true
+
 - name: Check staging uses its own role and database
   ansible.builtin.assert:
     that:
@@ -125,5 +146,22 @@
     stdin: "{{ lookup('ansible.builtin.template', 'staging-db.sql.j2') }}"
   register: shared_services_staging_db
   changed_when: shared_services_staging_db.stdout is search('CREATED')
+  when: not ansible_check_mode
+  no_log: true
+
+# Idempotent, like the staging role: creates the role when missing (CREATED),
+# re-applies its attributes and password from Infisical on every run, and
+# hands it the production database and everything in it.
+- name: Create the production app's database role and give it the database
+  ansible.builtin.command:
+    cmd: >-
+      docker exec -i {{ shared_services_postgres_container }}
+      psql -X -q -tA -v ON_ERROR_STOP=1
+      -U {{ shared_services_db.prod.POSTGRES_USER }}
+      -d {{ shared_services_db.prod.POSTGRES_DB }}
+    # The \set lines, then the SQL: joined by a newline, never folded.
+    stdin: "{{ lookup('ansible.builtin.template', 'app-db-role-vars.sql.j2') }}\n{{ lookup('ansible.builtin.file', 'app-db-role.sql') }}"
+  register: shared_services_app_db
+  changed_when: shared_services_app_db.stdout is search('CREATED')
   when: not ansible_check_mode
   no_log: true

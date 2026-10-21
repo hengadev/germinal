@@ -25,7 +25,7 @@ Cloudflare token never reaches anything but Caddy.
 | Folder | Keys | `prod` | `staging` | `dev` | Rendered into → read by |
 | --- | --- | :-: | :-: | :-: | --- |
 | `/app` | `PUBLIC_URL`, `PROTOCOL_HEADER`, `ADDRESS_HEADER`, `CONTACT_EMAIL`, `MAINTENANCE_MODE`, `USE_SCHEDULER`, `USE_MOCK_DATA`, `ALLOW_DEMO_MODE`, `RESERVATION_EXPIRY_MINUTES`, `MAX_FILE_SIZE`, `BODY_SIZE_LIMIT`, `ALLOWED_IMAGE_TYPES`, `ALLOWED_VIDEO_TYPES` | ✓ | ✓ | ✓ | `app.env` → the app |
-| `/db` | `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `POSTGRES_HOST`, `POSTGRES_PORT` | ✓ | ✓ | ✓ | `postgres.env` → Postgres (prod only); assembled into `DATABASE_URL` in `app.env`; `POSTGRES_USER`/`POSTGRES_DB` into `backup.env` |
+| `/db` | `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `POSTGRES_HOST`, `POSTGRES_PORT`, `APP_DB_USER`, `APP_DB_PASSWORD` | ✓ | ✓ | ✓ | `postgres.env` → Postgres (prod only); `APP_DB_USER`/`APP_DB_PASSWORD` + host/port/db assembled into `DATABASE_URL` in `app.env`; `POSTGRES_USER`/`POSTGRES_DB` into `backup.env` |
 | `/redis` | `REDIS_HOST`, `REDIS_PORT`, `REDIS_DB` (`0` prod, `1` staging) | ✓ | ✓ | ✓ | `app.env` |
 | `/stripe` | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` (live in prod, **test mode** in staging and dev) | ✓ | ✓ | ✓ | `app.env` |
 | `/s3` | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`, `S3_BUCKET_NAME`, `MEDIA_URL` (**written by Terraform** in prod and staging), `S3_PUBLIC_URL`; dev only: `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` (local MinIO) | ✓ | ✓ | ✓ | `app.env`. The AWS key also sends email through SES. |
@@ -44,9 +44,21 @@ bootstrap only get the rewritten file; they read it the next time they run.
 
 ## Rules that are easy to get wrong
 
-- **`DATABASE_URL` is never stored.** The templates assemble it from the five
-  `/db` values, both on the server and in `make env`. Use letters and digits
-  only in `POSTGRES_PASSWORD`, so it never needs URL-encoding.
+- **`DATABASE_URL` is never stored.** The templates assemble it from
+  `APP_DB_USER`, `APP_DB_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT` and
+  `POSTGRES_DB`, both on the server and in `make env`. Use letters and digits
+  only in the passwords, so they never need URL-encoding.
+- **The app never connects as the superuser (issue 018).** In `prod/db`,
+  `POSTGRES_USER`/`POSTGRES_PASSWORD` are the bootstrap superuser: used only
+  by the Postgres container's first init, the Ansible setup and the backup
+  job. `APP_DB_USER`/`APP_DB_PASSWORD` name the app's own role (e.g.
+  `germinal_app`), which the Ansible setup creates as a non-superuser owner
+  of the production database (`roles/shared_services/files/app-db-role.sql`)
+  and re-applies the password of on every run. It must differ from
+  `POSTGRES_USER`. In `staging/db` and `dev/db` the two keys name the same
+  role as `POSTGRES_USER`/`POSTGRES_PASSWORD` (staging's already
+  non-superuser `germinal_staging`; the local dev user). There is no
+  fallback: a missing key leaves `DATABASE_URL` visibly broken.
 - **`POSTGRES_PASSWORD` applies only when the database is first created.**
   Changing it in Infisical changes `postgres.env`, but not the password
   Postgres actually uses. To rotate it, first run `ALTER USER … PASSWORD …` in

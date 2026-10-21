@@ -84,13 +84,21 @@ describe('Infisical Agent templates', () => {
 			expect(text.match(/\{\{ \.Key \}\}=\{\{ \.Value \}\}/g)).toHaveLength(1);
 		});
 
-		it('assembles DATABASE_URL from the /db atoms with urlquery', () => {
+		it('assembles DATABASE_URL from the app role\'s /db atoms with urlquery', () => {
 			expect(text).toMatch(
 				/DATABASE_URL=postgresql:\/\/\{\{ urlquery \$pgUser \}\}:\{\{ urlquery \$pgPassword \}\}@\{\{ \$pgHost \}\}:\{\{ \$pgPort \}\}\/\{\{ \$pgDb \}\}/
 			);
-			for (const atom of ['POSTGRES_USER', 'POSTGRES_PASSWORD', 'POSTGRES_HOST', 'POSTGRES_PORT', 'POSTGRES_DB']) {
+			expect(text).toContain('{{- if eq .Key "APP_DB_USER" }}{{ $pgUser = .Value }}{{ end -}}');
+			expect(text).toContain('{{- if eq .Key "APP_DB_PASSWORD" }}{{ $pgPassword = .Value }}{{ end -}}');
+			for (const atom of ['POSTGRES_HOST', 'POSTGRES_PORT', 'POSTGRES_DB']) {
 				expect(text).toContain(`eq .Key "${atom}"`);
 			}
+		});
+
+		it('never builds DATABASE_URL from the bootstrap superuser (issue 018)', () => {
+			// Not read at all, so a missing app key can't fall back to it.
+			expect(text).not.toContain('eq .Key "POSTGRES_USER"');
+			expect(text).not.toContain('eq .Key "POSTGRES_PASSWORD"');
 		});
 	});
 
