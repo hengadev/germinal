@@ -13,9 +13,12 @@
  *   nothing is refunded.
  */
 
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { db } from '../db';
-import { reservations } from '../db/schema';
+import { payments, reservations } from '../db/schema';
+import { logger } from '$lib/server/logger';
+import { seatingTitle } from '$lib/utils/seating-title';
+import { cancelReservationTransition } from './reservation-transitions';
 import { refundPolicyOf } from '$lib/utils/refund-policy';
 import {
 	cancellationPreFill,
@@ -150,24 +153,163 @@ export async function getGuestCancellationTerms(
 }
 
 /**
- * A guest's self-service cancellation on an Event with a rule-based Refund
- * Policy: refunds the policy's amount through {@link processRefund}, or
- * just cancels (freeing the seats) when it is nothing. Both send the guest
- * their notification. Manual-policy Events keep the Ticket's historical
- * full-refund path (see the cancel endpoint); this refuses them.
+ * A guest's self-service cancellation from their Ticket, for both kinds of
+ * Refund Policy: the terms decide the refund (the full refundable amount
+ * under a manual policy's 24-hour rule, the policy's amount otherwise).
+ *
+ * The cancellation is the Reservation transitions module's conditional
+ * confirmed → cancelled: of several parallel requests exactly one wins and
+ * restores capacity; the others are refused like any Reservation that is no
+ * longer confirmed. Only the winner refunds — through the Stripe service,
+ * after the commit, with an idempotency key derived from the Reservation —
+ * and notifies the guest: a refund notification if a refund went through,
+ * otherwise a plain cancellation one. A refund failure leaves the
+ * Reservation cancelled and is logged for manual handling.
  */
-export async function cancelByGuestWithPolicy(
+export async function cancelByGuest(
 	reservationId: string,
 	now: Date = new Date()
 ): Promise<{ refundAmount: number; currency: string }> {
-	const terms = await getGuestCancellationTerms(reservationId, now);
+	const reservation = await loadForCancellation(reservationId);
+	const terms = guestCancellationTerms({
+		status: reservation.status,
+		policy: refundPolicyOf(reservation.eventSession.event),
+		seatingStart: reservation.eventSession.startTime,
+		now,
+		refundable: refundableAmount(reservation.payment),
+	});
 	if (!terms.canCancel) throw new CancellationError(terms.reason);
-	if (terms.mode !== 'policy') throw new CancellationError('This Event has no rule-based Refund Policy');
 
-	if (terms.refundAmount > 0) {
-		await processRefund(reservationId, terms.refundAmount, { cancelling: true });
-	} else {
-		await cancelReservation(reservationId);
+	const outcome = await cancelReservationTransition(reservationId);
+	if (!outcome.won) throw new CancellationError('Reservation is not confirmed');
+
+	await notifyWaitlistOfFreedSeats(outcome);
+
+	const refund =
+		terms.refundAmount > 0 && reservation.payment
+			? await refundAfterCancellation(reservation.payment, terms.refundAmount, `guest-cancel-refund-${reservationId}`)
+			: null;
+
+	await notifyGuestOfCancellation(reservation, refund);
+
+	return { refundAmount: refund?.amount ?? 0, currency: reservation.currency };
+}
+
+type ReservationForCancellation = Awaited<ReturnType<typeof loadForCancellation>>;
+type PaymentForRefund = NonNullable<ReservationForCancellation['payment']>;
+
+/**
+ * Refund a cancelled Reservation's payment, after the cancellation has
+ * committed (never under a Seating row lock), through the Stripe service
+ * with an idempotency key, so a retried call can't refund twice. Records
+ * the refund on the payment. A Stripe failure is logged and recorded on the
+ * payment for manual handling, and answers null.
+ */
+export async function refundAfterCancellation(
+	payment: PaymentForRefund,
+	amount: number,
+	idempotencyKey: string
+): Promise<{ amount: number; currency: string } | null> {
+	try {
+		const { createRefund } = await import('./stripe');
+		const refund = await createRefund(payment.stripePaymentIntentId, amount, { idempotencyKey });
+		await db
+			.update(payments)
+			.set({
+				refundedAmount: sql`${payments.refundedAmount} + ${refund.amount}`,
+				status: sql`CASE WHEN ${payments.refundedAmount} + ${refund.amount} >= ${payments.amount} THEN 'refunded'::payment_status ELSE 'partially_refunded'::payment_status END`,
+				updatedAt: new Date(),
+			})
+			.where(eq(payments.id, payment.id));
+		return { amount: refund.amount, currency: payment.currency };
+	} catch (error) {
+		logger.error({ err: error, paymentId: payment.id }, 'Refund after cancellation failed; needs manual handling');
+		await db
+			.update(payments)
+			.set({ lastError: `Refund failed: ${error instanceof Error ? error.message : String(error)}`, updatedAt: new Date() })
+			.where(eq(payments.id, payment.id))
+			.catch((err: unknown) => logger.error({ err }, 'Failed to record the refund failure'));
+		return null;
 	}
-	return { refundAmount: terms.refundAmount, currency: terms.currency };
+}
+
+/** Tell the waitlist about seats a winning cancellation freed (best-effort). */
+export async function notifyWaitlistOfFreedSeats(outcome: { eventSessionId: string; quantity: number; allowWaitlist: boolean }) {
+	if (!outcome.allowWaitlist || outcome.quantity <= 0) return;
+	try {
+		const { notifyWaitlist } = await import('./waitlist');
+		await notifyWaitlist(outcome.eventSessionId, outcome.quantity);
+	} catch (error) {
+		logger.error({ err: error }, '[Waitlist] Failed to notify');
+	}
+}
+
+/**
+ * Notify the guest of their cancellation, after the commit: a refund
+ * notification if a refund went through, otherwise a plain cancellation
+ * notification — by email, and by SMS if they opted in. Best-effort.
+ */
+export async function notifyGuestOfCancellation(
+	reservation: ReservationForCancellation,
+	refund: { amount: number; currency: string } | null,
+	options: { isPartialRefund?: boolean } = {}
+) {
+	const { eventSession } = reservation;
+	const timeZone = eventSession.event.timeZone;
+	const sessionTitle = seatingTitle(eventSession, 'en', { timeZone });
+
+	try {
+		const email = await import('./email');
+		if (refund) {
+			await email.sendRefundEmail({
+				guestEmail: reservation.guestEmail,
+				guestName: reservation.guestName,
+				eventTitle: eventSession.event.titleEn,
+				sessionTitle,
+				sessionStartTime: eventSession.startTime,
+				timeZone,
+				reservationId: reservation.id,
+				amount: refund.amount,
+				currency: refund.currency,
+				isPartialRefund: options.isPartialRefund ?? false,
+			});
+		} else {
+			await email.sendCancellationEmail({
+				guestEmail: reservation.guestEmail,
+				guestName: reservation.guestName,
+				eventTitle: eventSession.event.titleEn,
+				sessionTitle,
+				sessionStartTime: eventSession.startTime,
+				timeZone,
+				reservationId: reservation.id,
+			});
+		}
+	} catch (error) {
+		logger.error({ err: error }, 'Failed to send cancellation email');
+	}
+
+	if (reservation.guestPhone && reservation.notificationPreference !== 'email') {
+		try {
+			const sms = await import('./sms');
+			if (refund) {
+				await sms.sendRefundSMS({
+					phone: reservation.guestPhone,
+					name: reservation.guestName,
+					eventTitle: eventSession.event.titleEn,
+					amount: refund.amount,
+					currency: refund.currency,
+				});
+			} else {
+				await sms.sendCancellationSMS({
+					phone: reservation.guestPhone,
+					name: reservation.guestName,
+					eventTitle: eventSession.event.titleEn,
+					sessionStartTime: eventSession.startTime,
+					timeZone,
+				});
+			}
+		} catch (error) {
+			logger.error({ err: error }, 'Failed to send cancellation SMS');
+		}
+	}
 }
