@@ -46,8 +46,7 @@ vi.mock('../../src/lib/server/csrf', () => ({
 }));
 
 vi.mock('../../src/lib/server/rate-limit', () => ({
-	strictRateLimiter: { check: vi.fn().mockResolvedValue(true), getReset: vi.fn().mockResolvedValue(0) },
-	RateLimitUnavailableError: class extends Error {},
+	checkRateLimit: vi.fn().mockResolvedValue({ status: 'allowed' }),
 }));
 
 vi.mock('../../src/lib/mock-data', async (importOriginal) => ({

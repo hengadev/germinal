@@ -10,9 +10,7 @@ vi.mock('$lib/server/csrf', () => ({
 }));
 
 vi.mock('$lib/server/rate-limit', () => ({
-	strictRateLimiter: {
-		check: rateLimiterCheck,
-	},
+	checkRateLimit: rateLimiterCheck,
 }));
 
 vi.mock('$lib/server/services/reservations', () => ({
@@ -35,7 +33,7 @@ describe('POST /api/tickets/find — anti email-enumeration lookup endpoint', ()
 	beforeEach(() => {
 		vi.clearAllMocks();
 		validateCsrfToken.mockReturnValue(true);
-		rateLimiterCheck.mockReturnValue(true);
+		rateLimiterCheck.mockResolvedValue({ status: 'allowed' });
 		resendTicketsForEmail.mockResolvedValue(undefined);
 	});
 
@@ -78,13 +76,28 @@ describe('POST /api/tickets/find — anti email-enumeration lookup endpoint', ()
 		expect(resendTicketsForEmail).not.toHaveBeenCalled();
 	});
 
-	it('rejects when rate limited before doing any lookup', async () => {
-		rateLimiterCheck.mockReturnValue(false);
+	it('rejects when rate limited before doing any lookup, saying when retry is possible', async () => {
+		rateLimiterCheck.mockResolvedValue({ status: 'denied', retryAfterSeconds: 600 });
 		const { POST } = await import('../../../src/routes/api/tickets/find/+server');
 
 		const response = await POST(makeEvent({ email: 'guest@example.com' }));
 
 		expect(response.status).toBe(429);
+		// The 429 tells the client when it may retry — both in the body and
+		// via the standard Retry-After header.
+		expect(response.headers.get('retry-after')).toBe('600');
+		const body = await response.json();
+		expect(body.error).toMatch(/try again in 10 minutes/i);
+		expect(resendTicketsForEmail).not.toHaveBeenCalled();
+	});
+
+	it('answers 503 when the rate limiter is unavailable (fail-closed)', async () => {
+		rateLimiterCheck.mockResolvedValue({ status: 'unavailable' });
+		const { POST } = await import('../../../src/routes/api/tickets/find/+server');
+
+		const response = await POST(makeEvent({ email: 'guest@example.com' }));
+
+		expect(response.status).toBe(503);
 		expect(resendTicketsForEmail).not.toHaveBeenCalled();
 	});
 
