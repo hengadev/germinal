@@ -32,6 +32,15 @@ services:
     container_name: germinal_staging_app # Caddy's upstream name (Caddyfile.j2)
     restart: unless-stopped
     mem_limit: 512m
+    # Least privilege (issue 028), exactly like prod's app: no capabilities
+    # (non-root image user), no-new-privileges, a pids limit and a read-only
+    # root filesystem — writes go to the uploads bind mount and /tmp.
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 100
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
     expose:
       - "3001"
     env_file:
@@ -63,6 +72,13 @@ services:
     image: henga/germinal:staging
     restart: "no"
     command: ["node", "scripts/create-admin.js"]
+    # Hardened like staging_app (issue 028; create-admin.js writes nothing).
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 100
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
     env_file:
       - env/app.env
       - env/admin.env

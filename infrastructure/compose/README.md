@@ -82,6 +82,50 @@ A rollback is `deploy prod <earlier-sha>` — the same path, pin moved back.
 Running containers keep their image even if the pin moves, and Docker's
 restart policy restarts the container's own image, not the tag.
 
+### The Caddy image pin (`@sha256:` digest)
+
+The Caddy service does **not** use `:latest`: the compose file pins
+`serfriz/caddy-cloudflare` by digest. That image holds the Cloudflare API
+token and the TLS keys and sees every decrypted request, so a pull or
+recreate must never run whatever was pushed to the tag last (issue 028,
+PRD M5). A digest pin makes every recreate run an image somebody reviewed
+in this repo.
+
+To update it (e.g. for a new Caddy or cloudflare-dns release):
+
+1. Resolve the digest the tag currently points at:
+
+   ```sh
+   docker buildx imagetools inspect serfriz/caddy-cloudflare:latest
+   # (or: docker manifest inspect --verbose serfriz/caddy-cloudflare:latest)
+   # → Digest: sha256:<digest>   ← the INDEX digest, not a platform manifest
+   ```
+
+   If the registry can't be reached, stop: never guess or hand-edit a digest.
+2. Optionally review what changed: the image's GitHub releases and its
+   Docker Hub tags page (the digest above says which build `latest` is).
+3. Replace the digest in `image:` of `docker-compose.prod.yml` (this
+   directory) and commit. The file reaches the server through the normal
+   deploy path: the root runner installs it from the deployed commit
+   (issue 017), so the pin never bypasses review.
+4. On the server, after a deploy has installed the updated file:
+
+   ```sh
+   ssh root@<host> 'docker compose --project-directory /opt/germinal up -d caddy'
+   ```
+
+   Docker pulls exactly that digest (verifying it against the reference) and
+   recreates the container; the other services are untouched.
+5. Verify what is actually running:
+   `docker inspect -f '{{.Config.Image}}' germinal_caddy` shows the pinned
+   reference, and `docker image inspect <that reference>` its `RepoDigests`.
+
+The staging stack has no Caddy of its own (it shares prod's), so there is
+nothing to pin there. `docker compose config` in CI/locally fails if the
+digest reference is malformed, and a digest Docker Hub no longer serves
+fails the pull loudly at step 4 — both are preferable to silently running
+an unreviewed `:latest`.
+
 ## `deploy <stack> <sha>`
 
 The single server-side entry point for staging deploys, promotions and
