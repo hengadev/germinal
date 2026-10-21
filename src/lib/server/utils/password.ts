@@ -1,4 +1,4 @@
-import { randomBytes, createCipheriv, createDecipheriv } from 'crypto';
+import { randomBytes, createCipheriv, createDecipheriv, createHash } from 'crypto';
 
 const ALPHABET = {
     lowercase: 'abcdefghijklmnopqrstuvwxyz',
@@ -41,6 +41,15 @@ export function generateSecurePassword(length: number = 20): string {
  */
 export function generateResetToken(bytes: number = 32): string {
     return randomBytes(bytes).toString('hex');
+}
+
+/**
+ * The form a password reset token is stored in: its SHA-256 hash. The
+ * emailed/SMS link carries the raw token; lookups hash the token from the
+ * URL, so a leaked database dump holds no working reset link.
+ */
+export function hashResetToken(token: string): string {
+    return createHash('sha256').update(token).digest('hex');
 }
 
 /**
