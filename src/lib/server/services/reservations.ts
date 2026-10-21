@@ -15,7 +15,8 @@ import { getSeatingPrice } from './service-pricing';
 import { loadSeatingAccess } from './event-access';
 import { ANONYMOUS, seatingBooking, type BookingRefusal } from '$lib/utils/event-access';
 import { dietaryAnswerOf, needsDietaryConsent } from '$lib/utils/dietary-requirements';
-import { expireReservationOnHoldTimeout } from './reservation-transitions';
+import { cancelReservationTransition, expireReservationOnHoldTimeout } from './reservation-transitions';
+import { notifyGuestOfCancellation, notifyWaitlistOfFreedSeats, refundAfterCancellation } from './cancellation-effects';
 
 const BOOKING_REFUSAL_MESSAGES: Record<BookingRefusal, string> = {
 	'event-not-published': 'Session not found or not published',
@@ -701,138 +702,55 @@ export async function getReservationById(id: string): Promise<ReservationWithDet
 }
 
 /**
- * Cancel reservation and refund (admin or user-initiated)
+ * Cancel a confirmed reservation and refund it in full - Admin API.
+ *
+ * The cancellation is the Reservation transitions module's conditional
+ * confirmed → cancelled (capacity restored once, concurrent cancels lose);
+ * the full refund is made after the commit with an idempotency key.
  */
 export async function cancelReservationWithRefund(reservationId: string) {
-	const { createRefund } = await import('./stripe');
+	const reservation = await loadReservationForCancel(reservationId);
+	if (reservation.status !== 'confirmed') {
+		throw new Error('Only confirmed reservations can be cancelled');
+	}
+	if (!reservation.payment) {
+		throw new Error('Payment not found for this reservation');
+	}
 
-	const sessionData = await db.transaction(async (tx: typeof db) => {
-		// Load reservation with payment
-		const reservation = await tx.query.reservations.findFirst({
-			where: eq(reservations.id, reservationId),
-			with: {
-				payment: true,
-				eventSession: { with: { event: true } },
-			},
-		});
+	const outcome = await cancelReservationTransition(reservationId, { from: ['confirmed'] });
+	if (!outcome.won) {
+		throw new Error('Only confirmed reservations can be cancelled');
+	}
+	await notifyWaitlistOfFreedSeats(outcome);
 
-		if (!reservation) {
-			throw new Error('Reservation not found');
-		}
+	const remaining = reservation.payment.amount - reservation.payment.refundedAmount;
+	const refund = remaining > 0
+		? await refundAfterCancellation(reservation.payment, remaining, `admin-cancel-refund-${reservationId}`)
+		: null;
 
-		if (reservation.status !== 'confirmed') {
-			throw new Error('Only confirmed reservations can be cancelled');
-		}
+	// The combined cancellation + refund notification (or a plain
+	// cancellation one if nothing could be refunded).
+	await notifyGuestOfCancellation(reservation, refund);
 
-		if (!reservation.payment) {
-			throw new Error('Payment not found for this reservation');
-		}
+	if (remaining > 0 && !refund) {
+		throw new Error('Reservation cancelled, but the refund failed; retry it from the Reservation page');
+	}
+	return { success: true, refund };
+}
 
-		// Refund via Stripe
-		const refund = await createRefund(reservation.payment.stripePaymentIntentId);
-
-		// Update payment status
-		await tx.update(payments)
-			.set({
-				status: 'refunded',
-				refundedAmount: refund.amount,
-				updatedAt: new Date(),
-			})
-			.where(eq(payments.id, reservation.payment.id));
-
-		// Lock session and restore capacity
-		const [session] = await tx
-			.select()
-			.from(eventSessions)
-			.where(eq(eventSessions.id, reservation.eventSessionId))
-			.for('update');
-
-		await tx.update(eventSessions)
-			.set({
-				availableCapacity: Math.min(session!.availableCapacity + reservation.quantity, session!.totalCapacity),
-				updatedAt: new Date(),
-			})
-			.where(eq(eventSessions.id, reservation.eventSessionId));
-
-		// Update reservation status
-		await tx.update(reservations)
-			.set({
-				status: 'cancelled',
-				cancelledAt: new Date(),
-				updatedAt: new Date(),
-			})
-			.where(eq(reservations.id, reservationId));
-
-		return {
-			success: true,
-			refund,
-			sessionId: session!.id,
-			quantity: reservation.quantity,
-			allowWaitlist: session!.allowWaitlist,
-			guestEmail: reservation.guestEmail,
-			guestName: reservation.guestName,
-			guestPhone: reservation.guestPhone,
-			notificationPreference: reservation.notificationPreference,
-			eventTitle: reservation.eventSession.event.titleEn,
-			sessionTitle: seatingTitle(reservation.eventSession, 'en', { timeZone: reservation.eventSession.event.timeZone }),
-			sessionStartTime: reservation.eventSession.startTime,
-			timeZone: reservation.eventSession.event.timeZone,
-			refundCurrency: reservation.payment.currency,
-		};
+/** A Reservation with what cancelling, refunding and notifying need. */
+async function loadReservationForCancel(reservationId: string) {
+	const reservation = await db.query.reservations.findFirst({
+		where: eq(reservations.id, reservationId),
+		with: {
+			payment: true,
+			eventSession: { with: { event: true } },
+		},
 	});
-
-	// Notify waitlist after transaction commits (if waitlist is enabled)
-	if (sessionData.allowWaitlist && sessionData.quantity > 0) {
-		try {
-			const { notifyWaitlist } = await import('./waitlist');
-			await notifyWaitlist(sessionData.sessionId, sessionData.quantity);
-			logger.info(`[Waitlist] Notified for session ${sessionData.sessionId} with ${sessionData.quantity} tickets available`);
-		} catch (error) {
-			logger.error({ err: error }, '[Waitlist] Failed to notify');
-			// Don't throw - cancellation was successful
-		}
+	if (!reservation) {
+		throw new Error('Reservation not found');
 	}
-
-	// Notify the guest after the transaction commits — never notify from
-	// inside a transaction that might still roll back. This is always a
-	// full refund (createRefund is called with no amount above), so the
-	// guest gets the combined cancellation + refund notification.
-	try {
-		const { sendRefundEmail } = await import('./email');
-		await sendRefundEmail({
-			guestEmail: sessionData.guestEmail,
-			guestName: sessionData.guestName,
-			eventTitle: sessionData.eventTitle,
-			sessionTitle: sessionData.sessionTitle,
-			sessionStartTime: sessionData.sessionStartTime,
-			timeZone: sessionData.timeZone,
-			reservationId,
-			amount: sessionData.refund.amount,
-			currency: sessionData.refundCurrency,
-			isPartialRefund: false,
-		});
-	} catch (error) {
-		logger.error({ err: error }, 'Failed to send refund email');
-		// Don't throw - refund was successful
-	}
-
-	if (sessionData.guestPhone && sessionData.notificationPreference !== 'email') {
-		try {
-			const { sendRefundSMS } = await import('./sms');
-			await sendRefundSMS({
-				phone: sessionData.guestPhone,
-				name: sessionData.guestName,
-				eventTitle: sessionData.eventTitle,
-				amount: sessionData.refund.amount,
-				currency: sessionData.refundCurrency,
-			});
-		} catch (error) {
-			logger.error({ err: error }, 'Failed to send refund SMS');
-			// Don't throw - email might have been sent
-		}
-	}
-
-	return { success: true, refund: sessionData.refund };
+	return reservation;
 }
 
 /**
@@ -894,109 +812,28 @@ export async function markExpiredPaymentClosed(paymentId: string) {
 }
 
 /**
- * Cancel reservation (without refund) - admin action
+ * Cancel reservation (without refund) - admin action.
+ *
+ * The Reservation transitions module's conditional cancel (of a confirmed
+ * or still-pending Reservation): capacity is restored and the guest
+ * notified once, however many cancels race.
  */
 export async function cancelReservation(reservationId: string) {
-	const result = await db.transaction(async (tx: typeof db) => {
-		// Serialise concurrent cancellations of this Reservation.
-		await tx.select({ id: reservations.id }).from(reservations).where(eq(reservations.id, reservationId)).for('update');
+	const reservation = await loadReservationForCancel(reservationId);
 
-		const reservation = await tx.query.reservations.findFirst({
-			where: eq(reservations.id, reservationId),
-		});
-
-		if (!reservation) {
-			throw new Error('Reservation not found');
-		}
-
-		if (reservation.status === 'cancelled') {
-			throw new Error('Reservation is already cancelled');
-		}
-
-		// Lock session and restore capacity
-		const [session] = await tx
-			.select()
-			.from(eventSessions)
-			.where(eq(eventSessions.id, reservation.eventSessionId))
-			.for('update');
-
-		if (!session) {
-			throw new Error('Session not found');
-		}
-
-		await tx.update(eventSessions)
-			.set({
-				availableCapacity: session.availableCapacity + reservation.quantity,
-				updatedAt: new Date(),
-			})
-			.where(eq(eventSessions.id, reservation.eventSessionId));
-
-		// Update reservation status
-		await tx.update(reservations)
-			.set({
-				status: 'cancelled',
-				cancelledAt: new Date(),
-				updatedAt: new Date(),
-			})
-			.where(eq(reservations.id, reservationId));
-
-		// Look up the event title for the cancellation notification
-		const [event] = await tx
-			.select({ titleEn: events.titleEn, timeZone: events.timeZone })
-			.from(events)
-			.where(eq(events.id, session.eventId));
-
-		return {
-			success: true,
-			sessionId: session.id,
-			quantity: reservation.quantity,
-			allowWaitlist: session.allowWaitlist,
-			guestEmail: reservation.guestEmail,
-			guestName: reservation.guestName,
-			guestPhone: reservation.guestPhone,
-			notificationPreference: reservation.notificationPreference,
-			eventTitle: event?.titleEn ?? '',
-			sessionTitle: seatingTitle(session, 'en', { timeZone: event?.timeZone ?? DEFAULT_EVENT_TIME_ZONE }),
-			sessionStartTime: session.startTime,
-			timeZone: event?.timeZone ?? DEFAULT_EVENT_TIME_ZONE,
-		};
-	});
-
-	// Notify the guest after the transaction commits — never notify from
-	// inside a transaction that might still roll back.
-	try {
-		const { sendCancellationEmail } = await import('./email');
-		await sendCancellationEmail({
-			guestEmail: result.guestEmail,
-			guestName: result.guestName,
-			eventTitle: result.eventTitle,
-			sessionTitle: result.sessionTitle,
-			sessionStartTime: result.sessionStartTime,
-			timeZone: result.timeZone,
-			reservationId,
-		});
-	} catch (error) {
-		logger.error({ err: error }, 'Failed to send cancellation email');
-		// Don't throw - cancellation was successful
+	const outcome = await cancelReservationTransition(reservationId, { from: ['confirmed', 'pending'] });
+	if (!outcome.won) {
+		throw new Error('Reservation is already cancelled');
 	}
+	await notifyWaitlistOfFreedSeats(outcome);
+	await notifyGuestOfCancellation(reservation, null);
 
-	if (result.guestPhone && result.notificationPreference !== 'email') {
-		try {
-			const { sendCancellationSMS } = await import('./sms');
-			await sendCancellationSMS({
-				phone: result.guestPhone,
-				name: result.guestName,
-				eventTitle: result.eventTitle,
-				sessionStartTime: result.sessionStartTime,
-				timeZone: result.timeZone,
-			});
-		} catch (error) {
-			logger.error({ err: error }, 'Failed to send cancellation SMS');
-			// Don't throw - email might have been sent
-		}
-	}
-
-	return { success: true, sessionId: result.sessionId, quantity: result.quantity, allowWaitlist: result.allowWaitlist };
+	return {
+		success: true,
+		sessionId: outcome.eventSessionId,
+		quantity: outcome.quantity,
+		allowWaitlist: outcome.allowWaitlist,
+	};
 }
 
 /**
@@ -1005,6 +842,11 @@ export async function cancelReservation(reservationId: string) {
  * By default refunds the full remaining refundable balance. Pass `amount`
  * (in cents) to issue a partial refund instead; it must be greater than
  * zero and no more than the remaining refundable balance.
+ *
+ * A Reservation that isn't cancelled yet is cancelled first, through the
+ * Reservation transitions module (capacity restored once). The Stripe
+ * refund follows the commit, with an idempotency key derived from the
+ * payment's state, so a double submission refunds once.
  */
 export async function processRefund(
 	reservationId: string,
@@ -1015,173 +857,64 @@ export async function processRefund(
 		cancelling?: boolean;
 	} = {}
 ) {
-	const { createRefund } = await import('./stripe');
+	const reservation = await loadReservationForCancel(reservationId);
 
-	const sessionData = await db.transaction(async (tx: typeof db) => {
-		// Serialise concurrent cancellations/refunds of this Reservation.
-		await tx.select({ id: reservations.id }).from(reservations).where(eq(reservations.id, reservationId)).for('update');
+	if (options.cancelling && reservation.status === 'cancelled') {
+		throw new Error('Reservation is already cancelled');
+	}
 
-		const reservation = await tx.query.reservations.findFirst({
-			where: eq(reservations.id, reservationId),
-			with: {
-				payment: true,
-				eventSession: { with: { event: true } },
-			},
-		});
+	if (!reservation.payment) {
+		throw new Error('Payment not found for this reservation');
+	}
 
-		if (!reservation) {
-			throw new Error('Reservation not found');
+	if (reservation.payment.status !== 'succeeded' && reservation.payment.status !== 'partially_refunded') {
+		throw new Error('Can only refund successful payments');
+	}
+
+	// Check if already fully refunded
+	const alreadyRefunded = reservation.payment.refundedAmount || 0;
+	const remainingBalance = reservation.payment.amount - alreadyRefunded;
+	if (remainingBalance <= 0) {
+		throw new Error('Payment has already been fully refunded');
+	}
+
+	if (amount !== undefined) {
+		if (!Number.isFinite(amount) || amount <= 0) {
+			throw new Error('Refund amount must be greater than zero');
 		}
+		if (amount > remainingBalance) {
+			throw new Error('Refund amount exceeds the remaining refundable balance');
+		}
+	}
 
-		if (options.cancelling && reservation.status === 'cancelled') {
+	// Default to refunding the full remaining balance; otherwise refund
+	// exactly the requested (already-validated) partial amount.
+	const refundAmount = amount ?? remainingBalance;
+
+	// If not already cancelled, cancel the reservation (once).
+	if (reservation.status !== 'cancelled') {
+		const outcome = await cancelReservationTransition(reservationId, { from: ['confirmed', 'pending'] });
+		if (outcome.won) {
+			await notifyWaitlistOfFreedSeats(outcome);
+		} else if (options.cancelling) {
 			throw new Error('Reservation is already cancelled');
 		}
+	}
 
-		if (!reservation.payment) {
-			throw new Error('Payment not found for this reservation');
-		}
+	const refund = await refundAfterCancellation(
+		reservation.payment,
+		refundAmount,
+		`refund-${reservation.payment.id}-${alreadyRefunded}-${refundAmount}`
+	);
+	if (!refund) {
+		throw new Error('The refund failed; the Reservation is cancelled, retry the refund');
+	}
 
-		if (reservation.payment.status !== 'succeeded' && reservation.payment.status !== 'partially_refunded') {
-			throw new Error('Can only refund successful payments');
-		}
-
-		// Check if already fully refunded
-		const alreadyRefunded = reservation.payment.refundedAmount || 0;
-		const remainingBalance = reservation.payment.amount - alreadyRefunded;
-		if (remainingBalance <= 0) {
-			throw new Error('Payment has already been fully refunded');
-		}
-
-		if (amount !== undefined) {
-			if (!Number.isFinite(amount) || amount <= 0) {
-				throw new Error('Refund amount must be greater than zero');
-			}
-			if (amount > remainingBalance) {
-				throw new Error('Refund amount exceeds the remaining refundable balance');
-			}
-		}
-
-		// Default to refunding the full remaining balance; otherwise refund
-		// exactly the requested (already-validated) partial amount.
-		const refundAmount = amount ?? remainingBalance;
-
-		// Process refund via Stripe
-		const refund = await createRefund(reservation.payment.stripePaymentIntentId, refundAmount);
-
-		const newRefundedTotal = alreadyRefunded + refund.amount;
-
-		// Update payment status
-		await tx.update(payments)
-			.set({
-				status: newRefundedTotal >= reservation.payment.amount ? 'refunded' : 'partially_refunded',
-				refundedAmount: newRefundedTotal,
-				updatedAt: new Date(),
-			})
-			.where(eq(payments.id, reservation.payment.id));
-
-		// If not already cancelled, cancel the reservation
-		if (reservation.status !== 'cancelled') {
-			// Lock session and restore capacity
-			const [session] = await tx
-				.select()
-				.from(eventSessions)
-				.where(eq(eventSessions.id, reservation.eventSessionId))
-				.for('update');
-
-			if (session) {
-				await tx.update(eventSessions)
-					.set({
-						availableCapacity: session.availableCapacity + reservation.quantity,
-						updatedAt: new Date(),
-					})
-					.where(eq(eventSessions.id, reservation.eventSessionId));
-			}
-
-			// Update reservation status
-			await tx.update(reservations)
-				.set({
-					status: 'cancelled',
-					cancelledAt: new Date(),
-					updatedAt: new Date(),
-				})
-				.where(eq(reservations.id, reservationId));
-		}
-
-		return {
-			success: true,
-			refund,
-			sessionId: reservation.eventSessionId,
-			quantity: reservation.quantity,
-			allowWaitlist: true, // Will check below
-			guestEmail: reservation.guestEmail,
-			guestName: reservation.guestName,
-			guestPhone: reservation.guestPhone,
-			notificationPreference: reservation.notificationPreference,
-			eventTitle: reservation.eventSession.event.titleEn,
-			sessionTitle: seatingTitle(reservation.eventSession, 'en', { timeZone: reservation.eventSession.event.timeZone }),
-			sessionStartTime: reservation.eventSession.startTime,
-			timeZone: reservation.eventSession.event.timeZone,
-			refundCurrency: reservation.payment.currency,
-			newRefundedTotal,
-			paymentAmount: reservation.payment.amount,
-		};
+	await notifyGuestOfCancellation(reservation, refund, {
+		isPartialRefund: alreadyRefunded + refund.amount < reservation.payment.amount,
 	});
 
-	// Notify waitlist after transaction commits if capacity was restored
-	// Note: We need to check if waitlist is enabled for the session
-	const session = await db.query.eventSessions.findFirst({
-		where: eq(eventSessions.id, sessionData.sessionId),
-	});
-
-	if (session?.allowWaitlist && sessionData.quantity > 0) {
-		try {
-			const { notifyWaitlist } = await import('./waitlist');
-			await notifyWaitlist(sessionData.sessionId, sessionData.quantity);
-			logger.info(`[Waitlist] Notified for session ${sessionData.sessionId} with ${sessionData.quantity} tickets available`);
-		} catch (error) {
-			logger.error({ err: error }, '[Waitlist] Failed to notify');
-			// Don't throw - refund was successful
-		}
-	}
-
-	// Notify the guest after the transaction commits — never notify from
-	// inside a transaction that might still roll back.
-	try {
-		const { sendRefundEmail } = await import('./email');
-		await sendRefundEmail({
-			guestEmail: sessionData.guestEmail,
-			guestName: sessionData.guestName,
-			eventTitle: sessionData.eventTitle,
-			sessionTitle: sessionData.sessionTitle,
-			sessionStartTime: sessionData.sessionStartTime,
-			timeZone: sessionData.timeZone,
-			reservationId,
-			amount: sessionData.refund.amount,
-			currency: sessionData.refundCurrency,
-			isPartialRefund: sessionData.newRefundedTotal < sessionData.paymentAmount,
-		});
-	} catch (error) {
-		logger.error({ err: error }, 'Failed to send refund email');
-		// Don't throw - refund was successful
-	}
-
-	if (sessionData.guestPhone && sessionData.notificationPreference !== 'email') {
-		try {
-			const { sendRefundSMS } = await import('./sms');
-			await sendRefundSMS({
-				phone: sessionData.guestPhone,
-				name: sessionData.guestName,
-				eventTitle: sessionData.eventTitle,
-				amount: sessionData.refund.amount,
-				currency: sessionData.refundCurrency,
-			});
-		} catch (error) {
-			logger.error({ err: error }, 'Failed to send refund SMS');
-			// Don't throw - email might have been sent
-		}
-	}
-
-	return { success: true, refund: sessionData.refund };
+	return { success: true, refund };
 }
 
 /**
