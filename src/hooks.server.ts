@@ -8,6 +8,7 @@ import { initMonitoring, captureException } from '$lib/server/monitoring';
 import { logger } from '$lib/server/logger';
 import { generateToken } from '$lib/server/csrf';
 import { getMaintenanceState, isMaintenanceBypassPath } from '$lib/server/maintenance';
+import { isCrossOriginUnsafeRequest } from '$lib/server/request-origin';
 
 // Initialize monitoring
 initMonitoring();
@@ -37,6 +38,12 @@ if (typeof process !== 'undefined') {
 }
 
 export const handle: Handle = async ({ event, resolve }) => {
+	// Reject cross-origin browser requests with unsafe methods before routing,
+	// bodyless ones included (SvelteKit's own check covers form bodies only).
+	if (isCrossOriginUnsafeRequest(event.request, event.url)) {
+		return new Response('Cross-origin request rejected', { status: 403 });
+	}
+
 	// Detect hostname and set domain context
 	const hostname = event.url.hostname;
 	event.locals.isAdminDomain = isAdminDomain(hostname);
