@@ -19,7 +19,12 @@
 #   5.  /api/health SHA mismatch fails the deploy
 #   6.  staging deploys alongside production: no name/network collisions
 #   7.  running app containers have no ADMIN_* values in their environment
-#   8.  data survives container recreation (bind mounts, not scratch space)
+#   8.  container hardening (issue 028): the running app containers have no
+#       capabilities, no-new-privileges, a read-only root filesystem and a
+#       pids limit (asserted on the live container AND its PID 1); Redis is
+#       healthy as its own user with no capabilities, and its data survives
+#       a recreate
+#   9.  data survives container recreation (bind mounts, not scratch space)
 #
 # Harness hygiene: distinct compose project names (germinal-harness-*), its
 # own network (germinal-harness-network), no fixed host ports (Caddy's 80/443
@@ -176,6 +181,10 @@ setup() {
 
 	# CI (issues 009/010) copies the compose files from the deployed commit
 	# to the stack roots under the Agent's expected name.
+	# Like Ansible (app role), the Redis data dir is pre-owned by the image's
+	# redis user, which the container runs as (issue 028).
+	docker run --rm -v "$TMP/prod/data/redis:/d" busybox:latest chown 999:1000 /d
+
 	cp "$COMPOSE_DIR/docker-compose.prod.yml" "$TMP/prod/docker-compose.yml"
 	cp "$COMPOSE_DIR/docker-compose.staging.yml" "$TMP/staging/docker-compose.yml"
 	cp -r "$HARNESS_DIR/fixtures/prod/env/." "$TMP/prod/env/"
@@ -405,8 +414,95 @@ case_no_admin_env() {
 	done
 }
 
+# ── issue 028: container hardening ──────────────────────────────────────
+# Asserted twice: against the container's config (docker inspect) AND
+# empirically against PID 1 inside the running container (the process the
+# app actually is), so a compose knob that Docker silently ignores cannot
+# pass.
+hardened_app_settings() { # $1 container
+	local capadd capdrop nnp pids ro_err
+	capadd=$(docker inspect -f '{{json .HostConfig.CapAdd}}' "$1")
+	case $capadd in '' | '[]' | 'null') ok "$1: no capabilities added" ;; *) bad "$1: has capabilities added ($capadd)" ;; esac
+	docker inspect -f '{{json .HostConfig.CapDrop}}' "$1" | grep -q '"ALL"' &&
+		ok "$1: drops ALL capabilities" || bad "$1: does not drop ALL capabilities"
+	docker inspect -f '{{json .HostConfig.SecurityOpt}}' "$1" | grep -q 'no-new-privileges' &&
+		ok "$1: no-new-privileges" || bad "$1: missing no-new-privileges"
+	[ "$(docker inspect -f '{{.HostConfig.ReadonlyRootfs}}' "$1")" = true ] &&
+		ok "$1: read-only root filesystem" || bad "$1: root filesystem is writable"
+	pids=$(docker inspect -f '{{.HostConfig.PidsLimit}}' "$1")
+	[ "$pids" -gt 0 ] 2>/dev/null &&
+		ok "$1: pids limit ($pids)" || bad "$1: no pids limit"
+
+	# Empirical: PID 1 holds no effective capabilities and cannot escalate.
+	docker exec "$1" sh -c 'grep -q "^CapEff:[[:space:]]*0000000000000000$" /proc/1/status' &&
+		ok "$1: PID 1 has no effective capabilities" || bad "$1: PID 1 holds effective capabilities"
+	docker exec "$1" sh -c 'grep -q "^NoNewPrivs:[[:space:]]*1$" /proc/1/status' &&
+		ok "$1: PID 1 runs with NoNewPrivs" || bad "$1: PID 1 without NoNewPrivs"
+	# Empirical: the image filesystem refuses writes (EROFS, not EACCES —
+	# /app is owned by the container's own user, so only read_only explains
+	# the failure).
+	ro_err=$(docker exec "$1" sh -c 'touch /app/.harness-ro-probe' 2>&1 || true)
+	case $ro_err in *'Read-only file system'*) ok "$1: root filesystem refuses writes" ;; *) bad "$1: write to /app did not fail read-only (got: ${ro_err:-success})" ;; esac
+}
+
+case_container_hardening() {
+	section "case 8: containers run with least privilege (issue 028)"
+
+	# The app containers (prod + staging): full hardening — their deploy path
+	# (migrate + bootstrap one-offs, recreate, health SHA) has already run
+	# hardened in cases 2–6 above.
+	hardened_app_settings germinal_app
+	hardened_app_settings germinal_staging_app
+
+	# Redis: healthy with every capability dropped, running as its own user
+	# from the start (the entrypoint then needs no chown/su-exec).
+	[ "$(docker inspect -f '{{.State.Health.Status}}' germinal_redis)" = healthy ] &&
+		ok "redis healthy with reduced privileges" || bad "redis not healthy with reduced privileges"
+	local redis_capadd
+	redis_capadd=$(docker inspect -f '{{json .HostConfig.CapAdd}}' germinal_redis)
+	case $redis_capadd in '' | '[]' | 'null') ok "redis: no capabilities added" ;; *) bad "redis has capabilities added ($redis_capadd)" ;; esac
+	[ "$(docker inspect -f '{{.Config.User}}' germinal_redis)" = "999:1000" ] &&
+		ok "redis runs as its own user" || bad "redis does not run as 999:1000"
+	docker inspect -f '{{json .HostConfig.CapDrop}}' germinal_redis | grep -q '"ALL"' &&
+		ok "redis drops ALL capabilities" || bad "redis does not drop ALL capabilities"
+	[ "$(docker inspect -f '{{.HostConfig.ReadonlyRootfs}}' germinal_redis)" = true ] &&
+		ok "redis: read-only root filesystem" || bad "redis: root filesystem is writable"
+	# PID 1 (redis-server, as the redis user) holds no capabilities.
+	docker exec germinal_redis sh -c 'grep -q "^CapEff:[[:space:]]*0000000000000000$" /proc/1/status' &&
+		ok "redis PID 1 has no effective capabilities" || bad "redis PID 1 holds effective capabilities"
+	local ro_err
+	ro_err=$(docker exec germinal_redis sh -c 'touch /.harness-ro-probe' 2>&1 || true)
+	case $ro_err in *'Read-only file system'*) ok "redis: root filesystem refuses writes" ;; *) bad "redis: write to / did not fail read-only (got: ${ro_err:-success})" ;; esac
+
+	# Redis data survives a recreate (AOF on the /data bind mount; fsync is
+	# every-second, hence the settle before the recreate).
+	docker exec germinal_redis redis-cli set harness:persist survives >/dev/null
+	sleep 2
+	local recreate_out
+	if recreate_out=$(dc_prod up -d --wait --force-recreate redis 2>&1); then
+		ok "redis recreated with reduced privileges"
+	else
+		bad "redis did not come back after recreate: $(printf '%s' "$recreate_out" | tail -3)"
+		docker logs --tail 20 germinal_redis >&2 || true
+		return
+	fi
+	[ "$(docker exec germinal_redis redis-cli get harness:persist)" = survives ] &&
+		ok "redis data survived the recreate" || bad "redis data lost on recreate"
+
+	# Postgres and Caddy: partial hardening only (their entrypoints need
+	# capabilities) — no-new-privileges and a pids limit.
+	local svc pids
+	for svc in germinal_postgres germinal_caddy; do
+		docker inspect -f '{{json .HostConfig.SecurityOpt}}' "$svc" | grep -q 'no-new-privileges' &&
+			ok "$svc: no-new-privileges" || bad "$svc: missing no-new-privileges"
+		pids=$(docker inspect -f '{{.HostConfig.PidsLimit}}' "$svc")
+		[ "$pids" -gt 0 ] 2>/dev/null &&
+			ok "$svc: pids limit ($pids)" || bad "$svc: no pids limit"
+	done
+}
+
 case_data_survives() {
-	section "case 8: data survives container recreation (docker compose down model)"
+	section "case 9: data survives container recreation (docker compose down model)"
 	dc_prod up -d --wait --force-recreate postgres >/dev/null 2>&1 ||
 		{ bad "postgres did not come back"; return; }
 	[ "$(psql_prod "select count(*) from users where email='admin@harness.fixture'")" = 1 ] &&
@@ -425,6 +521,7 @@ case_failing_migration
 case_sha_mismatch
 case_staging_alongside
 case_no_admin_env
+case_container_hardening
 case_data_survives
 
 section "result"

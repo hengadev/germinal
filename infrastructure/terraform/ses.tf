@@ -43,6 +43,17 @@ resource "aws_ses_configuration_set" "main" {
 # SES Sending Policy (IAM)
 # ============================================
 
+# Account id for the SES ARNs in the sending policy: SES identities and
+# configuration sets are account-scoped resources.
+data "aws_caller_identity" "current" {}
+
+# Least privilege (issue 028, PRD M5): the sending actions are scoped to the
+# Germinal domain identity ARN instead of "*", so the app key cannot send as
+# any other verified identity in the account. The configuration set joins
+# the Resource list because SES authorizes a send that names a configuration
+# set against BOTH ARNs (it is provisioned above; the app doesn't set it
+# today, but the policy must not break the day it starts). The verify/get
+# actions are scoped to the identity ARN the same way.
 resource "aws_iam_policy" "ses_send" {
   for_each    = local.environments
   name        = "${each.key}-${var.project_name}-ses-send"
@@ -58,7 +69,10 @@ resource "aws_iam_policy" "ses_send" {
           "ses:SendEmail",
           "ses:SendRawEmail"
         ]
-        Resource = "*"
+        Resource = [
+          aws_ses_domain_identity.main.arn,
+          "arn:aws:ses:${var.aws_region}:${data.aws_caller_identity.current.account_id}:configuration-set/${aws_ses_configuration_set.main.name}"
+        ]
       },
       {
         Sid    = "SESVerifyAccess"
@@ -68,7 +82,7 @@ resource "aws_iam_policy" "ses_send" {
           "ses:GetIdentityVerificationAttributes",
           "ses:GetIdentityMailFromDomainAttributes"
         ]
-        Resource = "*"
+        Resource = aws_ses_domain_identity.main.arn
       }
     ]
   })
