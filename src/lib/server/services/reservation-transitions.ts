@@ -9,11 +9,12 @@
  * `webhookProcessedAt`.
  *
  * Transitions: **pending → confirmed** (a paid Checkout Session),
- * **pending → expired** (a failed payment, or the hold running out).
- * Issues 015–016 move confirmed → cancelled onto the same module.
+ * **pending → expired** (a failed payment, or the hold running out),
+ * **confirmed → cancelled** (a cancellation; Stripe refunds happen after
+ * the commit, never while a Seating row lock is held).
  */
 
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { db } from '../db';
 import { eventSessions, payments, reservationStatusEnum, reservations } from '../db/schema';
 
@@ -151,6 +152,54 @@ export async function expireReservationOnHoldTimeout(reservationId: string): Pro
 			eventSessionId: expired.eventSessionId,
 			quantity: expired.quantity,
 			allowWaitlist: seating?.allowWaitlist ?? false,
+		};
+	});
+}
+
+/**
+ * **confirmed → cancelled** (by default; `from` widens the statuses a
+ * caller may cancel). One short transaction: the conditional update and the
+ * capacity restore. Of any number of concurrent cancellations exactly one
+ * wins; the losers change nothing. The winner gets what it needs to refund
+ * and notify after the commit.
+ */
+export async function cancelReservationTransition(
+	reservationId: string,
+	options: { from?: ReservationStatus[] } = {}
+): Promise<
+	| { won: false }
+	| { won: true; eventSessionId: string; quantity: number; allowWaitlist: boolean; previousStatus: ReservationStatus }
+> {
+	const from = options.from ?? ['confirmed'];
+	return db.transaction(async (tx: typeof db) => {
+		// Lock the row so the status read here is the one the update replaces.
+		const [current] = await tx
+			.select({ status: reservations.status })
+			.from(reservations)
+			.where(eq(reservations.id, reservationId))
+			.for('update');
+		const now = new Date();
+
+		const [cancelled] = await tx
+			.update(reservations)
+			.set({ status: 'cancelled', cancelledAt: now, updatedAt: now })
+			.where(and(eq(reservations.id, reservationId), inArray(reservations.status, from)))
+			.returning({ eventSessionId: reservations.eventSessionId, quantity: reservations.quantity });
+
+		if (!cancelled || !current) return { won: false };
+
+		// An expired Reservation's seats were already given back.
+		const seating =
+			current.status === 'expired'
+				? null
+				: await restoreCapacity(tx, cancelled.eventSessionId, cancelled.quantity);
+
+		return {
+			won: true,
+			eventSessionId: cancelled.eventSessionId,
+			quantity: current.status === 'expired' ? 0 : cancelled.quantity,
+			allowWaitlist: seating?.allowWaitlist ?? false,
+			previousStatus: current.status,
 		};
 	});
 }

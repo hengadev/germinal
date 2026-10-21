@@ -5,7 +5,7 @@
 // Germinal-initiated), and the guest's self-service cancellation of a
 // rule-based Event.
 import { describe, it, expect, beforeEach, beforeAll, afterAll, vi } from 'vitest';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { events, eventSessions, reservations, payments } from '../../src/lib/server/db/schema';
 import {
 	getTestDatabase,
@@ -28,6 +28,23 @@ vi.mock('../../src/lib/server/services/stripe', () => ({
 		amount: amount ?? 0,
 		status: 'succeeded',
 	})),
+}));
+
+const notifications = vi.hoisted(() => ({
+	sendRefundEmail: vi.fn().mockResolvedValue(undefined),
+	sendCancellationEmail: vi.fn().mockResolvedValue(undefined),
+	sendRefundSMS: vi.fn().mockResolvedValue(undefined),
+	sendCancellationSMS: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock('../../src/lib/server/services/email', () => ({
+	sendRefundEmail: notifications.sendRefundEmail,
+	sendCancellationEmail: notifications.sendCancellationEmail,
+}));
+
+vi.mock('../../src/lib/server/services/sms', () => ({
+	sendRefundSMS: notifications.sendRefundSMS,
+	sendCancellationSMS: notifications.sendCancellationSMS,
 }));
 
 vi.mock('../../src/lib/server/services/waitlist', () => ({
@@ -68,6 +85,12 @@ afterAll(async () => {
 
 beforeEach(async () => {
 	vi.clearAllMocks();
+	// Stripe refunds exactly what it is asked to (tests may override this).
+	vi.mocked(createRefund).mockImplementation(async (_paymentIntentId, amount) => ({
+		id: 're_test_mock',
+		amount: amount ?? 0,
+		status: 'succeeded',
+	}) as any);
 	await setupTestDatabase();
 });
 
@@ -326,28 +349,32 @@ describe('admin cancellation — confirm', () => {
 // ---------------------------------------------------------------------------
 
 describe('guest self-service cancellation', () => {
-	it('rule-based policy: refunds the policy amount', async () => {
+	it('rule-based policy: refunds the policy amount after the commit, with an idempotency key', async () => {
 		const { session } = await seedSeating({ policy: 'rules', hoursAhead: 31 });
 		const { reservation, payment } = await seedReservation(session.id, { deposit: 4000 });
 
 		const terms = await cancellation.getGuestCancellationTerms(reservation.id, NOW);
 		expect(terms).toMatchObject({ canCancel: true, mode: 'policy', refundAmount: 2000, currency: 'EUR' });
 
-		const result = await cancellation.cancelByGuestWithPolicy(reservation.id, NOW);
+		const result = await cancellation.cancelByGuest(reservation.id, NOW);
 
 		expect(result).toEqual({ refundAmount: 2000, currency: 'EUR' });
-		expect(createRefund).toHaveBeenCalledWith(payment!.stripePaymentIntentId, 2000);
+		expect(createRefund).toHaveBeenCalledWith(payment!.stripePaymentIntentId, 2000, {
+			idempotencyKey: `guest-cancel-refund-${reservation.id}`,
+		});
 		const state = await stateOf(reservation.id, payment!.id, session.id);
 		expect(state.reservation.status).toBe('cancelled');
 		expect(state.payment!.refundedAmount).toBe(2000);
+		expect(state.payment!.status).toBe('partially_refunded');
 		expect(state.session.availableCapacity).toBe(20);
+		expect(notifications.sendRefundEmail).toHaveBeenCalledOnce();
 	});
 
-	it('rule-based policy, too late for a refund: still cancels and releases the seats', async () => {
+	it('rule-based policy, too late for a refund: still cancels, releases the seats and notifies', async () => {
 		const { session } = await seedSeating({ policy: 'rules', hoursAhead: 3 });
 		const { reservation, payment } = await seedReservation(session.id, { deposit: 4000 });
 
-		const result = await cancellation.cancelByGuestWithPolicy(reservation.id, NOW);
+		const result = await cancellation.cancelByGuest(reservation.id, NOW);
 
 		expect(result.refundAmount).toBe(0);
 		expect(createRefund).not.toHaveBeenCalled();
@@ -355,30 +382,81 @@ describe('guest self-service cancellation', () => {
 		expect(state.reservation.status).toBe('cancelled');
 		expect(state.payment!.status).toBe('succeeded');
 		expect(state.session.availableCapacity).toBe(20);
+		expect(notifications.sendCancellationEmail).toHaveBeenCalledOnce();
 	});
 
-	it('manual policy: the historical 24-hour full-refund rule (not the policy path)', async () => {
+	it('manual policy: the historical 24-hour full-refund rule', async () => {
 		const { session } = await seedSeating({ policy: 'manual', hoursAhead: 31 });
-		const { reservation } = await seedReservation(session.id, { deposit: 4000 });
+		const { reservation, payment } = await seedReservation(session.id, { deposit: 4000 });
 
 		expect(await cancellation.getGuestCancellationTerms(reservation.id, NOW)).toMatchObject({
 			canCancel: true,
 			mode: 'full-refund',
 			refundAmount: 4000,
 		});
-		await expect(cancellation.cancelByGuestWithPolicy(reservation.id, NOW)).rejects.toThrow(
-			cancellation.CancellationError
-		);
+		expect(await cancellation.cancelByGuest(reservation.id, NOW)).toEqual({ refundAmount: 4000, currency: 'EUR' });
+		const state = await stateOf(reservation.id, payment!.id, session.id);
+		expect(state.payment!.status).toBe('refunded');
+		expect(state.session.availableCapacity).toBe(20);
 	});
 
 	it('once the Seating has started: refused', async () => {
 		const { session } = await seedSeating({ policy: 'rules', hoursAhead: -1 });
 		const { reservation } = await seedReservation(session.id, { deposit: 4000 });
 
-		await expect(cancellation.cancelByGuestWithPolicy(reservation.id, NOW)).rejects.toThrow(
+		await expect(cancellation.cancelByGuest(reservation.id, NOW)).rejects.toThrow(
 			'The seating has already started'
 		);
 		const state = await stateOf(reservation.id, null, session.id);
 		expect(state.reservation.status).toBe('confirmed');
+	});
+
+	it.each(['manual', 'rules'] as const)(
+		'%s policy: five concurrent cancels restore capacity once, refund once and notify once',
+		async (policy) => {
+			const { session } = await seedSeating({ policy, hoursAhead: 72 });
+			const { reservation, payment } = await seedReservation(session.id, { deposit: 4000 });
+			// While Stripe is called, no Seating row lock may be held: a NOWAIT
+			// lock attempt from another connection must succeed.
+			vi.mocked(createRefund).mockImplementation(async (_pi, amount) => {
+				await testDb.execute(sql`SELECT 1 FROM event_sessions WHERE id = ${session.id} FOR UPDATE NOWAIT`);
+				return { id: 're_test_mock', amount: amount ?? 0, status: 'succeeded' } as any;
+			});
+
+			const results = await Promise.allSettled(
+				Array.from({ length: 5 }, () => cancellation.cancelByGuest(reservation.id, NOW))
+			);
+
+			expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
+			for (const refused of results.filter((r) => r.status === 'rejected')) {
+				expect((refused as PromiseRejectedResult).reason).toBeInstanceOf(cancellation.CancellationError);
+			}
+			const state = await stateOf(reservation.id, payment!.id, session.id);
+			expect(state.reservation.status).toBe('cancelled');
+			expect(state.session.availableCapacity).toBe(20); // 18 + 2, once
+			expect(createRefund).toHaveBeenCalledOnce();
+			expect(state.payment!.refundedAmount).toBe(4000);
+			expect(notifications.sendRefundEmail).toHaveBeenCalledOnce();
+			expect(notifications.sendCancellationEmail).not.toHaveBeenCalled();
+		}
+	);
+
+	it('a Stripe refund failure still leaves the Reservation cancelled, capacity restored once', async () => {
+		const { session } = await seedSeating({ policy: 'manual', hoursAhead: 72 });
+		const { reservation, payment } = await seedReservation(session.id, { deposit: 4000 });
+		vi.mocked(createRefund).mockRejectedValueOnce(new Error('Stripe is down'));
+
+		const result = await cancellation.cancelByGuest(reservation.id, NOW);
+
+		expect(result.refundAmount).toBe(0);
+		const state = await stateOf(reservation.id, payment!.id, session.id);
+		expect(state.reservation.status).toBe('cancelled');
+		expect(state.session.availableCapacity).toBe(20);
+		expect(state.payment!.status).toBe('succeeded');
+		expect(state.payment!.refundedAmount).toBe(0);
+		expect(state.payment!.lastError).toMatch(/Stripe is down/);
+		// No refund went through: the guest gets the plain cancellation notice.
+		expect(notifications.sendCancellationEmail).toHaveBeenCalledOnce();
+		expect(notifications.sendRefundEmail).not.toHaveBeenCalled();
 	});
 });
