@@ -41,8 +41,8 @@ infisical_agent_templates_src_dir: "{{ role_path }}/../../../infisical/templates
 
 # Per-stack roots on the server. These MUST match the compose layout that
 # issues 007/009 install: prod renders every consumer under /opt/germinal,
-# staging only app + admin under /opt/germinal-staging (it shares prod's
-# Postgres, Redis and Caddy).
+# staging app + admin + redis under /opt/germinal-staging (it shares prod's
+# Postgres and Caddy; its Redis is its own, issue 029).
 infisical_agent_stack_roots:
   prod: /opt/germinal
   staging: /opt/germinal-staging
@@ -76,6 +76,9 @@ infisical_agent_command_timeout_seconds: 60
 #   restart.
 # - backup: rewrite only. The backup job reads the file fresh on each run.
 # - admin: rewrite only. The next deploy's bootstrap reads admin.env.
+# - redis (both stacks): recreate that Redis service (issue 029) — its
+#   password is read at start (--requirepass). The app's app.env carries the
+#   same /redis key and is recreated by its own entry.
 # The service names MUST stay in sync with the compose files installed by
 # issues 007/009 (infrastructure/compose/).
 infisical_agent_templates:
@@ -85,7 +88,9 @@ infisical_agent_templates:
   - { env: prod, name: backup, service: backup, recreate: false }
   - { env: prod, name: admin, service: admin, recreate: false }
   - { env: staging, name: app, service: staging_app, recreate: true }
+  - { env: prod, name: redis, service: redis, recreate: true }
   - { env: staging, name: admin, service: staging_admin, recreate: false }
+  - { env: staging, name: redis, service: staging_redis, recreate: true }
 
 # Infisical CLI apt repository (the Cloudsmith repo moved here in 2026).
 infisical_agent_apt_baseurl: "https://artifacts-cli.infisical.com"

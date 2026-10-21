@@ -16,8 +16,11 @@ export class FakeRedis {
 	store = new Map<string, number>();
 	ttls = new Map<string, number>();
 	unavailable = false;
+	/** The options the module constructed its client with. */
+	options: Record<string, unknown>;
 
-	constructor() {
+	constructor(options: Record<string, unknown> = {}) {
+		this.options = options;
 		FakeRedis.instance = this;
 	}
 

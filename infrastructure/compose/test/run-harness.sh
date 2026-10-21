@@ -32,6 +32,9 @@
 #       under that IP; from an untrusted peer the header is ignored
 #   11. /metrics answers 404 through Caddy on the public and admin
 #       hostnames, and stays reachable on the app port in-network (issue 027)
+#   12. staging runs against its own Redis; every Redis refuses
+#       unauthenticated connections, and staging's password doesn't open
+#       production's Redis (issue 029)
 #
 # Harness hygiene: distinct compose project names (germinal-harness-*), its
 # own network (germinal-harness-network), no fixed host ports (Caddy's 80/443
@@ -116,6 +119,12 @@ deploy_staging() {
 # ── helpers ──────────────────────────────────────────────────────────────────
 container_ip() { docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$1"; }
 psql_prod() { docker exec germinal_postgres psql -U germinal -d germinal -q -tAc "$1"; }
+# redis-cli with each stack's fixture password (issue 029); REDISCLI_AUTH keeps
+# it off the command line.
+PROD_REDIS_PASSWORD=harness-fixture-prod-redis
+STAGING_REDIS_PASSWORD=harness-fixture-staging-redis
+redis_prod() { docker exec -e REDISCLI_AUTH="$PROD_REDIS_PASSWORD" germinal_redis redis-cli "$@"; }
+redis_staging() { docker exec -e REDISCLI_AUTH="$STAGING_REDIS_PASSWORD" germinal_staging_redis redis-cli "$@"; }
 psql_staging() { docker exec germinal_postgres psql -U germinal -d germinal_staging -q -tAc "$1"; }
 
 # Resolve a DNS name from inside an app container (node is in the app
@@ -193,13 +202,14 @@ setup() {
 	mkdir -p "$TMP/prod/env" "$TMP/staging/env" \
 		"$TMP/prod/data/postgres" "$TMP/prod/data/redis" "$TMP/prod/data/uploads" \
 		"$TMP/prod/caddy/config" "$TMP/prod/caddy/data" "$TMP/prod/caddy/logs" \
-		"$TMP/staging/data/uploads"
+		"$TMP/staging/data/uploads" "$TMP/staging/data/redis"
 
 	# CI (issues 009/010) copies the compose files from the deployed commit
 	# to the stack roots under the Agent's expected name.
 	# Like Ansible (app role), the Redis data dir is pre-owned by the image's
 	# redis user, which the container runs as (issue 028).
 	docker run --rm -v "$TMP/prod/data/redis:/d" busybox:latest chown 999:1000 /d
+	docker run --rm -v "$TMP/staging/data/redis:/d" busybox:latest chown 999:1000 /d
 
 	cp "$COMPOSE_DIR/docker-compose.prod.yml" "$TMP/prod/docker-compose.yml"
 	cp "$COMPOSE_DIR/docker-compose.staging.yml" "$TMP/staging/docker-compose.yml"
@@ -237,6 +247,8 @@ EOF
 services:
   staging_app:
     volumes: ["$TMP/staging/data/uploads:/app/uploads"]
+  staging_redis:
+    volumes: ["$TMP/staging/data/redis:/data"]
 networks:
   germinal_network:
     name: $NETWORK
@@ -525,7 +537,7 @@ case_container_hardening() {
 
 	# Redis data survives a recreate (AOF on the /data bind mount; fsync is
 	# every-second, hence the settle before the recreate).
-	docker exec germinal_redis redis-cli set harness:persist survives >/dev/null
+	redis_prod set harness:persist survives >/dev/null
 	sleep 2
 	local recreate_out
 	if recreate_out=$(dc_prod up -d --wait --force-recreate redis 2>&1); then
@@ -535,7 +547,7 @@ case_container_hardening() {
 		docker logs --tail 20 germinal_redis >&2 || true
 		return
 	fi
-	[ "$(docker exec germinal_redis redis-cli get harness:persist)" = survives ] &&
+	[ "$(redis_prod get harness:persist)" = survives ] &&
 		ok "redis data survived the recreate" || bad "redis data lost on recreate"
 
 	# Postgres and Caddy: partial hardening only (their entrypoints need
@@ -555,7 +567,7 @@ case_container_hardening() {
 # (ADDRESS_HEADER=x-real-ip, set by Caddy from {client_ip}), so the Redis key
 # of a promo-code validation shows which IP reached the app.
 rate_limit_key_exists() { # $1 ip
-	[ -n "$(docker exec germinal_redis redis-cli --scan --pattern "ratelimit:promo-code-validation:$1")" ]
+	[ -n "$(redis_prod --scan --pattern "ratelimit:promo-code-validation:$1")" ]
 }
 request_from() { # $1 source ip, $2 CF-Connecting-IP value
 	docker run --rm --network "$NETWORK" --ip "$1" busybox:latest \
@@ -615,6 +627,35 @@ case_metrics_hidden() {
 		bad "/metrics on the app port answered '$code'"
 }
 
+# ── issue 029: staging's own Redis, passwords everywhere ────────────────────
+case_redis_isolation() {
+	section "case 12: staging has its own Redis; every Redis requires a password (issue 029)"
+
+	[ "$(docker inspect -f '{{.State.Health.Status}}' germinal_staging_redis 2>/dev/null)" = healthy ] &&
+		ok "staging_redis is healthy (authenticated healthcheck)" || bad "staging_redis is not healthy"
+	[ "$(docker inspect -f '{{.State.Health.Status}}' germinal_redis)" = healthy ] &&
+		ok "prod redis is healthy (authenticated healthcheck)" || bad "prod redis is not healthy"
+
+	# A staging rate-limited request lands in staging's Redis, never prod's.
+	docker run --rm --network "$NETWORK" --ip "$TRUSTED_PEER_IP" busybox:latest \
+		wget -q -O /dev/null -T 10 \
+		--header 'Host: harness-staging.germinal.test' --header 'CF-Connecting-IP: 203.0.113.29' \
+		'http://germinal_caddy/api/promo-codes/validate?code=HARNESS' >/dev/null 2>&1 || true
+	[ -n "$(redis_staging --scan --pattern 'ratelimit:promo-code-validation:203.0.113.29')" ] &&
+		ok "staging counts its requests in its own Redis" || bad "staging's request is not in staging_redis"
+	[ -z "$(redis_prod --scan --pattern 'ratelimit:promo-code-validation:203.0.113.29')" ] &&
+		ok "staging's request never reaches production's Redis" || bad "staging's request reached production's Redis"
+
+	local out container
+	for container in germinal_redis germinal_staging_redis; do
+		out=$(docker exec "$container" redis-cli ping 2>&1 || true)
+		case $out in *NOAUTH*) ok "$container refuses an unauthenticated connection" ;; *) bad "$container answered without a password: $out" ;; esac
+	done
+
+	out=$(docker exec -e REDISCLI_AUTH="$STAGING_REDIS_PASSWORD" germinal_redis redis-cli ping 2>&1 || true)
+	case $out in PONG) bad "staging's password opens production's Redis" ;; *) ok "staging's password does not open production's Redis" ;; esac
+}
+
 case_data_survives() {
 	section "case 9: data survives container recreation (docker compose down model)"
 	dc_prod up -d --wait --force-recreate postgres >/dev/null 2>&1 ||
@@ -638,6 +679,7 @@ case_no_admin_env
 case_container_hardening
 case_client_ip
 case_metrics_hidden
+case_redis_isolation
 case_data_survives
 
 section "result"

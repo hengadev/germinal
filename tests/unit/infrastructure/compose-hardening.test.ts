@@ -131,8 +131,12 @@ describe('compose files: least-privilege containers (issue 028)', () => {
 		expect(asList(staging['staging_app']?.['volumes']).join('\n')).toMatch(/:\/app\/uploads$/m);
 	});
 
-	it('runs redis as its own user with every capability dropped', () => {
-		const redis = prod['redis'];
+	it.each([
+		['prod redis', () => prod['redis']],
+		['staging_redis (issue 029)', () => staging['staging_redis']],
+	])('runs %s as its own user with every capability dropped', (_name, service) => {
+		const redis = service();
+		expect(redis, 'service exists').toBeDefined();
 		expect(asScalar(redis?.['user'])).toBe('"999:1000"');
 		expect(asList(redis?.['cap_drop'])).toContain('ALL');
 		expect(asList(redis?.['cap_add'])).toEqual([]);
@@ -141,8 +145,12 @@ describe('compose files: least-privilege containers (issue 028)', () => {
 		).toBe(true);
 		expect(Number(asScalar(redis?.['pids_limit']))).toBeGreaterThan(0);
 		expect(asScalar(redis?.['read_only'])).toBe('true');
+		expect(asScalar(redis?.['mem_limit'])).toBe('128m');
 		// /data is the one writable mount (AOF lives there).
 		expect(asList(redis?.['volumes']).join('\n')).toMatch(/:\/data$/m);
+		// A password is required, from the stack's own Agent-rendered redis.env (issue 029).
+		expect(asList(redis?.['env_file'])).toEqual(['env/redis.env']);
+		expect(asList(redis?.['command']).join(',')).toContain('--requirepass \\"$$REDIS_PASSWORD\\"');
 	});
 
 	it('gives postgres and caddy only no-new-privileges and a pids limit', () => {

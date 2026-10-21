@@ -24,6 +24,7 @@ change what runs as root (see "How CI reaches `deploy`" below).
 │   ├── app.env                       app values + DATABASE_URL (assembled from /db)
 │   ├── postgres.env                  POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_DB
 │   ├── caddy.env                     CLOUDFLARE_API_TOKEN
+│   ├── redis.env                     REDIS_PASSWORD only (issue 029)
 │   ├── backup.env                    issue 013's backup job
 │   └── admin.env                     ADMIN_* — the bootstrap one-off alone reads this
 ├── data/postgres/                    Postgres data dir        (survives `down`)
@@ -33,12 +34,18 @@ change what runs as root (see "How CI reaches `deploy`" below).
 
 /opt/germinal-staging/                STAGING (compose project name: germinal_staging)
 ├── docker-compose.yml                docker-compose.staging.yml from the deployed commit
-├── env/{app,admin}.env               Agent-rendered, root 0600
+├── env/{app,admin,redis}.env         Agent-rendered, root 0600
+├── data/redis/                       staging's own Redis, redis 999:1000 (issue 029)
 └── data/uploads/
 ```
 
 Both stacks attach to the external `germinal_network` (created by Ansible's
-docker role), which is how staging reaches prod's Postgres, Redis and Caddy.
+docker role), which is how staging reaches prod's Postgres and Caddy. Staging
+runs its **own Redis** (`staging_redis`, issue 029): a Redis database index is
+no boundary, and staging code must never reach production's rate-limit
+counters. Both Redis instances require a password, from each stack's
+`env/redis.env`, read by the container's own command (`$$REDIS_PASSWORD`:
+compose does no substitution).
 Keeping it external means `docker compose down` in one stack can never drop
 the network the other depends on.
 
@@ -52,7 +59,7 @@ round-robin production traffic between the two containers. So:
 | Stack | Services | Containers |
 | --- | --- | --- |
 | prod | `app`, `postgres`, `redis`, `caddy`, `admin` (profile) | `germinal_app`, `germinal_postgres`, `germinal_redis`, `germinal_caddy` |
-| staging | `staging_app`, `staging_admin` (profile) | `germinal_staging_app` |
+| staging | `staging_app`, `staging_redis`, `staging_admin` (profile) | `germinal_staging_app`, `germinal_staging_redis` |
 
 The container names are Caddy's upstreams (`roles/caddy`'s Caddyfile.j2
 proxies to `germinal_app` / `germinal_staging_app`). The `infisical_agent`
@@ -140,8 +147,8 @@ Steps, each gating the next:
 
 1. pull `henga/germinal:<sha>`
 2. pin the stack's local tag
-3. prod only: `up -d --wait postgres redis` (no-op when running; needed for
-   the first deploy on empty directories)
+3. prod: `up -d --wait postgres redis`; staging: `up -d --wait staging_redis`
+   (no-op when running; needed for the first deploy on empty directories)
 4. migrations — `docker compose run --rm --no-deps <app-service> node scripts/migrate.js`
    (`DATABASE_URL` comes from `env/app.env`; failure aborts **before** the
    app is recreated, so the running container keeps serving)
