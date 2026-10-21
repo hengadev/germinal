@@ -146,6 +146,27 @@ Check on the server, as root:
 - [ ] As root: `systemctl start germinal-backup`, then `germinal-restore-test`.
   Both must succeed.
 
+## 8. Stripe webhook endpoint
+
+The Stripe webhook endpoint `https://<host>/api/webhooks/stripe` is created
+by hand in the Stripe dashboard (live mode for prod, **test mode** for
+staging and dev). It must subscribe to **exactly these events** — nothing
+else, and in particular not `payment_intent.succeeded`, which fires as a
+duplicate of `checkout.session.completed` and is ignored by the app:
+
+| Event | Why the app needs it |
+| --- | --- |
+| `checkout.session.completed` | confirms a Reservation **only when the session is paid**; a paid session arriving after the Reservation's hold expired is refunded in full |
+| `checkout.session.async_payment_succeeded` | a delayed payment method (e.g. bank debit) that succeeded: confirms like a paid completion |
+| `checkout.session.async_payment_failed` | a delayed payment method that failed: expires the Reservation and restores the Seating's capacity |
+| `payment_intent.payment_failed` | a card declined at checkout: expires the Reservation and restores capacity |
+| `charge.refunded` | records refunds issued outside the app (dashboard, dispute) on the payment and notifies the Guest |
+| `charge.dispute.created`, `charge.dispute.updated`, `charge.dispute.closed` | dispute bookkeeping |
+
+Its signing secret goes to Infisical `/stripe/STRIPE_WEBHOOK_SECRET`
+([environment.md](environment.md)); after that, no code or deploy step is
+needed.
+
 ## Recurring
 
 | When | What |
