@@ -1,16 +1,22 @@
 import { json, error } from '@sveltejs/kit';
-import { getMediaById, deleteMedia, updateMediaAlt } from '$lib/server/services/media';
+import { getMediaById, deleteMedia, updateMediaAlt, canViewMedia } from '$lib/server/services/media';
+import { viewerOf } from '$lib/utils/event-access';
 import { parseAltText } from '$lib/utils/media-alt';
 import { requireAdmin } from '$lib/server/auth-guards';
 import type { RequestHandler } from './$types';
 
-export const GET: RequestHandler = async ({ params }) => {
+export const GET: RequestHandler = async ({ params, locals }) => {
+  let media;
   try {
-    const media = await getMediaById(params.id);
-    return json(media);
+    media = await getMediaById(params.id);
   } catch {
     throw error(404, 'Media not found');
   }
+  // Hidden media answers 404, like media that doesn't exist.
+  if (!(await canViewMedia(media, viewerOf(locals.user)))) {
+    throw error(404, 'Media not found');
+  }
+  return json(media);
 };
 
 export const DELETE: RequestHandler = async (event) => {

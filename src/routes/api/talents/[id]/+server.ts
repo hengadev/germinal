@@ -2,15 +2,21 @@ import { json, error } from '@sveltejs/kit';
 import { getTalentById, updateTalent, deleteTalent } from '$lib/server/services/talents';
 import { updateTalentSchema } from '$lib/server/validators/talents';
 import { requireAdmin } from '$lib/server/auth-guards';
+import { viewerOf } from '$lib/utils/event-access';
 import type { RequestHandler } from './$types';
 
-export const GET: RequestHandler = async ({ params }) => {
+export const GET: RequestHandler = async ({ params, locals }) => {
+  let talent;
   try {
-    const talent = await getTalentById(params.id);
-    return json(talent);
+    talent = await getTalentById(params.id);
   } catch {
     throw error(404, 'Talent not found');
   }
+  // Only the Admin reads an unpublished Talent; anyone else gets 404.
+  if (!talent.published && viewerOf(locals.user).role !== 'admin') {
+    throw error(404, 'Talent not found');
+  }
+  return json(talent);
 };
 
 export const PUT: RequestHandler = async (event) => {
