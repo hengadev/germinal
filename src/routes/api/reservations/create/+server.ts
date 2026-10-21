@@ -2,7 +2,7 @@ import { json } from '@sveltejs/kit';
 import { logger } from '$lib/server/logger';
 import { createReservationSchema } from '$lib/server/validators/reservations';
 import { createReservation, DietaryConsentRequiredError, SeatingNotBookableError } from '$lib/server/services/reservations';
-import { strictRateLimiter, RateLimitUnavailableError } from '$lib/server/rate-limit';
+import { checkRateLimit } from '$lib/server/rate-limit';
 import { validateCsrfToken } from '$lib/server/csrf';
 import type { RequestHandler } from './$types';
 
@@ -17,28 +17,24 @@ export const POST: RequestHandler = async ({ request, getClientAddress, locals }
 		);
 	}
 
-	// Rate limiting: 10 requests per 10 minutes
-	let allowed: boolean;
-	try {
-		allowed = await strictRateLimiter.check(ip);
-	} catch (err) {
-		if (err instanceof RateLimitUnavailableError) {
-			logger.error({ err }, 'Rate limiter unavailable, rejecting reservation creation');
-			return json(
-				{ error: 'Service temporarily unavailable. Please try again shortly.', code: 'RATE_LIMITER_UNAVAILABLE' },
-				{ status: 503 }
-			);
-		}
-		throw err;
+	// Rate limit: the reservation-create policy allows 10 attempts per
+	// 10 minutes per client IP (app config, src/lib/server/env.ts).
+	const decision = await checkRateLimit('reservation-create', ip);
+	if (decision.status === 'unavailable') {
+		logger.error('Rate limiter unavailable, rejecting reservation creation');
+		return json(
+			{ error: 'Service temporarily unavailable. Please try again shortly.', code: 'RATE_LIMITER_UNAVAILABLE' },
+			{ status: 503 }
+		);
 	}
-	if (!allowed) {
-		const resetTime = await strictRateLimiter.getReset(ip);
+	if (decision.status === 'denied') {
 		return json(
 			{
-				error: `Too many reservation attempts. Please try again in ${Math.ceil(resetTime / 60)} minutes.`,
+				error: `Too many reservation attempts. Please try again in ${Math.ceil(decision.retryAfterSeconds / 60)} minutes.`,
 				code: 'RATE_LIMIT_EXCEEDED',
+				retryAfterSeconds: decision.retryAfterSeconds,
 			},
-			{ status: 429 }
+			{ status: 429, headers: { 'Retry-After': String(decision.retryAfterSeconds) } }
 		);
 	}
 

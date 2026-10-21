@@ -1,26 +1,23 @@
 import { json, type RequestHandler } from '@sveltejs/kit';
-import { createRateLimiter, RateLimitUnavailableError } from '$lib/server/rate-limit';
+import { checkRateLimit } from '$lib/server/rate-limit';
 import { validatePromoCode } from '$lib/server/services/promo-codes';
 import { logger } from '$lib/server/logger';
-
-// 30 validation attempts per minute per IP
-const promoCodeRateLimiter = createRateLimiter('promo-code', { maxAttempts: 30, windowMs: 60 * 1000 });
 
 export const GET: RequestHandler = async ({ url, getClientAddress }) => {
 	const ip = getClientAddress();
 
-	let allowed: boolean;
-	try {
-		allowed = await promoCodeRateLimiter.check(ip);
-	} catch (err) {
-		if (err instanceof RateLimitUnavailableError) {
-			logger.error({ err }, 'Rate limiter unavailable, rejecting promo code validation');
-			return json({ valid: false, error: 'Service temporarily unavailable.' }, { status: 503 });
-		}
-		throw err;
+	// Rate limit: the promo-code-validation policy allows 30 attempts per
+	// minute per client IP.
+	const decision = await checkRateLimit('promo-code-validation', ip);
+	if (decision.status === 'unavailable') {
+		logger.error('Rate limiter unavailable, rejecting promo code validation');
+		return json({ valid: false, error: 'Service temporarily unavailable.' }, { status: 503 });
 	}
-	if (!allowed) {
-		return json({ valid: false, error: 'Too many attempts. Please try again later.' }, { status: 429 });
+	if (decision.status === 'denied') {
+		return json(
+			{ valid: false, error: `Too many attempts. Please try again in ${Math.ceil(decision.retryAfterSeconds / 60)} minute(s).` },
+			{ status: 429, headers: { 'Retry-After': String(decision.retryAfterSeconds) } }
+		);
 	}
 
 	const code = url.searchParams.get('code')?.trim();
