@@ -40,8 +40,8 @@ resource "hcloud_server" "main" {
   # Enable automatic backups
   backups = var.enable_backups
 
-  # Disable firewall (manage with ufw inside the server if needed)
-  firewall_ids = []
+  # Cloudflare-only HTTP(S), allowlisted SSH (firewall.tf)
+  firewall_ids = [hcloud_firewall.main.id]
 
   public_net {
     ipv4_enabled = true

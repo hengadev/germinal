@@ -70,6 +70,64 @@ variable "enable_backups" {
 # Cloudflare DNS Variables
 # ============================================
 
+# Cloudflare's published edge ranges (https://www.cloudflare.com/ips-v4 and
+# /ips-v6), the only sources allowed to reach 80/443 (firewall.tf). Keep in
+# sync with the Ansible caddy role's caddy_trusted_proxies.
+variable "cloudflare_ipv4_ranges" {
+  description = "Cloudflare edge IPv4 ranges allowed to reach the origin's HTTP(S) ports"
+  type        = list(string)
+  default = [
+    "173.245.48.0/20",
+    "103.21.244.0/22",
+    "103.22.200.0/22",
+    "103.31.4.0/22",
+    "141.101.64.0/18",
+    "108.162.192.0/18",
+    "190.93.240.0/20",
+    "188.114.96.0/20",
+    "197.234.240.0/22",
+    "198.41.128.0/17",
+    "162.158.0.0/15",
+    "104.16.0.0/13",
+    "104.24.0.0/14",
+    "172.64.0.0/13",
+    "131.0.72.0/22",
+  ]
+}
+
+variable "cloudflare_ipv6_ranges" {
+  description = "Cloudflare edge IPv6 ranges allowed to reach the origin's HTTP(S) ports"
+  type        = list(string)
+  default = [
+    "2400:cb00::/32",
+    "2606:4700::/32",
+    "2803:f800::/32",
+    "2405:b500::/32",
+    "2405:8100::/32",
+    "2a06:98c0::/29",
+    "2c0f:f248::/32",
+  ]
+}
+
+# No default on purpose: a permissive fallback would silently reopen SSH to
+# the internet. See the README ("Origin firewall") before choosing a value.
+variable "ssh_allowed_ips" {
+  description = "Source CIDRs allowed to reach SSH (admin IPs, as /32 or /128)"
+  type        = list(string)
+
+  validation {
+    condition     = length(var.ssh_allowed_ips) > 0
+    error_message = "ssh_allowed_ips must list at least one CIDR."
+  }
+}
+
+variable "ssh_port" {
+  description = "SSH port on the server (Ansible inventory ssh_port)"
+  type        = number
+  default     = 22
+}
+
+
 variable "cloudflare_token" {
   description = "Cloudflare API token with Zone:Edit permissions (secret: TF_VAR_cloudflare_token from Infisical germinal-infra)"
   type        = string
