@@ -11,6 +11,8 @@ const devEnvSchema = z.object({
     // Redis database index: staging shares prod's Redis server on index 1
     REDIS_DB: z.string().default('0').transform(Number),
     USE_MOCK_DATA: z.string().default('false').transform(v => v === 'true'),
+    // Lets a production build run with USE_MOCK_DATA (the germinal.henga.dev demo only)
+    ALLOW_DEMO_MODE: z.string().default('false').transform(v => v === 'true'),
     // Maintenance override - forces maintenance mode on before any database read
     MAINTENANCE_MODE: z.string().default('false').transform(v => v === 'true'),
     MOCK_ADMIN_EMAIL: z.string().optional().default(''),
@@ -68,6 +70,8 @@ const prodEnvSchema = z.object({
     // Redis database index: staging shares prod's Redis server on index 1
     REDIS_DB: z.string().default('0').transform(Number),
     USE_MOCK_DATA: z.string().default('false').transform(v => v === 'true'),
+    // Lets a production build run with USE_MOCK_DATA (the germinal.henga.dev demo only)
+    ALLOW_DEMO_MODE: z.string().default('false').transform(v => v === 'true'),
     // Maintenance override - forces maintenance mode on before any database read
     MAINTENANCE_MODE: z.string().default('false').transform(v => v === 'true'),
     MOCK_ADMIN_EMAIL: z.string().optional().default(''),
@@ -160,7 +164,18 @@ function validateEnv() {
         return devEnvSchema.parse({});
     }
 
-    // Use dev schema (relaxed) when mock data is enabled, even in production
+    // Mock data swaps real authentication for env-defined credentials and
+    // in-memory login sessions: in production it must be asked for twice.
+    if (!isDevelopment && useMockData && process.env.ALLOW_DEMO_MODE !== 'true') {
+        bootstrapLog.error('❌ USE_MOCK_DATA=true in production without ALLOW_DEMO_MODE=true');
+        throw new Error(
+            'Refusing to start: USE_MOCK_DATA=true with NODE_ENV=production. ' +
+            'Unset USE_MOCK_DATA to use the real database and authentication, or, ' +
+            'for the demo site only, also set ALLOW_DEMO_MODE=true.'
+        );
+    }
+
+    // Use dev schema (relaxed) when mock data is enabled (production only with ALLOW_DEMO_MODE)
     const useRelaxedSchema = isDevelopment || useMockData;
     const schema = useRelaxedSchema ? devEnvSchema : prodEnvSchema;
     const parsed = schema.safeParse(withoutEmptyValues(process.env));

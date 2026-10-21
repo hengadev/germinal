@@ -24,7 +24,7 @@ Cloudflare token never reaches anything but Caddy.
 
 | Folder | Keys | `prod` | `staging` | `dev` | Rendered into → read by |
 | --- | --- | :-: | :-: | :-: | --- |
-| `/app` | `PUBLIC_URL`, `PROTOCOL_HEADER`, `CONTACT_EMAIL`, `MAINTENANCE_MODE`, `USE_SCHEDULER`, `USE_MOCK_DATA`, `RESERVATION_EXPIRY_MINUTES`, `MAX_FILE_SIZE`, `BODY_SIZE_LIMIT`, `ALLOWED_IMAGE_TYPES`, `ALLOWED_VIDEO_TYPES` | ✓ | ✓ | ✓ | `app.env` → the app |
+| `/app` | `PUBLIC_URL`, `PROTOCOL_HEADER`, `CONTACT_EMAIL`, `MAINTENANCE_MODE`, `USE_SCHEDULER`, `USE_MOCK_DATA`, `ALLOW_DEMO_MODE`, `RESERVATION_EXPIRY_MINUTES`, `MAX_FILE_SIZE`, `BODY_SIZE_LIMIT`, `ALLOWED_IMAGE_TYPES`, `ALLOWED_VIDEO_TYPES` | ✓ | ✓ | ✓ | `app.env` → the app |
 | `/db` | `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `POSTGRES_HOST`, `POSTGRES_PORT` | ✓ | ✓ | ✓ | `postgres.env` → Postgres (prod only); assembled into `DATABASE_URL` in `app.env`; `POSTGRES_USER`/`POSTGRES_DB` into `backup.env` |
 | `/redis` | `REDIS_HOST`, `REDIS_PORT`, `REDIS_DB` (`0` prod, `1` staging) | ✓ | ✓ | ✓ | `app.env` |
 | `/stripe` | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` (live in prod, **test mode** in staging and dev) | ✓ | ✓ | ✓ | `app.env` |
@@ -58,6 +58,12 @@ bootstrap only get the rewritten file; they read it the next time they run.
   `PROTOCOL_HEADER=x-forwarded-proto` is what tells the app it runs behind
   HTTPS (Caddy ends TLS). Dev, which has a single `localhost` origin, may
   set `ORIGIN`.
+- **`USE_MOCK_DATA` stays unset in staging and prod.** Mock data replaces
+  real authentication with env-defined credentials and in-memory login
+  sessions, so a production build refuses to start with it unless
+  `ALLOW_DEMO_MODE=true` is also set. That flag exists for one deployment
+  only, the `germinal.henga.dev` demo; never set it in `prod/app` or
+  `staging/app`.
 - **`MAINTENANCE_MODE=true` in `prod/app`** forces the maintenance page. It
   takes priority over the admin toggle in site settings.
 - **Staging is not a copy of prod:** its own database and role
