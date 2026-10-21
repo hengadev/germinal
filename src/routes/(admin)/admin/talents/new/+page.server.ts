@@ -3,6 +3,7 @@ import { requireAdmin } from '$lib/server/auth-guards';
 import { logger } from '$lib/server/logger';
 import { env } from '$lib/server/env';
 import { MOCK_TALENTS, MOCK_TALENT_CATEGORIES } from '$lib/mock-data';
+import { parseTalentForm, talentFormIdsSchema } from '$lib/server/validators/talents';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async () => {
@@ -18,65 +19,16 @@ export const actions: Actions = {
 	default: async ({ request, locals }) => {
 		requireAdmin(locals);
 		const formData = await request.formData();
-		const firstName = formData.get('firstName');
-		const lastName = formData.get('lastName');
-		const roleEn = formData.get('roleEn');
-		const roleFr = formData.get('roleFr');
-		const bioEn = formData.get('bioEn');
-		const bioFr = formData.get('bioFr');
-		const city = formData.get('city');
-		const country = formData.get('country');
-		const quoteEn = formData.get('quoteEn');
-		const quoteFr = formData.get('quoteFr');
-		const specializationsEn = formData.get('specializationsEn');
-		const specializationsFr = formData.get('specializationsFr');
-		const instagram = formData.get('instagram');
-		const linkedin = formData.get('linkedin');
-		const twitter = formData.get('twitter');
-		const website = formData.get('website');
-		const profileMediaId = formData.get('profileMediaId') as string | null;
-		const categoryId = formData.get('categoryId') as string | null;
-		const published = formData.get('published') === 'true';
 
-		// Validation
-		if (!firstName || typeof firstName !== 'string') {
-			return fail(400, { error: 'Le prénom est requis' });
+		// Same schema as the Talent API (social links: absolute http(s) URLs only)
+		const form = parseTalentForm(formData);
+		if (!form.success) {
+			return fail(400, { error: form.error });
 		}
-
-		if (!lastName || typeof lastName !== 'string') {
-			return fail(400, { error: 'Le nom est requis' });
-		}
-
-		if (!roleEn || typeof roleEn !== 'string') {
-			return fail(400, { error: 'Le rôle (anglais) est requis' });
-		}
-
-		if (!roleFr || typeof roleFr !== 'string') {
-			return fail(400, { error: 'Le rôle (français) est requis' });
-		}
-
-		if (!bioEn || typeof bioEn !== 'string') {
-			return fail(400, { error: 'La bio (anglais) est requise' });
-		}
-
-		if (!bioFr || typeof bioFr !== 'string') {
-			return fail(400, { error: 'La bio (français) est requise' });
-		}
-
-		// Build social links object
-		const socialLinks: Record<string, string> = {};
-		if (instagram && typeof instagram === 'string' && instagram.trim()) {
-			socialLinks.instagram = instagram.trim();
-		}
-		if (linkedin && typeof linkedin === 'string' && linkedin.trim()) {
-			socialLinks.linkedin = linkedin.trim();
-		}
-		if (twitter && typeof twitter === 'string' && twitter.trim()) {
-			socialLinks.twitter = twitter.trim();
-		}
-		if (website && typeof website === 'string' && website.trim()) {
-			socialLinks.website = website.trim();
-		}
+		const fields = form.data;
+		const { firstName, lastName } = fields;
+		const profileMediaId = (formData.get('profileMediaId') as string | null) || null;
+		const categoryId = (formData.get('categoryId') as string | null) || null;
 
 		if (env.USE_MOCK_DATA) {
 			// Mock mode - add to mock data array (not persisted)
@@ -95,20 +47,7 @@ export const actions: Actions = {
 
 			const newTalent = {
 				id: String(MOCK_TALENTS.length + 1),
-				firstName,
-				lastName,
-				roleEn,
-				roleFr,
-				bioEn,
-				bioFr,
-				city: city?.toString() || null,
-				country: country?.toString() || null,
-				quoteEn: quoteEn?.toString() || null,
-				quoteFr: quoteFr?.toString() || null,
-				specializationsEn: specializationsEn?.toString() || null,
-				specializationsFr: specializationsFr?.toString() || null,
-				socialLinks: JSON.stringify(socialLinks),
-				published,
+				...fields,
 				createdAt: new Date(),
 				updatedAt: new Date(),
 				profileMediaId: null,
@@ -127,26 +66,18 @@ export const actions: Actions = {
 		const { media } = await import('$lib/server/db/schema');
 		const { eq } = await import('drizzle-orm');
 
+		// Ids are validated like the API's (mock data has non-UUID ids, so only here)
+		const ids = talentFormIdsSchema.safeParse({
+			profileMediaId: profileMediaId ?? undefined,
+			categoryId: categoryId ?? undefined
+		});
+		if (!ids.success) {
+			return fail(400, { error: 'Identifiant de média ou de catégorie invalide' });
+		}
+
 		try {
 			// Create talent with profileMediaId
-			const talent = await createTalent({
-				firstName,
-				lastName,
-				roleEn,
-				roleFr,
-				bioEn,
-				bioFr,
-				city: city?.toString() || null,
-				country: country?.toString() || null,
-				quoteEn: quoteEn?.toString() || null,
-				quoteFr: quoteFr?.toString() || null,
-				specializationsEn: specializationsEn?.toString() || null,
-				specializationsFr: specializationsFr?.toString() || null,
-				socialLinks: JSON.stringify(socialLinks),
-				profileMediaId: profileMediaId || null,
-				categoryId: categoryId || null,
-				published
-			});
+			const talent = await createTalent({ ...fields, ...ids.data });
 
 			// Link media to talent (update media records that were uploaded but not linked)
 			if (profileMediaId) {
