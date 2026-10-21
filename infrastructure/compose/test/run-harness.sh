@@ -12,7 +12,9 @@
 #
 #   1.  docker compose config validates both committed compose files
 #   2.  first deploy on empty data dirs: migrates, creates the admin from
-#       fixture admin.env, ends with the SHA serving
+#       fixture admin.env, ends with the SHA serving — connected as the app's
+#       own non-superuser role (issue 018), which owns what migrations and
+#       pg-boss created
 #   3.  second deploy of a new SHA keeps the data, doesn't touch the admin
 #   4.  failing migration exits non-zero BEFORE the app is recreated; the
 #       previous container keeps serving
@@ -52,6 +54,8 @@ HARNESS_DIR=$(cd "$(dirname "$0")" && pwd)
 COMPOSE_DIR=$(cd "$HARNESS_DIR/.." && pwd)
 REPO_ROOT=$(cd "$COMPOSE_DIR/../.." && pwd)
 DEPLOY=$COMPOSE_DIR/deploy
+# The Ansible shared_services role's SQL for the app's database role (issue 018)
+APP_DB_ROLE_SQL=$REPO_ROOT/infrastructure/ansible/roles/shared_services/files/app-db-role.sql
 
 NETWORK=germinal-harness-network
 # Fixed subnet so the client-IP case can stand in for a Cloudflare edge
@@ -278,6 +282,17 @@ case_validate() {
 case_first_deploy() {
 	section "case 2: first deploy on empty data dirs"
 	build_image "$SHA1" || { bad "image build failed"; return; }
+	# Server setup equivalent (Ansible shared_services, issue 018): Postgres up,
+	# then the app's role from the same SQL file, before the first deploy.
+	dc_prod up -d --wait postgres >/dev/null 2>&1 || { bad "postgres did not come up"; return; }
+	if docker exec -i germinal_postgres psql -X -q -tA -v ON_ERROR_STOP=1 -U germinal -d germinal \
+		-v role=germinal_app -v password=harness-fixture-app-db -v db=germinal \
+		<"$APP_DB_ROLE_SQL" >/dev/null; then
+		ok "app database role created (server setup equivalent)"
+	else
+		bad "could not create the app database role"
+		return
+	fi
 	if deploy_prod "$SHA1" >"$TMP/deploy1.log" 2>&1; then
 		ok "deploy prod $SHA1 exits 0"
 	else
@@ -292,6 +307,28 @@ case_first_deploy() {
 		ok "/api/health via Caddy reports $SHA1" || bad "/api/health via Caddy does not report $SHA1"
 	[ "$(psql_prod "select count(*) from users where email='admin@harness.fixture' and role='admin'")" = 1 ] &&
 		ok "admin created from fixture admin.env" || bad "admin missing"
+	# issue 018: the app connects as a role that is not a superuser, and owns
+	# what migrations and pg-boss created on this fresh database.
+	local app_ip
+	app_ip=$(container_ip germinal_app)
+	[ "$(psql_prod "select string_agg(distinct a.usename || ':' || r.rolsuper, ',') from pg_stat_activity a join pg_roles r on r.rolname = a.usename where a.client_addr = '$app_ip'")" = "germinal_app:false" ] &&
+		ok "the app connects as germinal_app, not a superuser" ||
+		bad "the app's connections are not all germinal_app/non-superuser"
+	[ "$(psql_prod "select rolsuper::text || rolcreatedb::text || rolcreaterole::text from pg_roles where rolname = 'germinal_app'")" = falsefalsefalse ] &&
+		ok "germinal_app has no superuser, createdb or createrole" || bad "germinal_app is privileged"
+	[ "$(psql_prod "select count(*) from pg_tables where schemaname = 'public' and tableowner <> 'germinal_app'")" = 0 ] &&
+		[ "$(psql_prod "select count(*) from pg_tables where schemaname = 'public'")" -gt 0 ] &&
+		ok "migrations ran as germinal_app (it owns every public table)" ||
+		bad "public tables not all owned by germinal_app"
+	[ "$(psql_prod "select pg_get_userbyid(nspowner) from pg_namespace where nspname = 'pgboss'")" = germinal_app ] &&
+		ok "pg-boss set up its schema as germinal_app" || bad "pg-boss schema missing or not owned by germinal_app"
+	if docker exec -i germinal_postgres psql -X -q -tA -v ON_ERROR_STOP=1 -U germinal -d germinal \
+		-v role=germinal_app -v password=harness-fixture-app-db -v db=germinal \
+		<"$APP_DB_ROLE_SQL" >/dev/null; then
+		ok "the app role SQL is safe to re-run"
+	else
+		bad "re-running the app role SQL failed"
+	fi
 	# The bootstrap one-off must not linger.
 	if [ -z "$(docker ps -a --filter label=com.docker.compose.project=$PROJ_PROD --format '{{.Names}}' | grep admin || true)" ]; then
 		ok "bootstrap one-off container removed"

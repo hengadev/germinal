@@ -59,10 +59,12 @@ follows a recursive call (edit a `/stripe` value, check `app` is recreated).
 ## `DATABASE_URL`
 
 Assembled in `app.env.tmpl` from the `/db` atoms with Go's `urlquery`, so
-each atom exists exactly once in Infisical (PRD story 4). Caveat from issue
-005: `urlquery` encodes a space as `+`, which is wrong inside userinfo —
-**`POSTGRES_PASSWORD` must stay letters-and-digits only** (already the rule
-in the operator checklist).
+each atom exists exactly once in Infisical (PRD story 4): the app role's
+`APP_DB_USER`/`APP_DB_PASSWORD` (never the bootstrap superuser
+`POSTGRES_USER`/`POSTGRES_PASSWORD`, issue 018) plus `POSTGRES_HOST`,
+`POSTGRES_PORT` and `POSTGRES_DB`. Caveat from issue 005: `urlquery` encodes
+a space as `+`, which is wrong inside userinfo — **`APP_DB_PASSWORD` must
+stay letters-and-digits only** (already the rule in the operator checklist).
 
 ## Rendering by hand
 
