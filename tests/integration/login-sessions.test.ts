@@ -30,10 +30,12 @@ vi.mock('../../src/lib/server/db', () => ({
 type Session = typeof import('../../src/lib/server/session');
 let store: Session;
 let hashPassword: (password: string) => Promise<string>;
+let hashResetToken: (token: string) => string;
 
 beforeAll(async () => {
 	store = await import('../../src/lib/server/session');
 	({ hashPassword } = await import('../../src/lib/server/auth'));
+	({ hashResetToken } = await import('../../src/lib/server/utils/password'));
 });
 
 const EMAIL_PREFIX = 'login-sessions-test-';
@@ -140,7 +142,7 @@ describe('revocation', () => {
 	] as const)('completing a %s reset revokes all the user’s sessions', async (_label, modulePath, role) => {
 		const token = `reset-${Math.random().toString(36).slice(2)}`;
 		const user = await seedUser(role, 'old-password-123', {
-			passwordResetToken: token,
+			passwordResetToken: hashResetToken(token),
 			passwordResetExpires: new Date(Date.now() + 60 * 60 * 1000),
 		});
 		const a = (await store.createSession(user.id)).id;

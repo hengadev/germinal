@@ -2,7 +2,7 @@ import { redirect, fail, error, type Actions } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
 import { users } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
-import { verifyPassword, verifyPasswordMock, getMockCredentials } from '$lib/server/auth';
+import { verifyPassword, verifyPasswordForUnknownUser, verifyPasswordMock, getMockCredentials } from '$lib/server/auth';
 import { createSession } from '$lib/server/session';
 import { env } from '$lib/server/env';
 import { logger } from '$lib/server/logger';
@@ -103,14 +103,14 @@ export const actions: Actions = {
 		// Database mode: verify against database
 		const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
 
-		if (!user) {
-			return fail(400, { error: 'Invalid email or password' });
-		}
+		// Verify password. An unknown email still runs one verification (against
+		// a dummy hash) and gets the same error, so neither the answer nor its
+		// timing tells whether the email exists.
+		const validPassword = user
+			? await verifyPassword(user.passwordHash, password)
+			: await verifyPasswordForUnknownUser(password);
 
-		// Verify password
-		const validPassword = await verifyPassword(user.passwordHash, password);
-
-		if (!validPassword) {
+		if (!user || !validPassword) {
 			return fail(400, { error: 'Invalid email or password' });
 		}
 

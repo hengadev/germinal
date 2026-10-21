@@ -4,6 +4,7 @@ import { db } from '$lib/server/db';
 import { users } from '$lib/server/db/schema';
 import { eq, and, gt } from 'drizzle-orm';
 import { hashPassword } from '$lib/server/auth';
+import { hashResetToken } from '$lib/server/utils/password';
 import { revokeUserSessions } from '$lib/server/session';
 import { isAppError } from '$lib/server/errors';
 
@@ -21,7 +22,7 @@ export const load: PageServerLoad = async ({ params }) => {
         .from(users)
         .where(
             and(
-                eq(users.passwordResetToken, token),
+                eq(users.passwordResetToken, hashResetToken(token)),
                 gt(users.passwordResetExpires!, new Date())
             )
         )
@@ -67,7 +68,7 @@ export const actions: Actions = {
             .from(users)
             .where(
                 and(
-                    eq(users.passwordResetToken, token),
+                    eq(users.passwordResetToken, hashResetToken(token)),
                     gt(users.passwordResetExpires!, new Date())
                 )
             )
