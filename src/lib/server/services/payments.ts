@@ -1,74 +1,23 @@
 import { db } from '../db';
 import { logger } from '$lib/server/logger';
-import { payments, reservations, eventSessions } from '../db/schema';
-import { eq } from 'drizzle-orm';
+import { payments } from '../db/schema';
+import { and, eq, isNull, or } from 'drizzle-orm';
 import type Stripe from 'stripe';
 import { sendTicketNotifications } from './ticket-notifications';
 import { seatingTitle } from '$lib/utils/seating-title';
+import { confirmReservationForPayment, expireReservationForFailedPayment } from './reservation-transitions';
 
 /**
- * Handle successful payment from Stripe webhook
+ * Find the payment of a Stripe object by any of the ids it may be stored
+ * under: the Checkout Session id (the placeholder written at booking time)
+ * or the PaymentIntent id a paid session swaps it for — so a delivery
+ * retried after the swap still finds its payment.
  */
-export async function handlePaymentSuccess(paymentIntent: Stripe.PaymentIntent) {
+async function findPaymentByStripeId(...stripeIds: (string | null)[]) {
+	const ids = stripeIds.filter((id): id is string => Boolean(id));
+	if (ids.length === 0) return null;
 	const payment = await db.query.payments.findFirst({
-		where: eq(payments.stripePaymentIntentId, paymentIntent.id),
-		with: {
-			reservation: {
-				with: {
-					eventSession: {
-						with: {
-							event: true,
-						},
-					},
-				},
-			},
-		},
-	});
-
-	if (!payment) {
-		console.warn(`Payment not found for PaymentIntent: ${paymentIntent.id}`);
-		return;
-	}
-
-	// Idempotency check
-	if (payment.webhookProcessedAt) {
-		logger.info(`Webhook already processed for payment: ${payment.id}`);
-		return;
-	}
-
-	await db.transaction(async (tx) => {
-		await tx.update(payments)
-			.set({
-				status: 'succeeded',
-				stripeChargeId: typeof paymentIntent.latest_charge === 'string' ? paymentIntent.latest_charge : paymentIntent.latest_charge?.id ?? null,
-				receiptUrl: null,
-				webhookProcessedAt: new Date(),
-				updatedAt: new Date(),
-			})
-			.where(eq(payments.id, payment.id));
-
-		await tx.update(reservations)
-			.set({
-				status: 'confirmed',
-				confirmedAt: new Date(),
-				updatedAt: new Date(),
-			})
-			.where(eq(reservations.id, payment.reservationId));
-	});
-
-	// Send the Ticket (email, and SMS if opted in); failures are logged, never thrown.
-	await sendTicketNotifications(payment.reservation);
-}
-
-/**
- * Handle checkout.session.completed from Stripe webhook.
- * Looks up payment by checkout session ID (stored as placeholder), updates it to the
- * real PaymentIntent ID, confirms the reservation, and sends notifications.
- */
-export async function handleCheckoutSuccess(session: Stripe.Checkout.Session) {
-	// Find payment by checkout session ID (stored in stripePaymentIntentId as placeholder)
-	const payment = await db.query.payments.findFirst({
-		where: eq(payments.stripePaymentIntentId, session.id),
+		where: or(...ids.map((id) => eq(payments.stripePaymentIntentId, id))),
 		with: {
 			reservation: {
 				with: {
@@ -79,42 +28,213 @@ export async function handleCheckoutSuccess(session: Stripe.Checkout.Session) {
 			},
 		},
 	});
+	return payment ?? null;
+}
 
+type PaymentWithReservation = NonNullable<Awaited<ReturnType<typeof findPaymentByStripeId>>>;
+
+/**
+ * Handle successful payment from Stripe webhook
+ */
+export async function handlePaymentSuccess(paymentIntent: Stripe.PaymentIntent) {
+	const payment = await findPaymentByStripeId(paymentIntent.id);
+
+	if (!payment) {
+		console.warn(`Payment not found for PaymentIntent: ${paymentIntent.id}`);
+		return;
+	}
+
+	// pending → confirmed through the Reservation transitions module: one
+	// conditional update, so concurrent or repeated deliveries confirm once,
+	// and a Reservation that is no longer pending is left alone.
+	const outcome = await confirmReservationForPayment({
+		reservationId: payment.reservationId,
+		paymentId: payment.id,
+		paymentIntentId: paymentIntent.id,
+		stripeChargeId: typeof paymentIntent.latest_charge === 'string'
+			? paymentIntent.latest_charge
+			: paymentIntent.latest_charge?.id ?? null,
+	});
+
+	if (!outcome.won) {
+		logger.info(
+			{ reservationId: payment.reservationId, status: outcome.status },
+			'Reservation no longer pending; success not confirmed',
+		);
+		return;
+	}
+
+	// Send the Ticket (email, and SMS if opted in); failures are logged, never thrown.
+	await sendTicketNotifications(payment.reservation);
+}
+
+/**
+ * Handle checkout.session.completed — and the
+ * checkout.session.async_payment_succeeded that follows it for a delayed
+ * payment method — from the Stripe webhook.
+ *
+ * Only a session Stripe reports as **paid** confirms its Reservation: a
+ * delayed method completing unpaid confirms nothing (its async events
+ * decide later). Confirmation is the Reservation transitions module's
+ * pending → confirmed conditional update, so concurrent or repeated
+ * deliveries confirm once and send one Ticket. A paid session arriving
+ * after the Reservation's hold is gone (expired or cancelled) is refunded
+ * in full instead — the seats were already released, so the Reservation
+ * and the Seating's capacity stay untouched.
+ */
+export async function handleCheckoutSuccess(session: Stripe.Checkout.Session) {
+	const paymentIntentId = typeof session.payment_intent === 'string' ? session.payment_intent : null;
+
+	// The payment is stored under the Checkout Session id as a placeholder
+	// until a paid session swaps in the real PaymentIntent id; look it up by
+	// either, so a delivery retried after the swap still finds it.
+	const payment = await findPaymentByStripeId(session.id, paymentIntentId);
 	if (!payment) {
 		console.warn(`Payment not found for Checkout Session: ${session.id}`);
 		return;
 	}
 
-	// Idempotency check
-	if (payment.webhookProcessedAt) {
-		logger.info(`Webhook already processed for payment: ${payment.id}`);
+	if (session.payment_status !== 'paid') {
+		logger.info(
+			{ checkoutSessionId: session.id, paymentStatus: session.payment_status },
+			'Checkout Session completed without payment; nothing confirmed',
+		);
 		return;
 	}
 
-	const paymentIntentId = typeof session.payment_intent === 'string' ? session.payment_intent : null;
+	const outcome = await confirmReservationForPayment({
+		reservationId: payment.reservationId,
+		paymentId: payment.id,
+		paymentIntentId,
+	});
 
-	// Update payment: swap placeholder to real PI ID and mark as succeeded
-	await db.update(payments)
+	if (outcome.won) {
+		// Send the Ticket (email, and SMS if opted in) once, after the
+		// confirmation is committed; failures are logged, never thrown.
+		await sendTicketNotifications(payment.reservation);
+		return;
+	}
+
+	// Another delivery moved the Reservation first. A duplicate of a
+	// confirmation lands here as 'confirmed' and does nothing; a payment
+	// that arrived after the hold expired is refunded in full.
+	if (outcome.status === 'expired' || outcome.status === 'cancelled') {
+		await refundLatePayment(payment, paymentIntentId);
+		return;
+	}
+
+	logger.info(
+		{ reservationId: payment.reservationId, status: outcome.status },
+		'Reservation already handled by another delivery; nothing to do',
+	);
+}
+
+/**
+ * A paid Checkout Session arrived for a Reservation whose hold is already
+ * gone (expired or cancelled): the seats were released, so the money goes
+ * back in full. The Stripe refund carries an idempotency key derived from
+ * the payment id, so concurrent or repeated deliveries of the same event
+ * ask Stripe for the same refund; the payment is marked refunded by a
+ * conditional update, so the Guest is notified once. The Reservation's
+ * status and the Seating's capacity are deliberately untouched.
+ */
+async function refundLatePayment(payment: PaymentWithReservation, paymentIntentId: string | null) {
+	if (!paymentIntentId) {
+		logger.error(
+			{ paymentId: payment.id },
+			'Paid Checkout Session for a released Reservation carries no PaymentIntent id; refund it by hand',
+		);
+		return;
+	}
+	if (payment.status === 'refunded') {
+		return;
+	}
+
+	const { createRefund } = await import('./stripe');
+	// A Stripe failure propagates, so the webhook answers 5xx and Stripe
+	// retries; the idempotency key keeps the retry from double-refunding.
+	const refund = await createRefund(paymentIntentId, payment.amount, {
+		idempotencyKey: `late-payment-refund-${payment.id}`,
+	});
+
+	// Claim the recording (and the notification) for one delivery only.
+	const claimed = await db.update(payments)
 		.set({
-			...(paymentIntentId ? { stripePaymentIntentId: paymentIntentId } : {}),
-			stripeChargeId: typeof session.payment_intent === 'string' ? null : null,
-			status: 'succeeded',
+			status: 'refunded',
+			refundedAmount: refund.amount,
+			// Keep the payment correlatable with the charge.refunded event.
+			stripePaymentIntentId: paymentIntentId,
 			webhookProcessedAt: new Date(),
 			updatedAt: new Date(),
 		})
-		.where(eq(payments.id, payment.id));
+		.where(and(
+			eq(payments.id, payment.id),
+			isNull(payments.webhookProcessedAt),
+		))
+		.returning({ id: payments.id });
 
-	// Confirm reservation
-	await db.update(reservations)
-		.set({
-			status: 'confirmed',
-			confirmedAt: new Date(),
-			updatedAt: new Date(),
-		})
-		.where(eq(reservations.id, payment.reservationId));
+	if (claimed.length === 0) {
+		logger.info({ paymentId: payment.id }, 'Late-payment refund already recorded by another delivery');
+		return;
+	}
 
-	// Send the Ticket (email, and SMS if opted in); failures are logged, never thrown.
-	await sendTicketNotifications(payment.reservation);
+	// Notify the Guest — best-effort, never blocks the webhook response.
+	try {
+		const { sendRefundEmail } = await import('./email');
+		await sendRefundEmail({
+			guestEmail: payment.reservation.guestEmail,
+			guestName: payment.reservation.guestName,
+			eventTitle: payment.reservation.eventSession.event.titleEn,
+			sessionTitle: seatingTitle(payment.reservation.eventSession, 'en', {
+				timeZone: payment.reservation.eventSession.event.timeZone,
+			}),
+			sessionStartTime: payment.reservation.eventSession.startTime,
+			timeZone: payment.reservation.eventSession.event.timeZone,
+			reservationId: payment.reservation.id,
+			amount: refund.amount,
+			currency: payment.currency,
+			isPartialRefund: false,
+		});
+	} catch (error) {
+		logger.error({ err: error }, 'Failed to send late-payment refund email');
+	}
+
+	if (payment.reservation.guestPhone && payment.reservation.notificationPreference !== 'email') {
+		try {
+			const { sendRefundSMS } = await import('./sms');
+			await sendRefundSMS({
+				phone: payment.reservation.guestPhone,
+				name: payment.reservation.guestName,
+				eventTitle: payment.reservation.eventSession.event.titleEn,
+				amount: refund.amount,
+				currency: payment.currency,
+			});
+		} catch (error) {
+			logger.error({ err: error }, 'Failed to send late-payment refund SMS');
+		}
+	}
+}
+
+/**
+ * Fail a payment and expire its Reservation, restoring the Seating's
+ * capacity — what every payment failure does (a card declined at checkout,
+ * or the async failure of a delayed payment method). Shared by
+ * {@link handlePaymentFailure} and {@link handleAsyncPaymentFailed}.
+ */
+async function failPaymentAndExpireReservation(
+	payment: PaymentWithReservation,
+	lastError: string | null
+) {
+	// pending → expired through the Reservation transitions module: a
+	// failure delivered twice, or racing the expiry job, restores capacity once.
+	const { won } = await expireReservationForFailedPayment({
+		reservationId: payment.reservationId,
+		paymentId: payment.id,
+		lastError,
+	});
+	if (won) {
+		logger.info(`[Payment Failure] Restored ${payment.reservation.quantity} tickets for reservation ${payment.reservationId}`);
+	}
 }
 
 /**
@@ -122,12 +242,7 @@ export async function handleCheckoutSuccess(session: Stripe.Checkout.Session) {
  * Immediately expires the reservation and restores capacity
  */
 export async function handlePaymentFailure(paymentIntent: Stripe.PaymentIntent) {
-	const payment = await db.query.payments.findFirst({
-		where: eq(payments.stripePaymentIntentId, paymentIntent.id),
-		with: {
-			reservation: true,
-		},
-	});
+	const payment = await findPaymentByStripeId(paymentIntent.id);
 
 	if (!payment) {
 		return;
@@ -138,44 +253,29 @@ export async function handlePaymentFailure(paymentIntent: Stripe.PaymentIntent) 
 		return;
 	}
 
-	// Use a transaction to atomically update payment, expire reservation, and restore capacity
-	await db.transaction(async (tx: typeof db) => {
-		// Update payment status
-		await tx.update(payments)
-			.set({
-				status: 'failed',
-				lastError: paymentIntent.last_payment_error?.message ?? null,
-				webhookProcessedAt: new Date(),
-				updatedAt: new Date(),
-			})
-			.where(eq(payments.id, payment.id));
+	await failPaymentAndExpireReservation(payment, paymentIntent.last_payment_error?.message ?? null);
+}
 
-		// Expire reservation immediately
-		await tx.update(reservations)
-			.set({
-				status: 'expired',
-				updatedAt: new Date(),
-			})
-			.where(eq(reservations.id, payment.reservationId));
+/**
+ * Handle checkout.session.async_payment_failed: a delayed payment method
+ * (one whose checkout.session.completed arrived unpaid) failed after the
+ * session completed. Handled like any payment failure — the Reservation
+ * expires and the Seating's capacity is restored.
+ */
+export async function handleAsyncPaymentFailed(session: Stripe.Checkout.Session) {
+	const paymentIntentId = typeof session.payment_intent === 'string' ? session.payment_intent : null;
+	const payment = await findPaymentByStripeId(session.id, paymentIntentId);
 
-		// Lock session and restore capacity
-		const [session] = await tx
-			.select()
-			.from(eventSessions)
-			.where(eq(eventSessions.id, payment.reservation.eventSessionId))
-			.for('update');
+	if (!payment) {
+		return;
+	}
 
-		if (session) {
-			await tx.update(eventSessions)
-				.set({
-					availableCapacity: session.availableCapacity + payment.reservation.quantity,
-					updatedAt: new Date(),
-				})
-				.where(eq(eventSessions.id, payment.reservation.eventSessionId));
+	if (payment.webhookProcessedAt) {
+		logger.info(`Webhook already processed for payment: ${payment.id}`);
+		return;
+	}
 
-			logger.info(`[Payment Failure] Restored ${payment.reservation.quantity} tickets for reservation ${payment.reservationId}`);
-		}
-	});
+	await failPaymentAndExpireReservation(payment, 'Asynchronous payment failed');
 }
 
 /**

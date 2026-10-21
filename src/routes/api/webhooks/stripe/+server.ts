@@ -1,7 +1,7 @@
 import { json, error } from '@sveltejs/kit';
 import { env } from '$lib/server/env';
 import { verifyWebhookSignature } from '$lib/server/services/stripe';
-import { handlePaymentSuccess, handlePaymentFailure, handleRefund, handleCheckoutSuccess } from '$lib/server/services/payments';
+import { handlePaymentSuccess, handlePaymentFailure, handleRefund, handleCheckoutSuccess, handleAsyncPaymentFailed } from '$lib/server/services/payments';
 import { handleDisputeCreated, handleDisputeUpdated, handleDisputeClosed } from '$lib/server/services/disputes';
 import { logger } from '$lib/server/logger';
 import type { RequestHandler } from './$types';
@@ -33,6 +33,16 @@ export const POST: RequestHandler = async ({ request }) => {
 		switch (event.type) {
 			case 'checkout.session.completed':
 				await handleCheckoutSuccess(event.data.object as Stripe.Checkout.Session);
+				break;
+
+			case 'checkout.session.async_payment_succeeded':
+				// A delayed payment method succeeded: confirms like a paid completion
+				await handleCheckoutSuccess(event.data.object as Stripe.Checkout.Session);
+				break;
+
+			case 'checkout.session.async_payment_failed':
+				// A delayed payment method failed: handled like a payment failure
+				await handleAsyncPaymentFailed(event.data.object as Stripe.Checkout.Session);
 				break;
 
 			case 'payment_intent.succeeded':

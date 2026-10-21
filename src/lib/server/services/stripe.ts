@@ -110,15 +110,25 @@ export async function cancelPaymentIntent(paymentIntentId: string): Promise<void
 }
 
 /**
- * Create a refund for a PaymentIntent
+ * Create a refund for a PaymentIntent. Pass `amount` (in cents) for a
+ * partial refund; pass an `idempotencyKey` when the refund may be retried
+ * or raced by concurrent callers — Stripe then answers every call with the
+ * same refund instead of issuing several.
  */
-export async function createRefund(paymentIntentId: string, amount?: number) {
+export async function createRefund(
+	paymentIntentId: string,
+	amount?: number,
+	options: { idempotencyKey?: string } = {}
+) {
 	const stripe = getStripeClient();
 
-	const refund = await stripe.refunds.create({
-		payment_intent: paymentIntentId,
-		amount, // Optional: partial refund
-	});
+	const refund = await stripe.refunds.create(
+		{
+			payment_intent: paymentIntentId,
+			amount, // Optional: partial refund
+		},
+		options.idempotencyKey ? { idempotencyKey: options.idempotencyKey } : undefined
+	);
 
 	return refund;
 }
