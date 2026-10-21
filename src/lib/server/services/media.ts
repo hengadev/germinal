@@ -1,8 +1,10 @@
 import { db } from '../db';
-import { media } from '../db/schema';
+import { events, media, talents } from '../db/schema';
 import { eq, and, inArray, isNull, or, sql } from 'drizzle-orm';
 import { deleteFromS3 } from './s3';
 import type { CreateMediaInput } from '$lib/types/media';
+import { toAccessEvent } from './event-access';
+import { eventAccess, type Viewer } from '$lib/utils/event-access';
 
 export async function createMedia(input: CreateMediaInput) {
   const [newMedia] = await db.insert(media).values(input).returning();
@@ -31,6 +33,33 @@ export async function getMediaById(id: string) {
   }
 
   return mediaItem;
+}
+
+/**
+ * Whether a viewer may read a media item. The Admin reads any. Anyone else
+ * only media attached to a published Talent or to an Event they may see
+ * (Event access); unattached media (uploaded, not yet linked) is Admin-only.
+ */
+export async function canViewMedia(
+  mediaItem: { talentId: string | null; eventId: string | null },
+  viewer: Viewer
+): Promise<boolean> {
+  if (viewer.role === 'admin') return true;
+
+  if (mediaItem.talentId) {
+    const [talent] = await db
+      .select({ published: talents.published })
+      .from(talents)
+      .where(eq(talents.id, mediaItem.talentId));
+    if (talent?.published) return true;
+  }
+
+  if (mediaItem.eventId) {
+    const [event] = await db.select().from(events).where(eq(events.id, mediaItem.eventId));
+    if (event && eventAccess(toAccessEvent(event), viewer).visible) return true;
+  }
+
+  return false;
 }
 
 export async function deleteMedia(id: string) {
