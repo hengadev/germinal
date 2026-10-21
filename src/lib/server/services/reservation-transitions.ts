@@ -8,10 +8,9 @@
  * webhooks comes from the transition itself, not from a read-then-write on
  * `webhookProcessedAt`.
  *
- * This issue adds **pending → confirmed** (a paid Checkout Session) and
- * **pending → expired** for a failed payment.
- * Issues 014–016 move pending → expired and confirmed → cancelled onto the
- * same module.
+ * Transitions: **pending → confirmed** (a paid Checkout Session),
+ * **pending → expired** (a failed payment, or the hold running out).
+ * Issues 015–016 move confirmed → cancelled onto the same module.
  */
 
 import { and, eq } from 'drizzle-orm';
@@ -115,21 +114,66 @@ export async function expireReservationForFailedPayment(input: {
 			.set({ status: 'failed', lastError: input.lastError, webhookProcessedAt: now, updatedAt: now })
 			.where(eq(payments.id, input.paymentId));
 
-		const [seating] = await tx
-			.select()
-			.from(eventSessions)
-			.where(eq(eventSessions.id, expired.eventSessionId))
-			.for('update');
-
-		if (seating) {
-			await tx.update(eventSessions)
-				.set({
-					availableCapacity: Math.min(seating.availableCapacity + expired.quantity, seating.totalCapacity),
-					updatedAt: now,
-				})
-				.where(eq(eventSessions.id, seating.id));
-		}
+		await restoreCapacity(tx, expired.eventSessionId, expired.quantity);
 
 		return { won: true };
 	});
+}
+
+/**
+ * **pending → expired** when the hold runs out (the expiry job). One
+ * conditional update: a Reservation confirmed by the webhook in the
+ * meantime makes this caller lose, and nothing happens. Only the winner
+ * gives the seats back.
+ *
+ * The payment is left `pending`: its Stripe side (Checkout Session or
+ * PaymentIntent) is still open until the job closes it, and an expired
+ * Reservation with a `pending` payment is how the job finds what is left
+ * to close.
+ */
+export async function expireReservationOnHoldTimeout(reservationId: string): Promise<
+	| { won: false }
+	| { won: true; eventSessionId: string; quantity: number; allowWaitlist: boolean }
+> {
+	return db.transaction(async (tx: typeof db) => {
+		const [expired] = await tx
+			.update(reservations)
+			.set({ status: 'expired', updatedAt: new Date() })
+			.where(and(eq(reservations.id, reservationId), eq(reservations.status, 'pending')))
+			.returning({ eventSessionId: reservations.eventSessionId, quantity: reservations.quantity });
+
+		if (!expired) return { won: false };
+
+		const seating = await restoreCapacity(tx, expired.eventSessionId, expired.quantity);
+
+		return {
+			won: true,
+			eventSessionId: expired.eventSessionId,
+			quantity: expired.quantity,
+			allowWaitlist: seating?.allowWaitlist ?? false,
+		};
+	});
+}
+
+/**
+ * Give a released Reservation's seats back to its Seating, under the
+ * Seating's row lock, never above its total. Winner-only: callers run it
+ * inside the transaction whose conditional update they won.
+ */
+async function restoreCapacity(tx: typeof db, eventSessionId: string, quantity: number) {
+	const [seating] = await tx
+		.select()
+		.from(eventSessions)
+		.where(eq(eventSessions.id, eventSessionId))
+		.for('update');
+
+	if (seating) {
+		await tx.update(eventSessions)
+			.set({
+				availableCapacity: Math.min(seating.availableCapacity + quantity, seating.totalCapacity),
+				updatedAt: new Date(),
+			})
+			.where(eq(eventSessions.id, seating.id));
+	}
+	return seating;
 }

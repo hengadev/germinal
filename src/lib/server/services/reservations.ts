@@ -15,6 +15,7 @@ import { getSeatingPrice } from './service-pricing';
 import { loadSeatingAccess } from './event-access';
 import { ANONYMOUS, seatingBooking, type BookingRefusal } from '$lib/utils/event-access';
 import { dietaryAnswerOf, needsDietaryConsent } from '$lib/utils/dietary-requirements';
+import { expireReservationOnHoldTimeout } from './reservation-transitions';
 
 const BOOKING_REFUSAL_MESSAGES: Record<BookingRefusal, string> = {
 	'event-not-published': 'Session not found or not published',
@@ -850,78 +851,46 @@ export async function findExpiredReservations() {
 }
 
 /**
- * Mark reservation as expired and restore capacity
+ * Mark a reservation as expired (its hold ran out) and restore capacity,
+ * through the Reservation transitions module: a Reservation confirmed in the
+ * meantime is left alone, and capacity is restored once however often this
+ * runs. The Stripe side is closed separately by the expiry job.
  */
 export async function expireReservation(reservationId: string) {
-	const sessionData = await db.transaction(async (tx: typeof db) => {
-		const reservation = await tx.query.reservations.findFirst({
-			where: eq(reservations.id, reservationId),
-			with: {
-				payment: true,
-			},
-		});
-
-		if (!reservation) {
-			return null;
-		}
-
-		// Only expire pending reservations; any other terminal/non-pending status is a no-op
-		if (reservation.status !== 'pending') {
-			return null;
-		}
-
-		// Lock session and restore capacity
-		const [session] = await tx
-			.select()
-			.from(eventSessions)
-			.where(eq(eventSessions.id, reservation.eventSessionId))
-			.for('update');
-
-		// Update reservation status
-		await tx.update(reservations)
-			.set({
-				status: 'expired',
-				updatedAt: new Date(),
-			})
-			.where(eq(reservations.id, reservationId));
-
-		// Update payment status to failed for expired reservations
-		if (reservation.payment) {
-			await tx.update(payments)
-				.set({
-					status: 'failed',
-					lastError: 'Reservation expired',
-					updatedAt: new Date(),
-				})
-				.where(eq(payments.id, reservation.payment.id));
-		}
-
-		if (session) {
-			await tx.update(eventSessions)
-				.set({
-					availableCapacity: Math.min(session.availableCapacity + reservation.quantity, session.totalCapacity),
-					updatedAt: new Date(),
-				})
-				.where(eq(eventSessions.id, reservation.eventSessionId));
-
-			// Return session data for waitlist notification after transaction
-			return { sessionId: session.id, availableCapacity: reservation.quantity, allowWaitlist: session.allowWaitlist };
-		}
-
-		return null;
-	});
+	const outcome = await expireReservationOnHoldTimeout(reservationId);
 
 	// Notify waitlist after transaction commits (if capacity was restored)
-	if (sessionData && sessionData.allowWaitlist && sessionData.availableCapacity > 0) {
+	if (outcome.won && outcome.allowWaitlist && outcome.quantity > 0) {
 		try {
 			const { notifyWaitlist } = await import('./waitlist');
-			await notifyWaitlist(sessionData.sessionId, sessionData.availableCapacity);
-			logger.info(`[Waitlist] Notified for session ${sessionData.sessionId} with ${sessionData.availableCapacity} tickets available`);
+			await notifyWaitlist(outcome.eventSessionId, outcome.quantity);
+			logger.info(`[Waitlist] Notified for session ${outcome.eventSessionId} with ${outcome.quantity} tickets available`);
 		} catch (error) {
 			logger.error({ err: error }, '[Waitlist] Failed to notify');
 			// Don't throw - expiration was successful
 		}
 	}
+}
+
+/**
+ * Payments whose Reservation expired while their Stripe side (Checkout
+ * Session or PaymentIntent) may still be open: the payment is still
+ * `pending`. The expiry job closes them, retrying on its next run until
+ * Stripe answers.
+ */
+export async function findExpiredPaymentsToClose() {
+	return await db
+		.select({ id: payments.id, stripePaymentIntentId: payments.stripePaymentIntentId })
+		.from(payments)
+		.innerJoin(reservations, eq(payments.reservationId, reservations.id))
+		.where(and(eq(reservations.status, 'expired'), eq(payments.status, 'pending')));
+}
+
+/** Record that an expired Reservation's payment is closed on Stripe's side. */
+export async function markExpiredPaymentClosed(paymentId: string) {
+	await db.update(payments)
+		.set({ status: 'failed', lastError: 'Reservation expired', updatedAt: new Date() })
+		.where(and(eq(payments.id, paymentId), eq(payments.status, 'pending')));
 }
 
 /**
