@@ -253,10 +253,14 @@ describe('cancelReservationWithRefund', () => {
 			.set({ availableCapacity: 88 })
 			.where(eq(eventSessions.id, session.id));
 
+		// Stripe refunds what it is asked to (the whole payment here).
+		vi.mocked(createRefund).mockResolvedValueOnce({ id: 're_full', amount: payment.amount, status: 'succeeded' } as any);
+
 		await cancelReservationWithRefund(reservation.id);
 
 		// Stripe refund called with the correct payment intent
-		expect(vi.mocked(createRefund)).toHaveBeenCalledWith(payment.stripePaymentIntentId);
+		// A full refund of what was paid, after the commit, with an idempotency key.
+		expect(vi.mocked(createRefund)).toHaveBeenCalledWith(payment.stripePaymentIntentId, payment.amount, { idempotencyKey: expect.any(String) });
 
 		// Reservation status
 		const [updatedRes] = await testDb
@@ -373,7 +377,7 @@ describe('processRefund', () => {
 		await processRefund(reservation.id);
 
 		// Refunded for the full remaining balance
-		expect(vi.mocked(createRefund)).toHaveBeenCalledWith(payment.stripePaymentIntentId, 5000);
+		expect(vi.mocked(createRefund)).toHaveBeenCalledWith(payment.stripePaymentIntentId, 5000, { idempotencyKey: expect.any(String) });
 
 		const [updatedPay] = await testDb
 			.select()
@@ -411,7 +415,7 @@ describe('processRefund', () => {
 		await processRefund(reservation.id, 2000);
 
 		// Refunded for exactly the requested partial amount
-		expect(vi.mocked(createRefund)).toHaveBeenCalledWith(payment.stripePaymentIntentId, 2000);
+		expect(vi.mocked(createRefund)).toHaveBeenCalledWith(payment.stripePaymentIntentId, 2000, { idempotencyKey: expect.any(String) });
 
 		const [updatedPay] = await testDb
 			.select()
@@ -470,7 +474,7 @@ describe('processRefund', () => {
 		vi.mocked(createRefund).mockResolvedValueOnce({ id: 're_test_deposit', amount: 3900, status: 'succeeded' } as any);
 		await processRefund(reservation.id);
 
-		expect(vi.mocked(createRefund)).toHaveBeenCalledWith(payment.stripePaymentIntentId, 3900);
+		expect(vi.mocked(createRefund)).toHaveBeenCalledWith(payment.stripePaymentIntentId, 3900, { idempotencyKey: expect.any(String) });
 		const [updatedPay] = await testDb
 			.select()
 			.from(payments)
@@ -500,7 +504,7 @@ describe('processRefund', () => {
 		await processRefund(reservation.id, 3000);
 
 		// Second call refunds the rest of the remaining balance (3000)
-		expect(vi.mocked(createRefund)).toHaveBeenLastCalledWith(payment.stripePaymentIntentId, 3000);
+		expect(vi.mocked(createRefund)).toHaveBeenLastCalledWith(payment.stripePaymentIntentId, 3000, { idempotencyKey: expect.any(String) });
 
 		const [updatedPay] = await testDb
 			.select()

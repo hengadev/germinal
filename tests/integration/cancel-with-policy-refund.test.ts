@@ -241,7 +241,7 @@ describe('admin cancellation — confirm', () => {
 		const result = await cancellation.cancelWithRefund(reservation.id, { cancelledBy: 'guest', now: NOW });
 
 		expect(result).toMatchObject({ cancelledBy: 'guest', suggestedAmount: 2000, appliedAmount: 2000, refundable: 4000 });
-		expect(createRefund).toHaveBeenCalledWith(payment!.stripePaymentIntentId, 2000);
+		expect(createRefund).toHaveBeenCalledWith(payment!.stripePaymentIntentId, 2000, { idempotencyKey: expect.any(String) });
 		const state = await stateOf(reservation.id, payment!.id, session.id);
 		expect(state.reservation.status).toBe('cancelled');
 		expect(state.reservation.cancelledAt).not.toBeNull();
@@ -257,7 +257,7 @@ describe('admin cancellation — confirm', () => {
 		const result = await cancellation.cancelWithRefund(reservation.id, { cancelledBy: 'germinal', amount: 100, now: NOW });
 
 		expect(result).toMatchObject({ cancelledBy: 'germinal', suggestedAmount: 4000, appliedAmount: 4000 });
-		expect(createRefund).toHaveBeenCalledWith(payment!.stripePaymentIntentId, 4000);
+		expect(createRefund).toHaveBeenCalledWith(payment!.stripePaymentIntentId, 4000, { idempotencyKey: expect.any(String) });
 		const state = await stateOf(reservation.id, payment!.id, session.id);
 		expect(state.reservation.status).toBe('cancelled');
 		expect(state.payment!.status).toBe('refunded');
@@ -458,5 +458,83 @@ describe('guest self-service cancellation', () => {
 		// No refund went through: the guest gets the plain cancellation notice.
 		expect(notifications.sendCancellationEmail).toHaveBeenCalledOnce();
 		expect(notifications.sendRefundEmail).not.toHaveBeenCalled();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Issue 016 — Admin cancel and refund go through the Reservation transitions
+// ---------------------------------------------------------------------------
+
+describe('Admin cancellation through the Reservation transitions', () => {
+	async function settle(calls: Promise<unknown>[]) {
+		const results = await Promise.allSettled(calls);
+		return results.filter((r) => r.status === 'fulfilled').length;
+	}
+
+	it('two concurrent Admin cancels (detail page) cancel once, restore capacity once and refund once', async () => {
+		const { session } = await seedSeating({ policy: 'rules', hoursAhead: 72 });
+		const { reservation, payment } = await seedReservation(session.id, { deposit: 4000 });
+
+		const won = await settle([
+			cancellation.cancelWithRefund(reservation.id, { cancelledBy: 'germinal', now: NOW }),
+			cancellation.cancelWithRefund(reservation.id, { cancelledBy: 'germinal', now: NOW }),
+		]);
+
+		expect(won).toBe(1);
+		const state = await stateOf(reservation.id, payment!.id, session.id);
+		expect(state.reservation.status).toBe('cancelled');
+		expect(state.session.availableCapacity).toBe(20);
+		expect(createRefund).toHaveBeenCalledOnce();
+		expect(state.payment!.refundedAmount).toBe(4000);
+		expect(notifications.sendRefundEmail).toHaveBeenCalledOnce();
+	});
+
+	it('two concurrent Admin API cancels cancel once, restore capacity once and refund once', async () => {
+		const { cancelReservationWithRefund } = await import('../../src/lib/server/services/reservations');
+		const { session } = await seedSeating({ policy: 'manual', hoursAhead: 72 });
+		const { reservation, payment } = await seedReservation(session.id, { deposit: 4000 });
+
+		const won = await settle([cancelReservationWithRefund(reservation.id), cancelReservationWithRefund(reservation.id)]);
+
+		expect(won).toBe(1);
+		const state = await stateOf(reservation.id, payment!.id, session.id);
+		expect(state.reservation.status).toBe('cancelled');
+		expect(state.session.availableCapacity).toBe(20);
+		expect(createRefund).toHaveBeenCalledOnce();
+		expect(state.payment!.status).toBe('refunded');
+	});
+
+	it('an Admin cancel racing a Guest cancel: exactly one wins', async () => {
+		const { session } = await seedSeating({ policy: 'manual', hoursAhead: 72 });
+		const { reservation, payment } = await seedReservation(session.id, { deposit: 4000 });
+
+		const won = await settle([
+			cancellation.cancelWithRefund(reservation.id, { cancelledBy: 'germinal', now: NOW }),
+			cancellation.cancelByGuest(reservation.id, NOW),
+		]);
+
+		expect(won).toBe(1);
+		const state = await stateOf(reservation.id, payment!.id, session.id);
+		expect(state.reservation.status).toBe('cancelled');
+		expect(state.session.availableCapacity).toBe(20);
+		expect(createRefund).toHaveBeenCalledOnce();
+		expect(state.payment!.refundedAmount).toBe(4000);
+	});
+
+	it('a double-submitted partial refund of a cancelled Reservation refunds once', async () => {
+		const { session } = await seedSeating({ policy: 'rules', hoursAhead: 72 });
+		const { reservation, payment } = await seedReservation(session.id, { deposit: 4000 });
+		const { processRefund } = await import('../../src/lib/server/services/reservations');
+		await processRefund(reservation.id, 1000);
+		vi.mocked(createRefund).mockClear();
+
+		await settle([processRefund(reservation.id, 500), processRefund(reservation.id, 500)]);
+
+		// Same state, same idempotency key: Stripe answers both calls with
+		// one refund, and the payment records it once.
+		expect(new Set(vi.mocked(createRefund).mock.calls.map((call) => call[2]?.idempotencyKey)).size).toBe(1);
+		const state = await stateOf(reservation.id, payment!.id, session.id);
+		expect(state.payment!.refundedAmount).toBe(1500);
+		expect(state.session.availableCapacity).toBe(20);
 	});
 });
