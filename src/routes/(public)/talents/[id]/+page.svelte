@@ -1,5 +1,5 @@
 <script lang="ts">
-import {Instagram, Globe, Mail} from "lucide-svelte"
+import {Instagram, Globe} from "lucide-svelte"
     import EventGallery from "$lib/components/EventGallery.svelte";
 import type {Component} from "svelte"
     import type { PageData } from "./$types";
@@ -7,12 +7,12 @@ import type {Component} from "svelte"
     import { mediaAlt } from '$lib/utils/media-alt';
     import { reveal } from '$lib/actions/reveal';
     import { page } from '$app/state';
+    import { safeSocialLinks } from '$lib/utils/social-links';
 
     let { data }: { data: PageData } = $props();
 
-    let socialLinks = $derived(
-        data.talent.socialLinks ? JSON.parse(data.talent.socialLinks) : {},
-    );
+    // Only absolute http(s) links are rendered, whatever is stored.
+    let socialLinks = $derived(safeSocialLinks(data.talent.socialLinks));
 
     let specializations = $derived(() => {
         const specs = $locale === 'en'
@@ -94,9 +94,6 @@ import type {Component} from "svelte"
                     {/if}
                     {#if socialLinks.website}
                         {@render socialLinksIcon(socialLinks.website, Globe)}
-                    {/if}
-                    {#if socialLinks.email}
-                        {@render socialLinksIcon(socialLinks.email, Mail)}
                     {/if}
                 </div>
             {/if}

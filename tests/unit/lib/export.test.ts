@@ -123,3 +123,69 @@ describe('exportReservationsToCSV', () => {
 		expect(row).toContain('2026-01-01 10:00:00');
 	});
 });
+
+describe('arrayToCSV — formula neutralisation', () => {
+	async function writer() {
+		return (await import('../../../src/lib/server/services/export')).arrayToCSV;
+	}
+
+	it.each(['=1+1', '+33 6 12 34 56 78', '-2+3', '@SUM(A1)', '\tx', '\r=1'])(
+		'prefixes the string cell %j with a single quote',
+		async (value) => {
+			const arrayToCSV = await writer();
+			const [, row] = arrayToCSV([{ Note: value }], ['Note']).split('\n');
+			expect(row.replace(/^"|"$/g, '').startsWith(`'${value[0]}`)).toBe(true);
+		}
+	);
+
+	it('leaves numbers and dates untouched, so negative amounts stay numeric', async () => {
+		const arrayToCSV = await writer();
+		const csv = arrayToCSV(
+			[{ Amount: -12.5, At: new Date('2026-01-02T03:04:05Z'), Plain: 'Vegetarian' }],
+			['Amount', 'At', 'Plain']
+		);
+		expect(csv.split('\n')[1]).toBe('-12.5,2026-01-02 03:04:05,Vegetarian');
+	});
+
+	it('still quotes commas, quotes and newlines after neutralising', async () => {
+		const arrayToCSV = await writer();
+		const csv = arrayToCSV(
+			[{ A: '=HYPERLINK("x","y")', B: 'a,b', C: 'line1\nline2' }],
+			['A', 'B', 'C']
+		);
+		expect(csv).toBe('A,B,C\n"\'=HYPERLINK(""x"",""y"")","a,b","line1\nline2"');
+	});
+
+	it('neutralises Guest-supplied text in the Reservations export', async () => {
+		findManyMock.mockResolvedValueOnce([
+			{
+				id: 'r-formula',
+				guestName: '=cmd|" /C calc"!A0',
+				guestEmail: 'eve@example.com',
+				guestPhone: null,
+				notificationPreference: 'email',
+				quantity: 1,
+				totalAmount: 1000,
+				currency: 'EUR',
+				status: 'confirmed',
+				isComp: false,
+				dietaryRequirements: '@SUM(1)',
+				confirmedAt: null,
+				createdAt: new Date('2026-01-01T00:00:00Z'),
+				payment: null,
+				eventSession: {
+					titleEn: 'Night',
+					titleFr: 'Nuit',
+					startTime: new Date('2026-01-02T20:00:00Z'),
+					endTime: new Date('2026-01-02T23:00:00Z'),
+					event: { titleEn: 'Event', titleFr: 'Événement', timeZone: 'Europe/Paris' },
+				},
+			},
+		]);
+		const { exportReservationsToCSV } = await import('../../../src/lib/server/services/export');
+		const csv = await exportReservationsToCSV();
+		expect(csv).toContain(`"'=cmd|"" /C calc""!A0"`);
+		expect(csv).toContain(`'@SUM(1)`);
+		expect(csv).not.toMatch(/(^|,)=cmd/m);
+	});
+});

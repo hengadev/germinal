@@ -24,6 +24,7 @@ change what runs as root (see "How CI reaches `deploy`" below).
 │   ├── app.env                       app values + DATABASE_URL (assembled from /db)
 │   ├── postgres.env                  POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_DB
 │   ├── caddy.env                     CLOUDFLARE_API_TOKEN
+│   ├── redis.env                     REDIS_PASSWORD only (issue 029)
 │   ├── backup.env                    issue 013's backup job
 │   └── admin.env                     ADMIN_* — the bootstrap one-off alone reads this
 ├── data/postgres/                    Postgres data dir        (survives `down`)
@@ -33,12 +34,18 @@ change what runs as root (see "How CI reaches `deploy`" below).
 
 /opt/germinal-staging/                STAGING (compose project name: germinal_staging)
 ├── docker-compose.yml                docker-compose.staging.yml from the deployed commit
-├── env/{app,admin}.env               Agent-rendered, root 0600
+├── env/{app,admin,redis}.env         Agent-rendered, root 0600
+├── data/redis/                       staging's own Redis, redis 999:1000 (issue 029)
 └── data/uploads/
 ```
 
 Both stacks attach to the external `germinal_network` (created by Ansible's
-docker role), which is how staging reaches prod's Postgres, Redis and Caddy.
+docker role), which is how staging reaches prod's Postgres and Caddy. Staging
+runs its **own Redis** (`staging_redis`, issue 029): a Redis database index is
+no boundary, and staging code must never reach production's rate-limit
+counters. Both Redis instances require a password, from each stack's
+`env/redis.env`, read by the container's own command (`$$REDIS_PASSWORD`:
+compose does no substitution).
 Keeping it external means `docker compose down` in one stack can never drop
 the network the other depends on.
 
@@ -52,7 +59,7 @@ round-robin production traffic between the two containers. So:
 | Stack | Services | Containers |
 | --- | --- | --- |
 | prod | `app`, `postgres`, `redis`, `caddy`, `admin` (profile) | `germinal_app`, `germinal_postgres`, `germinal_redis`, `germinal_caddy` |
-| staging | `staging_app`, `staging_admin` (profile) | `germinal_staging_app` |
+| staging | `staging_app`, `staging_redis`, `staging_admin` (profile) | `germinal_staging_app`, `germinal_staging_redis` |
 
 The container names are Caddy's upstreams (`roles/caddy`'s Caddyfile.j2
 proxies to `germinal_app` / `germinal_staging_app`). The `infisical_agent`
@@ -82,6 +89,50 @@ A rollback is `deploy prod <earlier-sha>` — the same path, pin moved back.
 Running containers keep their image even if the pin moves, and Docker's
 restart policy restarts the container's own image, not the tag.
 
+### The Caddy image pin (`@sha256:` digest)
+
+The Caddy service does **not** use `:latest`: the compose file pins
+`serfriz/caddy-cloudflare` by digest. That image holds the Cloudflare API
+token and the TLS keys and sees every decrypted request, so a pull or
+recreate must never run whatever was pushed to the tag last (issue 028,
+PRD M5). A digest pin makes every recreate run an image somebody reviewed
+in this repo.
+
+To update it (e.g. for a new Caddy or cloudflare-dns release):
+
+1. Resolve the digest the tag currently points at:
+
+   ```sh
+   docker buildx imagetools inspect serfriz/caddy-cloudflare:latest
+   # (or: docker manifest inspect --verbose serfriz/caddy-cloudflare:latest)
+   # → Digest: sha256:<digest>   ← the INDEX digest, not a platform manifest
+   ```
+
+   If the registry can't be reached, stop: never guess or hand-edit a digest.
+2. Optionally review what changed: the image's GitHub releases and its
+   Docker Hub tags page (the digest above says which build `latest` is).
+3. Replace the digest in `image:` of `docker-compose.prod.yml` (this
+   directory) and commit. The file reaches the server through the normal
+   deploy path: the root runner installs it from the deployed commit
+   (issue 017), so the pin never bypasses review.
+4. On the server, after a deploy has installed the updated file:
+
+   ```sh
+   ssh root@<host> 'docker compose --project-directory /opt/germinal up -d caddy'
+   ```
+
+   Docker pulls exactly that digest (verifying it against the reference) and
+   recreates the container; the other services are untouched.
+5. Verify what is actually running:
+   `docker inspect -f '{{.Config.Image}}' germinal_caddy` shows the pinned
+   reference, and `docker image inspect <that reference>` its `RepoDigests`.
+
+The staging stack has no Caddy of its own (it shares prod's), so there is
+nothing to pin there. `docker compose config` in CI/locally fails if the
+digest reference is malformed, and a digest Docker Hub no longer serves
+fails the pull loudly at step 4 — both are preferable to silently running
+an unreviewed `:latest`.
+
 ## `deploy <stack> <sha>`
 
 The single server-side entry point for staging deploys, promotions and
@@ -96,8 +147,8 @@ Steps, each gating the next:
 
 1. pull `henga/germinal:<sha>`
 2. pin the stack's local tag
-3. prod only: `up -d --wait postgres redis` (no-op when running; needed for
-   the first deploy on empty directories)
+3. prod: `up -d --wait postgres redis`; staging: `up -d --wait staging_redis`
+   (no-op when running; needed for the first deploy on empty directories)
 4. migrations — `docker compose run --rm --no-deps <app-service> node scripts/migrate.js`
    (`DATABASE_URL` comes from `env/app.env`; failure aborts **before** the
    app is recreated, so the running container keeps serving)
@@ -153,8 +204,12 @@ acceptance cases: first deploy (migrate + admin + SHA serving), second
 deploy (data kept, admin untouched), failing migration (abort before
 recreate, old container keeps serving), SHA mismatch (deploy fails), staging
 alongside prod (no DNS/network/name collisions, staging role can't reach the
-prod database), no `ADMIN_*` in running app containers, and data surviving
-container recreation.
+prod database), no `ADMIN_*` in running app containers, container hardening
+(issue 028: the running app containers have no capabilities,
+`no-new-privileges`, a read-only root filesystem and a pids limit — asserted
+on the container config **and** empirically on its PID 1; Redis healthy as its
+own user with no capabilities and its data surviving a recreate; Postgres/Caddy with `no-new-privileges` + a pids limit), and data
+surviving container recreation.
 
 Harness hygiene — it must never collide with a developer's running
 containers:

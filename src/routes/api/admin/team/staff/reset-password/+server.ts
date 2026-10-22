@@ -5,7 +5,7 @@ import { db } from '$lib/server/db';
 import { users } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
 import { isAppError } from '$lib/server/errors';
-import { generateResetToken, getResetExpiration } from '$lib/server/utils/password';
+import { generateResetToken, getResetExpiration, hashResetToken } from '$lib/server/utils/password';
 
 // POST /api/admin/team/staff/reset-password - Send password reset email to staff
 export const POST: RequestHandler = async ({ locals, request }) => {
@@ -42,7 +42,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
         await db
             .update(users)
             .set({
-                passwordResetToken: resetToken,
+                passwordResetToken: hashResetToken(resetToken),
                 passwordResetExpires: resetExpires,
                 updatedAt: new Date(),
             })

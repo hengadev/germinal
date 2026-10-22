@@ -91,34 +91,59 @@ export async function cancelCheckoutSession(sessionId: string): Promise<void> {
 }
 
 /**
- * Cancel a PaymentIntent (for expired reservations)
+ * Close the Stripe side of an expired Reservation's payment, so it can no
+ * longer be paid. Until the payment webhook swaps in the PaymentIntent id,
+ * the payment holds the Checkout Session id (`cs_…`): that session is
+ * expired. A PaymentIntent id (`pi_…`) is cancelled. An object that is
+ * already in a terminal state (session complete or expired, intent
+ * succeeded or canceled) counts as closed. Any other failure throws, so the
+ * expiry job retries on its next run.
  */
-export async function cancelPaymentIntent(paymentIntentId: string): Promise<void> {
+export async function closeStripePayment(stripeId: string): Promise<void> {
 	const stripe = getStripeClient();
 
-	try {
-		await stripe.paymentIntents.cancel(paymentIntentId);
-	} catch (error) {
-		// If already succeeded or canceled, ignore the error
-		if (error instanceof Stripe.errors.StripeError) {
-			if (error.code === 'payment_intent_unexpected_state') {
-				return; // Already in a terminal state
-			}
+	if (stripeId.startsWith('cs_')) {
+		try {
+			await stripe.checkout.sessions.expire(stripeId);
+		} catch (error) {
+			if (!(error instanceof Stripe.errors.StripeInvalidRequestError)) throw error;
+			// Stripe refuses to expire a session that is no longer open.
+			const session = await stripe.checkout.sessions.retrieve(stripeId);
+			if (session.status === 'open') throw error;
 		}
-		throw error;
+		return;
+	}
+
+	try {
+		await stripe.paymentIntents.cancel(stripeId);
+	} catch (error) {
+		if (!(error instanceof Stripe.errors.StripeInvalidRequestError)) throw error;
+		// Stripe refuses to cancel an intent that already succeeded or was canceled.
+		const intent = await stripe.paymentIntents.retrieve(stripeId);
+		if (intent.status !== 'succeeded' && intent.status !== 'canceled') throw error;
 	}
 }
 
 /**
- * Create a refund for a PaymentIntent
+ * Create a refund for a PaymentIntent. Pass `amount` (in cents) for a
+ * partial refund; pass an `idempotencyKey` when the refund may be retried
+ * or raced by concurrent callers — Stripe then answers every call with the
+ * same refund instead of issuing several.
  */
-export async function createRefund(paymentIntentId: string, amount?: number) {
+export async function createRefund(
+	paymentIntentId: string,
+	amount?: number,
+	options: { idempotencyKey?: string } = {}
+) {
 	const stripe = getStripeClient();
 
-	const refund = await stripe.refunds.create({
-		payment_intent: paymentIntentId,
-		amount, // Optional: partial refund
-	});
+	const refund = await stripe.refunds.create(
+		{
+			payment_intent: paymentIntentId,
+			amount, // Optional: partial refund
+		},
+		options.idempotencyKey ? { idempotencyKey: options.idempotencyKey } : undefined
+	);
 
 	return refund;
 }

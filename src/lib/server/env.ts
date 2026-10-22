@@ -8,9 +8,13 @@ const devEnvSchema = z.object({
     DATABASE_URL: z.string().default('postgresql://postgres:postgres@localhost:5432/germinal'),
     REDIS_HOST: z.string().default('localhost'),
     REDIS_PORT: z.string().default('6379').transform(Number),
-    // Redis database index: staging shares prod's Redis server on index 1
+    // Redis password (/redis REDIS_PASSWORD); the local dev Redis has none
+    REDIS_PASSWORD: z.string().optional(),
+    // Redis database index: 0 everywhere (staging runs its own Redis, issue 029)
     REDIS_DB: z.string().default('0').transform(Number),
     USE_MOCK_DATA: z.string().default('false').transform(v => v === 'true'),
+    // Lets a production build run with USE_MOCK_DATA (the germinal.henga.dev demo only)
+    ALLOW_DEMO_MODE: z.string().default('false').transform(v => v === 'true'),
     // Maintenance override - forces maintenance mode on before any database read
     MAINTENANCE_MODE: z.string().default('false').transform(v => v === 'true'),
     MOCK_ADMIN_EMAIL: z.string().optional().default(''),
@@ -65,9 +69,13 @@ const prodEnvSchema = z.object({
     DATABASE_URL: z.string().url(),
     REDIS_HOST: z.string().min(1),
     REDIS_PORT: z.string().transform(Number),
-    // Redis database index: staging shares prod's Redis server on index 1
+    // Every deployed Redis requires a password (issue 029)
+    REDIS_PASSWORD: z.string().min(1),
+    // Redis database index: 0 everywhere (staging runs its own Redis, issue 029)
     REDIS_DB: z.string().default('0').transform(Number),
     USE_MOCK_DATA: z.string().default('false').transform(v => v === 'true'),
+    // Lets a production build run with USE_MOCK_DATA (the germinal.henga.dev demo only)
+    ALLOW_DEMO_MODE: z.string().default('false').transform(v => v === 'true'),
     // Maintenance override - forces maintenance mode on before any database read
     MAINTENANCE_MODE: z.string().default('false').transform(v => v === 'true'),
     MOCK_ADMIN_EMAIL: z.string().optional().default(''),
@@ -160,7 +168,18 @@ function validateEnv() {
         return devEnvSchema.parse({});
     }
 
-    // Use dev schema (relaxed) when mock data is enabled, even in production
+    // Mock data swaps real authentication for env-defined credentials and
+    // in-memory login sessions: in production it must be asked for twice.
+    if (!isDevelopment && useMockData && process.env.ALLOW_DEMO_MODE !== 'true') {
+        bootstrapLog.error('❌ USE_MOCK_DATA=true in production without ALLOW_DEMO_MODE=true');
+        throw new Error(
+            'Refusing to start: USE_MOCK_DATA=true with NODE_ENV=production. ' +
+            'Unset USE_MOCK_DATA to use the real database and authentication, or, ' +
+            'for the demo site only, also set ALLOW_DEMO_MODE=true.'
+        );
+    }
+
+    // Use dev schema (relaxed) when mock data is enabled (production only with ALLOW_DEMO_MODE)
     const useRelaxedSchema = isDevelopment || useMockData;
     const schema = useRelaxedSchema ? devEnvSchema : prodEnvSchema;
     const parsed = schema.safeParse(withoutEmptyValues(process.env));

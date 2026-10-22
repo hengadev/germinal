@@ -33,7 +33,9 @@ findtime = {{ fail2ban_findtime }}
 enabled = true
 port = http,https
 filter = caddy-rate-limit
-logpath = {{ caddy_data_dir }}/logs/access.log
+# Every site's JSON access log: public, admin and staff, prod and staging
+# (access.log, admin-access.log, staging-staff-access.log, ...; issue 027)
+logpath = {{ caddy_data_dir }}/logs/*access.log
 maxretry = {{ fail2ban_caddy_maxretry }}
 bantime = {{ fail2ban_bantime }}
 findtime = {{ fail2ban_findtime }}

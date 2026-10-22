@@ -12,14 +12,29 @@
 #
 #   1.  docker compose config validates both committed compose files
 #   2.  first deploy on empty data dirs: migrates, creates the admin from
-#       fixture admin.env, ends with the SHA serving
+#       fixture admin.env, ends with the SHA serving — connected as the app's
+#       own non-superuser role (issue 018), which owns what migrations and
+#       pg-boss created
 #   3.  second deploy of a new SHA keeps the data, doesn't touch the admin
 #   4.  failing migration exits non-zero BEFORE the app is recreated; the
 #       previous container keeps serving
 #   5.  /api/health SHA mismatch fails the deploy
 #   6.  staging deploys alongside production: no name/network collisions
 #   7.  running app containers have no ADMIN_* values in their environment
-#   8.  data survives container recreation (bind mounts, not scratch space)
+#   8.  container hardening (issue 028): the running app containers have no
+#       capabilities, no-new-privileges, a read-only root filesystem and a
+#       pids limit (asserted on the live container AND its PID 1); Redis is
+#       healthy as its own user with no capabilities, and its data survives
+#       a recreate
+#   9.  data survives container recreation (bind mounts, not scratch space)
+#   10. real client IP (issue 012): a request through Caddy from a trusted
+#       proxy carrying CF-Connecting-IP is counted by the app's rate limiter
+#       under that IP; from an untrusted peer the header is ignored
+#   11. /metrics answers 404 through Caddy on the public and admin
+#       hostnames, and stays reachable on the app port in-network (issue 027)
+#   12. staging runs against its own Redis; every Redis refuses
+#       unauthenticated connections, and staging's password doesn't open
+#       production's Redis (issue 029)
 #
 # Harness hygiene: distinct compose project names (germinal-harness-*), its
 # own network (germinal-harness-network), no fixed host ports (Caddy's 80/443
@@ -44,8 +59,17 @@ HARNESS_DIR=$(cd "$(dirname "$0")" && pwd)
 COMPOSE_DIR=$(cd "$HARNESS_DIR/.." && pwd)
 REPO_ROOT=$(cd "$COMPOSE_DIR/../.." && pwd)
 DEPLOY=$COMPOSE_DIR/deploy
+# The Ansible shared_services role's SQL for the app's database role (issue 018)
+APP_DB_ROLE_SQL=$REPO_ROOT/infrastructure/ansible/roles/shared_services/files/app-db-role.sql
 
 NETWORK=germinal-harness-network
+# Fixed subnet so the client-IP case can stand in for a Cloudflare edge
+# (trusted, fixture Caddyfile) and a direct caller (untrusted) at known
+# addresses. Compose containers get addresses from the lower half only.
+NETWORK_SUBNET=10.213.77.0/24
+NETWORK_IP_RANGE=10.213.77.0/25
+TRUSTED_PEER_IP=10.213.77.200   # inside the fixture's trusted_proxies (.192/26)
+UNTRUSTED_PEER_IP=10.213.77.150 # outside it
 PROJ_PROD=germinal-harness-prod
 PROJ_STAGING=germinal-harness-staging
 REPO=henga/germinal
@@ -95,6 +119,12 @@ deploy_staging() {
 # ── helpers ──────────────────────────────────────────────────────────────────
 container_ip() { docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$1"; }
 psql_prod() { docker exec germinal_postgres psql -U germinal -d germinal -q -tAc "$1"; }
+# redis-cli with each stack's fixture password (issue 029); REDISCLI_AUTH keeps
+# it off the command line.
+PROD_REDIS_PASSWORD=harness-fixture-prod-redis
+STAGING_REDIS_PASSWORD=harness-fixture-staging-redis
+redis_prod() { docker exec -e REDISCLI_AUTH="$PROD_REDIS_PASSWORD" germinal_redis redis-cli "$@"; }
+redis_staging() { docker exec -e REDISCLI_AUTH="$STAGING_REDIS_PASSWORD" germinal_staging_redis redis-cli "$@"; }
 psql_staging() { docker exec germinal_postgres psql -U germinal -d germinal_staging -q -tAc "$1"; }
 
 # Resolve a DNS name from inside an app container (node is in the app
@@ -172,10 +202,15 @@ setup() {
 	mkdir -p "$TMP/prod/env" "$TMP/staging/env" \
 		"$TMP/prod/data/postgres" "$TMP/prod/data/redis" "$TMP/prod/data/uploads" \
 		"$TMP/prod/caddy/config" "$TMP/prod/caddy/data" "$TMP/prod/caddy/logs" \
-		"$TMP/staging/data/uploads"
+		"$TMP/staging/data/uploads" "$TMP/staging/data/redis"
 
 	# CI (issues 009/010) copies the compose files from the deployed commit
 	# to the stack roots under the Agent's expected name.
+	# Like Ansible (app role), the Redis data dir is pre-owned by the image's
+	# redis user, which the container runs as (issue 028).
+	docker run --rm -v "$TMP/prod/data/redis:/d" busybox:latest chown 999:1000 /d
+	docker run --rm -v "$TMP/staging/data/redis:/d" busybox:latest chown 999:1000 /d
+
 	cp "$COMPOSE_DIR/docker-compose.prod.yml" "$TMP/prod/docker-compose.yml"
 	cp "$COMPOSE_DIR/docker-compose.staging.yml" "$TMP/staging/docker-compose.yml"
 	cp -r "$HARNESS_DIR/fixtures/prod/env/." "$TMP/prod/env/"
@@ -212,13 +247,15 @@ EOF
 services:
   staging_app:
     volumes: ["$TMP/staging/data/uploads:/app/uploads"]
+  staging_redis:
+    volumes: ["$TMP/staging/data/redis:/data"]
 networks:
   germinal_network:
     name: $NETWORK
     external: true
 EOF
 
-	if ! docker network create "$NETWORK" >/dev/null; then
+	if ! docker network create --subnet "$NETWORK_SUBNET" --ip-range "$NETWORK_IP_RANGE" "$NETWORK" >/dev/null; then
 		echo "could not create harness network $NETWORK" >&2
 		exit 1
 	fi
@@ -259,6 +296,17 @@ case_validate() {
 case_first_deploy() {
 	section "case 2: first deploy on empty data dirs"
 	build_image "$SHA1" || { bad "image build failed"; return; }
+	# Server setup equivalent (Ansible shared_services, issue 018): Postgres up,
+	# then the app's role from the same SQL file, before the first deploy.
+	dc_prod up -d --wait postgres >/dev/null 2>&1 || { bad "postgres did not come up"; return; }
+	if docker exec -i germinal_postgres psql -X -q -tA -v ON_ERROR_STOP=1 -U germinal -d germinal \
+		-v role=germinal_app -v password=harness-fixture-app-db -v db=germinal \
+		<"$APP_DB_ROLE_SQL" >/dev/null; then
+		ok "app database role created (server setup equivalent)"
+	else
+		bad "could not create the app database role"
+		return
+	fi
 	if deploy_prod "$SHA1" >"$TMP/deploy1.log" 2>&1; then
 		ok "deploy prod $SHA1 exits 0"
 	else
@@ -273,6 +321,28 @@ case_first_deploy() {
 		ok "/api/health via Caddy reports $SHA1" || bad "/api/health via Caddy does not report $SHA1"
 	[ "$(psql_prod "select count(*) from users where email='admin@harness.fixture' and role='admin'")" = 1 ] &&
 		ok "admin created from fixture admin.env" || bad "admin missing"
+	# issue 018: the app connects as a role that is not a superuser, and owns
+	# what migrations and pg-boss created on this fresh database.
+	local app_ip
+	app_ip=$(container_ip germinal_app)
+	[ "$(psql_prod "select string_agg(distinct a.usename || ':' || r.rolsuper, ',') from pg_stat_activity a join pg_roles r on r.rolname = a.usename where a.client_addr = '$app_ip'")" = "germinal_app:false" ] &&
+		ok "the app connects as germinal_app, not a superuser" ||
+		bad "the app's connections are not all germinal_app/non-superuser"
+	[ "$(psql_prod "select rolsuper::text || rolcreatedb::text || rolcreaterole::text from pg_roles where rolname = 'germinal_app'")" = falsefalsefalse ] &&
+		ok "germinal_app has no superuser, createdb or createrole" || bad "germinal_app is privileged"
+	[ "$(psql_prod "select count(*) from pg_tables where schemaname = 'public' and tableowner <> 'germinal_app'")" = 0 ] &&
+		[ "$(psql_prod "select count(*) from pg_tables where schemaname = 'public'")" -gt 0 ] &&
+		ok "migrations ran as germinal_app (it owns every public table)" ||
+		bad "public tables not all owned by germinal_app"
+	[ "$(psql_prod "select pg_get_userbyid(nspowner) from pg_namespace where nspname = 'pgboss'")" = germinal_app ] &&
+		ok "pg-boss set up its schema as germinal_app" || bad "pg-boss schema missing or not owned by germinal_app"
+	if docker exec -i germinal_postgres psql -X -q -tA -v ON_ERROR_STOP=1 -U germinal -d germinal \
+		-v role=germinal_app -v password=harness-fixture-app-db -v db=germinal \
+		<"$APP_DB_ROLE_SQL" >/dev/null; then
+		ok "the app role SQL is safe to re-run"
+	else
+		bad "re-running the app role SQL failed"
+	fi
 	# The bootstrap one-off must not linger.
 	if [ -z "$(docker ps -a --filter label=com.docker.compose.project=$PROJ_PROD --format '{{.Names}}' | grep admin || true)" ]; then
 		ok "bootstrap one-off container removed"
@@ -405,8 +475,189 @@ case_no_admin_env() {
 	done
 }
 
+# ── issue 028: container hardening ──────────────────────────────────────
+# Asserted twice: against the container's config (docker inspect) AND
+# empirically against PID 1 inside the running container (the process the
+# app actually is), so a compose knob that Docker silently ignores cannot
+# pass.
+hardened_app_settings() { # $1 container
+	local capadd capdrop nnp pids ro_err
+	capadd=$(docker inspect -f '{{json .HostConfig.CapAdd}}' "$1")
+	case $capadd in '' | '[]' | 'null') ok "$1: no capabilities added" ;; *) bad "$1: has capabilities added ($capadd)" ;; esac
+	docker inspect -f '{{json .HostConfig.CapDrop}}' "$1" | grep -q '"ALL"' &&
+		ok "$1: drops ALL capabilities" || bad "$1: does not drop ALL capabilities"
+	docker inspect -f '{{json .HostConfig.SecurityOpt}}' "$1" | grep -q 'no-new-privileges' &&
+		ok "$1: no-new-privileges" || bad "$1: missing no-new-privileges"
+	[ "$(docker inspect -f '{{.HostConfig.ReadonlyRootfs}}' "$1")" = true ] &&
+		ok "$1: read-only root filesystem" || bad "$1: root filesystem is writable"
+	pids=$(docker inspect -f '{{.HostConfig.PidsLimit}}' "$1")
+	[ "$pids" -gt 0 ] 2>/dev/null &&
+		ok "$1: pids limit ($pids)" || bad "$1: no pids limit"
+
+	# Empirical: PID 1 holds no effective capabilities and cannot escalate.
+	docker exec "$1" sh -c 'grep -q "^CapEff:[[:space:]]*0000000000000000$" /proc/1/status' &&
+		ok "$1: PID 1 has no effective capabilities" || bad "$1: PID 1 holds effective capabilities"
+	docker exec "$1" sh -c 'grep -q "^NoNewPrivs:[[:space:]]*1$" /proc/1/status' &&
+		ok "$1: PID 1 runs with NoNewPrivs" || bad "$1: PID 1 without NoNewPrivs"
+	# Empirical: the image filesystem refuses writes (EROFS, not EACCES —
+	# /app is owned by the container's own user, so only read_only explains
+	# the failure).
+	ro_err=$(docker exec "$1" sh -c 'touch /app/.harness-ro-probe' 2>&1 || true)
+	case $ro_err in *'Read-only file system'*) ok "$1: root filesystem refuses writes" ;; *) bad "$1: write to /app did not fail read-only (got: ${ro_err:-success})" ;; esac
+}
+
+case_container_hardening() {
+	section "case 8: containers run with least privilege (issue 028)"
+
+	# The app containers (prod + staging): full hardening — their deploy path
+	# (migrate + bootstrap one-offs, recreate, health SHA) has already run
+	# hardened in cases 2–6 above.
+	hardened_app_settings germinal_app
+	hardened_app_settings germinal_staging_app
+
+	# Redis: healthy with every capability dropped, running as its own user
+	# from the start (the entrypoint then needs no chown/su-exec).
+	[ "$(docker inspect -f '{{.State.Health.Status}}' germinal_redis)" = healthy ] &&
+		ok "redis healthy with reduced privileges" || bad "redis not healthy with reduced privileges"
+	local redis_capadd
+	redis_capadd=$(docker inspect -f '{{json .HostConfig.CapAdd}}' germinal_redis)
+	case $redis_capadd in '' | '[]' | 'null') ok "redis: no capabilities added" ;; *) bad "redis has capabilities added ($redis_capadd)" ;; esac
+	[ "$(docker inspect -f '{{.Config.User}}' germinal_redis)" = "999:1000" ] &&
+		ok "redis runs as its own user" || bad "redis does not run as 999:1000"
+	docker inspect -f '{{json .HostConfig.CapDrop}}' germinal_redis | grep -q '"ALL"' &&
+		ok "redis drops ALL capabilities" || bad "redis does not drop ALL capabilities"
+	[ "$(docker inspect -f '{{.HostConfig.ReadonlyRootfs}}' germinal_redis)" = true ] &&
+		ok "redis: read-only root filesystem" || bad "redis: root filesystem is writable"
+	# PID 1 (redis-server, as the redis user) holds no capabilities.
+	docker exec germinal_redis sh -c 'grep -q "^CapEff:[[:space:]]*0000000000000000$" /proc/1/status' &&
+		ok "redis PID 1 has no effective capabilities" || bad "redis PID 1 holds effective capabilities"
+	local ro_err
+	ro_err=$(docker exec germinal_redis sh -c 'touch /.harness-ro-probe' 2>&1 || true)
+	case $ro_err in *'Read-only file system'*) ok "redis: root filesystem refuses writes" ;; *) bad "redis: write to / did not fail read-only (got: ${ro_err:-success})" ;; esac
+
+	# Redis data survives a recreate (AOF on the /data bind mount; fsync is
+	# every-second, hence the settle before the recreate).
+	redis_prod set harness:persist survives >/dev/null
+	sleep 2
+	local recreate_out
+	if recreate_out=$(dc_prod up -d --wait --force-recreate redis 2>&1); then
+		ok "redis recreated with reduced privileges"
+	else
+		bad "redis did not come back after recreate: $(printf '%s' "$recreate_out" | tail -3)"
+		docker logs --tail 20 germinal_redis >&2 || true
+		return
+	fi
+	[ "$(redis_prod get harness:persist)" = survives ] &&
+		ok "redis data survived the recreate" || bad "redis data lost on recreate"
+
+	# Postgres and Caddy: partial hardening only (their entrypoints need
+	# capabilities) — no-new-privileges and a pids limit.
+	local svc pids
+	for svc in germinal_postgres germinal_caddy; do
+		docker inspect -f '{{json .HostConfig.SecurityOpt}}' "$svc" | grep -q 'no-new-privileges' &&
+			ok "$svc: no-new-privileges" || bad "$svc: missing no-new-privileges"
+		pids=$(docker inspect -f '{{.HostConfig.PidsLimit}}' "$svc")
+		[ "$pids" -gt 0 ] 2>/dev/null &&
+			ok "$svc: pids limit ($pids)" || bad "$svc: no pids limit"
+	done
+}
+
+# ── issue 012: real client IP ───────────────────────────────────────────────
+# The app counts each rate-limited request under the client IP it sees
+# (ADDRESS_HEADER=x-real-ip, set by Caddy from {client_ip}), so the Redis key
+# of a promo-code validation shows which IP reached the app.
+rate_limit_key_exists() { # $1 ip
+	[ -n "$(redis_prod --scan --pattern "ratelimit:promo-code-validation:$1")" ]
+}
+request_from() { # $1 source ip, $2 CF-Connecting-IP value
+	docker run --rm --network "$NETWORK" --ip "$1" busybox:latest \
+		wget -q -O /dev/null -T 10 \
+		--header 'Host: harness.germinal.test' --header "CF-Connecting-IP: $2" \
+		--header 'X-Forwarded-For: 192.0.2.99' \
+		'http://germinal_caddy/api/promo-codes/validate?code=HARNESS' >/dev/null 2>&1 || true
+}
+
+case_client_ip() {
+	section "case 10: the app sees the real client IP (issue 012)"
+
+	request_from "$TRUSTED_PEER_IP" 203.0.113.77
+	rate_limit_key_exists 203.0.113.77 &&
+		ok "via a trusted proxy, CF-Connecting-IP reaches the app as the client IP" ||
+		bad "via a trusted proxy, the app did not see CF-Connecting-IP as the client IP"
+	rate_limit_key_exists "$TRUSTED_PEER_IP" &&
+		bad "via a trusted proxy, the app counted the proxy's own IP" ||
+		ok "via a trusted proxy, the proxy's own IP is not counted"
+
+	request_from "$UNTRUSTED_PEER_IP" 198.51.100.66
+	rate_limit_key_exists 198.51.100.66 &&
+		bad "an untrusted peer could spoof CF-Connecting-IP" ||
+		ok "from an untrusted peer, CF-Connecting-IP is ignored"
+	rate_limit_key_exists "$UNTRUSTED_PEER_IP" &&
+		ok "from an untrusted peer, the app sees the peer's own IP" ||
+		bad "from an untrusted peer, the app did not see the peer's IP"
+
+	# An inbound X-Forwarded-For is never what the app counts.
+	rate_limit_key_exists 192.0.2.99 &&
+		bad "an inbound X-Forwarded-For reached the app as the client IP" ||
+		ok "an inbound X-Forwarded-For is not used as the client IP"
+}
+
+# ── issue 027: /metrics is not public ─────────────────────────────────────
+status_via_caddy() { # $1 Host header, $2 path -> prints the HTTP status
+	docker exec germinal_app node -e '
+		require("http").get(
+			{ host: "germinal_caddy", port: 80, path: process.argv[2], headers: { Host: process.argv[1] }, timeout: 5000 },
+			(res) => { console.log(res.statusCode); res.resume(); }
+		).on("error", (e) => { console.error(e.message); process.exit(1); });
+	' "$1" "$2"
+}
+
+case_metrics_hidden() {
+	section "case 11: /metrics is not public (issue 027)"
+	local host code
+	for host in harness.germinal.test harness-admin.germinal.test; do
+		code=$(status_via_caddy "$host" /metrics || true)
+		[ "$code" = 404 ] && ok "$host/metrics answers 404 through Caddy" ||
+			bad "$host/metrics answered '$code' through Caddy"
+	done
+	code=$(docker exec germinal_app node -e '
+		require("http").get("http://localhost:3001/metrics", (res) => { console.log(res.statusCode); res.resume(); })
+	' || true)
+	[ "$code" = 200 ] && ok "/metrics still answers on the app port in-network" ||
+		bad "/metrics on the app port answered '$code'"
+}
+
+# ── issue 029: staging's own Redis, passwords everywhere ────────────────────
+case_redis_isolation() {
+	section "case 12: staging has its own Redis; every Redis requires a password (issue 029)"
+
+	[ "$(docker inspect -f '{{.State.Health.Status}}' germinal_staging_redis 2>/dev/null)" = healthy ] &&
+		ok "staging_redis is healthy (authenticated healthcheck)" || bad "staging_redis is not healthy"
+	[ "$(docker inspect -f '{{.State.Health.Status}}' germinal_redis)" = healthy ] &&
+		ok "prod redis is healthy (authenticated healthcheck)" || bad "prod redis is not healthy"
+
+	# A staging rate-limited request lands in staging's Redis, never prod's.
+	docker run --rm --network "$NETWORK" --ip "$TRUSTED_PEER_IP" busybox:latest \
+		wget -q -O /dev/null -T 10 \
+		--header 'Host: harness-staging.germinal.test' --header 'CF-Connecting-IP: 203.0.113.29' \
+		'http://germinal_caddy/api/promo-codes/validate?code=HARNESS' >/dev/null 2>&1 || true
+	[ -n "$(redis_staging --scan --pattern 'ratelimit:promo-code-validation:203.0.113.29')" ] &&
+		ok "staging counts its requests in its own Redis" || bad "staging's request is not in staging_redis"
+	[ -z "$(redis_prod --scan --pattern 'ratelimit:promo-code-validation:203.0.113.29')" ] &&
+		ok "staging's request never reaches production's Redis" || bad "staging's request reached production's Redis"
+
+	local out container
+	for container in germinal_redis germinal_staging_redis; do
+		out=$(docker exec "$container" redis-cli ping 2>&1 || true)
+		case $out in *NOAUTH*) ok "$container refuses an unauthenticated connection" ;; *) bad "$container answered without a password: $out" ;; esac
+	done
+
+	out=$(docker exec -e REDISCLI_AUTH="$STAGING_REDIS_PASSWORD" germinal_redis redis-cli ping 2>&1 || true)
+	case $out in PONG) bad "staging's password opens production's Redis" ;; *) ok "staging's password does not open production's Redis" ;; esac
+}
+
 case_data_survives() {
-	section "case 8: data survives container recreation (docker compose down model)"
+	section "case 9: data survives container recreation (docker compose down model)"
 	dc_prod up -d --wait --force-recreate postgres >/dev/null 2>&1 ||
 		{ bad "postgres did not come back"; return; }
 	[ "$(psql_prod "select count(*) from users where email='admin@harness.fixture'")" = 1 ] &&
@@ -425,6 +676,10 @@ case_failing_migration
 case_sha_mismatch
 case_staging_alongside
 case_no_admin_env
+case_container_hardening
+case_client_ip
+case_metrics_hidden
+case_redis_isolation
 case_data_survives
 
 section "result"

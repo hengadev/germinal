@@ -1,4 +1,5 @@
 import * as argon2 from 'argon2';
+import { randomBytes } from 'crypto';
 import { env } from './env';
 
 /**
@@ -22,6 +23,19 @@ export async function verifyPassword(hash: string, password: string): Promise<bo
 	} catch (error) {
 		return false;
 	}
+}
+
+// Hash of a random password nobody knows, computed once on first use.
+let dummyHash: Promise<string> | null = null;
+
+/**
+ * Spend the same time as a real password check when the email matches no
+ * user, so login timing doesn't reveal which emails exist. Always false.
+ */
+export async function verifyPasswordForUnknownUser(password: string): Promise<false> {
+	dummyHash ??= hashPassword(randomBytes(32).toString('hex'));
+	await verifyPassword(await dummyHash, password);
+	return false;
 }
 
 /**

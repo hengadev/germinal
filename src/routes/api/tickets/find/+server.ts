@@ -2,7 +2,7 @@ import { json } from '@sveltejs/kit';
 import { logger } from '$lib/server/logger';
 import { findTicketSchema } from '$lib/server/validators/find-ticket';
 import { resendTicketsForEmail } from '$lib/server/services/reservations';
-import { strictRateLimiter, RateLimitUnavailableError } from '$lib/server/rate-limit';
+import { checkRateLimit } from '$lib/server/rate-limit';
 import { validateCsrfToken } from '$lib/server/csrf';
 import type { RequestHandler } from './$types';
 
@@ -25,20 +25,19 @@ export const POST: RequestHandler = async ({ request, getClientAddress, locals }
 		return json({ error: 'Invalid CSRF token' }, { status: 403 });
 	}
 
-	// Rate limiting — same limiter/config used by the other public
-	// Guest-facing endpoints (contact form, waitlist join): 3 attempts/hour/IP.
-	let allowed: boolean;
-	try {
-		allowed = await strictRateLimiter.check(ip);
-	} catch (err) {
-		if (err instanceof RateLimitUnavailableError) {
-			logger.error({ err }, 'Rate limiter unavailable, rejecting find-ticket lookup');
-			return json({ error: 'Service temporarily unavailable. Please try again shortly.' }, { status: 503 });
-		}
-		throw err;
+	// Rate limit: the find-ticket policy allows 3 lookups per hour per
+	// client IP — its own namespace and budget, independent of every other
+	// Guest-facing action (reservation creation, Inquiry, waitlist join).
+	const decision = await checkRateLimit('find-ticket', ip);
+	if (decision.status === 'unavailable') {
+		logger.error('Rate limiter unavailable, rejecting find-ticket lookup');
+		return json({ error: 'Service temporarily unavailable. Please try again shortly.' }, { status: 503 });
 	}
-	if (!allowed) {
-		return json({ error: 'Too many attempts. Please try again later.' }, { status: 429 });
+	if (decision.status === 'denied') {
+		return json(
+			{ error: `Too many attempts. Please try again in ${Math.ceil(decision.retryAfterSeconds / 60)} minutes.` },
+			{ status: 429, headers: { 'Retry-After': String(decision.retryAfterSeconds) } }
+		);
 	}
 
 	let data: unknown;

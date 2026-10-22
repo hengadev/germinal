@@ -90,7 +90,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
         const passwordHash = await hashPassword(password);
 
         // Generate reset token for invite
-        const { generateResetToken, getResetExpiration } = await import('$lib/server/utils/password');
+        const { generateResetToken, getResetExpiration, hashResetToken } = await import('$lib/server/utils/password');
         const resetToken = generateResetToken();
         const resetExpires = getResetExpiration(24); // 24 hours
 
@@ -103,7 +103,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
                 email,
                 phone: phone?.toString() || null,
                 passwordHash,
-                passwordResetToken: resetToken,
+                passwordResetToken: hashResetToken(resetToken),
                 passwordResetExpires: resetExpires,
                 role: 'admin',
             })

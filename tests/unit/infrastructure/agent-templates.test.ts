@@ -32,7 +32,8 @@ const EXPECTED_CALL: Record<string, { folder: string; recursive: boolean }> = {
 	'postgres.env.tmpl': { folder: '/db', recursive: false },
 	'caddy.env.tmpl': { folder: '/caddy', recursive: false },
 	'backup.env.tmpl': { folder: '/', recursive: true },
-	'admin.env.tmpl': { folder: '/admin', recursive: false }
+	'admin.env.tmpl': { folder: '/admin', recursive: false },
+	'redis.env.tmpl': { folder: '/redis', recursive: false }
 };
 
 /** Recursive templates -> the folders whose keys are printed whole. */
@@ -84,13 +85,36 @@ describe('Infisical Agent templates', () => {
 			expect(text.match(/\{\{ \.Key \}\}=\{\{ \.Value \}\}/g)).toHaveLength(1);
 		});
 
-		it('assembles DATABASE_URL from the /db atoms with urlquery', () => {
+		it('assembles DATABASE_URL from the app role\'s /db atoms with urlquery', () => {
 			expect(text).toMatch(
 				/DATABASE_URL=postgresql:\/\/\{\{ urlquery \$pgUser \}\}:\{\{ urlquery \$pgPassword \}\}@\{\{ \$pgHost \}\}:\{\{ \$pgPort \}\}\/\{\{ \$pgDb \}\}/
 			);
-			for (const atom of ['POSTGRES_USER', 'POSTGRES_PASSWORD', 'POSTGRES_HOST', 'POSTGRES_PORT', 'POSTGRES_DB']) {
+			expect(text).toContain('{{- if eq .Key "APP_DB_USER" }}{{ $pgUser = .Value }}{{ end -}}');
+			expect(text).toContain('{{- if eq .Key "APP_DB_PASSWORD" }}{{ $pgPassword = .Value }}{{ end -}}');
+			for (const atom of ['POSTGRES_HOST', 'POSTGRES_PORT', 'POSTGRES_DB']) {
 				expect(text).toContain(`eq .Key "${atom}"`);
 			}
+		});
+
+		it('never builds DATABASE_URL from the bootstrap superuser (issue 018)', () => {
+			// Not read at all, so a missing app key can't fall back to it.
+			expect(text).not.toContain('eq .Key "POSTGRES_USER"');
+			expect(text).not.toContain('eq .Key "POSTGRES_PASSWORD"');
+		});
+	});
+
+	describe('redis.env.tmpl (issue 029)', () => {
+		const text = readFileSync(resolve(templatesDir, 'redis.env.tmpl'), 'utf8');
+
+		it('renders only REDIS_PASSWORD, nothing else from /redis', () => {
+			expect(text).not.toContain('{{ .Key }}={{ .Value }}');
+			expect(text).toContain('{{- if eq .Key "REDIS_PASSWORD" }}');
+			expect(text.match(/^[A-Z_]+=/gm)).toEqual(['REDIS_PASSWORD=']);
+		});
+
+		it('app.env carries the same key (it prints the whole /redis folder)', () => {
+			const app = readFileSync(resolve(templatesDir, 'app.env.tmpl'), 'utf8');
+			expect(printedFolders(app)).toContain('/redis');
 		});
 	});
 

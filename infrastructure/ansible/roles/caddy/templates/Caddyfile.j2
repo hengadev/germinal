@@ -3,6 +3,16 @@
 {
   # ACME configuration
   email {{ caddy_acme_email | default('admin@' + app_domain) }}
+
+  # Real client IP (issue 012): every hostname is proxied by Cloudflare, so
+  # the TCP peer is a Cloudflare edge. Trust only Cloudflare's ranges as
+  # proxies and take the client IP from the header they set; {client_ip}
+  # is then the visitor's IP. Safe only because the origin firewall
+  # (Terraform firewall.tf) accepts HTTP(S) from Cloudflare alone.
+  servers {
+    trusted_proxies static {{ caddy_trusted_proxies | join(' ') }}
+    client_ip_headers CF-Connecting-IP
+  }
 }
 
 {% if staging_enabled | default(false) %}
@@ -13,12 +23,17 @@ admin-staging.{{ app_domain }} {
     dns cloudflare {env.CLOUDFLARE_API_TOKEN}
   }
 
+  # Prometheus metrics are for the container network only (issue 027)
+  respond /metrics* 404
+
   reverse_proxy germinal_staging_app:3001 {
     # Hold requests while the app container is recreated (deploy or config
     # change) instead of returning 502s (issue 008)
     lb_try_duration 30s
-    header_up X-Real-IP {remote_host}
-    header_up X-Forwarded-For {remote_host}
+    # The app reads the client IP from X-Real-IP (ADDRESS_HEADER); an
+    # inbound X-Forwarded-For is never passed on.
+    header_up X-Real-IP {client_ip}
+    header_up -X-Forwarded-For
     header_up X-Forwarded-Proto {scheme}
   }
 
@@ -29,6 +44,19 @@ admin-staging.{{ app_domain }} {
     X-XSS-Protection "1; mode=block"
     Referrer-Policy "strict-origin-when-cross-origin"
     -Server
+  }
+
+  request_body {
+    max_size {{ caddy_client_max_body_size | default('100M') }}
+  }
+
+  log {
+    output file /var/log/caddy/staging-admin-access.log {
+      roll_size 100mb
+      roll_keep 5
+      roll_keep_for 720h
+    }
+    format json
   }
 }
 
@@ -37,12 +65,17 @@ staff-staging.{{ app_domain }} {
     dns cloudflare {env.CLOUDFLARE_API_TOKEN}
   }
 
+  # Prometheus metrics are for the container network only (issue 027)
+  respond /metrics* 404
+
   reverse_proxy germinal_staging_app:3001 {
     # Hold requests while the app container is recreated (deploy or config
     # change) instead of returning 502s (issue 008)
     lb_try_duration 30s
-    header_up X-Real-IP {remote_host}
-    header_up X-Forwarded-For {remote_host}
+    # The app reads the client IP from X-Real-IP (ADDRESS_HEADER); an
+    # inbound X-Forwarded-For is never passed on.
+    header_up X-Real-IP {client_ip}
+    header_up -X-Forwarded-For
     header_up X-Forwarded-Proto {scheme}
   }
 
@@ -54,6 +87,19 @@ staff-staging.{{ app_domain }} {
     Referrer-Policy "strict-origin-when-cross-origin"
     -Server
   }
+
+  request_body {
+    max_size {{ caddy_client_max_body_size | default('100M') }}
+  }
+
+  log {
+    output file /var/log/caddy/staging-staff-access.log {
+      roll_size 100mb
+      roll_keep 5
+      roll_keep_for 720h
+    }
+    format json
+  }
 }
 
 staging.{{ app_domain }} {
@@ -61,12 +107,17 @@ staging.{{ app_domain }} {
     dns cloudflare {env.CLOUDFLARE_API_TOKEN}
   }
 
+  # Prometheus metrics are for the container network only (issue 027)
+  respond /metrics* 404
+
   reverse_proxy germinal_staging_app:3001 {
     # Hold requests while the app container is recreated (deploy or config
     # change) instead of returning 502s (issue 008)
     lb_try_duration 30s
-    header_up X-Real-IP {remote_host}
-    header_up X-Forwarded-For {remote_host}
+    # The app reads the client IP from X-Real-IP (ADDRESS_HEADER); an
+    # inbound X-Forwarded-For is never passed on.
+    header_up X-Real-IP {client_ip}
+    header_up -X-Forwarded-For
     header_up X-Forwarded-Proto {scheme}
   }
 
@@ -102,12 +153,17 @@ admin.{{ app_domain }} {
     dns cloudflare {env.CLOUDFLARE_API_TOKEN}
   }
 
+  # Prometheus metrics are for the container network only (issue 027)
+  respond /metrics* 404
+
   reverse_proxy germinal_app:3001 {
     # Hold requests while the app container is recreated (deploy or config
     # change) instead of returning 502s (issue 008)
     lb_try_duration 30s
-    header_up X-Real-IP {remote_host}
-    header_up X-Forwarded-For {remote_host}
+    # The app reads the client IP from X-Real-IP (ADDRESS_HEADER); an
+    # inbound X-Forwarded-For is never passed on.
+    header_up X-Real-IP {client_ip}
+    header_up -X-Forwarded-For
     header_up X-Forwarded-Proto {scheme}
   }
 
@@ -119,6 +175,19 @@ admin.{{ app_domain }} {
     X-XSS-Protection "1; mode=block"
     Referrer-Policy "strict-origin-when-cross-origin"
     -Server
+  }
+
+  request_body {
+    max_size {{ caddy_client_max_body_size | default('100M') }}
+  }
+
+  log {
+    output file /var/log/caddy/admin-access.log {
+      roll_size 100mb
+      roll_keep 5
+      roll_keep_for 720h
+    }
+    format json
   }
 }
 
@@ -128,12 +197,17 @@ staff.{{ app_domain }} {
     dns cloudflare {env.CLOUDFLARE_API_TOKEN}
   }
 
+  # Prometheus metrics are for the container network only (issue 027)
+  respond /metrics* 404
+
   reverse_proxy germinal_app:3001 {
     # Hold requests while the app container is recreated (deploy or config
     # change) instead of returning 502s (issue 008)
     lb_try_duration 30s
-    header_up X-Real-IP {remote_host}
-    header_up X-Forwarded-For {remote_host}
+    # The app reads the client IP from X-Real-IP (ADDRESS_HEADER); an
+    # inbound X-Forwarded-For is never passed on.
+    header_up X-Real-IP {client_ip}
+    header_up -X-Forwarded-For
     header_up X-Forwarded-Proto {scheme}
   }
 
@@ -146,6 +220,19 @@ staff.{{ app_domain }} {
     Referrer-Policy "strict-origin-when-cross-origin"
     -Server
   }
+
+  request_body {
+    max_size {{ caddy_client_max_body_size | default('100M') }}
+  }
+
+  log {
+    output file /var/log/caddy/staff-access.log {
+      roll_size 100mb
+      roll_keep 5
+      roll_keep_for 720h
+    }
+    format json
+  }
 }
 
 # Redirect www to non-www
@@ -153,7 +240,11 @@ www.{{ app_domain }} {
   tls {
     dns cloudflare {env.CLOUDFLARE_API_TOKEN}
   }
-  redir https://{{ app_domain }}{uri} permanent
+  # route keeps this order: /metrics is refused before the redirect (issue 027)
+  route {
+    respond /metrics* 404
+    redir https://{{ app_domain }}{uri} permanent
+  }
 }
 
 # Reverse proxy to application
@@ -163,13 +254,18 @@ www.{{ app_domain }} {
     dns cloudflare {env.CLOUDFLARE_API_TOKEN}
   }
 
+  # Prometheus metrics are for the container network only (issue 027)
+  respond /metrics* 404
+
   # Reverse proxy to application container
   reverse_proxy germinal_app:3001 {
     # Hold requests while the app container is recreated (deploy or config
     # change) instead of returning 502s (issue 008)
     lb_try_duration 30s
-    header_up X-Real-IP {remote_host}
-    header_up X-Forwarded-For {remote_host}
+    # The app reads the client IP from X-Real-IP (ADDRESS_HEADER); an
+    # inbound X-Forwarded-For is never passed on.
+    header_up X-Real-IP {client_ip}
+    header_up -X-Forwarded-For
     header_up X-Forwarded-Proto {scheme}
   }
 

@@ -16,6 +16,8 @@
 import { eq } from 'drizzle-orm';
 import { db } from '../db';
 import { reservations } from '../db/schema';
+import { cancelReservationTransition } from './reservation-transitions';
+import { notifyGuestOfCancellation, notifyWaitlistOfFreedSeats, refundAfterCancellation } from './cancellation-effects';
 import { refundPolicyOf } from '$lib/utils/refund-policy';
 import {
 	cancellationPreFill,
@@ -150,24 +152,44 @@ export async function getGuestCancellationTerms(
 }
 
 /**
- * A guest's self-service cancellation on an Event with a rule-based Refund
- * Policy: refunds the policy's amount through {@link processRefund}, or
- * just cancels (freeing the seats) when it is nothing. Both send the guest
- * their notification. Manual-policy Events keep the Ticket's historical
- * full-refund path (see the cancel endpoint); this refuses them.
+ * A guest's self-service cancellation from their Ticket, for both kinds of
+ * Refund Policy: the terms decide the refund (the full refundable amount
+ * under a manual policy's 24-hour rule, the policy's amount otherwise).
+ *
+ * The cancellation is the Reservation transitions module's conditional
+ * confirmed → cancelled: of several parallel requests exactly one wins and
+ * restores capacity; the others are refused like any Reservation that is no
+ * longer confirmed. Only the winner refunds — through the Stripe service,
+ * after the commit, with an idempotency key derived from the Reservation —
+ * and notifies the guest: a refund notification if a refund went through,
+ * otherwise a plain cancellation one. A refund failure leaves the
+ * Reservation cancelled and is logged for manual handling.
  */
-export async function cancelByGuestWithPolicy(
+export async function cancelByGuest(
 	reservationId: string,
 	now: Date = new Date()
 ): Promise<{ refundAmount: number; currency: string }> {
-	const terms = await getGuestCancellationTerms(reservationId, now);
+	const reservation = await loadForCancellation(reservationId);
+	const terms = guestCancellationTerms({
+		status: reservation.status,
+		policy: refundPolicyOf(reservation.eventSession.event),
+		seatingStart: reservation.eventSession.startTime,
+		now,
+		refundable: refundableAmount(reservation.payment),
+	});
 	if (!terms.canCancel) throw new CancellationError(terms.reason);
-	if (terms.mode !== 'policy') throw new CancellationError('This Event has no rule-based Refund Policy');
 
-	if (terms.refundAmount > 0) {
-		await processRefund(reservationId, terms.refundAmount, { cancelling: true });
-	} else {
-		await cancelReservation(reservationId);
-	}
-	return { refundAmount: terms.refundAmount, currency: terms.currency };
+	const outcome = await cancelReservationTransition(reservationId);
+	if (!outcome.won) throw new CancellationError('Reservation is not confirmed');
+
+	await notifyWaitlistOfFreedSeats(outcome);
+
+	const refund =
+		terms.refundAmount > 0 && reservation.payment
+			? await refundAfterCancellation(reservation.payment, terms.refundAmount, `guest-cancel-refund-${reservationId}`)
+			: null;
+
+	await notifyGuestOfCancellation(reservation, refund);
+
+	return { refundAmount: refund?.amount ?? 0, currency: reservation.currency };
 }

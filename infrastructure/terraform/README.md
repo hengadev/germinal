@@ -11,7 +11,7 @@ planned and applied from any computer with no flags, after `infisical login`.
 
 | Area | Resources |
 | --- | --- |
-| Hetzner | The VPS (`hcloud_server.main`) and its **primary IPs** (IPv4 + IPv6), which survive a server rebuild |
+| Hetzner | The VPS (`hcloud_server.main`), its **primary IPs** (IPv4 + IPv6), which survive a server rebuild, and the origin firewall (`hcloud_firewall.main`) |
 | Cloudflare | App records (`@`, `www`, `admin`, `staff`, `staging`, ...), email records (Zoho Mail MX, SPF, DKIM, DMARC), SES and ACM validation records, `media` and `media-staging` CNAMEs |
 | AWS, per environment | `<env>-germinal-media` and `<env>-germinal-backups` buckets, the `<env>-germinal-app` IAM user, its policies (S3, SES) and access key, the `production-germinal-backup` IAM user (backup bucket, no delete; key written to Infisical prod `/backup`), and a media CDN (CloudFront + ACM): `media.<domain>` for production, `media-staging.<domain>` for staging |
 | AWS, shared | SES domain identity, DKIM and MAIL FROM; the `app-germinal` IAM user (operator use, keys made by hand); the state bucket |
@@ -29,6 +29,7 @@ planned and applied from any computer with no flags, after `infisical login`.
   | --- | --- |
   | `TF_VAR_hcloud_token` | Hetzner provider |
   | `TF_VAR_cloudflare_token` | Cloudflare provider |
+  | `TF_VAR_ssh_allowed_ips` | SSH allowlist of the origin firewall, as a list (`["203.0.113.4/32"]`); see [Origin firewall](#origin-firewall) |
   | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | AWS provider **and** the S3 state backend (the `terraform-germinal` IAM user) |
 
   The server's `germinal-vps` identity has no access to `germinal-infra`.
@@ -120,6 +121,32 @@ by the Phase 6 rebuild (2026-10-06). The one-time `moved`/`import` blocks
 (`migration.tf`) and the `production` workspace are gone; the old
 `production-germinal-app` access key was replaced by the one in `s3.tf`.
 
+## Origin firewall
+
+`firewall.tf` attaches a Hetzner Cloud firewall to the server (issue 012):
+
+- **80/443 TCP and 443 UDP (HTTP/3) only from Cloudflare's edge ranges**
+  (`cloudflare_ipv4_ranges`, `cloudflare_ipv6_ranges`). Every public hostname
+  is proxied, so a direct caller could only be bypassing Cloudflare's WAF, or
+  spoofing the `CF-Connecting-IP` header that Caddy trusts for the client IP.
+  When Cloudflare publishes new ranges (<https://www.cloudflare.com/ips/>),
+  update both variables **and** the Ansible caddy role's
+  `caddy_trusted_proxies`, then apply both.
+- **SSH only from `ssh_allowed_ips`**, which has no default: a missing value
+  stops the plan instead of reopening SSH to the internet.
+- **This firewall is the real boundary; UFW is defence in depth.** Ports that
+  Docker publishes (Caddy's 80/443) bypass UFW, because Docker inserts its own
+  iptables rules ahead of UFW's. Never rely on a UFW rule to close a
+  published port.
+
+**CI deploys use SSH too.** The staging deploy (`ci.yml`) and Promote
+(`promote.yml`) jobs SSH into the server from GitHub-hosted runners, whose
+addresses are not fixed. An allowlist of admin IPs alone would block them.
+Decide how CI reaches the server before applying (for example a self-hosted
+runner on a fixed IP, a VPN, or opening SSH to all sources while keeping
+key-only auth and the CI key's forced command), and set `ssh_allowed_ips`
+to match.
+
 ## Files
 
 ```
@@ -128,6 +155,7 @@ locals.tf          environments, shared-resource naming
 variables.tf       inputs (secrets marked sensitive)
 terraform.tfvars   non-secret input values (committed)
 hetzner.tf         server + primary IPs
+firewall.tf        origin firewall: Cloudflare-only HTTP(S), allowlisted SSH
 cloudflare.tf      DNS records
 s3.tf, backups.tf  per-environment buckets, IAM user, policies, access key
 ses.tf             SES identity, DKIM, MAIL FROM, per-environment send policy

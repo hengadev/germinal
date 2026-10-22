@@ -2,7 +2,7 @@ import { fail, type Actions } from '@sveltejs/kit';
 import { logger } from '$lib/server/logger';
 import { contactSubmissionSchema } from '$lib/server/validators/contact';
 import { createContactSubmission } from '$lib/server/services/contact';
-import { strictRateLimiter, RateLimitUnavailableError } from '$lib/server/rate-limit';
+import { checkRateLimit } from '$lib/server/rate-limit';
 import { validateCsrfTokenFromForm } from '$lib/server/csrf';
 import type { PageServerLoad } from './$types';
 
@@ -16,22 +16,18 @@ export const actions: Actions = {
   default: async ({ request, getClientAddress, locals }) => {
     const ip = getClientAddress();
 
-    let allowed: boolean;
-    try {
-      allowed = await strictRateLimiter.check(ip);
-    } catch (err) {
-      if (err instanceof RateLimitUnavailableError) {
-        logger.error({ err }, 'Rate limiter unavailable, rejecting contact submission');
-        return fail(503, {
-          error: 'Service temporarily unavailable. Please try again shortly.',
-        });
-      }
-      throw err;
+    // Rate limit: the Inquiry policy allows 5 submissions per hour per
+    // client IP. A successful Inquiry resets no counter (only login does).
+    const decision = await checkRateLimit('inquiry', ip);
+    if (decision.status === 'unavailable') {
+      logger.error('Rate limiter unavailable, rejecting contact submission');
+      return fail(503, {
+        error: 'Service temporarily unavailable. Please try again shortly.',
+      });
     }
-    if (!allowed) {
-      const resetTime = await strictRateLimiter.getReset(ip);
+    if (decision.status === 'denied') {
       return fail(429, {
-        error: `Too many submissions. Please try again in ${Math.ceil(resetTime / 60)} minutes.`,
+        error: `Too many submissions. Please try again in ${Math.ceil(decision.retryAfterSeconds / 60)} minutes.`,
         rateLimited: true,
       });
     }
@@ -73,7 +69,8 @@ export const actions: Actions = {
         userAgent,
       });
 
-      await strictRateLimiter.reset(ip);
+      // No reset on success: a successful Inquiry must not hand back
+      // attempts from any other policy's budget (only login resets).
 
       return {
         success: true,

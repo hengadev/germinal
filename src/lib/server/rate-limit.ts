@@ -1,5 +1,12 @@
 /**
- * Redis-backed rate limiter, shared across all app replicas.
+ * Redis-backed rate limiting, one named policy per protected action.
+ *
+ * Callers ask a single question — "may this client IP perform action X?"
+ * (`checkRateLimit(action, ip)`) — and get back one of three answers:
+ * allowed, denied (with seconds until retry), or unavailable. Each action
+ * has its own entry in POLICIES below, with its own Redis namespace and
+ * budget, so exhausting one action's budget never eats another's for the
+ * same client IP: sending an Inquiry doesn't spend booking attempts.
  *
  * Counters live in Redis, not per-process memory: the app container is
  * replaced on every deploy and on every configuration change (Docker
@@ -8,16 +15,22 @@
  * runs more than one process. (It was written when production ran two
  * Swarm replicas, where a Map made every limit about half as strict.)
  *
- * Fail-closed by design: if Redis is unreachable, `checkRateLimit` /
- * `createRateLimiter(...).check` throw `RateLimitUnavailableError` instead
- * of allowing the request through. A rate limiter that fails open during
+ * Fail-closed by design: if Redis is unreachable, `checkRateLimit` reports
+ * `unavailable` instead of `allowed`. A rate limiter that fails open during
  * an outage is worse than the protected endpoint being unavailable — call
- * sites are expected to catch this and reject the request (503), not
- * treat it as "allowed".
+ * sites must answer 503 on `unavailable`, never treat it as "allowed".
+ *
+ * Nothing resets a counter on success except login: `resetLoginRateLimit`
+ * is the only reset function, and it deletes only the login namespace's
+ * key. (A reset-on-success for the Inquiry form previously handed back
+ * booking attempts, which is why this is now forbidden by construction.)
+ *
+ * How the client IP is obtained is a separate concern (issue 012): this
+ * module just takes an opaque identifier string.
  */
 
 import Redis from 'ioredis';
-import { env } from './env';
+import { config, env } from './env';
 import { logger } from './logger';
 
 declare module 'ioredis' {
@@ -45,6 +58,8 @@ return current
 const redis = new Redis({
 	host: env.REDIS_HOST,
 	port: env.REDIS_PORT,
+	// Required by every deployed Redis (issue 029); unset for local dev
+	password: env.REDIS_PASSWORD || undefined,
 	db: env.REDIS_DB,
 	// Bound how long a command waits during a reconnect before failing, so a
 	// fail-closed rejection comes back quickly (~tens of ms) during a real
@@ -76,136 +91,121 @@ function buildKey(namespace: string, identifier: string): string {
 }
 
 /**
- * Thrown when the rate limiter's backing store can't be reached. Callers
- * must treat this as "reject the request" (503), never as "allowed" —
- * see the fail-closed rationale in the module docstring.
+ * One protected action = one policy. `namespace` is the Redis key
+ * namespace: no two actions may share one, or their counters (and budgets)
+ * would collide for the same identifier.
  */
-export class RateLimitUnavailableError extends Error {
-	constructor(cause: unknown) {
-		super('Rate limiter backing store is unavailable');
-		this.name = 'RateLimitUnavailableError';
-		this.cause = cause;
-	}
-}
-
-async function incrementAndCheck(
-	namespace: string,
-	identifier: string,
-	maxAttempts: number,
-	windowMs: number
-): Promise<boolean> {
-	const windowSeconds = Math.max(1, Math.ceil(windowMs / 1000));
-	try {
-		const current = await redis.rateLimitIncr(buildKey(namespace, identifier), windowSeconds);
-		return current <= maxAttempts;
-	} catch (err) {
-		if (err instanceof RateLimitUnavailableError) throw err;
-		throw new RateLimitUnavailableError(err);
-	}
-}
-
-async function getReset(namespace: string, identifier: string): Promise<number> {
-	const ttl = await redis.ttl(buildKey(namespace, identifier));
-	return ttl > 0 ? ttl : 0;
-}
-
-async function getCount(namespace: string, identifier: string): Promise<number> {
-	const value = await redis.get(buildKey(namespace, identifier));
-	return value ? parseInt(value, 10) : 0;
-}
-
-/**
- * Best-effort: called after a request already succeeded (e.g. successful
- * login) to clear that identifier's counter early. Unlike the check itself,
- * this isn't a security boundary — if Redis hiccups right at this moment,
- * swallowing the error just means the counter clears on its own TTL later
- * instead of immediately, so a already-succeeded request isn't turned into
- * a 500.
- */
-async function resetKey(namespace: string, identifier: string): Promise<void> {
-	try {
-		await redis.del(buildKey(namespace, identifier));
-	} catch (err) {
-		logger.warn({ err, namespace, identifier }, 'Rate limit reset failed (non-fatal)');
-	}
-}
-
-// Configuration for the default "login" limiter
-const MAX_ATTEMPTS = 5;
-const WINDOW_MS = 15 * 60 * 1000; // 15 minutes
-const LOGIN_NAMESPACE = 'login';
-
-/**
- * Check if a request from the given IP should be rate limited.
- * @param identifier - IP address or unique identifier
- * @returns true if allowed, false if rate limit exceeded
- * @throws {RateLimitUnavailableError} if Redis is unreachable — callers
- *   must reject the request, not treat this as "allowed".
- */
-export function checkRateLimit(identifier: string): Promise<boolean> {
-	return incrementAndCheck(LOGIN_NAMESPACE, identifier, MAX_ATTEMPTS, WINDOW_MS);
-}
-
-/**
- * Get remaining time until rate limit resets (in seconds)
- * @param identifier - IP address or unique identifier
- * @returns Seconds until reset, or 0 if not rate limited
- */
-export function getRateLimitReset(identifier: string): Promise<number> {
-	return getReset(LOGIN_NAMESPACE, identifier);
-}
-
-/**
- * Reset rate limit for a specific identifier.
- * Call this after successful login. Best-effort — see resetKey.
- * @param identifier - IP address or unique identifier
- */
-export function resetRateLimit(identifier: string): Promise<void> {
-	return resetKey(LOGIN_NAMESPACE, identifier);
-}
-
-/**
- * Get current attempt count for an identifier
- * @param identifier - IP address or unique identifier
- * @returns Number of attempts in current window
- */
-export function getRateLimitCount(identifier: string): Promise<number> {
-	return getCount(LOGIN_NAMESPACE, identifier);
-}
-
-/**
- * Configure rate limiting parameters
- * Use this to customize limits for different endpoints
- */
-export interface RateLimitConfig {
+interface RateLimitPolicy {
+	namespace: string;
 	maxAttempts: number;
 	windowMs: number;
 }
 
 /**
- * Create a custom rate limiter with specific configuration.
- * @param namespace - unique key namespace for this limiter, so its counters
- *   don't collide in Redis with any other limiter's counters for the same
- *   identifier (e.g. an IP hitting both the login limiter and an API
- *   limiter must not share one counter).
+ * The table of rate-limit policies — the single source of truth for every
+ * budget. Each entry also names the action's own Redis namespace, so
+ * exhausting one policy leaves every other policy's budget for that IP
+ * untouched.
  */
-export function createRateLimiter(namespace: string, config: RateLimitConfig) {
-	return {
-		check: (identifier: string): Promise<boolean> =>
-			incrementAndCheck(namespace, identifier, config.maxAttempts, config.windowMs),
-		reset: (identifier: string): Promise<void> => resetKey(namespace, identifier),
-		getCount: (identifier: string): Promise<number> => getCount(namespace, identifier),
-		getReset: (identifier: string): Promise<number> => getReset(namespace, identifier)
-	};
+const POLICIES = {
+	// Admin/Staff login: 5 attempts per 15 minutes per client IP. The only
+	// policy whose counter resets on success (see resetLoginRateLimit).
+	login: { namespace: 'login', maxAttempts: 5, windowMs: 15 * 60 * 1000 },
+	// Reservation creation: 10 attempts per 10 minutes per client IP
+	// (from the app config, src/lib/server/env.ts `config.rateLimit`).
+	'reservation-create': {
+		namespace: 'reservation-create',
+		maxAttempts: config.rateLimit.reservationMaxAttempts,
+		windowMs: config.rateLimit.reservationWindowMs,
+	},
+	// Inquiry (contact form): 5 submissions per hour per client IP
+	// (from the app config, src/lib/server/env.ts `config.rateLimit`).
+	// A successful Inquiry resets no counter.
+	inquiry: {
+		namespace: 'inquiry',
+		maxAttempts: config.rateLimit.contactFormMaxAttempts,
+		windowMs: config.rateLimit.contactFormWindowMs,
+	},
+	// Waitlist join: 3 joins per hour per client IP.
+	'waitlist-join': {
+		namespace: 'waitlist-join',
+		maxAttempts: 3,
+		windowMs: 60 * 60 * 1000,
+	},
+	// find-ticket (resend ticket links): 3 lookups per hour per client IP.
+	'find-ticket': {
+		namespace: 'find-ticket',
+		maxAttempts: 3,
+		windowMs: 60 * 60 * 1000,
+	},
+	// Promo-code validation: 30 attempts per minute per client IP.
+	'promo-code-validation': {
+		namespace: 'promo-code-validation',
+		maxAttempts: 30,
+		windowMs: 60 * 1000,
+	},
+} as const satisfies Record<string, RateLimitPolicy>;
+
+/** Every action with a rate-limit policy. */
+export type RateLimitAction = keyof typeof POLICIES;
+
+/**
+ * The answer to "may this client IP perform action X?".
+ *
+ * - `allowed`: the attempt is within budget (this attempt is counted).
+ * - `denied`: over budget; `retryAfterSeconds` says when to try again.
+ * - `unavailable`: the backing store can't be reached. Fail-closed —
+ *   callers must reject the request (503), never treat it as "allowed".
+ */
+export type RateLimitDecision =
+	| { status: 'allowed' }
+	| { status: 'denied'; retryAfterSeconds: number }
+	| { status: 'unavailable' };
+
+/**
+ * Check whether an identifier (client IP) may perform the given action.
+ * Consumes one attempt from that action's own budget when allowed.
+ *
+ * @throws only on unexpected (non-Redis) programming errors; an
+ *   unreachable Redis is reported as `{ status: 'unavailable' }`.
+ */
+export async function checkRateLimit(
+	action: RateLimitAction,
+	identifier: string
+): Promise<RateLimitDecision> {
+	const { namespace, maxAttempts, windowMs } = POLICIES[action];
+	const windowSeconds = Math.max(1, Math.ceil(windowMs / 1000));
+	const key = buildKey(namespace, identifier);
+	try {
+		const current = await redis.rateLimitIncr(key, windowSeconds);
+		if (current <= maxAttempts) {
+			return { status: 'allowed' };
+		}
+		// How long until this window's counter expires = when retry is
+		// possible. If the TTL read comes back empty (key just vanished —
+		// new window), fall back to the full window so the 429 still says
+		// when the client may retry.
+		const ttl = await redis.ttl(key);
+		return { status: 'denied', retryAfterSeconds: ttl > 0 ? ttl : windowSeconds };
+	} catch (err) {
+		logger.error({ err, action }, 'Rate limiter backing store unavailable (fail-closed)');
+		return { status: 'unavailable' };
+	}
 }
 
-// Pre-configured limiters for common use cases
-export const apiRateLimiter = createRateLimiter('api', {
-	maxAttempts: 100,
-	windowMs: 60 * 1000 // 100 requests per minute
-});
-
-export const strictRateLimiter = createRateLimiter('strict', {
-	maxAttempts: 3,
-	windowMs: 60 * 60 * 1000 // 3 attempts per hour
-});
+/**
+ * Reset the login counter for an identifier. Call this after a successful
+ * login — it is the only reset, and clears only the login namespace's key,
+ * never any other policy's counter.
+ *
+ * Best-effort: if Redis hiccups right at this moment, swallowing the error
+ * just means the counter clears on its own TTL later instead of
+ * immediately, so an already-succeeded login isn't turned into a 500.
+ */
+export async function resetLoginRateLimit(identifier: string): Promise<void> {
+	try {
+		await redis.del(buildKey(POLICIES.login.namespace, identifier));
+	} catch (err) {
+		logger.warn({ err, identifier }, 'Rate limit reset failed (non-fatal)');
+	}
+}

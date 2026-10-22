@@ -2,7 +2,7 @@ import { json } from '@sveltejs/kit';
 import { logger } from '$lib/server/logger';
 import { z } from 'zod';
 import { joinWaitlist, WaitlistNotAvailableError } from '$lib/server/services/waitlist';
-import { strictRateLimiter, RateLimitUnavailableError } from '$lib/server/rate-limit';
+import { checkRateLimit } from '$lib/server/rate-limit';
 import { validateCsrfToken } from '$lib/server/csrf';
 import type { RequestHandler } from './$types';
 
@@ -26,24 +26,21 @@ export const POST: RequestHandler = async ({ request, getClientAddress, locals }
 		);
 	}
 
-	// Rate limiting
-	let allowed: boolean;
-	try {
-		allowed = await strictRateLimiter.check(ip);
-	} catch (err) {
-		if (err instanceof RateLimitUnavailableError) {
-			logger.error({ err }, 'Rate limiter unavailable, rejecting waitlist join');
-			return json(
-				{ error: 'Service temporarily unavailable. Please try again shortly.' },
-				{ status: 503 }
-			);
-		}
-		throw err;
-	}
-	if (!allowed) {
+	// Rate limit: the waitlist-join policy allows 3 joins per hour per
+	// client IP — its own namespace and budget, independent of every other
+	// Guest-facing action.
+	const decision = await checkRateLimit('waitlist-join', ip);
+	if (decision.status === 'unavailable') {
+		logger.error('Rate limiter unavailable, rejecting waitlist join');
 		return json(
-			{ error: 'Too many attempts. Please try again later.' },
-			{ status: 429 }
+			{ error: 'Service temporarily unavailable. Please try again shortly.' },
+			{ status: 503 }
+		);
+	}
+	if (decision.status === 'denied') {
+		return json(
+			{ error: `Too many attempts. Please try again in ${Math.ceil(decision.retryAfterSeconds / 60)} minutes.` },
+			{ status: 429, headers: { 'Retry-After': String(decision.retryAfterSeconds) } }
 		);
 	}
 

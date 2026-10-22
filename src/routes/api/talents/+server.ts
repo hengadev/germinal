@@ -5,19 +5,24 @@ import { requireAdmin } from '$lib/server/auth-guards';
 import { parsePagination, calculatePagination, createPaginatedResponse } from '$lib/utils/pagination';
 import { getCached, CACHE_TAGS } from '$lib/server/cache';
 import { MOCK_TALENTS, USE_MOCK_DATA } from '$lib/mock-data';
+import { viewerOf } from '$lib/utils/event-access';
 import type { RequestHandler } from './$types';
 
-export const GET: RequestHandler = async ({ url, setHeaders }) => {
-  const publishedOnly = url.searchParams.get('published') !== 'false';
+export const GET: RequestHandler = async ({ url, setHeaders, locals }) => {
+  // Only the Admin may list unpublished Talents (`?published=false`); anyone
+  // else always gets published ones.
+  const isAdmin = viewerOf(locals.user).role === 'admin';
+  const publishedOnly = !isAdmin || url.searchParams.get('published') !== 'false';
   const pagination = parsePagination(url.searchParams);
 
   // Use mock data if enabled (no database required!)
   if (USE_MOCK_DATA) {
     const { page = 1, limit = 20 } = pagination;
-    const totalTalents = MOCK_TALENTS.length;
+    const visibleTalents = publishedOnly ? MOCK_TALENTS.filter((t) => t.published) : MOCK_TALENTS;
+    const totalTalents = visibleTalents.length;
     const startIndex = (page - 1) * limit;
     const endIndex = startIndex + limit;
-    const paginatedTalents = MOCK_TALENTS.slice(startIndex, endIndex);
+    const paginatedTalents = visibleTalents.slice(startIndex, endIndex);
 
     const paginationMetadata = calculatePagination(page, limit, totalTalents);
     return json(createPaginatedResponse(paginatedTalents, paginationMetadata));
@@ -32,9 +37,10 @@ export const GET: RequestHandler = async ({ url, setHeaders }) => {
     }
   );
 
-  // Set cache headers
+  // Set cache headers. A listing with unpublished Talents is never stored by
+  // a shared cache, so it can't be served to another viewer.
   setHeaders({
-    'Cache-Control': 'public, max-age=120',
+    'Cache-Control': publishedOnly ? 'public, max-age=120' : 'private, no-store',
     'X-Cache': 'HIT'
   });
 

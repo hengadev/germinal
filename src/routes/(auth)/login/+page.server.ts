@@ -2,15 +2,13 @@ import { redirect, fail, error, type Actions } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
 import { users } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
-import { verifyPassword, verifyPasswordMock, getMockCredentials } from '$lib/server/auth';
+import { verifyPassword, verifyPasswordForUnknownUser, verifyPasswordMock, getMockCredentials } from '$lib/server/auth';
 import { createSession } from '$lib/server/session';
 import { env } from '$lib/server/env';
 import { logger } from '$lib/server/logger';
 import {
 	checkRateLimit,
-	resetRateLimit,
-	getRateLimitReset,
-	RateLimitUnavailableError
+	resetLoginRateLimit
 } from '$lib/server/rate-limit';
 import { getCookieDomain, getSessionCookieName } from '$lib/server/hostname';
 import type { PageServerLoad } from './$types';
@@ -49,23 +47,18 @@ export const actions: Actions = {
 		const cookieDomain = getCookieDomain(url.hostname);
 		const sessionCookieName = getSessionCookieName(url.hostname);
 
-		// Check rate limit
-		let allowed: boolean;
-		try {
-			allowed = await checkRateLimit(ip);
-		} catch (err) {
-			if (err instanceof RateLimitUnavailableError) {
-				logger.error({ err }, 'Rate limiter unavailable, rejecting login attempt');
-				return fail(503, {
-					error: 'Service temporairement indisponible. Veuillez réessayer dans un instant.'
-				});
-			}
-			throw err;
+		// Rate limit: login allows 5 attempts per 15 minutes per client IP;
+		// a successful login resets only this counter.
+		const decision = await checkRateLimit('login', ip);
+		if (decision.status === 'unavailable') {
+			logger.error('Rate limiter unavailable, rejecting login attempt');
+			return fail(503, {
+				error: 'Service temporairement indisponible. Veuillez réessayer dans un instant.'
+			});
 		}
-		if (!allowed) {
-			const resetTime = await getRateLimitReset(ip);
+		if (decision.status === 'denied') {
 			return fail(429, {
-				error: `Trop de tentatives de connexion. Réessayez dans ${resetTime} secondes.`,
+				error: `Trop de tentatives de connexion. Réessayez dans ${decision.retryAfterSeconds} secondes.`,
 				rateLimited: true
 			});
 		}
@@ -90,7 +83,8 @@ export const actions: Actions = {
 				return fail(400, { error: "Email ou mot de passe invalide" });
 			}
 
-			await resetRateLimit(ip);
+			// Reset only the login rate-limit counter on success.
+			await resetLoginRateLimit(ip);
 
 			const session = await createSession(email, role);
 
@@ -109,19 +103,19 @@ export const actions: Actions = {
 		// Database mode: verify against database
 		const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
 
-		if (!user) {
+		// Verify password. An unknown email still runs one verification (against
+		// a dummy hash) and gets the same error, so neither the answer nor its
+		// timing tells whether the email exists.
+		const validPassword = user
+			? await verifyPassword(user.passwordHash, password)
+			: await verifyPasswordForUnknownUser(password);
+
+		if (!user || !validPassword) {
 			return fail(400, { error: 'Invalid email or password' });
 		}
 
-		// Verify password
-		const validPassword = await verifyPassword(user.passwordHash, password);
-
-		if (!validPassword) {
-			return fail(400, { error: 'Invalid email or password' });
-		}
-
-		// Reset rate limit on successful login
-		await resetRateLimit(ip);
+		// Reset only the login rate-limit counter on success
+		await resetLoginRateLimit(ip);
 
 		// Create session
 		const session = await createSession(user.id);
