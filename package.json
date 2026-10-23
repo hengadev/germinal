@@ -75,7 +75,7 @@
     "svelte-i18n": "^4.0.1",
     "tailwind-merge": "^3.7.0",
     "tailwind-variants": "^3.3.1",
-    "twilio": "^5.13.1",
+    "twilio": "^6.2.0",
     "workbox-window": "^7.4.1",
     "zod": "^4.6.7"
   }
