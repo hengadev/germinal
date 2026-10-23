@@ -28,7 +28,7 @@ planned and applied from any computer with no flags, after `infisical login`.
   | Infisical key | Used for |
   | --- | --- |
   | `TF_VAR_hcloud_token` | Hetzner provider |
-  | `TF_VAR_cloudflare_token` | Cloudflare provider |
+  | `TF_VAR_cloudflare_token` | Cloudflare provider (Cloudflare token "Germinal terraform": DNS edit on the `germinalstudio.co` zone only) |
   | `TF_VAR_ssh_allowed_ips` | SSH allowlist of the origin firewall, as a list (`["203.0.113.4/32"]`); see [Origin firewall](#origin-firewall) |
   | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | AWS provider **and** the S3 state backend (the `terraform-germinal` IAM user) |
 
@@ -133,7 +133,8 @@ by the Phase 6 rebuild (2026-10-06). The one-time `moved`/`import` blocks
   update both variables **and** the Ansible caddy role's
   `caddy_trusted_proxies`, then apply both.
 - **SSH only from `ssh_allowed_ips`**, which has no default: a missing value
-  stops the plan instead of reopening SSH to the internet.
+  stops the plan instead of reopening SSH to the internet. It is currently
+  open to all sources (see *CI deploys use SSH too* below).
 - **This firewall is the real boundary; UFW is defence in depth.** Ports that
   Docker publishes (Caddy's 80/443) bypass UFW, because Docker inserts its own
   iptables rules ahead of UFW's. Never rely on a UFW rule to close a
@@ -142,10 +143,14 @@ by the Phase 6 rebuild (2026-10-06). The one-time `moved`/`import` blocks
 **CI deploys use SSH too.** The staging deploy (`ci.yml`) and Promote
 (`promote.yml`) jobs SSH into the server from GitHub-hosted runners, whose
 addresses are not fixed. An allowlist of admin IPs alone would block them.
-Decide how CI reaches the server before applying (for example a self-hosted
-runner on a fixed IP, a VPN, or opening SSH to all sources while keeping
-key-only auth and the CI key's forced command), and set `ssh_allowed_ips`
-to match.
+**Decision (2026-10-22): SSH stays open to all sources**
+(`ssh_allowed_ips = ["0.0.0.0/0", "::/0"]`), protected by key-only auth and
+the CI key's forced command. Narrow it only together with a fixed-address
+path for CI (a self-hosted runner or a VPN).
+
+**Caddy's Cloudflare token** (Infisical `prod/caddy/CLOUDFLARE_API_TOKEN`,
+Cloudflare token "Germinal ansible") has Zone DNS read + edit on the
+`germinalstudio.co` zone only, nothing account-wide: it lives on the server.
 
 ## Files
 
