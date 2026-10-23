@@ -271,9 +271,8 @@ describe('Internal Notes never leave the admin', () => {
 		expect(leaks(spotlight)).toBe(false);
 
 		const { load } = await import('../../src/routes/(public)/spotlight/+page.server');
-		const data: any = await load({ locals: ANONYMOUS_LOCALS } as any);
-		expect(data.spotlightEvent.id).toBe(event.id);
-		expect(leaks(data)).toBe(false);
+		// It returns no Event, only a redirect to the Event's page.
+		expect(await load({ locals: ANONYMOUS_LOCALS } as any).then(() => null, (e: any) => e?.location ?? Promise.reject(e))).toBe(`/events/${event.id}`);
 
 		const { load: home } = await import('../../src/routes/(public)/+page.server');
 		const homeData: any = await home({ locals: ANONYMOUS_LOCALS } as any);

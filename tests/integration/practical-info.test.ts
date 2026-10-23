@@ -417,8 +417,10 @@ describe('the public Event page and loaders never include Practical Info', () =>
 		carriesNoPracticalInfo(spotlightRow);
 
 		const spotlightPage = await import('../../src/routes/(public)/spotlight/+page.server');
-		const spotlightData: any = await spotlightPage.load({ locals: ANONYMOUS_LOCALS } as any);
-		carriesNoPracticalInfo(spotlightData.spotlightEvent);
+		// It returns no Event, only a redirect to the Event's page.
+		const target = await spotlightPage.load({ locals: ANONYMOUS_LOCALS } as any)
+			.then(() => null, (e: any) => e?.location ?? Promise.reject(e));
+		expect(target).toBe(`/events/${spotlight.id}`);
 	});
 });
 

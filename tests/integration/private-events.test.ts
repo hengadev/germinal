@@ -323,8 +323,8 @@ describe('a Private Event is listed nowhere', () => {
 		expect(await getSpotlightEvent()).toBeNull();
 
 		const { load } = await import('../../src/routes/(public)/spotlight/+page.server');
-		const data: any = await load({ locals: ANONYMOUS_LOCALS } as any);
-		expect(data.spotlightEvent).toBeNull();
+		// No Spotlight: the page stays (no redirect to an Event page).
+		expect(await load({ locals: ANONYMOUS_LOCALS } as any).then(() => null, (e: any) => e?.location ?? Promise.reject(e))).toBeNull();
 	});
 
 	it('the listing query agrees with Event access for every Visibility', async () => {

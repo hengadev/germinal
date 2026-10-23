@@ -407,8 +407,8 @@ describe('a Draft is listed nowhere', () => {
 		expect(await getSpotlightEvent()).toBeNull();
 
 		const { load } = await import('../../src/routes/(public)/spotlight/+page.server');
-		const data: any = await load({ locals: ANONYMOUS_LOCALS } as any);
-		expect(data.spotlightEvent).toBeNull();
+		// No Spotlight: the page stays (no redirect to an Event page).
+		expect(await load({ locals: ANONYMOUS_LOCALS } as any).then(() => null, (e: any) => e?.location ?? Promise.reject(e))).toBeNull();
 	});
 
 	it('a published Spotlight is still shown', async () => {
@@ -478,8 +478,11 @@ describe('a Seating whose Service has no price', () => {
 		const event = await seedEvent(true, { isSpotlight: true });
 		const seating = await seedSeating(event.id, {}, { priceAmount: null });
 		const { load } = await import('../../src/routes/(public)/spotlight/+page.server');
-		const data: any = await load({ locals: ANONYMOUS_LOCALS } as any);
-		const shown = data.spotlightEvent.eventSessions.find((s: { id: string }) => s.id === seating.id);
+		// The Spotlight leads to its Event's page, which shows the Seating.
+		expect(await load({ locals: ANONYMOUS_LOCALS } as any).then(() => null, (e: any) => e?.location ?? Promise.reject(e))).toBe(`/events/${event.id}`);
+		const eventPage = await import('../../src/routes/(public)/events/[id]/+page.server');
+		const data: any = await eventPage.load({ params: { id: event.id }, locals: ANONYMOUS_LOCALS } as any);
+		const shown = data.sessions.find((s: { id: string }) => s.id === seating.id);
 		expect(shown.bookingRefusal).toBe('not-priced');
 	});
 
