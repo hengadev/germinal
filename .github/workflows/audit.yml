@@ -1,0 +1,41 @@
+name: Dependency audit
+
+# Fails when any dependency, dev tooling included, has a known high or
+# critical advisory. It runs on every change and every Monday, so an advisory
+# published against code that hasn't changed still turns this red (GitHub
+# emails the failure). It deliberately does not gate the staging deploy: a new
+# advisory elsewhere must not block an unrelated fix.
+#
+# Fix: `pnpm update`, or an override in pnpm-workspace.yaml when a parent
+# package still asks for the vulnerable range.
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: pnpm audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10
+
+      - name: Audit every dependency (high and critical fail)
+        run: pnpm audit --audit-level=high

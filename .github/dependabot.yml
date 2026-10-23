@@ -1,0 +1,45 @@
+# Dependency updates. Security updates (repository setting "Dependabot
+# security updates") open as soon as an advisory is published; the version
+# updates below keep everything else close enough to current that a security
+# fix never needs a big jump.
+#
+# Every PR goes through CI like any other change; merging one deploys staging,
+# and production only moves through the Promote workflow.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    # A release must be a week old before a version PR proposes it, so a
+    # hijacked publish is usually caught and yanked first. Security updates
+    # ignore the cooldown.
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+    groups:
+      security:
+        applies-to: security-updates
+        patterns: ['*']
+      # Minor and patch releases of everything in one weekly PR, except
+      # stripe: the SDK's types pin the Stripe API version, and moving it
+      # changes webhook payloads, so it gets its own PR to merge when payments
+      # are turned back on. (Not an `ignore`: that would also block its
+      # security updates.)
+      minor-and-patch:
+        applies-to: version-updates
+        update-types: [minor, patch]
+        patterns: ['*']
+        exclude-patterns: [stripe]
+    # Major releases arrive as one PR each, outside the groups above.
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 7
+    groups:
+      actions:
+        patterns: ['*']
