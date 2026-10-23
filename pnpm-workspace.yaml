@@ -8,3 +8,19 @@ onlyBuiltDependencies:
   - es5-ext
   - esbuild
   - sharp
+# Security pins for transitive dependencies whose parents still ask for a
+# vulnerable range. Drop each one once its parent's own range allows the fix
+# (`pnpm why <package>`, then `pnpm audit` without the line).
+overrides:
+  # esbuild < 0.24.3 lets any website read the dev server's responses
+  # (GHSA-67mh-4wv8-2f99). svelte-i18n uses it only in its extraction CLI,
+  # drizzle-kit's legacy loader only to transpile drizzle.config.ts.
+  svelte-i18n>esbuild: ^0.25.12
+  "@esbuild-kit/core-utils>esbuild": ^0.25.12
+  # @sveltejs/kit 2 asks for cookie ^0.6, which accepts out-of-bounds
+  # characters in cookie names, paths and domains; 0.7 has the same API.
+  "@sveltejs/kit>cookie": ^0.7.2
+  # The OpenTelemetry SDK 2.x packages under @sentry/node accept only
+  # @opentelemetry/api < 1.10; a second, newer API copy would leave Sentry's
+  # tracing disconnected from them.
+  "@opentelemetry/api": ~1.9.1
