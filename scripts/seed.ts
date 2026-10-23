@@ -3,8 +3,11 @@ import {
   events,
   talents,
   talentCategories,
-  eventSessions
+  eventSessions,
+  eventDays,
+  eventServices
 } from '../src/lib/server/db/schema.js';
+import { and, eq } from 'drizzle-orm';
 import { checkSeedGuard } from './seed-guard.js';
 
 // ============================================================
@@ -33,6 +36,42 @@ if (!seedGuard.allowed) {
   console.error('   To seed data, run this script with NODE_ENV unset (or "development")');
   console.error('   against a local database, e.g. via `make try` or `make try-setup`.');
   process.exit(1);
+}
+
+// A Seating belongs to a Service (a Day's lunch or dinner, ADR 0005), and its
+// price lives on that Service (issue 022). The demo rows below keep a price
+// per Seating for readability: this finds or creates the Day and Service for
+// each one and puts the price on the Service. A Service has one price, so a
+// second Seating on the same Service keeps the first Seating's price.
+type SeedSeating = Omit<typeof eventSessions.$inferInsert, 'serviceId'> & {
+  priceAmount: number;
+  currency: string;
+};
+
+async function insertSeatings(rows: SeedSeating[]) {
+  for (const { priceAmount, currency: _currency, ...seating } of rows) {
+    const date = seating.startTime.toISOString().slice(0, 10);
+    const kind = seating.startTime.getUTCHours() < 15 ? 'lunch' : 'dinner';
+
+    let [day] = await db.select().from(eventDays)
+      .where(and(eq(eventDays.eventId, seating.eventId), eq(eventDays.date, date)));
+    if (!day) {
+      [day] = await db.insert(eventDays).values({ eventId: seating.eventId, date }).returning();
+    }
+
+    let [service] = await db.select().from(eventServices)
+      .where(and(eq(eventServices.dayId, day.id), eq(eventServices.kind, kind)));
+    if (!service) {
+      const minutes = Math.round((seating.endTime.getTime() - seating.startTime.getTime()) / 60000);
+      [service] = await db.insert(eventServices)
+        .values({ dayId: day.id, kind, defaultSeatingDurationMinutes: minutes, priceAmount })
+        .returning();
+    } else if (service.priceAmount !== priceAmount) {
+      console.log(`     (${date} ${kind}: keeps the Service's price ${service.priceAmount}, not ${priceAmount})`);
+    }
+
+    await db.insert(eventSessions).values({ ...seating, serviceId: service.id });
+  }
 }
 
 async function seed() {
@@ -285,7 +324,7 @@ async function seed() {
     console.log('  📅 Creating event sessions...');
 
     // Urban Canvas Sessions
-    await db.insert(eventSessions).values([
+    await insertSeatings([
       {
         eventId: urbanCanvasEvent.id,
         titleEn: 'Opening Night VIP',
@@ -353,7 +392,7 @@ async function seed() {
     ]);
 
     // Sunset Beats Sessions
-    await db.insert(eventSessions).values([
+    await insertSeatings([
       {
         eventId: sunsetBeatsEvent.id,
         titleEn: 'Friday Night',
@@ -405,7 +444,7 @@ async function seed() {
     ]);
 
     // Echoes of Tomorrow Sessions
-    await db.insert(eventSessions).values([
+    await insertSeatings([
       {
         eventId: echoesEvent.id,
         titleEn: 'Opening Night',
