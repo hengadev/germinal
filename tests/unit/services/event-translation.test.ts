@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { fillEnglish } from '../../../src/lib/server/services/event-translation';
+import { fillEnglish, followFrench, type FrenchEnglishPair } from '../../../src/lib/server/services/event-translation';
 import type { Translator } from '../../../src/lib/server/services/translator';
 
 /** Translates by tagging each text, and remembers what it was asked. */
@@ -99,5 +99,38 @@ describe('fillEnglish', () => {
 		expect(result.translationFailed).toBe(true);
 		expect(result.fields.titleEn).toBeNull();
 		expect(result.fields.venueNameEn).toBe('Maison');
+	});
+});
+
+describe('followFrench', () => {
+	const pair = (over: Partial<FrenchEnglishPair>): FrenchEnglishPair => ({
+		fr: 'Dîner',
+		en: null,
+		storedFr: null,
+		storedEn: null,
+		...over,
+	});
+
+	it('cuts a translation longer than its column', async () => {
+		const long = vi.fn<Translator>(async () => ['x'.repeat(300)]);
+		const { value } = await followFrench([pair({ maxLength: 255 })], long);
+		expect(value[0]).toHaveLength(255);
+	});
+
+	it('gives a required English the French when nothing translates it', async () => {
+		expect((await followFrench([pair({ required: true })], null)).value).toEqual(['Dîner']);
+		const failing = vi.fn<Translator>(async () => {
+			throw new Error('down');
+		});
+		const result = await followFrench([pair({ required: true })], failing);
+		expect(result).toMatchObject({ value: ['Dîner'], translationFailed: true });
+	});
+
+	it('translates a required English that is still a copy of the French', async () => {
+		const { value } = await followFrench(
+			[pair({ en: 'Dîner', storedFr: 'Dîner', storedEn: 'Dîner', required: true })],
+			fakeTranslator()
+		);
+		expect(value).toEqual(['EN(Dîner)']);
 	});
 });
