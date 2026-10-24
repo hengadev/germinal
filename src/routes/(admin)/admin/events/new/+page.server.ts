@@ -5,6 +5,7 @@ import { FULL_PAYMENT_DEPOSIT } from '$lib/utils/pricing';
 import { DEFAULT_REFUND_POLICY } from '$lib/utils/refund-policy';
 import { DEFAULT_EVENT_CURRENCY } from '$lib/utils/currency';
 import type { PricingEditorData } from '$lib/types/pricing-editor';
+import { isTranslationEnabled } from '$lib/server/services/translator';
 import type { PageServerLoad } from './$types';
 import { actions as eventActions } from '../[id]/+page.server';
 
@@ -47,6 +48,8 @@ export const load: PageServerLoad = async () => {
 		venueCapacity: null,
 		timeZones: listTimeZones(),
 		timeZoneLocked: false,
+		// The English is generated from the French on save (DeepL).
+		englishAuto: isTranslationEnabled(),
 	};
 };
 

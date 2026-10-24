@@ -34,7 +34,10 @@ import {
 	pricingHasContent,
 	readAskDietaryRequirements,
 	readEventTextFields,
+	type EventTextFields,
 } from '$lib/server/services/event-draft';
+import { fillEnglish } from '$lib/server/services/event-translation';
+import { getTranslator, isTranslationEnabled } from '$lib/server/services/translator';
 import type { CreateEventInput } from '$lib/types/events';
 import type { PricingPayload } from '$lib/types/pricing-editor';
 import type { EditorService } from '$lib/types/seatings-editor';
@@ -48,6 +51,19 @@ import { canBeSpotlight, canJoinPortfolio, parseVisibility, type Visibility } fr
 const SPOTLIGHT_REQUIRES_PUBLIC_MESSAGE = 'Seul un événement Public peut être mis en avant (Spotlight).';
 const PORTFOLIO_REQUIRES_OVER_MESSAGE =
 	'Un événement ne rejoint le Portfolio qu’une fois sa dernière séance commencée.';
+const TRANSLATION_FAILED_MESSAGE =
+	'Modifications enregistrées, mais la traduction anglaise a échoué : elle sera retentée au prochain enregistrement.';
+
+/** The Event's saved text fields, which the generated English is checked
+ * against (see event-translation.ts). */
+async function storedEventText(eventId: string): Promise<EventTextFields> {
+	const event = env.USE_MOCK_DATA
+		? MOCK_EVENTS.find((e) => e.id === eventId)
+		: await (await import('$lib/server/services/events')).getEventById(eventId, { withInternalNotes: true }).catch(() => undefined);
+	if (!event) return {};
+	const record = event as unknown as Record<string, string | null | undefined>;
+	return Object.fromEntries(EVENT_TEXT_FIELDS.map((field) => [field, record[field] ?? null]));
+}
 
 /**
  * When the Event's last Seating starts — what Event access needs to decide
@@ -419,7 +435,7 @@ export const load: PageServerLoad = async ({ params }) => {
 		const seatingStarts = sessions.map((s) => new Date(s.startTime).getTime());
 		const lastSeatingStart = seatingStarts.length > 0 ? new Date(Math.max(...seatingStarts)) : null;
 
-		return { event, sessions, reservations, promoCodes: [], talents, days, schedule, venueCapacity, pricing, timeZones: listTimeZones(), timeZoneLocked: reservations.length > 0, lastSeatingStart };
+		return { event, sessions, reservations, promoCodes: [], talents, days, schedule, venueCapacity, pricing, timeZones: listTimeZones(), timeZoneLocked: reservations.length > 0, lastSeatingStart, englishAuto: isTranslationEnabled() };
 	}
 
 	// Database mode - fetch from database
@@ -530,6 +546,8 @@ export const load: PageServerLoad = async ({ params }) => {
 			timeZones: listTimeZones(),
 			timeZoneLocked: reservationsData.length > 0,
 			lastSeatingStart,
+			// The English is generated from the French on save (DeepL).
+			englishAuto: isTranslationEnabled(),
 		};
 	} catch (err) {
 		if (err instanceof Error && err.message === 'Event not found') {
@@ -548,7 +566,17 @@ export const actions: Actions = {
 		const id = params.id ?? null;
 
 		const formData = await request.formData();
-		const textFields = readEventTextFields(formData);
+		// The English follows the French (DeepL), unless edited in this save.
+		const english = await fillEnglish(
+			readEventTextFields(formData),
+			id ? await storedEventText(id) : {},
+			getTranslator()
+		);
+		if (english.translationFailed) {
+			logger.error({ err: english.error, eventId: id }, 'Event English translation failed');
+		}
+		const textFields = english.fields;
+		const savedMessage = english.translationFailed ? TRANSLATION_FAILED_MESSAGE : 'Modifications enregistrées.';
 		// The Dietary Requirements switch, from « Infos pratiques » (issue 041).
 		const askDietaryRequirements = readAskDietaryRequirements(formData);
 		const fields = askDietaryRequirements === undefined ? textFields : { ...textFields, askDietaryRequirements };
@@ -618,7 +646,7 @@ export const actions: Actions = {
 				updatedAt: new Date()
 			} as typeof MOCK_EVENTS[number];
 
-			return { success: 'Modifications enregistrées (mode démo — non persistées)' };
+			return { success: `${savedMessage} (mode démo — non persistées)` };
 		}
 
 		// Database mode - use actual database functions
@@ -626,7 +654,7 @@ export const actions: Actions = {
 
 		try {
 			await updateEvent(id, { ...fields, ...publishing });
-			return { success: 'Modifications enregistrées.' };
+			return { success: savedMessage };
 		} catch (error) {
 			const { SpotlightRequiresPublicError, PortfolioRequiresOverEventError } = await import('$lib/server/services/events');
 			if (error instanceof SpotlightRequiresPublicError) {
