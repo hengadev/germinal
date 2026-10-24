@@ -165,6 +165,7 @@
 
 <script lang="ts">
 	import { AlertTriangle, CalendarDays, Plus, Trash2, UtensilsCrossed } from 'lucide-svelte';
+	import EnglishVersion, { getEnglishAuto } from '$lib/components/admin/EnglishVersion.svelte';
 	import { EVENT_CURRENCIES, formatCurrency } from '$lib/utils/currency';
 	import { formatDayKey } from '$lib/utils/event-time';
 	import type { PricingPayload } from '$lib/types/pricing-editor';
@@ -210,6 +211,8 @@
 		 * alongside (new-event form); else the saved count is shown. */
 		seatingCountOf?: (serviceId: string) => number;
 	} = $props();
+
+	const englishAuto = getEnglishAuto();
 
 	/** An empty price field: the price is not set yet. */
 	function isBlank(price: number | null | undefined | ''): boolean {
@@ -366,7 +369,8 @@
 			if (!menu.nameFr.trim()) {
 				return { id: `menu-${menu.key}-nameFr`, message: `Le menu ${index + 1} doit avoir un nom en français.` };
 			}
-			if (!menu.nameEn.trim()) {
+			// Generated from the French when translation is on.
+			if (!englishAuto && !menu.nameEn.trim()) {
 				return { id: `menu-${menu.key}-nameEn`, message: `Le menu ${index + 1} doit avoir un nom en anglais.` };
 			}
 		}
@@ -489,19 +493,7 @@
 					</div>
 					<div class="grid gap-3 lg:grid-cols-2">
 						<div>
-							<label for="menu-{menu.key}-nameEn" class={LABEL_CLASS}>Nom (anglais)</label>
-							<input
-								id="menu-{menu.key}-nameEn"
-								type="text"
-								maxlength="255"
-								required
-								bind:value={menu.nameEn}
-								placeholder="Tasting menu"
-								class={INPUT_CLASS}
-							/>
-						</div>
-						<div>
-							<label for="menu-{menu.key}-nameFr" class={LABEL_CLASS}>Nom (français)</label>
+							<label for="menu-{menu.key}-nameFr" class={LABEL_CLASS}>Nom</label>
 							<input
 								id="menu-{menu.key}-nameFr"
 								type="text"
@@ -512,18 +504,8 @@
 								class={INPUT_CLASS}
 							/>
 						</div>
-						<div>
-							<label for="menu-{menu.key}-descriptionEn" class={LABEL_CLASS}>Description (anglais, facultative)</label>
-							<textarea
-								id="menu-{menu.key}-descriptionEn"
-								rows="3"
-								maxlength="10000"
-								bind:value={menu.descriptionEn}
-								class="{INPUT_CLASS} resize-y"
-							></textarea>
-						</div>
-						<div>
-							<label for="menu-{menu.key}-descriptionFr" class={LABEL_CLASS}>Description (français, facultative)</label>
+						<div class="lg:col-span-2">
+							<label for="menu-{menu.key}-descriptionFr" class={LABEL_CLASS}>Description (facultative)</label>
 							<textarea
 								id="menu-{menu.key}-descriptionFr"
 								rows="3"
@@ -534,6 +516,31 @@
 							></textarea>
 						</div>
 					</div>
+					<EnglishVersion>
+						<div class="grid gap-3 lg:grid-cols-2">
+							<div>
+								<label for="menu-{menu.key}-nameEn" class={LABEL_CLASS}>Nom (anglais)</label>
+								<input
+									id="menu-{menu.key}-nameEn"
+									type="text"
+									maxlength="255"
+									bind:value={menu.nameEn}
+									placeholder="Tasting menu"
+									class={INPUT_CLASS}
+								/>
+							</div>
+							<div class="lg:col-span-2">
+								<label for="menu-{menu.key}-descriptionEn" class={LABEL_CLASS}>Description (anglais, facultative)</label>
+								<textarea
+									id="menu-{menu.key}-descriptionEn"
+									rows="3"
+									maxlength="10000"
+									bind:value={menu.descriptionEn}
+									class="{INPUT_CLASS} resize-y"
+								></textarea>
+							</div>
+						</div>
+					</EnglishVersion>
 				</div>
 			{/each}
 		</div>
@@ -732,20 +739,9 @@
 					</div>
 				</div>
 			{:else}
-				<div class="grid gap-3 lg:grid-cols-2">
+				<div class="space-y-3">
 					<div>
-						<label for="refund-textEn" class={LABEL_CLASS}>Conditions (anglais)</label>
-						<textarea
-							id="refund-textEn"
-							rows="3"
-							maxlength={MAX_REFUND_POLICY_TEXT}
-							bind:value={refund.textEn}
-							placeholder="Refunds are handled case by case — contact us."
-							class="{INPUT_CLASS} resize-y"
-						></textarea>
-					</div>
-					<div>
-						<label for="refund-textFr" class={LABEL_CLASS}>Conditions (français)</label>
+						<label for="refund-textFr" class={LABEL_CLASS}>Conditions</label>
 						<textarea
 							id="refund-textFr"
 							rows="3"
@@ -755,7 +751,20 @@
 							class="{INPUT_CLASS} resize-y"
 						></textarea>
 					</div>
-					<p class="text-xs text-muted-foreground lg:col-span-2">
+					<EnglishVersion>
+						<div>
+							<label for="refund-textEn" class={LABEL_CLASS}>Conditions (anglais)</label>
+							<textarea
+								id="refund-textEn"
+								rows="3"
+								maxlength={MAX_REFUND_POLICY_TEXT}
+								bind:value={refund.textEn}
+								placeholder="Refunds are handled case by case — contact us."
+								class="{INPUT_CLASS} resize-y"
+							></textarea>
+						</div>
+					</EnglishVersion>
+					<p class="text-xs text-muted-foreground">
 						Si une langue est vide, l’autre est affichée ; si les deux sont vides, rien n’est affiché aux convives.
 					</p>
 				</div>

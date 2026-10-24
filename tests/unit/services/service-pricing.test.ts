@@ -69,6 +69,12 @@ describe('parsePricingPayload', () => {
 		expect(result.payload.services[0]).toMatchObject({ menuKey: 'new-0' });
 	});
 
+	it('accepts a Menu without an English name: it is generated from the French', () => {
+		const result = parse({ menus: [menu({ nameEn: ' ' })], services: [] });
+		if (!result.ok) throw new Error('expected ok');
+		expect(result.payload.menus[0].nameEn).toBe('');
+	});
+
 	it('takes one currency for the Event, normalised, and none per Service (issue 042)', () => {
 		const result = parse({ menus: [menu()], services: [service()], currency: ' chf ' });
 		if (!result.ok) throw new Error('expected ok');
@@ -85,7 +91,6 @@ describe('parsePricingPayload', () => {
 		['a missing payload', null, 'missing'],
 		['a non-object', [], 'malformed'],
 		['a Menu without a French name', { menus: [menu({ nameFr: ' ' })], services: [] }, 'menu-name'],
-		['a Menu without an English name', { menus: [menu({ nameEn: '' })], services: [] }, 'menu-name'],
 		['duplicate Menu keys', { menus: [menu(), menu({ id: null })], services: [] }, 'menu'],
 		['a Service naming an unknown Menu', { menus: [], services: [service({ menuKey: 'nope' })] }, 'menu'],
 		['a duplicate Service', { menus: [menu()], services: [service(), service()] }, 'service'],

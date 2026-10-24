@@ -7,6 +7,11 @@
 	export function setEnglishAuto(enabled: () => boolean): void {
 		setContext(KEY, enabled);
 	}
+
+	/** Whether the English is generated; call while a component initialises. */
+	export function getEnglishAuto(): boolean {
+		return getContext<(() => boolean) | undefined>(KEY)?.() ?? false;
+	}
 </script>
 
 <script lang="ts">
@@ -18,7 +23,7 @@
 
 	let { children }: { children: Snippet } = $props();
 
-	const englishAuto = getContext<(() => boolean) | undefined>(KEY)?.() ?? false;
+	const englishAuto = getEnglishAuto();
 </script>
 
 <details class="group rounded-lg border border-border-card" open={!englishAuto}>

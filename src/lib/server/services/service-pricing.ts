@@ -173,7 +173,7 @@ function optionalText(value: unknown, maxLength: number): string | null | false 
 
 /**
  * Parse the payload posted by the « Menus & tarifs » tab: the Event's Menus
- * (EN/FR name required, descriptions optional) and each Service's Menu and
+ * (FR name required, EN name and descriptions optional) and each Service's Menu and
  * price (whole minor units, zero allowed, or null for “not set yet”), and
  * the Event's currency (issue 042; absent, it is left as is).
  * Returns a failure reason the admin form maps to French copy.
@@ -210,7 +210,9 @@ export function parsePricingPayload(raw: string | null): PricingParseResult {
 		if (menu.id !== null && (typeof menu.id !== 'string' || !UUID_PATTERN.test(menu.id) || menuIds.has(menu.id))) {
 			return { ok: false, reason: 'menu' };
 		}
-		const nameEn = requiredText(menu.nameEn, 255);
+		// The English name may be left blank: it is generated from the
+		// French (pricing-translation.ts) before the Menu is saved.
+		const nameEn = optionalText(menu.nameEn, 255);
 		const nameFr = requiredText(menu.nameFr, 255);
 		if (nameEn === false || nameFr === false) {
 			return { ok: false, reason: 'menu-name' };
@@ -225,7 +227,7 @@ export function parsePricingPayload(raw: string | null): PricingParseResult {
 		parsedMenus.push({
 			key: menu.key,
 			id: menu.id as string | null,
-			nameEn,
+			nameEn: nameEn ?? '',
 			nameFr,
 			descriptionEn,
 			descriptionFr,
@@ -352,7 +354,7 @@ export function pricingPayloadErrorMessage(reason: PricingParseFailure): string 
 		case 'menu':
 			return 'Un des menus soumis est invalide.';
 		case 'menu-name':
-			return 'Chaque menu doit avoir un nom en anglais et en français (255 caractères au plus).';
+			return 'Chaque menu doit avoir un nom en français ; un nom compte 255 caractères au plus.';
 		case 'service':
 			return 'Un des repas soumis est invalide.';
 		case 'price':

@@ -37,6 +37,7 @@ import {
 	type EventTextFields,
 } from '$lib/server/services/event-draft';
 import { fillEnglish } from '$lib/server/services/event-translation';
+import { translatePricing, type StoredPricingText } from '$lib/server/services/pricing-translation';
 import { getTranslator, isTranslationEnabled } from '$lib/server/services/translator';
 import type { CreateEventInput } from '$lib/types/events';
 import type { PricingPayload } from '$lib/types/pricing-editor';
@@ -175,6 +176,15 @@ async function createDraft(input: CreateEventInput): Promise<string> {
 	return createDraftEvent(input);
 }
 
+/** « Menus & tarifs » with its English generated from the French (DeepL). */
+async function englishPricing(payload: PricingPayload, stored: StoredPricingText | null, eventId: string | null) {
+	const english = await translatePricing(payload, stored, getTranslator());
+	if (english.translationFailed) {
+		logger.error({ err: english.error, eventId }, 'Pricing English translation failed');
+	}
+	return english;
+}
+
 /** Where a new Event's first save lands: the Draft's own page. */
 function draftPage(id: string): string {
 	return `/admin/events/${id}`;
@@ -224,7 +234,8 @@ async function saveNewEventSchedule(formData: FormData) {
 		if (!parsedPricing.ok) {
 			return fail(400, { error: pricingPayloadErrorMessage(parsedPricing.reason) });
 		}
-		pricing = parsedPricing.payload;
+		// A new Event: nothing is saved yet to compare the French with.
+		pricing = (await englishPricing(parsedPricing.payload, null, null)).value;
 	}
 	if (!refersOnlyTo(seatingServices, refs) || (pricing && !refersOnlyTo(pricing.services, refs))) {
 		return fail(400, { error: SERVICE_REFS_MISMATCH_MESSAGE });
@@ -927,8 +938,14 @@ export const actions: Actions = {
 		}
 
 		try {
-			await savePricing(id, parsed.payload);
-			return { success: 'Menus et tarifs enregistrés.' };
+			const { loadPricingEditor } = await import('$lib/server/services/service-pricing');
+			const english = await englishPricing(parsed.payload, await loadPricingEditor(id), id);
+			await savePricing(id, english.value);
+			return {
+				success: english.translationFailed
+					? 'Menus et tarifs enregistrés, mais la traduction anglaise a échoué : elle sera retentée au prochain enregistrement.'
+					: 'Menus et tarifs enregistrés.',
+			};
 		} catch (err) {
 			if (err instanceof ScheduleSaveRefusedError) {
 				return fail(400, { error: err.message });
