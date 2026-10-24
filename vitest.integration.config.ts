@@ -3,6 +3,9 @@ import path from 'path';
 
 export default defineConfig({
 	test: {
+		// Never call DeepL from tests, whatever the developer's .env holds
+		// (dotenv does not override a variable that is already set).
+		env: { DEEPL_API_KEY: '' },
 		globals: true,
 		// Integration tests hit a real database — no jsdom needed
 		environment: 'node',

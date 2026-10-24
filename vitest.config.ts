@@ -5,6 +5,9 @@ import path from 'path';
 export default defineConfig({
 	plugins: [svelte({ hot: !process.env.VITEST })],
 	test: {
+		// Never call DeepL from tests, whatever the developer's .env holds
+		// (dotenv does not override a variable that is already set).
+		env: { DEEPL_API_KEY: '' },
 		globals: true,
 		environment: 'jsdom',
 		setupFiles: ['./tests/setup.ts'],
