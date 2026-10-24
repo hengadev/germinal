@@ -61,7 +61,8 @@ const createTalent = vi.hoisted(() => vi.fn(async (data: unknown) => ({ id: 'new
 const updateTalent = vi.hoisted(() => vi.fn(async () => undefined));
 
 vi.mock('$lib/server/env', () => ({ env: { USE_MOCK_DATA: false } }));
-vi.mock('$lib/server/services/talents', () => ({ createTalent, updateTalent }));
+// No saved Talent to compare with: the form's English is kept as posted.
+vi.mock('$lib/server/services/talents', () => ({ createTalent, updateTalent, getTalentById: vi.fn(async () => null) }));
 vi.mock('$lib/server/services/media', () => ({ deleteMedia: vi.fn() }));
 vi.mock('$lib/server/db', () => ({ db: { update: vi.fn() } }));
 

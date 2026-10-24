@@ -3,8 +3,21 @@ import { requireAdmin } from '$lib/server/auth-guards';
 import { logger } from '$lib/server/logger';
 import { env } from '$lib/server/env';
 import { MOCK_TALENTS, MOCK_TALENT_CATEGORIES } from '$lib/mock-data';
-import { parseTalentForm, talentFormIdsSchema } from '$lib/server/validators/talents';
+import { parseTalentForm, talentFormIdsSchema, type TalentFormFields } from '$lib/server/validators/talents';
+import { translateTalent, type TalentText } from '$lib/server/services/talent-translation';
+import { getTranslator, isTranslationEnabled } from '$lib/server/services/translator';
 import type { PageServerLoad } from './$types';
+
+/** The form's fields with their English generated from the French (DeepL). */
+async function withEnglish(fields: TalentFormFields, stored: TalentText | null) {
+	const english = await translateTalent(fields, stored, getTranslator());
+	if (english.translationFailed) {
+		logger.error({ err: english.error }, 'Talent English translation failed');
+	}
+	return english;
+}
+
+const TRANSLATION_FAILED = ' (la traduction anglaise a échoué : elle sera retentée au prochain enregistrement)';
 
 export const load: PageServerLoad = async ({ params }) => {
 	const { id } = params;
@@ -53,7 +66,7 @@ export const load: PageServerLoad = async ({ params }) => {
 		categories = categoriesData;
 	}
 
-	return { talent, categories };
+	return { talent, categories, englishAuto: isTranslationEnabled() };
 };
 
 export const actions: Actions = {
@@ -77,8 +90,17 @@ export const actions: Actions = {
 		if (!form.success) {
 			return fail(400, { error: form.error });
 		}
-		const fields = form.data;
-		const { firstName, lastName } = fields;
+		const { firstName, lastName } = form.data;
+		let stored: TalentText | null = null;
+		if (env.USE_MOCK_DATA) {
+			stored = MOCK_TALENTS.find((t) => t.id === id) ?? null;
+		} else {
+			const { getTalentById } = await import('$lib/server/services/talents');
+			stored = await getTalentById(id).catch(() => null);
+		}
+		const english = await withEnglish(form.data, stored);
+		const fields = english.value;
+		const note = english.translationFailed ? TRANSLATION_FAILED : '';
 
 		if (env.USE_MOCK_DATA) {
 			// Mock mode - update in mock data array (not persisted)
@@ -98,7 +120,7 @@ export const actions: Actions = {
 				updatedAt: new Date()
 			} as typeof MOCK_TALENTS[number];
 
-			return { success: `Talent « ${firstName} ${lastName} » mis à jour (mode démo, non enregistré)` };
+			return { success: `Talent « ${firstName} ${lastName} » mis à jour (mode démo, non enregistré)${note}` };
 		}
 
 		// Database mode - use actual database functions
@@ -151,7 +173,7 @@ export const actions: Actions = {
 				}
 			}
 
-			return { success: `Talent « ${firstName} ${lastName} » mis à jour` };
+			return { success: `Talent « ${firstName} ${lastName} » mis à jour${note}` };
 		} catch (error) {
 			logger.error({ err: error }, 'Error updating talent');
 			return fail(500, { error: 'Échec de la mise à jour du talent' });

@@ -65,8 +65,13 @@ export const createTalentSchema = z.object({
 
 export const updateTalentSchema = createTalentSchema.partial();
 
-/** The Talent form's content fields; ids are validated by the caller (mock ids aren't UUIDs). */
-const talentFormSchema = createTalentSchema.omit({ profileMediaId: true, categoryId: true });
+/** The Talent form's content fields; ids are validated by the caller (mock ids aren't UUIDs).
+ * The English role and bio may be left blank: they are generated from the
+ * French (talent-translation.ts). */
+const talentFormSchema = createTalentSchema.omit({ profileMediaId: true, categoryId: true }).extend({
+  roleEn: z.string().max(150).optional(),
+  bioEn: z.string().optional(),
+});
 
 /**
  * Parse the admin Talent create/edit form through the same schema as the
@@ -88,9 +93,9 @@ export function parseTalentForm(formData: FormData) {
   const parsed = talentFormSchema.safeParse({
     firstName: text('firstName') ?? '',
     lastName: text('lastName') ?? '',
-    roleEn: text('roleEn') ?? '',
+    roleEn: text('roleEn'),
     roleFr: text('roleFr') ?? '',
-    bioEn: text('bioEn') ?? '',
+    bioEn: text('bioEn'),
     bioFr: text('bioFr') ?? '',
     city: text('city'),
     country: text('country'),
@@ -110,3 +115,5 @@ export function parseTalentForm(formData: FormData) {
 
 /** Validate the Talent form's category/profile media ids as the API does. */
 export const talentFormIdsSchema = createTalentSchema.pick({ profileMediaId: true, categoryId: true });
+
+export type TalentFormFields = Extract<ReturnType<typeof parseTalentForm>, { success: true }>['data'];

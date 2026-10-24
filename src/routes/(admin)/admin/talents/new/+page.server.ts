@@ -3,16 +3,30 @@ import { requireAdmin } from '$lib/server/auth-guards';
 import { logger } from '$lib/server/logger';
 import { env } from '$lib/server/env';
 import { MOCK_TALENTS, MOCK_TALENT_CATEGORIES } from '$lib/mock-data';
-import { parseTalentForm, talentFormIdsSchema } from '$lib/server/validators/talents';
+import { parseTalentForm, talentFormIdsSchema, type TalentFormFields } from '$lib/server/validators/talents';
+import { translateTalent, type TalentText } from '$lib/server/services/talent-translation';
+import { getTranslator, isTranslationEnabled } from '$lib/server/services/translator';
 import type { PageServerLoad } from './$types';
 
+/** The form's fields with their English generated from the French (DeepL). */
+async function withEnglish(fields: TalentFormFields, stored: TalentText | null) {
+	const english = await translateTalent(fields, stored, getTranslator());
+	if (english.translationFailed) {
+		logger.error({ err: english.error }, 'Talent English translation failed');
+	}
+	return english;
+}
+
+const TRANSLATION_FAILED = ' (la traduction anglaise a échoué : elle sera retentée au prochain enregistrement)';
+
 export const load: PageServerLoad = async () => {
+	const englishAuto = isTranslationEnabled();
 	if (env.USE_MOCK_DATA) {
-		return { categories: MOCK_TALENT_CATEGORIES };
+		return { categories: MOCK_TALENT_CATEGORIES, englishAuto };
 	}
 	const { getAllTalentCategories } = await import('$lib/server/services/talent-categories');
 	const categories = await getAllTalentCategories({ publishedOnly: true });
-	return { categories };
+	return { categories, englishAuto };
 };
 
 export const actions: Actions = {
@@ -25,7 +39,9 @@ export const actions: Actions = {
 		if (!form.success) {
 			return fail(400, { error: form.error });
 		}
-		const fields = form.data;
+		const english = await withEnglish(form.data, null);
+		const fields = english.value;
+		const note = english.translationFailed ? TRANSLATION_FAILED : '';
 		const { firstName, lastName } = fields;
 		const profileMediaId = (formData.get('profileMediaId') as string | null) || null;
 		const categoryId = (formData.get('categoryId') as string | null) || null;
@@ -57,7 +73,7 @@ export const actions: Actions = {
 
 			MOCK_TALENTS.push(newTalent);
 
-			return { success: `Talent « ${firstName} ${lastName} » ajouté (mode démo, non enregistré)` };
+			return { success: `Talent « ${firstName} ${lastName} » ajouté (mode démo, non enregistré)${note}` };
 		}
 
 		// Database mode - use actual database functions
@@ -86,7 +102,7 @@ export const actions: Actions = {
 					.where(eq(media.id, profileMediaId));
 			}
 
-			return { success: `Talent « ${firstName} ${lastName} » ajouté` };
+			return { success: `Talent « ${firstName} ${lastName} » ajouté${note}` };
 		} catch (error) {
 			logger.error({ err: error }, 'Error creating talent');
 			return fail(500, { error: 'Échec de la création du talent' });
