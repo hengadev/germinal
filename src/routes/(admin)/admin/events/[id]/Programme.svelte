@@ -5,6 +5,7 @@
 	import { enhance } from '$app/forms';
 	import { getToastContext } from '$lib/components/toast/state.svelte';
 	import { handleTabResult, type EditorEvent } from './editor-forms';
+	import EnglishVersion from '$lib/components/admin/EnglishVersion.svelte';
 
 	let {
 		event,
@@ -21,7 +22,11 @@
 		saving = true;
 		return async ({ result, formElement }: { result: import('@sveltejs/kit').ActionResult; formElement: HTMLFormElement }) => {
 			saving = false;
-			await handleTabResult(result, toast, 'Modifications enregistrées', formElement);
+			if (await handleTabResult(result, toast, 'Modifications enregistrées', formElement)) {
+				// The English may have been generated from the French on save.
+				curatorEn = event?.curatorEn ?? '';
+				admissionInfoEn = event?.admissionInfoEn ?? '';
+			}
 		};
 	}
 
@@ -137,64 +142,28 @@
         <!-- Event Details -->
         <div class="space-y-4">
             <h3 class="text-sm font-medium text-foreground-alt">Détails Supplémentaires (Optionnel)</h3>
-
             <div>
-                <label for="curatorEn" class="block text-sm font-medium text-foreground-alt mb-2">
-                    Commissaire (Anglais)
-                </label>
-                <input
-                    id="curatorEn"
-                    name="curatorEn"
-                    type="text"
-                    bind:value={curatorEn}
-                    placeholder="ex: John Smith"
-                    class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
-                />
+                <label for="curatorFr" class="block text-sm font-medium text-foreground-alt mb-2">Commissaire</label>
+                <input id="curatorFr" name="curatorFr" type="text" bind:value={curatorFr} placeholder="ex: Jeanne Martin" class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm" />
             </div>
 
             <div>
-                <label for="curatorFr" class="block text-sm font-medium text-foreground-alt mb-2">
-                    Commissaire (Français)
-                </label>
-                <input
-                    id="curatorFr"
-                    name="curatorFr"
-                    type="text"
-                    bind:value={curatorFr}
-                    placeholder="ex: Jean Smith"
-                    class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
-                />
+                <label for="admissionInfoFr" class="block text-sm font-medium text-foreground-alt mb-2">Informations d'admission</label>
+                <input id="admissionInfoFr" name="admissionInfoFr" type="text" bind:value={admissionInfoFr} placeholder="ex: Gratuit, 25 €, membres seulement" class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm" />
             </div>
 
-            <div>
-                <label for="admissionInfoEn" class="block text-sm font-medium text-foreground-alt mb-2">
-                    Informations d'Admission (Anglais)
-                </label>
-                <input
-                    id="admissionInfoEn"
-                    name="admissionInfoEn"
-                    type="text"
-                    bind:value={admissionInfoEn}
-                    placeholder="ex: Free, $25, Members Only"
-                    class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
-                />
-            </div>
+            <EnglishVersion>
+                <div>
+                    <label for="curatorEn" class="block text-sm font-medium text-foreground-alt mb-2">Commissaire (Anglais)</label>
+                    <input id="curatorEn" name="curatorEn" type="text" bind:value={curatorEn} placeholder="ex: Jeanne Martin" class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm" />
+                </div>
 
-            <div>
-                <label for="admissionInfoFr" class="block text-sm font-medium text-foreground-alt mb-2">
-                    Informations d'Admission (Français)
-                </label>
-                <input
-                    id="admissionInfoFr"
-                    name="admissionInfoFr"
-                    type="text"
-                    bind:value={admissionInfoFr}
-                    placeholder="ex: Gratuit, 25$, Membres seulement"
-                    class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
-                />
-            </div>
+                <div>
+                    <label for="admissionInfoEn" class="block text-sm font-medium text-foreground-alt mb-2">Informations d'admission (Anglais)</label>
+                    <input id="admissionInfoEn" name="admissionInfoEn" type="text" bind:value={admissionInfoEn} placeholder="ex: Free, €25, members only" class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm" />
+                </div>
+            </EnglishVersion>
         </div>
-
 
         <div class="flex flex-col sm:flex-row sm:items-center gap-3 pt-4 border-t border-border-card">
             <button

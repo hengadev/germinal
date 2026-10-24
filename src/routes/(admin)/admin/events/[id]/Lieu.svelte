@@ -7,6 +7,7 @@
 	import { handleTabResult, type EditorEvent } from './editor-forms';
 	import { MapPin } from 'lucide-svelte';
 	import TimeZoneField from '$lib/components/admin/TimeZoneField.svelte';
+	import EnglishVersion from '$lib/components/admin/EnglishVersion.svelte';
 
 	let {
 		event,
@@ -28,7 +29,15 @@
 		saving = true;
 		return async ({ result, formElement }: { result: import('@sveltejs/kit').ActionResult; formElement: HTMLFormElement }) => {
 			saving = false;
-			await handleTabResult(result, toast, 'Modifications enregistrées', formElement);
+			if (await handleTabResult(result, toast, 'Modifications enregistrées', formElement)) {
+				// The English may have been generated from the French on save.
+				locationEn = event?.locationEn ?? '';
+				venueNameEn = event?.venueNameEn ?? '';
+				streetAddressEn = event?.streetAddressEn ?? '';
+				districtEn = event?.districtEn ?? '';
+				cityEn = event?.cityEn ?? '';
+				countryEn = event?.countryEn ?? '';
+			}
 		};
 	}
 
@@ -49,211 +58,82 @@
 
 <div class="bg-background rounded-lg border border-border-card p-6 lg:p-8">
     <form method="POST" action="?/updateEvent" use:enhance={saveEnhance} class="space-y-6">
- <!-- Lieu (English) -->
- <div>
- <label for="locationEn" class="block text-sm font-medium text-foreground-alt mb-2">
- Lieu (Anglais)
- </label>
- <div class="relative">
- <MapPin
- size={18}
- class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
- />
- <input
- id="locationEn"
- name="locationEn"
- type="text"
- bind:value={locationEn}
- placeholder="Central Park, New York"
- class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent"
- />
- </div>
- </div>
+        <div>
+            <label for="locationFr" class="block text-sm font-medium text-foreground-alt mb-2">Lieu</label>
+            <div class="relative">
+                <MapPin size={18} class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <input id="locationFr" name="locationFr" type="text" bind:value={locationFr} placeholder="ex: Jardin du Palais-Royal, Paris" class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent" />
+            </div>
+        </div>
 
- <!-- Lieu (French) -->
- <div>
- <label for="locationFr" class="block text-sm font-medium text-foreground-alt mb-2">
- Lieu (Français)
- </label>
- <div class="relative">
- <MapPin
- size={18}
- class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
- />
- <input
- id="locationFr"
- name="locationFr"
- type="text"
- bind:value={locationFr}
- placeholder="Central Park, New York"
- class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent"
- />
- </div>
- </div>
+        <!-- Venue Details -->
+        <div class="space-y-4">
+            <h3 class="text-sm font-medium text-foreground-alt">Détails du lieu (Optionnel)</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="venueNameFr" class="block text-sm font-medium text-foreground-alt mb-2">Nom du lieu</label>
+                    <input id="venueNameFr" name="venueNameFr" type="text" bind:value={venueNameFr} placeholder="ex: Maison Lenoir" class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm" />
+                </div>
+                <div>
+                    <label for="streetAddressFr" class="block text-sm font-medium text-foreground-alt mb-2">Adresse</label>
+                    <input id="streetAddressFr" name="streetAddressFr" type="text" bind:value={streetAddressFr} placeholder="ex: 12 rue de Rivoli" class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm" />
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="districtFr" class="block text-sm font-medium text-foreground-alt mb-2">Quartier</label>
+                    <input id="districtFr" name="districtFr" type="text" bind:value={districtFr} placeholder="ex: Le Marais" class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm" />
+                </div>
+                <div>
+                    <label for="postalCode" class="block text-sm font-medium text-foreground-alt mb-2">Code postal</label>
+                    <input id="postalCode" name="postalCode" type="text" bind:value={postalCode} placeholder="ex: 75004" class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm" />
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="cityFr" class="block text-sm font-medium text-foreground-alt mb-2">Ville</label>
+                    <input id="cityFr" name="cityFr" type="text" bind:value={cityFr} placeholder="ex: Paris" class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm" />
+                </div>
+                <div>
+                    <label for="countryFr" class="block text-sm font-medium text-foreground-alt mb-2">Pays</label>
+                    <input id="countryFr" name="countryFr" type="text" bind:value={countryFr} placeholder="ex: France" class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm" />
+                </div>
+            </div>
+        </div>
 
- <!-- Venue Details -->
- <div class="space-y-4">
- <h3 class="text-sm font-medium text-foreground-alt">Détails du Lieu (Optionnel)</h3>
-
- <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
- <div>
- <label for="venueNameEn" class="block text-sm font-medium text-foreground-alt mb-2">
- Nom du Lieu (Anglais)
- </label>
- <input
- id="venueNameEn"
- name="venueNameEn"
- type="text"
- bind:value={venueNameEn}
- placeholder="ex: Central Convention Center"
- class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
- />
- </div>
- <div>
- <label for="venueNameFr" class="block text-sm font-medium text-foreground-alt mb-2">
- Nom du Lieu (Français)
- </label>
- <input
- id="venueNameFr"
- name="venueNameFr"
- type="text"
- bind:value={venueNameFr}
- placeholder="ex: Centre de Conventions Central"
- class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
- />
- </div>
- </div>
-
- <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
- <div>
- <label for="streetAddressEn" class="block text-sm font-medium text-foreground-alt mb-2">
- Adresse Rue (Anglais)
- </label>
- <input
- id="streetAddressEn"
- name="streetAddressEn"
- type="text"
- bind:value={streetAddressEn}
- placeholder="ex: 123 Main Street"
- class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
- />
- </div>
- <div>
- <label for="streetAddressFr" class="block text-sm font-medium text-foreground-alt mb-2">
- Adresse Rue (Français)
- </label>
- <input
- id="streetAddressFr"
- name="streetAddressFr"
- type="text"
- bind:value={streetAddressFr}
- placeholder="ex: 123 rue Principale"
- class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
- />
- </div>
- </div>
-
- <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
- <div>
- <label for="districtEn" class="block text-sm font-medium text-foreground-alt mb-2">
- District (Anglais)
- </label>
- <input
- id="districtEn"
- name="districtEn"
- type="text"
- bind:value={districtEn}
- placeholder="ex: Downtown"
- class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
- />
- </div>
- <div>
- <label for="districtFr" class="block text-sm font-medium text-foreground-alt mb-2">
- District (Français)
- </label>
- <input
- id="districtFr"
- name="districtFr"
- type="text"
- bind:value={districtFr}
- placeholder="ex: Centre-ville"
- class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
- />
- </div>
- </div>
-
- <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
- <div>
- <label for="cityEn" class="block text-sm font-medium text-foreground-alt mb-2">
- Ville (Anglais)
- </label>
- <input
- id="cityEn"
- name="cityEn"
- type="text"
- bind:value={cityEn}
- placeholder="ex: Tokyo"
- class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
- />
- </div>
- <div>
- <label for="cityFr" class="block text-sm font-medium text-foreground-alt mb-2">
- Ville (Français)
- </label>
- <input
- id="cityFr"
- name="cityFr"
- type="text"
- bind:value={cityFr}
- placeholder="ex: Tokyo"
- class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
- />
- </div>
- <div>
- <label for="postalCode" class="block text-sm font-medium text-foreground-alt mb-2">
- Code Postal
- </label>
- <input
- id="postalCode"
- name="postalCode"
- type="text"
- bind:value={postalCode}
- placeholder="ex: 12345"
- class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
- />
- </div>
- </div>
-
- <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
- <div>
- <label for="countryEn" class="block text-sm font-medium text-foreground-alt mb-2">
- Pays (Anglais)
- </label>
- <input
- id="countryEn"
- name="countryEn"
- type="text"
- bind:value={countryEn}
- placeholder="ex: Japan"
- class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
- />
- </div>
- <div>
- <label for="countryFr" class="block text-sm font-medium text-foreground-alt mb-2">
- Pays (Français)
- </label>
- <input
- id="countryFr"
- name="countryFr"
- type="text"
- bind:value={countryFr}
- placeholder="ex: Japon"
- class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
- />
- </div>
- </div>
- </div>
-
+        <EnglishVersion>
+            <div>
+                <label for="locationEn" class="block text-sm font-medium text-foreground-alt mb-2">Lieu (Anglais)</label>
+                <div class="relative">
+                    <MapPin size={18} class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <input id="locationEn" name="locationEn" type="text" bind:value={locationEn} placeholder="ex: Palais-Royal Garden, Paris" class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent" />
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="venueNameEn" class="block text-sm font-medium text-foreground-alt mb-2">Nom du lieu (Anglais)</label>
+                    <input id="venueNameEn" name="venueNameEn" type="text" bind:value={venueNameEn} placeholder="ex: Maison Lenoir" class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm" />
+                </div>
+                <div>
+                    <label for="streetAddressEn" class="block text-sm font-medium text-foreground-alt mb-2">Adresse (Anglais)</label>
+                    <input id="streetAddressEn" name="streetAddressEn" type="text" bind:value={streetAddressEn} placeholder="ex: 12 rue de Rivoli" class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm" />
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label for="districtEn" class="block text-sm font-medium text-foreground-alt mb-2">Quartier (Anglais)</label>
+                    <input id="districtEn" name="districtEn" type="text" bind:value={districtEn} placeholder="ex: Le Marais" class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm" />
+                </div>
+                <div>
+                    <label for="cityEn" class="block text-sm font-medium text-foreground-alt mb-2">Ville (Anglais)</label>
+                    <input id="cityEn" name="cityEn" type="text" bind:value={cityEn} placeholder="ex: Paris" class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm" />
+                </div>
+                <div>
+                    <label for="countryEn" class="block text-sm font-medium text-foreground-alt mb-2">Pays (Anglais)</label>
+                    <input id="countryEn" name="countryEn" type="text" bind:value={countryEn} placeholder="ex: France" class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm" />
+                </div>
+            </div>
+        </EnglishVersion>
 
         <!-- Time Zone of the venue (ADR 0006) -->
         <TimeZoneField bind:value={timeZone} {zones} {locked} />

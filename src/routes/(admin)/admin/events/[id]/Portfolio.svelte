@@ -15,6 +15,7 @@
 	import { mediaAlt } from '$lib/utils/media-alt';
 	import { canJoinPortfolio } from '$lib/utils/event-access';
 	import { handleTabResult, type EditorEvent } from './editor-forms';
+	import EnglishVersion from '$lib/components/admin/EnglishVersion.svelte';
 
 	let {
 		event,
@@ -41,7 +42,10 @@
 		savingRecap = true;
 		return async ({ result, formElement }: { result: import('@sveltejs/kit').ActionResult; formElement: HTMLFormElement }) => {
 			savingRecap = false;
-			await handleTabResult(result, toast, 'Récap enregistré', formElement);
+			if (await handleTabResult(result, toast, 'Récap enregistré', formElement)) {
+				// The English may have been generated from the French on save.
+				recapEn = event?.recapEn ?? '';
+			}
 		};
 	}
 
@@ -183,7 +187,7 @@
 			</div>
 
 			<div>
-				<label for="recapFr" class="block text-sm font-medium text-foreground-alt mb-2">Récap (Français)</label>
+				<label for="recapFr" class="block text-sm font-medium text-foreground-alt mb-2">Récap</label>
 				<textarea
 					id="recapFr"
 					name="recapFr"
@@ -193,17 +197,19 @@
 				></textarea>
 			</div>
 
-			<div>
-				<label for="recapEn" class="block text-sm font-medium text-foreground-alt mb-2">Récap (Anglais)</label>
-				<textarea
-					id="recapEn"
-					name="recapEn"
-					bind:value={recapEn}
-					rows="7"
-					class="w-full px-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent resize-y"
-				></textarea>
-				<p class="text-xs text-muted-foreground mt-2">Une langue manquante retombe sur l’autre.</p>
-			</div>
+			<EnglishVersion>
+				<div>
+					<label for="recapEn" class="block text-sm font-medium text-foreground-alt mb-2">Récap (Anglais)</label>
+					<textarea
+						id="recapEn"
+						name="recapEn"
+						bind:value={recapEn}
+						rows="7"
+						class="w-full px-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent resize-y"
+					></textarea>
+					<p class="text-xs text-muted-foreground mt-2">Une langue manquante retombe sur l’autre.</p>
+				</div>
+			</EnglishVersion>
 
 			<div class="flex pt-4 border-t border-border-card">
 				<button

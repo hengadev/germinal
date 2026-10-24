@@ -19,6 +19,7 @@
 	import DuplicateEventDialog from '$lib/components/admin/DuplicateEventDialog.svelte';
 	import { servedKinds } from '$lib/utils/schedule-pattern';
 	import { EDITOR_SAVED_EVENT, LeaveGuard, type EditorSavedDetail } from '$lib/utils/leave-guard';
+	import { setEnglishAuto } from '$lib/components/admin/EnglishVersion.svelte';
 
 	import Essentiel from './Essentiel.svelte';
 	import Lieu from './Lieu.svelte';
@@ -36,6 +37,8 @@
 	let { data, form = null }: { data: EventPageData | NewEventPageData; form?: ActionData } = $props();
 
 	const toast = getToastContext();
+	// Whether each tab's « Version anglaise » is generated or typed by hand.
+	setEnglishAuto(() => data.englishAuto ?? false);
 
 	// Toasts for the operational tabs, whose forms update `form`.
 	$effect(() => {

@@ -8,6 +8,7 @@
 	import { enhance } from '$app/forms';
 	import { getToastContext } from '$lib/components/toast/state.svelte';
 	import { handleTabResult, type EditorEvent } from './editor-forms';
+	import EnglishVersion from '$lib/components/admin/EnglishVersion.svelte';
 
 	let { event }: { event: EditorEvent | null } = $props();
 
@@ -18,7 +19,10 @@
 		saving = true;
 		return async ({ result }: { result: import('@sveltejs/kit').ActionResult }) => {
 			saving = false;
-			await handleTabResult(result, toast, 'Modifications enregistrées');
+			if (await handleTabResult(result, toast, 'Modifications enregistrées')) {
+				// The English may have been generated from the French on save.
+				practicalInfoEn = event?.practicalInfoEn ?? '';
+			}
 		};
 	}
 
@@ -42,7 +46,7 @@
 		<!-- Infos pratiques (Français) -->
 		<div>
 			<label for="practicalInfoFr" class="block text-sm font-medium text-foreground-alt mb-2">
-				Infos pratiques (Français)
+				Infos pratiques
 			</label>
 			<textarea
 				id="practicalInfoFr"
@@ -54,23 +58,24 @@
 			></textarea>
 		</div>
 
-		<!-- Infos pratiques (Anglais) -->
-		<div>
-			<label for="practicalInfoEn" class="block text-sm font-medium text-foreground-alt mb-2">
-				Infos pratiques (Anglais)
-			</label>
-			<textarea
-				id="practicalInfoEn"
-				name="practicalInfoEn"
-				bind:value={practicalInfoEn}
-				rows="5"
-				placeholder="Enter through the courtyard, door code 4512#, elegant dress required. On the day, call +33 6 12 34 56 78."
-				class="w-full px-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent resize-y"
-			></textarea>
-			<p class="text-xs text-muted-foreground mt-2">
-				Chaque langue manquante retombe sur l'autre ; laissées vides, aucune section ne s'affiche.
-			</p>
-		</div>
+		<EnglishVersion>
+			<div>
+				<label for="practicalInfoEn" class="block text-sm font-medium text-foreground-alt mb-2">
+					Infos pratiques (Anglais)
+				</label>
+				<textarea
+					id="practicalInfoEn"
+					name="practicalInfoEn"
+					bind:value={practicalInfoEn}
+					rows="5"
+					placeholder="Enter through the courtyard, door code 4512#, elegant dress required. On the day, call +33 6 12 34 56 78."
+					class="w-full px-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent resize-y"
+				></textarea>
+				<p class="text-xs text-muted-foreground mt-2">
+					Chaque langue manquante retombe sur l'autre ; laissées vides, aucune section ne s'affiche.
+				</p>
+			</div>
+		</EnglishVersion>
 
 		<!-- Allergies et régimes (Dietary Requirements, issue 041) -->
 		<div class="flex items-start gap-3 p-4 border border-border-card rounded-lg">
