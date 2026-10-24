@@ -5,6 +5,37 @@ import { logger } from '$lib/server/logger';
 import { env } from '$lib/server/env';
 import { MOCK_TALENTS, MOCK_TALENT_CATEGORIES } from '$lib/mock-data';
 import type { TalentWithMedia } from '$lib/types/talents';
+import { followFrench } from '$lib/server/services/event-translation';
+import { getTranslator, isTranslationEnabled } from '$lib/server/services/translator';
+
+type CategoryNames = { displayNameEn: string; displayNameFr: string };
+
+/** The saved names of a talent category, to compare the French with. */
+async function storedCategory(id: string): Promise<CategoryNames | null> {
+	if (env.USE_MOCK_DATA) return MOCK_TALENT_CATEGORIES.find((c) => c.id === id) ?? null;
+	const { getTalentCategoryById } = await import('$lib/server/services/talent-categories');
+	return getTalentCategoryById(id).catch(() => null);
+}
+
+/** A category's English display name, generated from the French (DeepL);
+ * the French itself when nothing translates it. */
+async function englishCategoryName(fr: string, posted: FormDataEntryValue | null, stored: CategoryNames | null): Promise<string> {
+	const english = await followFrench(
+		[{
+			fr: fr.trim() || null,
+			en: typeof posted === 'string' && posted.trim() ? posted.trim() : null,
+			storedFr: stored?.displayNameFr ?? null,
+			storedEn: stored?.displayNameEn ?? null,
+			required: true,
+			maxLength: 100,
+		}],
+		getTranslator()
+	);
+	if (english.translationFailed) {
+		logger.error({ err: english.error }, 'Talent category English translation failed');
+	}
+	return english.value[0] ?? fr;
+}
 
 export const load: PageServerLoad = async ({ locals }) => {
 	requireAdmin(locals);
@@ -17,6 +48,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 			talents: MOCK_TALENTS as unknown as TalentWithMedia[],
 			categories: MOCK_TALENT_CATEGORIES,
 			currentUserId,
+			englishAuto: isTranslationEnabled(),
 		};
 	}
 
@@ -31,6 +63,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 		talents: result.data as TalentWithMedia[],
 		categories,
 		currentUserId,
+		englishAuto: isTranslationEnabled(),
 	};
 };
 
@@ -75,7 +108,7 @@ export const actions: Actions = {
 		requireAdmin(locals);
 		const formData = await request.formData();
 		const name = formData.get('name');
-		const displayNameEn = formData.get('displayNameEn');
+		const postedNameEn = formData.get('displayNameEn');
 		const displayNameFr = formData.get('displayNameFr');
 		const slug = formData.get('slug');
 		const description = formData.get('description');
@@ -85,8 +118,9 @@ export const actions: Actions = {
 		const published = formData.get('published') === 'true';
 
 		if (!name || typeof name !== 'string') return fail(400, { error: 'Le nom est requis' });
-		if (!displayNameEn || typeof displayNameEn !== 'string') return fail(400, { error: "Le nom d'affichage (anglais) est requis" });
 		if (!displayNameFr || typeof displayNameFr !== 'string') return fail(400, { error: "Le nom d'affichage (français) est requis" });
+		// The English name is generated from the French unless typed here.
+		const displayNameEn = await englishCategoryName(displayNameFr, postedNameEn, null);
 		if (!slug || typeof slug !== 'string') return fail(400, { error: 'Le slug est requis' });
 		if (!/^[a-z0-9-]+$/.test(slug)) return fail(400, { error: 'Le slug ne doit contenir que des lettres minuscules, des chiffres et des tirets' });
 
@@ -129,7 +163,7 @@ export const actions: Actions = {
 		const formData = await request.formData();
 		const id = formData.get('id');
 		const name = formData.get('name');
-		const displayNameEn = formData.get('displayNameEn');
+		const postedNameEn = formData.get('displayNameEn');
 		const displayNameFr = formData.get('displayNameFr');
 		const slug = formData.get('slug');
 		const description = formData.get('description');
@@ -140,8 +174,9 @@ export const actions: Actions = {
 
 		if (!id || typeof id !== 'string') return fail(400, { error: "L'identifiant de la catégorie est requis" });
 		if (!name || typeof name !== 'string') return fail(400, { error: 'Le nom est requis' });
-		if (!displayNameEn || typeof displayNameEn !== 'string') return fail(400, { error: "Le nom d'affichage (anglais) est requis" });
 		if (!displayNameFr || typeof displayNameFr !== 'string') return fail(400, { error: "Le nom d'affichage (français) est requis" });
+		// The English name follows the French unless edited in this save.
+		const displayNameEn = await englishCategoryName(displayNameFr, postedNameEn, await storedCategory(id));
 		if (!slug || typeof slug !== 'string') return fail(400, { error: 'Le slug est requis' });
 		if (!/^[a-z0-9-]+$/.test(slug)) return fail(400, { error: 'Le slug ne doit contenir que des lettres minuscules, des chiffres et des tirets' });
 

@@ -5,8 +5,11 @@
     import Drawer from "$lib/components/ui/Drawer.svelte";
     import Modal from "$lib/components/ui/Modal.svelte";
     import { getToastContext } from "$lib/components/toast/state.svelte";
+    import { page } from "$app/state";
 
     const toast = getToastContext();
+    // The English name is generated from the French when translation is on.
+    const englishAuto = $derived(page.data.englishAuto === true);
 
     interface Category {
         id: string;
@@ -143,7 +146,7 @@
  <input id="createTCatName" name="name" type="text" bind:value={createName} required placeholder="visual-arts"
  class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm" />
  {:else if fieldName === "displayNameEn"}
- <input id="createTCatDisplayNameEn" name="displayNameEn" type="text" bind:value={createDisplayNameEn} required placeholder="Visual Arts"
+ <input id="createTCatDisplayNameEn" name="displayNameEn" type="text" bind:value={createDisplayNameEn} required={!englishAuto} placeholder={englishAuto ? "Traduit depuis le français si vide" : "Visual Arts"}
  class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm" />
  {:else if fieldName === "displayNameFr"}
  <input id="createTCatDisplayNameFr" name="displayNameFr" type="text" bind:value={createDisplayNameFr} required placeholder="Arts visuels"
@@ -174,7 +177,7 @@
         <input id="editTCatName" name="name" type="text" bind:value={editName} required placeholder="visual-arts"
             class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm" />
     {:else if fieldName === "displayNameEn"}
-        <input id="editTCatDisplayNameEn" name="displayNameEn" type="text" bind:value={editDisplayNameEn} required placeholder="Visual Arts"
+        <input id="editTCatDisplayNameEn" name="displayNameEn" type="text" bind:value={editDisplayNameEn} required={!englishAuto} placeholder={englishAuto ? "Traduit depuis le français si vide" : "Visual Arts"}
             class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm" />
     {:else if fieldName === "displayNameFr"}
         <input id="editTCatDisplayNameFr" name="displayNameFr" type="text" bind:value={editDisplayNameFr} required placeholder="Arts visuels"
@@ -371,8 +374,8 @@
  <form method="POST" action="?/createCategory" use:enhance={createCatEnhance} class="grid gap-4 pt-4">
  <div class="grid grid-cols-1 gap-4 w-full pt-6">
  {@render field("name", "Nom", createInput, null)}
- {@render field("displayNameEn", "Nom d'affichage (Anglais)", createInput, null)}
-                {@render field("displayNameFr", "Nom d'affichage (Français)", createInput, null)}
+ {@render field("displayNameFr", "Nom d'affichage", createInput, null)}
+                {@render field("displayNameEn", englishAuto ? "Nom d'affichage (Anglais, facultatif)" : "Nom d'affichage (Anglais)", createInput, null)}
  {@render field("slug", "Slug", createInput, null)}
  {@render field("description", "Description (facultatif)", createInput, null)}
  {@render field("icon", "Icône (nom Lucide, facultatif)", createInput, null)}
@@ -400,8 +403,8 @@
  <form method="POST" action="?/createCategory" use:enhance={createCatEnhance}>
  <div class="grid grid-cols-2 gap-4 w-full pt-6">
  <div class="col-span-2">{@render field("name", "Nom", createInput, null)}</div>
- <div class="col-span-2">{@render field("displayNameEn", "Nom d'affichage (Anglais)", createInput, null)}</div>
-                <div class="col-span-2">{@render field("displayNameFr", "Nom d'affichage (Français)", createInput, null)}</div>
+ <div class="col-span-2">{@render field("displayNameFr", "Nom d'affichage", createInput, null)}</div>
+                <div class="col-span-2">{@render field("displayNameEn", englishAuto ? "Nom d'affichage (Anglais, facultatif)" : "Nom d'affichage (Anglais)", createInput, null)}</div>
  <div class="col-span-2">{@render field("slug", "Slug", createInput, null)}</div>
  <div class="col-span-2">{@render field("description", "Description (facultatif)", createInput, null)}</div>
  <div>{@render field("icon", "Icône (facultatif)", createInput, null)}</div>
@@ -442,8 +445,8 @@
  <input type="hidden" name="id" value={selectedCategory?.id} />
  <div class="grid grid-cols-1 gap-4 w-full pt-6">
  {@render field("name", "Nom", editInput, null)}
- {@render field("displayNameEn", "Nom d'affichage (Anglais)", editInput, null)}
-                {@render field("displayNameFr", "Nom d'affichage (Français)", editInput, null)}
+ {@render field("displayNameFr", "Nom d'affichage", editInput, null)}
+                {@render field("displayNameEn", englishAuto ? "Nom d'affichage (Anglais, facultatif)" : "Nom d'affichage (Anglais)", editInput, null)}
  {@render field("slug", "Slug", editInput, null)}
  {@render field("description", "Description (facultatif)", editInput, null)}
  {@render field("icon", "Icône (facultatif)", editInput, null)}
@@ -472,8 +475,8 @@
  <input type="hidden" name="id" value={selectedCategory?.id} />
  <div class="grid grid-cols-2 gap-4 w-full pt-6">
  <div class="col-span-2">{@render field("name", "Nom", editInput, null)}</div>
- <div class="col-span-2">{@render field("displayNameEn", "Nom d'affichage (Anglais)", editInput, null)}</div>
-                <div class="col-span-2">{@render field("displayNameFr", "Nom d'affichage (Français)", editInput, null)}</div>
+ <div class="col-span-2">{@render field("displayNameFr", "Nom d'affichage", editInput, null)}</div>
+                <div class="col-span-2">{@render field("displayNameEn", englishAuto ? "Nom d'affichage (Anglais, facultatif)" : "Nom d'affichage (Anglais)", editInput, null)}</div>
  <div class="col-span-2">{@render field("slug", "Slug", editInput, null)}</div>
  <div class="col-span-2">{@render field("description", "Description (facultatif)", editInput, null)}</div>
  <div>{@render field("icon", "Icône (facultatif)", editInput, null)}</div>
