@@ -337,6 +337,9 @@
 				}
 				throw new Error(message);
 			}
+			// The English may have been generated from the French.
+			const saved = (await res.json()) as { altEn?: string | null };
+			if (key === 'altFr') item.altEn = saved.altEn ?? null;
 			onAltChange?.(mediaId, { altEn: item.altEn ?? null, altFr: item.altFr ?? null });
 			altSaved[mediaId] = true;
 		} catch (err) {
