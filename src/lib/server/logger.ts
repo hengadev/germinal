@@ -1,4 +1,5 @@
 import pino from 'pino';
+import { createRequire } from 'node:module';
 import { env } from './env';
 import { redactSensitiveData, redactError } from '$lib/utils/redaction';
 
@@ -13,7 +14,9 @@ export const logger = pino({
 	level: isDevelopment ? 'debug' : 'info',
 	transport: isDevelopment
 		? {
-				target: 'pino-pretty',
+				// An absolute path: pino 10.4 resolves a bare name from its
+				// caller's file, which Vite's dev SSR runner does not expose.
+				target: createRequire(import.meta.url).resolve('pino-pretty'),
 				options: {
 					colorize: true,
 					translateTime: 'HH:MM:ss',
