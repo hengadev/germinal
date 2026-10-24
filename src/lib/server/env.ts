@@ -62,6 +62,9 @@ const devEnvSchema = z.object({
     // An API key only authenticates in the region it was created in.
     TWILIO_REGION: z.string().optional().default(''),
     TWILIO_EDGE: z.string().optional().default(''),
+    // DeepL API key: generates the English of the admin's French fields.
+    // Empty = no translation, the English is typed by hand.
+    DEEPL_API_KEY: z.string().optional().default(''),
 });
 
 // Production schema - all fields required
@@ -119,6 +122,8 @@ const prodEnvSchema = z.object({
     TWILIO_PHONE_NUMBER: z.string().optional(),
     TWILIO_REGION: z.string().optional(),
     TWILIO_EDGE: z.string().optional(),
+    // DeepL translation - optional in production
+    DEEPL_API_KEY: z.string().optional(),
 });
 
 // Check if we're in build mode (SvelteKit runs this during build for analysis)

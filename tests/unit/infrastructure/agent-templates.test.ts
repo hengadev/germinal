@@ -38,7 +38,7 @@ const EXPECTED_CALL: Record<string, { folder: string; recursive: boolean }> = {
 
 /** Recursive templates -> the folders whose keys are printed whole. */
 const PRINTED_FOLDERS: Record<string, string[]> = {
-	'app.env.tmpl': ['/app', '/redis', '/stripe', '/s3', '/smtp', '/twilio', '/sentry'],
+	'app.env.tmpl': ['/app', '/redis', '/stripe', '/s3', '/smtp', '/twilio', '/sentry', '/deepl'],
 	'backup.env.tmpl': ['/backup']
 };
 

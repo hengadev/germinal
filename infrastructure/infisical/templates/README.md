@@ -7,7 +7,7 @@ development cannot differ from the server in how values are assembled.
 
 | Template | Folders | Consumed by |
 | --- | --- | --- |
-| `app.env.tmpl` | `/app`, `/redis`, `/stripe`, `/s3`, `/smtp`, `/twilio`, `/sentry`, `/db` (→ `DATABASE_URL` only) | the app container (each stack) |
+| `app.env.tmpl` | `/app`, `/redis`, `/stripe`, `/s3`, `/smtp`, `/twilio`, `/sentry`, `/deepl`, `/db` (→ `DATABASE_URL` only) | the app container (each stack) |
 | `postgres.env.tmpl` | `/db` | the Postgres container (bootstrap) |
 | `caddy.env.tmpl` | `/caddy` | the Caddy container |
 | `backup.env.tmpl` | `/db` (two atoms), `/backup` | the backup job (issue 013) |

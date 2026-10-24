@@ -77,6 +77,7 @@ const SCHEMA_KEYS = [
 	'TWILIO_PHONE_NUMBER',
 	'TWILIO_REGION',
 	'TWILIO_EDGE',
+	'DEEPL_API_KEY',
 	'NODE_ENV'
 ] as const;
 
