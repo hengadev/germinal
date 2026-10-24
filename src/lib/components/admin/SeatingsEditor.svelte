@@ -99,6 +99,7 @@
 
 <script lang="ts">
 	import { AlertTriangle, CalendarDays, ChevronDown, Plus, RotateCcw, Trash2, Users } from 'lucide-svelte';
+	import EnglishVersion from '$lib/components/admin/EnglishVersion.svelte';
 	import {
 		endAfterDuration,
 		formatTimeOfDay,
@@ -772,20 +773,7 @@
 											<div id="seating-{seating.key}-details" hidden={!seating.detailsOpen} class="space-y-3 pt-2">
 												<div class="grid gap-3 @xl:grid-cols-2">
 													<div>
-														<label for="seating-{seating.key}-titleEn" class={LABEL_CLASS}>Titre (anglais, facultatif)</label>
-														<input
-															id="seating-{seating.key}-titleEn"
-															type="text"
-															maxlength="255"
-															bind:value={seating.titleEn}
-															placeholder={review?.startMinutes != null
-																? derivedTitle(service.date, service.kind, review.startMinutes, 'en')
-																: ''}
-															class={INPUT_CLASS}
-														/>
-													</div>
-													<div>
-														<label for="seating-{seating.key}-titleFr" class={LABEL_CLASS}>Titre (français, facultatif)</label>
+														<label for="seating-{seating.key}-titleFr" class={LABEL_CLASS}>Titre (facultatif)</label>
 														<input
 															id="seating-{seating.key}-titleFr"
 															type="text"
@@ -796,16 +784,7 @@
 														/>
 													</div>
 													<div>
-														<label for="seating-{seating.key}-descriptionEn" class={LABEL_CLASS}>Description (anglais, facultative)</label>
-														<textarea
-															id="seating-{seating.key}-descriptionEn"
-															rows="2"
-															bind:value={seating.descriptionEn}
-															class="{INPUT_CLASS} resize-none"
-														></textarea>
-													</div>
-													<div>
-														<label for="seating-{seating.key}-descriptionFr" class={LABEL_CLASS}>Description (français, facultative)</label>
+														<label for="seating-{seating.key}-descriptionFr" class={LABEL_CLASS}>Description (facultative)</label>
 														<textarea
 															id="seating-{seating.key}-descriptionFr"
 															rows="2"
@@ -814,6 +793,32 @@
 														></textarea>
 													</div>
 												</div>
+												<EnglishVersion>
+													<div class="grid gap-3 @xl:grid-cols-2">
+														<div>
+															<label for="seating-{seating.key}-titleEn" class={LABEL_CLASS}>Titre (anglais, facultatif)</label>
+															<input
+																id="seating-{seating.key}-titleEn"
+																type="text"
+																maxlength="255"
+																bind:value={seating.titleEn}
+																placeholder={review?.startMinutes != null
+																	? derivedTitle(service.date, service.kind, review.startMinutes, 'en')
+																	: ''}
+																class={INPUT_CLASS}
+															/>
+														</div>
+														<div>
+															<label for="seating-{seating.key}-descriptionEn" class={LABEL_CLASS}>Description (anglais, facultative)</label>
+															<textarea
+																id="seating-{seating.key}-descriptionEn"
+																rows="2"
+																bind:value={seating.descriptionEn}
+																class="{INPUT_CLASS} resize-none"
+															></textarea>
+														</div>
+													</div>
+												</EnglishVersion>
 												<div class="grid grid-cols-2 gap-3 @xl:w-1/2">
 													<div class="col-span-2 lg:col-span-1">
 														<label for="seating-{seating.key}-badge" class={LABEL_CLASS}>Badge</label>

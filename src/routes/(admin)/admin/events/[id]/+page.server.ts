@@ -38,6 +38,7 @@ import {
 } from '$lib/server/services/event-draft';
 import { fillEnglish } from '$lib/server/services/event-translation';
 import { translatePricing, type StoredPricingText } from '$lib/server/services/pricing-translation';
+import { translateSeatings } from '$lib/server/services/seating-translation';
 import { getTranslator, isTranslationEnabled } from '$lib/server/services/translator';
 import type { CreateEventInput } from '$lib/types/events';
 import type { PricingPayload } from '$lib/types/pricing-editor';
@@ -176,6 +177,15 @@ async function createDraft(input: CreateEventInput): Promise<string> {
 	return createDraftEvent(input);
 }
 
+/** « Dates & séances » with its English generated from the French (DeepL). */
+async function englishSeatings(services: ParsedServiceSeatings[], stored: EditorService[] | null, eventId: string | null) {
+	const english = await translateSeatings(services, stored, getTranslator());
+	if (english.translationFailed) {
+		logger.error({ err: english.error, eventId }, 'Seatings English translation failed');
+	}
+	return english;
+}
+
 /** « Menus & tarifs » with its English generated from the French (DeepL). */
 async function englishPricing(payload: PricingPayload, stored: StoredPricingText | null, eventId: string | null) {
 	const english = await translatePricing(payload, stored, getTranslator());
@@ -222,7 +232,8 @@ async function saveNewEventSchedule(formData: FormData) {
 		if (!parsedSeatings.ok) {
 			return fail(400, { error: seatingsPayloadErrorMessage(parsedSeatings.reason) });
 		}
-		seatingServices = parsedSeatings.services;
+		// A new Event: nothing is saved yet to compare the French with.
+		seatingServices = (await englishSeatings(parsedSeatings.services, null, null)).value;
 	}
 	const { parsePricingPayload, pricingPayloadErrorMessage, savePricing } = await import(
 		'$lib/server/services/service-pricing'
@@ -867,6 +878,10 @@ export const actions: Actions = {
 		}
 
 		try {
+			// The Seatings' English follows their French (DeepL), compared
+			// with what is saved before anything changes.
+			const english = await englishSeatings(parsed.services, await loadSeatingsEditor(id), id);
+
 			// The Days first: this refuses to remove a Day or Service that
 			// still has Reservations, and recomputes the Event's start/end
 			// dates from its first and last Day.
@@ -879,8 +894,8 @@ export const actions: Actions = {
 			);
 			const placeholderIds = new Set(refs.map((ref) => ref.ref));
 			const services = [
-				...parsed.services.filter((service) => !placeholderIds.has(service.serviceId)),
-				...resolveServiceRefs(parsed.services.filter((service) => placeholderIds.has(service.serviceId)), refs, realIds),
+				...english.value.filter((service) => !placeholderIds.has(service.serviceId)),
+				...resolveServiceRefs(english.value.filter((service) => placeholderIds.has(service.serviceId)), refs, realIds),
 			];
 			const result = await saveServiceSeatings(id, services, venue.venueCapacity);
 			await saveBookingWindow(id, bookingWindow.window);
@@ -903,7 +918,10 @@ export const actions: Actions = {
 			const warning = result.overlaps.length > 0
 				? ` ${formatSeatingOverlapWarning(result.overlaps)}`
 				: '';
-			return { success: `Séances enregistrées.${warning}` };
+			const translation = english.translationFailed
+				? ' La traduction anglaise a échoué : elle sera retentée au prochain enregistrement.'
+				: '';
+			return { success: `Séances enregistrées.${warning}${translation}` };
 		} catch (err) {
 			if (err instanceof ScheduleSaveRefusedError) {
 				return fail(400, { error: err.message });
