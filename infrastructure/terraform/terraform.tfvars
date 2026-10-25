@@ -25,7 +25,7 @@ allowed_origins = [
 server_type     = "cax11"
 server_location = "nbg1"
 server_image    = "ubuntu-24.04"
-enable_backups  = true
+enable_backups  = false
 
 # Root's keys on a new server, besides terraform-germinal (the original
 # computer's key, already in Hetzner). Public keys only.
