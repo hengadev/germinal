@@ -24,6 +24,33 @@
     group: root
     mode: "0755"
 
+# The Infisical Agent recreates alloy as soon as it renders
+# env/observability.env, which can be before this role has ever run (and
+# always is on a fresh server: site.yml runs infisical_agent first). Docker
+# then creates the missing bind-mount source config.alloy as an empty
+# directory, and the copy below would land inside it. Remove that
+# directory, and the container still holding it, so the file can take its
+# place.
+- name: Check for a config.alloy directory left by an early start
+  ansible.builtin.stat:
+    path: "{{ observability_alloy_dir }}/config.alloy"
+  register: observability_config_path
+
+- name: Remove the agent container and the stray config.alloy directory
+  when: observability_config_path.stat.isdir | default(false)
+  block:
+    - name: Remove the agent container holding the stray mount
+      ansible.builtin.command:
+        cmd: docker rm -f germinal_alloy
+      register: observability_rm
+      changed_when: observability_rm.rc == 0
+      failed_when: false
+
+    - name: Remove the stray config.alloy directory
+      ansible.builtin.file:
+        path: "{{ observability_alloy_dir }}/config.alloy"
+        state: absent
+
 # A plain copy: the River syntax's braces are not Jinja.
 - name: Install the Alloy config
   ansible.builtin.copy:
