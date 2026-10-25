@@ -6,6 +6,14 @@ data "hcloud_ssh_key" "default" {
   name = "terraform-germinal"
 }
 
+# One key per operator computer (terraform.tfvars), so each can reach root
+# on a freshly built server. Hetzner installs these at creation only.
+resource "hcloud_ssh_key" "operators" {
+  for_each   = var.operator_ssh_public_keys
+  name       = each.key
+  public_key = each.value
+}
+
 # Primary IPs, managed on their own so that replacing the server keeps its
 # addresses: DNS and anything else pointing at the server stay valid across
 # rebuilds. auto_delete = false and delete protection keep them when the
@@ -35,7 +43,7 @@ resource "hcloud_server" "main" {
   image       = var.server_image
   server_type = var.server_type
   location    = var.server_location
-  ssh_keys    = [data.hcloud_ssh_key.default.id]
+  ssh_keys    = concat([data.hcloud_ssh_key.default.id], [for k in hcloud_ssh_key.operators : k.id])
 
   # Enable automatic backups
   backups = var.enable_backups
@@ -61,7 +69,12 @@ resource "hcloud_server" "main" {
   # The server holds nothing that isn't rebuilt by Ansible + Infisical, so it
   # may be replaced (`terraform apply -replace=hcloud_server.main`); the
   # primary IPs above survive that.
+  #
+  # Hetzner installs ssh_keys only at creation, and changing them would
+  # replace the server: a key added for a new computer applies on the next
+  # rebuild instead (Ansible's authorized_keys covers the running server).
   lifecycle {
     prevent_destroy = false
+    ignore_changes  = [ssh_keys]
   }
 }
