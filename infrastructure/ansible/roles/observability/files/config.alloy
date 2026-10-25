@@ -1,0 +1,150 @@
+// Grafana Alloy on the Germinal VPS — managed by Ansible (roles/observability).
+//
+// Pushes metrics and logs to the homelab (INGEST_URL, ingest.henga.dev) with
+// a bearer token (INGEST_TOKEN), both from the Agent-rendered
+// env/observability.env. Pushing, not being scraped: the origin firewall
+// only lets Cloudflare in.
+
+// ── Metrics ─────────────────────────────────────────────────────────────────
+
+// The app's prom-client registry, prod and staging, over germinal_network
+// (Caddy refuses /metrics from outside, issue 027).
+prometheus.scrape "app" {
+  job_name        = "germinal_app"
+  scrape_interval = "30s"
+  targets = [
+    {"__address__" = "germinal_app:3001", "env" = "prod"},
+    {"__address__" = "germinal_staging_app:3001", "env" = "staging"},
+  ]
+  forward_to = [prometheus.remote_write.homelab.receiver]
+}
+
+// Host CPU, memory, disk, network, plus the textfile heartbeats the backup
+// job writes (germinal_backup_last_success_timestamp_seconds).
+prometheus.exporter.unix "host" {
+  procfs_path = "/host/proc"
+  sysfs_path  = "/host/sys"
+  rootfs_path = "/host/root"
+
+  textfile {
+    directory = "/host/textfile"
+  }
+
+  filesystem {
+    mount_points_exclude = "^/(dev|proc|run|sys|var/lib/docker/.+)($|/)"
+  }
+}
+
+prometheus.scrape "host" {
+  job_name        = "node"
+  scrape_interval = "30s"
+  targets         = prometheus.exporter.unix.host.targets
+  forward_to      = [prometheus.remote_write.homelab.receiver]
+}
+
+prometheus.remote_write "homelab" {
+  endpoint {
+    url          = sys.env("INGEST_URL") + "/api/v1/write"
+    bearer_token = sys.env("INGEST_TOKEN")
+  }
+
+  external_labels = {
+    host = "germinal-vps",
+  }
+}
+
+// ── Logs ────────────────────────────────────────────────────────────────────
+
+// Container stdout/stderr, through the read-only socket proxy (never the
+// Docker socket itself).
+discovery.docker "containers" {
+  host = "tcp://socket_proxy:2375"
+
+  filter {
+    name   = "name"
+    values = ["germinal_"]
+  }
+}
+
+discovery.relabel "containers" {
+  targets = []
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "container"
+  }
+
+  rule {
+    target_label = "job"
+    replacement  = "docker"
+  }
+
+  // The agent's own plumbing: the proxy logs every API call Alloy makes
+  rule {
+    source_labels = ["container"]
+    regex         = "germinal_(socket_proxy|alloy)"
+    action        = "drop"
+  }
+}
+
+loki.source.docker "containers" {
+  host          = "tcp://socket_proxy:2375"
+  targets       = discovery.docker.containers.targets
+  relabel_rules = discovery.relabel.containers.rules
+  forward_to    = [loki.process.scrub.receiver]
+}
+
+// Caddy's JSON access logs (roles/caddy Caddyfile.j2)
+local.file_match "caddy" {
+  path_targets = [{"__path__" = "/host/caddy-logs/*.log", "job" = "caddy"}]
+}
+
+loki.source.file "caddy" {
+  targets    = local.file_match.caddy.targets
+  forward_to = [loki.process.scrub.receiver]
+}
+
+// What leaves this server carries no bearer token and no visitor IP: the
+// same token segments the app redacts for GlitchTip (redactUrl), query
+// strings, and the client IP fields of Caddy's logs plus any bare IPv4.
+// fail2ban keeps reading the unscrubbed files on the server.
+loki.process "scrub" {
+  stage.replace {
+    expression = "(?:/tickets|/reset-password|/api/reservations)/([^/?#\\s\"]+)"
+    replace    = "[token]"
+  }
+
+  stage.replace {
+    expression = "(\\?[^\"\\s]*)"
+    replace    = ""
+  }
+
+  stage.replace {
+    expression = "\"(?:remote_ip|client_ip)\":\"([^\"]*)\""
+    replace    = "[ip]"
+  }
+
+  stage.replace {
+    expression = "\"(?:Cf-Connecting-Ip|X-Forwarded-For|X-Real-Ip)\":\\[\"([^\"]*)\"\\]"
+    replace    = "[ip]"
+  }
+
+  stage.replace {
+    expression = "\\b(\\d{1,3}(?:\\.\\d{1,3}){3})\\b"
+    replace    = "[ip]"
+  }
+
+  forward_to = [loki.write.homelab.receiver]
+}
+
+loki.write "homelab" {
+  endpoint {
+    url          = sys.env("INGEST_URL") + "/loki/api/v1/push"
+    bearer_token = sys.env("INGEST_TOKEN")
+  }
+
+  external_labels = {
+    host = "germinal-vps",
+  }
+}

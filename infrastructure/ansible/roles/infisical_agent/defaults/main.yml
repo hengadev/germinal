@@ -76,6 +76,8 @@ infisical_agent_command_timeout_seconds: 60
 #   restart.
 # - backup: rewrite only. The backup job reads the file fresh on each run.
 # - admin: rewrite only. The next deploy's bootstrap reads admin.env.
+# - observability (prod): recreate the Alloy monitoring agent
+#   (roles/observability) — it reads INGEST_URL/INGEST_TOKEN at start.
 # - redis (both stacks): recreate that Redis service (issue 029) — its
 #   password is read at start (--requirepass). The app's app.env carries the
 #   same /redis key and is recreated by its own entry.
@@ -91,6 +93,7 @@ infisical_agent_templates:
   - { env: prod, name: redis, service: redis, recreate: true }
   - { env: staging, name: admin, service: staging_admin, recreate: false }
   - { env: staging, name: redis, service: staging_redis, recreate: true }
+  - { env: prod, name: observability, service: alloy, recreate: true }
 
 # Infisical CLI apt repository (the Cloudsmith repo moved here in 2026).
 infisical_agent_apt_baseurl: "https://artifacts-cli.infisical.com"

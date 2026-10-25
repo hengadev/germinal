@@ -205,6 +205,76 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  # Monitoring agent (Grafana Alloy): scrapes the prod and staging apps'
+  # /metrics and the host, reads container and Caddy logs, scrubs tokens and
+  # IPs from them, and pushes everything to the homelab (ingest.henga.dev).
+  # INGEST_URL/INGEST_TOKEN come from env/observability.env (Infisical prod
+  # /observability); the config is rendered by roles/observability.
+  # Runs as root with every capability dropped: as owner it still reads the
+  # root-owned Caddy logs; the host mounts are read-only. Its storage is
+  # /alloy-data, not the image's /var/lib/alloy (alloy:alloy 0770, which
+  # root cannot enter without CAP_DAC_OVERRIDE).
+  alloy:
+    image: grafana/alloy:v1.21.2
+    container_name: germinal_alloy
+    restart: unless-stopped
+    mem_limit: 256m
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 100
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+    command: ["run", "/etc/alloy/config.alloy", "--storage.path=/alloy-data", "--disable-reporting"]
+    # Not required: deploys of the other services must keep working before
+    # /observability exists in Infisical (roles/observability only starts
+    # alloy once the file is there).
+    env_file:
+      - path: env/observability.env
+        required: false
+    volumes:
+      - /opt/germinal/alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - /opt/germinal/alloy/data:/alloy-data
+      - /opt/germinal/caddy/logs:/host/caddy-logs:ro
+      - /var/lib/germinal-metrics:/host/textfile:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/host/root:ro,rslave
+    depends_on:
+      - socket_proxy
+    networks:
+      - germinal_network
+      - observability
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Read-only view of the Docker API for Alloy's log collection: GET on
+  # /containers and /networks only (Alloy's discovery reads both; POST and
+  # everything else refused), reachable only on the internal observability
+  # network. Alloy never holds the socket itself.
+  socket_proxy:
+    image: tecnativa/docker-socket-proxy:v0.4.2
+    container_name: germinal_socket_proxy
+    restart: unless-stopped
+    mem_limit: 64m
+    security_opt: [no-new-privileges:true]
+    pids_limit: 64
+    environment:
+      - CONTAINERS=1
+      - NETWORKS=1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - observability
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
 # Created outside compose (Ansible, infrastructure/ansible/roles/docker) and
 # shared with the staging stack (docker-compose.staging.yml), so `down` here
 # can never drop the network staging depends on. On the shared network every
@@ -213,3 +283,6 @@ services:
 networks:
   germinal_network:
     external: true
+  # Internal only (no route out): Alloy <-> socket proxy.
+  observability:
+    internal: true

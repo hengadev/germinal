@@ -12,6 +12,7 @@ development cannot differ from the server in how values are assembled.
 | `caddy.env.tmpl` | `/caddy` | the Caddy container |
 | `backup.env.tmpl` | `/db` (two atoms), `/backup` | the backup job (issue 013) |
 | `admin.env.tmpl` | `/admin` | the one-off admin bootstrap service (issue 016); never the running app |
+| `observability.env.tmpl` | `/observability` | the Alloy monitoring agent (prod stack, `roles/observability`) |
 
 ## The one-`listSecrets` rule (issue 005)
 
@@ -50,8 +51,8 @@ Consequences:
   `tests/unit/infrastructure/agent-templates.test.ts` pins that list.
 - A change in a folder the consumer does not use still changes the ETag, so
   the Agent may recreate the app with identical values. That is harmless.
-- `postgres.env.tmpl`, `caddy.env.tmpl` and `admin.env.tmpl` read a single
-  folder directly.
+- `postgres.env.tmpl`, `caddy.env.tmpl`, `admin.env.tmpl` and
+  `observability.env.tmpl` read a single folder directly.
 
 Issue 008 should confirm on the server that the Agent's change detection
 follows a recursive call (edit a `/stripe` value, check `app` is recreated).

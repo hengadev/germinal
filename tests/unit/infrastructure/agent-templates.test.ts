@@ -33,7 +33,8 @@ const EXPECTED_CALL: Record<string, { folder: string; recursive: boolean }> = {
 	'caddy.env.tmpl': { folder: '/caddy', recursive: false },
 	'backup.env.tmpl': { folder: '/', recursive: true },
 	'admin.env.tmpl': { folder: '/admin', recursive: false },
-	'redis.env.tmpl': { folder: '/redis', recursive: false }
+	'redis.env.tmpl': { folder: '/redis', recursive: false },
+	'observability.env.tmpl': { folder: '/observability', recursive: false }
 };
 
 /** Recursive templates -> the folders whose keys are printed whole. */

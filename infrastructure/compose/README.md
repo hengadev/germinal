@@ -26,11 +26,13 @@ change what runs as root (see "How CI reaches `deploy`" below).
 │   ├── caddy.env                     CLOUDFLARE_API_TOKEN
 │   ├── redis.env                     REDIS_PASSWORD only (issue 029)
 │   ├── backup.env                    issue 013's backup job
+│   ├── observability.env             INGEST_URL / INGEST_TOKEN for the Alloy agent
 │   └── admin.env                     ADMIN_* — the bootstrap one-off alone reads this
 ├── data/postgres/                    Postgres data dir        (survives `down`)
 ├── data/redis/                       Redis AOF + RDB, redis 999:1000 (survives `down`)
 ├── data/uploads/                     app uploads              (survives `down`)
-└── caddy/{config,data,logs}/         Caddyfile / certs / logs (roles/caddy)
+├── caddy/{config,data,logs}/         Caddyfile / certs / logs (roles/caddy)
+└── alloy/{config.alloy,data/}        monitoring agent config + WAL (roles/observability)
 
 /opt/germinal-staging/                STAGING (compose project name: germinal_staging)
 ├── docker-compose.yml                docker-compose.staging.yml from the deployed commit

@@ -1,0 +1,14 @@
+---
+# observability role defaults — the Alloy monitoring agent (prod stack)
+
+# Production stack root; the alloy and socket_proxy services live in its
+# compose file (infrastructure/compose/docker-compose.prod.yml).
+observability_root: /opt/germinal
+observability_alloy_dir: "{{ observability_root }}/alloy"
+
+# Textfile collector directory: jobs drop *.prom heartbeats here (the backup
+# job's germinal_backup_last_success_timestamp_seconds). Mounted read-only
+# into Alloy at /host/textfile — keep in sync with the compose file.
+observability_textfile_dir: /var/lib/germinal-metrics
+
+observability_services: [socket_proxy, alloy]

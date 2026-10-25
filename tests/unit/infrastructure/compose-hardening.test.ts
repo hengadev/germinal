@@ -166,3 +166,27 @@ describe('compose files: least-privilege containers (issue 028)', () => {
 		}
 	});
 });
+
+describe('compose files: monitoring agent (Alloy)', () => {
+	it('hardens alloy like the app-image services', () => {
+		expectHardenedApp(prod['alloy'], 'alloy');
+	});
+
+	it('mounts every host path into alloy read-only, except its own data dir', () => {
+		const writable = asList(prod['alloy']?.['volumes']).filter((v) => !/:ro(,|$)/.test(v));
+		expect(writable).toEqual(['/opt/germinal/alloy/data:/alloy-data']);
+	});
+
+	it('never gives alloy the Docker socket; only the socket proxy has it, read-only', () => {
+		expect(asList(prod['alloy']?.['volumes']).join('\n')).not.toContain('docker.sock');
+		expect(asList(prod['socket_proxy']?.['volumes'])).toEqual(['/var/run/docker.sock:/var/run/docker.sock:ro']);
+	});
+
+	it('lets the socket proxy answer container and network GETs only, on the internal network alone', () => {
+		expect(asList(prod['socket_proxy']?.['environment'])).toEqual(['CONTAINERS=1', 'NETWORKS=1']);
+		expect(asList(prod['socket_proxy']?.['networks'])).toEqual(['observability']);
+		expect(readFileSync(join(composeDir, 'docker-compose.prod.yml'), 'utf8')).toMatch(
+			/\n {2}observability:\n {4}internal: true/
+		);
+	});
+});

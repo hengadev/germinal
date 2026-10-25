@@ -154,6 +154,12 @@
     - role: backup
       tags: ['backup']
 
+    # Alloy monitoring agent: pushes metrics and logs to the homelab
+    # (grafana.henga.dev). Needs env/observability.env (Infisical prod
+    # /observability) and a deployed compose file with the alloy service.
+    - role: observability
+      tags: ['observability']
+
   post_tasks:
     - name: Display setup completion message
       ansible.builtin.debug:
