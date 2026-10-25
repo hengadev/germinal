@@ -77,7 +77,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 	// empty, fresh or unreachable database and in mock-data mode; database reads go through a
 	// short-lived cache since this runs on every request, and if the read fails the site fails
 	// open (doesn't go down over a settings-read hiccup) unless the env forces maintenance.
-	// /maintenance itself and /api/health stay reachable on every domain.
+	// /maintenance itself, /api/health and /metrics (internal only) stay reachable on every domain.
 	const { effective: maintenanceMode } = await getMaintenanceState();
 	if (
 		maintenanceMode &&

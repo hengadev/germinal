@@ -134,6 +134,10 @@ describe('isMaintenanceBypassPath — paths reachable during maintenance', () =>
 		expect(isMaintenanceBypassPath('/api/health')).toBe(true);
 	});
 
+	it('keeps the metrics endpoint reachable (the monitoring agent scrapes it; Caddy refuses it from outside)', () => {
+		expect(isMaintenanceBypassPath('/metrics')).toBe(true);
+	});
+
 	it('does not bypass other public paths', () => {
 		expect(isMaintenanceBypassPath('/')).toBe(false);
 		expect(isMaintenanceBypassPath('/events')).toBe(false);

@@ -44,8 +44,12 @@ export async function getMaintenanceState(): Promise<MaintenanceState> {
 	}
 }
 
-/** Paths that stay reachable while maintenance is on, on any domain. */
-const MAINTENANCE_BYPASS_PATHS = new Set(['/maintenance', '/api/health']);
+/**
+ * Paths that stay reachable while maintenance is on, on any domain. /metrics
+ * is scraped by the monitoring agent over the container network; Caddy
+ * refuses it from outside (issue 027).
+ */
+const MAINTENANCE_BYPASS_PATHS = new Set(['/maintenance', '/api/health', '/metrics']);
 
 export function isMaintenanceBypassPath(pathname: string): boolean {
 	return MAINTENANCE_BYPASS_PATHS.has(pathname);
