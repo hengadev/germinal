@@ -343,6 +343,17 @@ case_first_deploy() {
 	else
 		bad "re-running the app role SQL failed"
 	fi
+	# Objects a superuser created before the app had its own role must be
+	# handed over too, partitioned tables and partitions included: production's
+	# pg-boss job/job_common stayed the superuser's and pg-boss could not start.
+	psql_prod "create schema harness_part; create table harness_part.p (k text) partition by list (k); create table harness_part.p_default partition of harness_part.p default"
+	docker exec -i germinal_postgres psql -X -q -tA -v ON_ERROR_STOP=1 -U germinal -d germinal \
+		-v role=germinal_app -v password=harness-fixture-app-db -v db=germinal \
+		<"$APP_DB_ROLE_SQL" >/dev/null
+	[ "$(psql_prod "select count(*) from pg_class where relnamespace = 'harness_part'::regnamespace and relkind in ('r', 'p') and relowner <> 'germinal_app'::regrole")" = 0 ] &&
+		ok "the app role SQL hands over superuser-made partitioned tables and partitions" ||
+		bad "a superuser-made partitioned table or partition is not owned by germinal_app"
+	psql_prod "drop schema harness_part cascade"
 	# The bootstrap one-off must not linger.
 	if [ -z "$(docker ps -a --filter label=com.docker.compose.project=$PROJ_PROD --format '{{.Names}}' | grep admin || true)" ]; then
 		ok "bootstrap one-off container removed"

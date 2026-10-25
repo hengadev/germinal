@@ -22,7 +22,8 @@ ALTER DATABASE :"db" OWNER TO :"role";
 
 -- Owner of every user schema and object already there (created by earlier
 -- runs as the superuser, or by the image's init). Extension members and
--- sequences owned by a table column follow their owner and are skipped.
+-- sequences owned by a table column follow their owner and are skipped;
+-- partitioned tables and their partitions are not (see below).
 SELECT format('ALTER SCHEMA %I OWNER TO %I', n.nspname, :'role')
 FROM pg_namespace n
 WHERE n.nspname NOT LIKE 'pg\_%' AND n.nspname <> 'information_schema'
@@ -43,7 +44,12 @@ JOIN pg_namespace n ON n.oid = c.relnamespace
 WHERE c.relkind IN ('r', 'p', 'v', 'm', 'S', 'f')
   AND n.nspname NOT LIKE 'pg\_%' AND n.nspname <> 'information_schema'
   AND c.relowner <> (SELECT oid FROM pg_roles WHERE rolname = :'role')
-  AND NOT EXISTS (SELECT FROM pg_depend d WHERE d.classid = 'pg_class'::regclass AND d.objid = c.oid AND d.deptype IN ('a', 'i', 'e'))
+  -- Skipped: extension members, and sequences owned by a column (serial:
+  -- 'a', identity: 'i'), which follow their table. Only for sequences: a
+  -- partitioned table has an 'i' dependency on itself and a partition an
+  -- 'a' one on its parent, and both must change owner (pg-boss's job table).
+  AND NOT EXISTS (SELECT FROM pg_depend d WHERE d.classid = 'pg_class'::regclass AND d.objid = c.oid
+                  AND (d.deptype = 'e' OR (c.relkind = 'S' AND d.deptype IN ('a', 'i'))))
 \gexec
 
 SELECT format('ALTER TYPE %s OWNER TO %I', t.oid::regtype, :'role')
