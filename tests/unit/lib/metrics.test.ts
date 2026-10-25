@@ -6,6 +6,7 @@ import {
 	incrementWaitlistSignup,
 	recordDbQuery,
 	recordHttpRequest,
+	trackHttpRequest,
 } from '../../../src/lib/server/metrics';
 
 function extractMetricValue(text: string, line: string): number | undefined {
@@ -67,5 +68,52 @@ describe('metrics registry', () => {
 		const text = await getMetricsText();
 		expect(extractMetricValue(text, 'db_queries_total')).toBeGreaterThanOrEqual(1);
 		expect(extractMetricValue(text, 'db_slow_queries_total')).toBeGreaterThanOrEqual(1);
+	});
+
+	describe('trackHttpRequest', () => {
+		const count = async (route: string, status: string) =>
+			extractMetricValue(
+				await getMetricsText(),
+				`http_requests_total{method="GET",route="${route}",status_code="${status}"}`
+			) ?? 0;
+
+		it('records the response status under the route pattern, never the raw path', async () => {
+			const before = await count('/tickets/[token]', '200');
+			await trackHttpRequest('GET', '/tickets/[token]', async () => new Response('ok', { status: 200 }));
+			expect(await count('/tickets/[token]', '200')).toBe(before + 1);
+		});
+
+		it('records a thrown redirect or HTTP error with its status, and rethrows it', async () => {
+			const before = await count('/events', '302');
+			const redirect = Object.assign(new Error('redirect'), { status: 302 });
+			await expect(trackHttpRequest('GET', '/events', async () => { throw redirect; })).rejects.toBe(redirect);
+			expect(await count('/events', '302')).toBe(before + 1);
+		});
+
+		it('records any other thrown error as a 500', async () => {
+			const before = await count('/events/[id]', '500');
+			await expect(trackHttpRequest('GET', '/events/[id]', async () => { throw new Error('boom'); })).rejects.toThrow('boom');
+			expect(await count('/events/[id]', '500')).toBe(before + 1);
+		});
+
+		it('labels requests that match no route as "unmatched"', async () => {
+			const before = await count('unmatched', '404');
+			await trackHttpRequest('GET', null, async () => new Response('', { status: 404 }));
+			expect(await count('unmatched', '404')).toBe(before + 1);
+		});
+
+		it('does not count the probes (/api/health, /metrics) as traffic', async () => {
+			await trackHttpRequest('GET', '/api/health', async () => new Response('ok'));
+			await trackHttpRequest('GET', '/metrics', async () => new Response('ok'));
+			const text = await getMetricsText();
+			expect(text).not.toContain('route="/api/health"');
+			expect(text).not.toContain('route="/metrics"');
+		});
+
+		it('leaves no request in flight once it settles', async () => {
+			await trackHttpRequest('GET', '/', async () => new Response('ok'));
+			await trackHttpRequest('GET', '/', async () => { throw new Error('x'); }).catch(() => {});
+			expect(extractMetricValue(await getMetricsText(), 'http_requests_in_flight')).toBe(0);
+		});
 	});
 });

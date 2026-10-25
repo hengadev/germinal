@@ -81,6 +81,41 @@ export function startHttpRequest() {
 	return () => httpRequestsInFlight.dec();
 }
 
+/** Probes, not traffic: the uptime checks and the monitoring agent's scrape. */
+const UNTRACKED_ROUTES = new Set(['/api/health', '/metrics']);
+
+/**
+ * Run one request and record it: count, duration and in-flight gauge,
+ * labelled by the route id (`/tickets/[token]`, never the raw path: bounded
+ * cardinality, and no token in a label). A thrown redirect or HTTP error is
+ * recorded with its own status, anything else thrown as a 500; either way
+ * it is rethrown untouched.
+ */
+export async function trackHttpRequest(
+	method: string,
+	routeId: string | null,
+	run: () => Promise<Response>
+): Promise<Response> {
+	if (routeId !== null && UNTRACKED_ROUTES.has(routeId)) {
+		return run();
+	}
+
+	const route = routeId ?? 'unmatched';
+	const started = performance.now();
+	const done = startHttpRequest();
+	try {
+		const response = await run();
+		recordHttpRequest(method, route, response.status, performance.now() - started);
+		return response;
+	} catch (error) {
+		const status = (error as { status?: unknown })?.status;
+		recordHttpRequest(method, route, typeof status === 'number' ? status : 500, performance.now() - started);
+		throw error;
+	} finally {
+		done();
+	}
+}
+
 export function recordDbQuery(durationMs: number, options: { slow: boolean }) {
 	dbQueriesTotal.inc();
 	dbQueryDuration.observe(durationMs / 1000);

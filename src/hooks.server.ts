@@ -7,6 +7,7 @@ import { runMigrations } from '$lib/server/db';
 import { initMonitoring, captureException } from '$lib/server/monitoring';
 import { logger } from '$lib/server/logger';
 import { redactUrl } from '$lib/utils/redaction';
+import { trackHttpRequest } from '$lib/server/metrics';
 import { generateToken } from '$lib/server/csrf';
 import { getMaintenanceState, isMaintenanceBypassPath } from '$lib/server/maintenance';
 import { isCrossOriginUnsafeRequest } from '$lib/server/request-origin';
@@ -38,7 +39,7 @@ if (typeof process !== 'undefined') {
 	});
 }
 
-export const handle: Handle = async ({ event, resolve }) => {
+const handleRequest: Handle = async ({ event, resolve }) => {
 	// Reject cross-origin browser requests with unsafe methods before routing,
 	// bodyless ones included (SvelteKit's own check covers form bodies only).
 	if (isCrossOriginUnsafeRequest(event.request, event.url)) {
@@ -147,6 +148,11 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	return response;
 };
+
+// Every request is counted and timed for the monitoring agent (/metrics),
+// redirects and errors included, under its route id.
+export const handle: Handle = (input) =>
+	trackHttpRequest(input.event.request.method, input.event.route.id, async () => handleRequest(input));
 
 export const handleError: HandleServerError = (({ error, event }) => {
 	// Logs are shipped off the server (Loki), so the URL loses its tokens here too

@@ -69,6 +69,7 @@ describe('server hook', () => {
 		const response = await handle({
 			event: {
 				url,
+				route: { id: '/api/admin/reservations/[id]/cancel' },
 				request: new Request(url, { method: 'POST', headers: { origin: SIBLING } }),
 				locals: {},
 				cookies: { get: vi.fn(), set: vi.fn(), delete: vi.fn() },
