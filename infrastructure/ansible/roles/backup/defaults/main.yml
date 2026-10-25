@@ -29,6 +29,10 @@ backup_restore_test_image: postgres:16-alpine
 
 backup_db_container: germinal_postgres
 
+# Textfile collector directory the success heartbeat goes to; must match
+# roles/observability observability_textfile_dir.
+backup_metrics_dir: /var/lib/germinal-metrics
+
 # Scripts (root 0750) and their shared library (root 0640).
 backup_bin_dir: /usr/local/sbin
 backup_lib_file: /usr/local/lib/germinal-backup.sh

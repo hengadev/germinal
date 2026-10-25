@@ -66,3 +66,11 @@ fi
 upload "$config" "$tier/config/$(basename "$config")"
 
 log "OK: $tier backup done"
+
+# Heartbeat for the monitoring agent (roles/observability): Grafana alerts
+# when this timestamp is more than 26 hours old. Never fails the backup.
+heartbeat={{ backup_metrics_dir }}/germinal_backup.prom
+{ mkdir -p {{ backup_metrics_dir }} &&
+	printf 'germinal_backup_last_success_timestamp_seconds %s\n' "$(date +%s)" >"$heartbeat.tmp" &&
+	mv "$heartbeat.tmp" "$heartbeat"; } ||
+	log "could not write the monitoring heartbeat $heartbeat"
