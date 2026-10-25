@@ -156,3 +156,18 @@ export function isSensitiveKey(key: string): boolean {
 		key.toLowerCase().includes(sensitiveKey)
 	);
 }
+
+/**
+ * Path segments that are bearer secrets: whoever holds the URL holds the
+ * ticket, the reservation or the password reset.
+ */
+const URL_TOKEN_SEGMENTS = /(\/tickets|\/reset-password|\/api\/reservations)\/[^/?#\s]+/g;
+
+/**
+ * Make a URL (or a string with URLs in it) safe to leave the server: token
+ * path segments become `[token]`, and query strings and fragments are dropped
+ * since any of them may carry a code or an identifier.
+ */
+export function redactUrl(value: string): string {
+	return value.replace(URL_TOKEN_SEGMENTS, '$1/[token]').replace(/[?#][^\s]*/g, '');
+}

@@ -6,6 +6,7 @@ import { initJobScheduler, stopJobScheduler } from '$lib/server/jobs/scheduler';
 import { runMigrations } from '$lib/server/db';
 import { initMonitoring, captureException } from '$lib/server/monitoring';
 import { logger } from '$lib/server/logger';
+import { redactUrl } from '$lib/utils/redaction';
 import { generateToken } from '$lib/server/csrf';
 import { getMaintenanceState, isMaintenanceBypassPath } from '$lib/server/maintenance';
 import { isCrossOriginUnsafeRequest } from '$lib/server/request-origin';
@@ -148,6 +149,9 @@ export const handle: Handle = async ({ event, resolve }) => {
 };
 
 export const handleError: HandleServerError = (({ error, event }) => {
+	// Logs are shipped off the server (Loki), so the URL loses its tokens here too
+	const url = event?.url?.href ? redactUrl(event.url.href) : undefined;
+
 	// Log to our structured logger
 	logger.error({
 		err: {
@@ -155,7 +159,7 @@ export const handleError: HandleServerError = (({ error, event }) => {
 			message: error instanceof Error ? error.message : String(error),
 			stack: error instanceof Error ? error.stack : undefined,
 		},
-		url: event?.url?.href,
+		url,
 		method: event?.request?.method,
 	},
 	'Server error occurred'
@@ -164,7 +168,7 @@ export const handleError: HandleServerError = (({ error, event }) => {
 	// Send to Sentry for production error tracking
 	if (error instanceof Error) {
 		captureException(error, {
-			url: event?.url?.href,
+			url,
 			method: event?.request?.method,
 		});
 	}

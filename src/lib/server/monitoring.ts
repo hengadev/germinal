@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/node';
 import { env } from './env';
 import { logger } from './logger';
+import { scrubBreadcrumb, scrubEvent } from './sentry-scrub';
 
 /**
  * Initialize Sentry error tracking
@@ -16,13 +17,11 @@ export function initMonitoring() {
 		dsn: env.SENTRY_DSN,
 		environment: process.env.NODE_ENV || 'development',
 		tracesSampleRate: 0.1, // Sample 10% of transactions for performance monitoring
+		// No IPs, cookies or request bodies, whatever an integration would add
+		sendDefaultPii: false,
+		beforeBreadcrumb: scrubBreadcrumb,
+		beforeSendTransaction: scrubEvent,
 		beforeSend(event) {
-			// Filter sensitive data
-			if (event.request) {
-				delete event.request.cookies;
-				delete event.request.headers;
-			}
-
 			// Filter out expected errors
 			if (event.exception?.values) {
 				for (const exception of event.exception.values) {
@@ -33,7 +32,7 @@ export function initMonitoring() {
 				}
 			}
 
-			return event;
+			return scrubEvent(event);
 		},
 		integrations: [
 			Sentry.httpIntegration(),
@@ -84,8 +83,8 @@ export function setUserContext(user: { id: string; email?: string; role?: string
 	if (!env.SENTRY_DSN) return;
 
 	Sentry.setUser({
+		// The id is enough to find the user; no email leaves the server
 		id: user.id,
-		email: user.email,
 		role: user.role,
 	});
 }
