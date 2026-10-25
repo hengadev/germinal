@@ -163,6 +163,11 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      # The server is ARM (Hetzner cax); amd64 is kept so an x86 server type
+      # runs the same image.
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
@@ -171,6 +176,7 @@ jobs:
         with:
           context: .
           push: true
+          platforms: linux/amd64,linux/arm64
           tags: henga/germinal:${{ github.sha }}
           # Reported by /api/health; deploy waits for it (issue 001).
           build-args: COMMIT_SHA=${{ github.sha }}

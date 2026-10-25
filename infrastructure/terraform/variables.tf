@@ -32,13 +32,13 @@ variable "hcloud_token" {
 }
 
 variable "server_type" {
-  description = "Hetzner Cloud server type (cpx11, cpx21, cpx31, etc.)"
+  description = "Hetzner Cloud server type (cax11, cx23, cpx22, etc.). cax* is ARM: the app image is built for linux/arm64"
   type        = string
-  default     = "cpx22"
+  default     = "cax11"
 
   validation {
-    condition     = can(regex("^cpx[0-9]{2}$", var.server_type))
-    error_message = "Server type must be a valid CX plan (e.g., cpx11, cpx21, cpx31)."
+    condition     = can(regex("^(cax|cx|cpx)[0-9]{2}$", var.server_type))
+    error_message = "Server type must be a shared-vCPU Hetzner plan (e.g., cax11, cx23, cpx22)."
   }
 }
 

@@ -1,5 +1,9 @@
 # ---------- Build stage ----------
-FROM node:22-alpine AS builder
+# Runs on the build machine's own platform even when building for another
+# one: its output (build/) is plain JavaScript, the same for every platform.
+# Only the production stage below, whose dependencies carry native binaries,
+# runs once per target platform.
+FROM --platform=$BUILDPLATFORM node:22-alpine AS builder
 
 # Install libc compatibility layer for esbuild
 RUN apk add --no-cache libc6-compat
