@@ -1,6 +1,7 @@
 import { formatSeatingDateTime } from '$lib/utils/event-time';
 import { db } from '../db';
 import { logger } from '$lib/server/logger';
+import { incrementWaitlistSignup } from '../metrics';
 import { waitlist, eventSessions, events } from '../db/schema';
 import { eq, and, gt, sql, inArray } from 'drizzle-orm';
 import { getSessionById } from './event-sessions';
@@ -82,6 +83,7 @@ export async function joinWaitlist(input: {
 		expiresAt,
 	}).returning();
 
+	incrementWaitlistSignup();
 	return entry;
 }
 

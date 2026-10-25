@@ -1,6 +1,7 @@
 import { DEFAULT_EVENT_TIME_ZONE } from '$lib/utils/event-time';
 import { db } from '../db';
 import { logger } from '$lib/server/logger';
+import { incrementReservationCounter } from '../metrics';
 import { eventSessions, reservations, payments } from '../db/schema';
 import { eq, and, sql, lt } from 'drizzle-orm';
 import { generateAccessToken } from '$lib/utils/tokens';
@@ -377,10 +378,15 @@ export async function createReservation(input: CreateReservationInput): Promise<
 		throw error;
 	}
 
+	// Counted once committed, so a rolled-back booking never is (the
+	// monitoring dashboard's Bookings panel).
+	incrementReservationCounter('created');
+
 	// Confirmed without Stripe (no Deposit): send the Ticket now that the
 	// booking is committed, as the Stripe webhook does for a paid one. A
 	// failure is logged and never undoes the booking.
 	if (result.checkoutUrl === null) {
+		incrementReservationCounter('confirmed');
 		await sendConfirmedTicket(result.reservation.id);
 	}
 

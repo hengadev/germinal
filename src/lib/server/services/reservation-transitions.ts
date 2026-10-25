@@ -16,6 +16,7 @@
 
 import { and, eq, inArray } from 'drizzle-orm';
 import { db } from '../db';
+import { incrementCheckoutCounter, incrementReservationCounter } from '../metrics';
 import { eventSessions, payments, reservationStatusEnum, reservations } from '../db/schema';
 
 export type ReservationStatus = (typeof reservationStatusEnum.enumValues)[number];
@@ -47,7 +48,7 @@ export async function confirmReservationForPayment(input: {
 	/** The Charge id, when the caller knows it (payment_intent events). */
 	stripeChargeId?: string | null;
 }): Promise<ConfirmOutcome> {
-	return db.transaction(async (tx: typeof db) => {
+	const outcome: ConfirmOutcome = await db.transaction(async (tx: typeof db) => {
 		const now = new Date();
 
 		const [confirmed] = await tx
@@ -87,6 +88,14 @@ export async function confirmReservationForPayment(input: {
 
 		return { won: true, status: 'confirmed' };
 	});
+
+	// Counted after the commit, by the winner only: a webhook delivered
+	// twice confirms (and counts) once.
+	if (outcome.won) {
+		incrementReservationCounter('confirmed');
+		incrementCheckoutCounter('success');
+	}
+	return outcome;
 }
 
 /**
@@ -100,7 +109,7 @@ export async function expireReservationForFailedPayment(input: {
 	paymentId: string;
 	lastError: string | null;
 }): Promise<{ won: boolean }> {
-	return db.transaction(async (tx: typeof db) => {
+	const outcome: { won: boolean } = await db.transaction(async (tx: typeof db) => {
 		const now = new Date();
 
 		const [expired] = await tx
@@ -119,6 +128,9 @@ export async function expireReservationForFailedPayment(input: {
 
 		return { won: true };
 	});
+
+	if (outcome.won) incrementCheckoutCounter('failure');
+	return outcome;
 }
 
 /**
