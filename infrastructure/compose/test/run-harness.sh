@@ -285,8 +285,13 @@ case_validate() {
 	else
 		bad "docker-compose.staging.yml does not validate"
 	fi
-	# No inline secrets: no value-looking scalars; env values come only from env_file.
-	if ! grep -nE '^[[:space:]]+(environment|env):' "$COMPOSE_DIR/docker-compose.prod.yml" "$COMPOSE_DIR/docker-compose.staging.yml"; then
+	# No inline secrets: no value-looking scalars; env values come only from
+	# env_file. One exception: socket_proxy's two API switches (CONTAINERS=1,
+	# NETWORKS=1), not secrets, pinned exactly by
+	# tests/unit/infrastructure/compose-hardening.test.ts.
+	if ! awk '/^  [a-z_]+:/ { service = $1 }
+		/^[[:space:]]+(environment|env):/ && service != "socket_proxy:" { print FILENAME ":" FNR ": " service; found = 1 }
+		END { exit !found }' "$COMPOSE_DIR/docker-compose.prod.yml" "$COMPOSE_DIR/docker-compose.staging.yml"; then
 		ok "no inline environment blocks (values only via env_file)"
 	else
 		bad "inline environment block found"
