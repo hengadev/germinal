@@ -126,6 +126,23 @@ site settings, but the environment variable always wins when it is `true`.
 - **If Infisical is gone for good**, recreate the project from the weekly
   encrypted snapshot (below).
 
+## Monitoring
+
+The Alloy agent in the production stack
+([roles/observability](../../infrastructure/ansible/roles/observability/README.md))
+pushes metrics and logs of both stacks to the homelab, after removing
+tokens and visitor IPs from the logs:
+
+| Where | What |
+| --- | --- |
+| `grafana.henga.dev` | the "Germinal overview" dashboard (uptime from outside, traffic, 5xx, latency, bookings, memory, server, logs) and the alerts, sent to Telegram |
+| `errors.henga.dev` | GlitchTip: the app's errors with stack traces (`SENTRY_DSN`) |
+
+Alerts: site down for 2 minutes, app metrics missing for 5 minutes (the app
+or the agent is down), more than 5 production 5xx in 10 minutes, the app
+restarting, disk over 85 %, memory over 90 %, TLS certificate expiring
+within 14 days, no successful backup for 26 hours.
+
 ## Backups and recovery
 
 These run as root systemd timers on the server
@@ -204,5 +221,6 @@ The GitHub repository is public, on purpose. The consequences:
 | Server setup, roles, hardening | [infrastructure/ansible/README.md](../../infrastructure/ansible/README.md) |
 | The Infisical Agent and its render matrix | [roles/infisical_agent/README.md](../../infrastructure/ansible/roles/infisical_agent/README.md) |
 | Backups, restore test, recovery | [roles/backup/README.md](../../infrastructure/ansible/roles/backup/README.md) |
+| Monitoring agent, what it collects and scrubs | [roles/observability/README.md](../../infrastructure/ansible/roles/observability/README.md) |
 | Terraform, `tf.sh`, `germinal-infra` | [infrastructure/terraform/README.md](../../infrastructure/terraform/README.md) |
 | Env templates and `make env` | [infrastructure/infisical/templates/README.md](../../infrastructure/infisical/templates/README.md) |

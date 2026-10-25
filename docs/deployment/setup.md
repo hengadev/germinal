@@ -174,4 +174,4 @@ needed.
 | Every 3 months (1 Dec, 1 Mar, 1 Jun, 1 Sep) | rotate the `germinal-vps` client secret ([procedure](README.md#credentials-and-rotation)) |
 | After a large schema change | `germinal-restore-test` on the server |
 | Now and then | `journalctl -u germinal-backup -u germinal-snapshot --since -8d` on the server |
-| Before opening the site | `prod/sentry/SENTRY_DSN`, a backup-failure alert, one recovery rehearsal ([roles/backup](../../infrastructure/ansible/roles/backup/README.md)); then `MAINTENANCE_MODE=false` |
+| Before opening the site | `prod/sentry/SENTRY_DSN` (GlitchTip), the monitoring agent running ([roles/observability](../../infrastructure/ansible/roles/observability/README.md): its alerts cover a failed backup), one recovery rehearsal ([roles/backup](../../infrastructure/ansible/roles/backup/README.md)); then `MAINTENANCE_MODE=false` |

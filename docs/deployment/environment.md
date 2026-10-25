@@ -31,16 +31,17 @@ Cloudflare token never reaches anything but Caddy.
 | `/s3` | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`, `S3_BUCKET_NAME`, `MEDIA_URL` (**written by Terraform** in prod and staging), `S3_PUBLIC_URL`; dev only: `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` (local MinIO) | ✓ | ✓ | ✓ | `app.env`. The AWS key also sends email through SES. |
 | `/smtp` | `SMTP_FROM_EMAIL`, `SMTP_FROM_NAME` | ✓ | ✓ | ✓ | `app.env` |
 | `/twilio` | `TWILIO_ACCOUNT_SID`, `TWILIO_API_KEY_SID`, `TWILIO_API_KEY_SECRET`, `TWILIO_PHONE_NUMBER`, `TWILIO_REGION` + `TWILIO_EDGE` (`ie1` + `dublin`: EU processing; the API key must be created in that region; empty = US1) (API keys made by hand: [Terraform README](../../infrastructure/terraform/README.md#twilio-api-keys-manual)) | ✓ | ✓ | ✓ | `app.env` |
-| `/sentry` | `SENTRY_DSN` (empty = error reporting off) | ✓ | ✓ | ✓ | `app.env` |
+| `/sentry` | `SENTRY_DSN`: a project DSN from the self-hosted GlitchTip at `errors.henga.dev`, one project per environment (empty = error reporting off; leave it empty in dev). URLs are stripped of tokens and query strings before sending (`src/lib/server/sentry-scrub.ts`) | ✓ | ✓ | ✓ | `app.env` |
 | `/deepl` | `DEEPL_API_KEY` (DeepL API Free key, ending in `:fx`: generates the English of the admin's French Event fields; empty = English typed by hand) | ✓ | ✓ | ✓ | `app.env` |
 | `/admin` | `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_FIRST_NAME`, `ADMIN_LAST_NAME` | ✓ | ✓ | ✓ | `admin.env` → the one-off admin bootstrap that each deploy runs, **never** the running app; in dev, `make env` puts them in `.env` for `node scripts/create-admin.js` |
 | `/caddy` | `CLOUDFLARE_API_TOKEN` (DNS-01 for TLS certificates) | ✓ | | | `caddy.env` → Caddy. Staging shares prod's Caddy. |
 | `/backup` | `BACKUP_AWS_ACCESS_KEY_ID`, `BACKUP_AWS_SECRET_ACCESS_KEY`, `BACKUP_S3_BUCKET`, `BACKUP_S3_REGION` (**written by Terraform**: the no-delete `production-germinal-backup` user) | ✓ | | | `backup.env` → the root backup timers ([roles/backup](../../infrastructure/ansible/roles/backup/README.md)) |
+| `/observability` | `INGEST_URL` (`https://ingest.henga.dev`), `INGEST_TOKEN` (the homelab's push token) | ✓ | | | `observability.env` → the Alloy monitoring agent ([roles/observability](../../infrastructure/ansible/roles/observability/README.md)) |
 | `/host` | `NOTIFY_EMAIL` | ✓ | | | not rendered: read by Ansible at setup time, through the operator's login, for fail2ban, unattended-upgrades and ACME |
 
 A key added to a folder appears in the rendered file on the next poll,
 within about a minute, with no template change. The Agent then recreates
-the consumer: the app, or Caddy. Postgres, the backup job and the admin
+the consumer: the app, Caddy, or the monitoring agent. Postgres, the backup job and the admin
 bootstrap only get the rewritten file; they read it the next time they run.
 
 ## Rules that are easy to get wrong
