@@ -15,6 +15,8 @@
 	import { mediaAlt } from '$lib/utils/media-alt';
 	import { canJoinPortfolio } from '$lib/utils/event-access';
 	import { handleTabResult, type EditorEvent } from './editor-forms';
+	import { keepEdits } from '$lib/utils/editor-refresh';
+	import { reportChange } from '$lib/utils/editor-save-form';
 	import EnglishVersion from '$lib/components/admin/EnglishVersion.svelte';
 	import type { PortfolioValues } from '$lib/utils/event-warnings-live';
 
@@ -39,14 +41,16 @@
 	let recapEn = $state(event?.recapEn ?? '');
 	let savingRecap = $state(false);
 
+	// The English may have been generated from the French on save: it is
+	// taken back, unless edited since the save started (issue 018).
 	function recapEnhance() {
 		savingRecap = true;
+		const sent = { recapEn };
 		return async ({ result, formElement }: { result: import('@sveltejs/kit').ActionResult; formElement: HTMLFormElement }) => {
 			savingRecap = false;
-			if (await handleTabResult(result, toast, 'Récap enregistré', formElement)) {
-				// The English may have been generated from the French on save.
-				recapEn = event?.recapEn ?? '';
-			}
+			await handleTabResult(result, toast, 'Récap enregistré', formElement, () => {
+				({ recapEn } = keepEdits(sent, { recapEn }, { recapEn: event?.recapEn ?? '' }));
+			});
 		};
 	}
 
@@ -55,22 +59,26 @@
 	let photos: Media[] = $state([...existingPhotos]);
 	let coverId: string | null = $state(existingPhotos.find((photo) => photo.isCover)?.id ?? null);
 	let savingPhotos = $state(false);
+	let photosFormEl: HTMLFormElement | undefined = $state();
 
 	function handleUpload(uploaded: Media[]) {
 		photos = [...photos, ...uploaded];
 		// The first photo becomes the cover until another is chosen.
 		if (!coverId && photos.length > 0) coverId = photos[0].id;
+		reportChange(photosFormEl);
 	}
 
 	function handleRemove(mediaId: string) {
 		photos = photos.filter((photo) => photo.id !== mediaId);
 		if (coverId === mediaId) coverId = photos[0]?.id ?? null;
+		reportChange(photosFormEl);
 	}
 
 	function handleReorder(mediaIds: string[]) {
 		photos = mediaIds
 			.map((id) => photos.find((photo) => photo.id === id))
 			.filter((photo): photo is Media => photo !== undefined);
+		reportChange(photosFormEl);
 	}
 
 	function photosEnhance() {
@@ -218,7 +226,8 @@
 				</div>
 			</EnglishVersion>
 
-			<div class="flex pt-4 border-t border-border-card">
+			<!-- Hidden on a Draft, which saves itself (issue 018). -->
+			<div data-editor-save class="flex pt-4 border-t border-border-card">
 				<button
 					type="submit"
 					disabled={savingRecap}
@@ -232,7 +241,7 @@
 
 	<!-- Event Photos -->
 	<div class="bg-background rounded-lg border border-border-card p-6 lg:p-8">
-		<form method="POST" action="?/updateEventPhotos" data-editor-form="event-photos" use:enhance={photosEnhance} class="space-y-6">
+		<form bind:this={photosFormEl} method="POST" action="?/updateEventPhotos" data-editor-form="event-photos" use:enhance={photosEnhance} class="space-y-6">
 			<div>
 				<h3 class="text-base font-semibold text-foreground mb-1">Photos de l’événement</h3>
 				<p class="text-xs text-muted-foreground">
@@ -286,7 +295,8 @@
 			<input type="hidden" name="eventPhotoIds" value={JSON.stringify(photos.map((photo) => photo.id))} />
 			<input type="hidden" name="eventPhotoCoverId" value={coverId ?? ''} />
 
-			<div class="flex pt-4 border-t border-border-card">
+			<!-- Hidden on a Draft, which saves itself (issue 018). -->
+			<div data-editor-save class="flex pt-4 border-t border-border-card">
 				<button
 					type="submit"
 					disabled={savingPhotos}

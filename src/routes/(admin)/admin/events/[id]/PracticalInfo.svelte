@@ -8,6 +8,7 @@
 	import { enhance } from '$app/forms';
 	import { getToastContext } from '$lib/components/toast/state.svelte';
 	import { handleTabResult, type EditorEvent } from './editor-forms';
+	import { keepEdits } from '$lib/utils/editor-refresh';
 	import EnglishVersion from '$lib/components/admin/EnglishVersion.svelte';
 
 	let { event }: { event: EditorEvent } = $props();
@@ -15,14 +16,16 @@
 	const toast = getToastContext();
 	let saving = $state(false);
 
+	// The English may have been generated from the French on save: it is
+	// taken back, unless edited since the save started (issue 018).
 	function saveEnhance() {
 		saving = true;
+		const sent = { practicalInfoEn };
 		return async ({ result, formElement }: { result: import('@sveltejs/kit').ActionResult; formElement: HTMLFormElement }) => {
 			saving = false;
-			if (await handleTabResult(result, toast, 'Modifications enregistrées', formElement)) {
-				// The English may have been generated from the French on save.
-				practicalInfoEn = event?.practicalInfoEn ?? '';
-			}
+			await handleTabResult(result, toast, 'Modifications enregistrées', formElement, () => {
+				({ practicalInfoEn } = keepEdits(sent, { practicalInfoEn }, { practicalInfoEn: event?.practicalInfoEn ?? '' }));
+			});
 		};
 	}
 
@@ -102,7 +105,8 @@
 			</div>
 		</div>
 
-		<div class="flex flex-col sm:flex-row sm:items-center gap-3 pt-4 border-t border-border-card">
+		<!-- Hidden on a Draft, which saves itself (issue 018). -->
+		<div data-editor-save class="flex flex-col sm:flex-row sm:items-center gap-3 pt-4 border-t border-border-card">
 			<button
 				type="submit"
 				disabled={saving}

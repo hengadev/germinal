@@ -156,10 +156,13 @@
 	// Save controller (issue 016, ADR 0010): each form of the Event's own
 	// tabs is a unit it saves — the operational tabs keep their own actions.
 	// It gives the header its save status, the tab labels their « modifié »
-	// mark and the leave guard its answer. Autosave stays off for now: the
-	// save buttons submit through it.
+	// mark and the leave guard its answer. On a Draft, the text and media
+	// tabs save themselves (issue 018) and lose their save buttons; Seatings
+	// and pricing keep theirs. A published Event keeps explicit saves.
 	const modeOf = (visibility: string) => (visibility === 'draft' ? 'draft' : 'published');
-	const saves = new EditorSaveController({ autosave: false });
+	const AUTOSAVED_TABS: ReadonlySet<string> = new Set(['essentiel', 'lieu', 'programme', 'visuels', 'pratique', 'portfolio']);
+	const autosaved = (tabId: string) => modeOf(event.visibility) === 'draft' && AUTOSAVED_TABS.has(tabId);
+	const saves = new EditorSaveController();
 	let saveState: EditorSaveSnapshot = $state(saves.snapshot());
 	// A published Event holds its edits; the mode follows its Visibility.
 	$effect(() => saves.setMode(modeOf(event.visibility)));
@@ -184,7 +187,7 @@
 				const unitId = forms.length > 1 ? `${id}:${form.dataset.editorForm ?? i}` : id;
 				const tab = formTab(form);
 				formUnits.set(form, { id: unitId, tab });
-				saves.register(unitId, tab);
+				saves.register(unitId, tab, { autosave: AUTOSAVED_TABS.has(id) });
 			});
 		}
 		// Changes no input event reports (an upload landing) show in the DOM.
@@ -195,7 +198,11 @@
 		});
 		observer.observe(root, { childList: true, subtree: true });
 		const clock = setInterval(() => (now = Date.now()), 30_000);
+		// Hiding or closing the page saves what waits for its idle time.
+		const flushHidden = () => document.visibilityState === 'hidden' && saves.flush();
+		document.addEventListener('visibilitychange', flushHidden);
 		return () => {
+			document.removeEventListener('visibilitychange', flushHidden);
 			observer.disconnect();
 			cancelAnimationFrame(frame);
 			clearInterval(clock);
@@ -261,7 +268,10 @@
 	let leaving = false;
 
 	beforeNavigate((navigation) => {
-		if (leaving || !saves.isDirty()) return;
+		if (leaving) return;
+		// A Draft's change waiting for its idle time is saved now (issue 018).
+		saves.flush();
+		if (!saves.isDirty()) return;
 		navigation.cancel();
 		// Closing, reloading or leaving the site: the browser asks.
 		if (navigation.type === 'leave' || !navigation.to) return;
@@ -273,6 +283,15 @@
 			else if (willUnload) location.assign(url);
 			else void goto(url).finally(() => (leaving = false));
 		};
+		// Only saves on their way: leave once they are through, or ask if
+		// one of them fails.
+		if (Object.values(saves.snapshot().tabs).every((state) => !UNSAVED_STATES.has(state) || state === 'saving')) {
+			void saves.idle().then(() => {
+				if (saves.isDirty()) leaveDialogOpen = true;
+				else leave();
+			});
+			return;
+		}
 		leaveDialogOpen = true;
 	});
 
@@ -473,6 +492,7 @@
 	{#snippet panel(id: string, content: import('svelte').Snippet, guarded = true)}
 		<div
 			data-editor-tab={guarded ? id : undefined}
+			data-editor-autosave={autosaved(id) ? '' : undefined}
 			hidden={activeTab !== panelIndex(id)}
 			role="tabpanel"
 			id="panel-{id}"
@@ -553,3 +573,10 @@
 	servedKinds={duplicateKinds}
 	timeZone={event.timeZone}
 />
+
+<style>
+	/* A Draft's text and media tabs save themselves (issue 018). */
+	:global([data-editor-autosave] [data-editor-save]) {
+		display: none;
+	}
+</style>

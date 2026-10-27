@@ -260,6 +260,86 @@ describe('EditorSaveController — draft mode', () => {
 	});
 });
 
+describe('EditorSaveController — tabs that never save themselves', () => {
+	it('a tab registered without autosave only marks its changes, beside one that saves itself', () => {
+		const { clock, controller } = setup();
+		const text = fakeTab();
+		const seatings = fakeTab();
+		controller.register('essentiel', text);
+		controller.register('dates-seances', seatings, { autosave: false });
+
+		text.type(controller, 'essentiel', 'Dîner');
+		seatings.type(controller, 'dates-seances', '2 séances');
+		controller.blurred('dates-seances');
+		clock.advance(10_000);
+		expect(text.submits).toHaveLength(1);
+		expect(seatings.submits).toHaveLength(0);
+		expect(controller.state('dates-seances')).toBe('dirty');
+	});
+
+	it('still saves when asked, and a change during that save waits for the next one', async () => {
+		const { clock, controller } = setup();
+		const seatings = fakeTab();
+		controller.register('dates-seances', seatings, { autosave: false });
+		seatings.type(controller, 'dates-seances', '2 séances');
+		const saving = controller.save('dates-seances');
+		seatings.type(controller, 'dates-seances', '3 séances');
+		seatings.submits[0].settle({ ok: true });
+		await saving;
+		clock.advance(10_000);
+		expect(seatings.submits).toHaveLength(1);
+		expect(controller.state('dates-seances')).toBe('dirty');
+	});
+});
+
+describe('EditorSaveController — leaving', () => {
+	it('flush saves at once every change waiting for its idle time, and only those', () => {
+		const { clock, controller } = setup();
+		const text = fakeTab();
+		const lieu = fakeTab();
+		const seatings = fakeTab();
+		controller.register('essentiel', text);
+		controller.register('lieu', lieu);
+		controller.register('dates-seances', seatings, { autosave: false });
+		text.type(controller, 'essentiel', 'Dîner');
+		seatings.type(controller, 'dates-seances', '2 séances');
+		controller.touch('lieu');
+
+		controller.flush();
+		expect(text.submits).toHaveLength(1);
+		expect(lieu.submits).toHaveLength(0);
+		expect(seatings.submits).toHaveLength(0);
+		// The idle save does not run a second time.
+		clock.advance(5000);
+		expect(text.submits).toHaveLength(1);
+	});
+
+	it('idle resolves once every save in flight is over, follow-ups included', async () => {
+		const { controller } = setup();
+		const tab = fakeTab();
+		controller.register('essentiel', tab);
+		tab.type(controller, 'essentiel', 'Dîner');
+		controller.blurred('essentiel');
+		tab.type(controller, 'essentiel', 'Dîner au jardin');
+
+		let settled = false;
+		const idle = controller.idle().then(() => (settled = true));
+		tab.submits[0].settle({ ok: true });
+		await flush();
+		expect(tab.submits).toHaveLength(2);
+		expect(settled).toBe(false);
+		tab.submits[1].settle({ ok: true });
+		await idle;
+		expect(controller.isDirty()).toBe(false);
+	});
+
+	it('idle resolves at once when nothing is being saved', async () => {
+		const { controller } = setup();
+		controller.register('essentiel', fakeTab());
+		await expect(controller.idle()).resolves.toBeUndefined();
+	});
+});
+
 describe('EditorSaveController — published mode', () => {
 	it('holds changes: nothing saves by itself', () => {
 		const { clock, controller } = setup({ mode: 'published' });

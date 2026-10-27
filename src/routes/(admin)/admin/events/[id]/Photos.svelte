@@ -6,6 +6,7 @@
 	import { getToastContext } from '$lib/components/toast/state.svelte';
 	import type { Media } from '$lib/types/media';
 	import { handleTabResult } from './editor-forms';
+	import { reportChange } from '$lib/utils/editor-save-form';
 	import { visualsOf } from '$lib/utils/event-photos';
 	import type { VisualsValues } from '$lib/utils/event-warnings-live';
 
@@ -28,6 +29,7 @@
 		(m: Media) => m && m.id !== event.coverMediaId
 	);
 
+	let formEl: HTMLFormElement | undefined = $state();
 	let coverMediaId = $state(event.coverMediaId ?? null);
 	let galleryMediaIds = $state(existingGalleryMedia.map((m: Media) => m.id));
 
@@ -76,10 +78,12 @@
 		if (uploaded.length > 0) {
 			coverMediaId = uploaded[0].id;
 		}
+		reportChange(formEl);
 	}
 
 	function handleCoverRemove(_mediaId: string) {
 		coverMediaId = null;
+		reportChange(formEl);
 	}
 
 	function handleGalleryUpload(uploaded: Media[]) {
@@ -88,6 +92,7 @@
 		if (!coverMediaId && galleryMediaIds.length > 0) {
 			coverMediaId = galleryMediaIds[0];
 		}
+		reportChange(formEl);
 	}
 
 	function handleGalleryRemove(mediaId: string) {
@@ -95,10 +100,12 @@
 		if (coverMediaId === mediaId) {
 			coverMediaId = galleryMediaIds.length > 0 ? galleryMediaIds[0] : null;
 		}
+		reportChange(formEl);
 	}
 
 	function handleGalleryReorder(mediaIds: string[]) {
 		galleryMediaIds = mediaIds;
+		reportChange(formEl);
 	}
 
 	/** What this tab holds now, saved or not: « À vérifier » and the tab
@@ -109,7 +116,7 @@
 </script>
 
 <div class="bg-background rounded-lg border border-border-card p-6 lg:p-8">
-	<form method="POST" action="?/updateMedia" use:enhance={() => {
+	<form bind:this={formEl} method="POST" action="?/updateMedia" use:enhance={() => {
 		return async ({ result, formElement }) => {
 			await handleTabResult(result, toast, 'Photos mises à jour', formElement);
 		};
@@ -159,7 +166,8 @@
 			<input type="hidden" name="galleryMediaIds" value={JSON.stringify(galleryMediaIds)} />
 		</div>
 
-		<div class="pt-4 border-t border-border-card">
+		<!-- Hidden on a Draft, which saves itself (issue 018). -->
+		<div data-editor-save class="pt-4 border-t border-border-card">
 			<button
 				type="submit"
 				class="px-6 py-3 bg-foreground text-background rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-foreground focus:ring-offset-2 transition-colors font-medium"
