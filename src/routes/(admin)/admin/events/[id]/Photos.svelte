@@ -7,6 +7,7 @@
 	import type { Media } from '$lib/types/media';
 	import { handleTabResult } from './editor-forms';
 	import { visualsOf } from '$lib/utils/event-photos';
+	import type { VisualsValues } from '$lib/utils/event-warnings-live';
 
 	const toast = getToastContext();
 
@@ -98,6 +99,12 @@
 
 	function handleGalleryReorder(mediaIds: string[]) {
 		galleryMediaIds = mediaIds;
+	}
+
+	/** What this tab holds now, saved or not: « À vérifier » and the tab
+	 * marks follow it (issue 021). */
+	export function warningValues(): VisualsValues {
+		return { coverMediaId, galleryMediaIds };
 	}
 </script>
 

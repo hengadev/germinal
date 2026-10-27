@@ -6,7 +6,8 @@
 	// switching tabs.
 	import { ArrowLeft, ChevronRight, Copy, Eye } from 'lucide-svelte';
 	import { cn } from '$lib/utils/design-system';
-	import { editorEventWarnings, editorPortfolioWarnings, EVENT_EDITOR_TABS, type EventWarning } from '$lib/utils/event-warnings';
+	import { eventCompleteness, EVENT_EDITOR_TABS, type EventWarning } from '$lib/utils/event-warnings';
+	import { liveEditorWarnings, type UnsavedEditorValues } from '$lib/utils/event-warnings-live';
 	import type { MediaAltText } from '$lib/utils/media-alt';
 	import { getToastContext } from '$lib/components/toast/state.svelte';
 	import type { ActionData, PageData } from './$types';
@@ -104,26 +105,52 @@
 	// are looked up within this editor only.
 	let rootEl: HTMLElement | undefined = $state();
 
-	// « À vérifier » (issue 038, ADR 0008): what is missing for publishing,
-	// read off the saved Event's page data; the list stays visible once the
-	// Event is published.
+	// « À vérifier » (issue 038, ADR 0008): what is missing for publishing;
+	// the list stays visible once the Event is published. It follows what is
+	// typed (issue 021, ADR 0010): the saved page data with each tab's
+	// current values laid over it, read live off the tabs — so a tab back to
+	// its saved values (held edits discarded) brings its items back.
 	// Alt texts are saved per image as soon as they are typed in « Visuels »
 	// (issue 043), without reloading the page data: the list follows them.
 	let altOverrides: Record<string, MediaAltText> = $state({});
 	function handleAltChange(mediaId: string, alt: MediaAltText) {
 		altOverrides[mediaId] = alt;
 	}
+	let essentielTab: ReturnType<typeof Essentiel> | undefined = $state();
+	let lieuTab: ReturnType<typeof Lieu> | undefined = $state();
+	let seatingsTab: ReturnType<typeof Seatings> | undefined = $state();
+	let pricingTab: ReturnType<typeof Pricing> | undefined = $state();
+	let visualsTab: ReturnType<typeof Photos> | undefined = $state();
+	let portfolioTab: ReturnType<typeof Portfolio> | undefined = $state();
+	const unsavedValues: UnsavedEditorValues = $derived({
+		essentiel: essentielTab?.warningValues(),
+		lieu: lieuTab?.warningValues(),
+		seatings: seatingsTab?.warningValues(),
+		pricing: pricingTab?.warningValues(),
+		visuels: visualsTab?.warningValues(),
+		portfolio: portfolioTab?.warningValues(),
+	});
+	const liveWarnings = $derived(
+		liveEditorWarnings(
+			{ event: data.event, schedule: data.schedule ?? [], pricing: data.pricing ?? { services: [] } },
+			unsavedValues,
+			altOverrides
+		)
+	);
 	const publishingWarnings = $derived(
-		data.schedule && data.pricing
-			? editorEventWarnings(data.event, data.schedule, data.pricing, altOverrides)
-			: ([] as EventWarning[])
+		data.schedule && data.pricing ? liveWarnings.publishing : ([] as EventWarning[])
 	);
 	// The Portfolio list (issue 045): the Recap, Event Photos, their cover
 	// and alt text. Always shown in « Portfolio »; joins « À vérifier » once
 	// the Event is in the Portfolio. Warnings only, like publishing's.
-	const portfolioWarnings = $derived(editorPortfolioWarnings(data.event, altOverrides));
+	const portfolioWarnings = $derived(liveWarnings.portfolio);
 	const warnings = $derived(
 		event.isPortfolio ? [...publishingWarnings, ...portfolioWarnings] : publishingWarnings
+	);
+	// What is missing, per tab (issue 013's grouping): each tab label marks
+	// its own (issue 021) — Portfolio's only for a Portfolio Event, as above.
+	const missingByTab = $derived(
+		new Map(eventCompleteness(warnings, { isPortfolio: event.isPortfolio === true }).tabs.map((tab) => [tab.tab as string, tab.warnings.length]))
 	);
 
 	// Save controller (issue 016, ADR 0010): each form of the Event's own
@@ -425,6 +452,19 @@
 						<span aria-hidden="true" class="ml-1.5 inline-block size-1.5 rounded-full bg-current" title="Modifications non enregistrées"></span>
 						<span class="sr-only">(modifications non enregistrées)</span>
 					{/if}
+					{#if (missingByTab.get(tab.id) ?? 0) > 0}
+						{@const missing = missingByTab.get(tab.id) ?? 0}
+						<!-- Missing for publishing (issue 021): a hollow ring, where
+						     « modifié » is a filled dot — told apart by shape, not
+						     colour — and named for screen readers. The error mark
+						     (issue 017) takes its own shape too. -->
+						<span
+							aria-hidden="true"
+							class="ml-1.5 inline-block size-2 rounded-full border-[1.5px] border-current opacity-70"
+							title={missing === 1 ? '1 point à vérifier' : `${missing} points à vérifier`}
+						></span>
+						<span class="sr-only">({missing === 1 ? '1 point à vérifier' : `${missing} points à vérifier`})</span>
+					{/if}
 				</button>
 			{/each}
 		</div>
@@ -444,24 +484,24 @@
 	{/snippet}
 
 	{#snippet essentiel()}
-		<Essentiel {event} lastSeatingStart={data.lastSeatingStart ?? null} warnings={publishingWarnings} />
+		<Essentiel bind:this={essentielTab} {event} lastSeatingStart={data.lastSeatingStart ?? null} warnings={publishingWarnings} />
 	{/snippet}
 	{#snippet lieu()}
-		<Lieu {event} zones={data.timeZones ?? []} locked={data.timeZoneLocked ?? false} bind:timeZone />
+		<Lieu bind:this={lieuTab} {event} zones={data.timeZones ?? []} locked={data.timeZoneLocked ?? false} bind:timeZone />
 	{/snippet}
 	{#snippet seatings()}
-		<Seatings {data} timeZone={data.event.timeZone} />
+		<Seatings bind:this={seatingsTab} {data} timeZone={data.event.timeZone} />
 	{/snippet}
 	{#snippet pricing()}
-		<Pricing {data} />
+		<Pricing bind:this={pricingTab} {data} />
 	{/snippet}
 	{#snippet programme()}<Programme {event} talents={data.talents ?? []} />{/snippet}
-	{#snippet visuels()}<Photos event={data.event} onAltChange={handleAltChange} />{/snippet}
+	{#snippet visuels()}<Photos bind:this={visualsTab} event={data.event} onAltChange={handleAltChange} />{/snippet}
 	{#snippet pratique()}
 		<PracticalInfo {event} />
 	{/snippet}
 	{#snippet portfolio()}
-		<Portfolio {event} lastSeatingStart={data.lastSeatingStart ?? null} warnings={portfolioWarnings} onAltChange={handleAltChange} />
+		<Portfolio bind:this={portfolioTab} {event} lastSeatingStart={data.lastSeatingStart ?? null} warnings={portfolioWarnings} onAltChange={handleAltChange} />
 	{/snippet}
 
 	{@render panel('essentiel', essentiel)}

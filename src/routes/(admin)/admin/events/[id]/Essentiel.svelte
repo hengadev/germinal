@@ -14,6 +14,7 @@
 	import { Type, FileText, Lock } from 'lucide-svelte';
 	import { VISIBILITIES, VISIBILITY_LABELS, canBeSpotlight, canJoinPortfolio, type Visibility } from '$lib/utils/event-access';
 	import type { EventWarning } from '$lib/utils/event-warnings';
+	import type { EssentielValues } from '$lib/utils/event-warnings-live';
 
 	let {
 		event,
@@ -158,6 +159,12 @@
 
 	function cancelPublish() {
 		publishDialogOpen = false;
+	}
+
+	/** What this tab holds now, saved or not: « À vérifier » and the tab
+	 * marks follow it as it is typed (issue 021). */
+	export function warningValues(): EssentielValues {
+		return { titleEn, titleFr, descriptionEn, descriptionFr };
 	}
 </script>
 
