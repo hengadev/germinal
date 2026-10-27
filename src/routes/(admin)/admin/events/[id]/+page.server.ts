@@ -48,7 +48,7 @@ import { depositRuleOf } from '$lib/utils/pricing';
 import { refundPolicyOf } from '$lib/utils/refund-policy';
 import type { PageServerLoad } from './$types';
 import { requireAdmin } from '$lib/server/auth-guards';
-import { canBeSpotlight, canJoinPortfolio, parseVisibility, type Visibility } from '$lib/utils/event-access';
+import { canBeSpotlight, canJoinPortfolio, parseVisibility } from '$lib/utils/event-access';
 
 const SPOTLIGHT_REQUIRES_PUBLIC_MESSAGE = 'Seul un événement Public peut être mis en avant (Spotlight).';
 const PORTFOLIO_REQUIRES_OVER_MESSAGE =
@@ -604,31 +604,10 @@ export const actions: Actions = {
 		const askDietaryRequirements = readAskDietaryRequirements(formData);
 		const fields = askDietaryRequirements === undefined ? textFields : { ...textFields, askDietaryRequirements };
 
-		// Visibility, Spotlight and Portfolio come with the Essentiel tab of
-		// a saved Event; other tabs leave them as they are.
-		let publishing: { visibility: Visibility; isSpotlight: boolean; isPortfolio: boolean } | undefined;
-		if (id && formData.has('visibility')) {
-			const visibility = parseVisibility(formData.get('visibility'));
-			if (!visibility) {
-				return fail(400, { error: 'Visibilité invalide' });
-			}
-			const isSpotlight = formData.get('isSpotlight') === 'true';
-			// Only a Public Event can be the Spotlight (issue 032).
-			if (isSpotlight && !canBeSpotlight({ visibility })) {
-				return fail(400, { error: SPOTLIGHT_REQUIRES_PUBLIC_MESSAGE });
-			}
-			const isPortfolio = formData.get('isPortfolio') === 'true';
-			// The Portfolio (issue 044): an Event joins it only once its last
-			// Seating has started. updateEvent refuses it again on the database.
-			if (isPortfolio && !canJoinPortfolio({ visibility, isPortfolio, lastSeatingStart: await lastSeatingStart(id) }, new Date())) {
-				return fail(400, { error: PORTFOLIO_REQUIRES_OVER_MESSAGE });
-			}
-			publishing = { visibility, isSpotlight, isPortfolio };
-
-			// Publishing is never refused (ADR 0008, which supersedes ADR 0001):
-			// an Event without a Seating is announced but not bookable, and the
-			// editor's « À vérifier » list shows the gap (issue 038).
-		}
+		// Visibility, Spotlight and Portfolio are no longer posted here: they
+		// belong to the « Publication » control and its own action below
+		// (ADR 0010), so saving this tab can never publish the Event. The
+		// action ignores them even if a stale form still posts them.
 
 		if (!id) {
 			const timeZone = parseNewEventTimeZone(formData.get('timeZone'));
@@ -657,15 +636,9 @@ export const actions: Actions = {
 				return fail(404, { error: 'Event not found' });
 			}
 
-			// If isSpotlight is true, unset others in mock array
-			if (publishing?.isSpotlight) {
-				MOCK_EVENTS.forEach(e => e.isSpotlight = false);
-			}
-
 			MOCK_EVENTS[eventIndex] = {
 				...MOCK_EVENTS[eventIndex],
 				...fields,
-				...publishing,
 				updatedAt: new Date()
 			} as typeof MOCK_EVENTS[number];
 
@@ -676,7 +649,7 @@ export const actions: Actions = {
 		const { updateEvent } = await import('$lib/server/services/events');
 
 		try {
-			await updateEvent(id, { ...fields, ...publishing });
+			await updateEvent(id, fields);
 			return { success: savedMessage };
 		} catch (error) {
 			const { SpotlightRequiresPublicError, PortfolioRequiresOverEventError } = await import('$lib/server/services/events');
@@ -688,6 +661,78 @@ export const actions: Actions = {
 			}
 			logger.error({ err: error }, 'Error updating event');
 			return fail(500, { error: 'Échec de l’enregistrement de l’événement.' });
+		}
+	},
+
+	// Publication (ADR 0010): Visibility, Spotlight and Portfolio are saved
+	// only here, from their own control in « Essentiel » and never with the
+	// Event's text, so that no later autosave of a tab can ever publish an
+	// Event. The rules and messages are those of the Essentiel save before:
+	// only a Public Event can be the Spotlight (issue 032), an Event joins
+	// the Portfolio only once its last Seating has started (issue 044) —
+	// `updateEvent` repeats both on the database — and publishing itself is
+	// never refused (ADR 0008): « À vérifier » warns, the Admin decides
+	// (issue 038's confirmation lives in the control).
+	updatePublication: async ({ request, params, locals }) => {
+		requireAdmin(locals);
+		const { id } = params;
+		if (!id) return fail(400, { error: 'Publication : événement inconnu.' });
+
+		const formData = await request.formData();
+		const visibility = parseVisibility(formData.get('visibility'));
+		if (!visibility) {
+			return fail(400, { error: 'Visibilité invalide' });
+		}
+		const isSpotlight = formData.get('isSpotlight') === 'true';
+		if (isSpotlight && !canBeSpotlight({ visibility })) {
+			return fail(400, { error: SPOTLIGHT_REQUIRES_PUBLIC_MESSAGE });
+		}
+		const isPortfolio = formData.get('isPortfolio') === 'true';
+		if (
+			isPortfolio &&
+			!canJoinPortfolio(
+				{ visibility, isPortfolio, lastSeatingStart: await lastSeatingStart(id) },
+				new Date()
+			)
+		) {
+			return fail(400, { error: PORTFOLIO_REQUIRES_OVER_MESSAGE });
+		}
+
+		if (env.USE_MOCK_DATA) {
+			const eventIndex = MOCK_EVENTS.findIndex((e) => e.id === id);
+			if (eventIndex === -1) {
+				return fail(404, { error: 'Event not found' });
+			}
+			// Only one Spotlight at a time: making an Event the Spotlight
+			// takes it from the one that had it.
+			if (isSpotlight) {
+				MOCK_EVENTS.forEach(e => e.isSpotlight = false);
+			}
+			MOCK_EVENTS[eventIndex] = {
+				...MOCK_EVENTS[eventIndex],
+				visibility,
+				isSpotlight,
+				isPortfolio,
+				updatedAt: new Date()
+			} as typeof MOCK_EVENTS[number];
+			return { success: 'Publication enregistrée (mode démo — non persistée)' };
+		}
+
+		const { updateEvent } = await import('$lib/server/services/events');
+
+		try {
+			await updateEvent(id, { visibility, isSpotlight, isPortfolio });
+			return { success: 'Publication enregistrée.' };
+		} catch (error) {
+			const { SpotlightRequiresPublicError, PortfolioRequiresOverEventError } = await import('$lib/server/services/events');
+			if (error instanceof SpotlightRequiresPublicError) {
+				return fail(400, { error: SPOTLIGHT_REQUIRES_PUBLIC_MESSAGE });
+			}
+			if (error instanceof PortfolioRequiresOverEventError) {
+				return fail(400, { error: PORTFOLIO_REQUIRES_OVER_MESSAGE });
+			}
+			logger.error({ err: error }, 'Error updating publication');
+			return fail(500, { error: 'Échec de l’enregistrement de la publication.' });
 		}
 	},
 
