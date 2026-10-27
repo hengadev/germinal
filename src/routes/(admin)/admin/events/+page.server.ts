@@ -9,6 +9,7 @@ import type { EventWithMedia } from '$lib/types/events';
 import type { ServiceKind } from '$lib/utils/event-time';
 import { parsePickedDays, pickedDaysErrorMessage } from '$lib/server/services/event-schedule';
 import { parseVisibility } from '$lib/utils/event-access';
+import type { EventCompleteness } from '$lib/utils/event-warnings';
 
 /** The list's filter: one Visibility, the Portfolio, or every Event. */
 export type EventListFilter = 'all' | 'draft' | 'private' | 'public' | 'portfolio';
@@ -41,6 +42,8 @@ export const load: PageServerLoad = async ({ url }) => {
         return {
             events: filteredEvents as unknown as EventWithMedia[],
             servedKinds: {} as Record<string, ServiceKind[]>,
+            // Mock mode has no Services or Seatings to grade a Draft with.
+            completeness: {} as Record<string, EventCompleteness>,
             searchQuery,
             filter,
         };
@@ -59,10 +62,14 @@ export const load: PageServerLoad = async ({ url }) => {
     });
     const eventsData = result.data as EventWithMedia[];
 
+    // Draft completeness (issue 013, ADR 0010): each Draft's « n/8 ».
+    const { draftCompleteness } = await import('$lib/server/services/event-completeness');
+
     return {
         events: eventsData,
         // The meals each Event serves: « Dupliquer » pre-ticks them (issue 046).
         servedKinds: await getServedKindsByEventIds(eventsData.map((event) => event.id)),
+        completeness: await draftCompleteness(eventsData),
         searchQuery,
         filter,
     };
