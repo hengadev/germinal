@@ -167,6 +167,18 @@
 		publishDialogOpen = false;
 	}
 
+	/** Back to the saved text (a published Event's « Annuler », issue
+	 * 020). The Publication control saves at once: nothing to restore. */
+	export function restore() {
+		titleFr = event?.titleFr ?? '';
+		titleEn = event?.titleEn ?? '';
+		subtitleFr = event?.subtitleFr ?? '';
+		subtitleEn = event?.subtitleEn ?? '';
+		descriptionFr = event?.descriptionFr ?? '';
+		descriptionEn = event?.descriptionEn ?? '';
+		internalNotes = event?.internalNotes ?? '';
+	}
+
 	/** What this tab holds now, saved or not: « À vérifier » and the tab
 	 * marks follow it as it is typed (issue 021). */
 	export function warningValues(): EssentielValues {

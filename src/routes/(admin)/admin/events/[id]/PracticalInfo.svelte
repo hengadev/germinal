@@ -33,6 +33,13 @@
 	let practicalInfoEn = $state(event?.practicalInfoEn ?? '');
 	// Dietary Requirements (issue 041): whether the booking form asks.
 	let askDietaryRequirements = $state(event?.askDietaryRequirements ?? false);
+
+	/** Back to what is saved (a published Event's « Annuler », issue 020). */
+	export function restore() {
+		practicalInfoFr = event?.practicalInfoFr ?? '';
+		practicalInfoEn = event?.practicalInfoEn ?? '';
+		askDietaryRequirements = event?.askDietaryRequirements ?? false;
+	}
 </script>
 
 <div class="bg-background rounded-lg border border-border-card p-6 lg:p-8">

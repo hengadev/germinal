@@ -46,6 +46,16 @@
 	let curatorFr = $state(event?.curatorFr ?? "");
 	let admissionInfoEn = $state(event?.admissionInfoEn ?? "");
 	let admissionInfoFr = $state(event?.admissionInfoFr ?? "");
+
+	/** Back to what is saved (a published Event's « Annuler », issue 020). */
+	export function restore() {
+		collaborators = event?.collaborators ? JSON.parse(event.collaborators) : [];
+		timings = event?.timings ? JSON.parse(event.timings) : [];
+		curatorFr = event?.curatorFr ?? '';
+		curatorEn = event?.curatorEn ?? '';
+		admissionInfoFr = event?.admissionInfoFr ?? '';
+		admissionInfoEn = event?.admissionInfoEn ?? '';
+	}
 </script>
 
 <div class="bg-background rounded-lg border border-border-card p-6 lg:p-8">

@@ -107,6 +107,17 @@
 		}
 	}
 
+	/** Back to the saved menus and prices — a published Event's
+	 * « Annuler » (issue 020). A save keeps the drafts (`adoptSaved`). */
+	export function restore() {
+		refused = false;
+		menus = toDraftMenus(data.pricing);
+		services = toDraftPricingServices(data.pricing);
+		deposit = toDraftDeposit(data.pricing);
+		refund = toDraftRefund(data.pricing);
+		currency = toDraftCurrency(data.pricing);
+	}
+
 	/** What this tab holds now, saved or not: « À vérifier » and the tab
 	 * marks follow it as it is typed (issue 021). */
 	export function warningValues(): PricingValues {
@@ -139,7 +150,8 @@
 		daysTabName="Dates & séances"
 	/>
 
-	<!-- Hidden on a Draft, which saves itself (issue 019). -->
+	<!-- Hidden on a Draft, which saves itself (issue 019), and on a published
+	     Event, which saves through its bar (issue 020). -->
 	<div data-editor-save class="flex flex-col sm:flex-row sm:items-center gap-3 pt-4 border-t border-border-card">
 		<button
 			type="submit"

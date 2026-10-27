@@ -55,7 +55,9 @@
 	}
 
 	// ---- Event Photos ------------------------------------------------------
-	const existingPhotos = eventPhotosOf(event?.media);
+	// What the uploader starts from: replaced as a whole to put it back as
+	// saved (« Annuler », issue 020).
+	let existingPhotos = $state.raw(eventPhotosOf(event?.media));
 	let photos: Media[] = $state([...existingPhotos]);
 	let coverId: string | null = $state(existingPhotos.find((photo) => photo.isCover)?.id ?? null);
 	let savingPhotos = $state(false);
@@ -139,6 +141,20 @@
 			new Date()
 		)
 	);
+
+	/** Back to the saved Recap (a published Event's « Annuler », issue 020). */
+	export function restoreRecap() {
+		recapFr = event?.recapFr ?? '';
+		recapEn = event?.recapEn ?? '';
+	}
+
+	/** Back to the saved Event Photos (« Annuler », issue 020). Uploads and
+	 * deletions are stored at once: the page data is reloaded first. */
+	export function restorePhotos() {
+		existingPhotos = eventPhotosOf(event?.media);
+		photos = [...existingPhotos];
+		coverId = existingPhotos.find((photo) => photo.isCover)?.id ?? null;
+	}
 
 	/** What this tab holds now, saved or not: the Portfolio list and the
 	 * tab mark follow it as it is typed (issue 021). */
