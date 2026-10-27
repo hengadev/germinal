@@ -48,6 +48,8 @@ describe('seatingStateOf', () => {
 		expect(seatingStateOf(seating({ availableCapacity: 30, totalCapacity: 100 }))).toBe('open');
 		expect(seatingStateOf(seating({ availableCapacity: 20, totalCapacity: 100 }))).toBe('limited');
 		expect(seatingStateOf(seating({ badgeType: 'limited' }))).toBe('limited');
+		// No limit (ADR 0009): never running low.
+		expect(seatingStateOf(seating({ availableCapacity: null, totalCapacity: null }))).toBe('open');
 	});
 
 	it('offers the Waitlist only when a full Seating has one open', () => {

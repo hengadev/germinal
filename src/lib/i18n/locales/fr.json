@@ -90,7 +90,8 @@
         "full": "Complet",
         "lastSeat": "Dernière place",
         "seatsLeft": "Il reste {count} places",
-        "seats": "{count} places"
+        "seats": "{count} places",
+        "open": "Places disponibles"
       },
       "summary": {
         "waitlist": "Complet — liste d’attente",

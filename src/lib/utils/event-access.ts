@@ -61,7 +61,8 @@ export interface AccessSeating {
 	 * legacy one): a Seating whose Service has no price is not yet bookable. */
 	priced: boolean;
 	startTime: Date;
-	availableCapacity: number;
+	/** Null on a Seating without a limit (ADR 0009): never full. */
+	availableCapacity: number | null;
 	allowWaitlist: boolean;
 }
 
@@ -166,7 +167,8 @@ function refusalBeforeCapacity({ event, seating, viewer, now }: SeatingAccessInp
 export function seatingBooking(input: SeatingAccessInput & { seats?: number }): SeatingBookingDecision {
 	const refusal = refusalBeforeCapacity(input);
 	if (refusal) return { bookable: false, ...refusal };
-	if (input.seating.availableCapacity < (input.seats ?? 1)) return { bookable: false, reason: 'full' };
+	const available = input.seating.availableCapacity;
+	if (available !== null && available < (input.seats ?? 1)) return { bookable: false, reason: 'full' };
 	return { bookable: true };
 }
 

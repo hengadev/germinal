@@ -123,7 +123,7 @@
 			email.trim().length > 0 &&
 			email.includes('@') &&
 			quantity >= 1 &&
-			quantity <= Math.min(data.session.availableCapacity, 10) &&
+			quantity <= Math.min(data.session.availableCapacity ?? 10, 10) &&
 			!dietaryConsentMissing
 	);
 
@@ -346,14 +346,14 @@
 						type="number"
 						bind:value={quantity}
 						min="1"
-						max={Math.min(data.session.availableCapacity, 10)}
+						max={Math.min(data.session.availableCapacity ?? 10, 10)}
 						required
 						disabled={isSubmitting}
 						class="w-full pl-10 pr-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm disabled:bg-surface disabled:cursor-not-allowed"
 					/>
 				</div>
 				<p class="text-xs text-muted-foreground mt-1">
-					{$t('booking.maxTickets', { values: { max: Math.min(data.session.availableCapacity, 10) } })}
+					{$t('booking.maxTickets', { values: { max: Math.min(data.session.availableCapacity ?? 10, 10) } })}
 				</p>
 			</div>
 

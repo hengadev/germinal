@@ -44,8 +44,9 @@ export interface PageSeating {
 	endTime: string;
 	priceAmount: number | null;
 	currency: string;
-	availableCapacity: number;
-	totalCapacity: number;
+	/** Both null on a Seating without a limit (ADR 0009). */
+	availableCapacity: number | null;
+	totalCapacity: number | null;
 	allowWaitlist: boolean;
 	soldOut: boolean;
 	isPast: boolean;
@@ -183,7 +184,11 @@ export function seatingStateOf(s: PageSeating): SeatingState {
 	if (s.bookingRefusal === 'not-open') return 'not-open';
 	if (s.bookingRefusal === 'closed') return 'closed';
 	if (s.soldOut || s.bookingRefusal === 'full') return (s.waitlistOpen ?? s.allowWaitlist) ? 'waitlist' : 'full';
-	if (s.badgeType === 'limited' || s.availableCapacity <= Math.max(LIMITED_MIN, Math.ceil(s.totalCapacity * LIMITED_SHARE))) {
+	if (
+		s.badgeType === 'limited' ||
+		(s.availableCapacity !== null && s.totalCapacity !== null &&
+			s.availableCapacity <= Math.max(LIMITED_MIN, Math.ceil(s.totalCapacity * LIMITED_SHARE)))
+	) {
 		return 'limited';
 	}
 	return 'open';
@@ -209,9 +214,10 @@ function seatingStatus(t: Translate, state: SeatingState, s: PageSeating, zone: 
 		case 'full':
 			return t('events.page.seating.full');
 		case 'limited':
+			if (left === null) return t('events.page.seating.open');
 			return left === 1 ? t('events.page.seating.lastSeat') : t('events.page.seating.seatsLeft', { values: { count: left } });
 		default:
-			return t('events.page.seating.seats', { values: { count: left } });
+			return left === null ? t('events.page.seating.open') : t('events.page.seating.seats', { values: { count: left } });
 	}
 }
 

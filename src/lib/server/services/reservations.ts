@@ -60,7 +60,8 @@ export class SeatingNotPricedError extends SeatingNotBookableError {
 
 /**
  * Atomically decrement a locked Seating's available capacity. The UPDATE
- * re-checks the capacity, so it can never go negative.
+ * re-checks the capacity, so it can never go negative. A Seating without a
+ * limit (ADR 0009) keeps NULL: `NULL - quantity` is NULL.
  */
 async function decrementSessionCapacity(tx: typeof db, sessionId: string, quantity: number) {
 	const [updatedSession] = await tx
@@ -71,7 +72,7 @@ async function decrementSessionCapacity(tx: typeof db, sessionId: string, quanti
 		})
 		.where(and(
 			eq(eventSessions.id, sessionId),
-			sql`${eventSessions.availableCapacity} >= ${quantity}` // Double-check in UPDATE
+			sql`(${eventSessions.availableCapacity} IS NULL OR ${eventSessions.availableCapacity} >= ${quantity})` // Double-check in UPDATE
 		))
 		.returning();
 
@@ -153,7 +154,7 @@ async function lockAndDecrementSessionCapacity(
 	}
 
 	// Step 2: Check availability
-	if (session.availableCapacity < quantity) {
+	if (session.availableCapacity !== null && session.availableCapacity < quantity) {
 		throw new Error('Not enough tickets available');
 	}
 

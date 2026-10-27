@@ -227,6 +227,26 @@ describe('createReservation', () => {
 		expect(allReservations).toHaveLength(0);
 	});
 
+	it('no limit (ADR 0009) — books any quantity and keeps the capacity NULL; expiry gives nothing back', async () => {
+		const { session } = await seedPublishedSession({ totalCapacity: null, availableCapacity: null });
+		const { createReservation, expireReservation } = await import('../../src/lib/server/services/reservations');
+		const { createCheckoutSession } = await import('../../src/lib/server/services/stripe');
+		vi.mocked(createCheckoutSession).mockResolvedValueOnce({ id: 'cs_test_first', url: 'https://checkout.stripe.test/first' } as never);
+
+		const first = await createReservation(makeInput(session.id, { quantity: 8 }));
+		await createReservation(makeInput(session.id, { quantity: 8, email: 'other@example.com' }));
+
+		const capacityOf = async () => {
+			const [row] = await testDb.select().from(eventSessions).where(eq(eventSessions.id, session.id));
+			return [row.totalCapacity, row.availableCapacity];
+		};
+		expect(await capacityOf()).toEqual([null, null]);
+		expect(await testDb.select().from(reservations)).toHaveLength(2);
+
+		await expireReservation(first.reservation.id);
+		expect(await capacityOf()).toEqual([null, null]);
+	});
+
 	it('race condition — two concurrent calls for the last ticket; exactly one succeeds', async () => {
 		const { session } = await seedPublishedSession({
 			totalCapacity: 1,

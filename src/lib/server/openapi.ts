@@ -447,8 +447,8 @@ export const openApiSpec = {
 					endTime: { type: 'string', format: 'date-time', description: 'Session end date and time' },
 					priceAmount: { type: ['integer', 'null'], description: 'Price per seat in cents, set on the session\'s service (lunch or dinner); null while not set yet', example: 2500 },
 					currency: { type: 'string', description: 'Three-letter currency code', default: 'EUR', example: 'USD' },
-					totalCapacity: { type: 'integer', description: 'Total number of available tickets', example: 100 },
-					availableCapacity: { type: 'integer', description: 'Number of tickets currently available', example: 50 },
+					totalCapacity: { type: ['integer', 'null'], description: 'Total number of available tickets; null when the session has no limit', example: 100 },
+					availableCapacity: { type: ['integer', 'null'], description: 'Number of tickets currently available; null when the session has no limit', example: 50 },
 					allowWaitlist: { type: 'boolean', description: 'Whether waitlist is enabled for this session' },
 					published: { type: 'boolean', description: 'Whether the session is published' }
 				}

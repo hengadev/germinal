@@ -90,7 +90,8 @@
         "full": "Full",
         "lastSeat": "Last seat",
         "seatsLeft": "{count} seats left",
-        "seats": "{count} seats"
+        "seats": "{count} seats",
+        "open": "Seats available"
       },
       "summary": {
         "waitlist": "Full — join the waitlist",

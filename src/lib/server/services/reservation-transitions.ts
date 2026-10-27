@@ -228,7 +228,8 @@ async function restoreCapacity(tx: typeof db, eventSessionId: string, quantity: 
 		.where(eq(eventSessions.id, eventSessionId))
 		.for('update');
 
-	if (seating) {
+	// A Seating without a limit (ADR 0009) counts no seats to give back.
+	if (seating && seating.availableCapacity !== null && seating.totalCapacity !== null) {
 		await tx.update(eventSessions)
 			.set({
 				availableCapacity: Math.min(seating.availableCapacity + quantity, seating.totalCapacity),
