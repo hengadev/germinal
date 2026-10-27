@@ -37,9 +37,9 @@
 		return `il y a ${days}j`;
 	}
 
-	function fillRate(total: number, available: number): number {
+	function fillRate(total: number, reserved: number): number {
 		if (total === 0) return 0;
-		return Math.round(((total - available) / total) * 100);
+		return Math.round((reserved / total) * 100);
 	}
 </script>
 
@@ -201,7 +201,7 @@
 			{:else}
 				<div class="divide-y divide-border-card">
 					{#each data.upcomingSessions as session}
-						{@const fill = fillRate(session.totalCapacity, session.availableCapacity)}
+						{@const fill = session.totalCapacity === null ? null : fillRate(session.totalCapacity, session.reservedSeats)}
 						<div class="px-6 py-4">
 							<div class="font-medium text-foreground text-sm truncate">{session.eventTitle}</div>
 							<div class="text-xs text-muted-foreground mt-0.5 mb-3">
@@ -209,16 +209,24 @@
 							</div>
 							<div class="flex items-center justify-between text-xs mb-1.5">
 								<span class="text-muted-foreground">
-									{session.totalCapacity - session.availableCapacity}/{session.totalCapacity} places
+									{#if session.totalCapacity === null}
+										{session.reservedSeats} place{session.reservedSeats > 1 ? 's' : ''} réservée{session.reservedSeats > 1 ? 's' : ''} · sans limite
+									{:else}
+										{session.reservedSeats}/{session.totalCapacity} places
+									{/if}
 								</span>
-								<span class="font-medium text-foreground">{fill}%</span>
+								{#if fill !== null}
+									<span class="font-medium text-foreground">{fill}%</span>
+								{/if}
 							</div>
-							<div class="w-full bg-muted rounded-full h-1">
-								<div
-									class="h-1 rounded-full transition-all"
-									style="width: {fill}%; background: var(--foreground); opacity: 0.75"
-								></div>
-							</div>
+							{#if fill !== null}
+								<div class="w-full bg-muted rounded-full h-1">
+									<div
+										class="h-1 rounded-full transition-all"
+										style="width: {fill}%; background: var(--foreground); opacity: 0.75"
+									></div>
+								</div>
+							{/if}
 						</div>
 					{/each}
 				</div>

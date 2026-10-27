@@ -20,8 +20,10 @@ interface UpcomingSession {
 	eventTitle: string;
 	sessionTitle: string;
 	startTime: string;
-	totalCapacity: number;
-	availableCapacity: number;
+	/** Null on a Seating without a limit (ADR 0009). */
+	totalCapacity: number | null;
+	/** Seats held by pending, processing and confirmed Reservations. */
+	reservedSeats: number;
 	/** Price per seat from the Seating's Service; null while not set. */
 	priceAmount: number | null;
 	currency: string;
@@ -87,7 +89,7 @@ async function getMockDashboardData() {
 				sessionTitle: seatingTitle(s, 'en', { timeZone: event?.timeZone ?? DEFAULT_EVENT_TIME_ZONE }),
 				startTime: new Date(s.startTime).toISOString(),
 				totalCapacity: s.totalCapacity,
-				availableCapacity: s.availableCapacity,
+				reservedSeats: s.totalCapacity - s.availableCapacity,
 				priceAmount: s.priceAmount,
 				currency: s.currency
 			};
@@ -103,7 +105,7 @@ async function getMockDashboardData() {
 async function getDbDashboardData() {
 	const { db } = await import('$lib/server/db');
 	const { payments, reservations, eventSessions } = await import('$lib/server/db/schema');
-	const { eq, and, gte, gt, or, desc, asc } = await import('drizzle-orm');
+	const { eq, and, gte, gt, or, desc, asc, inArray, sql } = await import('drizzle-orm');
 
 	const now = new Date();
 	const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -164,6 +166,23 @@ async function getDbDashboardData() {
 	const { getSeatingPrices } = await import('$lib/server/services/service-pricing');
 	const upcomingPrices = await getSeatingPrices(upcomingDetailed.map((s: (typeof upcomingDetailed)[number]) => s.id));
 
+	// Counted from the Reservations: a Seating without a limit keeps no
+	// available count to subtract from.
+	const upcomingIds = upcomingDetailed.map((s: (typeof upcomingDetailed)[number]) => s.id);
+	const reservedRows: { sessionId: string; seats: number }[] = upcomingIds.length > 0
+		? await db.select({
+				sessionId: reservations.eventSessionId,
+				seats: sql<number>`(coalesce(sum(${reservations.quantity}), 0))::int`,
+			})
+			.from(reservations)
+			.where(and(
+				inArray(reservations.eventSessionId, upcomingIds),
+				inArray(reservations.status, ['pending', 'processing', 'confirmed'])
+			))
+			.groupBy(reservations.eventSessionId)
+		: [];
+	const reservedBySession = new Map(reservedRows.map((row) => [row.sessionId, row.seats]));
+
 	const upcomingSessions: UpcomingSession[] = upcomingDetailed.map((s) => ({
 		id: s.id,
 		eventTitle: (s as typeof s & { event: { titleEn: string } | null }).event?.titleEn ?? 'Unknown Event',
@@ -172,7 +191,7 @@ async function getDbDashboardData() {
 		}),
 		startTime: s.startTime.toISOString(),
 		totalCapacity: s.totalCapacity,
-		availableCapacity: s.availableCapacity,
+		reservedSeats: reservedBySession.get(s.id) ?? 0,
 		priceAmount: upcomingPrices.get(s.id)?.amount ?? null,
 		currency: upcomingPrices.get(s.id)?.currency ?? 'EUR'
 	}));

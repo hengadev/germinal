@@ -32,13 +32,14 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 	const { db } = await import('$lib/server/db');
 	const { eventSessions } = await import('$lib/server/db/schema');
-	const { and, eq, gt, asc } = await import('drizzle-orm');
+	const { and, eq, gt, asc, isNull, or } = await import('drizzle-orm');
 
 	const upcomingSessions = await db.query.eventSessions.findMany({
 		where: and(
 			eq(eventSessions.published, true),
 			gt(eventSessions.startTime, new Date()),
-			gt(eventSessions.availableCapacity, 0)
+			// Seatings without a limit (ADR 0009) never run out.
+			or(isNull(eventSessions.availableCapacity), gt(eventSessions.availableCapacity, 0))
 		),
 		orderBy: [asc(eventSessions.startTime)],
 		with: {
