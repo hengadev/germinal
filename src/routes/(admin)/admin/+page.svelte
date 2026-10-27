@@ -56,13 +56,16 @@
 
 		<!-- Quick Actions -->
 		<div class="flex flex-wrap gap-3">
-			<a
-				href="/admin/events/new"
-				class="inline-flex items-center gap-2 px-4 py-2 bg-background border border-border-input text-foreground-alt rounded-lg hover:bg-muted transition-colors text-sm font-medium"
-			>
-				<Plus size={15} />
-				<span class="whitespace-nowrap">Nouvel événement</span>
-			</a>
+			<!-- Creates the Draft at once (ADR 0010): a POST, never a link. -->
+			<form method="POST" action="/admin/events?/createEvent">
+				<button
+					type="submit"
+					class="inline-flex items-center gap-2 px-4 py-2 bg-background border border-border-input text-foreground-alt rounded-lg hover:bg-muted transition-colors text-sm font-medium cursor-pointer"
+				>
+					<Plus size={15} />
+					<span class="whitespace-nowrap">Nouvel événement</span>
+				</button>
+			</form>
 			<a
 				href="/admin/talents/new"
 				class="inline-flex items-center gap-2 px-4 py-2 bg-background border border-border-input text-foreground-alt rounded-lg hover:bg-muted transition-colors text-sm font-medium"

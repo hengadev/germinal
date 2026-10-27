@@ -15,10 +15,10 @@
 		locked = false,
 		timeZone = $bindable(),
 	}: {
-		event: EditorEvent | null;
+		event: EditorEvent;
 		zones: string[];
 		locked?: boolean;
-		/** The Time Zone picked; bindable so a new Event's Seatings follow it. */
+		/** The Time Zone picked. */
 		timeZone: string;
 	} = $props();
 

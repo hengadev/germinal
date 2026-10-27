@@ -1,11 +1,10 @@
-import { goto, invalidateAll } from '$app/navigation';
+import { invalidateAll } from '$app/navigation';
 import type { ActionResult } from '@sveltejs/kit';
 import { announceSaved } from '$lib/utils/leave-guard';
 
 /**
  * Shared by the Event editor's tabs (issue 036). Each tab posts its own
- * form; on a new Event the first save creates the Draft and answers with a
- * redirect to its page.
+ * form, always on a saved Event (ADR 0010).
  */
 
 interface Toast {
@@ -14,10 +13,9 @@ interface Toast {
 }
 
 /**
- * Answer a tab's save: a toast, then the new Draft's page after a first
- * save, or fresh data for a saved Event. Returns whether the save went
- * through on the same page (so the tab can reset its drafts). A save that
- * went through cleans `form` for the leave guard (issue 037).
+ * Answer a tab's save: a toast, then fresh data. Returns whether the save
+ * went through (so the tab can reset its drafts). A save that went through
+ * cleans `form` for the leave guard (issue 037).
  */
 export async function handleTabResult(
 	result: ActionResult,
@@ -25,12 +23,6 @@ export async function handleTabResult(
 	successFallback: string,
 	form?: HTMLFormElement
 ): Promise<boolean> {
-	if (result.type === 'redirect') {
-		announceSaved(form, true);
-		toast.success('Succès', 'Brouillon créé.');
-		await goto(result.location, { invalidateAll: true });
-		return false;
-	}
 	if (result.type === 'success') {
 		toast.success('Succès', (result.data as { success?: string } | undefined)?.success ?? successFallback);
 		await invalidateAll();
@@ -45,19 +37,7 @@ export async function handleTabResult(
 	return false;
 }
 
-/**
- * Copy into `target` the fields of another tab's form that `target` does
- * not hold already: on a new Event, « Dates & séances » and « Menus &
- * tarifs » are saved together by the first save of either.
- */
-export function mergeFormFields(target: FormData, form: HTMLFormElement | null): void {
-	if (!form) return;
-	for (const [name, value] of new FormData(form)) {
-		if (!target.has(name)) target.set(name, value);
-	}
-}
-
-/** The saved Event as the editor's tabs read it; null on a new Event. */
+/** The saved Event as the editor's tabs read it. */
 export interface EditorEvent {
 	id: string;
 	titleEn: string | null;

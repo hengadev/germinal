@@ -154,12 +154,12 @@ async function seedStaffOn(eventId: string) {
 	return { id: staff.id, email: staff.email, role: 'staff', createdAt: new Date() };
 }
 
-function updateEventForm(eventId: string | null, fields: Record<string, string>) {
+function updateEventForm(eventId: string, fields: Record<string, string>) {
 	const form = new FormData();
 	for (const [key, value] of Object.entries(fields)) form.set(key, value);
 	return {
-		request: new Request('http://x/admin/events/' + (eventId ?? 'new') + '?/updateEvent', { method: 'POST', body: form }),
-		params: eventId ? { id: eventId } : {},
+		request: new Request('http://x/admin/events/' + eventId + '?/updateEvent', { method: 'POST', body: form }),
+		params: { id: eventId },
 		locals: ADMIN_LOCALS,
 	} as any;
 }
@@ -202,18 +202,6 @@ describe('the Admin edits Internal Notes in « Essentiel »', () => {
 		const { actions } = await import('../../src/routes/(admin)/admin/events/[id]/+page.server');
 		await actions.updateEvent!(updateEventForm(event.id, { cityFr: 'Paris' }));
 		expect(await notesOf(event.id)).toBe(NOTES);
-	});
-
-	it('on a new Event, notes alone create the Draft with them', async () => {
-		const { actions } = await import('../../src/routes/(admin)/admin/events/[id]/+page.server');
-		let location = '';
-		try {
-			await actions.updateEvent!(updateEventForm(null, { internalNotes: NOTES, timeZone: 'Europe/Paris' }));
-		} catch (redirect: any) {
-			location = redirect.location;
-		}
-		const id = location.split('/').pop()!;
-		expect(await notesOf(id)).toBe(NOTES);
 	});
 });
 

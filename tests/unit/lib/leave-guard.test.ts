@@ -106,9 +106,9 @@ describe('LeaveGuard', () => {
 describe('announceSaved', () => {
 	it('bubbles a saved event from the form', () => {
 		const form = makeForm('');
-		let detail: unknown = null;
-		document.body.addEventListener(EDITOR_SAVED_EVENT, (e) => (detail = (e as CustomEvent).detail), { once: true });
-		announceSaved(form, true);
-		expect(detail).toEqual({ leaving: true });
+		let target: EventTarget | null = null;
+		document.body.addEventListener(EDITOR_SAVED_EVENT, (e) => (target = e.target), { once: true });
+		announceSaved(form);
+		expect(target).toBe(form);
 	});
 });

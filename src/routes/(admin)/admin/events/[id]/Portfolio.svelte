@@ -23,7 +23,7 @@
 		warnings = [],
 		onAltChange,
 	}: {
-		event: EditorEvent | null;
+		event: EditorEvent;
 		/** When the Event's last Seating starts: until then the tab is locked. */
 		lastSeatingStart?: Date | string | null;
 		/** The Portfolio list (issue 045): warnings only, never blocking. */

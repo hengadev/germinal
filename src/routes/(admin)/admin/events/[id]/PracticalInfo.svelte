@@ -10,7 +10,7 @@
 	import { handleTabResult, type EditorEvent } from './editor-forms';
 	import EnglishVersion from '$lib/components/admin/EnglishVersion.svelte';
 
-	let { event }: { event: EditorEvent | null } = $props();
+	let { event }: { event: EditorEvent } = $props();
 
 	const toast = getToastContext();
 	let saving = $state(false);
