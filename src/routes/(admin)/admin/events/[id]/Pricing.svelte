@@ -19,6 +19,7 @@
 		type DraftRefund,
 	} from '$lib/components/admin/PricingEditor.svelte';
 	import type { PricingEditorData } from '$lib/types/pricing-editor';
+	import type { PricingValues } from '$lib/utils/event-warnings-live';
 
 	let { data }: { data: { pricing?: PricingEditorData } } = $props();
 
@@ -60,6 +61,12 @@
 			}
 			if (result.type !== 'success') reportSave(formElement, saveOutcomeOf(result));
 		};
+	}
+
+	/** What this tab holds now, saved or not: « À vérifier » and the tab
+	 * marks follow it as it is typed (issue 021). */
+	export function warningValues(): PricingValues {
+		return { services };
 	}
 </script>
 

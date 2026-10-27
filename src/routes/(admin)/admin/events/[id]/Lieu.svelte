@@ -8,6 +8,7 @@
 	import { MapPin } from 'lucide-svelte';
 	import TimeZoneField from '$lib/components/admin/TimeZoneField.svelte';
 	import EnglishVersion from '$lib/components/admin/EnglishVersion.svelte';
+	import type { LieuValues } from '$lib/utils/event-warnings-live';
 
 	let {
 		event,
@@ -54,6 +55,12 @@
 	let postalCode = $state(event?.postalCode ?? "");
 	let countryEn = $state(event?.countryEn ?? "");
 	let countryFr = $state(event?.countryFr ?? "");
+
+	/** What this tab holds now, saved or not: « À vérifier » and the tab
+	 * marks follow it as it is typed (issue 021). */
+	export function warningValues(): LieuValues {
+		return { locationEn, locationFr };
+	}
 </script>
 
 <div class="bg-background rounded-lg border border-border-card p-6 lg:p-8">

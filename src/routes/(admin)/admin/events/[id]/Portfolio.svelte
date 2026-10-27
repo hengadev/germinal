@@ -16,6 +16,7 @@
 	import { canJoinPortfolio } from '$lib/utils/event-access';
 	import { handleTabResult, type EditorEvent } from './editor-forms';
 	import EnglishVersion from '$lib/components/admin/EnglishVersion.svelte';
+	import type { PortfolioValues } from '$lib/utils/event-warnings-live';
 
 	let {
 		event,
@@ -130,6 +131,12 @@
 			new Date()
 		)
 	);
+
+	/** What this tab holds now, saved or not: the Portfolio list and the
+	 * tab mark follow it as it is typed (issue 021). */
+	export function warningValues(): PortfolioValues {
+		return { recapEn, recapFr, photos, coverId };
+	}
 </script>
 
 {#if !over}

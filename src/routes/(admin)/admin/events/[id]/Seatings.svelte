@@ -18,6 +18,7 @@
 	} from '$lib/components/admin/SeatingsEditor.svelte';
 	import type { EditorService } from '$lib/types/seatings-editor';
 	import { clockOf, dayOf, DEFAULT_EVENT_TIME_ZONE } from '$lib/utils/event-time';
+	import type { SeatingsValues } from '$lib/utils/event-warnings-live';
 
 	let {
 		data,
@@ -155,6 +156,12 @@
 			}
 			if (result.type !== 'success') reportSave(formElement, saveOutcomeOf(result));
 		};
+	}
+
+	/** What this tab holds now, saved or not: « À vérifier » and the tab
+	 * marks follow it as it is typed (issue 021). */
+	export function warningValues(): SeatingsValues {
+		return { services, bookingOpensAt, bookingClosesHoursBefore };
 	}
 </script>
 
