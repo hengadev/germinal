@@ -338,6 +338,65 @@ describe('EditorSaveController — leaving', () => {
 		controller.register('essentiel', fakeTab());
 		await expect(controller.idle()).resolves.toBeUndefined();
 	});
+
+	it('a tab saved after another waits for its save in flight, then sends what it holds', async () => {
+		const { controller } = setup();
+		const seatings = fakeTab();
+		const pricing = fakeTab();
+		controller.register('dates-seances', seatings);
+		controller.register('tarifs', pricing, { after: ['dates-seances'] });
+		seatings.type(controller, 'dates-seances', 'un jour');
+		controller.blurred('dates-seances');
+		pricing.type(controller, 'tarifs', '45 €');
+		controller.blurred('tarifs');
+
+		await flush();
+		expect(pricing.submits).toHaveLength(0);
+		expect(controller.state('tarifs')).toBe('saving');
+		// The Seatings save brings the new Service into pricing.
+		pricing.value = '45 €, nouveau service';
+		seatings.submits[0].settle({ ok: true });
+		await flush();
+		expect(pricing.submits.map((submit) => submit.sent)).toEqual(['45 €, nouveau service']);
+		pricing.submits[0].settle({ ok: true });
+		await flush();
+		expect(controller.state('tarifs')).toBe('saved');
+		// What it held when sent is saved: no follow-up save.
+		expect(pricing.submits).toHaveLength(1);
+	});
+
+	it('a tab saved after another first sends that one’s waiting change', async () => {
+		const { clock, controller } = setup();
+		const seatings = fakeTab();
+		const pricing = fakeTab();
+		controller.register('dates-seances', seatings);
+		controller.register('tarifs', pricing, { after: ['dates-seances'] });
+		seatings.type(controller, 'dates-seances', 'un jour');
+		pricing.type(controller, 'tarifs', '45 €');
+		controller.blurred('tarifs');
+
+		expect(seatings.submits).toHaveLength(1);
+		await flush();
+		expect(pricing.submits).toHaveLength(0);
+		seatings.submits[0].settle({ ok: false, reason: 'invalid' });
+		await flush();
+		// A refused Seatings save does not hold pricing back.
+		expect(pricing.submits).toHaveLength(1);
+		clock.advance(5000);
+		expect(seatings.submits).toHaveLength(1);
+	});
+
+	it('a tab saved after another saves at once when that one has nothing to save', () => {
+		const { controller } = setup();
+		const seatings = fakeTab();
+		const pricing = fakeTab();
+		controller.register('dates-seances', seatings);
+		controller.register('tarifs', pricing, { after: ['dates-seances'] });
+		pricing.type(controller, 'tarifs', '45 €');
+		controller.blurred('tarifs');
+		expect(seatings.submits).toHaveLength(0);
+		expect(pricing.submits).toHaveLength(1);
+	});
 });
 
 describe('EditorSaveController — published mode', () => {
