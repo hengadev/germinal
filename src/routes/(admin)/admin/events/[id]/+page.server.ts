@@ -431,6 +431,8 @@ export const actions: Actions = {
 		}
 		const textFields = english.fields;
 		const savedMessage = english.translationFailed ? TRANSLATION_FAILED_MESSAGE : 'Modifications enregistrées.';
+		// A Draft's autosave shows no success toast, except for this warning.
+		const translationWarning = english.translationFailed ? { translationFailed: true as const } : {};
 		// The Dietary Requirements switch, from « Infos pratiques » (issue 041).
 		const askDietaryRequirements = readAskDietaryRequirements(formData);
 		const fields = askDietaryRequirements === undefined ? textFields : { ...textFields, askDietaryRequirements };
@@ -459,7 +461,7 @@ export const actions: Actions = {
 				updatedAt: new Date()
 			} as typeof MOCK_EVENTS[number];
 
-			return { success: `${savedMessage} (mode démo — non persistées)` };
+			return { success: `${savedMessage} (mode démo — non persistées)`, ...translationWarning };
 		}
 
 		// Database mode - use actual database functions
@@ -467,7 +469,7 @@ export const actions: Actions = {
 
 		try {
 			await updateEvent(id, fields);
-			return { success: savedMessage };
+			return { success: savedMessage, ...translationWarning };
 		} catch (error) {
 			const { SpotlightRequiresPublicError, PortfolioRequiresOverEventError } = await import('$lib/server/services/events');
 			if (error instanceof SpotlightRequiresPublicError) {

@@ -16,6 +16,15 @@ export function reportSave(form: HTMLFormElement | null | undefined, outcome: Sa
 	form?.dispatchEvent(new CustomEvent<SaveOutcome>(EDITOR_SAVE_EVENT, { bubbles: true, detail: outcome }));
 }
 
+/**
+ * Tell the editor holding `form` that it changed without an input event
+ * of its own (an upload landed, a photo was removed), so the change is
+ * seen even while the form is being saved.
+ */
+export function reportChange(form: HTMLFormElement | null | undefined): void {
+	form?.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
 /** What `form` would post, as a comparable string. */
 export function serializeForm(form: HTMLFormElement): string {
 	const entries: [string, string][] = [];

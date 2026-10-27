@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { formTab, reportSave, serializeForm, EDITOR_SAVE_EVENT } from '$lib/utils/editor-save-form';
+import { formTab, reportChange, reportSave, serializeForm, EDITOR_SAVE_EVENT } from '$lib/utils/editor-save-form';
 
 function makeForm(html: string): HTMLFormElement {
 	const form = document.createElement('form');
@@ -18,6 +18,16 @@ describe('serializeForm', () => {
 		const before = serializeForm(form);
 		form.querySelector<HTMLInputElement>('[name="b"]')!.checked = true;
 		expect(serializeForm(form)).not.toBe(before);
+	});
+});
+
+describe('reportChange', () => {
+	it('bubbles an input event from the form, as typing would', () => {
+		const form = makeForm('');
+		let target: EventTarget | null = null;
+		document.body.addEventListener('input', (e) => (target = e.target), { once: true });
+		reportChange(form);
+		expect(target).toBe(form);
 	});
 });
 

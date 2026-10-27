@@ -1,4 +1,5 @@
 import { invalidateAll } from '$app/navigation';
+import { tick } from 'svelte';
 import type { ActionResult } from '@sveltejs/kit';
 import { reportSave } from '$lib/utils/editor-save-form';
 import type { SaveOutcome } from '$lib/utils/editor-save';
@@ -27,20 +28,39 @@ export function saveOutcomeOf(result: ActionResult): SaveOutcome {
 	return { ok: false, reason: 'failed' };
 }
 
+/** Marks a tab panel whose forms save themselves (a Draft's, issue 018). */
+export const AUTOSAVE_ATTRIBUTE = 'data-editor-autosave';
+
 /**
  * Answer a tab's save: a toast, then fresh data. Returns whether the save
  * went through (so the tab can reset its drafts). Reports the outcome on
  * `form` to the editor's save controller (issue 016).
+ *
+ * A form that saves itself (issue 018) gets no success toast: the header's
+ * save status says it, unless the save went through with a warning (the
+ * English could not be translated). Errors always show.
+ *
+ * `refresh` takes back from the fresh data what the server made of the save
+ * (generated English). It runs before the controller hears of the save, so
+ * a follow-up save posts the refreshed form, never the stale one.
  */
 export async function handleTabResult(
 	result: ActionResult,
 	toast: Toast,
 	successFallback: string,
-	form?: HTMLFormElement
+	form?: HTMLFormElement,
+	refresh?: () => void
 ): Promise<boolean> {
 	if (result.type === 'success') {
-		toast.success('Succès', (result.data as { success?: string } | undefined)?.success ?? successFallback);
+		const data = result.data as { success?: string; translationFailed?: boolean } | undefined;
+		const quiet = form?.closest(`[${AUTOSAVE_ATTRIBUTE}]`) != null && !data?.translationFailed;
+		if (!quiet) toast.success('Succès', data?.success ?? successFallback);
 		await invalidateAll();
+		if (refresh) {
+			refresh();
+			// The form posts what the DOM holds: let the refresh reach it.
+			await tick();
+		}
 		reportSave(form, { ok: true });
 		return true;
 	}
