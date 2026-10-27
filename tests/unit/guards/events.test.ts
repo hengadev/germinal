@@ -35,15 +35,25 @@ describe('admin/events/+page.server actions — auth guard', () => {
 	});
 });
 
-describe('admin/events/new/+page.server actions — auth guard', () => {
-	it('updateEvent (first save, creates the Draft) rejects unauthenticated request', async () => {
-		const { actions } = await import('../../../src/routes/(admin)/admin/events/new/+page.server');
-		await expectRejectedWith(actions.updateEvent!(unauthEvent()), 401);
+describe('« Nouvel événement » (createEvent) — auth guard', () => {
+	it('createEvent rejects unauthenticated request', async () => {
+		const { actions } = await import('../../../src/routes/(admin)/admin/events/+page.server');
+		await expectRejectedWith(actions.createEvent!(unauthEvent()), 401);
 	});
 
-	it('saveSeatings (first save, creates the Draft) rejects non-admin (staff) session', async () => {
-		const { actions } = await import('../../../src/routes/(admin)/admin/events/new/+page.server');
-		await expectRejectedWith(actions.saveSeatings!(staffEvent()), 403);
+	it('createEvent rejects non-admin (staff) session', async () => {
+		const { actions } = await import('../../../src/routes/(admin)/admin/events/+page.server');
+		await expectRejectedWith(actions.createEvent!(staffEvent()), 403);
+	});
+});
+
+describe('admin/events/new — the old « Nouvel événement » page', () => {
+	it('redirects a GET to the Events list, creating nothing', async () => {
+		const { GET } = await import('../../../src/routes/(admin)/admin/events/new/+server');
+		await expect(Promise.resolve().then(() => GET({} as never))).rejects.toMatchObject({
+			status: 307,
+			location: '/admin/events',
+		});
 	});
 });
 
@@ -51,6 +61,11 @@ describe('admin/events/[id]/+page.server actions — auth guard', () => {
 	it('updateEvent rejects unauthenticated request', async () => {
 		const { actions } = await import('../../../src/routes/(admin)/admin/events/[id]/+page.server');
 		await expectRejectedWith(actions.updateEvent!(unauthEvent()), 401);
+	});
+
+	it('updatePublication rejects unauthenticated request', async () => {
+		const { actions } = await import('../../../src/routes/(admin)/admin/events/[id]/+page.server');
+		await expectRejectedWith(actions.updatePublication!(unauthEvent()), 401);
 	});
 
 	it('deletePhoto (media delete) rejects unauthenticated request', async () => {

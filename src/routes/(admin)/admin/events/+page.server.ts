@@ -9,6 +9,9 @@ import type { EventWithMedia } from '$lib/types/events';
 import type { ServiceKind } from '$lib/utils/event-time';
 import { parsePickedDays, pickedDaysErrorMessage } from '$lib/server/services/event-schedule';
 import { parseVisibility } from '$lib/utils/event-access';
+import { DEFAULT_EVENT_TIME_ZONE } from '$lib/utils/event-time';
+import { EVENT_TEXT_FIELDS } from '$lib/server/services/event-draft';
+import type { EventCompleteness } from '$lib/utils/event-warnings';
 
 /** The list's filter: one Visibility, the Portfolio, or every Event. */
 export type EventListFilter = 'all' | 'draft' | 'private' | 'public' | 'portfolio';
@@ -41,6 +44,8 @@ export const load: PageServerLoad = async ({ url }) => {
         return {
             events: filteredEvents as unknown as EventWithMedia[],
             servedKinds: {} as Record<string, ServiceKind[]>,
+            // Mock mode has no Services or Seatings to grade a Draft with.
+            completeness: {} as Record<string, EventCompleteness>,
             searchQuery,
             filter,
         };
@@ -59,16 +64,61 @@ export const load: PageServerLoad = async ({ url }) => {
     });
     const eventsData = result.data as EventWithMedia[];
 
+    // Draft completeness (issue 013, ADR 0010): each Draft's « 3/5 ».
+    const { draftCompleteness } = await import('$lib/server/services/event-completeness');
+
     return {
         events: eventsData,
         // The meals each Event serves: « Dupliquer » pre-ticks them (issue 046).
         servedKinds: await getServedKindsByEventIds(eventsData.map((event) => event.id)),
+        completeness: await draftCompleteness(eventsData),
         searchQuery,
         filter,
     };
 };
 
 export const actions: Actions = {
+    /**
+     * « Nouvel événement » (ADR 0010, issue 014): create an empty Draft at
+     * once, in the default Time Zone, and open its editor. Posted from the
+     * Events list and the dashboard; never on a GET, so no prefetch creates
+     * one.
+     */
+    createEvent: async ({ locals }) => {
+        requireAdmin(locals);
+
+        let id: string;
+        if (env.USE_MOCK_DATA) {
+            id = crypto.randomUUID();
+            const blank = Object.fromEntries(EVENT_TEXT_FIELDS.map((field) => [field, null]));
+            MOCK_EVENTS.push({
+                ...blank,
+                startDate: null,
+                endDate: null,
+                timeZone: DEFAULT_EVENT_TIME_ZONE,
+                coverMediaId: null,
+                coverMedia: null,
+                media: [],
+                isPortfolio: false,
+                id,
+                visibility: 'draft',
+                isSpotlight: false,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            } as unknown as typeof MOCK_EVENTS[number]);
+        } else {
+            const { createDraftEvent } = await import('$lib/server/services/event-draft');
+            try {
+                id = await createDraftEvent({ timeZone: DEFAULT_EVENT_TIME_ZONE });
+            } catch (error) {
+                logger.error({ err: error }, 'Error creating draft event');
+                return fail(500, { error: 'La création de l’événement a échoué.' });
+            }
+        }
+
+        throw redirect(303, `/admin/events/${id}`);
+    },
+
     /**
      * Delete an event
      */

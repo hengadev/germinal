@@ -415,6 +415,13 @@ export async function eventHasReservations(tx: typeof db, eventId: string): Prom
 	return booked !== undefined;
 }
 
+/** What a pricing save made. */
+export interface SavedPricing {
+	/** Each posted Menu's id by its key, created ones included: the editor
+	 * keeps its drafts and takes their ids. */
+	menuIds: Record<string, string>;
+}
+
 /**
  * Save the « Menus & tarifs » tab in one transaction: new Menus are
  * created, listed ones updated, Menus left out deleted; each listed Service
@@ -426,8 +433,8 @@ export async function eventHasReservations(tx: typeof db, eventId: string): Prom
  * deleting a Menu still offered on a Service, and changing the currency
  * once the Event has a Reservation.
  */
-export async function savePricing(eventId: string, payload: PricingPayload): Promise<void> {
-	await db.transaction(async (tx: typeof db) => {
+export async function savePricing(eventId: string, payload: PricingPayload): Promise<SavedPricing> {
+	return db.transaction(async (tx: typeof db): Promise<SavedPricing> => {
 		const [event] = await tx.select({ id: events.id, currency: events.currency })
 			.from(events)
 			.where(eq(events.id, eventId))
@@ -557,6 +564,7 @@ export async function savePricing(eventId: string, payload: PricingPayload): Pro
 			await tx.delete(eventMenus)
 				.where(inArray(eventMenus.id, removed.map((menu) => menu.id)));
 		}
+		return { menuIds: Object.fromEntries(menuIdByKey) };
 	});
 }
 

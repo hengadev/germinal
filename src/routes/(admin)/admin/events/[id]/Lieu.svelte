@@ -5,9 +5,11 @@
 	import { enhance } from '$app/forms';
 	import { getToastContext } from '$lib/components/toast/state.svelte';
 	import { handleTabResult, type EditorEvent } from './editor-forms';
+	import { keepEdits } from '$lib/utils/editor-refresh';
 	import { MapPin } from 'lucide-svelte';
 	import TimeZoneField from '$lib/components/admin/TimeZoneField.svelte';
 	import EnglishVersion from '$lib/components/admin/EnglishVersion.svelte';
+	import type { LieuValues } from '$lib/utils/event-warnings-live';
 
 	let {
 		event,
@@ -15,29 +17,34 @@
 		locked = false,
 		timeZone = $bindable(),
 	}: {
-		event: EditorEvent | null;
+		event: EditorEvent;
 		zones: string[];
 		locked?: boolean;
-		/** The Time Zone picked; bindable so a new Event's Seatings follow it. */
+		/** The Time Zone picked. */
 		timeZone: string;
 	} = $props();
 
 	const toast = getToastContext();
 	let saving = $state(false);
 
+	// The English may have been generated from the French on save: it is
+	// taken back, unless edited since the save started (issue 018).
+	const english = () => ({ locationEn, venueNameEn, streetAddressEn, districtEn, cityEn, countryEn });
 	function saveEnhance() {
 		saving = true;
+		const sent = english();
 		return async ({ result, formElement }: { result: import('@sveltejs/kit').ActionResult; formElement: HTMLFormElement }) => {
 			saving = false;
-			if (await handleTabResult(result, toast, 'Modifications enregistrées', formElement)) {
-				// The English may have been generated from the French on save.
-				locationEn = event?.locationEn ?? '';
-				venueNameEn = event?.venueNameEn ?? '';
-				streetAddressEn = event?.streetAddressEn ?? '';
-				districtEn = event?.districtEn ?? '';
-				cityEn = event?.cityEn ?? '';
-				countryEn = event?.countryEn ?? '';
-			}
+			await handleTabResult(result, toast, 'Modifications enregistrées', formElement, () => {
+				({ locationEn, venueNameEn, streetAddressEn, districtEn, cityEn, countryEn } = keepEdits(sent, english(), {
+					locationEn: event?.locationEn ?? '',
+					venueNameEn: event?.venueNameEn ?? '',
+					streetAddressEn: event?.streetAddressEn ?? '',
+					districtEn: event?.districtEn ?? '',
+					cityEn: event?.cityEn ?? '',
+					countryEn: event?.countryEn ?? '',
+				}));
+			});
 		};
 	}
 
@@ -54,6 +61,31 @@
 	let postalCode = $state(event?.postalCode ?? "");
 	let countryEn = $state(event?.countryEn ?? "");
 	let countryFr = $state(event?.countryFr ?? "");
+
+	/** Back to the saved venue and Time Zone (a published Event's
+	 * « Annuler », issue 020). */
+	export function restore() {
+		locationFr = event?.locationFr ?? '';
+		locationEn = event?.locationEn ?? '';
+		venueNameFr = event?.venueNameFr ?? '';
+		venueNameEn = event?.venueNameEn ?? '';
+		streetAddressFr = event?.streetAddressFr ?? '';
+		streetAddressEn = event?.streetAddressEn ?? '';
+		districtFr = event?.districtFr ?? '';
+		districtEn = event?.districtEn ?? '';
+		cityFr = event?.cityFr ?? '';
+		cityEn = event?.cityEn ?? '';
+		postalCode = event?.postalCode ?? '';
+		countryFr = event?.countryFr ?? '';
+		countryEn = event?.countryEn ?? '';
+		timeZone = event.timeZone;
+	}
+
+	/** What this tab holds now, saved or not: « À vérifier » and the tab
+	 * marks follow it as it is typed (issue 021). */
+	export function warningValues(): LieuValues {
+		return { locationEn, locationFr };
+	}
 </script>
 
 <div class="bg-background rounded-lg border border-border-card p-6 lg:p-8">
@@ -138,7 +170,8 @@
         <!-- Time Zone of the venue (ADR 0006) -->
         <TimeZoneField bind:value={timeZone} {zones} {locked} />
 
-        <div class="flex flex-col sm:flex-row sm:items-center gap-3 pt-4 border-t border-border-card">
+        <!-- Hidden on a Draft, which saves itself (issue 018). -->
+        <div data-editor-save class="flex flex-col sm:flex-row sm:items-center gap-3 pt-4 border-t border-border-card">
             <button
                 type="submit"
                 disabled={saving}

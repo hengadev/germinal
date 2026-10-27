@@ -1,11 +1,12 @@
-import { goto, invalidateAll } from '$app/navigation';
+import { invalidateAll } from '$app/navigation';
+import { tick } from 'svelte';
 import type { ActionResult } from '@sveltejs/kit';
-import { announceSaved } from '$lib/utils/leave-guard';
+import { reportSave } from '$lib/utils/editor-save-form';
+import type { SaveOutcome } from '$lib/utils/editor-save';
 
 /**
  * Shared by the Event editor's tabs (issue 036). Each tab posts its own
- * form; on a new Event the first save creates the Draft and answers with a
- * redirect to its page.
+ * form, always on a saved Event (ADR 0010).
  */
 
 interface Toast {
@@ -14,27 +15,97 @@ interface Toast {
 }
 
 /**
- * Answer a tab's save: a toast, then the new Draft's page after a first
- * save, or fresh data for a saved Event. Returns whether the save went
- * through on the same page (so the tab can reset its drafts). A save that
- * went through cleans `form` for the leave guard (issue 037).
+ * How a save action answered, for the editor's save controller (issue
+ * 016): a refusal (4xx) is `invalid`, anything else that did not go
+ * through is `failed`.
+ */
+export function saveOutcomeOf(result: ActionResult): SaveOutcome {
+	if (result.type === 'success' || result.type === 'redirect') return { ok: true };
+	if (result.type === 'failure') {
+		const message = (result.data as { error?: string } | undefined)?.error;
+		return { ok: false, reason: result.status < 500 ? 'invalid' : 'failed', message };
+	}
+	return { ok: false, reason: 'failed' };
+}
+
+/** Marks a tab panel whose forms save themselves (a Draft's, issue 018). */
+export const AUTOSAVE_ATTRIBUTE = 'data-editor-autosave';
+
+/** Marks the editor's root: a save of all its tabs is batched on it. */
+export const EDITOR_ROOT_ATTRIBUTE = 'data-editor-root';
+
+// Refreshes put off until a save of every held tab is over (issue 020),
+// per editor root (the admin layout mounts the editor twice).
+const batches = new WeakMap<Element, (() => void)[]>();
+
+/**
+ * A published Event's tabs are about to be saved all at once (issue 020):
+ * until `finishSaveBatch`, a tab of `root` saved does not reload the page
+ * data, so the whole save refreshes once.
+ */
+export function startSaveBatch(root: Element): void {
+	batches.set(root, []);
+}
+
+/**
+ * The save of every held tab is over: reload the page data once — if
+ * anything was saved — then let each saved tab take back what the server
+ * made of it.
+ */
+export async function finishSaveBatch(root: Element, anySaved: boolean): Promise<void> {
+	const refreshes = batches.get(root) ?? [];
+	batches.delete(root);
+	if (!anySaved) return;
+	await invalidateAll();
+	for (const refresh of refreshes) refresh();
+	await tick();
+}
+
+/**
+ * A tab of `form` was saved: reload the page data, then run `refresh` —
+ * or, during a save of every held tab, leave both to its end.
+ */
+export async function refreshAfterSave(form: HTMLFormElement | undefined, refresh?: () => void): Promise<void> {
+	const root = form?.closest(`[${EDITOR_ROOT_ATTRIBUTE}]`);
+	const pending = root ? batches.get(root) : undefined;
+	if (pending) {
+		if (refresh) pending.push(refresh);
+		return;
+	}
+	await invalidateAll();
+	if (refresh) {
+		refresh();
+		// The form posts what the DOM holds: let the refresh reach it.
+		await tick();
+	}
+}
+
+/**
+ * Answer a tab's save: a toast, then fresh data. Returns whether the save
+ * went through (so the tab can reset its drafts). Reports the outcome on
+ * `form` to the editor's save controller (issue 016).
+ *
+ * A form that saves itself (issue 018) gets no success toast: the header's
+ * save status says it, unless the save went through with a warning (the
+ * English could not be translated). Errors always show.
+ *
+ * `refresh` takes back from the fresh data what the server made of the save
+ * (generated English). It runs before the controller hears of the save, so
+ * a follow-up save posts the refreshed form, never the stale one.
  */
 export async function handleTabResult(
 	result: ActionResult,
 	toast: Toast,
 	successFallback: string,
-	form?: HTMLFormElement
+	form?: HTMLFormElement,
+	refresh?: () => void
 ): Promise<boolean> {
-	if (result.type === 'redirect') {
-		announceSaved(form, true);
-		toast.success('Succès', 'Brouillon créé.');
-		await goto(result.location, { invalidateAll: true });
-		return false;
-	}
 	if (result.type === 'success') {
-		toast.success('Succès', (result.data as { success?: string } | undefined)?.success ?? successFallback);
-		await invalidateAll();
-		announceSaved(form);
+		const data = result.data as { success?: string; translationFailed?: boolean } | undefined;
+		const quiet = form?.closest(`[${AUTOSAVE_ATTRIBUTE}]`) != null && !data?.translationFailed;
+		if (!quiet) toast.success('Succès', data?.success ?? successFallback);
+		await refreshAfterSave(form, refresh);
+		reportSave(form, { ok: true });
 		return true;
 	}
 	if (result.type === 'failure') {
@@ -42,22 +113,11 @@ export async function handleTabResult(
 	} else if (result.type === 'error') {
 		toast.error('Erreur', 'Une erreur est survenue');
 	}
+	reportSave(form, saveOutcomeOf(result));
 	return false;
 }
 
-/**
- * Copy into `target` the fields of another tab's form that `target` does
- * not hold already: on a new Event, « Dates & séances » and « Menus &
- * tarifs » are saved together by the first save of either.
- */
-export function mergeFormFields(target: FormData, form: HTMLFormElement | null): void {
-	if (!form) return;
-	for (const [name, value] of new FormData(form)) {
-		if (!target.has(name)) target.set(name, value);
-	}
-}
-
-/** The saved Event as the editor's tabs read it; null on a new Event. */
+/** The saved Event as the editor's tabs read it. */
 export interface EditorEvent {
 	id: string;
 	titleEn: string | null;

@@ -6,30 +6,34 @@
 	import { getToastContext } from '$lib/components/toast/state.svelte';
 	import type { Media } from '$lib/types/media';
 	import { handleTabResult } from './editor-forms';
+	import { reportChange } from '$lib/utils/editor-save-form';
 	import { visualsOf } from '$lib/utils/event-photos';
+	import type { VisualsValues } from '$lib/utils/event-warnings-live';
 
 	const toast = getToastContext();
 
-	// « Visuels » tab. On a new Event (`event` null) the uploads are not
-	// linked to any Event yet: the first save creates the Draft with them
-	// (issue 036). It shows only the Visuals, never the Event Photos of the
-	// « Portfolio » tab (issue 045).
+	// « Visuels » tab. It shows only the Visuals, never the Event Photos of
+	// the « Portfolio » tab (issue 045).
 	let {
 		event,
 		onAltChange,
 	}: {
-		event: { id: string; coverMediaId: string | null; coverMedia?: Media | null; media?: Media[] } | null;
+		event: { id: string; coverMediaId: string | null; coverMedia?: Media | null; media?: Media[] };
 		/** An image's alt texts were saved (issue 043): the editor's
 		 * warnings follow them. */
 		onAltChange?: (mediaId: string, alt: { altEn: string | null; altFr: string | null }) => void;
 	} = $props();
 
-	const existingCoverMedia = event?.coverMedia ? [event.coverMedia] : [];
-	const existingGalleryMedia = visualsOf(event?.media).filter(
-		(m: Media) => m && m.id !== event?.coverMediaId
-	);
+	// What the uploaders start from: replaced as a whole to put them back
+	// as saved (« Annuler », issue 020).
+	const savedCoverOf = (saved: typeof event) => (saved.coverMedia ? [saved.coverMedia] : []);
+	const savedGalleryOf = (saved: typeof event) =>
+		visualsOf(saved.media).filter((m: Media) => m && m.id !== saved.coverMediaId);
+	let existingCoverMedia = $state.raw(savedCoverOf(event));
+	let existingGalleryMedia = $state.raw(savedGalleryOf(event));
 
-	let coverMediaId = $state(event?.coverMediaId ?? null);
+	let formEl: HTMLFormElement | undefined = $state();
+	let coverMediaId = $state(event.coverMediaId ?? null);
 	let galleryMediaIds = $state(existingGalleryMedia.map((m: Media) => m.id));
 
 	// Delete confirmation modal state
@@ -77,10 +81,12 @@
 		if (uploaded.length > 0) {
 			coverMediaId = uploaded[0].id;
 		}
+		reportChange(formEl);
 	}
 
 	function handleCoverRemove(_mediaId: string) {
 		coverMediaId = null;
+		reportChange(formEl);
 	}
 
 	function handleGalleryUpload(uploaded: Media[]) {
@@ -89,6 +95,7 @@
 		if (!coverMediaId && galleryMediaIds.length > 0) {
 			coverMediaId = galleryMediaIds[0];
 		}
+		reportChange(formEl);
 	}
 
 	function handleGalleryRemove(mediaId: string) {
@@ -96,15 +103,33 @@
 		if (coverMediaId === mediaId) {
 			coverMediaId = galleryMediaIds.length > 0 ? galleryMediaIds[0] : null;
 		}
+		reportChange(formEl);
 	}
 
 	function handleGalleryReorder(mediaIds: string[]) {
 		galleryMediaIds = mediaIds;
+		reportChange(formEl);
+	}
+
+	/** Back to the saved Visuals (a published Event's « Annuler », issue
+	 * 020). Uploads and deletions are stored at once: the page data is
+	 * reloaded first, so they show as they are. */
+	export function restore() {
+		existingCoverMedia = savedCoverOf(event);
+		existingGalleryMedia = savedGalleryOf(event);
+		coverMediaId = event.coverMediaId ?? null;
+		galleryMediaIds = existingGalleryMedia.map((m: Media) => m.id);
+	}
+
+	/** What this tab holds now, saved or not: « À vérifier » and the tab
+	 * marks follow it (issue 021). */
+	export function warningValues(): VisualsValues {
+		return { coverMediaId, galleryMediaIds };
 	}
 </script>
 
 <div class="bg-background rounded-lg border border-border-card p-6 lg:p-8">
-	<form method="POST" action="?/updateMedia" use:enhance={() => {
+	<form bind:this={formEl} method="POST" action="?/updateMedia" use:enhance={() => {
 		return async ({ result, formElement }) => {
 			await handleTabResult(result, toast, 'Photos mises à jour', formElement);
 		};
@@ -119,7 +144,7 @@
 			<MediaUpload
 				mode="single"
 				entityType="event"
-				entityId={event?.id}
+				entityId={event.id}
 				role="visual"
 				existingMedia={existingCoverMedia}
 				maxSizeMB={10}
@@ -141,7 +166,7 @@
 			<MediaUpload
 				mode="multiple"
 				entityType="event"
-				entityId={event?.id}
+				entityId={event.id}
 				role="visual"
 				existingMedia={existingGalleryMedia}
 				maxSizeMB={10}
@@ -154,7 +179,8 @@
 			<input type="hidden" name="galleryMediaIds" value={JSON.stringify(galleryMediaIds)} />
 		</div>
 
-		<div class="pt-4 border-t border-border-card">
+		<!-- Hidden on a Draft, which saves itself (issue 018). -->
+		<div data-editor-save class="pt-4 border-t border-border-card">
 			<button
 				type="submit"
 				class="px-6 py-3 bg-foreground text-background rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-foreground focus:ring-offset-2 transition-colors font-medium"

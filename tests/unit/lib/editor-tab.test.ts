@@ -8,8 +8,8 @@ import { differsOnlyByHash, tabIndexFromHash } from '../../../src/lib/utils/edit
  * guard never asks about one.
  */
 
-// The Event editor's tabs, as EventEditor lists them (a new Event has
-// only the first eight; the last is operational).
+// The Event editor's tabs, as EventEditor lists them: the eight Event
+// tabs (EVENT_EDITOR_TABS in event-warnings.ts) then the operational ones.
 const TABS = [
 	'essentiel',
 	'lieu',
@@ -37,10 +37,9 @@ describe('tabIndexFromHash', () => {
 		expect(tabIndexFromHash('#inconnu', TABS)).toBe(0);
 	});
 
-	it('falls back to Essentiel on a tab this editor does not hold', () => {
-		// An operational tab, on a new Event.
-		const newEventTabs = TABS.filter((tab) => tab.id !== 'team');
-		expect(tabIndexFromHash('#team', newEventTabs)).toBe(0);
+	it('falls back to Essentiel on a tab the given list does not hold', () => {
+		const withoutTeam = TABS.filter((tab) => tab.id !== 'team');
+		expect(tabIndexFromHash('#team', withoutTeam)).toBe(0);
 	});
 });
 

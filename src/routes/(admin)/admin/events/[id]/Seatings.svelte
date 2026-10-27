@@ -1,14 +1,18 @@
 <script lang="ts">
 	// « Séances » tab: the Days picker and the shared Seatings editor
 	// (issue 019/020/021) in one form, saved with the `saveSeatings` action.
-	// The Seatings follow the picked Days and meals live, as on the
-	// new-event form: a meal picked here before saving gets a placeholder
-	// id, which `serviceRefs` maps to its Day and meal for the server.
+	// The Seatings follow the picked Days and meals live: a meal picked
+	// here before saving gets a placeholder id, which `serviceRefs` maps to
+	// its Day and meal for the server.
+	// On a Draft the tab saves itself as a whole, once valid (issue 019,
+	// ADR 0010); a save coming back takes its ids and generated English
+	// into the drafts without undoing what was typed meanwhile.
 	import { untrack } from 'svelte';
 	import { enhance } from '$app/forms';
-	import { goto, invalidateAll } from '$app/navigation';
 	import { getToastContext } from '$lib/components/toast/state.svelte';
-	import { announceSaved } from '$lib/utils/leave-guard';
+	import { reportSave } from '$lib/utils/editor-save-form';
+	import { adoptSavedSeatings, keepEdits } from '$lib/utils/editor-refresh';
+	import { AUTOSAVE_ATTRIBUTE, handleTabResult } from './editor-forms';
 	import DaysServicesPicker, { type PickedDay } from '$lib/components/admin/DaysServicesPicker.svelte';
 	import SeatingsEditor, {
 		newSeatingService,
@@ -17,13 +21,12 @@
 	} from '$lib/components/admin/SeatingsEditor.svelte';
 	import type { EditorService } from '$lib/types/seatings-editor';
 	import { clockOf, dayOf, DEFAULT_EVENT_TIME_ZONE } from '$lib/utils/event-time';
+	import type { SeatingsValues } from '$lib/utils/event-warnings-live';
 
 	let {
 		data,
-		isNew = false,
 		timeZone = data.event?.timeZone,
 		services = $bindable(toSeatingDrafts(data.schedule ?? [])),
-		extend,
 	}: {
 		data: {
 			days?: PickedDay[];
@@ -35,14 +38,9 @@
 				bookingClosesHoursBefore?: number | null;
 			} | null;
 		};
-		/** A new Event (issue 036): no Day is required, and the first save
-		 * creates the Draft. */
-		isNew?: boolean;
-		/** Clock the Seatings are typed on; a new Event follows the Lieu pick. */
+		/** Clock the Seatings are typed on: the Event's saved Time Zone. */
 		timeZone?: string;
 		services?: DraftSeatingService[];
-		/** Adds other tabs' fields to the posted form (new Event). */
-		extend?: (formData: FormData) => void;
 	} = $props();
 
 	const toast = getToastContext();
@@ -111,8 +109,10 @@
 	);
 
 	// The Days cannot use browser validity (the payload is a hidden input).
+	// A Draft starts with no Days (ADR 0010): none is required until one
+	// is saved.
 	function pickedDaysError(): string | null {
-		if (days.length === 0 && !isNew) {
+		if (days.length === 0 && (data.days?.length ?? 0) > 0) {
 			return 'Sélectionnez au moins un jour sur le calendrier.';
 		}
 		if (days.some((day) => day.kinds.length === 0)) {
@@ -121,49 +121,112 @@
 		return null;
 	}
 
-	function saveSeatingsEnhance({ formData, cancel }: { formData: FormData; cancel: () => void }) {
+	/** The first thing that keeps the tab from saving; `id: null` is the
+	 * Days picker. */
+	function blockingField(): { id: string | null; message: string } | null {
 		const dayError = pickedDaysError();
-		if (dayError !== null) {
-			cancel();
-			toast.error('Erreur', dayError);
-			requestAnimationFrame(() => daysPicker?.focus());
-			return;
-		}
-		const blocking = editor?.firstBlockingField() ?? null;
+		if (dayError !== null) return { id: null, message: dayError };
+		return editor?.firstBlockingField() ?? null;
+	}
+
+	function focusField(field: { id: string | null }) {
+		if (field.id === null) daysPicker?.focus();
+		else document.getElementById(field.id)?.focus();
+	}
+
+	// A Draft's autosave refused (issue 019): what blocks it shows in the
+	// tab, following what is typed, until fixed — without a toast or moving
+	// the cursor while the Admin types. An explicit save says it with a
+	// toast and goes to the field.
+	let refused = $state(false);
+	const shownBlocking = $derived(refused ? blockingField() : null);
+
+	const windowFields = () => ({ venueCapacity, bookingOpensAt, bookingClosesHoursBefore });
+
+	function saveSeatingsEnhance({ cancel, formElement }: { cancel: () => void; formElement: HTMLFormElement }) {
+		const blocking = blockingField();
 		if (blocking) {
 			cancel();
+			reportSave(formElement, { ok: false, reason: 'invalid', message: blocking.message });
+			if (formElement.closest(`[${AUTOSAVE_ATTRIBUTE}]`)) {
+				refused = true;
+				return;
+			}
 			toast.error('Erreur', blocking.message);
-			requestAnimationFrame(() => document.getElementById(blocking.id)?.focus());
+			requestAnimationFrame(() => focusField(blocking));
 			return;
 		}
-		extend?.(formData);
+		refused = false;
 		saving = true;
+		const sent = { services: $state.snapshot(services), fields: windowFields() };
 		return async ({ result, formElement }: { result: import('@sveltejs/kit').ActionResult; formElement: HTMLFormElement }) => {
 			saving = false;
-			if (result.type === 'redirect') {
-				// First save of a new Event: on to the Draft's page.
-				announceSaved(formElement, true);
-				toast.success('Succès', 'Brouillon créé.');
-				await goto(result.location, { invalidateAll: true });
-			} else if (result.type === 'success') {
-				toast.success('Succès', (result.data as { success?: string })?.success ?? 'Séances enregistrées');
-				await invalidateAll();
-				dropped = new Map();
-				placeholders = new Map();
-				days = pickedDaysOf(data.days);
-				services = toSeatingDrafts(data.schedule ?? []);
-				venueCapacity = data.venueCapacity ?? null;
-				bookingOpensAt = openingInputOf(data.event);
-				bookingClosesHoursBefore = data.event?.bookingClosesHoursBefore ?? null;
-				announceSaved(formElement);
-			} else if (result.type === 'failure') {
-				toast.error('Erreur', (result.data as { error?: string })?.error ?? 'Une erreur est survenue');
-			} else if (result.type === 'error') {
-				toast.error('Erreur', 'Une erreur est survenue');
-			}
+			await handleTabResult(result, toast, 'Séances enregistrées', formElement, () => {
+				const seatingIds = (result as { data?: { seatingIds?: Record<string, string[]> } }).data?.seatingIds;
+				adoptSaved(sent, seatingIds);
+			});
 		};
 	}
+
+	/**
+	 * Take what a save made into the drafts, keeping what was typed since it
+	 * started (issue 019): the Days, Seatings and settings stay as typed;
+	 * meals and Seatings saved take their ids, Reservation counts and
+	 * generated English. A follow-up save then sends them under their ids.
+	 */
+	function adoptSaved(
+		sent: { services: DraftSeatingService[]; fields: ReturnType<typeof windowFields> },
+		seatingIds: Record<string, string[]> | undefined
+	) {
+		const saved = toSeatingDrafts(data.schedule ?? []);
+		const savedMeals = new Set(saved.map((service) => keyOf(service.date, service.kind)));
+		for (const key of [...placeholders.keys()]) if (savedMeals.has(key)) placeholders.delete(key);
+		const picked = new Set(services.map((service) => keyOf(service.date, service.kind)));
+		for (const key of [...dropped.keys()]) if (picked.has(key)) dropped.delete(key);
+		adoptSavedSeatings([...services, ...dropped.values()], sent.services, saved, seatingIds, (date, kind) =>
+			placeholderId(date, kind as 'lunch' | 'dinner')
+		);
+		({ venueCapacity, bookingOpensAt, bookingClosesHoursBefore } = keepEdits(sent.fields, windowFields(), {
+			venueCapacity: data.venueCapacity ?? null,
+			bookingOpensAt: openingInputOf(data.event),
+			bookingClosesHoursBefore: data.event?.bookingClosesHoursBefore ?? null,
+		}));
+	}
+
+	/** Back to the saved Days, Seatings and Booking Window — a published
+	 * Event's « Annuler » (issue 020): the editor's drafts, the meals set
+	 * aside and the placeholder ids go with them. A save keeps the drafts
+	 * (`adoptSaved`). */
+	export function restore() {
+		refused = false;
+		dropped = new Map();
+		placeholders = new Map();
+		days = pickedDaysOf(data.days);
+		services = toSeatingDrafts(data.schedule ?? []);
+		venueCapacity = data.venueCapacity ?? null;
+		bookingOpensAt = openingInputOf(data.event);
+		bookingClosesHoursBefore = data.event?.bookingClosesHoursBefore ?? null;
+	}
+
+	/** What this tab holds now, saved or not: « À vérifier » and the tab
+	 * marks follow it as it is typed (issue 021). */
+	export function warningValues(): SeatingsValues {
+		return { services, bookingOpensAt, bookingClosesHoursBefore };
+	}
 </script>
+
+<!-- Why a Draft's autosave is held back (issue 019). -->
+<div aria-live="polite">
+	{#if shownBlocking}
+		{@const field = shownBlocking}
+		<div class="flex flex-wrap items-baseline gap-x-3 gap-y-1 mb-6 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg text-sm">
+			<p><span class="font-medium">Non enregistré :</span> {field.message}</p>
+			<button type="button" onclick={() => focusField(field)} class="underline underline-offset-2 hover:text-red-900 transition-colors cursor-pointer">
+				Corriger
+			</button>
+		</div>
+	{/if}
+</div>
 
 <form data-editor-form="seatings" method="POST" action="?/saveSeatings" use:enhance={saveSeatingsEnhance} novalidate class="space-y-8">
 	<!-- Days & meals: the Event's dates are derived from its Days (ADR 0005) -->
@@ -220,7 +283,9 @@
 		</div>
 	</section>
 
-	<div class="flex flex-col sm:flex-row sm:items-center gap-3 pt-4 border-t border-border-card">
+	<!-- Hidden on a Draft, which saves itself (issue 019), and on a published
+	     Event, which saves through its bar (issue 020). -->
+	<div data-editor-save class="flex flex-col sm:flex-row sm:items-center gap-3 pt-4 border-t border-border-card">
 		<button
 			type="submit"
 			disabled={saving}
