@@ -156,11 +156,14 @@
 	// Save controller (issue 016, ADR 0010): each form of the Event's own
 	// tabs is a unit it saves — the operational tabs keep their own actions.
 	// It gives the header its save status, the tab labels their « modifié »
-	// mark and the leave guard its answer. On a Draft, the text and media
-	// tabs save themselves (issue 018) and lose their save buttons; Seatings
-	// and pricing keep theirs. A published Event keeps explicit saves.
+	// mark and the leave guard its answer. On a Draft, every tab saves
+	// itself (issues 018, 019) and loses its save button — Seatings and
+	// pricing as whole tabs, once valid, pricing after Seatings. A
+	// published Event keeps explicit saves.
 	const modeOf = (visibility: string) => (visibility === 'draft' ? 'draft' : 'published');
-	const AUTOSAVED_TABS: ReadonlySet<string> = new Set(['essentiel', 'lieu', 'programme', 'visuels', 'pratique', 'portfolio']);
+	const AUTOSAVED_TABS: ReadonlySet<string> = new Set(['essentiel', 'lieu', 'dates-seances', 'tarifs', 'programme', 'visuels', 'pratique', 'portfolio']);
+	// Pricing refers to Services « Dates & séances » saves: its save waits.
+	const SAVED_AFTER: Record<string, string[]> = { tarifs: ['dates-seances'] };
 	const autosaved = (tabId: string) => modeOf(event.visibility) === 'draft' && AUTOSAVED_TABS.has(tabId);
 	const saves = new EditorSaveController();
 	let saveState: EditorSaveSnapshot = $state(saves.snapshot());
@@ -187,7 +190,7 @@
 				const unitId = forms.length > 1 ? `${id}:${form.dataset.editorForm ?? i}` : id;
 				const tab = formTab(form);
 				formUnits.set(form, { id: unitId, tab });
-				saves.register(unitId, tab, { autosave: AUTOSAVED_TABS.has(id) });
+				saves.register(unitId, tab, { autosave: AUTOSAVED_TABS.has(id), after: SAVED_AFTER[id] });
 			});
 		}
 		// Changes no input event reports (an upload landing) show in the DOM.
@@ -575,7 +578,7 @@
 />
 
 <style>
-	/* A Draft's text and media tabs save themselves (issue 018). */
+	/* A Draft's tabs save themselves (issues 018, 019). */
 	:global([data-editor-autosave] [data-editor-save]) {
 		display: none;
 	}

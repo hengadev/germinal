@@ -986,6 +986,9 @@ export interface SavedSeatings {
 	overlaps: PlannedSeatingOverlapWarning[];
 	/** Ids of the Seatings deleted by this save (for the audit log). */
 	removedSeatingIds: string[];
+	/** Per Service saved, its Seatings' ids in the order given, created
+	 * ones included: the editor keeps its drafts and takes their ids. */
+	seatingIds: Record<string, string[]>;
 }
 
 /**
@@ -1020,6 +1023,7 @@ export async function saveServiceSeatings(
 		throw new Error(`Invalid venue capacity: ${venueCapacity}`);
 	}
 
+	const seatingIds: Record<string, string[]> = {};
 	const removedSeatingIds: string[] = await db.transaction(async (tx: typeof db) => {
 		const [event] = await tx.select({
 			id: events.id,
@@ -1248,6 +1252,7 @@ export async function saveServiceSeatings(
 				})
 				.where(eq(eventServices.id, service.serviceId));
 
+			const ids: string[] = (seatingIds[service.serviceId] = []);
 			for (const seating of service.seatings) {
 				const startTime = wallClockToInstant(row.date, seating.startMinutes, zone);
 				const endTime = wallClockToInstant(row.date, seating.endMinutes, zone);
@@ -1267,14 +1272,16 @@ export async function saveServiceSeatings(
 				};
 
 				if (seating.seating.id === null) {
-					await tx.insert(eventSessions).values({
+					const [created]: { id: string }[] = await tx.insert(eventSessions).values({
 						eventId,
 						serviceId: service.serviceId,
 						...fields,
 						// A new Seating has no Reservations: all seats are available.
 						availableCapacity: totalCapacity,
-					});
+					}).returning({ id: eventSessions.id });
+					ids.push(created.id);
 				} else {
+					ids.push(seating.seating.id);
 					// Seats already held stay held; only the new total moves
 					// the available count.
 					await tx.update(eventSessions)
@@ -1294,7 +1301,7 @@ export async function saveServiceSeatings(
 		return removedIds;
 	});
 
-	return { overlaps: findPlannedSeatingOverlaps(services), removedSeatingIds };
+	return { overlaps: findPlannedSeatingOverlaps(services), removedSeatingIds, seatingIds };
 }
 
 /**

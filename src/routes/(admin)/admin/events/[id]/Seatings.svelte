@@ -4,12 +4,15 @@
 	// The Seatings follow the picked Days and meals live: a meal picked
 	// here before saving gets a placeholder id, which `serviceRefs` maps to
 	// its Day and meal for the server.
+	// On a Draft the tab saves itself as a whole, once valid (issue 019,
+	// ADR 0010); a save coming back takes its ids and generated English
+	// into the drafts without undoing what was typed meanwhile.
 	import { untrack } from 'svelte';
 	import { enhance } from '$app/forms';
-	import { invalidateAll } from '$app/navigation';
 	import { getToastContext } from '$lib/components/toast/state.svelte';
 	import { reportSave } from '$lib/utils/editor-save-form';
-	import { saveOutcomeOf } from './editor-forms';
+	import { adoptSavedSeatings, keepEdits } from '$lib/utils/editor-refresh';
+	import { AUTOSAVE_ATTRIBUTE, handleTabResult } from './editor-forms';
 	import DaysServicesPicker, { type PickedDay } from '$lib/components/admin/DaysServicesPicker.svelte';
 	import SeatingsEditor, {
 		newSeatingService,
@@ -118,44 +121,76 @@
 		return null;
 	}
 
-	function saveSeatingsEnhance({ cancel, formElement }: { cancel: () => void; formElement: HTMLFormElement }) {
+	/** The first thing that keeps the tab from saving; `id: null` is the
+	 * Days picker. */
+	function blockingField(): { id: string | null; message: string } | null {
 		const dayError = pickedDaysError();
-		if (dayError !== null) {
-			cancel();
-			toast.error('Erreur', dayError);
-			reportSave(formElement, { ok: false, reason: 'invalid', message: dayError });
-			requestAnimationFrame(() => daysPicker?.focus());
-			return;
-		}
-		const blocking = editor?.firstBlockingField() ?? null;
+		if (dayError !== null) return { id: null, message: dayError };
+		return editor?.firstBlockingField() ?? null;
+	}
+
+	function focusField(field: { id: string | null }) {
+		if (field.id === null) daysPicker?.focus();
+		else document.getElementById(field.id)?.focus();
+	}
+
+	// A Draft's autosave refused (issue 019): what blocks it shows in the
+	// tab, following what is typed, until fixed — without a toast or moving
+	// the cursor while the Admin types. An explicit save says it with a
+	// toast and goes to the field.
+	let refused = $state(false);
+	const shownBlocking = $derived(refused ? blockingField() : null);
+
+	const windowFields = () => ({ venueCapacity, bookingOpensAt, bookingClosesHoursBefore });
+
+	function saveSeatingsEnhance({ cancel, formElement }: { cancel: () => void; formElement: HTMLFormElement }) {
+		const blocking = blockingField();
 		if (blocking) {
 			cancel();
-			toast.error('Erreur', blocking.message);
 			reportSave(formElement, { ok: false, reason: 'invalid', message: blocking.message });
-			requestAnimationFrame(() => document.getElementById(blocking.id)?.focus());
+			if (formElement.closest(`[${AUTOSAVE_ATTRIBUTE}]`)) {
+				refused = true;
+				return;
+			}
+			toast.error('Erreur', blocking.message);
+			requestAnimationFrame(() => focusField(blocking));
 			return;
 		}
+		refused = false;
 		saving = true;
+		const sent = { services: $state.snapshot(services), fields: windowFields() };
 		return async ({ result, formElement }: { result: import('@sveltejs/kit').ActionResult; formElement: HTMLFormElement }) => {
 			saving = false;
-			if (result.type === 'success') {
-				toast.success('Succès', (result.data as { success?: string })?.success ?? 'Séances enregistrées');
-				await invalidateAll();
-				dropped = new Map();
-				placeholders = new Map();
-				days = pickedDaysOf(data.days);
-				services = toSeatingDrafts(data.schedule ?? []);
-				venueCapacity = data.venueCapacity ?? null;
-				bookingOpensAt = openingInputOf(data.event);
-				bookingClosesHoursBefore = data.event?.bookingClosesHoursBefore ?? null;
-				reportSave(formElement, { ok: true });
-			} else if (result.type === 'failure') {
-				toast.error('Erreur', (result.data as { error?: string })?.error ?? 'Une erreur est survenue');
-			} else if (result.type === 'error') {
-				toast.error('Erreur', 'Une erreur est survenue');
-			}
-			if (result.type !== 'success') reportSave(formElement, saveOutcomeOf(result));
+			await handleTabResult(result, toast, 'Séances enregistrées', formElement, () => {
+				const seatingIds = (result as { data?: { seatingIds?: Record<string, string[]> } }).data?.seatingIds;
+				adoptSaved(sent, seatingIds);
+			});
 		};
+	}
+
+	/**
+	 * Take what a save made into the drafts, keeping what was typed since it
+	 * started (issue 019): the Days, Seatings and settings stay as typed;
+	 * meals and Seatings saved take their ids, Reservation counts and
+	 * generated English. A follow-up save then sends them under their ids.
+	 */
+	function adoptSaved(
+		sent: { services: DraftSeatingService[]; fields: ReturnType<typeof windowFields> },
+		seatingIds: Record<string, string[]> | undefined
+	) {
+		const saved = toSeatingDrafts(data.schedule ?? []);
+		const savedMeals = new Set(saved.map((service) => keyOf(service.date, service.kind)));
+		for (const key of [...placeholders.keys()]) if (savedMeals.has(key)) placeholders.delete(key);
+		const picked = new Set(services.map((service) => keyOf(service.date, service.kind)));
+		for (const key of [...dropped.keys()]) if (picked.has(key)) dropped.delete(key);
+		adoptSavedSeatings([...services, ...dropped.values()], sent.services, saved, seatingIds, (date, kind) =>
+			placeholderId(date, kind as 'lunch' | 'dinner')
+		);
+		({ venueCapacity, bookingOpensAt, bookingClosesHoursBefore } = keepEdits(sent.fields, windowFields(), {
+			venueCapacity: data.venueCapacity ?? null,
+			bookingOpensAt: openingInputOf(data.event),
+			bookingClosesHoursBefore: data.event?.bookingClosesHoursBefore ?? null,
+		}));
 	}
 
 	/** What this tab holds now, saved or not: « À vérifier » and the tab
@@ -164,6 +199,19 @@
 		return { services, bookingOpensAt, bookingClosesHoursBefore };
 	}
 </script>
+
+<!-- Why a Draft's autosave is held back (issue 019). -->
+<div aria-live="polite">
+	{#if shownBlocking}
+		{@const field = shownBlocking}
+		<div class="flex flex-wrap items-baseline gap-x-3 gap-y-1 mb-6 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg text-sm">
+			<p><span class="font-medium">Non enregistré :</span> {field.message}</p>
+			<button type="button" onclick={() => focusField(field)} class="underline underline-offset-2 hover:text-red-900 transition-colors cursor-pointer">
+				Corriger
+			</button>
+		</div>
+	{/if}
+</div>
 
 <form data-editor-form="seatings" method="POST" action="?/saveSeatings" use:enhance={saveSeatingsEnhance} novalidate class="space-y-8">
 	<!-- Days & meals: the Event's dates are derived from its Days (ADR 0005) -->
@@ -220,7 +268,8 @@
 		</div>
 	</section>
 
-	<div class="flex flex-col sm:flex-row sm:items-center gap-3 pt-4 border-t border-border-card">
+	<!-- Hidden on a Draft, which saves itself (issue 019). -->
+	<div data-editor-save class="flex flex-col sm:flex-row sm:items-center gap-3 pt-4 border-t border-border-card">
 		<button
 			type="submit"
 			disabled={saving}

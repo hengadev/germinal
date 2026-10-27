@@ -766,7 +766,14 @@ export const actions: Actions = {
 			const translation = english.translationFailed
 				? ' La traduction anglaise a échoué : elle sera retentée au prochain enregistrement.'
 				: '';
-			return { success: `Séances enregistrées.${warning}${translation}` };
+			// The new Seatings' ids, for the editor's drafts (issue 019); a
+			// Draft's autosave shows no success toast, except for the
+			// translation warning (overlaps are flagged in the editor).
+			return {
+				success: `Séances enregistrées.${warning}${translation}`,
+				seatingIds: result.seatingIds,
+				...(english.translationFailed ? { translationFailed: true as const } : {}),
+			};
 		} catch (err) {
 			if (err instanceof ScheduleSaveRefusedError) {
 				return fail(400, { error: err.message });
@@ -799,11 +806,15 @@ export const actions: Actions = {
 		try {
 			const { loadPricingEditor } = await import('$lib/server/services/service-pricing');
 			const english = await englishPricing(parsed.payload, await loadPricingEditor(id), id);
-			await savePricing(id, english.value);
+			const { menuIds } = await savePricing(id, english.value);
+			// The new Menus' ids, for the editor's drafts (issue 019); a
+			// Draft's autosave shows no success toast, except for this warning.
 			return {
 				success: english.translationFailed
 					? 'Menus et tarifs enregistrés, mais la traduction anglaise a échoué : elle sera retentée au prochain enregistrement.'
 					: 'Menus et tarifs enregistrés.',
+				menuIds,
+				...(english.translationFailed ? { translationFailed: true as const } : {}),
 			};
 		} catch (err) {
 			if (err instanceof ScheduleSaveRefusedError) {

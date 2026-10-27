@@ -17,7 +17,8 @@
  * - `draft`: with autosave on, a change saves the tab after `debounceMs`
  *   idle, a blur saves it at once. Never two saves in flight per tab: a
  *   save asked for during one runs once it is over. A tab registered with
- *   `autosave: false` (Seatings, pricing) only ever saves when asked.
+ *   `autosave: false` only ever saves when asked. A tab registered `after`
+ *   others (pricing after Seatings) waits for their saves before its own.
  * - `published`: changes only mark the tab; `saveAll()` saves every
  *   modified tab in registration order (Seatings before pricing) and
  *   `discardAll()` puts every tab back as saved.
@@ -72,6 +73,12 @@ export interface EditorSaveSnapshot {
 export interface RegisterOptions {
 	/** Whether this tab saves itself in draft mode (default: yes). */
 	autosave?: boolean;
+	/**
+	 * Tabs saved before this one: its save first sends what they wait to
+	 * save, waits for their saves in flight, then sends the tab as it is
+	 * once they are through (pricing refers to Services saved by Seatings).
+	 */
+	after?: string[];
 }
 
 export interface TabSaveResult {
@@ -83,6 +90,8 @@ interface TabEntry {
 	handle: EditorTab;
 	/** Saves itself in draft mode, when the controller's autosave is on. */
 	autosave: boolean;
+	/** Tabs whose saves go first. */
+	after: string[];
 	state: TabSaveState;
 	/** The tab as last saved, taken on first touch; null until then. */
 	baseline: string | null;
@@ -129,7 +138,7 @@ export class EditorSaveController {
 
 	/** Add a tab; returns its unregistration. Order matters for `saveAll`. */
 	register(id: string, handle: EditorTab, options: RegisterOptions = {}): () => void {
-		this.tabs.set(id, { handle, autosave: options.autosave ?? true, state: 'clean', baseline: null, lastSeen: null, timer: null, inFlight: null, queued: false, editedDuringSave: false });
+		this.tabs.set(id, { handle, autosave: options.autosave ?? true, after: options.after ?? [], state: 'clean', baseline: null, lastSeen: null, timer: null, inFlight: null, queued: false, editedDuringSave: false });
 		this.emit();
 		return () => {
 			const entry = this.tabs.get(id);
@@ -343,13 +352,23 @@ export class EditorSaveController {
 		entry.state = 'saving';
 		entry.message = undefined;
 		// What is being saved: the next baseline if nothing changes meanwhile.
-		const sent = entry.handle.serialize();
+		let sent = entry.handle.serialize();
 		entry.lastSeen = sent;
 		this.emit();
 
 		const flight = (async (): Promise<SaveOutcome> => {
 			let outcome: SaveOutcome;
 			try {
+				const first = this.firstOf(entry.after);
+				if (first) {
+					await first;
+					// The tab may have followed their saves (or the Admin
+					// typed meanwhile): what goes is what it holds now.
+					sent = entry.handle.serialize();
+					entry.lastSeen = sent;
+					entry.editedDuringSave = false;
+					entry.queued = false;
+				}
 				outcome = await entry.handle.submit();
 			} catch (error) {
 				outcome = { ok: false, reason: 'failed', message: error instanceof Error ? error.message : undefined };
@@ -389,6 +408,23 @@ export class EditorSaveController {
 		})();
 		entry.inFlight = flight;
 		return flight;
+	}
+
+	/**
+	 * Save now what tabs `ids` wait to save; then, if any of them has a
+	 * save in flight, a promise resolving once none has (null at once
+	 * otherwise, so a tab with nothing to wait for posts synchronously).
+	 */
+	private firstOf(ids: string[]): Promise<void> | null {
+		for (const id of ids) {
+			const entry = this.tabs.get(id);
+			if (entry && entry.timer !== null) void this.save(id);
+		}
+		const flights = () => ids.map((id) => this.tabs.get(id)?.inFlight ?? null).filter((flight) => flight !== null);
+		if (flights().length === 0) return null;
+		return (async () => {
+			for (let pending = flights(); pending.length > 0; pending = flights()) await Promise.allSettled(pending);
+		})();
 	}
 
 	private emit(): void {
