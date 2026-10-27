@@ -260,6 +260,13 @@
       "when": 1792261410656,
       "tag": "0036_hashed_reset_tokens",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1793103728034,
+      "tag": "0037_seating_unlimited_capacity",
+      "breakpoints": true
     }
   ]
 }

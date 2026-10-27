@@ -158,9 +158,11 @@ export const events = pgTable('events', {
     // public loader (which strip it, `$lib/utils/practical-info`).
     practicalInfoEn: text('practical_info_en'),
     practicalInfoFr: text('practical_info_fr'),
-    // Venue Capacity (issue 021): how many guests the venue holds at once.
-    // Every Seating inherits it unless it overrides its own capacity. Null
-    // only on an Event that has never been given one (no Seating yet).
+    // Venue Capacity (issue 021, ADR 0009): how many seats each Seating
+    // puts on sale — the Admin's limit, which may exceed the room to absorb
+    // no-shows. Every Seating inherits it unless it overrides its own
+    // capacity. Null means no limit: inheriting Seatings take any number of
+    // Reservations.
     venueCapacity: integer('venue_capacity'),
     // Deposit rule (issue 023), applied by the Pricing module
     // ($lib/utils/pricing): `none` (value 0), `fixed` (value = minor units
@@ -690,8 +692,10 @@ export const eventSessions = pgTable('event_sessions', {
     // Seating's own when `capacityOverridden` (issue 021). Changing the
     // Venue Capacity rewrites total/available on every non-overridden
     // Seating, so booking keeps locking and decrementing these columns only.
-    totalCapacity: integer('total_capacity').notNull(),
-    availableCapacity: integer('available_capacity').notNull(),
+    // Both NULL on a Seating without a limit (ADR 0009): `NULL - quantity`
+    // stays NULL, so booking never runs out.
+    totalCapacity: integer('total_capacity'),
+    availableCapacity: integer('available_capacity'),
     capacityOverridden: boolean('capacity_overridden').default(false).notNull(),
     // Legacy per-Seating price (issue 022): the price now lives on the
     // Service. Only Seatings migrated from a Session whose price differed
@@ -714,7 +718,7 @@ export const eventSessions = pgTable('event_sessions', {
     eventIdPublishedIdx: index('event_sessions_event_id_published_idx').on(table.eventId, table.published),
     publishedStartTimeIdx: index('event_sessions_published_start_time_idx').on(table.published, table.startTime),
     capacityCheck: check('event_sessions_capacity_check',
-        sql`available_capacity >= 0 AND available_capacity <= total_capacity`
+        sql`(total_capacity IS NULL AND available_capacity IS NULL) OR (available_capacity >= 0 AND available_capacity <= total_capacity)`
     ),
     timeRangeCheck: check('event_sessions_time_range_check',
         sql`end_time > start_time`
