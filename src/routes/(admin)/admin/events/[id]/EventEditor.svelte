@@ -4,16 +4,20 @@
 	// Each tab saves through the save controller (issue 016): a Draft's by
 	// itself, a published Event's all at once, on confirmation (issue 020).
 	// All panels stay mounted (just hidden) so what is typed survives
-	// switching tabs.
+	// switching tabs, and the open tab lives in the address hash (issue
+	// 011), so reloading or following a link lands where the Admin left off.
 	import { ArrowLeft, ChevronRight, Copy, Eye } from 'lucide-svelte';
 	import { cn } from '$lib/utils/design-system';
 	import { eventCompleteness, EVENT_EDITOR_TABS, type EventWarning } from '$lib/utils/event-warnings';
+	import { differsOnlyByHash, tabIndexFromHash } from '$lib/utils/editor-tab';
 	import { liveEditorWarnings, type UnsavedEditorValues } from '$lib/utils/event-warnings-live';
 	import type { MediaAltText } from '$lib/utils/media-alt';
 	import { getToastContext, setQuietableToastContext } from '$lib/components/toast/state.svelte';
 	import type { ActionData, PageData } from './$types';
 	import { finishSaveBatch, startSaveBatch, type EditorEvent } from './editor-forms';
-	import { beforeNavigate, goto, invalidateAll } from '$app/navigation';
+	import { openTab, readOpenTabFromAddress } from './editor-tab.svelte';
+	import { beforeNavigate, goto, invalidateAll, replaceState } from '$app/navigation';
+	import { page } from '$app/state';
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import DuplicateEventDialog from '$lib/components/admin/DuplicateEventDialog.svelte';
 	import { servedKinds } from '$lib/utils/schedule-pattern';
@@ -84,8 +88,28 @@
 		'px-2 py-1.75 md:px-4 md:py-2 md:h-8 rounded-none bg-transparent border-b-3 data-[state=active]:shadow-none mb-[-2px] data-[state=active]:border-b-foreground data-[state=active]:text-foreground data-[state=inactive]:border-transparent data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:bg-transparent data-[state=inactive]:hover:text-foreground-alt transition-colors cursor-pointer whitespace-nowrap'
 	);
 
-	let activeTab = $state(0);
+	// The open tab lives in the page address (issue 011): the hash names
+	// the tab ('#tarifs' opens « Menus & tarifs »); an unknown or missing
+	// hash opens Essentiel. The admin layout mounts this editor twice
+	// (mobile and desktop); both follow the one shared hash, one address
+	// bar meaning one open tab.
+	const activeTab = $derived(tabIndexFromHash(openTab.hash, tabs));
 	let tabEls: HTMLButtonElement[] = $state([]);
+
+	// Follow the address hash in: when the editor opens, when another
+	// Event's editor loads over this one (the duplicate flow changes
+	// `page.url`), and when the hash changes from outside the editor (the
+	// address bar, a link). Opening a tab (below) writes the hash; it never
+	// comes through here.
+	$effect(() => {
+		void page.url;
+		readOpenTabFromAddress();
+	});
+	$effect(() => {
+		const followAddress = () => readOpenTabFromAddress();
+		window.addEventListener('hashchange', followAddress);
+		return () => window.removeEventListener('hashchange', followAddress);
+	});
 
 	// Arrow keys / Home / End move between tabs (WAI-ARIA tabs pattern)
 	function handleTabKeydown(keyEvent: KeyboardEvent) {
@@ -98,11 +122,20 @@
 			: null;
 		if (target === null) return;
 		keyEvent.preventDefault();
-		activeTab = target;
+		selectTab(tabs[target].id);
 		tabEls[target]?.focus();
 	}
 
 	const panelIndex = (id: string) => tabs.findIndex((tab) => tab.id === id);
+
+	// Opening a tab — a click, the arrow keys, an « À vérifier » item —
+	// replaces the address hash: no navigation, no new history entry, no
+	// load re-run. Only the hash moves, so the leave guard never sees it.
+	function selectTab(id: string) {
+		if (panelIndex(id) === -1) return; // not one of this editor's tabs
+		openTab.hash = `#${id}`;
+		replaceState(`#${id}`, {});
+	}
 
 	// The Time Zone picked in Lieu; the Seatings follow the saved zone.
 	let timeZone = $state(data.event.timeZone);
@@ -366,6 +399,9 @@
 
 	beforeNavigate((navigation) => {
 		if (leaving) return;
+		// A hash change (the open tab moving in the address, issue 011) is
+		// not a page change: it is never guarded, and it saves nothing.
+		if (differsOnlyByHash(navigation.from?.url, navigation.to?.url)) return;
 		// A Draft's change waiting for its idle time is saved now (issue 018).
 		saves.flush();
 		if (!saves.isDirty()) return;
@@ -531,7 +567,7 @@
 					<li>
 						<button
 							type="button"
-							onclick={() => (activeTab = panelIndex(warning.tab))}
+							onclick={() => selectTab(warning.tab)}
 							class="group w-full flex items-center justify-between gap-4 py-2.5 text-left text-sm text-foreground-alt hover:text-foreground transition-colors"
 						>
 							<span>{warning.message}</span>
@@ -560,7 +596,7 @@
 					aria-controls="panel-{tab.id}"
 					data-state={i === activeTab ? 'active' : 'inactive'}
 					tabindex={i === activeTab ? 0 : -1}
-					onclick={() => (activeTab = i)}
+					onclick={() => selectTab(tab.id)}
 					onkeydown={handleTabKeydown}
 					class={TAB_TRIGGER_CLASS}
 				>
@@ -659,7 +695,7 @@
 							<li>
 								<button
 									type="button"
-									onclick={() => (activeTab = panelIndex(tab.id))}
+									onclick={() => selectTab(tab.id)}
 									class="underline underline-offset-2 hover:text-red-900 transition-colors cursor-pointer"
 								>« {tab.title} »</button>
 								non enregistré{tab.message ? ` : ${tab.message}` : ''}
