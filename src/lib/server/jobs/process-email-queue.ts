@@ -1,34 +1,10 @@
 import { db } from '../db';
 import { emailQueue } from '../db/schema';
 import { eq } from 'drizzle-orm';
-import { env, isAWSConfigured } from '../env';
+import { env, isBrevoConfigured } from '../env';
 import { emailLogger } from '../logger';
 import { getCachedSiteSettings } from '../services/site-settings';
-import {
-	SESClient,
-	SendEmailCommand,
-	type SendEmailCommandInput,
-} from '@aws-sdk/client-ses';
-
-let sesClient: SESClient | null = null;
-
-function getSESClient(): SESClient {
-	if (!sesClient) {
-		if (!isAWSConfigured()) {
-			throw new Error('AWS is not configured');
-		}
-
-		sesClient = new SESClient({
-			region: env.AWS_REGION,
-			credentials: {
-				accessKeyId: env.AWS_ACCESS_KEY_ID,
-				secretAccessKey: env.AWS_SECRET_ACCESS_KEY,
-			},
-		});
-	}
-
-	return sesClient;
-}
+import { sendBrevoEmail } from '../services/brevo';
 
 /**
  * Calculate the next retry time based on exponential backoff
@@ -43,8 +19,8 @@ function calculateRetryTime(attempts: number): Date {
  * Process pending emails in the queue with exponential backoff retry
  */
 export async function processEmailQueue() {
-	if (!isAWSConfigured()) {
-		emailLogger.debug('[Email Queue] AWS not configured, skipping queue processing');
+	if (!isBrevoConfigured()) {
+		emailLogger.debug('[Email Queue] Brevo not configured, skipping queue processing');
 		return { processed: 0, sent: 0, failed: 0 };
 	}
 
@@ -75,8 +51,6 @@ export async function processEmailQueue() {
 	let sentCount = 0;
 	let failedCount = 0;
 
-	const client = getSESClient();
-
 	// The sender/contact email is configurable from the admin settings page; fall back to the
 	// env-configured default when no override has been set.
 	let senderEmail: string = env.SMTP_FROM_EMAIL;
@@ -91,28 +65,15 @@ export async function processEmailQueue() {
 
 	for (const email of pendingEmails) {
 		try {
-			const mailOptions: SendEmailCommandInput = {
-				Source: `"${env.SMTP_FROM_NAME}" <${senderEmail}>`,
-				Destination: {
-					ToAddresses: [email.recipient],
-				},
-				Message: {
-					Subject: {
-						Data: email.subject,
-					},
-					Body: {
-						Text: {
-							Data: email.textBody,
-						},
-						Html: {
-							Data: email.htmlBody,
-						},
-					},
-				},
-			};
-
-			const command = new SendEmailCommand(mailOptions);
-			await client.send(command);
+			// Replies go to the contact inbox: the sender (noreply@) has no mailbox.
+			await sendBrevoEmail(env.BREVO_API_KEY, {
+				sender: { email: senderEmail, name: env.SMTP_FROM_NAME },
+				to: [{ email: email.recipient }],
+				replyTo: { email: env.CONTACT_EMAIL, name: env.SMTP_FROM_NAME },
+				subject: email.subject,
+				textContent: email.textBody,
+				htmlContent: email.htmlBody,
+			});
 
 			// Mark as sent
 			await db.update(emailQueue)
@@ -159,7 +120,7 @@ export async function processEmailQueue() {
  * Queue an email for sending (with automatic retry)
  */
 export async function queueEmail(data: {
-	type: 'ticket_confirmation' | 'contact_notification' | 'event_reminder' | 'admin_invite' | 'dispute_alert' | 'reservation_cancelled' | 'reservation_refunded' | 'staff_assignment' | 'task_assignment';
+	type: 'ticket_confirmation' | 'contact_notification' | 'event_reminder' | 'admin_invite' | 'staff_invite' | 'staff_password_reset' | 'dispute_alert' | 'reservation_cancelled' | 'reservation_refunded' | 'staff_assignment' | 'task_assignment';
 	recipient: string;
 	subject: string;
 	textBody: string;

@@ -1,11 +1,10 @@
 import { logger } from '$lib/server/logger';
-import { env, isAWSConfigured, isBrevoConfigured } from '../env';
+import { env, isBrevoConfigured } from '../env';
 import { sendBrevoEmail } from './brevo';
 import type { ContactEmailData } from '$lib/types/contact';
 import type { TicketEmailData } from '$lib/types/reservations';
 import { formatCurrency } from '$lib/utils/currency';
 import { escapeHtml, escapeHtmlAttr } from '$lib/utils/html';
-import { SESClient } from '@aws-sdk/client-ses';
 import { seatingTitle } from '$lib/utils/seating-title';
 import { formatSeatingDateTime } from '$lib/utils/event-time';
 import { bookedUnitPriceAmount } from '$lib/utils/seating-price';
@@ -58,26 +57,6 @@ function venueAddressLinesOf(event: VenueAddressEvent): string[] {
 function venueOf(event: VenueAddressEvent): string[] {
 	const lines = venueAddressLinesOf(event);
 	return lines.length > 0 ? lines : [eventLocationOf(event)].filter((line) => line !== '');
-}
-
-let sesClient: SESClient | null = null;
-
-function getSESClient(): SESClient {
-	if (!sesClient) {
-		if (!isAWSConfigured()) {
-			throw new Error('AWS is not configured. Check AWS credentials.');
-		}
-
-		sesClient = new SESClient({
-			region: env.AWS_REGION,
-			credentials: {
-				accessKeyId: env.AWS_ACCESS_KEY_ID,
-				secretAccessKey: env.AWS_SECRET_ACCESS_KEY,
-			},
-		});
-	}
-
-	return sesClient;
 }
 
 function formatInquiryType(type: string): string {
@@ -397,12 +376,12 @@ export async function sendTicketConfirmationEmail(data: TicketEmailData): Promis
 		icsUrl,
 	});
 
-	if (!isAWSConfigured()) {
+	if (!isBrevoConfigured()) {
 		logger.info({
 			to: data.guestEmail,
 			accessToken: data.accessToken,
 			ticketUrl: `${env.PUBLIC_URL}/tickets/${data.accessToken}`,
-		}, '🎫 AWS not configured - ticket confirmation email would be sent');
+		}, '🎫 Brevo not configured - ticket confirmation email would be sent');
 		return;
 	}
 
@@ -421,24 +400,6 @@ export async function sendTicketConfirmationEmail(data: TicketEmailData): Promis
 		},
 	});
 	logger.info({ to: data.guestEmail }, '📋 Ticket confirmation email queued');
-}
-
-export async function verifyEmailConnection(): Promise<boolean> {
-	if (!isAWSConfigured()) {
-		console.warn('⚠️  AWS not configured');
-		return false;
-	}
-
-	try {
-		// Simply verify that the SES client can be created with valid credentials
-		// The client will be initialized when getSESClient() is called
-		getSESClient();
-		logger.info('✅ SES connection verified (credentials configured)');
-		return true;
-	} catch (error) {
-		logger.error({ err: error }, '❌ SES connection failed');
-		return false;
-	}
 }
 
 /**
@@ -568,12 +529,12 @@ export async function sendEventReminderEmail(data: TicketEmailData & { daysUntil
 	const textBody = generateEventReminderTextTemplate(data);
 	const htmlBody = generateEventReminderHtmlTemplate(data);
 
-	if (!isAWSConfigured()) {
+	if (!isBrevoConfigured()) {
 		logger.info({
 			to: data.guestEmail,
 			event: eventTitleOf(data.event),
 			daysUntil: data.daysUntil,
-		}, '🔔 AWS not configured - event reminder email would be sent');
+		}, '🔔 Brevo not configured - event reminder email would be sent');
 		return;
 	}
 
@@ -701,11 +662,11 @@ export async function sendCancellationEmail(data: CancellationEmailData): Promis
 	const textBody = generateCancellationTextTemplate(data);
 	const htmlBody = generateCancellationHtmlTemplate(data);
 
-	if (!isAWSConfigured()) {
+	if (!isBrevoConfigured()) {
 		logger.info({
 			to: data.guestEmail,
 			reservationId: data.reservationId,
-		}, '📧 AWS not configured - cancellation email would be sent');
+		}, '📧 Brevo not configured - cancellation email would be sent');
 		return;
 	}
 
@@ -816,13 +777,13 @@ export async function sendRefundEmail(data: RefundEmailData): Promise<void> {
 	const textBody = generateRefundTextTemplate(data);
 	const htmlBody = generateRefundHtmlTemplate(data);
 
-	if (!isAWSConfigured()) {
+	if (!isBrevoConfigured()) {
 		logger.info({
 			to: data.guestEmail,
 			reservationId: data.reservationId,
 			amount: data.amount,
 			currency: data.currency,
-		}, '📧 AWS not configured - refund email would be sent');
+		}, '📧 Brevo not configured - refund email would be sent');
 		return;
 	}
 
@@ -970,12 +931,12 @@ export async function sendDisputeAlertEmail(data: DisputeAlertEmailData): Promis
 	const textBody = generateDisputeAlertTextTemplate(data);
 	const htmlBody = generateDisputeAlertHtmlTemplate(data);
 
-	if (!isAWSConfigured()) {
+	if (!isBrevoConfigured()) {
 		logger.info({
 			to: env.CONTACT_EMAIL,
 			disputeId: data.stripeDisputeId,
 			paymentId: data.paymentId,
-		}, '⚠️ AWS not configured - dispute alert email would be sent');
+		}, '⚠️ Brevo not configured - dispute alert email would be sent');
 		return;
 	}
 
@@ -1092,12 +1053,12 @@ export async function sendStaffInviteEmail(data: StaffInviteEmailData): Promise<
 	const textBody = generateStaffInviteTextTemplate(data);
 	const htmlBody = generateStaffInviteHtmlTemplate(data);
 
-	if (!isAWSConfigured()) {
+	if (!isBrevoConfigured()) {
 		logger.info({
 			to: data.email,
 			resetToken: data.resetToken,
 			resetUrl: `${env.PUBLIC_URL}/staff/reset-password/${data.resetToken}`,
-		}, '📧 AWS not configured - staff invite email would have been sent');
+		}, '📧 Brevo not configured - staff invite email would have been sent');
 		return;
 	}
 
@@ -1196,12 +1157,12 @@ export async function sendStaffPasswordResetEmail(data: StaffPasswordResetEmailD
 	const textBody = generateStaffPasswordResetTextTemplate(data);
 	const htmlBody = generateStaffPasswordResetHtmlTemplate(data);
 
-	if (!isAWSConfigured()) {
+	if (!isBrevoConfigured()) {
 		logger.info({
 			to: data.email,
 			resetToken: data.resetToken,
 			resetUrl: `${env.PUBLIC_URL}/staff/reset-password/${data.resetToken}`,
-		}, '📧 AWS not configured - staff password reset email would have been sent');
+		}, '📧 Brevo not configured - staff password reset email would have been sent');
 		return;
 	}
 
@@ -1317,12 +1278,12 @@ export async function sendAdminInviteEmail(data: AdminInviteEmailData): Promise<
 	const textBody = generateAdminInviteTextTemplate(data);
 	const htmlBody = generateAdminInviteHtmlTemplate(data);
 
-	if (!isAWSConfigured()) {
+	if (!isBrevoConfigured()) {
 		logger.info({
 			to: data.email,
 			resetToken: data.resetToken,
 			resetUrl: `${env.PUBLIC_URL}/admin/reset-password/${data.resetToken}`,
-		}, '📧 AWS not configured - admin invite email would have been sent');
+		}, '📧 Brevo not configured - admin invite email would have been sent');
 		return;
 	}
 
@@ -1420,11 +1381,11 @@ export async function sendStaffAssignmentEmail(data: StaffAssignmentEmailData): 
 	const textBody = generateStaffAssignmentTextTemplate(data);
 	const htmlBody = generateStaffAssignmentHtmlTemplate(data);
 
-	if (!isAWSConfigured()) {
+	if (!isBrevoConfigured()) {
 		logger.info({
 			to: data.email,
 			eventTitle: data.eventTitle,
-		}, '📧 AWS not configured - staff assignment email would have been sent');
+		}, '📧 Brevo not configured - staff assignment email would have been sent');
 		return;
 	}
 
@@ -1536,11 +1497,11 @@ export async function sendTaskAssignmentEmail(data: TaskAssignmentEmailData): Pr
 	const textBody = generateTaskAssignmentTextTemplate(data);
 	const htmlBody = generateTaskAssignmentHtmlTemplate(data);
 
-	if (!isAWSConfigured()) {
+	if (!isBrevoConfigured()) {
 		logger.info({
 			to: data.email,
 			taskTitle: data.taskTitle,
-		}, '📧 AWS not configured - task assignment email would have been sent');
+		}, '📧 Brevo not configured - task assignment email would have been sent');
 		return;
 	}
 

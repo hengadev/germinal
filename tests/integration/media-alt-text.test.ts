@@ -13,6 +13,7 @@ const testDb = getTestDatabase();
 vi.mock('../../src/lib/server/env', () => ({
 	env: { DATABASE_URL: TEST_DATABASE_URL, USE_MOCK_DATA: false, PUBLIC_URL: 'http://localhost:5173' },
 	isAWSConfigured: () => false,
+	isBrevoConfigured: () => false,
 	isDevelopment: () => true,
 }));
 

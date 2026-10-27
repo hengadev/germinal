@@ -62,6 +62,7 @@ vi.mock('../../src/lib/server/env', () => ({
 	},
 	isStripeEnabled: () => true,
 	isAWSConfigured: () => false,
+	isBrevoConfigured: () => false,
 	isDevelopment: () => true,
 }));
 

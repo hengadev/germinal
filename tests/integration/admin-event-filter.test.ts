@@ -14,6 +14,7 @@ vi.mock('../../src/lib/server/env', () => ({
 	config: { reservations: { maxTicketsPerReservation: 10 } },
 	isStripeEnabled: () => false,
 	isAWSConfigured: () => false,
+	isBrevoConfigured: () => false,
 	isDevelopment: () => true,
 }));
 
