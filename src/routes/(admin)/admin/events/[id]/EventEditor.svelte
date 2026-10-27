@@ -1,24 +1,23 @@
 <script lang="ts">
-	// The Event editor (ADR 0008, issue 036): one tabbed screen for a saved
-	// Event and for « Nouvel événement », which opens it with no Event. Each
-	// tab keeps its own save; on a new Event the first save of any tab
-	// creates the Draft and lands on its page. All panels stay mounted (just
-	// hidden) so what is typed survives switching tabs.
+	// The Event editor (ADR 0008, issue 036): one tabbed screen, always on a
+	// saved Event — « Nouvel événement » creates the Draft first (ADR 0010).
+	// Each tab keeps its own save, made through the save controller (issue
+	// 016). All panels stay mounted (just hidden) so what is typed survives
+	// switching tabs.
 	import { ArrowLeft, ChevronRight, Copy, Eye } from 'lucide-svelte';
 	import { cn } from '$lib/utils/design-system';
-	import { DEFAULT_EVENT_TIME_ZONE } from '$lib/utils/event-time';
 	import { editorEventWarnings, editorPortfolioWarnings, type EventWarning } from '$lib/utils/event-warnings';
 	import type { MediaAltText } from '$lib/utils/media-alt';
 	import { getToastContext } from '$lib/components/toast/state.svelte';
-	import { toSeatingDrafts, type DraftSeatingService } from '$lib/components/admin/SeatingsEditor.svelte';
-	import type { ActionData, PageData as EventPageData } from './$types';
-	import type { PageData as NewEventPageData } from '../new/$types';
-	import { mergeFormFields, type EditorEvent } from './editor-forms';
+	import type { ActionData, PageData } from './$types';
+	import type { EditorEvent } from './editor-forms';
 	import { beforeNavigate, goto } from '$app/navigation';
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import DuplicateEventDialog from '$lib/components/admin/DuplicateEventDialog.svelte';
 	import { servedKinds } from '$lib/utils/schedule-pattern';
-	import { EDITOR_SAVED_EVENT, LeaveGuard, type EditorSavedDetail } from '$lib/utils/leave-guard';
+	import { onMount, tick } from 'svelte';
+	import { EditorSaveController, formatSavedAgo, type EditorSaveSnapshot } from '$lib/utils/editor-save';
+	import { formTab, type FormTab } from '$lib/utils/editor-save-form';
 	import { setEnglishAuto } from '$lib/components/admin/EnglishVersion.svelte';
 
 	import Essentiel from './Essentiel.svelte';
@@ -34,7 +33,7 @@
 	import Reservations from './Reservations.svelte';
 	import PromoCodes from './PromoCodes.svelte';
 
-	let { data, form = null }: { data: EventPageData | NewEventPageData; form?: ActionData } = $props();
+	let { data, form = null }: { data: PageData; form?: ActionData } = $props();
 
 	const toast = getToastContext();
 	// Whether each tab's « Version anglaise » is generated or typed by hand.
@@ -52,11 +51,7 @@
 		}
 	});
 
-	// The route changes on the first save, so this holds for the editor's life.
-	const isNew = data.event === null;
-	const event = $derived(data.event as EditorEvent | null);
-	// A saved Event's page data, for its operational tabs.
-	const saved = $derived(data.event === null ? null : (data as EventPageData));
+	const event = $derived(data.event as EditorEvent);
 
 	const EDITOR_TABS = [
 		{ id: 'essentiel', title: 'Essentiel' },
@@ -68,14 +63,14 @@
 		{ id: 'pratique', title: 'Infos pratiques' },
 		{ id: 'portfolio', title: 'Portfolio' },
 	];
-	// What only a saved Event has: its team, tasks, Reservations and Promo Codes.
+	// Its team, tasks, Reservations and Promo Codes.
 	const OPERATIONAL_TABS = [
 		{ id: 'team', title: 'Team' },
 		{ id: 'tasks', title: 'Tasks' },
 		{ id: 'reservations', title: 'Réservations' },
 		{ id: 'promotions', title: 'Promotions' },
 	];
-	const tabs = isNew ? EDITOR_TABS : [...EDITOR_TABS, ...OPERATIONAL_TABS];
+	const tabs = [...EDITOR_TABS, ...OPERATIONAL_TABS];
 
 	// Base classes of bits-components/TabsList + TabsTrigger, with the editor's overrides.
 	const TAB_LIST_CLASS = cn(
@@ -110,32 +105,15 @@
 
 	const panelIndex = (id: string) => tabs.findIndex((tab) => tab.id === id);
 
-	// The Time Zone picked in Lieu: a new Event's Seatings are typed on it
-	// before anything is saved. A saved Event's Seatings follow its saved zone.
-	let timeZone = $state(data.event?.timeZone ?? DEFAULT_EVENT_TIME_ZONE);
+	// The Time Zone picked in Lieu; the Seatings follow the saved zone.
+	let timeZone = $state(data.event.timeZone);
 
-	// « Dates & séances » meals, followed live by a new Event's prices: its
-	// meals are not saved yet, so « Menus & tarifs » prices the ones picked.
-	let seatingServices: DraftSeatingService[] = $state(toSeatingDrafts(data.schedule ?? []));
-	function seatingCountOf(serviceId: string): number {
-		return seatingServices.find((service) => service.serviceId === serviceId)?.seatings.length ?? 0;
-	}
-
-	// On a new Event, the first save of either schedule tab carries both
-	// (Days, Seatings and prices are saved with it), with the Lieu zone.
-	// The admin layout mounts the page twice (mobile and desktop), so the
-	// other form is looked up within this editor only.
+	// The admin layout mounts the page twice (mobile and desktop), so forms
+	// are looked up within this editor only.
 	let rootEl: HTMLElement | undefined = $state();
-	function extendWith(otherForm: 'seatings' | 'pricing') {
-		return (formData: FormData) => {
-			mergeFormFields(formData, rootEl?.querySelector<HTMLFormElement>(`form[data-editor-form="${otherForm}"]`) ?? null);
-			formData.set('timeZone', timeZone);
-		};
-	}
 
 	// « À vérifier » (issue 038, ADR 0008): what is missing for publishing,
-	// read off the saved Event's page data. A new Event has nothing saved
-	// yet, so there is nothing to check; the list stays visible once the
+	// read off the saved Event's page data; the list stays visible once the
 	// Event is published.
 	// Alt texts are saved per image as soon as they are typed in « Visuels »
 	// (issue 043), without reloading the page data: the list follows them.
@@ -144,58 +122,127 @@
 		altOverrides[mediaId] = alt;
 	}
 	const publishingWarnings = $derived(
-		data.event !== null && data.schedule && data.pricing
+		data.schedule && data.pricing
 			? editorEventWarnings(data.event, data.schedule, data.pricing, altOverrides)
 			: ([] as EventWarning[])
 	);
 	// The Portfolio list (issue 045): the Recap, Event Photos, their cover
 	// and alt text. Always shown in « Portfolio »; joins « À vérifier » once
 	// the Event is in the Portfolio. Warnings only, like publishing's.
-	const portfolioWarnings = $derived(
-		data.event !== null ? editorPortfolioWarnings(data.event, altOverrides) : ([] as EventWarning[])
-	);
+	const portfolioWarnings = $derived(editorPortfolioWarnings(data.event, altOverrides));
 	const warnings = $derived(
-		event?.isPortfolio ? [...publishingWarnings, ...portfolioWarnings] : publishingWarnings
+		event.isPortfolio ? [...publishingWarnings, ...portfolioWarnings] : publishingWarnings
+	);
+
+	// Save controller (issue 016, ADR 0010): each form of the Event's own
+	// tabs is a unit it saves — the operational tabs keep their own actions.
+	// It gives the header its save status, the tab labels their « modifié »
+	// mark and the leave guard its answer. Autosave stays off for now: the
+	// save buttons submit through it.
+	const modeOf = (visibility: string) => (visibility === 'draft' ? 'draft' : 'published');
+	const saves = new EditorSaveController({ autosave: false });
+	let saveState: EditorSaveSnapshot = $state(saves.snapshot());
+	// A published Event holds its edits; the mode follows its Visibility.
+	$effect(() => saves.setMode(modeOf(event.visibility)));
+	$effect(() => {
+		const unsubscribe = saves.subscribe((snapshot) => (saveState = snapshot));
+		return () => void unsubscribe();
+	});
+
+	const formUnits = new Map<HTMLFormElement, { id: string; tab: FormTab }>();
+	// A tab with several forms (« Portfolio ») has a unit per form.
+	const tabOfUnit = (unitId: string) => unitId.split(':')[0];
+
+	onMount(() => {
+		const root = rootEl;
+		if (!root) return;
+		// In tab order: « Dates & séances » saves before « Menus & tarifs ».
+		for (const { id } of EDITOR_TABS) {
+			// A form marked `data-editor-skip` (« Publication », ADR 0010) saves
+			// on its own: never a unit, so its changes and its submit pass by.
+			const forms = [...(root.querySelector(`[data-editor-tab="${id}"]`)?.querySelectorAll<HTMLFormElement>('form:not([data-editor-skip])') ?? [])];
+			forms.forEach((form, i) => {
+				const unitId = forms.length > 1 ? `${id}:${form.dataset.editorForm ?? i}` : id;
+				const tab = formTab(form);
+				formUnits.set(form, { id: unitId, tab });
+				saves.register(unitId, tab);
+			});
+		}
+		// Changes no input event reports (an upload landing) show in the DOM.
+		let frame = 0;
+		const observer = new MutationObserver(() => {
+			cancelAnimationFrame(frame);
+			frame = requestAnimationFrame(() => saves.refresh());
+		});
+		observer.observe(root, { childList: true, subtree: true });
+		const clock = setInterval(() => (now = Date.now()), 30_000);
+		return () => {
+			observer.disconnect();
+			cancelAnimationFrame(frame);
+			clearInterval(clock);
+		};
+	});
+
+	function unitOf(target: EventTarget | null) {
+		const form = target instanceof Element ? target.closest('form') : null;
+		return form ? formUnits.get(form) : undefined;
+	}
+	// The first interaction with a form, before it changes anything.
+	function touchForm(domEvent: Event) {
+		const unit = unitOf(domEvent.target);
+		if (unit) saves.touch(unit.id);
+	}
+	// Once the change has reached the form (bound values, hidden fields).
+	function changeForm(domEvent: Event) {
+		const unit = unitOf(domEvent.target);
+		if (unit) void tick().then(() => saves.changed(unit.id));
+	}
+	function blurForm(domEvent: Event) {
+		const unit = unitOf(domEvent.target);
+		if (unit) saves.blurred(unit.id);
+	}
+	// A save button posts through the controller, which never runs two
+	// saves of a form at once. Its own post goes through untouched.
+	function submitForm(submitEvent: SubmitEvent) {
+		const unit = unitOf(submitEvent.target);
+		if (!unit || unit.tab.owns(submitEvent)) return;
+		submitEvent.preventDefault();
+		submitEvent.stopPropagation();
+		saves.touch(unit.id);
+		unit.tab.setSubmitter(submitEvent.submitter);
+		// Out of this submit event: the browser ignores a nested one.
+		setTimeout(() => void saves.save(unit.id));
+	}
+
+	const UNSAVED_STATES = new Set(['dirty', 'saving', 'invalid', 'failed']);
+	function tabModified(tabId: string): boolean {
+		return Object.entries(saveState.tabs).some(([unitId, state]) => tabOfUnit(unitId) === tabId && UNSAVED_STATES.has(state));
+	}
+
+	// The header's one save status; « il y a 2 min » follows the clock.
+	let now = $state(Date.now());
+	const unsavedLabel = $derived(
+		saveState.dirtyCount > 1 ? `${saveState.dirtyCount} onglets modifiés, non enregistrés` : 'Modifications non enregistrées'
+	);
+	const saveAnnouncement = $derived(
+		saveState.status === 'saving' ? 'Enregistrement…'
+		: saveState.status === 'failed' ? 'Échec de l’enregistrement'
+		: saveState.status === 'invalid' ? 'Non enregistré — à corriger'
+		: saveState.status === 'dirty' ? unsavedLabel
+		: saveState.status === 'saved' ? 'Enregistré'
+		: ''
 	);
 
 	// Unsaved-changes guard (issue 037): leaving with an edited tab asks
 	// first — an in-page dialog for in-app moves, the browser's own prompt
 	// for closing or reloading. Switching tabs is not leaving. Only the
 	// Event's own tabs are guarded, not the operational ones.
-	const guard = new LeaveGuard();
 	let leaveDialogOpen = $state(false);
 	let pendingLeave: (() => void) | null = null;
 	let leaving = false;
 
-	function guardedForm(target: EventTarget | null): HTMLFormElement | null {
-		const form = target instanceof Element ? target.closest('form') : null;
-		return form?.closest('[data-leave-guard]') && rootEl?.contains(form) ? form : null;
-	}
-	// The first interaction with a form, before it changes anything.
-	function touchForm(domEvent: Event) {
-		const form = guardedForm(domEvent.target);
-		if (form) guard.touch(form);
-	}
-
-	$effect(() => {
-		const root = rootEl;
-		if (!root) return;
-		const onSaved = (domEvent: Event) => {
-			const form = domEvent.target;
-			if ((domEvent as CustomEvent<EditorSavedDetail>).detail?.leaving) {
-				// A new Event's first save moves on to its Draft's page.
-				guard.clear();
-				leaving = true;
-			} else if (form instanceof HTMLFormElement) {
-				guard.saved(form);
-			}
-		};
-		root.addEventListener(EDITOR_SAVED_EVENT, onSaved);
-		return () => root.removeEventListener(EDITOR_SAVED_EVENT, onSaved);
-	});
-
 	beforeNavigate((navigation) => {
-		if (leaving || !guard.isDirty()) return;
+		if (leaving || !saves.isDirty()) return;
 		navigation.cancel();
 		// Closing, reloading or leaving the site: the browser asks.
 		if (navigation.type === 'leave' || !navigation.to) return;
@@ -226,9 +273,7 @@
 	let duplicateDialogOpen = $state(false);
 	const duplicateKinds = $derived(servedKinds(data.schedule ?? []));
 
-	const headerTitle = $derived(
-		event ? event.titleFr || event.titleEn || 'Sans titre' : 'Nouvel événement'
-	);
+	const headerTitle = $derived(event.titleFr || event.titleEn || 'Sans titre');
 </script>
 
 <svelte:head>
@@ -241,8 +286,12 @@
 	onpointerdowncapture={touchForm}
 	onkeydowncapture={touchForm}
 	ondragentercapture={touchForm}
-	oninputcapture={touchForm}
-	onchangecapture={touchForm}
+	oninputcapture={(domEvent) => (touchForm(domEvent), changeForm(domEvent))}
+	onchangecapture={(domEvent) => (touchForm(domEvent), changeForm(domEvent))}
+	onclickcapture={changeForm}
+	ondropcapture={changeForm}
+	onfocusoutcapture={blurForm}
+	onsubmitcapture={submitForm}
 	class="container mx-auto px-4 py-8 lg:py-12"
 >
 	<div class="flex items-start gap-3 mb-8">
@@ -257,34 +306,58 @@
 		<div>
 			<h1 class="text-3xl lg:text-4xl font-bold mb-2">{headerTitle}</h1>
 			<p class="text-muted-foreground flex items-center gap-2 flex-wrap">
-				{#if event}
-					<span>Gérer cet événement</span>
+				<span>Gérer cet événement</span>
+				<span aria-hidden="true">·</span>
+				<!-- Aperçu (issue 033) : ouvre la page publique — un brouillon
+				     n'y est visible que pour un Admin, avec la réservation coupée. -->
+				<a
+					href="/events/{event.id}"
+					target="_blank"
+					rel="noopener"
+					class="inline-flex items-center gap-1 hover:text-foreground transition-colors"
+					title="Voir la page publique"
+				>
+					<Eye size={14} />
+					Aperçu
+				</a>
+				<span aria-hidden="true">·</span>
+				<button
+					type="button"
+					onclick={() => (duplicateDialogOpen = true)}
+					class="inline-flex items-center gap-1 hover:text-foreground transition-colors cursor-pointer"
+					title="Créer une copie de cet événement sur d’autres jours"
+				>
+					<Copy size={14} />
+					Dupliquer
+				</button>
+				<!-- The save status (issue 016). Screen readers hear each change
+				     of state once, not every tick of « il y a … ». -->
+				{#if saveState.status === 'saving'}
 					<span aria-hidden="true">·</span>
-					<!-- Aperçu (issue 033) : ouvre la page publique — un brouillon
-					     n'y est visible que pour un Admin, avec la réservation coupée. -->
-					<a
-						href="/events/{event.id}"
-						target="_blank"
-						rel="noopener"
-						class="inline-flex items-center gap-1 hover:text-foreground transition-colors"
-						title="Voir la page publique"
-					>
-						<Eye size={14} />
-						Aperçu
-					</a>
+					<span aria-hidden="true">Enregistrement…</span>
+				{:else if saveState.status === 'failed'}
 					<span aria-hidden="true">·</span>
-					<button
-						type="button"
-						onclick={() => (duplicateDialogOpen = true)}
-						class="inline-flex items-center gap-1 hover:text-foreground transition-colors cursor-pointer"
-						title="Créer une copie de cet événement sur d’autres jours"
-					>
-						<Copy size={14} />
-						Dupliquer
-					</button>
-				{:else}
-					<span>Rien n’est obligatoire : le premier enregistrement d’un onglet crée le brouillon.</span>
+					<span class="text-red-700">
+						<span aria-hidden="true">Échec —</span>
+						<button
+							type="button"
+							onclick={() => void saves.retry()}
+							class="underline underline-offset-2 hover:text-red-900 transition-colors cursor-pointer"
+						>
+							Réessayer
+						</button>
+					</span>
+				{:else if saveState.status === 'invalid'}
+					<span aria-hidden="true">·</span>
+					<span aria-hidden="true" class="text-red-700">Non enregistré — à corriger</span>
+				{:else if saveState.status === 'dirty'}
+					<span aria-hidden="true">·</span>
+					<span aria-hidden="true">{unsavedLabel}</span>
+				{:else if saveState.lastSavedAt !== null}
+					<span aria-hidden="true">·</span>
+					<span>Enregistré {formatSavedAgo(saveState.lastSavedAt, Math.max(now, saveState.lastSavedAt))}</span>
 				{/if}
+				<span role="status" class="sr-only">{saveAnnouncement}</span>
 			</p>
 		</div>
 	</div>
@@ -308,7 +381,7 @@
 		<section class="mb-6 bg-background rounded-lg border border-border-card p-6" aria-label="À vérifier">
 			<h2 class="text-base font-semibold text-foreground mb-1">À vérifier</h2>
 			<p class="text-sm text-muted-foreground mb-4">
-				{#if event && event.visibility !== 'draft'}
+				{#if event.visibility !== 'draft'}
 				Cet événement est publié ; ces points lui manquent toujours.
 			{:else}
 				Rien n’oblige à les compléter avant de publier : la décision vous reste.
@@ -354,6 +427,12 @@
 					class={TAB_TRIGGER_CLASS}
 				>
 					{tab.title}
+					{#if tabModified(tab.id)}
+						<!-- Unsaved changes (issue 016): a shape, not only a colour, and
+						     part of the tab's name for screen readers. -->
+						<span aria-hidden="true" class="ml-1.5 inline-block size-1.5 rounded-full bg-current" title="Modifications non enregistrées"></span>
+						<span class="sr-only">(modifications non enregistrées)</span>
+					{/if}
 				</button>
 			{/each}
 		</div>
@@ -361,7 +440,7 @@
 
 	{#snippet panel(id: string, content: import('svelte').Snippet, guarded = true)}
 		<div
-			data-leave-guard={guarded ? '' : undefined}
+			data-editor-tab={guarded ? id : undefined}
 			hidden={activeTab !== panelIndex(id)}
 			role="tabpanel"
 			id="panel-{id}"
@@ -373,27 +452,16 @@
 	{/snippet}
 
 	{#snippet essentiel()}
-		<Essentiel {event} lastSeatingStart={saved?.lastSeatingStart ?? null} warnings={publishingWarnings} />
+		<Essentiel {event} lastSeatingStart={data.lastSeatingStart ?? null} warnings={publishingWarnings} />
 	{/snippet}
 	{#snippet lieu()}
 		<Lieu {event} zones={data.timeZones ?? []} locked={data.timeZoneLocked ?? false} bind:timeZone />
 	{/snippet}
 	{#snippet seatings()}
-		<Seatings
-			{data}
-			{isNew}
-			timeZone={isNew ? timeZone : data.event?.timeZone}
-			bind:services={seatingServices}
-			extend={isNew ? extendWith('pricing') : undefined}
-		/>
+		<Seatings {data} timeZone={data.event.timeZone} />
 	{/snippet}
 	{#snippet pricing()}
-		<Pricing
-			{data}
-			follow={isNew ? seatingServices : undefined}
-			seatingCountOf={isNew ? seatingCountOf : undefined}
-			extend={isNew ? extendWith('seatings') : undefined}
-		/>
+		<Pricing {data} />
 	{/snippet}
 	{#snippet programme()}<Programme {event} talents={data.talents ?? []} />{/snippet}
 	{#snippet visuels()}<Photos event={data.event} onAltChange={handleAltChange} />{/snippet}
@@ -401,7 +469,7 @@
 		<PracticalInfo {event} />
 	{/snippet}
 	{#snippet portfolio()}
-		<Portfolio {event} lastSeatingStart={saved?.lastSeatingStart ?? null} warnings={portfolioWarnings} onAltChange={handleAltChange} />
+		<Portfolio {event} lastSeatingStart={data.lastSeatingStart ?? null} warnings={portfolioWarnings} onAltChange={handleAltChange} />
 	{/snippet}
 
 	{@render panel('essentiel', essentiel)}
@@ -413,17 +481,14 @@
 	{@render panel('pratique', pratique)}
 	{@render panel('portfolio', portfolio)}
 
-	{#if saved}
-		{@const savedData = saved}
-		{#snippet team()}<Team data={savedData} {form} />{/snippet}
-		{#snippet tasks()}<Tasks data={savedData} {form} />{/snippet}
-		{#snippet reservations()}<Reservations data={savedData} />{/snippet}
-		{#snippet promotions()}<PromoCodes data={savedData} {form} />{/snippet}
-		{@render panel('team', team, false)}
-		{@render panel('tasks', tasks, false)}
-		{@render panel('reservations', reservations, false)}
-		{@render panel('promotions', promotions, false)}
-	{/if}
+	{#snippet team()}<Team {data} {form} />{/snippet}
+	{#snippet tasks()}<Tasks {data} {form} />{/snippet}
+	{#snippet reservations()}<Reservations {data} />{/snippet}
+	{#snippet promotions()}<PromoCodes {data} {form} />{/snippet}
+	{@render panel('team', team, false)}
+	{@render panel('tasks', tasks, false)}
+	{@render panel('reservations', reservations, false)}
+	{@render panel('promotions', promotions, false)}
 </div>
 
 <Modal
@@ -449,12 +514,10 @@
 	</div>
 </Modal>
 
-{#if event}
-	<DuplicateEventDialog
-		bind:isOpen={duplicateDialogOpen}
-		eventId={event.id}
-		eventTitle={headerTitle}
-		servedKinds={duplicateKinds}
-		timeZone={event.timeZone}
-	/>
-{/if}
+<DuplicateEventDialog
+	bind:isOpen={duplicateDialogOpen}
+	eventId={event.id}
+	eventTitle={headerTitle}
+	servedKinds={duplicateKinds}
+	timeZone={event.timeZone}
+/>

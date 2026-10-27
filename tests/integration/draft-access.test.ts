@@ -206,6 +206,28 @@ describe('a Draft is not found', () => {
 		expect(data.sessions[0].waitlistOpen).toBe(false);
 	});
 
+	// « Nouvel événement » (ADR 0010) creates an empty Draft at once: it is
+	// hidden like any other until the Admin publishes it.
+	it('the empty Draft « Nouvel événement » creates answers 404 to the anonymous viewer', async () => {
+		const { actions } = await import('../../src/routes/(admin)/admin/events/+page.server');
+		let location = '';
+		try {
+			await actions.createEvent!({
+				locals: ADMIN_LOCALS,
+				request: new Request('http://x/admin/events?/createEvent', { method: 'POST' }),
+				params: {},
+				url: new URL('http://x/admin/events?/createEvent'),
+			} as any);
+		} catch (redirect: any) {
+			location = redirect.location;
+		}
+		const id = location.split('/').pop()!;
+		const [draft] = await testDb.select().from(events).where(eq(events.id, id));
+		expect(draft.visibility).toBe('draft');
+		const { load } = await import('../../src/routes/(public)/events/[id]/+page.server');
+		await expect(load({ params: { id }, locals: ANONYMOUS_LOCALS } as any)).rejects.toMatchObject({ status: 404 });
+	});
+
 	it('a published Event page still loads, as its announcement', async () => {
 		const event = await seedEvent(true);
 		await seedSeating(event.id);

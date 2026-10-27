@@ -10,16 +10,16 @@
 	import { handleTabResult, type EditorEvent } from './editor-forms';
 	import EnglishVersion from '$lib/components/admin/EnglishVersion.svelte';
 
-	let { event }: { event: EditorEvent | null } = $props();
+	let { event }: { event: EditorEvent } = $props();
 
 	const toast = getToastContext();
 	let saving = $state(false);
 
 	function saveEnhance() {
 		saving = true;
-		return async ({ result }: { result: import('@sveltejs/kit').ActionResult }) => {
+		return async ({ result, formElement }: { result: import('@sveltejs/kit').ActionResult; formElement: HTMLFormElement }) => {
 			saving = false;
-			if (await handleTabResult(result, toast, 'Modifications enregistrées')) {
+			if (await handleTabResult(result, toast, 'Modifications enregistrées', formElement)) {
 				// The English may have been generated from the French on save.
 				practicalInfoEn = event?.practicalInfoEn ?? '';
 			}

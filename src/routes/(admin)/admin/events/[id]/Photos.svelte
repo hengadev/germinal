@@ -10,26 +10,24 @@
 
 	const toast = getToastContext();
 
-	// « Visuels » tab. On a new Event (`event` null) the uploads are not
-	// linked to any Event yet: the first save creates the Draft with them
-	// (issue 036). It shows only the Visuals, never the Event Photos of the
-	// « Portfolio » tab (issue 045).
+	// « Visuels » tab. It shows only the Visuals, never the Event Photos of
+	// the « Portfolio » tab (issue 045).
 	let {
 		event,
 		onAltChange,
 	}: {
-		event: { id: string; coverMediaId: string | null; coverMedia?: Media | null; media?: Media[] } | null;
+		event: { id: string; coverMediaId: string | null; coverMedia?: Media | null; media?: Media[] };
 		/** An image's alt texts were saved (issue 043): the editor's
 		 * warnings follow them. */
 		onAltChange?: (mediaId: string, alt: { altEn: string | null; altFr: string | null }) => void;
 	} = $props();
 
-	const existingCoverMedia = event?.coverMedia ? [event.coverMedia] : [];
-	const existingGalleryMedia = visualsOf(event?.media).filter(
-		(m: Media) => m && m.id !== event?.coverMediaId
+	const existingCoverMedia = event.coverMedia ? [event.coverMedia] : [];
+	const existingGalleryMedia = visualsOf(event.media).filter(
+		(m: Media) => m && m.id !== event.coverMediaId
 	);
 
-	let coverMediaId = $state(event?.coverMediaId ?? null);
+	let coverMediaId = $state(event.coverMediaId ?? null);
 	let galleryMediaIds = $state(existingGalleryMedia.map((m: Media) => m.id));
 
 	// Delete confirmation modal state
@@ -119,7 +117,7 @@
 			<MediaUpload
 				mode="single"
 				entityType="event"
-				entityId={event?.id}
+				entityId={event.id}
 				role="visual"
 				existingMedia={existingCoverMedia}
 				maxSizeMB={10}
@@ -141,7 +139,7 @@
 			<MediaUpload
 				mode="multiple"
 				entityType="event"
-				entityId={event?.id}
+				entityId={event.id}
 				role="visual"
 				existingMedia={existingGalleryMedia}
 				maxSizeMB={10}

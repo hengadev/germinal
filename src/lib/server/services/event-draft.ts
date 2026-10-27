@@ -5,15 +5,10 @@ import { DEFAULT_REFUND_POLICY } from '$lib/utils/refund-policy';
 import { DEFAULT_EVENT_CURRENCY } from '$lib/utils/currency';
 
 /**
- * Drafts (ADR 0008, issue 036): « Nouvel événement » opens the same tabbed
- * editor as an existing Event, with no Event yet. The first save of any tab
- * creates a Draft with what that tab holds, nothing being required; a save
- * with nothing filled in creates nothing.
+ * Drafts (ADR 0008, ADR 0010): « Nouvel événement » creates an empty Draft
+ * at once and opens its editor; each tab then saves its own fields onto it,
+ * nothing being required.
  */
-
-/** French admin copy for a first save with nothing filled in. */
-export const NOTHING_TO_SAVE_MESSAGE =
-	'Rien à enregistrer : remplissez au moins un champ pour créer le brouillon.';
 
 /** The Event's own text fields, as posted by the Essentiel (with the
  * Internal Notes, issue 039), Lieu, Programme, Infos pratiques and
@@ -121,8 +116,8 @@ export function pricingHasContent(payload: PricingPayload): boolean {
 }
 
 /**
- * Create a Draft with what the first save holds. Always a Draft, never the
- * Spotlight (issue 032); everything else may be missing. Returns its id.
+ * Create a Draft. Always a Draft, never the Spotlight (issue 032);
+ * everything else may be missing. Returns its id.
  */
 export async function createDraftEvent(input: CreateEventInput = {}): Promise<string> {
 	const { createEvent } = await import('./events');

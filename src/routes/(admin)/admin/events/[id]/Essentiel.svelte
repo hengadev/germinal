@@ -2,7 +2,7 @@
 	// « Essentiel » tab (issue 036): titles, subtitles and descriptions —
 	// nothing required (ADR 0008) — and the Internal Notes (issue 039).
 	// Saved with `updateEvent`, which only touches the fields posted here.
-	// On a saved Event, the Visibility, Spotlight and Portfolio are a
+	// The Visibility, Spotlight and Portfolio are a
 	// « Publication » control of their own (ADR 0010): posted to their own
 	// action the moment they change, so saving the text above — or any later
 	// autosave of it — can never publish the Event.
@@ -20,7 +20,7 @@
 		lastSeatingStart = null,
 		warnings = [],
 	}: {
-		event: EditorEvent | null;
+		event: EditorEvent;
 		/** Start of the Event's last Seating, for the Portfolio rule (issue 044). */
 		lastSeatingStart?: Date | string | null;
 		/** What is missing for publishing (issue 038), for the confirmation
@@ -140,14 +140,13 @@
 		formData.set('isSpotlight', spotlightAllowed && isSpotlight ? 'true' : 'false');
 		formData.set('isPortfolio', isPortfolio ? 'true' : 'false');
 		publishing = true;
-		return async ({ result, formElement }: { result: import('@sveltejs/kit').ActionResult; formElement: HTMLFormElement }) => {
+		return async ({ result }: { result: import('@sveltejs/kit').ActionResult }) => {
 			publishing = false;
-			if (await handleTabResult(result, toast, 'Publication enregistrée', formElement)) {
-				// Follow what the server saved, not what was clicked.
-				resetPublication();
-			} else if (result.type === 'failure' || result.type === 'error') {
-				resetPublication();
-			}
+			// No form passed: this save is not the save controller's to hear.
+			await handleTabResult(result, toast, 'Publication enregistrée');
+			// Follow what the server saved — or, after a refusal, what is
+			// still saved — not what was clicked.
+			resetPublication();
 		};
 	}
 
@@ -248,106 +247,105 @@
 		</form>
 	</div>
 
-	{#if event}
-		<!-- Publication (ADR 0010): every choice saves at once, on its own —
-		     never with the text above. A new Event is created as a Draft
-		     (issue 032): its Visibility is set once it has been saved. -->
-		<div class="bg-background rounded-lg border border-border-card p-6 lg:p-8">
-			<form bind:this={publicationFormEl} method="POST" action="?/updatePublication" use:enhance={publicationEnhance} class="space-y-6">
+	<!-- Publication (ADR 0010): every choice saves at once, on its own —
+	     never with the text above. Not a unit of the editor's save
+	     controller (`data-editor-skip`): its changes are saved here, so they
+	     never mark the tab modified nor wait for « Enregistrer ». -->
+	<div class="bg-background rounded-lg border border-border-card p-6 lg:p-8">
+		<form bind:this={publicationFormEl} method="POST" action="?/updatePublication" use:enhance={publicationEnhance} data-editor-skip class="space-y-6">
+			<div>
+				<h2 class="text-lg font-semibold text-foreground mb-1">
+					Publication
+					{#if publishing}
+						<span class="text-sm font-normal text-muted-foreground" aria-live="polite">— enregistrement…</span>
+					{/if}
+				</h2>
+				<p class="text-xs text-muted-foreground">
+					Chaque choix de visibilité, de mise à la une ou de Portfolio s’enregistre à l’instant, indépendamment du reste de cet onglet.
+				</p>
+			</div>
+
+			<!-- Visibility (issue 032): taking an Event out of Brouillon publishes it -->
+			<fieldset class="p-4 bg-muted rounded-lg">
+				<legend class="sr-only">Visibilité</legend>
+				<p class="block text-sm font-medium text-foreground mb-3" aria-hidden="true">Visibilité</p>
+				<div class="grid gap-3 sm:grid-cols-3">
+					{#each VISIBILITIES as option (option)}
+						<label class="flex items-start gap-3 cursor-pointer">
+							<input
+								type="radio"
+								name="visibility"
+								value={option}
+								bind:group={visibility}
+								onchange={() => chooseVisibility(option)}
+								class="mt-0.5 w-4 h-4 text-foreground border-border-input focus:ring-foreground"
+							/>
+							<span>
+								<span class="block text-sm font-medium text-foreground">{VISIBILITY_LABELS[option]}</span>
+								<span class="block text-xs text-muted-foreground">{VISIBILITY_HINTS[option]}</span>
+							</span>
+						</label>
+					{/each}
+				</div>
+			</fieldset>
+
+			<!-- Spotlight Status -->
+			<div class="flex items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+				<input
+					id="isSpotlight"
+					name="isSpotlight"
+					type="checkbox"
+					bind:checked={isSpotlight}
+					value="true"
+					disabled={!spotlightAllowed}
+					onchange={() => publicationFormEl?.requestSubmit()}
+					class="w-5 h-5 text-amber-900 border-amber-300 rounded focus:ring-amber-900 disabled:opacity-50"
+				/>
 				<div>
-					<h2 class="text-lg font-semibold text-foreground mb-1">
-						Publication
-						{#if publishing}
-							<span class="text-sm font-normal text-muted-foreground" aria-live="polite">— enregistrement…</span>
-						{/if}
-					</h2>
-					<p class="text-xs text-muted-foreground">
-						Chaque choix de visibilité, de mise à la une ou de Portfolio s’enregistre à l’instant, indépendamment du reste de cet onglet.
+					<label for="isSpotlight" class="block text-sm font-medium text-amber-900 cursor-pointer">
+						Marquer comme Événement à la Une
+					</label>
+					<p class="text-xs text-amber-600">
+						Les événements à la une sont mis en avant sur le site. Un seul événement peut être à la une à la fois.
+						{#if !spotlightAllowed}Seul un événement Public peut être à la une.{/if}
 					</p>
 				</div>
+			</div>
 
-				<!-- Visibility (issue 032): taking an Event out of Brouillon publishes it -->
-				<fieldset class="p-4 bg-muted rounded-lg">
-					<legend class="sr-only">Visibilité</legend>
-					<p class="block text-sm font-medium text-foreground mb-3" aria-hidden="true">Visibilité</p>
-					<div class="grid gap-3 sm:grid-cols-3">
-						{#each VISIBILITIES as option (option)}
-							<label class="flex items-start gap-3 cursor-pointer">
-								<input
-									type="radio"
-									name="visibility"
-									value={option}
-									bind:group={visibility}
-									onchange={() => chooseVisibility(option)}
-									class="mt-0.5 w-4 h-4 text-foreground border-border-input focus:ring-foreground"
-								/>
-								<span>
-									<span class="block text-sm font-medium text-foreground">{VISIBILITY_LABELS[option]}</span>
-									<span class="block text-xs text-muted-foreground">{VISIBILITY_HINTS[option]}</span>
-								</span>
-							</label>
-						{/each}
-					</div>
-				</fieldset>
-
-				<!-- Spotlight Status -->
-				<div class="flex items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-					<input
-						id="isSpotlight"
-						name="isSpotlight"
-						type="checkbox"
-						bind:checked={isSpotlight}
-						value="true"
-						disabled={!spotlightAllowed}
-						onchange={() => publicationFormEl?.requestSubmit()}
-						class="w-5 h-5 text-amber-900 border-amber-300 rounded focus:ring-amber-900 disabled:opacity-50"
-					/>
-					<div>
-						<label for="isSpotlight" class="block text-sm font-medium text-amber-900 cursor-pointer">
-							Marquer comme Événement à la Une
-						</label>
-						<p class="text-xs text-amber-600">
-							Les événements à la une sont mis en avant sur le site. Un seul événement peut être à la une à la fois.
-							{#if !spotlightAllowed}Seul un événement Public peut être à la une.{/if}
-						</p>
-					</div>
-				</div>
-
-				<!-- Portfolio Status -->
-				<div class="flex items-center gap-3 p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
-					<input
-						id="isPortfolio"
-						name="isPortfolio"
-						type="checkbox"
-						bind:checked={isPortfolio}
-						value="true"
-						disabled={!portfolioJoinable}
-						onchange={() => publicationFormEl?.requestSubmit()}
-						class="w-5 h-5 text-indigo-900 border-indigo-300 rounded focus:ring-indigo-900 disabled:opacity-50"
-					/>
-					<div>
-						<label for="isPortfolio" class="block text-sm font-medium text-indigo-900 cursor-pointer">
-							Inclure dans la galerie Portfolio
-						</label>
-						<p class="text-xs text-indigo-600">
-							Les événements du Portfolio apparaissent dans « Projets » et la galerie de la page d’accueil, les plus récents d’abord ; sa page présente alors le projet — récap et photos de l’événement, à renseigner dans l’onglet « Portfolio ».
-							{#if !portfolioJoinable}
-								{#if lastSeatingStart}
-									Un événement ne rejoint le Portfolio qu’une fois sa dernière séance commencée, prévue le {new Date(lastSeatingStart).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}.
-								{:else}
-									Un événement ne rejoint le Portfolio qu’une fois sa dernière séance commencée ; celui-ci n’a pas encore de séance.
-								{/if}
+			<!-- Portfolio Status -->
+			<div class="flex items-center gap-3 p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
+				<input
+					id="isPortfolio"
+					name="isPortfolio"
+					type="checkbox"
+					bind:checked={isPortfolio}
+					value="true"
+					disabled={!portfolioJoinable}
+					onchange={() => publicationFormEl?.requestSubmit()}
+					class="w-5 h-5 text-indigo-900 border-indigo-300 rounded focus:ring-indigo-900 disabled:opacity-50"
+				/>
+				<div>
+					<label for="isPortfolio" class="block text-sm font-medium text-indigo-900 cursor-pointer">
+						Inclure dans la galerie Portfolio
+					</label>
+					<p class="text-xs text-indigo-600">
+						Les événements du Portfolio apparaissent dans « Projets » et la galerie de la page d’accueil, les plus récents d’abord ; sa page présente alors le projet — récap et photos de l’événement, à renseigner dans l’onglet « Portfolio ».
+						{#if !portfolioJoinable}
+							{#if lastSeatingStart}
+								Un événement ne rejoint le Portfolio qu’une fois sa dernière séance commencée, prévue le {new Date(lastSeatingStart).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}.
+							{:else}
+								Un événement ne rejoint le Portfolio qu’une fois sa dernière séance commencée ; celui-ci n’a pas encore de séance.
 							{/if}
-						</p>
-					</div>
+						{/if}
+					</p>
 				</div>
+			</div>
 
-				<!-- Every choice saves on its own; this button only serves
-				     keyboards, screen readers and a page without JavaScript. -->
-				<button type="submit" class="sr-only">Enregistrer la publication</button>
-			</form>
-		</div>
-	{/if}
+			<!-- Every choice saves on its own; this button only serves
+			     keyboards, screen readers and a page without JavaScript. -->
+			<button type="submit" class="sr-only">Enregistrer la publication</button>
+		</form>
+	</div>
 </div>
 
 <!-- Publishing confirmation (issue 038, ADR 0008): leaving Brouillon with
