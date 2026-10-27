@@ -16,7 +16,8 @@
  * Two modes:
  * - `draft`: with autosave on, a change saves the tab after `debounceMs`
  *   idle, a blur saves it at once. Never two saves in flight per tab: a
- *   save asked for during one runs once it is over.
+ *   save asked for during one runs once it is over. A tab registered with
+ *   `autosave: false` (Seatings, pricing) only ever saves when asked.
  * - `published`: changes only mark the tab; `saveAll()` saves every
  *   modified tab in registration order (Seatings before pricing) and
  *   `discardAll()` puts every tab back as saved.
@@ -68,6 +69,11 @@ export interface EditorSaveSnapshot {
 	messages: Record<string, string>;
 }
 
+export interface RegisterOptions {
+	/** Whether this tab saves itself in draft mode (default: yes). */
+	autosave?: boolean;
+}
+
 export interface TabSaveResult {
 	id: string;
 	outcome: SaveOutcome;
@@ -75,6 +81,8 @@ export interface TabSaveResult {
 
 interface TabEntry {
 	handle: EditorTab;
+	/** Saves itself in draft mode, when the controller's autosave is on. */
+	autosave: boolean;
 	state: TabSaveState;
 	/** The tab as last saved, taken on first touch; null until then. */
 	baseline: string | null;
@@ -120,8 +128,8 @@ export class EditorSaveController {
 	// ---- Registration and settings ------------------------------------------
 
 	/** Add a tab; returns its unregistration. Order matters for `saveAll`. */
-	register(id: string, handle: EditorTab): () => void {
-		this.tabs.set(id, { handle, state: 'clean', baseline: null, lastSeen: null, timer: null, inFlight: null, queued: false, editedDuringSave: false });
+	register(id: string, handle: EditorTab, options: RegisterOptions = {}): () => void {
+		this.tabs.set(id, { handle, autosave: options.autosave ?? true, state: 'clean', baseline: null, lastSeen: null, timer: null, inFlight: null, queued: false, editedDuringSave: false });
 		this.emit();
 		return () => {
 			const entry = this.tabs.get(id);
@@ -189,7 +197,7 @@ export class EditorSaveController {
 			entry.lastSeen = current;
 			entry.editedDuringSave = true;
 			// A draft saves again once the save in flight is over.
-			if (this.autosaving) entry.queued = true;
+			if (this.autosaves(entry)) entry.queued = true;
 			return;
 		}
 		const current = entry.handle.serialize();
@@ -203,7 +211,7 @@ export class EditorSaveController {
 		} else {
 			// A refused or failed tab stays so until it is saved again.
 			if (entry.state !== 'invalid' && entry.state !== 'failed') entry.state = 'dirty';
-			if (this.autosaving) this.schedule(id, entry);
+			if (this.autosaves(entry)) this.schedule(id, entry);
 		}
 		this.emit();
 	}
@@ -211,7 +219,7 @@ export class EditorSaveController {
 	/** A field of tab `id` lost focus: a draft saves it at once. */
 	blurred(id: string): void {
 		const entry = this.tabs.get(id);
-		if (!entry || !this.autosaving) return;
+		if (!entry || !this.autosaves(entry)) return;
 		this.changed(id);
 		// A change waiting for its idle time goes now.
 		if (entry.timer !== null) void this.save(id);
@@ -231,6 +239,23 @@ export class EditorSaveController {
 			return entry.inFlight;
 		}
 		return this.run(id, entry);
+	}
+
+	/**
+	 * Save now every change still waiting for its idle time (the Admin is
+	 * leaving the page or the editor).
+	 */
+	flush(): void {
+		for (const [id, entry] of this.tabs) if (entry.timer !== null) void this.save(id);
+	}
+
+	/** Resolves once no save is in flight, follow-ups included. */
+	async idle(): Promise<void> {
+		for (;;) {
+			const flights = [...this.tabs.values()].map((entry) => entry.inFlight).filter((flight) => flight !== null);
+			if (flights.length === 0) return;
+			await Promise.allSettled(flights);
+		}
 	}
 
 	/** Save again every tab whose save failed. */
@@ -287,8 +312,8 @@ export class EditorSaveController {
 
 	// ---- Internals -------------------------------------------------------------
 
-	private get autosaving(): boolean {
-		return this.mode === 'draft' && this.autosave;
+	private autosaves(entry: TabEntry): boolean {
+		return this.mode === 'draft' && this.autosave && entry.autosave;
 	}
 
 	private schedule(id: string, entry: TabEntry): void {
