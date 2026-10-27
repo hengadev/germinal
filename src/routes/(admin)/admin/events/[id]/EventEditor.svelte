@@ -1,24 +1,26 @@
 <script lang="ts">
 	// The Event editor (ADR 0008, issue 036): one tabbed screen, always on a
 	// saved Event — « Nouvel événement » creates the Draft first (ADR 0010).
-	// Each tab keeps its own save, made through the save controller (issue
-	// 016). All panels stay mounted (just hidden) so what is typed survives
+	// Each tab saves through the save controller (issue 016): a Draft's by
+	// itself, a published Event's all at once, on confirmation (issue 020).
+	// All panels stay mounted (just hidden) so what is typed survives
 	// switching tabs.
 	import { ArrowLeft, ChevronRight, Copy, Eye } from 'lucide-svelte';
 	import { cn } from '$lib/utils/design-system';
 	import { eventCompleteness, EVENT_EDITOR_TABS, type EventWarning } from '$lib/utils/event-warnings';
 	import { liveEditorWarnings, type UnsavedEditorValues } from '$lib/utils/event-warnings-live';
 	import type { MediaAltText } from '$lib/utils/media-alt';
-	import { getToastContext } from '$lib/components/toast/state.svelte';
+	import { getToastContext, setQuietableToastContext } from '$lib/components/toast/state.svelte';
 	import type { ActionData, PageData } from './$types';
-	import type { EditorEvent } from './editor-forms';
-	import { beforeNavigate, goto } from '$app/navigation';
+	import { finishSaveBatch, startSaveBatch, type EditorEvent } from './editor-forms';
+	import { beforeNavigate, goto, invalidateAll } from '$app/navigation';
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import DuplicateEventDialog from '$lib/components/admin/DuplicateEventDialog.svelte';
 	import { servedKinds } from '$lib/utils/schedule-pattern';
 	import { onMount, tick } from 'svelte';
 	import { EditorSaveController, formatSavedAgo, type EditorSaveSnapshot } from '$lib/utils/editor-save';
 	import { formTab, type FormTab } from '$lib/utils/editor-save-form';
+	import { modifiedTabs, modifiedTabsLabel, saveAllReport, saveAllToast, tabOfUnit, type UnsavedTab } from '$lib/utils/editor-held';
 	import { setEnglishAuto } from '$lib/components/admin/EnglishVersion.svelte';
 
 	import Essentiel from './Essentiel.svelte';
@@ -37,6 +39,10 @@
 	let { data, form = null }: { data: PageData; form?: ActionData } = $props();
 
 	const toast = getToastContext();
+	// The tabs' own toasts, quieted while a published Event's held edits
+	// are saved all at once: that save is reported in one toast (issue 020).
+	let savingAll = $state(false);
+	setQuietableToastContext(() => savingAll);
 	// Whether each tab's « Version anglaise » is generated or typed by hand.
 	setEnglishAuto(() => data.englishAuto ?? false);
 
@@ -122,6 +128,8 @@
 	let pricingTab: ReturnType<typeof Pricing> | undefined = $state();
 	let visualsTab: ReturnType<typeof Photos> | undefined = $state();
 	let portfolioTab: ReturnType<typeof Portfolio> | undefined = $state();
+	let programmeTab: ReturnType<typeof Programme> | undefined = $state();
+	let practicalTab: ReturnType<typeof PracticalInfo> | undefined = $state();
 	const unsavedValues: UnsavedEditorValues = $derived({
 		essentiel: essentielTab?.warningValues(),
 		lieu: lieuTab?.warningValues(),
@@ -158,7 +166,8 @@
 	// It gives the header its save status, the tab labels their « modifié »
 	// mark and the leave guard its answer. On a Draft, the text and media
 	// tabs save themselves (issue 018) and lose their save buttons; Seatings
-	// and pricing keep theirs. A published Event keeps explicit saves.
+	// and pricing keep theirs. A published Event holds every edit: no save
+	// buttons, one bar to save them all or discard them (issue 020).
 	const modeOf = (visibility: string) => (visibility === 'draft' ? 'draft' : 'published');
 	const AUTOSAVED_TABS: ReadonlySet<string> = new Set(['essentiel', 'lieu', 'programme', 'visuels', 'pratique', 'portfolio']);
 	const autosaved = (tabId: string) => modeOf(event.visibility) === 'draft' && AUTOSAVED_TABS.has(tabId);
@@ -171,9 +180,24 @@
 		return () => void unsubscribe();
 	});
 
+	// Read off the Visibility, not the controller, so the page renders held
+	// (no save buttons) from the start.
+	const held = $derived(modeOf(event.visibility) === 'published');
+
 	const formUnits = new Map<HTMLFormElement, { id: string; tab: FormTab }>();
-	// A tab with several forms (« Portfolio ») has a unit per form.
-	const tabOfUnit = (unitId: string) => unitId.split(':')[0];
+	// Putting each unit back as saved (« Annuler », issue 020). A tab with
+	// several forms (« Portfolio ») has a unit per form.
+	const restorers: Record<string, () => void> = {
+		essentiel: () => essentielTab?.restore(),
+		lieu: () => lieuTab?.restore(),
+		'dates-seances': () => seatingsTab?.restore(),
+		tarifs: () => pricingTab?.restore(),
+		programme: () => programmeTab?.restore(),
+		visuels: () => visualsTab?.restore(),
+		pratique: () => practicalTab?.restore(),
+		'portfolio:recap': () => portfolioTab?.restoreRecap(),
+		'portfolio:event-photos': () => portfolioTab?.restorePhotos(),
+	};
 
 	onMount(() => {
 		const root = rootEl;
@@ -187,7 +211,11 @@
 				const unitId = forms.length > 1 ? `${id}:${form.dataset.editorForm ?? i}` : id;
 				const tab = formTab(form);
 				formUnits.set(form, { id: unitId, tab });
-				saves.register(unitId, tab, { autosave: AUTOSAVED_TABS.has(id) });
+				saves.register(
+					unitId,
+					{ serialize: tab.serialize, submit: tab.submit, restore: () => restorers[unitId]?.() },
+					{ autosave: AUTOSAVED_TABS.has(id) }
+				);
 			});
 		}
 		// Changes no input event reports (an upload landing) show in the DOM.
@@ -234,6 +262,9 @@
 		if (!unit || unit.tab.owns(submitEvent)) return;
 		submitEvent.preventDefault();
 		submitEvent.stopPropagation();
+		// A published Event saves only through the bar, once confirmed
+		// (issue 020): Enter in a field saves nothing.
+		if (held) return;
 		saves.touch(unit.id);
 		unit.tab.setSubmitter(submitEvent.submitter);
 		// Out of this submit event: the browser ignores a nested one.
@@ -245,16 +276,79 @@
 		return Object.entries(saveState.tabs).some(([unitId, state]) => tabOfUnit(unitId) === tabId && UNSAVED_STATES.has(state));
 	}
 
+	// A published Event's held edits (issue 020): a bar counts the modified
+	// tabs; « Enregistrer » asks first, then saves them all in tab order
+	// (« Dates & séances » before « Menus & tarifs »), reloads the page data
+	// once and reports in one toast; « Annuler » puts them back as saved.
+	const heldTabs = $derived(held ? modifiedTabs(saveState.tabs, EDITOR_TABS) : []);
+	let confirmSaveOpen = $state(false);
+	let discarding = $state(false);
+	// Tabs the last save of them all left unsaved, with why, while they
+	// still hold their edits.
+	let unsavedAfterSave: UnsavedTab[] = $state([]);
+	const stillUnsaved = $derived(unsavedAfterSave.filter((tab) => heldTabs.some((heldTab) => heldTab.id === tab.id)));
+	let saveAllButton: HTMLButtonElement | undefined = $state();
+	// Closing the dialog without saving gives the focus back to the bar.
+	let confirmWasOpen = false;
+	$effect(() => {
+		if (confirmSaveOpen) {
+			confirmWasOpen = true;
+			return;
+		}
+		if (confirmWasOpen && !savingAll) saveAllButton?.focus();
+		confirmWasOpen = false;
+	});
+
+	function askSaveAll() {
+		if (savingAll || discarding) return;
+		confirmSaveOpen = true;
+	}
+
+	async function saveAllHeld() {
+		const root = rootEl;
+		if (!root || savingAll) return;
+		savingAll = true;
+		confirmSaveOpen = false;
+		startSaveBatch(root);
+		let results: Awaited<ReturnType<typeof saves.saveAll>> = [];
+		try {
+			results = await saves.saveAll();
+		} finally {
+			await finishSaveBatch(root, results.some((result) => result.outcome.ok));
+			savingAll = false;
+		}
+		const report = saveAllReport(results, EDITOR_TABS);
+		unsavedAfterSave = report.unsaved;
+		const summary = saveAllToast(report);
+		if (summary.level === 'success') toast.success(summary.title, summary.message);
+		else toast.error(summary.title, summary.message);
+	}
+
+	async function discardHeld() {
+		if (savingAll || discarding) return;
+		discarding = true;
+		try {
+			// Uploads and photo deletions are stored at once: what is saved
+			// is what the server has now.
+			await invalidateAll();
+			saves.discardAll();
+			unsavedAfterSave = [];
+		} finally {
+			discarding = false;
+		}
+	}
+
 	// The header's one save status; « il y a 2 min » follows the clock.
 	let now = $state(Date.now());
 	const unsavedLabel = $derived(
 		saveState.dirtyCount > 1 ? `${saveState.dirtyCount} onglets modifiés, non enregistrés` : 'Modifications non enregistrées'
 	);
+	// A published Event's bar announces its own count (issue 020).
 	const saveAnnouncement = $derived(
 		saveState.status === 'saving' ? 'Enregistrement…'
 		: saveState.status === 'failed' ? 'Échec de l’enregistrement'
 		: saveState.status === 'invalid' ? 'Non enregistré — à corriger'
-		: saveState.status === 'dirty' ? unsavedLabel
+		: saveState.status === 'dirty' ? (held ? '' : unsavedLabel)
 		: saveState.status === 'saved' ? 'Enregistré'
 		: ''
 	);
@@ -320,6 +414,8 @@
 
 <div
 	bind:this={rootEl}
+	data-editor-root
+	data-editor-held={held ? '' : undefined}
 	onfocusincapture={touchForm}
 	onpointerdowncapture={touchForm}
 	onkeydowncapture={touchForm}
@@ -377,9 +473,10 @@
 					<span aria-hidden="true">·</span>
 					<span class="text-red-700">
 						<span aria-hidden="true">Échec —</span>
+						<!-- A published Event retries through the bar's confirmation. -->
 						<button
 							type="button"
-							onclick={() => void saves.retry()}
+							onclick={() => (held ? askSaveAll() : void saves.retry())}
 							class="underline underline-offset-2 hover:text-red-900 transition-colors cursor-pointer"
 						>
 							Réessayer
@@ -515,10 +612,10 @@
 	{#snippet pricing()}
 		<Pricing bind:this={pricingTab} {data} />
 	{/snippet}
-	{#snippet programme()}<Programme {event} talents={data.talents ?? []} />{/snippet}
+	{#snippet programme()}<Programme bind:this={programmeTab} {event} talents={data.talents ?? []} />{/snippet}
 	{#snippet visuels()}<Photos bind:this={visualsTab} event={data.event} onAltChange={handleAltChange} />{/snippet}
 	{#snippet pratique()}
-		<PracticalInfo {event} />
+		<PracticalInfo bind:this={practicalTab} {event} />
 	{/snippet}
 	{#snippet portfolio()}
 		<Portfolio bind:this={portfolioTab} {event} lastSeatingStart={data.lastSeatingStart ?? null} warnings={portfolioWarnings} onAltChange={handleAltChange} />
@@ -541,7 +638,89 @@
 	{@render panel('tasks', tasks, false)}
 	{@render panel('reservations', reservations, false)}
 	{@render panel('promotions', promotions, false)}
+
+	{#if held && heldTabs.length > 0}
+		<!-- Held edits of a published Event (issue 020): nothing reaches
+		     visitors or Ticket holders before « Enregistrer » is confirmed. -->
+		<section
+			aria-label="Modifications en attente"
+			class="sticky bottom-4 z-20 mt-6 bg-background rounded-lg border border-border-card p-4 flex flex-col gap-3 sm:flex-row sm:items-center"
+		>
+			<div class="text-sm">
+				<p role="status" class="font-medium text-foreground">
+					{savingAll ? 'Enregistrement…' : `${modifiedTabsLabel(heldTabs.length)}, non enregistré${heldTabs.length > 1 ? 's' : ''}`}
+				</p>
+				{#if stillUnsaved.length > 0 && !savingAll}
+					<ul class="mt-1 space-y-0.5 text-red-700">
+						{#each stillUnsaved as tab (tab.id)}
+							<li>
+								<button
+									type="button"
+									onclick={() => (activeTab = panelIndex(tab.id))}
+									class="underline underline-offset-2 hover:text-red-900 transition-colors cursor-pointer"
+								>« {tab.title} »</button>
+								non enregistré{tab.message ? ` : ${tab.message}` : ''}
+							</li>
+						{/each}
+					</ul>
+				{:else}
+					<p class="text-muted-foreground">Rien n’est visible en ligne avant l’enregistrement.</p>
+				{/if}
+			</div>
+			<div class="flex gap-3 sm:ml-auto">
+				<button
+					type="button"
+					onclick={() => void discardHeld()}
+					disabled={savingAll || discarding}
+					class="px-4 py-2 text-sm font-medium text-foreground-alt bg-background border border-border-card rounded-lg hover:bg-surface transition-colors disabled:opacity-60"
+				>
+					Annuler
+				</button>
+				<button
+					bind:this={saveAllButton}
+					type="button"
+					onclick={askSaveAll}
+					disabled={savingAll || discarding}
+					aria-haspopup="dialog"
+					class="px-4 py-2 text-sm font-medium text-background bg-foreground rounded-lg hover:opacity-90 transition-colors disabled:opacity-60"
+				>
+					{savingAll ? 'Enregistrement…' : 'Enregistrer'}
+				</button>
+			</div>
+		</section>
+	{/if}
 </div>
+
+<Modal
+	bind:isOpen={confirmSaveOpen}
+	title="Enregistrer les modifications ?"
+	description="Elles deviennent aussitôt visibles des visiteurs et des détenteurs d’un billet."
+>
+	<p class="text-sm text-foreground-alt">
+		{heldTabs.length === 1 ? 'Onglet modifié :' : 'Onglets modifiés :'}
+	</p>
+	<ul class="my-2 space-y-1.5 text-sm text-foreground-alt list-disc pl-5">
+		{#each heldTabs as tab (tab.id)}
+			<li>{tab.title}</li>
+		{/each}
+	</ul>
+	<div class="flex justify-end gap-3 mt-4">
+		<button
+			type="button"
+			onclick={() => (confirmSaveOpen = false)}
+			class="px-4 py-2 text-sm font-medium text-foreground-alt bg-background border border-border-card rounded-lg hover:bg-surface transition-colors"
+		>
+			Retour
+		</button>
+		<button
+			type="button"
+			onclick={() => void saveAllHeld()}
+			class="px-4 py-2 text-sm font-medium text-background bg-foreground rounded-lg hover:opacity-90 transition-colors"
+		>
+			Enregistrer
+		</button>
+	</div>
+</Modal>
 
 <Modal
 	bind:isOpen={leaveDialogOpen}
@@ -575,8 +754,10 @@
 />
 
 <style>
-	/* A Draft's text and media tabs save themselves (issue 018). */
-	:global([data-editor-autosave] [data-editor-save]) {
+	/* A Draft's text and media tabs save themselves (issue 018); a
+	   published Event saves through its bar (issue 020). */
+	:global([data-editor-autosave] [data-editor-save]),
+	:global([data-editor-held] [data-editor-save]) {
 		display: none;
 	}
 </style>

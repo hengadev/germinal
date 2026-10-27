@@ -31,6 +31,55 @@ export function saveOutcomeOf(result: ActionResult): SaveOutcome {
 /** Marks a tab panel whose forms save themselves (a Draft's, issue 018). */
 export const AUTOSAVE_ATTRIBUTE = 'data-editor-autosave';
 
+/** Marks the editor's root: a save of all its tabs is batched on it. */
+export const EDITOR_ROOT_ATTRIBUTE = 'data-editor-root';
+
+// Refreshes put off until a save of every held tab is over (issue 020),
+// per editor root (the admin layout mounts the editor twice).
+const batches = new WeakMap<Element, (() => void)[]>();
+
+/**
+ * A published Event's tabs are about to be saved all at once (issue 020):
+ * until `finishSaveBatch`, a tab of `root` saved does not reload the page
+ * data, so the whole save refreshes once.
+ */
+export function startSaveBatch(root: Element): void {
+	batches.set(root, []);
+}
+
+/**
+ * The save of every held tab is over: reload the page data once — if
+ * anything was saved — then let each saved tab take back what the server
+ * made of it.
+ */
+export async function finishSaveBatch(root: Element, anySaved: boolean): Promise<void> {
+	const refreshes = batches.get(root) ?? [];
+	batches.delete(root);
+	if (!anySaved) return;
+	await invalidateAll();
+	for (const refresh of refreshes) refresh();
+	await tick();
+}
+
+/**
+ * A tab of `form` was saved: reload the page data, then run `refresh` —
+ * or, during a save of every held tab, leave both to its end.
+ */
+export async function refreshAfterSave(form: HTMLFormElement | undefined, refresh?: () => void): Promise<void> {
+	const root = form?.closest(`[${EDITOR_ROOT_ATTRIBUTE}]`);
+	const pending = root ? batches.get(root) : undefined;
+	if (pending) {
+		if (refresh) pending.push(refresh);
+		return;
+	}
+	await invalidateAll();
+	if (refresh) {
+		refresh();
+		// The form posts what the DOM holds: let the refresh reach it.
+		await tick();
+	}
+}
+
 /**
  * Answer a tab's save: a toast, then fresh data. Returns whether the save
  * went through (so the tab can reset its drafts). Reports the outcome on
@@ -55,12 +104,7 @@ export async function handleTabResult(
 		const data = result.data as { success?: string; translationFailed?: boolean } | undefined;
 		const quiet = form?.closest(`[${AUTOSAVE_ATTRIBUTE}]`) != null && !data?.translationFailed;
 		if (!quiet) toast.success('Succès', data?.success ?? successFallback);
-		await invalidateAll();
-		if (refresh) {
-			refresh();
-			// The form posts what the DOM holds: let the refresh reach it.
-			await tick();
-		}
+		await refreshAfterSave(form, refresh);
 		reportSave(form, { ok: true });
 		return true;
 	}

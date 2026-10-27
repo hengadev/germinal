@@ -24,10 +24,13 @@
 		onAltChange?: (mediaId: string, alt: { altEn: string | null; altFr: string | null }) => void;
 	} = $props();
 
-	const existingCoverMedia = event.coverMedia ? [event.coverMedia] : [];
-	const existingGalleryMedia = visualsOf(event.media).filter(
-		(m: Media) => m && m.id !== event.coverMediaId
-	);
+	// What the uploaders start from: replaced as a whole to put them back
+	// as saved (« Annuler », issue 020).
+	const savedCoverOf = (saved: typeof event) => (saved.coverMedia ? [saved.coverMedia] : []);
+	const savedGalleryOf = (saved: typeof event) =>
+		visualsOf(saved.media).filter((m: Media) => m && m.id !== saved.coverMediaId);
+	let existingCoverMedia = $state.raw(savedCoverOf(event));
+	let existingGalleryMedia = $state.raw(savedGalleryOf(event));
 
 	let formEl: HTMLFormElement | undefined = $state();
 	let coverMediaId = $state(event.coverMediaId ?? null);
@@ -106,6 +109,16 @@
 	function handleGalleryReorder(mediaIds: string[]) {
 		galleryMediaIds = mediaIds;
 		reportChange(formEl);
+	}
+
+	/** Back to the saved Visuals (a published Event's « Annuler », issue
+	 * 020). Uploads and deletions are stored at once: the page data is
+	 * reloaded first, so they show as they are. */
+	export function restore() {
+		existingCoverMedia = savedCoverOf(event);
+		existingGalleryMedia = savedGalleryOf(event);
+		coverMediaId = event.coverMediaId ?? null;
+		galleryMediaIds = existingGalleryMedia.map((m: Media) => m.id);
 	}
 
 	/** What this tab holds now, saved or not: « À vérifier » and the tab
