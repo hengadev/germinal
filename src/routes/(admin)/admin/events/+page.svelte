@@ -123,7 +123,7 @@
  }
 
  // Draft completeness (issue 013, ADR 0010): each Draft row carries
- // « n/8 », the tabs still missing something on hover.
+ // « 3/5 » (checked tabs complete), the tabs still missing something on hover.
  function completenessTitle(completeness: EventCompleteness): string {
  const missing = completeness.tabs.filter((tab) => tab.warnings.length > 0);
  return missing.length === 0

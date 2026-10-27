@@ -431,18 +431,23 @@ describe('eventCompleteness (issue 013)', () => {
 		]);
 	});
 
-	it('counts the tabs with nothing missing, out of eight', () => {
+	it('counts only the tabs a rule checks', () => {
 		// An empty snapshot: Essentiel (titles, descriptions), Lieu, Dates &
 		// séances (no Seating) and Visuels lack something; Tarifs has no
-		// Service to warn about, and Programme, Infos pratiques and Portfolio
-		// carry no warnings of their own.
+		// Service to warn about. Programme and Infos pratiques have no rule,
+		// and Portfolio is checked only for a Portfolio Event.
 		const completeness = eventCompleteness(eventWarnings({}));
-		expect(completeness.complete).toBe(4);
-		expect(completeness.total).toBe(8);
+		expect(completeness.complete).toBe(1);
+		expect(completeness.total).toBe(5);
 	});
 
-	it('is 8/8 for a complete Event', () => {
-		expect(eventCompleteness(eventWarnings(COMPLETE))).toMatchObject({ complete: 8, total: 8 });
+	it('is 5/5 for a complete Event', () => {
+		expect(eventCompleteness(eventWarnings(COMPLETE))).toMatchObject({ complete: 5, total: 5 });
+	});
+
+	it('checks Portfolio for a Portfolio Event', () => {
+		const warnings = [...eventWarnings(COMPLETE), ...portfolioWarnings({})];
+		expect(eventCompleteness(warnings, { isPortfolio: true })).toMatchObject({ complete: 5, total: 6 });
 	});
 
 	it('groups the Portfolio list under the Portfolio tab', () => {

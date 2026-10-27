@@ -444,33 +444,42 @@ export interface EventTabCompleteness {
 }
 
 /** An Event's completeness: what is missing per tab, and how many of the
- * eight Event tabs have nothing missing. */
+ * checked tabs have nothing missing. */
 export interface EventCompleteness {
 	/** The eight Event tabs, in the editor's order. */
 	tabs: EventTabCompleteness[];
-	/** How many tabs have nothing missing. */
+	/** How many checked tabs have nothing missing. */
 	complete: number;
-	/** How many tabs are counted: the eight Event tabs. */
+	/** How many tabs are counted: those a warning rule checks. */
 	total: number;
 }
 
+/** The tabs a publishing warning can point at; Programme and Infos
+ * pratiques have no rule, so counting them would only pad the score. */
+const CHECKED_TABS: readonly EditorTabId[] = ['essentiel', 'lieu', 'dates-seances', 'tarifs', 'visuels'];
+
 /**
  * Draft completeness (issue 013, ADR 0010): the editor's warnings grouped
- * by tab — what is missing in each of the eight Event tabs, and how many
- * have nothing missing (the « n/8 » the Events list shows on a Draft row).
- * The same warnings « À vérifier » lists; this adds no rules of its own,
- * and a tab no warning touches counts as complete.
+ * by tab — what is missing in each of the eight Event tabs — and how many
+ * of the checked tabs have nothing missing (the « n/5 » the Events list
+ * shows on a Draft row). Portfolio is checked only for a Portfolio Event,
+ * whose warnings join the list as in the editor. The same warnings
+ * « À vérifier » lists; this adds no rules of its own.
  */
-export function eventCompleteness(warnings: readonly EventWarning[]): EventCompleteness {
+export function eventCompleteness(
+	warnings: readonly EventWarning[],
+	{ isPortfolio = false }: { isPortfolio?: boolean } = {}
+): EventCompleteness {
 	const tabs: EventTabCompleteness[] = EVENT_EDITOR_TABS.map(({ id, title }) => ({
 		tab: id,
 		title,
 		warnings: warnings.filter((warning) => warning.tab === id),
 	}));
+	const checked = tabs.filter(({ tab }) => CHECKED_TABS.includes(tab) || (isPortfolio && tab === 'portfolio'));
 	return {
 		tabs,
-		complete: tabs.filter((tab) => tab.warnings.length === 0).length,
-		total: tabs.length,
+		complete: checked.filter((tab) => tab.warnings.length === 0).length,
+		total: checked.length,
 	};
 }
 

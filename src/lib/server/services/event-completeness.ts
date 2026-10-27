@@ -16,7 +16,7 @@ import type { Visibility } from '$lib/utils/event-access';
 /**
  * Draft completeness for the Events list (issue 013, ADR 0010): each
  * Draft's « À vérifier » warnings, computed with the editor's rules
- * (event-warnings.ts) and grouped by tab into the « n/8 » its row shows.
+ * (event-warnings.ts) and grouped by tab into the « n/5 » its row shows.
  * The whole list's Services and Seatings are read in two queries — never
  * one per Event.
  */
@@ -84,7 +84,7 @@ export async function draftCompleteness(
 			...savedEventWarnings(event, servicesOf.get(event.id) ?? [], seatingsOf.get(event.id) ?? []),
 			...(event.isPortfolio ? editorPortfolioWarnings(event) : []),
 		];
-		completeness[event.id] = eventCompleteness(warnings);
+		completeness[event.id] = eventCompleteness(warnings, { isPortfolio: event.isPortfolio });
 	}
 	return completeness;
 }

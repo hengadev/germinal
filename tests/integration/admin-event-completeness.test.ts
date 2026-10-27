@@ -108,10 +108,10 @@ describe('Draft completeness in the Events list', () => {
 		await setupTestDatabase();
 	});
 
-	it('grades a bare Draft 4/8, naming the tabs still missing something', async () => {
+	it('grades a bare Draft 1/5, naming the tabs still missing something', async () => {
 		const draft = await seedBareDraft();
 		const completeness = await loadCompleteness();
-		expect(completeness[draft.id]).toMatchObject({ complete: 4, total: 8 });
+		expect(completeness[draft.id]).toMatchObject({ complete: 1, total: 5 });
 		expect(
 			completeness[draft.id].tabs
 				.filter((tab) => tab.warnings.length > 0)
@@ -119,10 +119,10 @@ describe('Draft completeness in the Events list', () => {
 		).toEqual(['Essentiel', 'Lieu', 'Dates & séances', 'Visuels']);
 	});
 
-	it('grades a complete Draft 8/8', async () => {
+	it('grades a complete Draft 5/5', async () => {
 		const { event } = await seedCompleteDraft();
 		const completeness = await loadCompleteness();
-		expect(completeness[event.id]).toMatchObject({ complete: 8, total: 8 });
+		expect(completeness[event.id]).toMatchObject({ complete: 5, total: 5 });
 		expect(completeness[event.id].tabs.every((tab) => tab.warnings.length === 0)).toBe(true);
 	});
 
@@ -130,7 +130,7 @@ describe('Draft completeness in the Events list', () => {
 		const { event, serviceId } = await seedCompleteDraft();
 		await testDb.update(eventServices).set({ priceAmount: null }).where(eq(eventServices.id, serviceId));
 		const completeness = await loadCompleteness();
-		expect(completeness[event.id]).toMatchObject({ complete: 7, total: 8 });
+		expect(completeness[event.id]).toMatchObject({ complete: 4, total: 5 });
 		expect(
 			completeness[event.id].tabs.find((tab) => tab.tab === 'tarifs')?.warnings.map((w) => w.code)
 		).toEqual(['service-without-price']);

@@ -64,7 +64,7 @@ export const load: PageServerLoad = async ({ url }) => {
     });
     const eventsData = result.data as EventWithMedia[];
 
-    // Draft completeness (issue 013, ADR 0010): each Draft's « n/8 ».
+    // Draft completeness (issue 013, ADR 0010): each Draft's « 3/5 ».
     const { draftCompleteness } = await import('$lib/server/services/event-completeness');
 
     return {
