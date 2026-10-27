@@ -24,8 +24,8 @@ interface SessionWithEventAndSoldCount {
 	updated_at: Date;
 	start_time: Date;
 	end_time: Date;
-	total_capacity: number;
-	available_capacity: number;
+	total_capacity: number | null;
+	available_capacity: number | null;
 	allow_waitlist: boolean;
 	badge_type: string;
 	// Event fields (prefixed to avoid conflicts)

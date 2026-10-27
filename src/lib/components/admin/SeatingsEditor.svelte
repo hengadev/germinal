@@ -6,7 +6,8 @@
 	// flagged before saving, with the same helpers the server checks the
 	// payload with.
 	// Capacity (issue 021): the Event's Venue Capacity is set at the top and
-	// inherited by every Seating, which may override it with its own.
+	// inherited by every Seating, which may override it with its own. Left
+	// blank, inheriting Seatings take any number of Reservations (ADR 0009).
 	//
 	// Fields only: the host page owns the drafts and the <form>. The editor
 	// posts its payload as `services` and the Venue Capacity as
@@ -84,7 +85,7 @@
 					allowWaitlist: seating.allowWaitlist,
 					badgeType: seating.badgeType,
 					reservationCount: seating.reservationCount,
-					soldSeats: Math.max(0, seating.totalCapacity - seating.availableCapacity),
+					soldSeats: seating.heldSeats,
 					detailsOpen: false,
 				};
 			}),
@@ -387,7 +388,8 @@
 
 	/** First field that blocks the save, with the message to show. */
 	export function firstBlockingField(): { id: string; message: string } | null {
-		if (!isValidCapacity(venueCapacity)) {
+		// Blank means no limit (ADR 0009).
+		if (venueCapacity != null && !isValidCapacity(venueCapacity)) {
 			return {
 				id: 'venue-capacity',
 				message: 'Capacité du lieu invalide : saisissez un nombre entier de places, entre 1 et 10 000.',
@@ -424,7 +426,7 @@
 					};
 				}
 				if (!seating.capacityOverridden) {
-					if (venueCapacity < seating.soldSeats) {
+					if (venueCapacity != null && venueCapacity < seating.soldSeats) {
 						return {
 							id: 'venue-capacity',
 							message: `La capacité du lieu ne peut pas descendre sous les ${seating.soldSeats} places déjà réservées d’une séance qui en hérite (${label}).`,
@@ -463,8 +465,9 @@
 			<div>
 				<h3 id="venue-capacity-title" class="text-lg font-semibold text-foreground">Capacité du lieu</h3>
 				<p id="venue-capacity-help" class="text-sm text-muted-foreground">
-					Nombre de convives que le lieu accueille à la fois. Chaque séance en hérite, sauf si vous lui
-					donnez sa propre capacité.
+					Nombre de places mises en vente à chaque séance — vous pouvez dépasser la jauge de la salle pour
+					compenser les absences. Laissez vide pour ne pas limiter les réservations. Chaque séance en
+					hérite, sauf si vous lui donnez sa propre capacité.
 				</p>
 			</div>
 			<div class="w-full sm:w-48 shrink-0">
@@ -479,7 +482,7 @@
 						min="1"
 						max="10000"
 						step="1"
-						required
+						placeholder="Sans limite"
 						bind:value={venueCapacity}
 						aria-describedby="venue-capacity-help venue-capacity-usage"
 						class="{INPUT_CLASS} pl-9"
@@ -689,6 +692,7 @@
 															max="10000"
 															step="1"
 															value={seating.capacityOverridden ? seating.capacity : venueCapacity}
+															placeholder="Sans limite"
 															oninput={(event) => overrideCapacity(seating, event.currentTarget.valueAsNumber)}
 															title={seating.capacityOverridden
 																? 'Capacité propre à cette séance'

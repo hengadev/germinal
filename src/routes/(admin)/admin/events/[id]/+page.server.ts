@@ -276,7 +276,7 @@ async function saveNewEventSchedule(formData: FormData) {
 
 	if (
 		days.length === 0 &&
-		venue.venueCapacity === undefined &&
+		venue.venueCapacity == null &&
 		opensAt === null &&
 		closesHoursBefore === null &&
 		!(pricing && pricingHasContent(pricing))
@@ -426,6 +426,7 @@ export const load: PageServerLoad = async ({ params }) => {
 					allowWaitlist: session.allowWaitlist,
 					badgeType: session.badgeType,
 					reservationCount: session.reservationCount,
+					heldSeats: session.totalCapacity - session.availableCapacity,
 				})),
 		})));
 

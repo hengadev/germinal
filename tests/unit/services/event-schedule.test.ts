@@ -469,9 +469,9 @@ describe('parseVenueCapacity', () => {
 		expect(parseVenueCapacity('10000')).toEqual({ ok: true, venueCapacity: 10000 });
 	});
 
-	it('treats a blank or absent value as "unchanged"', () => {
+	it('treats an absent value as "unchanged" and a blank one as "no limit"', () => {
 		expect(parseVenueCapacity(null)).toEqual({ ok: true, venueCapacity: undefined });
-		expect(parseVenueCapacity('  ')).toEqual({ ok: true, venueCapacity: undefined });
+		expect(parseVenueCapacity('  ')).toEqual({ ok: true, venueCapacity: null });
 	});
 
 	it('rejects zero, negatives, decimals, out-of-range and non-numbers', () => {

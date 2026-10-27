@@ -197,6 +197,7 @@ const SCHEDULE: EditorService[] = [
 				descriptionFr: null,
 				totalCapacity: 20,
 				availableCapacity: 20,
+				heldSeats: 0,
 				capacityOverridden: false,
 				published: true,
 				allowWaitlist: true,

@@ -135,7 +135,7 @@ export async function duplicateEvent(sourceId: string, days: PickedServiceDay[])
 
 				if (service.seatings.length === 0) continue;
 				await tx.insert(eventSessions).values(service.seatings.map((seating) => {
-					const totalCapacity = seating.capacityOverride ?? source.venueCapacity!;
+					const totalCapacity = seating.capacityOverride ?? source.venueCapacity;
 					return {
 						eventId: copy.id,
 						serviceId: created.id,

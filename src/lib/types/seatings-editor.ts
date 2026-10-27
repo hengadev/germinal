@@ -17,9 +17,13 @@ export interface EditorSeating {
 	titleFr: string | null;
 	descriptionEn: string | null;
 	descriptionFr: string | null;
-	/** Effective capacity: the Seating's own, or the Venue Capacity. */
-	totalCapacity: number;
-	availableCapacity: number;
+	/** Effective capacity: the Seating's own, or the Venue Capacity; null
+	 * without a limit (ADR 0009). */
+	totalCapacity: number | null;
+	availableCapacity: number | null;
+	/** Seats held by pending, processing and confirmed Reservations —
+	 * capacity cannot go below. */
+	heldSeats: number;
 	/** The Seating keeps its own capacity instead of the Event's Venue
 	 * Capacity (issue 021). */
 	capacityOverridden: boolean;

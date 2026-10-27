@@ -18,7 +18,7 @@ const ORDERED_KINDS: ServiceKind[] = ['lunch', 'dinner'];
 export interface PatternSourceSeating<Badge extends string = string> {
 	startTime: Date | string;
 	endTime: Date | string;
-	totalCapacity: number;
+	totalCapacity: number | null;
 	capacityOverridden: boolean;
 	titleEn: string | null;
 	titleFr: string | null;

@@ -787,19 +787,51 @@ describe('saveServiceSeatings (admin Seatings editor)', () => {
 			expect([after.totalCapacity, after.availableCapacity, after.capacityOverridden]).toEqual([30, 5, true]);
 		});
 
-		it('refuses an inheriting Seating while the Event has no Venue Capacity', async () => {
-			const { VenueCapacityMissingError } = await import('../../src/lib/server/services/event-schedule');
+		it('saves an inheriting Seating without a limit while the Event has no Venue Capacity (ADR 0009)', async () => {
+			const { saveVenueCapacity } = await import('../../src/lib/server/services/event-schedule');
 			await testDb.update(events).set({ venueCapacity: null }).where(eq(events.id, event.id));
 			const [lunch] = await pickAndLoad([{ date: '2099-06-10', kinds: ['lunch'] }]);
 
-			await expect(saveWith([{ serviceId: lunch.serviceId, defaultDurationMinutes: 90, seatings: [seating('12:00')] }]))
-				.rejects.toBeInstanceOf(VenueCapacityMissingError);
-			expect(await seatingRows()).toEqual([]);
+			await saveWith([{ serviceId: lunch.serviceId, defaultDurationMinutes: 90, seatings: [seating('12:00')] }]);
+			expect((await seatingRows()).map((r) => [r.totalCapacity, r.availableCapacity, r.capacityOverridden]))
+				.toEqual([[null, null, false]]);
+			expect(await venueCapacityOf(event.id)).toBeNull();
 
-			// Setting it in the same save is enough.
-			await saveWith([{ serviceId: lunch.serviceId, defaultDurationMinutes: 90, seatings: [seating('12:00')] }], 14);
-			expect((await seatingRows()).map((r) => r.totalCapacity)).toEqual([14]);
+			// Setting it later puts that many seats on sale, minus those held.
+			const [row] = await seatingRows();
+			await bookSeating(row.id, 'confirmed', 3);
+			await saveVenueCapacity(event.id, 14);
+			expect((await seatingRows()).map((r) => [r.totalCapacity, r.availableCapacity])).toEqual([[14, 11]]);
 			expect(await venueCapacityOf(event.id)).toBe(14);
+		});
+
+		it('removes the limit of every inheriting Seating when the Venue Capacity is cleared, keeping overrides', async () => {
+			const { saveVenueCapacity, loadSeatingsEditor } = await import('../../src/lib/server/services/event-schedule');
+			const [lunch] = await seedLunchAndDinner();
+			await bookSeating(lunch.seatings[0].id, 'confirmed', 4);
+
+			await saveVenueCapacity(event.id, null);
+			expect(await venueCapacityOf(event.id)).toBeNull();
+			expect((await seatingRows()).map((r) => [r.totalCapacity, r.availableCapacity, r.capacityOverridden])).toEqual([
+				[null, null, false],
+				[6, 6, true],
+				[null, null, false],
+			]);
+			// The held seats still show in the editor.
+			const [reloaded] = await loadSeatingsEditor(event.id);
+			expect(reloaded.seatings[0].heldSeats).toBe(4);
+		});
+
+		it('refuses a limit below the seats an unlimited Seating already holds', async () => {
+			const { saveVenueCapacity, SeatingCapacityRefusedError } = await import('../../src/lib/server/services/event-schedule');
+			await testDb.update(events).set({ venueCapacity: null }).where(eq(events.id, event.id));
+			const [lunch] = await pickAndLoad([{ date: '2099-06-10', kinds: ['lunch'] }]);
+			await saveWith([{ serviceId: lunch.serviceId, defaultDurationMinutes: 90, seatings: [seating('12:00')] }]);
+			const [row] = await seatingRows();
+			await bookSeating(row.id, 'confirmed', 5);
+
+			await expect(saveVenueCapacity(event.id, 4)).rejects.toBeInstanceOf(SeatingCapacityRefusedError);
+			expect(await venueCapacityOf(event.id)).toBeNull();
 		});
 
 		it('keeps available capacity within 0..total across Venue Capacity changes', async () => {
@@ -810,7 +842,7 @@ describe('saveServiceSeatings (admin Seatings editor)', () => {
 				await saveVenueCapacity(event.id, capacity);
 				for (const row of await seatingRows()) {
 					expect(row.availableCapacity).toBeGreaterThanOrEqual(0);
-					expect(row.availableCapacity).toBeLessThanOrEqual(row.totalCapacity);
+					expect(row.availableCapacity).toBeLessThanOrEqual(row.totalCapacity!);
 				}
 			}
 			const [, , dinnerRow] = await seatingRows();

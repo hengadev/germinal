@@ -138,6 +138,10 @@ describe('isMaintenanceBypassPath — paths reachable during maintenance', () =>
 		expect(isMaintenanceBypassPath('/metrics')).toBe(true);
 	});
 
+	it('keeps the Stripe webhook reachable (Stripe treats a redirect as a failed delivery)', () => {
+		expect(isMaintenanceBypassPath('/api/webhooks/stripe')).toBe(true);
+	});
+
 	it('does not bypass other public paths', () => {
 		expect(isMaintenanceBypassPath('/')).toBe(false);
 		expect(isMaintenanceBypassPath('/events')).toBe(false);

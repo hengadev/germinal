@@ -47,9 +47,11 @@ export async function getMaintenanceState(): Promise<MaintenanceState> {
 /**
  * Paths that stay reachable while maintenance is on, on any domain. /metrics
  * is scraped by the monitoring agent over the container network; Caddy
- * refuses it from outside (issue 027).
+ * refuses it from outside (issue 027). The Stripe webhook stays reachable so
+ * refunds and disputes handled in the Stripe dashboard still reach the app;
+ * Stripe counts a redirect as a failed delivery.
  */
-const MAINTENANCE_BYPASS_PATHS = new Set(['/maintenance', '/api/health', '/metrics']);
+const MAINTENANCE_BYPASS_PATHS = new Set(['/maintenance', '/api/health', '/metrics', '/api/webhooks/stripe']);
 
 export function isMaintenanceBypassPath(pathname: string): boolean {
 	return MAINTENANCE_BYPASS_PATHS.has(pathname);
