@@ -22,6 +22,7 @@
     import { getToastContext } from "$lib/components/toast/state.svelte";
     import { VISIBILITY_LABELS } from "$lib/utils/event-access";
     import { adminEventTitle } from "$lib/utils/event-text";
+    import type { EventCompleteness } from "$lib/utils/event-warnings";
 
     let {
         data,
@@ -119,6 +120,15 @@
  hour: "2-digit",
  minute: "2-digit",
  });
+ }
+
+ // Draft completeness (issue 013, ADR 0010): each Draft row carries
+ // « n/8 », the tabs still missing something on hover.
+ function completenessTitle(completeness: EventCompleteness): string {
+ const missing = completeness.tabs.filter((tab) => tab.warnings.length > 0);
+ return missing.length === 0
+ ? "Tous les onglets sont complets"
+ : `À compléter : ${missing.map((tab) => tab.title).join(", ")}`;
  }
 </script>
 
@@ -295,6 +305,16 @@
  À la une
  </span>
  {/if}
+ {#if event.visibility === 'draft' && data.completeness[event.id]}
+ {@const completeness = data.completeness[event.id]}
+ <span
+ class="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-muted text-foreground-alt"
+ title={completenessTitle(completeness)}
+ aria-label={completenessTitle(completeness)}
+ >
+ {completeness.complete}/{completeness.total}
+ </span>
+ {/if}
  </div>
  </td>
  <td class="px-6 py-4">
@@ -403,6 +423,16 @@
  <Calendar size={12} />
  {formatDate(event.startDate)}
  </span>
+ {#if event.visibility === 'draft' && data.completeness[event.id]}
+ {@const completeness = data.completeness[event.id]}
+ <span
+ class="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-muted text-foreground-alt"
+ title={completenessTitle(completeness)}
+ aria-label={completenessTitle(completeness)}
+ >
+ {completeness.complete}/{completeness.total}
+ </span>
+ {/if}
  </div>
 
  <div class="flex items-center justify-between gap-2 pt-3 border-t border-border-card">

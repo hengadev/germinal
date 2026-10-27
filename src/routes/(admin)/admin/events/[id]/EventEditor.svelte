@@ -6,7 +6,7 @@
 	// switching tabs.
 	import { ArrowLeft, ChevronRight, Copy, Eye } from 'lucide-svelte';
 	import { cn } from '$lib/utils/design-system';
-	import { editorEventWarnings, editorPortfolioWarnings, type EventWarning } from '$lib/utils/event-warnings';
+	import { editorEventWarnings, editorPortfolioWarnings, EVENT_EDITOR_TABS, type EventWarning } from '$lib/utils/event-warnings';
 	import type { MediaAltText } from '$lib/utils/media-alt';
 	import { getToastContext } from '$lib/components/toast/state.svelte';
 	import type { ActionData, PageData } from './$types';
@@ -53,16 +53,8 @@
 
 	const event = $derived(data.event as EditorEvent);
 
-	const EDITOR_TABS = [
-		{ id: 'essentiel', title: 'Essentiel' },
-		{ id: 'lieu', title: 'Lieu' },
-		{ id: 'dates-seances', title: 'Dates & séances' },
-		{ id: 'tarifs', title: 'Menus & tarifs' },
-		{ id: 'programme', title: 'Programme' },
-		{ id: 'visuels', title: 'Visuels' },
-		{ id: 'pratique', title: 'Infos pratiques' },
-		{ id: 'portfolio', title: 'Portfolio' },
-	];
+	// The eight Event tabs, shared with Draft completeness (issue 013).
+	const EDITOR_TABS = EVENT_EDITOR_TABS;
 	// Its team, tasks, Reservations and Promo Codes.
 	const OPERATIONAL_TABS = [
 		{ id: 'team', title: 'Team' },

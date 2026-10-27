@@ -28,7 +28,30 @@ import { eventPhotosOf, visualsOf, type RoledMedia } from './event-photos';
  */
 
 /** The editor tab an item is fixed in (EventEditor's tab ids). */
-export type EditorTabId = 'essentiel' | 'lieu' | 'dates-seances' | 'tarifs' | 'programme' | 'visuels' | 'portfolio';
+export type EditorTabId =
+	| 'essentiel'
+	| 'lieu'
+	| 'dates-seances'
+	| 'tarifs'
+	| 'programme'
+	| 'visuels'
+	| 'pratique'
+	| 'portfolio';
+
+/**
+ * The eight Event tabs, in the editor's order — EventEditor's own list and
+ * the tabs Draft completeness is counted over (issue 013, ADR 0010).
+ */
+export const EVENT_EDITOR_TABS: readonly { id: EditorTabId; title: string }[] = [
+	{ id: 'essentiel', title: 'Essentiel' },
+	{ id: 'lieu', title: 'Lieu' },
+	{ id: 'dates-seances', title: 'Dates & séances' },
+	{ id: 'tarifs', title: 'Menus & tarifs' },
+	{ id: 'programme', title: 'Programme' },
+	{ id: 'visuels', title: 'Visuels' },
+	{ id: 'pratique', title: 'Infos pratiques' },
+	{ id: 'portfolio', title: 'Portfolio' },
+];
 
 /** One thing to check before publishing. */
 export interface EventWarning {
@@ -239,6 +262,67 @@ export interface EditorWarningsEvent {
 }
 
 /**
+ * The Event's Visuals as the warnings count them (issue 013): how many it
+ * has (its cover plus its gallery) and how many of those lack alt text in
+ * a language. `altOverrides` holds the alt texts saved in « Visuels » or
+ * « Portfolio » since the page data was loaded, by media id.
+ */
+export function visualCounts(
+	event: Pick<EditorWarningsEvent, 'coverMediaId' | 'coverMedia' | 'media'>,
+	altOverrides: Readonly<Record<string, MediaAltText>> = {}
+): { visualCount: number; visualsWithoutAlt: number } {
+	const cover = event.coverMediaId ?? event.coverMedia?.id ?? null;
+	// Only the Visuals announce the Event; its Event Photos are the
+	// Portfolio's (issue 045).
+	const visualMedia = visualsOf(event.media);
+	const gallery = visualMedia.filter((medium) => medium.id !== cover);
+	const visualCount = (cover !== null ? 1 : 0) + gallery.length;
+	// A cover known only by its id reads as lacking alt text.
+	const coverMedium =
+		cover === null
+			? null
+			: event.coverMedia?.id === cover
+				? event.coverMedia
+				: (visualMedia.find((medium) => medium.id === cover) ?? { id: cover });
+	const visuals = [...(coverMedium ? [coverMedium] : []), ...gallery];
+	const visualsWithoutAlt = visuals.filter((medium) =>
+		lacksAltText({ ...medium, ...altOverrides[medium.id] })
+	).length;
+	return { visualCount, visualsWithoutAlt };
+}
+
+/**
+ * The warnings for a saved Event, read off its row: its texts, Booking
+ * Window, Time Zone and Visuals straight from the Event, its Services and
+ * Seatings as the warnings read them. The editor's `editorEventWarnings`
+ * follows what is typed (Seatings as wall-clock times); the Events list
+ * (issue 013) reads what is stored, Seating instants and all.
+ */
+export function savedEventWarnings(
+	event: EditorWarningsEvent,
+	services: readonly WarningService[],
+	seatings: readonly WarningSeating[],
+	altOverrides: Readonly<Record<string, MediaAltText>> = {}
+): EventWarning[] {
+	return eventWarnings({
+		titleEn: event.titleEn,
+		titleFr: event.titleFr,
+		descriptionEn: event.descriptionEn,
+		descriptionFr: event.descriptionFr,
+		locationEn: event.locationEn,
+		locationFr: event.locationFr,
+		services,
+		seatings,
+		...visualCounts(event, altOverrides),
+		bookingWindow: {
+			opensAt: event.bookingOpensAt ? new Date(event.bookingOpensAt) : null,
+			closesHoursBefore: event.bookingClosesHoursBefore ?? null,
+		},
+		timeZone: event.timeZone,
+	});
+}
+
+/**
  * The warnings for the Event the editor shows, read from its page data:
  * the Event's texts and Booking Window, its Seatings (« Dates & séances »,
  * typed on its clock) and each Service's Menu and price (« Menus &
@@ -264,40 +348,7 @@ export function editorEventWarnings(
 		menuId: service.menuId,
 		priceAmount: service.priceAmount,
 	}));
-	const cover = event.coverMediaId ?? event.coverMedia?.id ?? null;
-	// Only the Visuals announce the Event; its Event Photos are the
-	// Portfolio's (issue 045).
-	const visualMedia = visualsOf(event.media);
-	const gallery = visualMedia.filter((medium) => medium.id !== cover);
-	const visualCount = (cover !== null ? 1 : 0) + gallery.length;
-	// A cover known only by its id reads as lacking alt text.
-	const coverMedium =
-		cover === null
-			? null
-			: event.coverMedia?.id === cover
-				? event.coverMedia
-				: (visualMedia.find((medium) => medium.id === cover) ?? { id: cover });
-	const visuals = [...(coverMedium ? [coverMedium] : []), ...gallery];
-	const visualsWithoutAlt = visuals.filter((medium) =>
-		lacksAltText({ ...medium, ...altOverrides[medium.id] })
-	).length;
-	return eventWarnings({
-		titleEn: event.titleEn,
-		titleFr: event.titleFr,
-		descriptionEn: event.descriptionEn,
-		descriptionFr: event.descriptionFr,
-		locationEn: event.locationEn,
-		locationFr: event.locationFr,
-		services,
-		seatings,
-		visualCount,
-		visualsWithoutAlt,
-		bookingWindow: {
-			opensAt: event.bookingOpensAt ? new Date(event.bookingOpensAt) : null,
-			closesHoursBefore: event.bookingClosesHoursBefore ?? null,
-		},
-		timeZone: zone,
-	});
+	return savedEventWarnings(event, services, seatings, altOverrides);
 }
 
 // ---------------------------------------------------------------------------
@@ -376,6 +427,51 @@ export function editorPortfolioWarnings(
 		hasEventPhotoCover: photos.some((photo) => photo.isCover === true),
 		eventPhotosWithoutAlt: photos.filter((photo) => lacksAltText({ ...photo, ...altOverrides[photo.id] })).length,
 	});
+}
+
+// ---------------------------------------------------------------------------
+// Draft completeness (issue 013, ADR 0010)
+// ---------------------------------------------------------------------------
+
+/** What is missing in one Event tab. */
+export interface EventTabCompleteness {
+	/** The tab, one of the eight Event tabs. */
+	tab: EditorTabId;
+	/** The tab's French title, as the editor labels it. */
+	title: string;
+	/** What is missing in the tab; empty when it has nothing missing. */
+	warnings: EventWarning[];
+}
+
+/** An Event's completeness: what is missing per tab, and how many of the
+ * eight Event tabs have nothing missing. */
+export interface EventCompleteness {
+	/** The eight Event tabs, in the editor's order. */
+	tabs: EventTabCompleteness[];
+	/** How many tabs have nothing missing. */
+	complete: number;
+	/** How many tabs are counted: the eight Event tabs. */
+	total: number;
+}
+
+/**
+ * Draft completeness (issue 013, ADR 0010): the editor's warnings grouped
+ * by tab — what is missing in each of the eight Event tabs, and how many
+ * have nothing missing (the « n/8 » the Events list shows on a Draft row).
+ * The same warnings « À vérifier » lists; this adds no rules of its own,
+ * and a tab no warning touches counts as complete.
+ */
+export function eventCompleteness(warnings: readonly EventWarning[]): EventCompleteness {
+	const tabs: EventTabCompleteness[] = EVENT_EDITOR_TABS.map(({ id, title }) => ({
+		tab: id,
+		title,
+		warnings: warnings.filter((warning) => warning.tab === id),
+	}));
+	return {
+		tabs,
+		complete: tabs.filter((tab) => tab.warnings.length === 0).length,
+		total: tabs.length,
+	};
 }
 
 /** Minutes since midnight of an `HH:MM` editor time (0 when malformed). */
