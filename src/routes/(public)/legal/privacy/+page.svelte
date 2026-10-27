@@ -72,6 +72,7 @@
             <ul class="list-disc pl-6 grid gap-2">
                 <li>{$t("legal.privacy.recipientStripe")}</li>
                 <li>{$t("legal.privacy.recipientAws")}</li>
+                <li>{$t("legal.privacy.recipientBrevo")}</li>
                 <li>{$t("legal.privacy.recipientTwilio")}</li>
                 <li>{$t("legal.privacy.recipientHetzner")}</li>
                 <li>{$t("legal.privacy.recipientCloudflare")}</li>
