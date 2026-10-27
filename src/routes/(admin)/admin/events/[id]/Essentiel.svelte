@@ -188,9 +188,6 @@
             </p>
         </div>
 
-        <!-- A new Event is created as a Draft (issue 032): its Visibility is
-             set once it has been saved. -->
-        {#if event}
         <!-- Visibility (issue 032): taking an Event out of Brouillon publishes it -->
         <fieldset class="p-4 bg-muted rounded-lg">
             <legend class="sr-only">Visibilité</legend>
@@ -263,8 +260,6 @@
                 </p>
             </div>
         </div>
-
-        {/if}
 
         <div class="flex flex-col sm:flex-row sm:items-center gap-3 pt-4 border-t border-border-card">
             <button
