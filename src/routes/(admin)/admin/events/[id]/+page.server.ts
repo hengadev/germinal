@@ -24,7 +24,7 @@ import {
 	type PickedServiceDay,
 } from '$lib/server/services/event-schedule';
 import { clockOf, dayOf, DEFAULT_EVENT_TIME_ZONE, isValidTimeZone, listTimeZones, serviceKindOf, wallClockToInstant } from '$lib/utils/event-time';
-import { BOOKING_WINDOW_ERROR_MESSAGES, parseBookingWindow } from '$lib/utils/booking-window';
+import { BOOKING_WINDOW_ERROR_FIELDS, BOOKING_WINDOW_ERROR_MESSAGES, parseBookingWindow } from '$lib/utils/booking-window';
 import { parseServiceRefs, resolveServiceRefs, serviceKey } from '$lib/server/services/new-event-schedule';
 import {
 	EVENT_TEXT_FIELDS,
@@ -116,7 +116,7 @@ async function applyTimeZone(eventId: string, raw: FormDataEntryValue | null) {
 	if (raw === null) return null;
 	const timeZone = String(raw).trim();
 	if (!isValidTimeZone(timeZone)) {
-		return fail(400, { error: TIME_ZONE_ERROR_MESSAGE });
+		return fail(400, { error: TIME_ZONE_ERROR_MESSAGE, fields: ['timeZone'] });
 	}
 	if (env.USE_MOCK_DATA) {
 		const mock = MOCK_EVENTS.find((e) => e.id === eventId);
@@ -127,7 +127,8 @@ async function applyTimeZone(eventId: string, raw: FormDataEntryValue | null) {
 		await changeEventTimeZone(eventId, timeZone);
 	} catch (refusal) {
 		if (refusal instanceof ScheduleSaveRefusedError) {
-			return fail(400, { error: refusal.message });
+			// The refused change is the zone's own (issue 017).
+			return fail(400, { error: refusal.message, fields: ['timeZone'] });
 		}
 		throw refusal;
 	}
@@ -499,11 +500,11 @@ export const actions: Actions = {
 		const formData = await request.formData();
 		const visibility = parseVisibility(formData.get('visibility'));
 		if (!visibility) {
-			return fail(400, { error: 'Visibilité invalide' });
+			return fail(400, { error: 'Visibilité invalide', fields: ['visibility'] });
 		}
 		const isSpotlight = formData.get('isSpotlight') === 'true';
 		if (isSpotlight && !canBeSpotlight({ visibility })) {
-			return fail(400, { error: SPOTLIGHT_REQUIRES_PUBLIC_MESSAGE });
+			return fail(400, { error: SPOTLIGHT_REQUIRES_PUBLIC_MESSAGE, fields: ['isSpotlight'] });
 		}
 		const isPortfolio = formData.get('isPortfolio') === 'true';
 		if (
@@ -513,7 +514,7 @@ export const actions: Actions = {
 				new Date()
 			)
 		) {
-			return fail(400, { error: PORTFOLIO_REQUIRES_OVER_MESSAGE });
+			return fail(400, { error: PORTFOLIO_REQUIRES_OVER_MESSAGE, fields: ['isPortfolio'] });
 		}
 
 		if (env.USE_MOCK_DATA) {
@@ -544,10 +545,10 @@ export const actions: Actions = {
 		} catch (error) {
 			const { SpotlightRequiresPublicError, PortfolioRequiresOverEventError } = await import('$lib/server/services/events');
 			if (error instanceof SpotlightRequiresPublicError) {
-				return fail(400, { error: SPOTLIGHT_REQUIRES_PUBLIC_MESSAGE });
+				return fail(400, { error: SPOTLIGHT_REQUIRES_PUBLIC_MESSAGE, fields: ['isSpotlight'] });
 			}
 			if (error instanceof PortfolioRequiresOverEventError) {
-				return fail(400, { error: PORTFOLIO_REQUIRES_OVER_MESSAGE });
+				return fail(400, { error: PORTFOLIO_REQUIRES_OVER_MESSAGE, fields: ['isPortfolio'] });
 			}
 			logger.error({ err: error }, 'Error updating publication');
 			return fail(500, { error: 'Échec de l’enregistrement de la publication.' });
@@ -677,22 +678,25 @@ export const actions: Actions = {
 		} else if (pickedDays.reason === 'empty' && (env.USE_MOCK_DATA || (await loadScheduleDays(id)).length === 0)) {
 			days = [];
 		} else {
-			return fail(400, { error: pickedDaysErrorMessage(pickedDays.reason) });
+			return fail(400, { error: pickedDaysErrorMessage(pickedDays.reason), fields: ['days'] });
 		}
 		const rawRefs = formData.get('serviceRefs');
 		const refs = parseServiceRefs(typeof rawRefs === 'string' ? rawRefs : null, days);
 		if (!refs) {
-			return fail(400, { error: 'Les repas des séances ne correspondent pas aux jours sélectionnés.' });
+			return fail(400, {
+				error: 'Les repas des séances ne correspondent pas aux jours sélectionnés.',
+				fields: ['days'],
+			});
 		}
 		const raw = formData.get('services');
 		const parsed = parseSeatingsPayload(typeof raw === 'string' ? raw : null);
 		if (!parsed.ok) {
-			return fail(400, { error: seatingsPayloadErrorMessage(parsed.reason) });
+			return fail(400, { error: seatingsPayloadErrorMessage(parsed.reason), fields: ['services'] });
 		}
 		const rawVenueCapacity = formData.get('venueCapacity');
 		const venue = parseVenueCapacity(typeof rawVenueCapacity === 'string' ? rawVenueCapacity : null);
 		if (!venue.ok) {
-			return fail(400, { error: VENUE_CAPACITY_ERROR_MESSAGE });
+			return fail(400, { error: VENUE_CAPACITY_ERROR_MESSAGE, fields: ['venueCapacity'] });
 		}
 
 		// The Booking Window (issue 035): the opening is typed on the
@@ -715,7 +719,10 @@ export const actions: Actions = {
 			(day, minutes) => wallClockToInstant(day, minutes, timeZone)
 		);
 		if (!bookingWindow.ok) {
-			return fail(400, { error: BOOKING_WINDOW_ERROR_MESSAGES[bookingWindow.reason] });
+			return fail(400, {
+				error: BOOKING_WINDOW_ERROR_MESSAGES[bookingWindow.reason],
+				fields: [BOOKING_WINDOW_ERROR_FIELDS[bookingWindow.reason]],
+			});
 		}
 
 		if (env.USE_MOCK_DATA) {
@@ -796,7 +803,7 @@ export const actions: Actions = {
 		const raw = formData.get('pricing');
 		const parsed = parsePricingPayload(typeof raw === 'string' ? raw : null);
 		if (!parsed.ok) {
-			return fail(400, { error: pricingPayloadErrorMessage(parsed.reason) });
+			return fail(400, { error: pricingPayloadErrorMessage(parsed.reason), fields: ['pricing'] });
 		}
 
 		if (env.USE_MOCK_DATA) {

@@ -176,6 +176,25 @@ describe('EditorSaveController — draft mode', () => {
 		expect(controller.snapshot().messages.tarifs).toBeUndefined();
 	});
 
+	it('a refusal naming its fields (issue 017) is invalid like any other', async () => {
+		const { clock, controller } = setup();
+		const tab = fakeTab();
+		controller.register('lieu', tab);
+
+		tab.type(controller, 'lieu', 'Paris, Mars/Olympus');
+		clock.advance(2000);
+		tab.submits[0].settle({
+			ok: false,
+			reason: 'invalid',
+			message: 'Le fuseau horaire choisi est invalide.',
+			fields: ['timeZone'],
+		});
+		await flush();
+		expect(controller.state('lieu')).toBe('invalid');
+		expect(controller.snapshot().messages.lieu).toBe('Le fuseau horaire choisi est invalide.');
+		expect(controller.snapshot().status).toBe('invalid');
+	});
+
 	it('a failed save offers a retry that saves it again', async () => {
 		const { clock, controller } = setup();
 		const tab = fakeTab();

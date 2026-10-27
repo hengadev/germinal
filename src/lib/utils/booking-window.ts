@@ -103,3 +103,9 @@ export const BOOKING_WINDOW_ERROR_MESSAGES: Record<'invalid-opening' | 'invalid-
 	'invalid-opening': 'La date d’ouverture des réservations est invalide.',
 	'invalid-closing-hours': `La clôture des réservations doit être un nombre entier d’heures, entre 0 et ${MAX_CLOSING_HOURS}.`,
 };
+
+/** The form field each failure names (issue 017): the message shows under it. */
+export const BOOKING_WINDOW_ERROR_FIELDS: Record<'invalid-opening' | 'invalid-closing-hours', string> = {
+	'invalid-opening': 'bookingOpensAt',
+	'invalid-closing-hours': 'bookingClosesHoursBefore',
+};

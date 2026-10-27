@@ -1,6 +1,7 @@
 import { invalidateAll } from '$app/navigation';
 import { tick } from 'svelte';
 import type { ActionResult } from '@sveltejs/kit';
+import { clearFieldErrors, showFieldErrors } from '$lib/utils/editor-field-errors';
 import { reportSave } from '$lib/utils/editor-save-form';
 import type { SaveOutcome } from '$lib/utils/editor-save';
 
@@ -17,13 +18,22 @@ interface Toast {
 /**
  * How a save action answered, for the editor's save controller (issue
  * 016): a refusal (4xx) is `invalid`, anything else that did not go
- * through is `failed`.
+ * through is `failed`. Both carry the action's message and, where it
+ * names them (issue 017), the fields at fault.
  */
 export function saveOutcomeOf(result: ActionResult): SaveOutcome {
 	if (result.type === 'success' || result.type === 'redirect') return { ok: true };
 	if (result.type === 'failure') {
-		const message = (result.data as { error?: string } | undefined)?.error;
-		return { ok: false, reason: result.status < 500 ? 'invalid' : 'failed', message };
+		const data = result.data as { error?: string; fields?: unknown } | undefined;
+		const fields = Array.isArray(data?.fields)
+			? data.fields.filter((field): field is string => typeof field === 'string')
+			: undefined;
+		return {
+			ok: false,
+			reason: result.status < 500 ? 'invalid' : 'failed',
+			message: data?.error,
+			...(fields && fields.length > 0 ? { fields } : {}),
+		};
 	}
 	return { ok: false, reason: 'failed' };
 }
@@ -106,6 +116,7 @@ export async function handleTabResult(
 		if (!quiet) toast.success('Succès', data?.success ?? successFallback);
 		await refreshAfterSave(form, refresh);
 		reportSave(form, { ok: true });
+		if (form) clearFieldErrors(form);
 		return true;
 	}
 	if (result.type === 'failure') {
@@ -113,7 +124,15 @@ export async function handleTabResult(
 	} else if (result.type === 'error') {
 		toast.error('Erreur', 'Une erreur est survenue');
 	}
-	reportSave(form, saveOutcomeOf(result));
+	const outcome = saveOutcomeOf(result);
+	// A refusal that names its fields shows under them (issue 017); any
+	// other answer clears what an earlier refusal showed there.
+	if (form && !outcome.ok && outcome.fields !== undefined) {
+		showFieldErrors(form, outcome.message ?? 'Une erreur est survenue', outcome.fields);
+	} else if (form) {
+		clearFieldErrors(form);
+	}
+	reportSave(form, outcome);
 	return false;
 }
 
