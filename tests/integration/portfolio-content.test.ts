@@ -235,7 +235,7 @@ describe('the « Portfolio » tab', () => {
 
 	it('adds an Event that is over to the Portfolio without a Recap or Event Photos', async () => {
 		const event = await seedEvent();
-		const result = await adminAction('updateEvent', event.id, { visibility: 'public', isPortfolio: 'true' });
+		const result = await adminAction('updatePublication', event.id, { visibility: 'public', isPortfolio: 'true' });
 		expect(result).toEqual({ success: expect.any(String) });
 		const [row] = await testDb.select().from(events).where(eq(events.id, event.id));
 		expect(row.isPortfolio).toBe(true);

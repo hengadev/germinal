@@ -149,15 +149,13 @@ async function listedIds() {
 	return data.events.map((e: { id: string }) => e.id);
 }
 
-function updateEventForm(eventId: string, fields: Record<string, string>) {
+// The Portfolio is set through the « Publication » action (issue 012, ADR 0010).
+function publicationForm(eventId: string, fields: Record<string, string>) {
 	const form = new FormData();
-	const defaults = {
-		titleEn: 'Dinner', titleFr: 'Dîner', descriptionEn: 'Test', descriptionFr: 'Test',
-		locationEn: 'Venue', locationFr: 'Salle', visibility: 'public',
-	};
+	const defaults = { visibility: 'public', isSpotlight: 'false', isPortfolio: 'false' };
 	for (const [key, value] of Object.entries({ ...defaults, ...fields })) form.set(key, value);
 	return {
-		request: new Request('http://x/admin/events/' + eventId + '?/updateEvent', { method: 'POST', body: form }),
+		request: new Request('http://x/admin/events/' + eventId + '?/updatePublication', { method: 'POST', body: form }),
 		params: { id: eventId },
 		locals: ADMIN_LOCALS,
 	} as any;
@@ -287,7 +285,7 @@ describe('an Event joins the Portfolio only once its last Seating has started', 
 	it('the admin form refuses it too, with the French explanation', async () => {
 		const event = await seedEvent({ visibility: 'public', day: '2099-06-01' });
 		const { actions } = await import('../../src/routes/(admin)/admin/events/[id]/+page.server');
-		const result: any = await actions.updateEvent(updateEventForm(event.id, { isPortfolio: 'true' }));
+		const result: any = await actions.updatePublication(publicationForm(event.id, { isPortfolio: 'true' }));
 		expect(result.status).toBe(400);
 		expect(result.data.error).toMatch(/dernière séance commencée/);
 		expect(await isPortfolio(event.id)).toBe(false);
