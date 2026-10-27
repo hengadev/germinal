@@ -7,7 +7,7 @@
 	import { ArrowLeft, ChevronRight, Copy, Eye } from 'lucide-svelte';
 	import { cn } from '$lib/utils/design-system';
 	import { DEFAULT_EVENT_TIME_ZONE } from '$lib/utils/event-time';
-	import { editorEventWarnings, editorPortfolioWarnings, type EventWarning } from '$lib/utils/event-warnings';
+	import { editorEventWarnings, editorPortfolioWarnings, EVENT_EDITOR_TABS, type EventWarning } from '$lib/utils/event-warnings';
 	import type { MediaAltText } from '$lib/utils/media-alt';
 	import { getToastContext } from '$lib/components/toast/state.svelte';
 	import { toSeatingDrafts, type DraftSeatingService } from '$lib/components/admin/SeatingsEditor.svelte';
@@ -58,16 +58,6 @@
 	// A saved Event's page data, for its operational tabs.
 	const saved = $derived(data.event === null ? null : (data as EventPageData));
 
-	const EDITOR_TABS = [
-		{ id: 'essentiel', title: 'Essentiel' },
-		{ id: 'lieu', title: 'Lieu' },
-		{ id: 'dates-seances', title: 'Dates & séances' },
-		{ id: 'tarifs', title: 'Menus & tarifs' },
-		{ id: 'programme', title: 'Programme' },
-		{ id: 'visuels', title: 'Visuels' },
-		{ id: 'pratique', title: 'Infos pratiques' },
-		{ id: 'portfolio', title: 'Portfolio' },
-	];
 	// What only a saved Event has: its team, tasks, Reservations and Promo Codes.
 	const OPERATIONAL_TABS = [
 		{ id: 'team', title: 'Team' },
@@ -75,7 +65,7 @@
 		{ id: 'reservations', title: 'Réservations' },
 		{ id: 'promotions', title: 'Promotions' },
 	];
-	const tabs = isNew ? EDITOR_TABS : [...EDITOR_TABS, ...OPERATIONAL_TABS];
+	const tabs = isNew ? EVENT_EDITOR_TABS : [...EVENT_EDITOR_TABS, ...OPERATIONAL_TABS];
 
 	// Base classes of bits-components/TabsList + TabsTrigger, with the editor's overrides.
 	const TAB_LIST_CLASS = cn(
