@@ -423,15 +423,15 @@ describe('the Admin chooses Brouillon / Privé / Public', () => {
 		await setupTestDatabase();
 	});
 
-	function updateEventForm(eventId: string, fields: Record<string, string>) {
+	// Publication posts to its own action now (issue 012, ADR 0010): the
+	// Visibility, Spotlight and Portfolio no longer travel with the
+	// Essentiel text save.
+	function publicationForm(eventId: string, fields: Record<string, string>) {
 		const form = new FormData();
-		const defaults = {
-			titleEn: 'Dinner', titleFr: 'Dîner', descriptionEn: 'Test', descriptionFr: 'Test',
-			locationEn: 'Venue', locationFr: 'Salle',
-		};
+		const defaults = { isSpotlight: 'false', isPortfolio: 'false' };
 		for (const [key, value] of Object.entries({ ...defaults, ...fields })) form.set(key, value);
 		return {
-			request: new Request('http://x/admin/events/' + eventId + '?/updateEvent', { method: 'POST', body: form }),
+			request: new Request('http://x/admin/events/' + eventId + '?/updatePublication', { method: 'POST', body: form }),
 			params: { id: eventId },
 			locals: ADMIN_LOCALS,
 		} as any;
@@ -441,7 +441,7 @@ describe('the Admin chooses Brouillon / Privé / Public', () => {
 		const event = await seedEvent('draft');
 		await seedSeating(event.id);
 		const { actions } = await import('../../src/routes/(admin)/admin/events/[id]/+page.server');
-		const result: any = await actions.updateEvent(updateEventForm(event.id, { visibility: 'private' }));
+		const result: any = await actions.updatePublication(publicationForm(event.id, { visibility: 'private' }));
 		expect(result?.status).toBeUndefined();
 		const [row] = await testDb.select().from(events).where(eq(events.id, event.id));
 		expect(row.visibility).toBe('private');
@@ -450,7 +450,7 @@ describe('the Admin chooses Brouillon / Privé / Public', () => {
 	it('publishes an Event without any Seating (ADR 0008 supersedes ADR 0001)', async () => {
 		const event = await seedEvent('draft');
 		const { actions } = await import('../../src/routes/(admin)/admin/events/[id]/+page.server');
-		const result: any = await actions.updateEvent(updateEventForm(event.id, { visibility: 'public' }));
+		const result: any = await actions.updatePublication(publicationForm(event.id, { visibility: 'public' }));
 		expect(result?.status).toBeUndefined();
 		const [row] = await testDb.select().from(events).where(eq(events.id, event.id));
 		expect(row.visibility).toBe('public');
@@ -475,8 +475,8 @@ describe('the Admin chooses Brouillon / Privé / Public', () => {
 		const event = await seedEvent('public');
 		await seedSeating(event.id);
 		const { actions } = await import('../../src/routes/(admin)/admin/events/[id]/+page.server');
-		const result: any = await actions.updateEvent(
-			updateEventForm(event.id, { visibility: 'private', isSpotlight: 'true' })
+		const result: any = await actions.updatePublication(
+			publicationForm(event.id, { visibility: 'private', isSpotlight: 'true' })
 		);
 		expect(result.status).toBe(400);
 		expect(result.data.error).toMatch(/Seul un événement Public/);
@@ -485,7 +485,7 @@ describe('the Admin chooses Brouillon / Privé / Public', () => {
 	it('refuses an unknown Visibility', async () => {
 		const event = await seedEvent('draft');
 		const { actions } = await import('../../src/routes/(admin)/admin/events/[id]/+page.server');
-		const result: any = await actions.updateEvent(updateEventForm(event.id, { visibility: 'hidden' }));
+		const result: any = await actions.updatePublication(publicationForm(event.id, { visibility: 'hidden' }));
 		expect(result.status).toBe(400);
 	});
 

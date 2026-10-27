@@ -150,7 +150,9 @@
 		if (!root) return;
 		// In tab order: « Dates & séances » saves before « Menus & tarifs ».
 		for (const { id } of EDITOR_TABS) {
-			const forms = [...(root.querySelector(`[data-editor-tab="${id}"]`)?.querySelectorAll('form') ?? [])];
+			// A form marked `data-editor-skip` (« Publication », ADR 0010) saves
+			// on its own: never a unit, so its changes and its submit pass by.
+			const forms = [...(root.querySelector(`[data-editor-tab="${id}"]`)?.querySelectorAll<HTMLFormElement>('form:not([data-editor-skip])') ?? [])];
 			forms.forEach((form, i) => {
 				const unitId = forms.length > 1 ? `${id}:${form.dataset.editorForm ?? i}` : id;
 				const tab = formTab(form);

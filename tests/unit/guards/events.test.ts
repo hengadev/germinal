@@ -63,6 +63,11 @@ describe('admin/events/[id]/+page.server actions — auth guard', () => {
 		await expectRejectedWith(actions.updateEvent!(unauthEvent()), 401);
 	});
 
+	it('updatePublication rejects unauthenticated request', async () => {
+		const { actions } = await import('../../../src/routes/(admin)/admin/events/[id]/+page.server');
+		await expectRejectedWith(actions.updatePublication!(unauthEvent()), 401);
+	});
+
 	it('deletePhoto (media delete) rejects unauthenticated request', async () => {
 		const { actions } = await import('../../../src/routes/(admin)/admin/events/[id]/+page.server');
 		await expectRejectedWith(actions.deletePhoto!(unauthEvent()), 401);
