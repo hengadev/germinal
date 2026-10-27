@@ -62,6 +62,25 @@
 	let countryEn = $state(event?.countryEn ?? "");
 	let countryFr = $state(event?.countryFr ?? "");
 
+	/** Back to the saved venue and Time Zone (a published Event's
+	 * « Annuler », issue 020). */
+	export function restore() {
+		locationFr = event?.locationFr ?? '';
+		locationEn = event?.locationEn ?? '';
+		venueNameFr = event?.venueNameFr ?? '';
+		venueNameEn = event?.venueNameEn ?? '';
+		streetAddressFr = event?.streetAddressFr ?? '';
+		streetAddressEn = event?.streetAddressEn ?? '';
+		districtFr = event?.districtFr ?? '';
+		districtEn = event?.districtEn ?? '';
+		cityFr = event?.cityFr ?? '';
+		cityEn = event?.cityEn ?? '';
+		postalCode = event?.postalCode ?? '';
+		countryFr = event?.countryFr ?? '';
+		countryEn = event?.countryEn ?? '';
+		timeZone = event.timeZone;
+	}
+
 	/** What this tab holds now, saved or not: « À vérifier » and the tab
 	 * marks follow it as it is typed (issue 021). */
 	export function warningValues(): LieuValues {

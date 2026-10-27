@@ -6,10 +6,9 @@
 	// its Day and meal for the server.
 	import { untrack } from 'svelte';
 	import { enhance } from '$app/forms';
-	import { invalidateAll } from '$app/navigation';
 	import { getToastContext } from '$lib/components/toast/state.svelte';
 	import { reportSave } from '$lib/utils/editor-save-form';
-	import { saveOutcomeOf } from './editor-forms';
+	import { refreshAfterSave, saveOutcomeOf } from './editor-forms';
 	import DaysServicesPicker, { type PickedDay } from '$lib/components/admin/DaysServicesPicker.svelte';
 	import SeatingsEditor, {
 		newSeatingService,
@@ -140,14 +139,7 @@
 			saving = false;
 			if (result.type === 'success') {
 				toast.success('Succès', (result.data as { success?: string })?.success ?? 'Séances enregistrées');
-				await invalidateAll();
-				dropped = new Map();
-				placeholders = new Map();
-				days = pickedDaysOf(data.days);
-				services = toSeatingDrafts(data.schedule ?? []);
-				venueCapacity = data.venueCapacity ?? null;
-				bookingOpensAt = openingInputOf(data.event);
-				bookingClosesHoursBefore = data.event?.bookingClosesHoursBefore ?? null;
+				await refreshAfterSave(formElement, restore);
 				reportSave(formElement, { ok: true });
 			} else if (result.type === 'failure') {
 				toast.error('Erreur', (result.data as { error?: string })?.error ?? 'Une erreur est survenue');
@@ -156,6 +148,19 @@
 			}
 			if (result.type !== 'success') reportSave(formElement, saveOutcomeOf(result));
 		};
+	}
+
+	/** Back to the saved Days, Seatings and Booking Window — after a save,
+	 * or a published Event's « Annuler » (issue 020): the editor's drafts,
+	 * the meals set aside and the placeholder ids go with them. */
+	export function restore() {
+		dropped = new Map();
+		placeholders = new Map();
+		days = pickedDaysOf(data.days);
+		services = toSeatingDrafts(data.schedule ?? []);
+		venueCapacity = data.venueCapacity ?? null;
+		bookingOpensAt = openingInputOf(data.event);
+		bookingClosesHoursBefore = data.event?.bookingClosesHoursBefore ?? null;
 	}
 
 	/** What this tab holds now, saved or not: « À vérifier » and the tab
@@ -220,7 +225,7 @@
 		</div>
 	</section>
 
-	<div class="flex flex-col sm:flex-row sm:items-center gap-3 pt-4 border-t border-border-card">
+	<div data-editor-save class="flex flex-col sm:flex-row sm:items-center gap-3 pt-4 border-t border-border-card">
 		<button
 			type="submit"
 			disabled={saving}

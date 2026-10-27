@@ -3,10 +3,9 @@
 	// 027) in its own form, saved with the `savePricing` action. Days and
 	// meals are picked in « Dates & séances ».
 	import { enhance } from '$app/forms';
-	import { invalidateAll } from '$app/navigation';
 	import { getToastContext } from '$lib/components/toast/state.svelte';
 	import { reportSave } from '$lib/utils/editor-save-form';
-	import { saveOutcomeOf } from './editor-forms';
+	import { refreshAfterSave, saveOutcomeOf } from './editor-forms';
 	import PricingEditor, {
 		toDraftCurrency,
 		toDraftDeposit,
@@ -47,12 +46,7 @@
 			saving = false;
 			if (result.type === 'success') {
 				toast.success('Succès', (result.data as { success?: string })?.success ?? 'Menus et tarifs enregistrés');
-				await invalidateAll();
-				menus = toDraftMenus(data.pricing);
-				services = toDraftPricingServices(data.pricing);
-				deposit = toDraftDeposit(data.pricing);
-				refund = toDraftRefund(data.pricing);
-				currency = toDraftCurrency(data.pricing);
+				await refreshAfterSave(formElement, restore);
 				reportSave(formElement, { ok: true });
 			} else if (result.type === 'failure') {
 				toast.error('Erreur', (result.data as { error?: string })?.error ?? 'Une erreur est survenue');
@@ -61,6 +55,16 @@
 			}
 			if (result.type !== 'success') reportSave(formElement, saveOutcomeOf(result));
 		};
+	}
+
+	/** Back to the saved menus and prices — after a save, or a published
+	 * Event's « Annuler » (issue 020). */
+	export function restore() {
+		menus = toDraftMenus(data.pricing);
+		services = toDraftPricingServices(data.pricing);
+		deposit = toDraftDeposit(data.pricing);
+		refund = toDraftRefund(data.pricing);
+		currency = toDraftCurrency(data.pricing);
 	}
 
 	/** What this tab holds now, saved or not: « À vérifier » and the tab
@@ -82,7 +86,7 @@
 		daysTabName="Dates & séances"
 	/>
 
-	<div class="flex flex-col sm:flex-row sm:items-center gap-3 pt-4 border-t border-border-card">
+	<div data-editor-save class="flex flex-col sm:flex-row sm:items-center gap-3 pt-4 border-t border-border-card">
 		<button
 			type="submit"
 			disabled={saving}
