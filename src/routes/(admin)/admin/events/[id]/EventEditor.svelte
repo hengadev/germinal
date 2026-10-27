@@ -1,3 +1,10 @@
+<script module lang="ts">
+	// Leaving the editor of an empty Draft deletes it (issue 015): the
+	// beacon goes out once per visit. The admin layout mounts the page
+	// twice, and coming back to the editor arms it again.
+	const emptyDraftLeaveSent = new Set<string>();
+</script>
+
 <script lang="ts">
 	// The Event editor (ADR 0008, issue 036): one tabbed screen, always on a
 	// saved Event — « Nouvel événement » creates the Draft first (ADR 0010).
@@ -232,7 +239,18 @@
 		// Hiding or closing the page saves what waits for its idle time.
 		const flushHidden = () => document.visibilityState === 'hidden' && saves.flush();
 		document.addEventListener('visibilitychange', flushHidden);
+		// Closing or reloading the page leaves too: a beacon goes out once
+		// nothing is still being saved — an in-flight save may not have
+		// landed, and the sweep job catches whatever a lost beacon leaves.
+		// In-app moves are handled in `beforeNavigate`, which waits for the
+		// deletion so the page behind never shows the empty Draft.
+		emptyDraftLeaveSent.delete(event.id);
+		const pageLeaving = () => {
+			if (!saves.isDirty()) sendLeaveBeacon();
+		};
+		document.addEventListener('pagehide', pageLeaving);
 		return () => {
+			document.removeEventListener('pagehide', pageLeaving);
 			document.removeEventListener('visibilitychange', flushHidden);
 			observer.disconnect();
 			cancelAnimationFrame(frame);
@@ -364,11 +382,51 @@
 	let pendingLeave: (() => void) | null = null;
 	let leaving = false;
 
+	// Leaving an empty Draft deletes it (issue 015, ADR 0010): best
+	// effort, the server alone deciding emptiness — a Draft with anything
+	// saved in it, and any non-Draft Event, is never deleted. The beacon
+	// goes out once per visit (the admin layout mounts the page twice, and
+	// coming back to the editor arms it again); the sweep job catches
+	// whatever a lost request leaves.
+	const leaveUrl = () => `/admin/events/${data.event.id}/leave`;
+	const emptyDraftLeavePending = () => event.visibility === 'draft' && !emptyDraftLeaveSent.has(event.id);
+	// The deletion itself, awaitable: the leave guard holds the navigation
+	// until the server has decided, so the page behind never shows the
+	// empty Draft (issue 015).
+	function deleteEmptyDraftOnLeave(): Promise<unknown> {
+		if (!emptyDraftLeavePending()) return Promise.resolve();
+		emptyDraftLeaveSent.add(event.id);
+		return fetch(leaveUrl(), { method: 'POST', keepalive: true }).catch(() => {});
+	}
+	// A page being closed waits for nothing: a beacon, which survives it.
+	function sendLeaveBeacon() {
+		if (!emptyDraftLeavePending()) return;
+		emptyDraftLeaveSent.add(event.id);
+		if (!navigator.sendBeacon(leaveUrl())) void fetch(leaveUrl(), { method: 'POST', keepalive: true }).catch(() => {});
+	}
+
 	beforeNavigate((navigation) => {
 		if (leaving) return;
 		// A Draft's change waiting for its idle time is saved now (issue 018).
 		saves.flush();
-		if (!saves.isDirty()) return;
+		if (!saves.isDirty()) {
+			// An empty Draft is deleted before the page behind loads, so the
+			// Events list never shows what was never filled in (issue 015).
+			// Closing or reloading has no navigation to wait for: its beacon
+			// fires on pagehide instead.
+			if (navigation.type !== 'leave' && navigation.to && emptyDraftLeavePending()) {
+				navigation.cancel();
+				const { type, delta, willUnload, to } = navigation;
+				pendingLeave = () => {
+					leaving = true;
+					if (type === 'popstate' && delta) history.go(delta);
+					else if (willUnload) location.assign(to.url);
+					else void goto(to.url).finally(() => (leaving = false));
+				};
+				void deleteEmptyDraftOnLeave().finally(() => leave());
+			}
+			return;
+		}
 		navigation.cancel();
 		// Closing, reloading or leaving the site: the browser asks.
 		if (navigation.type === 'leave' || !navigation.to) return;

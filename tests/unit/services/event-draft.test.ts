@@ -1,10 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import {
 	hasEventText,
+	isEmptyDraftEvent,
 	pricingHasContent,
 	readAskDietaryRequirements,
 	readEventTextFields,
+	type DraftContentCounts,
 } from '../../../src/lib/server/services/event-draft';
+import { DEFAULT_EVENT_TIME_ZONE } from '../../../src/lib/utils/event-time';
 import type { PricingPayload } from '../../../src/lib/types/pricing-editor';
 
 function formOf(fields: Record<string, string>): FormData {
@@ -105,5 +108,53 @@ describe('readAskDietaryRequirements (issue 041)', () => {
 
 	it('leaves the switch alone when another tab is saved', () => {
 		expect(readAskDietaryRequirements(formOf({ titleFr: 'Dîner' }))).toBeUndefined();
+	});
+});
+
+describe('isEmptyDraftEvent (issue 015)', () => {
+	const NO_CONTENT: DraftContentCounts = {
+		days: 0,
+		services: 0,
+		seatings: 0,
+		menus: 0,
+		pricedServices: 0,
+		media: 0,
+	};
+	const bareDraft = { visibility: 'draft', timeZone: DEFAULT_EVENT_TIME_ZONE };
+
+	it('is true for the Draft « Nouvel événement » creates, with nothing filled in', () => {
+		expect(isEmptyDraftEvent(bareDraft, NO_CONTENT)).toBe(true);
+		expect(
+			isEmptyDraftEvent(
+				{ ...bareDraft, titleEn: null, internalNotes: null, recapFr: null, collaborators: null },
+				NO_CONTENT
+			)
+		).toBe(true);
+	});
+
+	it('is false as soon as one text holds a value, the Internal Notes included', () => {
+		expect(isEmptyDraftEvent({ ...bareDraft, titleFr: 'Une soirée' }, NO_CONTENT)).toBe(false);
+		expect(isEmptyDraftEvent({ ...bareDraft, internalNotes: 'Client : Maison Lenoir' }, NO_CONTENT)).toBe(false);
+		expect(isEmptyDraftEvent({ ...bareDraft, timings: '[{"label":"Portes","time":"19:00"}]' }, NO_CONTENT)).toBe(false);
+	});
+
+	it('is false with any Day, Service, Seating, Menu or price, Visual or Event Photo', () => {
+		expect(isEmptyDraftEvent(bareDraft, { ...NO_CONTENT, days: 1 })).toBe(false);
+		expect(isEmptyDraftEvent(bareDraft, { ...NO_CONTENT, services: 1 })).toBe(false);
+		expect(isEmptyDraftEvent(bareDraft, { ...NO_CONTENT, seatings: 1 })).toBe(false);
+		expect(isEmptyDraftEvent(bareDraft, { ...NO_CONTENT, menus: 1 })).toBe(false);
+		expect(isEmptyDraftEvent(bareDraft, { ...NO_CONTENT, pricedServices: 1 })).toBe(false);
+		expect(isEmptyDraftEvent(bareDraft, { ...NO_CONTENT, media: 1 })).toBe(false);
+	});
+
+	it('is false with a cover chosen, or a Time Zone other than the default one', () => {
+		expect(isEmptyDraftEvent({ ...bareDraft, coverMediaId: 'media-1' }, NO_CONTENT)).toBe(false);
+		expect(isEmptyDraftEvent({ ...bareDraft, coverVideoId: 'media-2' }, NO_CONTENT)).toBe(false);
+		expect(isEmptyDraftEvent({ ...bareDraft, timeZone: 'Europe/London' }, NO_CONTENT)).toBe(false);
+	});
+
+	it('is false for a Private or Public Event, however empty', () => {
+		expect(isEmptyDraftEvent({ ...bareDraft, visibility: 'private' }, NO_CONTENT)).toBe(false);
+		expect(isEmptyDraftEvent({ ...bareDraft, visibility: 'public' }, NO_CONTENT)).toBe(false);
 	});
 });
