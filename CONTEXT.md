@@ -19,7 +19,7 @@ A meal on a given Day — either lunch (déjeuner) or dinner (dîner). A Day has
 _Avoid_: Meal option, repas, sitting
 
 **Seating**:
-A sitting within a Service, with a start and an end time (e.g., Wednesday lunch 12:00–13:15, then 13:30–14:45). Each Seating holds its own capacity: guests of one Seating leave before the next one arrives, so the venue fills up once per Seating. The unit of reservation — guests book a Seating, not an Event, so an Event without Seatings can be announced but not booked.
+A sitting within a Service, with a start and an end time (e.g., Wednesday lunch 12:00–13:15, then 13:30–14:45). Each Seating holds its own capacity: guests of one Seating leave before the next one arrives, so seats are put on sale once per Seating. The unit of reservation — guests book a Seating, not an Event, so an Event without Seatings can be announced but not booked.
 _Avoid_: Session (former name), slot, créneau, turn
 
 **Menu**:
@@ -39,7 +39,7 @@ The rule deciding whether a Guest who cancels gets their Deposit back, chosen by
 _Avoid_: Cancellation policy, conditions d'annulation (in code/docs)
 
 **Venue Capacity**:
-The number of guests the Event's venue holds at once. Set once per Event and inherited by every Seating, which may override it (e.g., a smaller chef's table on one dinner). A Seating's capacity can never drop below the seats already reserved.
+The number of seats put on sale for each Seating — the Admin's limit, not the size of the room: it may exceed the room to absorb no-shows. Set once per Event and inherited by every Seating, which may override it (e.g., a smaller chef's table on one dinner). Optional: left blank, inheriting Seatings take any number of Reservations and are never full (ADR 0009). A Seating's capacity can never drop below the seats already reserved.
 _Avoid_: Max guests, covers
 
 **Time Zone**:
@@ -188,7 +188,7 @@ A contact form submission from an external party. Four types: `collaboration` (c
 > **Domain expert:** "The Balance: the discounted price minus the Deposit they paid online. Staff see it at check-in."
 
 > **Dev:** "We have a chef dinner coming up — it's free for invited guests. Do we still need a Seating?"
-> **Domain expert:** "Yes — guests can only book a Seating. Set the Service's price to 0. We still need capacity control; Germinal events are intimate."
+> **Domain expert:** "Yes — guests can only book a Seating. Set the Service's price to 0. With no Deposit some invitees won't show, so put a few more seats on sale than the room holds — or leave the capacity blank if anyone invited may come."
 
 > **Dev:** "The chef is on our Talent roster. Should I link the Talent to the Event in the database?"
 > **Domain expert:** "No. Add them as a Collaborator on the Event — name and role. Talents are the standing roster, not per-event participants."
