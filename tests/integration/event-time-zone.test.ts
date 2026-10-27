@@ -318,7 +318,10 @@ describe('Seatings in the Event’s Time Zone', () => {
 			} as never);
 		};
 
-		expect(await submit('Mars/Olympus')).toMatchObject({ status: 400, data: { error: 'Le fuseau horaire choisi est invalide.' } });
+		expect(await submit('Mars/Olympus')).toMatchObject({
+			status: 400,
+			data: { error: 'Le fuseau horaire choisi est invalide.', fields: ['timeZone'] },
+		});
 		expect(await submit('Europe/London')).toMatchObject({ success: expect.any(String) });
 		const [saved] = await testDb.select().from(events).where(eq(events.id, event.id));
 		expect(saved.timeZone).toBe('Europe/London');
@@ -327,7 +330,7 @@ describe('Seatings in the Event’s Time Zone', () => {
 		await book((await seatingsOf(event.id))[0].id);
 		expect(await submit('Europe/Paris')).toMatchObject({
 			status: 400,
-			data: { error: expect.stringContaining('Impossible de changer le fuseau horaire') },
+			data: { error: expect.stringContaining('Impossible de changer le fuseau horaire'), fields: ['timeZone'] },
 		});
 	});
 });

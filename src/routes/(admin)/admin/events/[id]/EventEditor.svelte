@@ -5,8 +5,9 @@
 	// itself, a published Event's all at once, on confirmation (issue 020).
 	// All panels stay mounted (just hidden) so what is typed survives
 	// switching tabs.
-	import { ArrowLeft, ChevronRight, Copy, Eye } from 'lucide-svelte';
+	import { ArrowLeft, ChevronRight, Copy, Eye, X } from 'lucide-svelte';
 	import { cn } from '$lib/utils/design-system';
+	import { clearFieldErrors } from '$lib/utils/editor-field-errors';
 	import { eventCompleteness, EVENT_EDITOR_TABS, type EventWarning } from '$lib/utils/event-warnings';
 	import { liveEditorWarnings, type UnsavedEditorValues } from '$lib/utils/event-warnings-live';
 	import type { MediaAltText } from '$lib/utils/media-alt';
@@ -278,6 +279,17 @@
 	function tabModified(tabId: string): boolean {
 		return Object.entries(saveState.tabs).some(([unitId, state]) => tabOfUnit(unitId) === tabId && UNSAVED_STATES.has(state));
 	}
+	// A refused or failed save (issue 017): the tab holds changes the
+	// server would not take. A failure is the more pressing of the two.
+	function tabErrorOf(tabId: string): 'invalid' | 'failed' | null {
+		let error: 'invalid' | 'failed' | null = null;
+		for (const [unitId, state] of Object.entries(saveState.tabs)) {
+			if (tabOfUnit(unitId) !== tabId) continue;
+			if (state === 'failed') return 'failed';
+			if (state === 'invalid') error = 'invalid';
+		}
+		return error;
+	}
 
 	// A published Event's held edits (issue 020): a bar counts the modified
 	// tabs; « Enregistrer » asks first, then saves them all in tab order
@@ -336,6 +348,9 @@
 			await invalidateAll();
 			saves.discardAll();
 			unsavedAfterSave = [];
+			// The messages of a refused save (issue 017) go with the edits
+			// they were shown for: the tabs are back as saved.
+			for (const form of rootEl?.querySelectorAll('form') ?? []) clearFieldErrors(form);
 		} finally {
 			discarding = false;
 		}
@@ -575,14 +590,27 @@
 						{@const missing = missingByTab.get(tab.id) ?? 0}
 						<!-- Missing for publishing (issue 021): a hollow ring, where
 						     « modifié » is a filled dot — told apart by shape, not
-						     colour — and named for screen readers. The error mark
-						     (issue 017) takes its own shape too. -->
+						     colour — and named for screen readers. -->
 						<span
 							aria-hidden="true"
 							class="ml-1.5 inline-block size-2 rounded-full border-[1.5px] border-current opacity-70"
 							title={missing === 1 ? '1 point à vérifier' : `${missing} points à vérifier`}
 						></span>
 						<span class="sr-only">({missing === 1 ? '1 point à vérifier' : `${missing} points à vérifier`})</span>
+					{/if}
+					{#if tabErrorOf(tab.id)}
+						{@const error = tabErrorOf(tab.id)}
+						<!-- A refused or failed save (issue 017): an ✕ — a third shape,
+						     beside the filled dot and the hollow ring, not colour
+						     alone — named for screen readers like the others. -->
+						<span
+							aria-hidden="true"
+							class="ml-1.5 inline-flex items-center text-red-700"
+							title={error === 'failed' ? 'Échec de l’enregistrement' : 'Non enregistré — à corriger'}
+						>
+							<X size={11} strokeWidth={2.5} />
+						</span>
+						<span class="sr-only">({error === 'failed' ? 'échec de l’enregistrement' : 'non enregistré — à corriger'})</span>
 					{/if}
 				</button>
 			{/each}

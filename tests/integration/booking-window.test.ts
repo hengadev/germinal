@@ -434,7 +434,7 @@ describe('the Admin sets the Booking Window in « Dates & séances »', () => {
 		const result: any = await actions.saveSeatings!(
 			saveSeatingsEvent(event.id, seating, { bookingClosesHoursBefore: '-3' })
 		);
-		expect(result.status).toBe(400);
+		expect(result).toMatchObject({ status: 400, data: { fields: ['bookingClosesHoursBefore'] } });
 		expect((await eventRow(event.id)).bookingClosesHoursBefore).toBeNull();
 	});
 

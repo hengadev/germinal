@@ -31,7 +31,7 @@ export type EditorSaveMode = 'draft' | 'published';
  * confirmation was asked first, say); the tab keeps its changes. */
 export type SaveOutcome =
 	| { ok: true }
-	| { ok: false; reason: 'invalid' | 'failed' | 'cancelled'; message?: string };
+	| { ok: false; reason: 'invalid' | 'failed' | 'cancelled'; message?: string; fields?: string[] };
 
 export interface EditorTab {
 	/** What the tab would save, comparable as a string. */

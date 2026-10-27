@@ -288,6 +288,8 @@ describe('an Event joins the Portfolio only once its last Seating has started', 
 		const result: any = await actions.updatePublication(publicationForm(event.id, { isPortfolio: 'true' }));
 		expect(result.status).toBe(400);
 		expect(result.data.error).toMatch(/dernière séance commencée/);
+		// The refusal names its field (issue 017), for the editor to show it there.
+		expect(result.data.fields).toEqual(['isPortfolio']);
 		expect(await isPortfolio(event.id)).toBe(false);
 	});
 
