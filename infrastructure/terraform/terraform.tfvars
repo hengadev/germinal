@@ -77,6 +77,20 @@ email_dkim_records = {
     type    = "CNAME"
     content = "b2.germinalstudio-co.dkim.brevo.com"
   }
+  # Brevo link branding: its click tracking (which can't be turned off on
+  # transactional email) rewrites links to link.germinalstudio.co, not Brevo's domain.
+  "link" = {
+    type    = "CNAME"
+    content = "link-germinalstudio-co.brand.brevosend.com"
+  }
+  "r.link" = {
+    type    = "CNAME"
+    content = "link-germinalstudio-co.r.brand.brevosend.com"
+  }
+  "img.link" = {
+    type    = "CNAME"
+    content = "link-germinalstudio-co.img.brand.brevosend.com"
+  }
 }
 
 # ============================================
