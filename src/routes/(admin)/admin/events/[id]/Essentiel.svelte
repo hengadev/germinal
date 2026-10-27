@@ -18,7 +18,7 @@
 		lastSeatingStart = null,
 		warnings = [],
 	}: {
-		event: EditorEvent | null;
+		event: EditorEvent;
 		/** Start of the Event's last Seating, for the Portfolio rule (issue 044). */
 		lastSeatingStart?: Date | string | null;
 		/** What is missing for publishing (issue 038), for the confirmation

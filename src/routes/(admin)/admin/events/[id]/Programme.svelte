@@ -11,7 +11,7 @@
 		event,
 		talents,
 	}: {
-		event: EditorEvent | null;
+		event: EditorEvent;
 		talents: { id: string; firstName: string; lastName: string }[];
 	} = $props();
 

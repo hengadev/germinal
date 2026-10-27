@@ -64,6 +64,18 @@
     // Currently selected event for delete
     let selectedEvent: Event | null = $state(null);
 
+    // « Nouvel événement » (ADR 0010): the action creates the Draft and
+    // redirects to its editor; only a refusal stays here.
+    function createEventEnhance() {
+        return async ({ result, update }: { result: import('@sveltejs/kit').ActionResult; update: () => Promise<void> }) => {
+            if (result.type === 'failure') {
+                toast.error("Erreur", (result.data as { error?: string })?.error ?? 'Une erreur est survenue');
+                return;
+            }
+            await update();
+        };
+    }
+
     function deleteEventEnhance() {
         return async ({ result, update }: { result: import('@sveltejs/kit').ActionResult; update: (opts?: { reset?: boolean }) => Promise<void> }) => {
             if (result.type === 'success') {
@@ -122,13 +134,17 @@
  <h1 class="text-3xl lg:text-4xl font-bold mb-2">Événements</h1>
  <p class="text-muted-foreground">Gérez vos événements</p>
  </div>
- <a
- href="/admin/events/new"
- class="inline-flex items-center gap-2 px-4 py-2 bg-foreground text-background rounded-lg hover:opacity-90 transition-colors self-start"
+ <!-- « Nouvel événement » creates the Draft at once (ADR 0010): a POST,
+      so no link prefetch ever creates one. -->
+ <form method="POST" action="?/createEvent" use:enhance={createEventEnhance} class="self-start">
+ <button
+ type="submit"
+ class="inline-flex items-center gap-2 px-4 py-2 bg-foreground text-background rounded-lg hover:opacity-90 transition-colors cursor-pointer"
  >
  <Plus size={18} />
  <span>Nouvel Événement</span>
- </a>
+ </button>
+ </form>
  </div>
 
  <nav aria-label="Filtrer les événements" class="flex flex-wrap gap-2 mb-6">
@@ -160,13 +176,15 @@
  <p class="text-muted-foreground mb-6">
  Créez votre premier événement pour commencer
  </p>
- <a
- href="/admin/events/new"
- class="inline-flex items-center gap-2 px-4 py-2 bg-foreground text-background rounded-lg hover:opacity-90 transition-colors"
+ <form method="POST" action="?/createEvent" use:enhance={createEventEnhance}>
+ <button
+ type="submit"
+ class="inline-flex items-center gap-2 px-4 py-2 bg-foreground text-background rounded-lg hover:opacity-90 transition-colors cursor-pointer"
  >
  <Plus size={18} />
  <span>Créer un Événement</span>
- </a>
+ </button>
+ </form>
  </div>
  {:else}
  <!-- Table view for desktop -->

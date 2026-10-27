@@ -12,17 +12,9 @@
 /** Event a tab's form dispatches (bubbling) once its save went through. */
 export const EDITOR_SAVED_EVENT = 'editorsaved';
 
-export interface EditorSavedDetail {
-	/** The save answered with a redirect (a new Event's first save): the
-	 * editor is about to be replaced, so the move must not be guarded. */
-	leaving: boolean;
-}
-
 /** Tell the editor holding `form` that it was saved. */
-export function announceSaved(form: HTMLFormElement | null | undefined, leaving = false): void {
-	form?.dispatchEvent(
-		new CustomEvent<EditorSavedDetail>(EDITOR_SAVED_EVENT, { bubbles: true, detail: { leaving } })
-	);
+export function announceSaved(form: HTMLFormElement | null | undefined): void {
+	form?.dispatchEvent(new CustomEvent(EDITOR_SAVED_EVENT, { bubbles: true }));
 }
 
 /** What `form` would post, as a comparable string. */

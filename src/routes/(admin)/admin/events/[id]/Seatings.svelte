@@ -1,12 +1,12 @@
 <script lang="ts">
 	// « Séances » tab: the Days picker and the shared Seatings editor
 	// (issue 019/020/021) in one form, saved with the `saveSeatings` action.
-	// The Seatings follow the picked Days and meals live, as on the
-	// new-event form: a meal picked here before saving gets a placeholder
-	// id, which `serviceRefs` maps to its Day and meal for the server.
+	// The Seatings follow the picked Days and meals live: a meal picked
+	// here before saving gets a placeholder id, which `serviceRefs` maps to
+	// its Day and meal for the server.
 	import { untrack } from 'svelte';
 	import { enhance } from '$app/forms';
-	import { goto, invalidateAll } from '$app/navigation';
+	import { invalidateAll } from '$app/navigation';
 	import { getToastContext } from '$lib/components/toast/state.svelte';
 	import { announceSaved } from '$lib/utils/leave-guard';
 	import DaysServicesPicker, { type PickedDay } from '$lib/components/admin/DaysServicesPicker.svelte';
@@ -20,10 +20,8 @@
 
 	let {
 		data,
-		isNew = false,
 		timeZone = data.event?.timeZone,
 		services = $bindable(toSeatingDrafts(data.schedule ?? [])),
-		extend,
 	}: {
 		data: {
 			days?: PickedDay[];
@@ -35,14 +33,9 @@
 				bookingClosesHoursBefore?: number | null;
 			} | null;
 		};
-		/** A new Event (issue 036): no Day is required, and the first save
-		 * creates the Draft. */
-		isNew?: boolean;
-		/** Clock the Seatings are typed on; a new Event follows the Lieu pick. */
+		/** Clock the Seatings are typed on: the Event's saved Time Zone. */
 		timeZone?: string;
 		services?: DraftSeatingService[];
-		/** Adds other tabs' fields to the posted form (new Event). */
-		extend?: (formData: FormData) => void;
 	} = $props();
 
 	const toast = getToastContext();
@@ -111,8 +104,10 @@
 	);
 
 	// The Days cannot use browser validity (the payload is a hidden input).
+	// A Draft starts with no Days (ADR 0010): none is required until one
+	// is saved.
 	function pickedDaysError(): string | null {
-		if (days.length === 0 && !isNew) {
+		if (days.length === 0 && (data.days?.length ?? 0) > 0) {
 			return 'Sélectionnez au moins un jour sur le calendrier.';
 		}
 		if (days.some((day) => day.kinds.length === 0)) {
@@ -121,7 +116,7 @@
 		return null;
 	}
 
-	function saveSeatingsEnhance({ formData, cancel }: { formData: FormData; cancel: () => void }) {
+	function saveSeatingsEnhance({ cancel }: { cancel: () => void }) {
 		const dayError = pickedDaysError();
 		if (dayError !== null) {
 			cancel();
@@ -136,16 +131,10 @@
 			requestAnimationFrame(() => document.getElementById(blocking.id)?.focus());
 			return;
 		}
-		extend?.(formData);
 		saving = true;
 		return async ({ result, formElement }: { result: import('@sveltejs/kit').ActionResult; formElement: HTMLFormElement }) => {
 			saving = false;
-			if (result.type === 'redirect') {
-				// First save of a new Event: on to the Draft's page.
-				announceSaved(formElement, true);
-				toast.success('Succès', 'Brouillon créé.');
-				await goto(result.location, { invalidateAll: true });
-			} else if (result.type === 'success') {
+			if (result.type === 'success') {
 				toast.success('Succès', (result.data as { success?: string })?.success ?? 'Séances enregistrées');
 				await invalidateAll();
 				dropped = new Map();
