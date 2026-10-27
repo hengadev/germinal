@@ -32,6 +32,9 @@ export const POST: RequestHandler = async ({ params, locals }) => {
 			menus: 0,
 			pricedServices: 0,
 			media: (event.media ?? []).length,
+			coupons: 0,
+			staff: 0,
+			tasks: 0,
 		});
 		if (deleted) MOCK_EVENTS.splice(index, 1);
 		return json({ deleted });

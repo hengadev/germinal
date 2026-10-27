@@ -119,6 +119,9 @@ describe('isEmptyDraftEvent (issue 015)', () => {
 		menus: 0,
 		pricedServices: 0,
 		media: 0,
+		coupons: 0,
+		staff: 0,
+		tasks: 0,
 	};
 	const bareDraft = { visibility: 'draft', timeZone: DEFAULT_EVENT_TIME_ZONE };
 
@@ -145,6 +148,34 @@ describe('isEmptyDraftEvent (issue 015)', () => {
 		expect(isEmptyDraftEvent(bareDraft, { ...NO_CONTENT, menus: 1 })).toBe(false);
 		expect(isEmptyDraftEvent(bareDraft, { ...NO_CONTENT, pricedServices: 1 })).toBe(false);
 		expect(isEmptyDraftEvent(bareDraft, { ...NO_CONTENT, media: 1 })).toBe(false);
+	});
+
+	it('is false with a Promo Code, staff or a task, which deleting it would take along', () => {
+		expect(isEmptyDraftEvent(bareDraft, { ...NO_CONTENT, coupons: 1 })).toBe(false);
+		expect(isEmptyDraftEvent(bareDraft, { ...NO_CONTENT, staff: 1 })).toBe(false);
+		expect(isEmptyDraftEvent(bareDraft, { ...NO_CONTENT, tasks: 1 })).toBe(false);
+	});
+
+	it('is false with a setting changed from a new Event’s, and true with the defaults', () => {
+		const defaults = {
+			...bareDraft,
+			currency: 'EUR',
+			depositType: 'percent',
+			depositValue: 100,
+			refundPolicyType: 'rules',
+			// As jsonb gives it back: keys reordered.
+			refundPolicyTiers: [{ percent: 100, hoursBefore: 24 }],
+			askDietaryRequirements: false,
+		};
+		expect(isEmptyDraftEvent(defaults, NO_CONTENT)).toBe(true);
+		expect(isEmptyDraftEvent({ ...defaults, venueCapacity: 40 }, NO_CONTENT)).toBe(false);
+		expect(isEmptyDraftEvent({ ...defaults, bookingOpensAt: new Date('2026-11-01T10:00:00Z') }, NO_CONTENT)).toBe(false);
+		expect(isEmptyDraftEvent({ ...defaults, bookingClosesHoursBefore: 48 }, NO_CONTENT)).toBe(false);
+		expect(isEmptyDraftEvent({ ...defaults, askDietaryRequirements: true }, NO_CONTENT)).toBe(false);
+		expect(isEmptyDraftEvent({ ...defaults, currency: 'GBP' }, NO_CONTENT)).toBe(false);
+		expect(isEmptyDraftEvent({ ...defaults, depositValue: 30 }, NO_CONTENT)).toBe(false);
+		expect(isEmptyDraftEvent({ ...defaults, refundPolicyType: 'manual', refundPolicyTextFr: 'Non remboursable' }, NO_CONTENT)).toBe(false);
+		expect(isEmptyDraftEvent({ ...defaults, refundPolicyTiers: [{ hoursBefore: 72, percent: 50 }] }, NO_CONTENT)).toBe(false);
 	});
 
 	it('is false with a cover chosen, or a Time Zone other than the default one', () => {

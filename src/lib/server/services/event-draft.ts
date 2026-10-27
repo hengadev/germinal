@@ -134,6 +134,11 @@ export type DraftContentCounts = {
 	pricedServices: number;
 	/** Visuals and Event Photos linked to the Event. */
 	media: number;
+	/** Promo Codes, staff and tasks: a Draft's operational records, which
+	 * deleting it would take with it (cascade). */
+	coupons: number;
+	staff: number;
+	tasks: number;
 };
 
 /** An Event row as the emptiness check reads it. */
@@ -142,12 +147,57 @@ export type EmptyDraftEvent = {
 	timeZone?: string | null;
 	coverMediaId?: string | null;
 	coverVideoId?: string | null;
+	// « Dates & séances », « Menus & tarifs » and « Infos pratiques »
+	// settings: set once they differ from what a new Event starts with.
+	venueCapacity?: number | null;
+	bookingOpensAt?: Date | string | null;
+	bookingClosesHoursBefore?: number | null;
+	askDietaryRequirements?: boolean | null;
+	currency?: string | null;
+	depositType?: string | null;
+	depositValue?: number | null;
+	refundPolicyType?: string | null;
+	refundPolicyTextEn?: string | null;
+	refundPolicyTextFr?: string | null;
+	refundPolicyTiers?: unknown;
 } & Partial<Record<EventTextField, string | null>>;
+
+/** Whether `tiers` are the refund tiers a new Event starts with — compared
+ * field by field, since jsonb does not keep key order. */
+function isDefaultRefundTiers(tiers: unknown): boolean {
+	const defaults = DEFAULT_REFUND_POLICY.tiers;
+	return (
+		Array.isArray(tiers) &&
+		tiers.length === defaults.length &&
+		tiers.every(
+			(tier, i) => tier?.hoursBefore === defaults[i].hoursBefore && tier?.percent === defaults[i].percent
+		)
+	);
+}
+
+/** Whether a setting of the Event was changed from a new Event's. */
+function hasSettings(event: EmptyDraftEvent): boolean {
+	return (
+		event.venueCapacity != null ||
+		event.bookingOpensAt != null ||
+		event.bookingClosesHoursBefore != null ||
+		event.askDietaryRequirements === true ||
+		(event.currency != null && event.currency !== DEFAULT_EVENT_CURRENCY) ||
+		(event.depositType != null && event.depositType !== FULL_PAYMENT_DEPOSIT.type) ||
+		(event.depositValue != null && event.depositValue !== FULL_PAYMENT_DEPOSIT.value) ||
+		(event.refundPolicyType != null && event.refundPolicyType !== DEFAULT_REFUND_POLICY.type) ||
+		!!event.refundPolicyTextEn?.trim() ||
+		!!event.refundPolicyTextFr?.trim() ||
+		(event.refundPolicyTiers != null && !isDefaultRefundTiers(event.refundPolicyTiers))
+	);
+}
 
 /**
  * Whether the Event is an empty Draft (issue 015, ADR 0010): no text in
  * any language, no Internal Notes, no Day, Service or Seating, no Visual
- * or Event Photo, no Menu or price, and the default Time Zone. Anything
+ * or Event Photo, no Menu or price, no setting changed from a new Event's
+ * (capacity, Booking Window, payment and refund terms, Dietary
+ * Requirements), no Promo Code, staff or task, and the default Time Zone. Anything
  * filled in keeps it, and a Private or Public Event is never empty.
  */
 export function isEmptyDraftEvent(event: EmptyDraftEvent, content: DraftContentCounts): boolean {
@@ -157,13 +207,17 @@ export function isEmptyDraftEvent(event: EmptyDraftEvent, content: DraftContentC
 	if (event.coverMediaId != null || event.coverVideoId != null) return false;
 	const texts = Object.fromEntries(EVENT_TEXT_FIELDS.map((field) => [field, event[field] ?? null]));
 	if (hasEventText(texts)) return false;
+	if (hasSettings(event)) return false;
 	return (
 		content.days === 0 &&
 		content.services === 0 &&
 		content.seatings === 0 &&
 		content.menus === 0 &&
 		content.pricedServices === 0 &&
-		content.media === 0
+		content.media === 0 &&
+		content.coupons === 0 &&
+		content.staff === 0 &&
+		content.tasks === 0
 	);
 }
 
@@ -172,11 +226,11 @@ async function draftContentCounts(
 	db: typeof import('../db')['db'],
 	eventId: string
 ): Promise<DraftContentCounts> {
-	const { eventDays, eventMenus, eventServices, eventSessions, media } = await import('../db/schema');
+	const { coupons, eventDays, eventMenus, eventServices, eventSessions, eventStaff, media, tasks } = await import('../db/schema');
 	const { and, eq, isNotNull, or, sql } = await import('drizzle-orm');
 
 	const count = sql<number>`count(*)::int`;
-	const [days, services, seatings, menus, priced, linkedMedia] = await Promise.all([
+	const [days, services, seatings, menus, priced, linkedMedia, promoCodes, staff, eventTasks] = await Promise.all([
 		db.select({ count }).from(eventDays).where(eq(eventDays.eventId, eventId)),
 		db.select({ count })
 			.from(eventServices)
@@ -189,6 +243,9 @@ async function draftContentCounts(
 			.innerJoin(eventDays, eq(eventServices.dayId, eventDays.id))
 			.where(and(eq(eventDays.eventId, eventId), or(isNotNull(eventServices.menuId), isNotNull(eventServices.priceAmount)))),
 		db.select({ count }).from(media).where(eq(media.eventId, eventId)),
+		db.select({ count }).from(coupons).where(eq(coupons.eventId, eventId)),
+		db.select({ count }).from(eventStaff).where(eq(eventStaff.eventId, eventId)),
+		db.select({ count }).from(tasks).where(eq(tasks.eventId, eventId)),
 	]);
 	return {
 		days: days[0]?.count ?? 0,
@@ -197,6 +254,9 @@ async function draftContentCounts(
 		menus: menus[0]?.count ?? 0,
 		pricedServices: priced[0]?.count ?? 0,
 		media: linkedMedia[0]?.count ?? 0,
+		coupons: promoCodes[0]?.count ?? 0,
+		staff: staff[0]?.count ?? 0,
+		tasks: eventTasks[0]?.count ?? 0,
 	};
 }
 
