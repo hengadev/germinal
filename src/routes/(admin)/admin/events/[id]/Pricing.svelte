@@ -5,7 +5,8 @@
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
 	import { getToastContext } from '$lib/components/toast/state.svelte';
-	import { announceSaved } from '$lib/utils/leave-guard';
+	import { reportSave } from '$lib/utils/editor-save-form';
+	import { saveOutcomeOf } from './editor-forms';
 	import PricingEditor, {
 		toDraftCurrency,
 		toDraftDeposit,
@@ -31,11 +32,12 @@
 	let saving = $state(false);
 	let editor: ReturnType<typeof PricingEditor> | undefined = $state();
 
-	function savePricingEnhance({ cancel }: { cancel: () => void }) {
+	function savePricingEnhance({ cancel, formElement }: { cancel: () => void; formElement: HTMLFormElement }) {
 		const blocking = editor?.firstBlockingField() ?? null;
 		if (blocking) {
 			cancel();
 			toast.error('Erreur', blocking.message);
+			reportSave(formElement, { ok: false, reason: 'invalid', message: blocking.message });
 			requestAnimationFrame(() => document.getElementById(blocking.id)?.focus());
 			return;
 		}
@@ -50,12 +52,13 @@
 				deposit = toDraftDeposit(data.pricing);
 				refund = toDraftRefund(data.pricing);
 				currency = toDraftCurrency(data.pricing);
-				announceSaved(formElement);
+				reportSave(formElement, { ok: true });
 			} else if (result.type === 'failure') {
 				toast.error('Erreur', (result.data as { error?: string })?.error ?? 'Une erreur est survenue');
 			} else if (result.type === 'error') {
 				toast.error('Erreur', 'Une erreur est survenue');
 			}
+			if (result.type !== 'success') reportSave(formElement, saveOutcomeOf(result));
 		};
 	}
 </script>

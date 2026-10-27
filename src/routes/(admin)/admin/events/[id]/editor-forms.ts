@@ -1,6 +1,7 @@
 import { invalidateAll } from '$app/navigation';
 import type { ActionResult } from '@sveltejs/kit';
-import { announceSaved } from '$lib/utils/leave-guard';
+import { reportSave } from '$lib/utils/editor-save-form';
+import type { SaveOutcome } from '$lib/utils/editor-save';
 
 /**
  * Shared by the Event editor's tabs (issue 036). Each tab posts its own
@@ -13,9 +14,23 @@ interface Toast {
 }
 
 /**
+ * How a save action answered, for the editor's save controller (issue
+ * 016): a refusal (4xx) is `invalid`, anything else that did not go
+ * through is `failed`.
+ */
+export function saveOutcomeOf(result: ActionResult): SaveOutcome {
+	if (result.type === 'success' || result.type === 'redirect') return { ok: true };
+	if (result.type === 'failure') {
+		const message = (result.data as { error?: string } | undefined)?.error;
+		return { ok: false, reason: result.status < 500 ? 'invalid' : 'failed', message };
+	}
+	return { ok: false, reason: 'failed' };
+}
+
+/**
  * Answer a tab's save: a toast, then fresh data. Returns whether the save
- * went through (so the tab can reset its drafts). A save that went through
- * cleans `form` for the leave guard (issue 037).
+ * went through (so the tab can reset its drafts). Reports the outcome on
+ * `form` to the editor's save controller (issue 016).
  */
 export async function handleTabResult(
 	result: ActionResult,
@@ -26,7 +41,7 @@ export async function handleTabResult(
 	if (result.type === 'success') {
 		toast.success('Succès', (result.data as { success?: string } | undefined)?.success ?? successFallback);
 		await invalidateAll();
-		announceSaved(form);
+		reportSave(form, { ok: true });
 		return true;
 	}
 	if (result.type === 'failure') {
@@ -34,6 +49,7 @@ export async function handleTabResult(
 	} else if (result.type === 'error') {
 		toast.error('Erreur', 'Une erreur est survenue');
 	}
+	reportSave(form, saveOutcomeOf(result));
 	return false;
 }
 

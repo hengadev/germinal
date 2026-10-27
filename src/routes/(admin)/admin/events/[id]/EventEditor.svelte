@@ -1,8 +1,9 @@
 <script lang="ts">
 	// The Event editor (ADR 0008, issue 036): one tabbed screen, always on a
 	// saved Event — « Nouvel événement » creates the Draft first (ADR 0010).
-	// Each tab keeps its own save. All panels stay mounted (just hidden) so
-	// what is typed survives switching tabs.
+	// Each tab keeps its own save, made through the save controller (issue
+	// 016). All panels stay mounted (just hidden) so what is typed survives
+	// switching tabs.
 	import { ArrowLeft, ChevronRight, Copy, Eye } from 'lucide-svelte';
 	import { cn } from '$lib/utils/design-system';
 	import { editorEventWarnings, editorPortfolioWarnings, type EventWarning } from '$lib/utils/event-warnings';
@@ -14,7 +15,9 @@
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import DuplicateEventDialog from '$lib/components/admin/DuplicateEventDialog.svelte';
 	import { servedKinds } from '$lib/utils/schedule-pattern';
-	import { EDITOR_SAVED_EVENT, LeaveGuard } from '$lib/utils/leave-guard';
+	import { onMount, tick } from 'svelte';
+	import { EditorSaveController, formatSavedAgo, type EditorSaveSnapshot } from '$lib/utils/editor-save';
+	import { formTab, type FormTab } from '$lib/utils/editor-save-form';
 	import { setEnglishAuto } from '$lib/components/admin/EnglishVersion.svelte';
 
 	import Essentiel from './Essentiel.svelte';
@@ -131,38 +134,113 @@
 		event.isPortfolio ? [...publishingWarnings, ...portfolioWarnings] : publishingWarnings
 	);
 
+	// Save controller (issue 016, ADR 0010): each form of the Event's own
+	// tabs is a unit it saves — the operational tabs keep their own actions.
+	// It gives the header its save status, the tab labels their « modifié »
+	// mark and the leave guard its answer. Autosave stays off for now: the
+	// save buttons submit through it.
+	const modeOf = (visibility: string) => (visibility === 'draft' ? 'draft' : 'published');
+	const saves = new EditorSaveController({ autosave: false });
+	let saveState: EditorSaveSnapshot = $state(saves.snapshot());
+	// A published Event holds its edits; the mode follows its Visibility.
+	$effect(() => saves.setMode(modeOf(event.visibility)));
+	$effect(() => {
+		const unsubscribe = saves.subscribe((snapshot) => (saveState = snapshot));
+		return () => void unsubscribe();
+	});
+
+	const formUnits = new Map<HTMLFormElement, { id: string; tab: FormTab }>();
+	// A tab with several forms (« Portfolio ») has a unit per form.
+	const tabOfUnit = (unitId: string) => unitId.split(':')[0];
+
+	onMount(() => {
+		const root = rootEl;
+		if (!root) return;
+		// In tab order: « Dates & séances » saves before « Menus & tarifs ».
+		for (const { id } of EDITOR_TABS) {
+			const forms = [...(root.querySelector(`[data-editor-tab="${id}"]`)?.querySelectorAll('form') ?? [])];
+			forms.forEach((form, i) => {
+				const unitId = forms.length > 1 ? `${id}:${form.dataset.editorForm ?? i}` : id;
+				const tab = formTab(form);
+				formUnits.set(form, { id: unitId, tab });
+				saves.register(unitId, tab);
+			});
+		}
+		// Changes no input event reports (an upload landing) show in the DOM.
+		let frame = 0;
+		const observer = new MutationObserver(() => {
+			cancelAnimationFrame(frame);
+			frame = requestAnimationFrame(() => saves.refresh());
+		});
+		observer.observe(root, { childList: true, subtree: true });
+		const clock = setInterval(() => (now = Date.now()), 30_000);
+		return () => {
+			observer.disconnect();
+			cancelAnimationFrame(frame);
+			clearInterval(clock);
+		};
+	});
+
+	function unitOf(target: EventTarget | null) {
+		const form = target instanceof Element ? target.closest('form') : null;
+		return form ? formUnits.get(form) : undefined;
+	}
+	// The first interaction with a form, before it changes anything.
+	function touchForm(domEvent: Event) {
+		const unit = unitOf(domEvent.target);
+		if (unit) saves.touch(unit.id);
+	}
+	// Once the change has reached the form (bound values, hidden fields).
+	function changeForm(domEvent: Event) {
+		const unit = unitOf(domEvent.target);
+		if (unit) void tick().then(() => saves.changed(unit.id));
+	}
+	function blurForm(domEvent: Event) {
+		const unit = unitOf(domEvent.target);
+		if (unit) saves.blurred(unit.id);
+	}
+	// A save button posts through the controller, which never runs two
+	// saves of a form at once. Its own post goes through untouched.
+	function submitForm(submitEvent: SubmitEvent) {
+		const unit = unitOf(submitEvent.target);
+		if (!unit || unit.tab.owns(submitEvent)) return;
+		submitEvent.preventDefault();
+		submitEvent.stopPropagation();
+		saves.touch(unit.id);
+		unit.tab.setSubmitter(submitEvent.submitter);
+		// Out of this submit event: the browser ignores a nested one.
+		setTimeout(() => void saves.save(unit.id));
+	}
+
+	const UNSAVED_STATES = new Set(['dirty', 'saving', 'invalid', 'failed']);
+	function tabModified(tabId: string): boolean {
+		return Object.entries(saveState.tabs).some(([unitId, state]) => tabOfUnit(unitId) === tabId && UNSAVED_STATES.has(state));
+	}
+
+	// The header's one save status; « il y a 2 min » follows the clock.
+	let now = $state(Date.now());
+	const unsavedLabel = $derived(
+		saveState.dirtyCount > 1 ? `${saveState.dirtyCount} onglets modifiés, non enregistrés` : 'Modifications non enregistrées'
+	);
+	const saveAnnouncement = $derived(
+		saveState.status === 'saving' ? 'Enregistrement…'
+		: saveState.status === 'failed' ? 'Échec de l’enregistrement'
+		: saveState.status === 'invalid' ? 'Non enregistré — à corriger'
+		: saveState.status === 'dirty' ? unsavedLabel
+		: saveState.status === 'saved' ? 'Enregistré'
+		: ''
+	);
+
 	// Unsaved-changes guard (issue 037): leaving with an edited tab asks
 	// first — an in-page dialog for in-app moves, the browser's own prompt
 	// for closing or reloading. Switching tabs is not leaving. Only the
 	// Event's own tabs are guarded, not the operational ones.
-	const guard = new LeaveGuard();
 	let leaveDialogOpen = $state(false);
 	let pendingLeave: (() => void) | null = null;
 	let leaving = false;
 
-	function guardedForm(target: EventTarget | null): HTMLFormElement | null {
-		const form = target instanceof Element ? target.closest('form') : null;
-		return form?.closest('[data-leave-guard]') && rootEl?.contains(form) ? form : null;
-	}
-	// The first interaction with a form, before it changes anything.
-	function touchForm(domEvent: Event) {
-		const form = guardedForm(domEvent.target);
-		if (form) guard.touch(form);
-	}
-
-	$effect(() => {
-		const root = rootEl;
-		if (!root) return;
-		const onSaved = (domEvent: Event) => {
-			const form = domEvent.target;
-			if (form instanceof HTMLFormElement) guard.saved(form);
-		};
-		root.addEventListener(EDITOR_SAVED_EVENT, onSaved);
-		return () => root.removeEventListener(EDITOR_SAVED_EVENT, onSaved);
-	});
-
 	beforeNavigate((navigation) => {
-		if (leaving || !guard.isDirty()) return;
+		if (leaving || !saves.isDirty()) return;
 		navigation.cancel();
 		// Closing, reloading or leaving the site: the browser asks.
 		if (navigation.type === 'leave' || !navigation.to) return;
@@ -206,8 +284,12 @@
 	onpointerdowncapture={touchForm}
 	onkeydowncapture={touchForm}
 	ondragentercapture={touchForm}
-	oninputcapture={touchForm}
-	onchangecapture={touchForm}
+	oninputcapture={(domEvent) => (touchForm(domEvent), changeForm(domEvent))}
+	onchangecapture={(domEvent) => (touchForm(domEvent), changeForm(domEvent))}
+	onclickcapture={changeForm}
+	ondropcapture={changeForm}
+	onfocusoutcapture={blurForm}
+	onsubmitcapture={submitForm}
 	class="container mx-auto px-4 py-8 lg:py-12"
 >
 	<div class="flex items-start gap-3 mb-8">
@@ -246,6 +328,34 @@
 					<Copy size={14} />
 					Dupliquer
 				</button>
+				<!-- The save status (issue 016). Screen readers hear each change
+				     of state once, not every tick of « il y a … ». -->
+				{#if saveState.status === 'saving'}
+					<span aria-hidden="true">·</span>
+					<span aria-hidden="true">Enregistrement…</span>
+				{:else if saveState.status === 'failed'}
+					<span aria-hidden="true">·</span>
+					<span class="text-red-700">
+						<span aria-hidden="true">Échec —</span>
+						<button
+							type="button"
+							onclick={() => void saves.retry()}
+							class="underline underline-offset-2 hover:text-red-900 transition-colors cursor-pointer"
+						>
+							Réessayer
+						</button>
+					</span>
+				{:else if saveState.status === 'invalid'}
+					<span aria-hidden="true">·</span>
+					<span aria-hidden="true" class="text-red-700">Non enregistré — à corriger</span>
+				{:else if saveState.status === 'dirty'}
+					<span aria-hidden="true">·</span>
+					<span aria-hidden="true">{unsavedLabel}</span>
+				{:else if saveState.lastSavedAt !== null}
+					<span aria-hidden="true">·</span>
+					<span>Enregistré {formatSavedAgo(saveState.lastSavedAt, Math.max(now, saveState.lastSavedAt))}</span>
+				{/if}
+				<span role="status" class="sr-only">{saveAnnouncement}</span>
 			</p>
 		</div>
 	</div>
@@ -315,6 +425,12 @@
 					class={TAB_TRIGGER_CLASS}
 				>
 					{tab.title}
+					{#if tabModified(tab.id)}
+						<!-- Unsaved changes (issue 016): a shape, not only a colour, and
+						     part of the tab's name for screen readers. -->
+						<span aria-hidden="true" class="ml-1.5 inline-block size-1.5 rounded-full bg-current" title="Modifications non enregistrées"></span>
+						<span class="sr-only">(modifications non enregistrées)</span>
+					{/if}
 				</button>
 			{/each}
 		</div>
@@ -322,7 +438,7 @@
 
 	{#snippet panel(id: string, content: import('svelte').Snippet, guarded = true)}
 		<div
-			data-leave-guard={guarded ? '' : undefined}
+			data-editor-tab={guarded ? id : undefined}
 			hidden={activeTab !== panelIndex(id)}
 			role="tabpanel"
 			id="panel-{id}"
