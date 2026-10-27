@@ -206,7 +206,7 @@ variable "email_dmarc_policy" {
 }
 
 variable "email_dkim_records" {
-  description = "Mailbox provider DKIM records, keyed by record name (e.g. zmail._domainkey for Zoho Mail)"
+  description = "Mailbox and sending provider DKIM/verification records, keyed by record name (e.g. zmail._domainkey for Zoho Mail, brevo1._domainkey for Brevo)"
   type        = map(object({ type = string, content = string }))
   default     = {}
 }

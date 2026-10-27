@@ -58,10 +58,24 @@ email_spf_includes = ["amazonses.com", "zohomail.eu"]
 email_dmarc_policy = "quarantine"
 
 # Zoho Mail DKIM (public key; Zoho Mail admin > Domains > Email configuration)
+# and Brevo domain authentication (Brevo > Senders, Domains & Dedicated IPs >
+# Domains). Brevo's suggested DMARC is left out: the domain keeps its own above.
 email_dkim_records = {
   "zmail._domainkey" = {
     type    = "TXT"
     content = "v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCTSn5dy1IVq8qTok/Yqa5P0UUbSeOUB8KF3X2OA0TCwDnk1CRSYAO1JzXaezTzX0oY1Ug+86rz0ZIrcMBn/sayC7N78v+7NrXKG/dDuzUmSyPsw41FdSKayaazy8IJwcRYHRE5KFyJ5tOnFkmZtXYxCUBVTY55vbpl7ayA49cyIwIDAQAB"
+  }
+  "germinalstudio.co" = {
+    type    = "TXT"
+    content = "brevo-code:ab539570b000c988e949280adccc4148"
+  }
+  "brevo1._domainkey" = {
+    type    = "CNAME"
+    content = "b1.germinalstudio-co.dkim.brevo.com"
+  }
+  "brevo2._domainkey" = {
+    type    = "CNAME"
+    content = "b2.germinalstudio-co.dkim.brevo.com"
   }
 }
 
