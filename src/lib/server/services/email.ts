@@ -1,14 +1,11 @@
 import { logger } from '$lib/server/logger';
-import { env, isAWSConfigured } from '../env';
+import { env, isAWSConfigured, isBrevoConfigured } from '../env';
+import { sendBrevoEmail } from './brevo';
 import type { ContactEmailData } from '$lib/types/contact';
 import type { TicketEmailData } from '$lib/types/reservations';
 import { formatCurrency } from '$lib/utils/currency';
 import { escapeHtml, escapeHtmlAttr } from '$lib/utils/html';
-import {
-	SESClient,
-	SendEmailCommand,
-	type SendEmailCommandInput,
-} from '@aws-sdk/client-ses';
+import { SESClient } from '@aws-sdk/client-ses';
 import { seatingTitle } from '$lib/utils/seating-title';
 import { formatSeatingDateTime } from '$lib/utils/event-time';
 import { bookedUnitPriceAmount } from '$lib/utils/seating-price';
@@ -182,44 +179,27 @@ function generateHtmlTemplate(data: ContactEmailData): string {
 }
 
 export async function sendContactEmail(data: ContactEmailData): Promise<void> {
-	if (!isAWSConfigured()) {
+	if (!isBrevoConfigured()) {
 		logger.info({
 			to: env.CONTACT_EMAIL,
 			from: `${env.SMTP_FROM_NAME} <${env.SMTP_FROM_EMAIL}>`,
 			subject: `New Contact Form Submission from ${data.name}`,
 			content: generateTextTemplate(data),
-		}, '📧 AWS not configured - email would have been sent');
+		}, '📧 Brevo not configured - email would have been sent');
 		return;
 	}
 
-	const client = getSESClient();
-
-	const mailOptions: SendEmailCommandInput = {
-		Source: `"${env.SMTP_FROM_NAME}" <${env.SMTP_FROM_EMAIL}>`,
-		Destination: {
-			ToAddresses: [env.CONTACT_EMAIL],
-		},
-		Message: {
-			Subject: {
-				Data: `New Contact Form Submission from ${data.name}`,
-			},
-			Body: {
-				Text: {
-					Data: generateTextTemplate(data),
-				},
-				Html: {
-					Data: generateHtmlTemplate(data),
-				},
-			},
-		},
-		// Add reply-to using headers
-		ReplyToAddresses: [`${data.name} <${data.email}>`],
-	};
-
 	try {
-		const command = new SendEmailCommand(mailOptions);
-		const result = await client.send(command);
-		logger.info({ messageId: result.MessageId }, '📧 Contact email sent successfully');
+		// Sent through Brevo, not SES; replying from the inbox answers the visitor.
+		const messageId = await sendBrevoEmail(env.BREVO_API_KEY, {
+			sender: { email: env.SMTP_FROM_EMAIL, name: env.SMTP_FROM_NAME },
+			to: [{ email: env.CONTACT_EMAIL }],
+			replyTo: { email: data.email, name: data.name },
+			subject: `New Contact Form Submission from ${data.name}`,
+			textContent: generateTextTemplate(data),
+			htmlContent: generateHtmlTemplate(data),
+		});
+		logger.info({ messageId }, '📧 Contact email sent successfully');
 	} catch (error) {
 		logger.error({ err: error }, '❌ Failed to send contact email');
 		throw new Error('Failed to send email notification');

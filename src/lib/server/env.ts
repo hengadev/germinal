@@ -45,6 +45,8 @@ const devEnvSchema = z.object({
     SMTP_FROM_EMAIL: z.string().email().optional().default('noreply@germinalstudio.co'),
     SMTP_FROM_NAME: z.string().optional().default('Germinal'),
     CONTACT_EMAIL: z.string().email().optional().default('contact@germinalstudio.co'),
+    // Brevo API key: sends the contact form email. Empty = logged, not sent.
+    BREVO_API_KEY: z.string().optional().default(''),
     // Stripe Configuration - optional in dev
     STRIPE_SECRET_KEY: z.string().optional().default(''),
     STRIPE_WEBHOOK_SECRET: z.string().optional().default(''),
@@ -107,6 +109,8 @@ const prodEnvSchema = z.object({
     SMTP_FROM_EMAIL: z.string().email(),
     SMTP_FROM_NAME: z.string().min(1),
     CONTACT_EMAIL: z.string().email(),
+    // Brevo API key: sends the contact form email
+    BREVO_API_KEY: z.string().optional().default(''),
     // Stripe Configuration - required in production for reservations
     STRIPE_SECRET_KEY: z.string().min(1),
     STRIPE_WEBHOOK_SECRET: z.string().min(1),
@@ -251,6 +255,11 @@ export const isSMTPEnabled = () => {
 // Helper to check if AWS is configured (for SES API email sending)
 export const isAWSConfigured = () => {
     return !!(env.AWS_ACCESS_KEY_ID && env.AWS_SECRET_ACCESS_KEY && env.AWS_REGION);
+};
+
+// Helper to check if Brevo is configured (contact form email)
+export const isBrevoConfigured = () => {
+    return !!env.BREVO_API_KEY;
 };
 
 // Helper to check if Stripe is configured

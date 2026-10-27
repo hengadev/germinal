@@ -29,7 +29,7 @@ Cloudflare token never reaches anything but Caddy.
 | `/redis` | `REDIS_HOST` (`redis` prod, `staging_redis` staging), `REDIS_PORT`, `REDIS_DB` (`0` both), `REDIS_PASSWORD` | ✓ | ✓ | ✓ | `app.env`; `REDIS_PASSWORD` alone into `redis.env` → that stack's Redis (prod and staging) |
 | `/stripe` | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` (live in prod, **test mode** in staging and dev) | ✓ | ✓ | ✓ | `app.env` |
 | `/s3` | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`, `S3_BUCKET_NAME`, `MEDIA_URL` (**written by Terraform** in prod and staging), `S3_PUBLIC_URL`; dev only: `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` (local MinIO) | ✓ | ✓ | ✓ | `app.env`. The AWS key also sends email through SES. |
-| `/smtp` | `SMTP_FROM_EMAIL`, `SMTP_FROM_NAME` | ✓ | ✓ | ✓ | `app.env` |
+| `/smtp` | `SMTP_FROM_EMAIL`, `SMTP_FROM_NAME`, `BREVO_API_KEY` (sends the contact form email) | ✓ | ✓ | ✓ | `app.env` |
 | `/twilio` | `TWILIO_ACCOUNT_SID`, `TWILIO_API_KEY_SID`, `TWILIO_API_KEY_SECRET`, `TWILIO_PHONE_NUMBER`, `TWILIO_REGION` + `TWILIO_EDGE` (`ie1` + `dublin`: EU processing; the API key must be created in that region; empty = US1) (API keys made by hand: [Terraform README](../../infrastructure/terraform/README.md#twilio-api-keys-manual)) | ✓ | ✓ | ✓ | `app.env` |
 | `/sentry` | `SENTRY_DSN`: a project DSN from the self-hosted GlitchTip at `errors.henga.dev`, one project per environment (empty = error reporting off; leave it empty in dev). URLs are stripped of tokens and query strings before sending (`src/lib/server/sentry-scrub.ts`) | ✓ | ✓ | ✓ | `app.env` |
 | `/deepl` | `DEEPL_API_KEY` (DeepL API Free key, ending in `:fx`: generates the English of the admin's French Event fields; empty = English typed by hand) | ✓ | ✓ | ✓ | `app.env` |
