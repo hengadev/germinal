@@ -439,11 +439,12 @@
 			else void goto(url).finally(() => (leaving = false));
 		};
 		// Only saves on their way: leave once they are through, or ask if
-		// one of them fails.
+		// one of them fails. An empty Draft left once its saves are through
+		// is deleted first, as in the clean path above (issue 015).
 		if (Object.values(saves.snapshot().tabs).every((state) => !UNSAVED_STATES.has(state) || state === 'saving')) {
 			void saves.idle().then(() => {
 				if (saves.isDirty()) leaveDialogOpen = true;
-				else leave();
+				else void deleteEmptyDraftOnLeave().finally(() => leave());
 			});
 			return;
 		}
