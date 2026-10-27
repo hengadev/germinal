@@ -8,7 +8,8 @@
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
 	import { getToastContext } from '$lib/components/toast/state.svelte';
-	import { announceSaved } from '$lib/utils/leave-guard';
+	import { reportSave } from '$lib/utils/editor-save-form';
+	import { saveOutcomeOf } from './editor-forms';
 	import DaysServicesPicker, { type PickedDay } from '$lib/components/admin/DaysServicesPicker.svelte';
 	import SeatingsEditor, {
 		newSeatingService,
@@ -116,11 +117,12 @@
 		return null;
 	}
 
-	function saveSeatingsEnhance({ cancel }: { cancel: () => void }) {
+	function saveSeatingsEnhance({ cancel, formElement }: { cancel: () => void; formElement: HTMLFormElement }) {
 		const dayError = pickedDaysError();
 		if (dayError !== null) {
 			cancel();
 			toast.error('Erreur', dayError);
+			reportSave(formElement, { ok: false, reason: 'invalid', message: dayError });
 			requestAnimationFrame(() => daysPicker?.focus());
 			return;
 		}
@@ -128,6 +130,7 @@
 		if (blocking) {
 			cancel();
 			toast.error('Erreur', blocking.message);
+			reportSave(formElement, { ok: false, reason: 'invalid', message: blocking.message });
 			requestAnimationFrame(() => document.getElementById(blocking.id)?.focus());
 			return;
 		}
@@ -144,12 +147,13 @@
 				venueCapacity = data.venueCapacity ?? null;
 				bookingOpensAt = openingInputOf(data.event);
 				bookingClosesHoursBefore = data.event?.bookingClosesHoursBefore ?? null;
-				announceSaved(formElement);
+				reportSave(formElement, { ok: true });
 			} else if (result.type === 'failure') {
 				toast.error('Erreur', (result.data as { error?: string })?.error ?? 'Une erreur est survenue');
 			} else if (result.type === 'error') {
 				toast.error('Erreur', 'Une erreur est survenue');
 			}
+			if (result.type !== 'success') reportSave(formElement, saveOutcomeOf(result));
 		};
 	}
 </script>

@@ -17,9 +17,9 @@
 
 	function saveEnhance() {
 		saving = true;
-		return async ({ result }: { result: import('@sveltejs/kit').ActionResult }) => {
+		return async ({ result, formElement }: { result: import('@sveltejs/kit').ActionResult; formElement: HTMLFormElement }) => {
 			saving = false;
-			if (await handleTabResult(result, toast, 'Modifications enregistrées')) {
+			if (await handleTabResult(result, toast, 'Modifications enregistrées', formElement)) {
 				// The English may have been generated from the French on save.
 				practicalInfoEn = event?.practicalInfoEn ?? '';
 			}

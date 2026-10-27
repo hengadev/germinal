@@ -7,6 +7,7 @@
 	import { enhance } from '$app/forms';
 	import { getToastContext } from '$lib/components/toast/state.svelte';
 	import { handleTabResult, type EditorEvent } from './editor-forms';
+	import { reportSave } from '$lib/utils/editor-save-form';
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import EnglishVersion from '$lib/components/admin/EnglishVersion.svelte';
 	import { Type, FileText, Lock } from 'lucide-svelte';
@@ -53,7 +54,7 @@
 		publishConfirmed = false;
 	});
 
-	function saveEnhance({ cancel }: { cancel: () => void }) {
+	function saveEnhance({ cancel, formElement }: { cancel: () => void; formElement: HTMLFormElement }) {
 		if (
 			!publishConfirmed &&
 			event?.visibility === 'draft' &&
@@ -61,6 +62,7 @@
 			warnings.length > 0
 		) {
 			cancel();
+			reportSave(formElement, { ok: false, reason: 'cancelled' });
 			publishDialogOpen = true;
 			return;
 		}
