@@ -556,8 +556,6 @@
 		<div>
 			<h1 class="text-3xl lg:text-4xl font-bold mb-2">{headerTitle}</h1>
 			<p class="text-muted-foreground flex items-center gap-2 flex-wrap">
-				<span>Gérer cet événement</span>
-				<span aria-hidden="true">·</span>
 				<!-- Aperçu (issue 033) : ouvre la page publique — un brouillon
 				     n'y est visible que pour un Admin, avec la réservation coupée. -->
 				<a
