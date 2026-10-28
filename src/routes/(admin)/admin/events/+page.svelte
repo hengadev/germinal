@@ -19,6 +19,8 @@
     import Drawer from "$lib/components/ui/Drawer.svelte";
     import Modal from "$lib/components/ui/Modal.svelte";
     import DuplicateEventDialog from "$lib/components/admin/DuplicateEventDialog.svelte";
+    import SearchInput, { searchFromUrl } from "$lib/components/admin/SearchInput.svelte";
+    import { fuzzyFilter } from "$lib/utils/fuzzy-search";
     import { getToastContext } from "$lib/components/toast/state.svelte";
     import { VISIBILITY_LABELS } from "$lib/utils/event-access";
     import { adminEventTitle } from "$lib/utils/event-text";
@@ -44,6 +46,20 @@
 
     // Event type
     type Event = (typeof data.events)[number];
+
+    // The search, as typed: title, place and dates, in either language.
+    let query = $state(searchFromUrl());
+    const events = $derived(
+        fuzzyFilter(data.events, query, (event) => [
+            event.titleFr,
+            event.titleEn,
+            event.locationFr,
+            event.locationEn,
+            ...[event.startDate, event.endDate].flatMap((date) =>
+                date ? [formatDate(date), new Date(date).toLocaleDateString("fr-FR")] : []
+            ),
+        ])
+    );
 
     // The list's filter, kept in the URL so it survives a reload.
     const FILTERS = [
@@ -113,13 +129,14 @@
  });
  }
 
- // The filter and the order share the URL: changing one keeps the other.
+ // The filter, the order and the search share the URL: changing one keeps the others.
  function listHref(filter: string, sort: string): string {
  const params = new URLSearchParams();
  if (filter !== "all") params.set("filter", filter);
  if (sort !== DEFAULT_EVENT_LIST_SORT) params.set("sort", sort);
- const query = params.toString();
- return query ? `/admin/events?${query}` : "/admin/events";
+ if (query.trim()) params.set("q", query.trim());
+ const search = params.toString();
+ return search ? `/admin/events?${search}` : "/admin/events";
  }
 
  // Draft completeness (issue 013, ADR 0010): each Draft row carries
@@ -138,23 +155,26 @@
 
 <div class="container mx-auto px-4 py-8 lg:py-12">
  <div
- class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8"
+ class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-8"
  >
  <div>
  <h1 class="text-3xl lg:text-4xl font-bold mb-2">Événements</h1>
  <p class="text-muted-foreground">Gérez vos événements</p>
  </div>
+ <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+ <SearchInput bind:value={query} label="Rechercher un événement" placeholder="Rechercher : titre, lieu, date…" />
  <!-- « Nouvel événement » creates the Draft at once (ADR 0010): a POST,
       so no link prefetch ever creates one. -->
- <form method="POST" action="?/createEvent" use:enhance={createEventEnhance} class="self-start">
+ <form method="POST" action="?/createEvent" use:enhance={createEventEnhance} class="self-start sm:self-auto">
  <button
  type="submit"
  class="inline-flex items-center gap-2 px-4 py-2 bg-foreground text-background rounded-lg hover:opacity-90 transition-colors cursor-pointer"
  >
  <Plus size={18} />
- <span>Nouvel Événement</span>
+ <span class="whitespace-nowrap">Nouvel Événement</span>
  </button>
  </form>
+ </div>
  </div>
 
  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
@@ -185,7 +205,12 @@
  </label>
  </div>
 
- {#if data.events.length === 0 && data.filter !== "all"}
+ {#if data.events.length > 0 && events.length === 0}
+ <div class="bg-background rounded-lg border border-border-card p-12 text-center">
+ <p class="text-muted-foreground">Aucun événement ne correspond à « {query.trim()} ».</p>
+ <button type="button" onclick={() => (query = "")} class="mt-3 text-sm font-medium text-foreground underline underline-offset-4 hover:opacity-80 cursor-pointer">Effacer la recherche</button>
+ </div>
+ {:else if data.events.length === 0 && data.filter !== "all"}
  <div class="bg-background rounded-lg border border-border-card p-12 text-center">
  <p class="text-muted-foreground">{EMPTY_FILTER_LABELS[data.filter]}</p>
  </div>
@@ -246,7 +271,7 @@
  </tr>
  </thead>
  <tbody class="divide-y divide-border-card">
- {#each data.events as event (event.id)}
+ {#each events as event (event.id)}
  <tr
  class="hover:bg-muted transition-colors cursor-pointer"
  onclick={() => goto(`/admin/events/${event.id}`)}
@@ -371,7 +396,7 @@
 
  <!-- Card view for mobile -->
  <div class="lg:hidden space-y-4">
- {#each data.events as event (event.id)}
+ {#each events as event (event.id)}
  <div
  class="bg-background rounded-lg border border-border-card overflow-hidden cursor-pointer hover:border-foreground/30 transition-colors"
  onclick={() => goto(`/admin/events/${event.id}`)}
