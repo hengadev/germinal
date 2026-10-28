@@ -82,7 +82,12 @@
 		{ id: 'reservations', title: 'Réservations' },
 		{ id: 'promotions', title: 'Promotions' },
 	];
-	const tabs = [...EDITOR_TABS, ...OPERATIONAL_TABS];
+	// « Portfolio » comes last: it is filled in after the Event.
+	const tabs = [
+		...EDITOR_TABS.filter((tab) => tab.id !== 'portfolio'),
+		...OPERATIONAL_TABS,
+		...EDITOR_TABS.filter((tab) => tab.id === 'portfolio'),
+	];
 
 	// Base classes of bits-components/TabsList + TabsTrigger, with the editor's overrides.
 	const TAB_LIST_CLASS = cn(
