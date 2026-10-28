@@ -3,6 +3,7 @@
 **Status**: Accepted
 **Date**: 2026-10-16
 **Supersedes**: ADR 0001
+**Amended by**: ADR 0010 (how the editor saves)
 
 ## Context
 
