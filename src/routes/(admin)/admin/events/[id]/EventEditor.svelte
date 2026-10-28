@@ -27,6 +27,7 @@
 	import { beforeNavigate, goto, invalidateAll, replaceState } from '$app/navigation';
 	import { page } from '$app/state';
 	import Modal from '$lib/components/ui/Modal.svelte';
+	import { Popover } from 'bits-ui';
 	import DuplicateEventDialog from '$lib/components/admin/DuplicateEventDialog.svelte';
 	import { servedKinds } from '$lib/utils/schedule-pattern';
 	import { onMount, tick } from 'svelte';
@@ -196,6 +197,8 @@
 	const warnings = $derived(
 		event.isPortfolio ? [...publishingWarnings, ...portfolioWarnings] : publishingWarnings
 	);
+	let warningsOpen = $state(false);
+
 	// What is missing, per tab (issue 013's grouping): each tab label marks
 	// its own (issue 021) — Portfolio's only for a Portfolio Event, as above.
 	const missingByTab = $derived(
@@ -577,6 +580,62 @@
 					<Copy size={14} />
 					Dupliquer
 				</button>
+				{#if warnings.length > 0}
+					<span aria-hidden="true">·</span>
+					<!-- « À vérifier » (issue 038): what is missing for publishing,
+					     out of the way until asked for — the tabs already mark
+					     theirs with the same hollow ring. Each item opens the tab
+					     that fixes it; publishing is never refused (ADR 0008), and
+					     the list stays while the Event is published. -->
+					<Popover.Root bind:open={warningsOpen}>
+						<Popover.Trigger
+							class="inline-flex items-center gap-1.5 hover:text-foreground transition-colors cursor-pointer"
+							title="Ce qui manque pour publier"
+						>
+							<span aria-hidden="true" class="inline-block size-2 rounded-full border-[1.5px] border-current opacity-70"></span>
+							{warnings.length} à vérifier
+						</Popover.Trigger>
+						<Popover.Portal>
+							<Popover.Content
+								side="bottom"
+								align="start"
+								sideOffset={8}
+								aria-label="À vérifier"
+								class="z-[10000] w-[min(32rem,calc(100vw-2rem))] max-h-[70vh] overflow-y-auto border border-border-input rounded-lg p-4 bg-background shadow-lg"
+							>
+								<p class="text-base font-semibold text-foreground mb-1">À vérifier</p>
+								<p class="text-sm text-muted-foreground mb-2">
+									{#if event.visibility !== 'draft'}
+										Cet événement est publié ; ces points lui manquent toujours.
+									{:else}
+										Rien n’oblige à les compléter avant de publier : la décision vous reste.
+									{/if}
+									Chaque point ouvre l’onglet qui le corrige.
+								</p>
+								<ul class="divide-y divide-border-card">
+									{#each warnings as warning, i (i)}
+										<li>
+											<button
+												type="button"
+												onclick={() => {
+													warningsOpen = false;
+													selectTab(warning.tab);
+												}}
+												class="group w-full flex items-center justify-between gap-4 py-2.5 text-left text-sm text-foreground-alt hover:text-foreground transition-colors cursor-pointer"
+											>
+												<span>{warning.message}</span>
+												<span class="flex items-center gap-1 text-xs text-muted-foreground group-hover:text-foreground whitespace-nowrap">
+													{tabs.find((tab) => tab.id === warning.tab)?.title}
+													<ChevronRight size={14} aria-hidden="true" />
+												</span>
+											</button>
+										</li>
+									{/each}
+								</ul>
+							</Popover.Content>
+						</Popover.Portal>
+					</Popover.Root>
+				{/if}
 				<!-- The save status (issue 016). Screen readers hear each change
 				     of state once, not every tick of « il y a … ». -->
 				{#if saveState.status === 'saving'}
@@ -620,40 +679,6 @@
 		<div class="mb-6 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg">
 			<p class="text-sm font-medium">{form.success}</p>
 		</div>
-	{/if}
-
-	{#if warnings.length > 0}
-		<!-- « À vérifier » (issue 038): what is missing for publishing. Each
-		     item opens the tab that fixes it; publishing is never refused
-		     (ADR 0008), and the list stays while the Event is published. -->
-		<section class="mb-6 bg-background rounded-lg border border-border-card p-6" aria-label="À vérifier">
-			<h2 class="text-base font-semibold text-foreground mb-1">À vérifier</h2>
-			<p class="text-sm text-muted-foreground mb-4">
-				{#if event.visibility !== 'draft'}
-				Cet événement est publié ; ces points lui manquent toujours.
-			{:else}
-				Rien n’oblige à les compléter avant de publier : la décision vous reste.
-				{/if}
-				Chaque point ouvre l’onglet qui le corrige.
-			</p>
-			<ul class="divide-y divide-border-card">
-				{#each warnings as warning, i (i)}
-					<li>
-						<button
-							type="button"
-							onclick={() => selectTab(warning.tab)}
-							class="group w-full flex items-center justify-between gap-4 py-2.5 text-left text-sm text-foreground-alt hover:text-foreground transition-colors"
-						>
-							<span>{warning.message}</span>
-							<span class="flex items-center gap-1 text-xs text-muted-foreground group-hover:text-foreground whitespace-nowrap">
-								{tabs.find((tab) => tab.id === warning.tab)?.title}
-								<ChevronRight size={14} aria-hidden="true" />
-							</span>
-						</button>
-					</li>
-				{/each}
-			</ul>
-		</section>
 	{/if}
 
 	<!-- Hand-rolled tabs: bits-ui unmounts inactive panels, which would drop
