@@ -92,6 +92,30 @@
 		}));
 	}
 
+	/** A new Seating at `start`, inheriting the Venue Capacity; publication
+	 * and waitlist copied from `template` (the meal's latest Seating). */
+	export function newDraftSeating(start: string, template?: DraftSeating): DraftSeating {
+		return {
+			key: nextKey++,
+			id: null,
+			start,
+			end: '',
+			endOverridden: false,
+			titleEn: '',
+			titleFr: '',
+			descriptionEn: '',
+			descriptionFr: '',
+			capacity: null,
+			capacityOverridden: false,
+			published: template?.published ?? true,
+			allowWaitlist: template?.allowWaitlist ?? false,
+			badgeType: 'none',
+			reservationCount: 0,
+			soldSeats: 0,
+			detailsOpen: false,
+		};
+	}
+
 	/** A Service just picked on the Days picker: default duration, no Seating. */
 	export function newSeatingService(serviceId: string, date: string, kind: ServiceKind): DraftSeatingService {
 		return { serviceId, date, kind, duration: DEFAULT_SERVICE_DURATION_MINUTES[kind], seatings: [] };
@@ -125,11 +149,16 @@
 		services = $bindable(),
 		venueCapacity = $bindable(),
 		timeZone = DEFAULT_EVENT_TIME_ZONE,
+		layout = 'full',
 	}: {
 		services: DraftSeatingService[];
 		venueCapacity: number | null;
 		/** The Event's Time Zone: times are typed and shown on its clock. */
 		timeZone?: string;
+		/** `none`: no fields, only the payload and its checks — the host
+		 * edits everything on its programme and posts `venueCapacity`
+		 * itself. */
+		layout?: 'full' | 'none';
 	} = $props();
 
 	/** Untitled Seating's label, read on the Event's clock. */
@@ -219,29 +248,7 @@
 		requestAnimationFrame(() => document.getElementById(`seating-${key}-start`)?.focus());
 	}
 
-	/** A new Seating at `start`, inheriting the Venue Capacity; publication
-	 * and waitlist copied from `template` (the meal's latest Seating). */
-	function blankSeating(start: string, template: DraftSeating | undefined): DraftSeating {
-		return {
-			key: nextKey++,
-			id: null,
-			start,
-			end: '',
-			endOverridden: false,
-			titleEn: '',
-			titleFr: '',
-			descriptionEn: '',
-			descriptionFr: '',
-			capacity: null,
-			capacityOverridden: false,
-			published: template?.published ?? true,
-			allowWaitlist: template?.allowWaitlist ?? false,
-			badgeType: 'none',
-			reservationCount: 0,
-			soldSeats: 0,
-			detailsOpen: false,
-		};
-	}
+	const blankSeating = newDraftSeating;
 
 	// « Séances par repas »: start times and a duration typed once per meal
 	// kind, applied to every lunch or every dinner. Applying only adds the
@@ -457,8 +464,10 @@
 	const LABEL_CLASS = 'block text-xs font-medium text-foreground-alt mb-1';
 </script>
 
+<input type="hidden" name="services" value={payload} />
+
+{#if layout === 'full'}
 <div class="space-y-6">
-	<input type="hidden" name="services" value={payload} />
 
 	<section class="bg-background rounded-lg border border-border-card p-4 lg:p-6" aria-labelledby="venue-capacity-title">
 		<div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -866,3 +875,4 @@
 		{/if}
 	{/if}
 </div>
+{/if}
