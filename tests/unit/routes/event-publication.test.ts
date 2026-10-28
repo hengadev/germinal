@@ -23,6 +23,7 @@ const refusals = vi.hoisted(() => {
 vi.mock('$lib/server/services/events', () => ({
 	updateEvent,
 	getEventById,
+	touchEvent: vi.fn(),
 	SpotlightRequiresPublicError: refusals.SpotlightRequiresPublicError,
 	PortfolioRequiresOverEventError: refusals.PortfolioRequiresOverEventError,
 }));

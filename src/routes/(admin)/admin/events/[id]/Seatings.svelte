@@ -33,6 +33,7 @@
 			schedule?: EditorService[];
 			venueCapacity?: number | null;
 			event?: {
+				visibility?: string;
 				timeZone?: string;
 				bookingOpensAt?: Date | string | null;
 				bookingClosesHoursBefore?: number | null;
@@ -109,10 +110,10 @@
 	);
 
 	// The Days cannot use browser validity (the payload is a hidden input).
-	// A Draft starts with no Days (ADR 0010): none is required until one
-	// is saved.
+	// A Draft may have no Days (ADR 0010); a published Event cannot drop
+	// every saved Day.
 	function pickedDaysError(): string | null {
-		if (days.length === 0 && (data.days?.length ?? 0) > 0) {
+		if (days.length === 0 && (data.days?.length ?? 0) > 0 && data.event?.visibility !== 'draft') {
 			return 'Sélectionnez au moins un jour sur le calendrier.';
 		}
 		if (days.some((day) => day.kinds.length === 0)) {

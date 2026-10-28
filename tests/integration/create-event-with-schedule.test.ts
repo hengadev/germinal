@@ -277,11 +277,28 @@ describe('« Dates & séances » and « Menus & tarifs » on the new Draft', () 
 		expect(await eventById(id)).toMatchObject({ visibility: 'draft' });
 	});
 
-	it('still refuses to remove every saved Day', async () => {
+	it('lets a Draft remove every saved Day', async () => {
 		const id = await newDraft();
 		await save(id, 'saveSeatings', seatingsForm());
+		expect(await save(id, 'saveSeatings', noDaysForm())).toMatchObject(SAVED);
+		expect(await testDb.select().from(eventDays).where(eq(eventDays.eventId, id))).toHaveLength(0);
+		expect(await testDb.select().from(eventSessions).where(eq(eventSessions.eventId, id))).toHaveLength(0);
+	});
+
+	it('still refuses to remove every saved Day of a published Event', async () => {
+		const id = await newDraft();
+		await save(id, 'saveSeatings', seatingsForm());
+		await testDb.update(events).set({ visibility: 'private' }).where(eq(events.id, id));
 		expect(await save(id, 'saveSeatings', noDaysForm())).toMatchObject({ status: 400 });
 		expect(await testDb.select().from(eventDays).where(eq(eventDays.eventId, id))).toHaveLength(1);
+	});
+
+	it('marks the Event modified when a tab that writes no Event field saves', async () => {
+		const id = await newDraft();
+		const past = new Date('2026-01-01T00:00:00Z');
+		await testDb.update(events).set({ updatedAt: past }).where(eq(events.id, id));
+		await save(id, 'saveSeatings', seatingsForm());
+		expect((await eventById(id)).updatedAt.getTime()).toBeGreaterThan(past.getTime());
 	});
 
 	it('refuses a placeholder that names no picked meal', async () => {

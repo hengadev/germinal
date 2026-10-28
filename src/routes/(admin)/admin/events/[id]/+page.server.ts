@@ -1,4 +1,4 @@
-import { fail, error } from '@sveltejs/kit';
+import { fail, error, isActionFailure } from '@sveltejs/kit';
 import { logger } from '$lib/server/logger';
 import { env } from '$lib/server/env';
 import { MOCK_EVENTS, MOCK_SESSIONS, MOCK_RESERVATIONS, MOCK_TALENTS } from '$lib/mock-data';
@@ -75,6 +75,14 @@ async function lastSeatingStart(eventId: string): Promise<Date | null> {
 	const { db } = await import('$lib/server/db');
 	const { lastSeatingStartOf } = await import('$lib/server/services/event-access');
 	return lastSeatingStartOf(db, eventId);
+}
+
+/** Whether the Event is still a Draft: a Draft may drop all its Days (ADR 0010). */
+async function isDraft(eventId: string): Promise<boolean> {
+	const event = env.USE_MOCK_DATA
+		? MOCK_EVENTS.find((e) => e.id === eventId)
+		: await (await import('$lib/server/services/events')).getEventById(eventId).catch(() => undefined);
+	return event?.visibility === 'draft';
 }
 
 /**
@@ -413,7 +421,7 @@ export const load: PageServerLoad = async ({ params }) => {
 	}
 };
 
-export const actions: Actions = {
+const editorActions: Actions = {
 	// Save the Essentiel, Lieu or Programme tab: each posts only its own
 	// fields, and only those change (ADR 0008 — nothing is required).
 	updateEvent: async ({ request, params, locals }) => {
@@ -670,12 +678,15 @@ export const actions: Actions = {
 		const pickedDays = parsePickedDays(
 			typeof formData.get('days') === 'string' ? formData.get('days') as string : null
 		);
-		// A Draft starts with no Days (ADR 0010): the tab saves without one
-		// until a Day is saved; removing every saved Day is still refused.
+		// A Draft may have no Days (ADR 0010), even after some were saved;
+		// a published Event cannot drop every saved Day.
 		let days: PickedServiceDay[];
 		if (pickedDays.ok) {
 			days = pickedDays.days;
-		} else if (pickedDays.reason === 'empty' && (env.USE_MOCK_DATA || (await loadScheduleDays(id)).length === 0)) {
+		} else if (
+			pickedDays.reason === 'empty' &&
+			(env.USE_MOCK_DATA || (await isDraft(id)) || (await loadScheduleDays(id)).length === 0)
+		) {
 			days = [];
 		} else {
 			return fail(400, { error: pickedDaysErrorMessage(pickedDays.reason), fields: ['days'] });
@@ -905,3 +916,34 @@ export const actions: Actions = {
 		}
 	}
 };
+
+// The saves that change what the Event holds mark it modified, whatever
+// they write: the Events list sorts by « Dernière modification ».
+const CONTENT_ACTIONS = new Set([
+	'updateEvent',
+	'updatePublication',
+	'updateMedia',
+	'updateEventPhotos',
+	'deletePhoto',
+	'saveSeatings',
+	'savePricing',
+]);
+
+function touching(action: Actions[string]): Actions[string] {
+	return async (event) => {
+		const result = await action(event);
+		if (!isActionFailure(result) && !env.USE_MOCK_DATA) {
+			try {
+				const { touchEvent } = await import('$lib/server/services/events');
+				await touchEvent(event.params.id);
+			} catch (err) {
+				logger.warn({ err }, 'Could not mark the Event modified');
+			}
+		}
+		return result;
+	};
+}
+
+export const actions: Actions = Object.fromEntries(
+	Object.entries(editorActions).map(([name, action]) => [name, CONTENT_ACTIONS.has(name) ? touching(action) : action])
+);
