@@ -11,7 +11,7 @@ A curated experience organized by Germinal (e.g., a chef's dinner, a performance
 _Avoid_: Show, experience, programme
 
 **Day**:
-A calendar date on which an Event takes place. An Event's Days are picked individually and need not be consecutive (e.g., Monday, Wednesday, Thursday).
+A calendar date on which an Event takes place. An Event's Days are picked individually and need not be consecutive (e.g., Monday, Wednesday, Thursday). On the day, a Day runs from midnight to 6 a.m. the next morning in the Event's **Time Zone**, so a dinner past midnight stays on its Day: this is the window in which **Staff** see that Day's guests and record **Check-ins**.
 _Avoid_: Date range, occurrence
 
 **Service**:
@@ -27,11 +27,11 @@ A set of dishes served at an Event, described once and offered on one or more Se
 _Avoid_: Formula, formule, offer
 
 **Deposit**:
-The part of a Menu's price a Guest pays online when making a Reservation; the remainder (the **Balance**) is paid at the venue. Defined once per Event as either a fixed amount per seat or a percentage of each price, and always displayed as the resulting amount. An Event may require no Deposit, in which case the Guest pays everything at the venue.
+The part of a Menu's price a Guest pays online when making a Reservation; the remainder (the **Balance**) is paid at the venue. Defined once per Event as either a fixed amount per seat or a percentage of each price, and always displayed as the resulting amount. An Event may require no Deposit, in which case the Guest pays everything at the venue, or a Deposit of 100%, in which case everything is paid online and there is no Balance. Which one is the Admin's call per Event, not the app's: the app supports all three. Whatever Guests consume on site beyond the Menu (drinks, extras) is not a Reservation's business and is never recorded in the app.
 _Avoid_: Acompte (in code/docs), down payment, pre-payment
 
 **Balance**:
-What a Guest still owes at the venue: the price minus the Deposit already paid.
+What a Guest still owes at the venue: the price minus the Deposit already paid. Collected on the venue's payment terminal, never through the app. Once collected, a **Staff** member marks it **settled**, attributed to them: this records no amount and no payment method (the terminal's report is the accounting for money taken on site); it only tells the team the party owes nothing more. Undoing it takes the "correct a mistake" **Staff Permission** or an **Admin**.
 _Avoid_: Remainder, solde (in code/docs)
 
 **Refund Policy**:
@@ -106,6 +106,22 @@ _Avoid_: Artist, creator, performer
 The record created when a guest books one or more seats for a Seating. Holds guest identity, quantity, payment status, and an access token. One Reservation may cover several seats, up to the Seating's remaining capacity. On an Event without a Deposit it is also capped per Event (10 seats by default, set by the Admin); on an Event with a Deposit there is no cap. Comps an Admin issues ignore the cap.
 _Avoid_: Booking (use as a verb only), order, purchase
 
+**Move**:
+Changing a **Reservation**'s **Seating**. A **Staff** member may only move one, during a **Day**, to another Seating of the same **Service** (e.g. dinner 19:00 → 21:00): same **Menu**, same price, so nothing paid or owed changes. The target Seating's capacity may be exceeded, as for a **Walk-in**. The **Ticket** keeps working, since it belongs to the Reservation. The Guest gets a "Réservation modifiée" email with the new time when they have an email. Attributed to whoever made it. Moving to another Service or another Day may change the price, so it is an **Admin**'s, with the price difference handled (not built yet), and moving to another Day is subject to the terms of sale.
+_Avoid_: Transfer, reschedule, change (as a noun)
+
+**No-show**:
+A **Guest** of a **Reservation** for a **Seating** that is over who was never checked in: a party of 4 with 3 arrived counts 1 No-show. Shown to **Admins** in each Seating's attendance once the Event is over, beside the Guests booked and arrived, the **Walk-ins** and the **Comps**, to help set the next Event's capacity.
+_Avoid_: Absent, missing
+
+**Walk-in**:
+A **Reservation** a **Staff** member or **Admin** makes on the spot, during a **Day**, for a party that turns up without booking. It takes no Deposit, so its **Balance** is the full price, collected on the terminal and then settled like any other. Asks only a name and party size (email and phone optional), sends no **Ticket**, and is checked in as soon as it is made. Attributed to whoever made it. May exceed the **Seating**'s capacity: that capacity limits online sales, and the person at the door sees the room; the guest list then shows the overflow (e.g. "34 / 32").
+_Avoid_: Drop-in, sur place (in code/docs)
+
+**Comp**:
+A **Reservation** offered for free: no Deposit, no **Balance**. Made by an **Admin**, or on the spot by a **Staff** member whose **Assignment** grants the "offer a Comp" **Staff Permission** (never in a starting Staff Role; an Admin grants it to people they trust). A Comp made on the spot behaves like a **Walk-in** otherwise: no Ticket, checked in at once, attributed, may exceed capacity.
+_Avoid_: Invitation, free ticket, offert (in code/docs)
+
 **Cancelled**:
 A Seating or an Event that Germinal called off. Its Reservations are cancelled with every Deposit refunded in full and its Guests notified; it takes no new Reservations or Waitlist entries. A cancelled Event stays reachable at its link, marked as cancelled, but is never listed, Spotlight or Portfolio. An Event whose every Seating is cancelled is cancelled.
 _Avoid_: Annulled, called off (in code/docs)
@@ -118,8 +134,12 @@ _Avoid_: Allergies (as the field name), dietary notes, régime (in code/docs)
 The confirmation document a guest receives after a Reservation is confirmed. One Ticket per Reservation (not per seat), identified by a unique QR code linking to `/tickets/[token]`.
 _Avoid_: Pass, voucher, confirmation
 
+**Check-in**:
+The record that some of a **Reservation**'s **Guests** have arrived: how many, when, and which **Staff** member or **Admin** recorded it. Counts Guests, not parties: a party of 4 arriving in two halves is two Check-ins, and the Reservation reads "2 / 4 arrived" in between. A Reservation's Check-ins never add up to more than its party size. Made by scanning the **Ticket** (pre-filled with the Guests still expected) or by hand, and only during its **Seating**'s **Day** (midnight to 6 a.m. the next morning, in the Event's **Time Zone**): a Ticket shown on another day is refused. A Guest who wants to come on another day needs their Reservation moved first (the conditions for that belong in the terms of sale). A Check-in can be undone by someone with the "correct a mistake" **Staff Permission**, or an **Admin**.
+_Avoid_: Scan, entry, admission, arrival (as a noun for the record)
+
 **Guest**:
-A person who makes a Reservation, identified by email and name. Does not require an account — Reservations are guest-first and accessed via token, not login.
+A person who makes a Reservation, identified by email and name (a **Walk-in** or a **Comp** made on the spot may have no email). Does not require an account — Reservations are guest-first and accessed via token, not login.
 _Avoid_: Customer, user, attendee
 
 **Booking Window**:
@@ -141,12 +161,41 @@ _Avoid_: Discount, offer
 ### People & Access
 
 **Admin**:
-A member of the Germinal internal team with full back-office access (event management, reservations, analytics, team). Operates from the admin subdomain.
+A member of the Germinal internal team with full back-office access (event management, reservations, analytics, team). Operates from the admin subdomain. May also use the **Staff** portal to follow an Event on the day: there they hold every **Staff Permission** at every Event, without an **Assignment**, and what they do is attributed to them like any Staff member's.
 _Avoid_: Manager, operator
 
 **Staff**:
-An external person (e.g., bartender, photographer, technician) assigned to a specific Event. Has a minimal portal for viewing and completing their assigned Tasks only.
+An external person (e.g., bartender, photographer, technician) with an **Assignment** to an Event. Has a portal showing, for each Assignment, only what its **Staff Permissions** allow. On the day, acts from their own phone, logged in as themselves: every Check-in or change they make is attributed to them. There is no shared door device. The portal is in French only, like the admin.
 _Avoid_: Team member, crew, volunteer
+
+**Assignment**:
+A **Staff** member's place on one **Event**, with one **Staff Role**. A Staff member has at most one Assignment per Event. What they may do at that Event is the Staff Role's **Staff Permissions**, plus any granted and minus any withdrawn on this Assignment alone. These adjustments express trust in this person for this Event; they never carry over to another Event.
+_Avoid_: Staffing, booking (of staff)
+
+**Staff Role**:
+A named set of **Staff Permissions** an **Admin** creates and edits (e.g. Door, Bar, Photographer, or "Door (senior)" for trusted people). An **Assignment** refers to it: editing a Staff Role changes the permissions of every Assignment to it at once, while each Assignment keeps its own adjustments. Starts seeded with Responsable, Porte, Salle, Cuisine, Bar and Photographe, all editable. A Staff Role is never deleted while an Assignment refers to it, only archived: it keeps working on those Assignments but can no longer be picked for a new one.
+_Avoid_: Role (alone: that is an account's admin/staff/user role), position, job
+
+**Staff Permission**:
+One thing a **Staff** member may do or see at an **Event** (e.g. see the guest list, check Guests in, see **Dietary Requirements**). The list is fixed in the code; Admins combine permissions into **Staff Roles** and adjust them per **Assignment**. The list (may grow after client feedback):
+- see the Event's **Tasks** and update their status
+- see the guest list (names, party size, **Seating**, **Balance** due)
+- check Guests in by scanning their **Ticket**
+- check Guests in by hand, without a Ticket (found by name)
+- mark a **Balance** as settled
+- correct a mistake: undo a Check-in or a settled Balance (for trusted people; not in the starting Staff Roles)
+- see **Dietary Requirements** (health data)
+- see Guests' contact details (phone, email)
+- **Move** a Reservation to another Seating of the same Service
+- add a **Walk-in**
+- offer a **Comp** (never in a starting Staff Role: an Admin grants it per Assignment)
+
+Every permission but the Tasks one concerns Guests, and works only during a **Day** of the Event, on that Day's Reservations alone: before it, after it, or for another Day, a Staff member sees no Guest at all, whatever their Staff Role. Guests' data is needed on the day, never before.
+
+Acting on parties (scanning, checking in by hand, settling a Balance, a Move, a Walk-in, a Comp) requires seeing the guest list, so granting one grants that too. Seeing Dietary Requirements shows each party's name and size with them, not the whole guest list.
+
+Never a Staff Permission, whatever the trust: cancelling or refunding a Reservation, and seeing **Internal Notes**. Those stay with Admins.
+_Avoid_: Right, access, capability
 
 **Task**:
 An operational to-do item scoped to an Event, assigned to a Staff member by an Admin.
@@ -176,7 +225,8 @@ A contact form submission from an external party. Four types: `collaboration` (c
 - A **Coupon** belongs to an **Event** and has one or more **Promo Codes**
 - A **Talent** belongs to Germinal's roster independently of any specific **Event**
 - A **Collaborator** is referenced on an **Event** but is not a **Talent** in the system
-- An **Admin** can assign a **Staff** member to an **Event** via a role label
+- An **Admin** gives a **Staff** member an **Assignment** to an **Event**, with one **Staff Role**
+- A **Staff Role** has zero or more **Staff Permissions**; an **Assignment** may grant or withdraw some
 - An **Admin** creates **Tasks** on an **Event** and assigns them to **Staff**
 
 ## Example dialogue
