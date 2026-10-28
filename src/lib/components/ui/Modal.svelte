@@ -1,3 +1,9 @@
+<script lang="ts" module>
+	// Modals open at once (a confirmation over a modal): each opens above
+	// the last, and the page scrolls again once the last one closes.
+	let openModals = 0;
+</script>
+
 <script lang="ts">
 	import { onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
@@ -13,7 +19,14 @@
 
 	let { children, isOpen = $bindable(false), title, description, wide = false }: Props = $props();
 
+	const uid = $props.id();
 	let dialogEl: HTMLElement | null = $state(null);
+	/** How many modals were open below this one when it opened. */
+	let layer = $state(0);
+	/** Focused before opening, and the modal holding it: focused again on
+	 * close, the modal if that element is gone, so Escape still reaches it. */
+	let returnFocus: HTMLElement | null = null;
+	let returnDialog: HTMLElement | null = null;
 	let renderChildren = $state(false);
 	let closeTimer: ReturnType<typeof setTimeout> | undefined;
 	let scrollLocked = false;
@@ -22,6 +35,7 @@
 
 	function handleKeydown(event: KeyboardEvent) {
 		if (event.key === 'Escape') {
+			event.stopPropagation();
 			isOpen = false;
 		}
 	}
@@ -32,15 +46,18 @@
 	}
 
 	function lockScroll() {
+		layer = openModals++;
 		document.body.style.overflow = 'hidden';
 		document.addEventListener('touchmove', preventBodyTouchMove, { passive: false });
 		scrollLocked = true;
 	}
 
 	function unlockScroll() {
-		document.body.style.overflow = '';
 		document.removeEventListener('touchmove', preventBodyTouchMove);
-		void document.body.getBoundingClientRect();
+		if (--openModals === 0) {
+			document.body.style.overflow = '';
+			void document.body.getBoundingClientRect();
+		}
 		scrollLocked = false;
 	}
 
@@ -49,9 +66,15 @@
 		if (isOpen) {
 			clearTimeout(closeTimer);
 			renderChildren = true;
-			lockScroll();
+			if (!scrollLocked) {
+				returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+				returnDialog = returnFocus?.closest<HTMLElement>('[role="dialog"]') ?? null;
+				lockScroll();
+			}
 			if (dialogEl) dialogEl.focus();
 		} else if (scrollLocked || renderChildren) {
+			(returnFocus?.isConnected ? returnFocus : returnDialog)?.focus();
+			returnFocus = returnDialog = null;
 			closeTimer = setTimeout(() => {
 				unlockScroll();
 				renderChildren = false;
@@ -69,6 +92,7 @@
 <div
 	class="overlay"
 	class:visible={isOpen}
+	style:z-index={9998 + layer * 2}
 	onclick={() => (isOpen = false)}
 	aria-hidden="true"
 ></div>
@@ -77,11 +101,12 @@
 	class="modal"
 	class:visible={isOpen}
 	class:wide
+	style:z-index={9999 + layer * 2}
 	role="dialog"
 	aria-modal={isOpen}
 	aria-hidden={!isOpen}
-	aria-labelledby={title ? 'modal-title' : undefined}
-	aria-describedby={description ? 'modal-description' : undefined}
+	aria-labelledby={title ? `${uid}-title` : undefined}
+	aria-describedby={description ? `${uid}-description` : undefined}
 	tabindex="-1"
 	onclick={(e) => e.stopPropagation()}
 	onkeydown={handleKeydown}
@@ -90,10 +115,10 @@
 		{#if title || description}
 			<div class="modal-header">
 				{#if title}
-					<h2 id="modal-title" class="modal-title">{title}</h2>
+					<h2 id="{uid}-title" class="modal-title">{title}</h2>
 				{/if}
 				{#if description}
-					<p id="modal-description" class="modal-description">{description}</p>
+					<p id="{uid}-description" class="modal-description">{description}</p>
 				{/if}
 			</div>
 		{/if}
