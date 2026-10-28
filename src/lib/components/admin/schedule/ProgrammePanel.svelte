@@ -27,6 +27,7 @@
 		currency,
 		idPrefix,
 		programmeExtra,
+		onnewmenu,
 	}: {
 		programme: Programme;
 		selected?: string[];
@@ -36,6 +37,7 @@
 		idPrefix: string;
 		/** Settings of the programme shared by both meals (the Venue Capacity). */
 		programmeExtra?: Snippet;
+		onnewmenu?: (use: (key: string) => void) => void;
 	} = $props();
 
 	const facet = $derived(programme.facet);
@@ -174,6 +176,7 @@
 			onrename={v ? v.rename : (from, to) => programme.renameStart(null, kind, from, to)}
 			onsetinfo={facet === 'seances' ? (v ? v.setInfo : (start, info) => programme.setSeatingInfo(null, kind, start, info)) : undefined}
 			{dates}
+			{onnewmenu}
 			idPrefix="{idPrefix}-{exception ? 'sel' : 'prog'}-{kind}"
 		/>
 	{/key}

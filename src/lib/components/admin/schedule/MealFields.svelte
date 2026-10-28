@@ -41,6 +41,7 @@
 		menus = [],
 		currency = 'EUR',
 		dates = [],
+		onnewmenu,
 	}: {
 		kind: Kind;
 		facet: Facet;
@@ -63,7 +64,11 @@
 		currency?: string;
 		/** The Days edited; none for the programme. */
 		dates?: string[];
+		/** « + Nouveau menu… »: create a Menu, then offer it on this meal. */
+		onnewmenu?: (use: (key: string) => void) => void;
 	} = $props();
+
+	const NEW_MENU = '__new__';
 
 	const DURATIONS = $derived.by(() => {
 		// 15 min to 6 h, by quarter hours; a saved duration off that list stays.
@@ -440,13 +445,21 @@
 					<select
 						id="{idPrefix}-menu"
 						value={value.menu}
-						onchange={(e) => onset('menu', e.currentTarget.value)}
+						onchange={(e) => {
+							const select = e.currentTarget;
+							if (select.value !== NEW_MENU) return onset('menu', select.value);
+							select.value = value.menu;
+							onnewmenu?.((key) => onset('menu', key));
+						}}
 						class="{INPUT} max-w-full pr-8 cursor-pointer"
 					>
 						<option value="">Aucun menu</option>
 						{#each menus as menu (menu.key)}
 							<option value={menu.key}>{menu.label}</option>
 						{/each}
+						{#if onnewmenu}
+							<option value={NEW_MENU}>+ Nouveau menu…</option>
+						{/if}
 					</select>
 				</div>
 			{/if}

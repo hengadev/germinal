@@ -6,10 +6,12 @@
 		isOpen?: boolean;
 		title?: string;
 		description?: string;
+		/** Room for forms with rows of fields. */
+		wide?: boolean;
 		children?: import('svelte').Snippet;
 	}
 
-	let { children, isOpen = $bindable(false), title, description }: Props = $props();
+	let { children, isOpen = $bindable(false), title, description, wide = false }: Props = $props();
 
 	let dialogEl: HTMLElement | null = $state(null);
 	let renderChildren = $state(false);
@@ -74,6 +76,7 @@
 	bind:this={dialogEl}
 	class="modal"
 	class:visible={isOpen}
+	class:wide
 	role="dialog"
 	aria-modal={isOpen}
 	aria-hidden={!isOpen}
@@ -135,6 +138,9 @@
 		opacity: 0;
 		pointer-events: none;
 		transition: opacity 200ms, transform 250ms;
+	}
+	.modal.wide {
+		max-width: 720px;
 	}
 	.modal.visible {
 		opacity: 1;

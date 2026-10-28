@@ -19,6 +19,7 @@
 		currency,
 		idPrefix,
 		programmeExtra,
+		onnewmenu,
 	}: {
 		programme: Programme;
 		words: Wording;
@@ -26,6 +27,8 @@
 		currency?: string;
 		idPrefix: string;
 		programmeExtra?: Snippet;
+		/** « + Nouveau menu… » in the Menu list: create one, then `use` it. */
+		onnewmenu?: (use: (key: string) => void) => void;
 	} = $props();
 
 	let selected: string[] = $state([]);
@@ -142,6 +145,6 @@
 		class="scroll-mt-16 lg:sticky lg:top-4 bg-background rounded-lg border {selected.length ? 'border-amber-300' : 'border-border-card'}"
 		aria-label="Déjeuner et dîner"
 	>
-		<ProgrammePanel bind:this={panel} {programme} bind:selected {words} {menus} {currency} {idPrefix} {programmeExtra} />
+		<ProgrammePanel bind:this={panel} {programme} bind:selected {words} {menus} {currency} {idPrefix} {programmeExtra} {onnewmenu} />
 	</aside>
 </div>

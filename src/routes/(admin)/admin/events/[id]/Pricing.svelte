@@ -1,8 +1,9 @@
 <script lang="ts">
-	// « Menus & tarifs » tab: each meal's Menu and price as a programme type
-	// with exceptions (two panels, on the Days picked in « Dates &
-	// séances »), then the shared pricing editor (issues 022, 023, 027) for
-	// the Menus, currency, Deposit and Refund Policy — in one form, saved
+	// « Menus & tarifs » tab: the shared pricing editor (issues 022, 023,
+	// 027) sums up the currency, Menus, Deposit and Refund Policy, edited in
+	// modals; under it, each meal's Menu and price as a programme type with
+	// exceptions (two panels, on the Days picked in « Dates & séances ») —
+	// in one form, saved
 	// with the `savePricing` action. The programme is read from the
 	// Services and writes into the same drafts: nothing of it is stored.
 	// On a Draft the tab saves itself as a whole, once valid and after
@@ -111,6 +112,11 @@
 			requestAnimationFrame(() => document.getElementById(`pricing-programme-sel-${service.kind}-price`)?.focus());
 			return;
 		}
+		// Menus, Deposit and Refund Policy are in modals: open it first.
+		if (editor?.reveal(id)) {
+			setTimeout(() => document.getElementById(id)?.focus(), 60);
+			return;
+		}
 		document.getElementById(id)?.focus();
 	}
 
@@ -204,14 +210,6 @@
 </div>
 
 <form data-editor-form="pricing" method="POST" action="?/savePricing" use:enhance={savePricingEnhance} novalidate class="space-y-8">
-	{#if services.length === 0}
-		<p class="bg-background rounded-lg border border-border-card px-4 lg:px-6 py-6 text-sm text-muted-foreground">
-			Aucun repas pour le moment : choisissez d’abord les jours et les repas dans l’onglet « Dates &amp; séances ».
-		</p>
-	{:else}
-		<ProgrammeEditor bind:this={schedule} {programme} {words} menus={menuOptions} {currency} idPrefix="pricing-programme" />
-	{/if}
-
 	<PricingEditor
 		bind:this={editor}
 		bind:menus
@@ -222,7 +220,23 @@
 		currencyLocked={data.pricing?.currencyLocked ?? false}
 		daysTabName="Dates & séances"
 		servicesList={services.some((service) => service.legacySeatings.length > 0)}
-	/>
+	>
+		{#if services.length === 0}
+			<p class="bg-background rounded-lg border border-border-card px-4 lg:px-6 py-6 text-sm text-muted-foreground">
+				Aucun repas pour le moment : choisissez d’abord les jours et les repas dans l’onglet « Dates &amp; séances ».
+			</p>
+		{:else}
+			<ProgrammeEditor
+				bind:this={schedule}
+				{programme}
+				{words}
+				menus={menuOptions}
+				{currency}
+				idPrefix="pricing-programme"
+				onnewmenu={(use) => editor?.createMenu(use)}
+			/>
+		{/if}
+	</PricingEditor>
 
 	<!-- Hidden on a Draft, which saves itself (issue 019), and on a published
 	     Event, which saves through its bar (issue 020). -->

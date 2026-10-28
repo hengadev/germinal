@@ -164,7 +164,9 @@
 </script>
 
 <script lang="ts">
-	import { AlertTriangle, CalendarDays, Plus, Trash2, UtensilsCrossed } from 'lucide-svelte';
+	import type { Snippet } from 'svelte';
+	import { AlertTriangle, CalendarDays, ChevronDown, Lock, Plus, Trash2, UtensilsCrossed } from 'lucide-svelte';
+	import Modal from '$lib/components/ui/Modal.svelte';
 	import EnglishVersion, { getEnglishAuto } from '$lib/components/admin/EnglishVersion.svelte';
 	import { EVENT_CURRENCIES, formatCurrency } from '$lib/utils/currency';
 	import { formatDayKey } from '$lib/utils/event-time';
@@ -197,6 +199,7 @@
 		daysTabName,
 		seatingCountOf,
 		servicesList = true,
+		children,
 	}: {
 		menus: DraftMenu[];
 		deposit: DraftDeposit;
@@ -214,7 +217,21 @@
 		/** Off when the host edits each Service's Menu and price itself
 		 * (the programme of « Menus & tarifs »). */
 		servicesList?: boolean;
+		/** Shown under the summary of Menus, currency and payment rules
+		 * (the host's Menu and price per meal). */
+		children?: Snippet;
 	} = $props();
+
+	// Menus, Deposit and Refund Policy are edited in modals over the tab;
+	// their summary stays in view. What is typed there goes into the drafts
+	// like any field: « Terminé » only closes.
+	let menusOpen = $state(false);
+	let depositOpen = $state(false);
+	let refundOpen = $state(false);
+	/** A Menu in use, asked about before it is deleted. */
+	let confirmingDelete: string | null = $state(null);
+	/** The Menu created from a meal's « + Nouveau menu… », offered there on « Terminé ». */
+	let creating: { key: string; use: (key: string) => void } | null = null;
 
 	const englishAuto = getEnglishAuto();
 
@@ -262,6 +279,53 @@
 		return `Acompte : ${amount(price.deposit)} par convive — reste ${amount(price.balance)} à régler sur place.`;
 	}
 
+	/** The rule in a few words, for the summary. */
+	const depositSummary = $derived.by(() => {
+		if (!depositRule) return '';
+		if (depositRule.type === 'none') return 'Pas d’acompte : tout est réglé sur place.';
+		if (isFullPayment(depositRule)) return 'Paiement intégral en ligne à la réservation.';
+		if (depositRule.type === 'percent') return `${depositRule.value} % du prix en ligne à la réservation, le reste sur place.`;
+		return `${formatCurrency(depositRule.value, currency, 'fr-FR')} par convive en ligne à la réservation, le reste sur place.`;
+	});
+
+	/** The rule in a word or two, on its button. */
+	const depositShort = $derived.by(() => {
+		if (!depositRule) return 'à compléter';
+		if (depositRule.type === 'none') return 'aucun';
+		if (isFullPayment(depositRule)) return 'paiement intégral';
+		if (depositRule.type === 'percent') return `${depositRule.value} %`;
+		return `${formatCurrency(depositRule.value, currency, 'fr-FR')} / convive`;
+	});
+
+	/** What the rule gives on each meal's usual price (the price most of
+	 * its Services have), for one guest. */
+	const depositExamples = $derived.by(() => {
+		if (!depositRule) return [];
+		const examples: { kind: ServiceKind; text: string }[] = [];
+		for (const kind of ['lunch', 'dinner'] as const) {
+			const counts = new Map<number, number>();
+			for (const service of services) {
+				if (service.kind !== kind || isBlank(service.price) || !isValidPrice(service.price)) continue;
+				const unitPrice = Math.round((service.price as number) * 100);
+				counts.set(unitPrice, (counts.get(unitPrice) ?? 0) + 1);
+			}
+			const usual = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+			if (usual === undefined) continue;
+			const amount = (value: number) => formatCurrency(value, currency, 'fr-FR');
+			const price = priceReservation({ unitPrice: usual, seats: 1, deposit: depositRule });
+			const text =
+				usual === 0
+					? 'gratuit'
+					: price.balance === 0
+						? `${amount(usual)} → ${amount(price.deposit)} en ligne`
+						: price.deposit === 0
+							? `${amount(usual)} → ${amount(price.balance)} sur place`
+							: `${amount(usual)} → ${amount(price.deposit)} en ligne, ${amount(price.balance)} sur place`;
+			examples.push({ kind, text: `${MEAL_LABEL[kind]} ${text}` });
+		}
+		return examples;
+	});
+
 	/** The tiers as posted (hours, largest window first), or null while what
 	 * is typed is not valid. */
 	const refundTiers: RefundTier[] | null = $derived.by(() => {
@@ -294,6 +358,15 @@
 		};
 	});
 
+	/** The policy in a few words, on its button. */
+	const refundShort = $derived.by(() => {
+		if (!refundPolicy) return 'à compléter';
+		if (refund.type === 'manual') return 'texte libre';
+		const preset = REFUND_PRESETS.find((p) => isPreset(p.tiers));
+		if (preset) return preset.short;
+		return `${refund.tiers.length} palier${refund.tiers.length > 1 ? 's' : ''}`;
+	});
+
 	function applyRefundPreset(tiers: readonly RefundTier[]) {
 		refund.tiers = toDraftTiers(tiers);
 	}
@@ -303,12 +376,12 @@
 		return refundTiers !== null && JSON.stringify(refundTiers) === JSON.stringify(tiers);
 	}
 
-	const REFUND_PRESETS: { label: string; tiers: readonly RefundTier[] }[] = [
-		{ label: 'Remboursable jusqu’à 24 h avant', tiers: refundableUntilTiers(24) },
-		{ label: 'Remboursable jusqu’à 48 h avant', tiers: refundableUntilTiers(48) },
-		{ label: 'Remboursable jusqu’à 7 jours avant', tiers: refundableUntilTiers(168) },
-		{ label: 'Toujours remboursable', tiers: ALWAYS_REFUNDABLE_TIERS },
-		{ label: 'Jamais remboursable', tiers: NEVER_REFUNDABLE_TIERS },
+	const REFUND_PRESETS: { label: string; short: string; tiers: readonly RefundTier[] }[] = [
+		{ label: 'Remboursable jusqu’à 24 h avant', short: 'jusqu’à 24 h avant', tiers: refundableUntilTiers(24) },
+		{ label: 'Remboursable jusqu’à 48 h avant', short: 'jusqu’à 48 h avant', tiers: refundableUntilTiers(48) },
+		{ label: 'Remboursable jusqu’à 7 jours avant', short: 'jusqu’à 7 jours avant', tiers: refundableUntilTiers(168) },
+		{ label: 'Toujours remboursable', short: 'toujours', tiers: ALWAYS_REFUNDABLE_TIERS },
+		{ label: 'Jamais remboursable', short: 'jamais', tiers: NEVER_REFUNDABLE_TIERS },
 	];
 
 	function addRefundTier() {
@@ -357,14 +430,57 @@
 		return services.filter((service) => service.menuKey === menu.key).length;
 	}
 
-	function addMenu() {
-		const key = newMenuKey();
-		menus.push({ key, id: null, nameEn: '', nameFr: '', descriptionEn: '', descriptionFr: '' });
-		requestAnimationFrame(() => document.getElementById(`menu-${key}-nameFr`)?.focus());
+	function mealsOffering(menu: DraftMenu): string {
+		const offered = services.filter((service) => service.menuKey === menu.key);
+		const listed = offered.slice(0, 4).map((service) => `${MEAL_LABEL[service.kind].toLowerCase()} du ${dayLabel(service.date)}`);
+		return listed.join(', ') + (offered.length > 4 ? `… (+${offered.length - 4})` : '');
 	}
 
+	function addMenu(): string {
+		const key = newMenuKey();
+		menus.push({ key, id: null, nameEn: '', nameFr: '', descriptionEn: '', descriptionFr: '' });
+		setTimeout(() => document.getElementById(`menu-${key}-nameFr`)?.focus(), MODAL_RENDER_MS);
+		return key;
+	}
+
+	/** Deleting a Menu in use leaves its meals without a Menu. */
 	function removeMenu(index: number) {
-		menus.splice(index, 1);
+		const [menu] = menus.splice(index, 1);
+		for (const service of services) if (service.menuKey === menu.key) service.menuKey = '';
+		confirmingDelete = null;
+	}
+
+	/** Open the Menus on a new, blank Menu; on « Terminé », `use` it if it
+	 * was named, else drop it. */
+	export function createMenu(use: (key: string) => void) {
+		creating = { key: addMenu(), use };
+		menusOpen = true;
+	}
+
+	$effect(() => {
+		if (menusOpen) return;
+		confirmingDelete = null;
+		if (!creating) return;
+		const { key, use } = creating;
+		creating = null;
+		const index = menus.findIndex((menu) => menu.key === key);
+		if (index === -1) return;
+		const menu = menus[index];
+		if (menu.nameFr.trim() || menu.nameEn.trim() || menu.descriptionFr.trim() || menu.descriptionEn.trim()) use(key);
+		else menus.splice(index, 1);
+	});
+
+	/** Time for a modal just opened to render its fields. */
+	const MODAL_RENDER_MS = 60;
+
+	/** Open the modal holding a field (a blocking field to correct); true
+	 * when one opened, its fields rendered after `MODAL_RENDER_MS`. */
+	export function reveal(id: string): boolean {
+		if (id.startsWith('menu-')) menusOpen = true;
+		else if (id.startsWith('deposit-')) depositOpen = true;
+		else if (id.startsWith('refund-')) refundOpen = true;
+		else return false;
+		return true;
 	}
 
 	/** First field that blocks the save, with the message to show. */
@@ -422,51 +538,63 @@
 	const LABEL_CLASS = 'block text-xs font-medium text-foreground-alt mb-1';
 </script>
 
-<div class="space-y-8">
+<div class="space-y-4">
 	<input type="hidden" name="pricing" value={payload} />
 
-	<section class="bg-background rounded-lg border border-border-card" aria-labelledby="currency-title">
-		<header class="p-4 lg:p-6 border-b border-border-card">
-			<h3 id="currency-title" class="text-lg font-semibold text-foreground">Devise</h3>
-			<p class="text-sm text-muted-foreground">
-				Une seule devise pour tout l’événement : les prix des repas, l’acompte fixe, les codes promo à montant
-				fixe et le paiement en ligne.
-			</p>
-		</header>
-		<div class="px-4 lg:px-6 py-4 max-w-[12rem]">
-			<label for="event-currency" class={LABEL_CLASS}>Devise de l’événement</label>
+	<div class="flex flex-wrap items-center gap-2" role="toolbar" aria-label="Devise, menus et paiement">
+		<label
+			class="relative inline-flex items-center gap-2 h-9 px-3 text-sm rounded-lg border border-border-input bg-background text-foreground hover:bg-muted cursor-pointer focus-within:ring-2 focus-within:ring-foreground {currencyLocked ? 'opacity-60 cursor-not-allowed' : ''}"
+			title={currencyLocked
+				? 'L’événement a déjà des réservations : la devise ne peut plus changer, pour que les montants déjà réglés restent cohérents.'
+				: 'Pour tout l’événement : prix des repas, acompte fixe, codes promo et paiement en ligne.'}
+		>
+			<span class="text-muted-foreground">Devise</span>
+			<span class="font-medium tabular-nums">{currency}</span>
+			{#if currencyLocked}<Lock size={13} class="text-muted-foreground" aria-hidden="true" />{:else}<ChevronDown size={14} class="text-muted-foreground" aria-hidden="true" />{/if}
 			<select
 				id="event-currency"
 				bind:value={currency}
 				disabled={currencyLocked}
-				aria-describedby={currencyLocked ? 'event-currency-locked' : undefined}
-				class="{INPUT_CLASS} disabled:opacity-60"
+				aria-label="Devise de l’événement"
+				class="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-not-allowed"
 			>
 				{#each EVENT_CURRENCIES as code (code)}
 					<option value={code}>{code}</option>
 				{/each}
 			</select>
-		</div>
-		{#if currencyLocked}
-			<p id="event-currency-locked" class="px-4 lg:px-6 pb-4 -mt-1 text-xs text-muted-foreground">
-				L’événement a déjà des réservations : la devise ne peut plus changer, pour que les montants déjà
-				réglés restent cohérents.
-			</p>
-		{/if}
-	</section>
+		</label>
 
-	<section class="bg-background rounded-lg border border-border-card" aria-labelledby="menus-title">
-		<header class="p-4 lg:p-6 border-b border-border-card">
-			<h3 id="menus-title" class="text-lg font-semibold text-foreground">Menus</h3>
-			<p class="text-sm text-muted-foreground">
-				Décrivez chaque menu une seule fois, puis proposez-le sur un ou plusieurs repas ci-dessous — avec un
-				prix propre à chaque repas.
-			</p>
-		</header>
-
-		<div class="divide-y divide-border-card">
+		<button type="button" onclick={() => (menusOpen = true)} class="inline-flex items-center gap-2 h-9 px-3 text-sm rounded-lg border border-border-input bg-background text-foreground hover:bg-muted cursor-pointer" title={menus.map(menuLabel).join(' · ') || undefined}>
 			{#if menus.length === 0}
-				<div class="px-4 lg:px-6 py-8 text-center">
+				<Plus size={14} aria-hidden="true" /> Créer un menu
+			{:else}
+				<UtensilsCrossed size={14} class="text-muted-foreground" aria-hidden="true" />
+				Menus <span class="text-muted-foreground tabular-nums">· {menus.length}</span>
+			{/if}
+		</button>
+
+		<button type="button" onclick={() => (depositOpen = true)} class="inline-flex items-center gap-2 h-9 px-3 text-sm rounded-lg border border-border-input bg-background text-foreground hover:bg-muted cursor-pointer" title={depositSummary || undefined}>
+			Acompte
+			<span class="tabular-nums {depositRule ? 'text-muted-foreground' : 'text-amber-700'}">· {depositShort}</span>
+		</button>
+
+		<button type="button" onclick={() => (refundOpen = true)} class="inline-flex items-center gap-2 h-9 px-3 text-sm rounded-lg border border-border-input bg-background text-foreground hover:bg-muted cursor-pointer" title={refundPreview?.fr || undefined}>
+			Remboursement
+			<span class={refundPreview ? 'text-muted-foreground' : 'text-amber-700'}>· {refundShort}</span>
+		</button>
+	</div>
+
+	{@render children?.()}
+
+	<Modal
+		bind:isOpen={menusOpen}
+		wide
+		title="Menus"
+		description="Décrivez chaque menu une seule fois, puis proposez-le sur les repas — avec un prix propre à chaque repas."
+	>
+		<div class="divide-y divide-border-card border-y border-border-card">
+			{#if menus.length === 0}
+				<div class="py-8 text-center">
 					<UtensilsCrossed size={32} class="mx-auto mb-3 text-muted-foreground" />
 					<p class="text-sm text-muted-foreground">Aucun menu pour le moment.</p>
 				</div>
@@ -474,7 +602,7 @@
 
 			{#each menus as menu, index (menu.key)}
 				{@const offering = servicesOffering(menu)}
-				<div class="px-4 lg:px-6 py-4 space-y-3">
+				<div class="py-4 space-y-3">
 					<div class="flex items-center justify-between gap-3">
 						<p class="text-sm font-medium text-foreground">{menuLabel(menu, index)}</p>
 						<div class="flex items-center gap-2">
@@ -483,19 +611,39 @@
 							</span>
 							<button
 								type="button"
-								onclick={() => removeMenu(index)}
-								disabled={offering > 0}
+								onclick={() => (offering > 0 ? (confirmingDelete = menu.key) : removeMenu(index))}
 								aria-label="Supprimer ce menu"
-								title={offering > 0
-									? 'Ce menu est proposé sur des repas : retirez-le d’abord de ces repas.'
-									: 'Supprimer ce menu'}
-								class="inline-flex items-center justify-center size-8 rounded-md text-red-600 hover:bg-red-50 disabled:text-muted-foreground disabled:hover:bg-transparent disabled:cursor-not-allowed"
+								title="Supprimer ce menu"
+								class="inline-flex items-center justify-center size-8 rounded-md text-red-600 hover:bg-red-50 cursor-pointer"
 							>
 								<Trash2 size={16} />
 							</button>
 						</div>
 					</div>
-					<div class="grid gap-3 lg:grid-cols-2">
+					{#if confirmingDelete === menu.key}
+						<div class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 space-y-2" role="alert">
+							<p class="text-sm text-red-800">
+								Ce menu est proposé sur {offering} repas : {mealsOffering(menu)}. Le supprimer laisse ces repas sans menu.
+							</p>
+							<div class="flex gap-2">
+								<button
+									type="button"
+									onclick={() => removeMenu(index)}
+									class="px-3 py-1.5 text-sm rounded-lg bg-red-600 text-white hover:bg-red-700 cursor-pointer"
+								>
+									Supprimer quand même
+								</button>
+								<button
+									type="button"
+									onclick={() => (confirmingDelete = null)}
+									class="px-3 py-1.5 text-sm rounded-lg text-foreground-alt hover:bg-muted cursor-pointer"
+								>
+									Garder
+								</button>
+							</div>
+						</div>
+					{/if}
+					<div class="grid gap-3">
 						<div>
 							<label for="menu-{menu.key}-nameFr" class={LABEL_CLASS}>Nom</label>
 							<input
@@ -508,7 +656,7 @@
 								class={INPUT_CLASS}
 							/>
 						</div>
-						<div class="lg:col-span-2">
+						<div>
 							<label for="menu-{menu.key}-descriptionFr" class={LABEL_CLASS}>Description (facultative)</label>
 							<textarea
 								id="menu-{menu.key}-descriptionFr"
@@ -521,7 +669,7 @@
 						</div>
 					</div>
 					<EnglishVersion>
-						<div class="grid gap-3 lg:grid-cols-2">
+						<div class="grid gap-3">
 							<div>
 								<label for="menu-{menu.key}-nameEn" class={LABEL_CLASS}>Nom (anglais)</label>
 								<input
@@ -533,7 +681,7 @@
 									class={INPUT_CLASS}
 								/>
 							</div>
-							<div class="lg:col-span-2">
+							<div>
 								<label for="menu-{menu.key}-descriptionEn" class={LABEL_CLASS}>Description (anglais, facultative)</label>
 								<textarea
 									id="menu-{menu.key}-descriptionEn"
@@ -549,28 +697,25 @@
 			{/each}
 		</div>
 
-		<div class="px-4 lg:px-6 py-3 border-t border-border-card">
+		<div class="flex flex-wrap items-center justify-between gap-2 pt-4">
 			<button
 				type="button"
-				onclick={addMenu}
-				class="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-border-input text-foreground-alt hover:bg-muted"
+				onclick={() => addMenu()}
+				class="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-border-input text-foreground-alt hover:bg-muted cursor-pointer"
 			>
 				<Plus size={16} />
 				Ajouter un menu
 			</button>
+			{@render done(() => (menusOpen = false))}
 		</div>
-	</section>
+	</Modal>
 
-	<section class="bg-background rounded-lg border border-border-card" aria-labelledby="deposit-title">
-		<header class="p-4 lg:p-6 border-b border-border-card">
-			<h3 id="deposit-title" class="text-lg font-semibold text-foreground">Acompte</h3>
-			<p class="text-sm text-muted-foreground">
-				Ce que le convive règle en ligne à la réservation ; le reste est à régler sur place. L’acompte est
-				calculé sur le prix après code promo et ne dépasse jamais ce prix. Le montant obtenu s’affiche à
-				côté de chaque prix ci-dessous.
-			</p>
-		</header>
-		<fieldset class="px-4 lg:px-6 py-4 space-y-3">
+	<Modal
+		bind:isOpen={depositOpen}
+		title="Acompte"
+		description="Ce que le convive règle en ligne à la réservation ; le reste est à régler sur place. L’acompte est calculé sur le prix après code promo et ne dépasse jamais ce prix."
+	>
+		<fieldset class="space-y-3">
 			<legend class="sr-only">Règle d’acompte</legend>
 			<label class="flex items-start gap-3 text-sm text-foreground">
 				<input type="radio" name="deposit-type" value="percent" bind:group={deposit.type} class="mt-0.5 size-4" />
@@ -623,18 +768,25 @@
 				<span>Pas d’acompte (tout est réglé sur place)</span>
 			</label>
 		</fieldset>
-	</section>
+		{#if depositRule && depositExamples.length > 0}
+			<div class="mt-4 border-t border-border-card pt-3" aria-live="polite">
+				<p class="text-sm text-foreground mb-2">{depositSummary}</p>
+				<p class="text-xs font-medium text-foreground-alt mb-1">Pour un convive</p>
+				{#each depositExamples as example (example.kind)}
+					<p class="text-sm text-foreground tabular-nums">{example.text}</p>
+				{/each}
+			</div>
+		{/if}
+		<div class="flex justify-end pt-4">{@render done(() => (depositOpen = false))}</div>
+	</Modal>
 
-	<section class="bg-background rounded-lg border border-border-card" aria-labelledby="refund-title">
-		<header class="p-4 lg:p-6 border-b border-border-card">
-			<h3 id="refund-title" class="text-lg font-semibold text-foreground">Politique de remboursement</h3>
-			<p class="text-sm text-muted-foreground">
-				Ce que le convive récupère de son acompte s’il annule. Elle lui est présentée avant le paiement et sur
-				son billet. Quelle que soit la politique, si Germinal annule une séance ou l’événement, l’acompte est
-				intégralement remboursé.
-			</p>
-		</header>
-		<div class="px-4 lg:px-6 py-4 space-y-4">
+	<Modal
+		bind:isOpen={refundOpen}
+		wide
+		title="Politique de remboursement"
+		description="Ce que le convive récupère de son acompte s’il annule, présenté avant le paiement et sur son billet. Si Germinal annule une séance ou l’événement, l’acompte est toujours intégralement remboursé."
+	>
+		<div class="space-y-4">
 			<fieldset class="space-y-3">
 				<legend class="sr-only">Type de politique</legend>
 				<label class="flex items-start gap-3 text-sm text-foreground">
@@ -786,7 +938,8 @@
 				{/if}
 			</div>
 		</div>
-	</section>
+		<div class="flex justify-end pt-4">{@render done(() => (refundOpen = false))}</div>
+	</Modal>
 
 	{#if servicesList}
 	<section class="bg-background rounded-lg border border-border-card" aria-labelledby="service-prices-title">
@@ -879,3 +1032,13 @@
 	</section>
 	{/if}
 </div>
+
+{#snippet done(close: () => void)}
+	<button
+		type="button"
+		onclick={close}
+		class="px-4 py-2 text-sm font-medium rounded-lg bg-foreground text-background hover:opacity-90 cursor-pointer"
+	>
+		Terminé
+	</button>
+{/snippet}
