@@ -44,7 +44,7 @@ describe('parsePricingPayload', () => {
 		expect(result).toEqual({
 			ok: true,
 			payload: {
-				menus: [menu()],
+				menus: [{ ...menu(), courses: [] }],
 				services: [service(), service({ serviceId: DINNER, priceAmount: 6500 })],
 			},
 		});
@@ -69,6 +69,31 @@ describe('parsePricingPayload', () => {
 		expect(result.payload.services[0]).toMatchObject({ menuKey: 'new-0' });
 	});
 
+	it('takes a Menu’s Courses in order, trimmed, dropping one with nothing served yet', () => {
+		const result = parse({
+			menus: [
+				menu({
+					courses: [
+						{ labelFr: ' Entrée ', labelEn: '', dishFr: ' Huîtres ', dishEn: ' Oysters ' },
+						{ labelFr: 'Plat', labelEn: 'Main course', dishFr: '  ', dishEn: '' },
+						{ labelFr: '', labelEn: '', dishFr: 'Poire', dishEn: '' },
+					],
+				}),
+			],
+			services: [],
+		});
+		if (!result.ok) throw new Error('expected ok');
+		expect(result.payload.menus[0].courses).toEqual([
+			{ labelFr: 'Entrée', labelEn: '', dishFr: 'Huîtres', dishEn: 'Oysters' },
+			{ labelFr: '', labelEn: '', dishFr: 'Poire', dishEn: '' },
+		]);
+	});
+
+	it('gives a Menu posted without Courses none', () => {
+		const result = parse({ menus: [menu()], services: [] });
+		expect(result.ok && result.payload.menus[0].courses).toEqual([]);
+	});
+
 	it('accepts a Menu without an English name: it is generated from the French', () => {
 		const result = parse({ menus: [menu({ nameEn: ' ' })], services: [] });
 		if (!result.ok) throw new Error('expected ok');
@@ -91,6 +116,9 @@ describe('parsePricingPayload', () => {
 		['a missing payload', null, 'missing'],
 		['a non-object', [], 'malformed'],
 		['a Menu without a French name', { menus: [menu({ nameFr: ' ' })], services: [] }, 'menu-name'],
+		['Courses that are not a list', { menus: [menu({ courses: 'Huîtres' })], services: [] }, 'menu'],
+		['a Course dish too long', { menus: [menu({ courses: [{ labelFr: '', labelEn: '', dishFr: 'x'.repeat(501), dishEn: '' }] })], services: [] }, 'menu'],
+		['more than 20 Courses', { menus: [menu({ courses: Array.from({ length: 21 }, () => ({ labelFr: '', labelEn: '', dishFr: 'Plat', dishEn: '' })) })], services: [] }, 'menu'],
 		['duplicate Menu keys', { menus: [menu(), menu({ id: null })], services: [] }, 'menu'],
 		['a Service naming an unknown Menu', { menus: [], services: [service({ menuKey: 'nope' })] }, 'menu'],
 		['a duplicate Service', { menus: [menu()], services: [service(), service()] }, 'service'],

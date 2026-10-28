@@ -10,7 +10,7 @@ function fakeTranslator() {
 }
 
 function menu(over: Partial<MenuPayload> = {}): MenuPayload {
-	return { key: 'm', id: null, nameEn: '', nameFr: 'Menu dégustation', descriptionEn: null, descriptionFr: null, ...over };
+	return { key: 'm', id: null, nameEn: '', nameFr: 'Menu dégustation', courses: [], descriptionEn: null, descriptionFr: null, ...over };
 }
 
 function payload(over: Partial<PricingPayload> = {}): PricingPayload {
@@ -33,7 +33,7 @@ describe('translatePricing', () => {
 
 	it('keeps an English name edited in the same save', async () => {
 		const stored: StoredPricingText = {
-			menus: [{ id: MENU_ID, nameEn: 'Tasting menu', nameFr: 'Menu dégustation', descriptionEn: null, descriptionFr: null }],
+			menus: [{ id: MENU_ID, nameEn: 'Tasting menu', nameFr: 'Menu dégustation', courses: [], descriptionEn: null, descriptionFr: null }],
 			refundPolicy: { textEn: null, textFr: null },
 		};
 		const translator = fakeTranslator();
@@ -44,6 +44,40 @@ describe('translatePricing', () => {
 		);
 		expect(value.menus[0].nameEn).toBe('Chef’s menu');
 		expect(translator).not.toHaveBeenCalled();
+	});
+
+	it('translates each Course’s label and dish, keeping an English typed for the same French', async () => {
+		const course = (labelFr: string, dishFr: string, labelEn = '', dishEn = '') => ({ labelFr, dishFr, labelEn, dishEn });
+		const stored: StoredPricingText = {
+			menus: [
+				{
+					id: MENU_ID,
+					nameEn: 'Tasting menu',
+					nameFr: 'Menu dégustation',
+					courses: [course('Entrée', 'Huîtres', 'Starter', 'Oysters, as we like them')],
+					descriptionEn: null,
+					descriptionFr: null,
+				},
+			],
+			refundPolicy: { textEn: null, textFr: null },
+		};
+		const { value } = await translatePricing(
+			payload({
+				menus: [
+					menu({
+						id: MENU_ID,
+						nameEn: 'Tasting menu',
+						courses: [course('Entrée', 'Huîtres', 'Starter', 'Oysters, as we like them'), course('Plat', 'Agneau')],
+					}),
+				],
+			}),
+			stored,
+			fakeTranslator()
+		);
+		expect(value.menus[0].courses).toEqual([
+			course('Entrée', 'Huîtres', 'Starter', 'Oysters, as we like them'),
+			course('Plat', 'Agneau', 'EN(Plat)', 'EN(Agneau)'),
+		]);
 	});
 
 	it('gives a Menu the French name when there is no translator', async () => {

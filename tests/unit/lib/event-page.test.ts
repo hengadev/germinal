@@ -103,10 +103,18 @@ describe('eventPage', () => {
 	});
 
 	it('shows a Menu served at several Services once, saying where', () => {
-		const menu = { nameFr: 'Feu de bois', nameEn: 'Wood fire', descriptionFr: 'Huîtres\nAgneau\n\nPoire', descriptionEn: null };
+		const course = (dishFr: string) => ({ labelFr: '', labelEn: '', dishFr, dishEn: '' });
+		const menu = {
+			nameFr: 'Feu de bois',
+			nameEn: 'Wood fire',
+			courses: [course('Huîtres'), course('Agneau'), course('Poire')],
+			descriptionFr: 'Accord mets et vins en option',
+			descriptionEn: null,
+		};
 		const page = eventPage(event, [day('2027-03-12', [seating()], 8500, menu), day('2027-03-13', [seating({ id: 's2' })], 8500, menu)], 'fr', t);
 		expect(page.menus).toHaveLength(1);
-		expect(page.menus[0].courses).toEqual(['Huîtres', 'Agneau', 'Poire']);
+		expect(page.menus[0].courses.map((c) => c.dish)).toEqual(['Huîtres', 'Agneau', 'Poire']);
+		expect(page.menus[0].note).toBe('Accord mets et vins en option');
 		expect(page.menus[0].services).toHaveLength(2);
 	});
 

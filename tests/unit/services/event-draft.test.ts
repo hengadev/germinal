@@ -79,7 +79,7 @@ describe('pricingHasContent', () => {
 		expect(pricingHasContent({ ...untouched, currency: 'GBP' })).toBe(true);
 		expect(pricingHasContent({
 			...untouched,
-			menus: [{ key: 'new-1', id: null, nameEn: 'Tasting', nameFr: 'Dégustation', descriptionEn: null, descriptionFr: null }],
+			menus: [{ key: 'new-1', id: null, nameEn: 'Tasting', nameFr: 'Dégustation', courses: [], descriptionEn: null, descriptionFr: null }],
 		})).toBe(true);
 		expect(pricingHasContent({ ...untouched, services: [{ ...untouched.services[0], priceAmount: 0 }] })).toBe(true);
 		expect(pricingHasContent({ ...untouched, deposit: { type: 'percent', value: 30 } })).toBe(true);

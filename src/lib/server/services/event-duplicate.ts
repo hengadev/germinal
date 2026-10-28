@@ -109,6 +109,7 @@ export async function duplicateEvent(sourceId: string, days: PickedServiceDay[])
 				eventId: copy.id,
 				nameEn: menu.nameEn,
 				nameFr: menu.nameFr,
+				courses: menu.courses,
 				descriptionEn: menu.descriptionEn,
 				descriptionFr: menu.descriptionFr,
 			}).returning({ id: eventMenus.id });

@@ -253,7 +253,9 @@ export const eventDays = pgTable('event_days', {
 }));
 
 // A Menu is described once per Event (EN/FR) and offered on one or more
-// of its Services, each Service setting its own price (issue 022).
+// of its Services, each Service setting its own price (issue 022). Its
+// Courses are kept in order on the Menu — always read with it, never on
+// their own; the description is the note under them.
 export const eventMenus = pgTable('event_menus', {
     id: uuid('id').defaultRandom().primaryKey(),
     eventId: uuid('event_id')
@@ -261,6 +263,10 @@ export const eventMenus = pgTable('event_menus', {
         .references(() => events.id, { onDelete: 'cascade' }),
     nameEn: varchar('name_en', { length: 255 }).notNull(),
     nameFr: varchar('name_fr', { length: 255 }).notNull(),
+    courses: jsonb('courses')
+        .$type<{ labelEn: string; labelFr: string; dishEn: string; dishFr: string }[]>()
+        .notNull()
+        .default(sql`'[]'::jsonb`),
     descriptionEn: text('description_en'),
     descriptionFr: text('description_fr'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),

@@ -73,6 +73,10 @@ const TASTING = {
 	id: null,
 	nameEn: 'Tasting menu',
 	nameFr: 'Menu dégustation',
+	courses: [
+		{ labelEn: 'Starter', labelFr: 'Entrée', dishEn: 'Oysters', dishFr: 'Huîtres' },
+		{ labelEn: 'Main course', labelFr: 'Plat', dishEn: 'Lamb', dishFr: 'Agneau' },
+	],
 	descriptionEn: 'Seven courses',
 	descriptionFr: 'Sept services',
 };
@@ -101,7 +105,12 @@ describe('savePricing', () => {
 		const editor = await loadPricingEditor(event.id);
 		expect(editor.menus).toHaveLength(1);
 		const menuId = editor.menus[0].id;
-		expect(editor.menus[0]).toMatchObject({ nameEn: 'Tasting menu', nameFr: 'Menu dégustation', descriptionFr: 'Sept services' });
+		expect(editor.menus[0]).toMatchObject({
+			nameEn: 'Tasting menu',
+			nameFr: 'Menu dégustation',
+			courses: TASTING.courses,
+			descriptionFr: 'Sept services',
+		});
 		expect(editor.services.map((service) => [service.kind, service.menuId, service.priceAmount])).toEqual([
 			['lunch', menuId, 4500],
 			['dinner', menuId, 8500],

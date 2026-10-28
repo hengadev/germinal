@@ -19,7 +19,7 @@
 	// submitting. Used by the event page's « Menus & tarifs » tab and the
 	// new-event form, where the Services are the ones just picked (not saved
 	// yet) and `serviceId` is a placeholder the server swaps for the real id.
-	import type { PricingEditorData } from '$lib/types/pricing-editor';
+	import type { MenuCourse, PricingEditorData } from '$lib/types/pricing-editor';
 	import { FULL_PAYMENT_DEPOSIT, type DepositType } from '$lib/utils/pricing';
 	import {
 		DEFAULT_REFUND_POLICY,
@@ -31,11 +31,18 @@
 	import type { ServiceKind } from '$lib/utils/seating-times';
 	import { DEFAULT_EVENT_CURRENCY } from '$lib/utils/currency';
 
+	/** A Course as edited; `key` keeps its row while the list is reordered. */
+	export interface DraftCourse extends MenuCourse {
+		key: number;
+	}
+
+	/** A Menu as edited: its Courses, then the note (`description`). */
 	export interface DraftMenu {
 		key: string;
 		id: string | null;
 		nameEn: string;
 		nameFr: string;
+		courses: DraftCourse[];
 		descriptionEn: string;
 		descriptionFr: string;
 	}
@@ -83,6 +90,7 @@
 			id: menu.id,
 			nameEn: menu.nameEn,
 			nameFr: menu.nameFr,
+			courses: menu.courses.map((course) => ({ ...course, key: nextKey++ })),
 			descriptionEn: menu.descriptionEn ?? '',
 			descriptionFr: menu.descriptionFr ?? '',
 		}));
@@ -400,6 +408,15 @@
 				id: menu.id,
 				nameEn: menu.nameEn.trim(),
 				nameFr: menu.nameFr.trim(),
+				// A Course with nothing served yet is not saved (still being written).
+				courses: menu.courses
+					.filter((course) => course.dishFr.trim())
+					.map((course) => ({
+						labelEn: course.labelEn.trim(),
+						labelFr: course.labelFr.trim(),
+						dishEn: course.dishEn.trim(),
+						dishFr: course.dishFr.trim(),
+					})),
 				descriptionEn: menu.descriptionEn.trim() || null,
 				descriptionFr: menu.descriptionFr.trim() || null,
 			})),
@@ -438,7 +455,7 @@
 
 	function addMenu(): string {
 		const key = newMenuKey();
-		menus.push({ key, id: null, nameEn: '', nameFr: '', descriptionEn: '', descriptionFr: '' });
+		menus.push({ key, id: null, nameEn: '', nameFr: '', courses: [], descriptionEn: '', descriptionFr: '' });
 		setTimeout(() => document.getElementById(`menu-${key}-nameFr`)?.focus(), MODAL_RENDER_MS);
 		return key;
 	}

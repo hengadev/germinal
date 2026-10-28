@@ -12,6 +12,7 @@ import { describeRefundPolicy, refundPolicyOf, type RefundPolicy } from './refun
 import { formatProjectDates } from './project-dates';
 import { derivedSeatingTitle } from './seating-title';
 import type { BookingRefusal } from './event-access';
+import type { MenuCourse } from '$lib/types/pricing-editor';
 
 export type Translate = (id: string, options?: { values?: Record<string, string | number> }) => string;
 
@@ -58,7 +59,13 @@ export interface PageSeating {
 
 export interface PageService {
 	kind: 'lunch' | 'dinner';
-	menu: { nameEn: string; nameFr: string; descriptionEn: string | null; descriptionFr: string | null } | null;
+	menu: {
+		nameEn: string;
+		nameFr: string;
+		courses: MenuCourse[];
+		descriptionEn: string | null;
+		descriptionFr: string | null;
+	} | null;
 	priceAmount: number | null;
 	currency: string;
 	sessions: PageSeating[];
@@ -104,8 +111,10 @@ export interface DayView {
 
 export interface MenuView {
 	name: string;
-	/** One course per line of the Menu's text. */
-	courses: string[];
+	/** Its Courses in order, in the page's language. */
+	courses: { label: string; dish: string }[];
+	/** The note under the Courses (wine pairing, allergens…); empty when none. */
+	note: string;
 	/** Where it is served (« Dîner · ven. 12 mars »), when the Event has several Menus. */
 	services: string[];
 }
@@ -278,14 +287,17 @@ export function eventPage(event: Localized, schedule: PageDay[], locale: string 
 		for (const [s, service] of day.services.entries()) {
 			if (!service.menu) continue;
 			const name = localizedText(service.menu.nameEn, service.menu.nameFr, lang);
-			const courses = localizedText(service.menu.descriptionEn, service.menu.descriptionFr, lang)
-				.split('\n')
-				.map((line) => line.trim())
-				.filter(Boolean);
+			const courses = service.menu.courses.map((course) => ({
+				label: localizedText(course.labelEn, course.labelFr, lang),
+				dish: localizedText(course.dishEn, course.dishFr, lang),
+			}));
+			const note = localizedText(service.menu.descriptionEn, service.menu.descriptionFr, lang);
 			const where = `${days[d].services[s].label} · ${formatDayKey(day.date, lang, { weekday: 'short', day: 'numeric', month: 'short' })}`;
-			const same = menus.find((menu) => menu.name === name && menu.courses.join('\n') === courses.join('\n'));
+			const same = menus.find(
+				(menu) => menu.name === name && menu.note === note && JSON.stringify(menu.courses) === JSON.stringify(courses)
+			);
 			if (same) same.services.push(where);
-			else menus.push({ name, courses, services: [where] });
+			else menus.push({ name, courses, note, services: [where] });
 		}
 	}
 
