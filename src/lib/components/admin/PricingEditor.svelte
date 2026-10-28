@@ -47,6 +47,29 @@
 		descriptionFr: string;
 	}
 
+	/** Labels offered for a Course; any other may be typed. */
+	export const COURSE_LABELS: { fr: string; en: string }[] = [
+		{ fr: 'Amuse-bouche', en: 'Amuse-bouche' },
+		{ fr: 'Entrée', en: 'Starter' },
+		{ fr: 'Poisson', en: 'Fish' },
+		{ fr: 'Plat', en: 'Main course' },
+		{ fr: 'Fromage', en: 'Cheese' },
+		{ fr: 'Pré-dessert', en: 'Pre-dessert' },
+		{ fr: 'Dessert', en: 'Dessert' },
+		{ fr: 'Mignardises', en: 'Petits fours' },
+	];
+
+	/** A new Course, labelled as the one that usually follows `after`. */
+	export function newCourse(after?: MenuCourse, labelFr?: string): DraftCourse {
+		const i = after ? COURSE_LABELS.findIndex((label) => label.fr === after.labelFr) : -1;
+		const label = labelFr
+			? COURSE_LABELS.find((l) => l.fr === labelFr)
+			: i === -1
+				? undefined
+				: COURSE_LABELS[Math.min(i + 1, COURSE_LABELS.length - 1)];
+		return { key: nextKey++, labelFr: label?.fr ?? '', labelEn: label?.en ?? '', dishFr: '', dishEn: '' };
+	}
+
 	export interface DraftPricingService {
 		serviceId: string;
 		date: string;
@@ -176,6 +199,7 @@
 	import { AlertTriangle, CalendarDays, ChevronDown, Lock, Plus, Trash2, UtensilsCrossed } from 'lucide-svelte';
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import EnglishVersion, { getEnglishAuto } from '$lib/components/admin/EnglishVersion.svelte';
+	import MenuCardEditor from '$lib/components/admin/MenuCardEditor.svelte';
 	import { EVENT_CURRENCIES, formatCurrency } from '$lib/utils/currency';
 	import { formatDayKey } from '$lib/utils/event-time';
 	import type { PricingPayload } from '$lib/types/pricing-editor';
@@ -236,8 +260,9 @@
 	let menusOpen = $state(false);
 	let depositOpen = $state(false);
 	let refundOpen = $state(false);
-	/** A Menu in use, asked about before it is deleted. */
-	let confirmingDelete: string | null = $state(null);
+	/** The Menu shown in the Menus modal, and in which language. */
+	let shownMenu: string | null = $state(null);
+	let menuEnglish = $state(false);
 	/** The Menu created from a meal's « + Nouveau menu… », offered there on « Terminé ». */
 	let creating: { key: string; use: (key: string) => void } | null = null;
 
@@ -455,16 +480,24 @@
 
 	function addMenu(): string {
 		const key = newMenuKey();
-		menus.push({ key, id: null, nameEn: '', nameFr: '', courses: [], descriptionEn: '', descriptionFr: '' });
+		const courses = ['Entrée', 'Plat', 'Dessert'].map((label) => newCourse(undefined, label));
+		menus.push({ key, id: null, nameEn: '', nameFr: '', courses, descriptionEn: '', descriptionFr: '' });
+		shownMenu = key;
+		menuEnglish = false;
 		setTimeout(() => document.getElementById(`menu-${key}-nameFr`)?.focus(), MODAL_RENDER_MS);
 		return key;
+	}
+
+	function openMenus() {
+		if (!menus.some((menu) => menu.key === shownMenu)) shownMenu = menus[0]?.key ?? null;
+		menusOpen = true;
 	}
 
 	/** Deleting a Menu in use leaves its meals without a Menu. */
 	function removeMenu(index: number) {
 		const [menu] = menus.splice(index, 1);
 		for (const service of services) if (service.menuKey === menu.key) service.menuKey = '';
-		confirmingDelete = null;
+		shownMenu = menus[Math.max(0, index - 1)]?.key ?? null;
 	}
 
 	/** Open the Menus on a new, blank Menu; on « Terminé », `use` it if it
@@ -475,15 +508,15 @@
 	}
 
 	$effect(() => {
-		if (menusOpen) return;
-		confirmingDelete = null;
-		if (!creating) return;
+		if (menusOpen || !creating) return;
 		const { key, use } = creating;
 		creating = null;
 		const index = menus.findIndex((menu) => menu.key === key);
 		if (index === -1) return;
 		const menu = menus[index];
-		if (menu.nameFr.trim() || menu.nameEn.trim() || menu.descriptionFr.trim() || menu.descriptionEn.trim()) use(key);
+		const touched =
+			menu.nameFr.trim() || menu.nameEn.trim() || menu.descriptionFr.trim() || menu.descriptionEn.trim() || menu.courses.some((c) => c.dishFr.trim());
+		if (touched) use(key);
 		else menus.splice(index, 1);
 	});
 
@@ -493,7 +526,12 @@
 	/** Open the modal holding a field (a blocking field to correct); true
 	 * when one opened, its fields rendered after `MODAL_RENDER_MS`. */
 	export function reveal(id: string): boolean {
-		if (id.startsWith('menu-')) menusOpen = true;
+		if (id.startsWith('menu-')) {
+			const menu = menus.find((m) => id.startsWith(`menu-${m.key}-`));
+			if (menu) shownMenu = menu.key;
+			menuEnglish = id.endsWith('En');
+			menusOpen = true;
+		}
 		else if (id.startsWith('deposit-')) depositOpen = true;
 		else if (id.startsWith('refund-')) refundOpen = true;
 		else return false;
@@ -581,7 +619,7 @@
 			</select>
 		</label>
 
-		<button type="button" onclick={() => (menusOpen = true)} class="inline-flex items-center gap-2 h-9 px-3 text-sm rounded-lg border border-border-input bg-background text-foreground hover:bg-muted cursor-pointer" title={menus.map(menuLabel).join(' · ') || undefined}>
+		<button type="button" onclick={openMenus} class="inline-flex items-center gap-2 h-9 px-3 text-sm rounded-lg border border-border-input bg-background text-foreground hover:bg-muted cursor-pointer" title={menus.map(menuLabel).join(' · ') || undefined}>
 			{#if menus.length === 0}
 				<Plus size={14} aria-hidden="true" /> Créer un menu
 			{:else}
@@ -603,128 +641,19 @@
 
 	{@render children?.()}
 
-	<Modal
-		bind:isOpen={menusOpen}
-		wide
-		title="Menus"
-		description="Décrivez chaque menu une seule fois, puis proposez-le sur les repas — avec un prix propre à chaque repas."
-	>
-		<div class="divide-y divide-border-card border-y border-border-card">
-			{#if menus.length === 0}
-				<div class="py-8 text-center">
-					<UtensilsCrossed size={32} class="mx-auto mb-3 text-muted-foreground" />
-					<p class="text-sm text-muted-foreground">Aucun menu pour le moment.</p>
-				</div>
-			{/if}
-
-			{#each menus as menu, index (menu.key)}
-				{@const offering = servicesOffering(menu)}
-				<div class="py-4 space-y-3">
-					<div class="flex items-center justify-between gap-3">
-						<p class="text-sm font-medium text-foreground">{menuLabel(menu, index)}</p>
-						<div class="flex items-center gap-2">
-							<span class="text-xs text-muted-foreground">
-								{offering === 0 ? 'Proposé sur aucun repas' : `Proposé sur ${offering} repas`}
-							</span>
-							<button
-								type="button"
-								onclick={() => (offering > 0 ? (confirmingDelete = menu.key) : removeMenu(index))}
-								aria-label="Supprimer ce menu"
-								title="Supprimer ce menu"
-								class="inline-flex items-center justify-center size-8 rounded-md text-red-600 hover:bg-red-50 cursor-pointer"
-							>
-								<Trash2 size={16} />
-							</button>
-						</div>
-					</div>
-					{#if confirmingDelete === menu.key}
-						<div class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 space-y-2" role="alert">
-							<p class="text-sm text-red-800">
-								Ce menu est proposé sur {offering} repas : {mealsOffering(menu)}. Le supprimer laisse ces repas sans menu.
-							</p>
-							<div class="flex gap-2">
-								<button
-									type="button"
-									onclick={() => removeMenu(index)}
-									class="px-3 py-1.5 text-sm rounded-lg bg-red-600 text-white hover:bg-red-700 cursor-pointer"
-								>
-									Supprimer quand même
-								</button>
-								<button
-									type="button"
-									onclick={() => (confirmingDelete = null)}
-									class="px-3 py-1.5 text-sm rounded-lg text-foreground-alt hover:bg-muted cursor-pointer"
-								>
-									Garder
-								</button>
-							</div>
-						</div>
-					{/if}
-					<div class="grid gap-3">
-						<div>
-							<label for="menu-{menu.key}-nameFr" class={LABEL_CLASS}>Nom</label>
-							<input
-								id="menu-{menu.key}-nameFr"
-								type="text"
-								maxlength="255"
-								required
-								bind:value={menu.nameFr}
-								placeholder="Menu dégustation"
-								class={INPUT_CLASS}
-							/>
-						</div>
-						<div>
-							<label for="menu-{menu.key}-descriptionFr" class={LABEL_CLASS}>Description (facultative)</label>
-							<textarea
-								id="menu-{menu.key}-descriptionFr"
-								rows="3"
-								maxlength="10000"
-								bind:value={menu.descriptionFr}
-								placeholder="Entrée, plat, dessert…"
-								class="{INPUT_CLASS} resize-y"
-							></textarea>
-						</div>
-					</div>
-					<EnglishVersion>
-						<div class="grid gap-3">
-							<div>
-								<label for="menu-{menu.key}-nameEn" class={LABEL_CLASS}>Nom (anglais)</label>
-								<input
-									id="menu-{menu.key}-nameEn"
-									type="text"
-									maxlength="255"
-									bind:value={menu.nameEn}
-									placeholder="Tasting menu"
-									class={INPUT_CLASS}
-								/>
-							</div>
-							<div>
-								<label for="menu-{menu.key}-descriptionEn" class={LABEL_CLASS}>Description (anglais, facultative)</label>
-								<textarea
-									id="menu-{menu.key}-descriptionEn"
-									rows="3"
-									maxlength="10000"
-									bind:value={menu.descriptionEn}
-									class="{INPUT_CLASS} resize-y"
-								></textarea>
-							</div>
-						</div>
-					</EnglishVersion>
-				</div>
-			{/each}
-		</div>
-
-		<div class="flex flex-wrap items-center justify-between gap-2 pt-4">
-			<button
-				type="button"
-				onclick={() => addMenu()}
-				class="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-border-input text-foreground-alt hover:bg-muted cursor-pointer"
-			>
-				<Plus size={16} />
-				Ajouter un menu
-			</button>
-			{@render done(() => (menusOpen = false))}
-		</div>
+	<Modal bind:isOpen={menusOpen} wide title="Menus" description="Chaque menu est décrit une fois, tel que les convives le liront ; son prix se règle repas par repas.">
+		<MenuCardEditor
+			{menus}
+			bind:selected={shownMenu}
+			bind:english={menuEnglish}
+			{englishAuto}
+			{menuLabel}
+			offering={servicesOffering}
+			{mealsOffering}
+			onadd={() => addMenu()}
+			onremove={removeMenu}
+		/>
+		<div class="flex justify-end pt-4">{@render done(() => (menusOpen = false))}</div>
 	</Modal>
 
 	<Modal

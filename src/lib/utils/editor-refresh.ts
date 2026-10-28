@@ -119,6 +119,8 @@ export interface MenuDraftLike {
 	id: string | null;
 	nameEn: string;
 	descriptionEn: string;
+	/** Its Courses; only those with a dish are saved, in order. */
+	courses?: { key?: number; labelEn: string; dishEn: string; dishFr: string }[];
 }
 
 /**
@@ -147,7 +149,25 @@ export function adoptSavedMenus<M extends MenuDraftLike>(
 		if (sentMenu) {
 			const english = (from: MenuDraftLike) => ({ nameEn: from.nameEn, descriptionEn: from.descriptionEn });
 			assign<MenuDraftLike>(menu, keepEdits(english(sentMenu), english(menu), english(savedMenu)));
+			adoptCourseEnglish(menu.courses ?? [], sentMenu.courses ?? [], savedMenu.courses ?? []);
 		}
+	}
+}
+
+/** A Course sent takes its saved English where not edited since: the
+ * saved Courses are the sent ones that had a dish, in the same order. */
+function adoptCourseEnglish(
+	courses: NonNullable<MenuDraftLike['courses']>,
+	sent: NonNullable<MenuDraftLike['courses']>,
+	saved: NonNullable<MenuDraftLike['courses']>
+): void {
+	const kept = sent.filter((course) => course.dishFr.trim());
+	if (kept.length !== saved.length) return;
+	for (const course of courses) {
+		const i = kept.findIndex((c) => c.key === course.key);
+		if (i === -1) continue;
+		const english = (from: { labelEn: string; dishEn: string }) => ({ labelEn: from.labelEn, dishEn: from.dishEn });
+		assign(course, keepEdits(english(kept[i]), english(course), english(saved[i])));
 	}
 }
 
