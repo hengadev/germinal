@@ -27,7 +27,7 @@ A set of dishes served at an Event, described once and offered on one or more Se
 _Avoid_: Formula, formule, offer
 
 **Course**:
-One step of a Menu, in the order it is served (e.g., « Entrée », « Plat », « Dessert »): a label and what is served. A Menu is its ordered Courses plus an optional note (wine pairing, allergens). The label may be left blank; a Course with nothing served is not kept.
+One step of a Menu, in the order it is served (e.g., « Entrée », « Plat », « Dessert »): a label and what is served — one dish, or several the guest chooses from at the table (not at booking). A Menu is its ordered Courses plus an optional note (wine pairing, allergens). The label may be left blank; a Course with no dish is not kept.
 _Avoid_: Step (UI wording only: « étape »), dish, plat
 
 **Deposit**:
