@@ -26,6 +26,10 @@ _Avoid_: Session (former name), slot, créneau, turn
 A set of dishes served at an Event, described once and offered on one or more Services (e.g., the same Menu at lunch and dinner, or on every Day). Its price is set per Service that offers it, so lunch and dinner can charge differently for the same Menu. A Service offers at most one Menu, so the Guest has no choice to make; offering several Menus with a per-seat choice is a deliberate later extension.
 _Avoid_: Formula, formule, offer
 
+**Course**:
+One step of a Menu, in the order it is served (e.g., « Entrée », « Plat », « Dessert »): a label and what is served. A Menu is its ordered Courses plus an optional note (wine pairing, allergens). The label may be left blank; a Course with nothing served is not kept.
+_Avoid_: Step (UI wording only: « étape »), dish, plat
+
 **Deposit**:
 The part of a Menu's price a Guest pays online when making a Reservation; the remainder (the **Balance**) is paid at the venue. Defined once per Event as either a fixed amount per seat or a percentage of each price, and always displayed as the resulting amount. An Event may require no Deposit, in which case the Guest pays everything at the venue.
 _Avoid_: Acompte (in code/docs), down payment, pre-payment
