@@ -5,7 +5,7 @@
 	// typed in place. FR/EN shows the card in either language; with
 	// translation on, the English is generated from the French on save and
 	// a correction typed here is kept.
-	import { ArrowDown, ArrowUp, Plus, Trash2, X } from 'lucide-svelte';
+	import { ArrowDown, ArrowUp, Plus, X } from 'lucide-svelte';
 	import { MAX_COURSE_DISH, MAX_COURSE_LABEL, MAX_MENU_COURSES } from '$lib/types/pricing-editor';
 	import { COURSE_LABELS, newCourse, type DraftMenu } from './PricingEditor.svelte';
 
@@ -16,9 +16,7 @@
 		englishAuto,
 		menuLabel,
 		offering,
-		mealsOffering,
 		onadd,
-		onremove,
 	}: {
 		menus: DraftMenu[];
 		/** Key of the Menu shown. */
@@ -28,19 +26,14 @@
 		menuLabel: (menu: DraftMenu, index: number) => string;
 		/** How many meals offer this Menu. */
 		offering: (menu: DraftMenu) => number;
-		/** Those meals, named (« dîner du samedi 20 mars… »). */
-		mealsOffering: (menu: DraftMenu) => string;
 		onadd: () => void;
-		onremove: (index: number) => void;
 	} = $props();
 
-	let confirming = $state(false);
 	const index = $derived(menus.findIndex((m) => m.key === selected));
 	const menu = $derived(index === -1 ? undefined : menus[index]);
 
 	function choose(key: string) {
 		selected = key;
-		confirming = false;
 	}
 
 	function move(from: number, to: number) {
@@ -176,27 +169,9 @@
 	</div>
 
 	{@const used = offering(m)}
-	<div class="flex flex-wrap items-center justify-between gap-2 border-t border-border-card pt-3 text-sm">
-		<span class="text-muted-foreground">{used === 0 ? 'Proposé sur aucun repas' : `Proposé sur ${used} repas`}</span>
-		{#if !confirming}
-			<button
-				type="button"
-				onclick={() => (used > 0 ? (confirming = true) : onremove(index))}
-				class="inline-flex items-center gap-1.5 text-red-600 hover:underline cursor-pointer"
-			>
-				<Trash2 size={14} aria-hidden="true" /> Supprimer ce menu
-			</button>
-		{/if}
-	</div>
-	{#if confirming}
-		<div class="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 space-y-2" role="alert">
-			<p class="text-sm text-red-800">Ce menu est proposé sur {used} repas : {mealsOffering(m)}. Le supprimer laisse ces repas sans menu.</p>
-			<div class="flex gap-2">
-				<button type="button" onclick={() => { confirming = false; onremove(index); }} class="px-3 py-1.5 text-sm rounded-lg bg-red-600 text-white hover:bg-red-700 cursor-pointer">Supprimer quand même</button>
-				<button type="button" onclick={() => (confirming = false)} class="px-3 py-1.5 text-sm rounded-lg text-foreground-alt hover:bg-muted cursor-pointer">Garder</button>
-			</div>
-		</div>
-	{/if}
+	<p class="border-t border-border-card pt-3 text-sm text-muted-foreground">
+		{used === 0 ? 'Proposé sur aucun repas' : `Proposé sur ${used} repas`}
+	</p>
 {:else}
 	<p class="py-10 text-center text-sm text-muted-foreground">Aucun menu. Créez-en un pour le proposer sur les repas.</p>
 {/if}

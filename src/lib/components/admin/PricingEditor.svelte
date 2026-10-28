@@ -263,6 +263,9 @@
 	/** The Menu shown in the Menus modal, and in which language. */
 	let shownMenu: string | null = $state(null);
 	let menuEnglish = $state(false);
+	/** The Menu asked about before it is deleted. */
+	let deleting: DraftMenu | null = $state(null);
+	let deleteOpen = $state(false);
 	/** The Menu created from a meal's « + Nouveau menu… », offered there on « Terminé ». */
 	let creating: { key: string; use: (key: string) => void } | null = null;
 
@@ -493,8 +496,15 @@
 		menusOpen = true;
 	}
 
+	function askRemoveMenu() {
+		deleting = menus.find((menu) => menu.key === shownMenu) ?? null;
+		deleteOpen = deleting !== null;
+	}
+
 	/** Deleting a Menu in use leaves its meals without a Menu. */
 	function removeMenu(index: number) {
+		deleteOpen = false;
+		if (index === -1) return;
 		const [menu] = menus.splice(index, 1);
 		for (const service of services) if (service.menuKey === menu.key) service.menuKey = '';
 		shownMenu = menus[Math.max(0, index - 1)]?.key ?? null;
@@ -649,11 +659,43 @@
 			{englishAuto}
 			{menuLabel}
 			offering={servicesOffering}
-			{mealsOffering}
 			onadd={() => addMenu()}
-			onremove={removeMenu}
 		/>
-		<div class="flex justify-end pt-4">{@render done(() => (menusOpen = false))}</div>
+		<div class="flex justify-end gap-2 pt-4">
+			{#if menus.some((menu) => menu.key === shownMenu)}
+				<button
+					type="button"
+					onclick={askRemoveMenu}
+					class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border border-red-300 bg-background text-red-700 hover:bg-red-50 transition-colors cursor-pointer"
+				>
+					<Trash2 size={16} aria-hidden="true" /> Supprimer ce menu
+				</button>
+			{/if}
+			{@render done(() => (menusOpen = false))}
+		</div>
+	</Modal>
+
+	<Modal bind:isOpen={deleteOpen} title="Supprimer « {deleting ? menuLabel(deleting, menus.indexOf(deleting)) : ''} » ?">
+		{#if deleting}
+			{@const used = servicesOffering(deleting)}
+			<p class="text-sm text-foreground-alt">
+				{#if used === 0}
+					Ce menu n’est proposé sur aucun repas. Ses étapes et sa note seront perdues.
+				{:else}
+					Ce menu est proposé sur {used} repas : {mealsOffering(deleting)}. Ces repas resteront sans menu, et ses étapes et sa note seront perdues.
+				{/if}
+			</p>
+			<div class="flex justify-end gap-2 pt-6">
+				<button type="button" onclick={() => (deleteOpen = false)} class="px-4 py-2 text-sm rounded-lg text-foreground-alt hover:bg-muted cursor-pointer">Garder</button>
+				<button
+					type="button"
+					onclick={() => deleting && removeMenu(menus.indexOf(deleting))}
+					class="px-4 py-2 text-sm font-medium rounded-lg bg-red-600 text-white hover:bg-red-700 cursor-pointer"
+				>
+					Supprimer le menu
+				</button>
+			</div>
+		{/if}
 	</Modal>
 
 	<Modal
