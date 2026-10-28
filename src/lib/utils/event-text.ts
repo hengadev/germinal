@@ -20,7 +20,8 @@ export function localizedText(
 	return (preferred?.trim() ? preferred : other?.trim() ? other : '') ?? '';
 }
 
-/** The admin's name for an Event: its title, or « Sans titre ». */
+/** The admin's name for an Event: its French title (the admin is in
+ * French), else its English one, else « Sans titre ». */
 export function adminEventTitle(event: { titleEn?: string | null; titleFr?: string | null }): string {
-	return event.titleEn?.trim() || event.titleFr?.trim() || UNTITLED_EVENT;
+	return event.titleFr?.trim() || event.titleEn?.trim() || UNTITLED_EVENT;
 }

@@ -23,6 +23,7 @@
     import { VISIBILITY_LABELS } from "$lib/utils/event-access";
     import { adminEventTitle } from "$lib/utils/event-text";
     import type { EventCompleteness } from "$lib/utils/event-warnings";
+    import { DEFAULT_EVENT_LIST_SORT, EVENT_LIST_SORTS } from "$lib/utils/event-list-sort";
 
     let {
         data,
@@ -105,21 +106,20 @@
  // A Draft may have no Days, hence no dates (issue 036).
  function formatDate(date: Date | string | null): string {
  if (!date) return "—";
- return new Date(date).toLocaleDateString("en-US", {
+ return new Date(date).toLocaleDateString("fr-FR", {
  year: "numeric",
  month: "short",
  day: "numeric",
  });
  }
 
- function formatDateTime(date: Date | string): string {
- return new Date(date).toLocaleString("en-US", {
- year: "numeric",
- month: "short",
- day: "numeric",
- hour: "2-digit",
- minute: "2-digit",
- });
+ // The filter and the order share the URL: changing one keeps the other.
+ function listHref(filter: string, sort: string): string {
+ const params = new URLSearchParams();
+ if (filter !== "all") params.set("filter", filter);
+ if (sort !== DEFAULT_EVENT_LIST_SORT) params.set("sort", sort);
+ const query = params.toString();
+ return query ? `/admin/events?${query}` : "/admin/events";
  }
 
  // Draft completeness (issue 013, ADR 0010): each Draft row carries
@@ -157,10 +157,11 @@
  </form>
  </div>
 
- <nav aria-label="Filtrer les événements" class="flex flex-wrap gap-2 mb-6">
+ <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+ <nav aria-label="Filtrer les événements" class="flex flex-wrap gap-2">
  {#each FILTERS as f (f.value)}
  <a
- href={f.value === "all" ? "/admin/events" : `/admin/events?filter=${f.value}`}
+ href={listHref(f.value, data.sort)}
  aria-current={data.filter === f.value ? "page" : undefined}
  class="px-3 py-1.5 text-sm rounded-full border transition-colors {data.filter === f.value
  ? 'bg-foreground text-background border-foreground'
@@ -170,6 +171,19 @@
  </a>
  {/each}
  </nav>
+ <label class="inline-flex items-center gap-2 text-sm text-foreground-alt">
+ Trier par
+ <select
+ value={data.sort}
+ onchange={(e) => goto(listHref(data.filter, e.currentTarget.value), { keepFocus: true, noScroll: true })}
+ class="px-3 py-1.5 text-sm border border-border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-foreground cursor-pointer"
+ >
+ {#each EVENT_LIST_SORTS as option (option.value)}
+ <option value={option.value}>{option.label}</option>
+ {/each}
+ </select>
+ </label>
+ </div>
 
  {#if data.events.length === 0 && data.filter !== "all"}
  <div class="bg-background rounded-lg border border-border-card p-12 text-center">
@@ -270,7 +284,7 @@
  <td class="px-6 py-4">
  <div class="flex items-center gap-1 text-sm text-foreground-alt">
  <MapPin size={16} class="flex-shrink-0" />
- <span class="truncate">{event.locationEn ?? event.locationFr ?? "—"}</span>
+ <span class="truncate">{event.locationFr ?? event.locationEn ?? "—"}</span>
  </div>
  </td>
  <td class="px-6 py-4">
@@ -381,7 +395,7 @@
  </h3>
  <div class="flex items-center gap-1 text-sm text-foreground-alt mt-1">
  <MapPin size={14} class="flex-shrink-0" />
- <span class="truncate">{event.locationEn ?? event.locationFr ?? "—"}</span>
+ <span class="truncate">{event.locationFr ?? event.locationEn ?? "—"}</span>
  </div>
  </div>
  </div>
@@ -505,13 +519,13 @@
                         onclick={() => (deleteDialogOpen = false)}
                         class="px-4 py-2 border border-border-input text-foreground-alt rounded-lg hover:bg-muted transition-colors font-medium text-sm"
                     >
-                        Cancel
+                        Annuler
                     </button>
                     <button
                         type="submit"
                         class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium text-sm"
                     >
-                        Delete
+                        Supprimer
                     </button>
                 </div>
             </form>

@@ -12,6 +12,7 @@ import { parseVisibility } from '$lib/utils/event-access';
 import { DEFAULT_EVENT_TIME_ZONE } from '$lib/utils/event-time';
 import { EVENT_TEXT_FIELDS } from '$lib/server/services/event-draft';
 import type { EventCompleteness } from '$lib/utils/event-warnings';
+import { parseEventListSort, sortEventList } from '$lib/utils/event-list-sort';
 
 /** The list's filter: one Visibility, the Portfolio, or every Event. */
 export type EventListFilter = 'all' | 'draft' | 'private' | 'public' | 'portfolio';
@@ -25,6 +26,7 @@ export const load: PageServerLoad = async ({ url }) => {
     // Get search query from URL
     const searchQuery = url.searchParams.get('q') || undefined;
     const filter = parseFilter(url.searchParams.get('filter'));
+    const sort = parseEventListSort(url.searchParams.get('sort'));
 
     if (env.USE_MOCK_DATA) {
         // Mock mode - return all events, whatever their Visibility
@@ -42,12 +44,13 @@ export const load: PageServerLoad = async ({ url }) => {
         }
 
         return {
-            events: filteredEvents as unknown as EventWithMedia[],
+            events: sortEventList(filteredEvents as unknown as EventWithMedia[], sort),
             servedKinds: {} as Record<string, ServiceKind[]>,
             // Mock mode has no Services or Seatings to grade a Draft with.
             completeness: {} as Record<string, EventCompleteness>,
             searchQuery,
             filter,
+            sort,
         };
     }
 
@@ -62,7 +65,7 @@ export const load: PageServerLoad = async ({ url }) => {
         visibility: filter === 'all' || filter === 'portfolio' ? undefined : filter,
         portfolioOnly: filter === 'portfolio',
     });
-    const eventsData = result.data as EventWithMedia[];
+    const eventsData = sortEventList(result.data as EventWithMedia[], sort);
 
     // Draft completeness (issue 013, ADR 0010): each Draft's « 3/5 ».
     const { draftCompleteness } = await import('$lib/server/services/event-completeness');
@@ -74,6 +77,7 @@ export const load: PageServerLoad = async ({ url }) => {
         completeness: await draftCompleteness(eventsData),
         searchQuery,
         filter,
+        sort,
     };
 };
 
