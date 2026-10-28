@@ -130,7 +130,7 @@
 			<div>
 				<p class={label}>{view.menus.length > 1 ? menu.services.join(' · ') : $t('events.page.onTheMenu')}</p>
 				<p class="mt-2 font-serif text-xl">{menu.name}</p>
-				{#if menu.courses.length}<p class="mt-2 text-sm leading-relaxed text-foreground-alt">{menu.courses.map((course) => course.dish).join(' · ')}</p>{/if}
+				{#if menu.courses.length}<p class="mt-2 text-sm leading-relaxed text-foreground-alt">{menu.courses.map((course) => course.dishes.join(' / ')).join(' · ')}</p>{/if}
 				{#if menu.note}<p class="mt-2 text-xs text-muted-foreground">{menu.note}</p>{/if}
 			</div>
 		{/each}

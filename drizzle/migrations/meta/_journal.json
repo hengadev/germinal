@@ -274,6 +274,13 @@
       "when": 1793201254200,
       "tag": "0038_menu_courses",
       "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1793224229712,
+      "tag": "0039_course_dishes",
+      "breakpoints": true
     }
   ]
 }

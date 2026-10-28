@@ -5,7 +5,7 @@ import type { Translator } from './translator';
 
 /**
  * The English of « Menus & tarifs » — Menu names, Courses (label and
- * dish, each matched to the saved Course at the same place) and notes, the
+ * dishes, each matched to the saved one at the same place) and notes, the
  * manual Refund Policy text — generated from the French on save, by the
  * same rule as the Event's own fields (event-translation.ts). A Menu's
  * English name is required: without a translation it takes the French.
@@ -47,13 +47,15 @@ export async function translatePricing(
 					storedEn: norm(savedCourse?.labelEn),
 					maxLength: MAX_COURSE_LABEL,
 				}),
-				dish: add({
-					fr: norm(course.dishFr),
-					en: norm(course.dishEn),
-					storedFr: norm(savedCourse?.dishFr),
-					storedEn: norm(savedCourse?.dishEn),
-					maxLength: MAX_COURSE_DISH,
-				}),
+				dishes: course.dishes.map((dish, d) =>
+					add({
+						fr: norm(dish.fr),
+						en: norm(dish.en),
+						storedFr: norm(savedCourse?.dishes[d]?.fr),
+						storedEn: norm(savedCourse?.dishes[d]?.en),
+						maxLength: MAX_COURSE_DISH,
+					})
+				),
 			};
 		});
 		const description = add({
@@ -86,7 +88,7 @@ export async function translatePricing(
 			courses: menu.courses.map((course, c) => ({
 				...course,
 				labelEn: at(menuAt[m].courses[c].label) ?? '',
-				dishEn: at(menuAt[m].courses[c].dish) ?? '',
+				dishes: course.dishes.map((dish, d) => ({ ...dish, en: at(menuAt[m].courses[c].dishes[d]) ?? '' })),
 			})),
 			descriptionEn: at(menuAt[m].description),
 		})),

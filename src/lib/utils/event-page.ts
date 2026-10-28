@@ -111,8 +111,9 @@ export interface DayView {
 
 export interface MenuView {
 	name: string;
-	/** Its Courses in order, in the page's language. */
-	courses: { label: string; dish: string }[];
+	/** Its Courses in order, in the page's language; several dishes are
+	 * a choice for the guest. */
+	courses: { label: string; dishes: string[] }[];
 	/** The note under the Courses (wine pairing, allergens…); empty when none. */
 	note: string;
 	/** Where it is served (« Dîner · ven. 12 mars »), when the Event has several Menus. */
@@ -289,7 +290,7 @@ export function eventPage(event: Localized, schedule: PageDay[], locale: string 
 			const name = localizedText(service.menu.nameEn, service.menu.nameFr, lang);
 			const courses = service.menu.courses.map((course) => ({
 				label: localizedText(course.labelEn, course.labelFr, lang),
-				dish: localizedText(course.dishEn, course.dishFr, lang),
+				dishes: course.dishes.map((dish) => localizedText(dish.en, dish.fr, lang)),
 			}));
 			const note = localizedText(service.menu.descriptionEn, service.menu.descriptionFr, lang);
 			const where = `${days[d].services[s].label} · ${formatDayKey(day.date, lang, { weekday: 'short', day: 'numeric', month: 'short' })}`;

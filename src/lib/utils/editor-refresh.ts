@@ -120,7 +120,14 @@ export interface MenuDraftLike {
 	nameEn: string;
 	descriptionEn: string;
 	/** Its Courses; only those with a dish are saved, in order. */
-	courses?: { key?: number; labelEn: string; dishEn: string; dishFr: string }[];
+	courses?: CourseDraftLike[];
+}
+
+/** A Course draft: only its dishes with French are saved, in order. */
+export interface CourseDraftLike {
+	key?: number;
+	labelEn: string;
+	dishes: { key?: number; en: string; fr: string }[];
 }
 
 /**
@@ -154,20 +161,24 @@ export function adoptSavedMenus<M extends MenuDraftLike>(
 	}
 }
 
-/** A Course sent takes its saved English where not edited since: the
- * saved Courses are the sent ones that had a dish, in the same order. */
-function adoptCourseEnglish(
-	courses: NonNullable<MenuDraftLike['courses']>,
-	sent: NonNullable<MenuDraftLike['courses']>,
-	saved: NonNullable<MenuDraftLike['courses']>
-): void {
-	const kept = sent.filter((course) => course.dishFr.trim());
+/** A Course (and each of its dishes) sent takes its saved English where
+ * not edited since: what was saved is what was sent with French, in the
+ * same order. */
+function adoptCourseEnglish(courses: CourseDraftLike[], sent: CourseDraftLike[], saved: CourseDraftLike[]): void {
+	const written = (dishes: CourseDraftLike['dishes']) => dishes.filter((dish) => dish.fr.trim());
+	const kept = sent.filter((course) => written(course.dishes).length > 0);
 	if (kept.length !== saved.length) return;
 	for (const course of courses) {
 		const i = kept.findIndex((c) => c.key === course.key);
 		if (i === -1) continue;
-		const english = (from: { labelEn: string; dishEn: string }) => ({ labelEn: from.labelEn, dishEn: from.dishEn });
-		assign(course, keepEdits(english(kept[i]), english(course), english(saved[i])));
+		assign(course, keepEdits({ labelEn: kept[i].labelEn }, { labelEn: course.labelEn }, { labelEn: saved[i].labelEn }));
+		const keptDishes = written(kept[i].dishes);
+		if (keptDishes.length !== saved[i].dishes.length) continue;
+		for (const dish of course.dishes) {
+			const d = keptDishes.findIndex((k) => k.key === dish.key);
+			if (d === -1) continue;
+			assign(dish, keepEdits({ en: keptDishes[d].en }, { en: dish.en }, { en: saved[i].dishes[d].en }));
+		}
 	}
 }
 

@@ -87,6 +87,31 @@ describe('adoptSavedMenus', () => {
 		adoptSavedMenus(menus, sent, saved, { 'new-1': 'm-1', 'new-2': 'm-2' });
 		expect(menus.map((m) => [m.key, m.id, m.nameEn])).toEqual([['new-1', 'm-1', 'Menu'], ['new-2', 'm-2', 'Tasting'], ['new-3', null, '']]);
 	});
+
+	it('each dish of a Course takes its generated English, matched past the ones not written yet', () => {
+		const dish = (key: number, fr: string, en = '') => ({ key, fr, en });
+		const sent = [
+			{
+				...menu('m-1', 'm-1'),
+				courses: [
+					{ key: 1, labelEn: '', dishes: [dish(10, '')] },
+					{ key: 2, labelEn: '', dishes: [dish(20, 'Huîtres'), dish(21, ''), dish(22, 'Velouté')] },
+				],
+			},
+		];
+		const menus = structuredClone(sent);
+		menus[0].courses[1].dishes[0].en = 'Oysters, our way';
+		const saved = [
+			{
+				...menu('m-1', 'm-1'),
+				courses: [{ labelEn: 'Starter', dishes: [dish(0, 'Huîtres', 'Oysters'), dish(0, 'Velouté', 'Soup')] }],
+			},
+		];
+		adoptSavedMenus(menus, sent, saved, undefined);
+		expect(menus[0].courses[1].labelEn).toBe('Starter');
+		expect(menus[0].courses[1].dishes.map((d) => d.en)).toEqual(['Oysters, our way', '', 'Soup']);
+		expect(menus[0].courses[0].dishes[0].en).toBe('');
+	});
 });
 
 describe('followSavedServices', () => {

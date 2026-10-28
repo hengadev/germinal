@@ -5,6 +5,7 @@ import type {
 	EditorMenu,
 	EditorServicePricing,
 	MenuCourse,
+	MenuDish,
 	MenuPayload,
 	PricingEditorData,
 	PricingPayload,
@@ -24,7 +25,7 @@ import type { ServiceKind } from '$lib/utils/seating-times';
 import { clockOf, DEFAULT_EVENT_TIME_ZONE } from '$lib/utils/event-time';
 import { DEFAULT_EVENT_CURRENCY, EVENT_CURRENCIES, parseEventCurrency } from '$lib/utils/currency';
 import { ScheduleSaveRefusedError } from './event-schedule';
-import { MAX_COURSE_DISH, MAX_COURSE_LABEL, MAX_MENU_COURSES } from '$lib/types/pricing-editor';
+import { MAX_COURSE_DISH, MAX_COURSE_DISHES, MAX_COURSE_LABEL, MAX_MENU_COURSES } from '$lib/types/pricing-editor';
 
 /**
  * Menus and Service prices (issue 022).
@@ -177,6 +178,23 @@ function optionalText(value: unknown, maxLength: number): string | null | false 
 	return trimmed === '' ? null : trimmed;
 }
 
+/** A Course's dishes as posted, in order; a dish with no French is
+ * dropped (a choice added but not written yet). False when malformed, too
+ * many or too long. */
+function parseDishes(value: unknown): MenuDish[] | false {
+	if (!Array.isArray(value)) return false;
+	const dishes: MenuDish[] = [];
+	for (const entry of value) {
+		if (typeof entry !== 'object' || entry === null) return false;
+		const dish = entry as Record<string, unknown>;
+		const en = optionalText(dish.en, MAX_COURSE_DISH);
+		const fr = optionalText(dish.fr, MAX_COURSE_DISH);
+		if (en === false || fr === false) return false;
+		if (fr !== null) dishes.push({ en: en ?? '', fr });
+	}
+	return dishes.length > MAX_COURSE_DISHES ? false : dishes;
+}
+
 /** A Menu's Courses as posted, in order; a Course with no dish is
  * dropped (a step started but not written yet). False when malformed, too
  * many or too long. */
@@ -189,11 +207,10 @@ function parseCourses(value: unknown): MenuCourse[] | false {
 		const course = entry as Record<string, unknown>;
 		const labelEn = optionalText(course.labelEn, MAX_COURSE_LABEL);
 		const labelFr = optionalText(course.labelFr, MAX_COURSE_LABEL);
-		const dishEn = optionalText(course.dishEn, MAX_COURSE_DISH);
-		const dishFr = optionalText(course.dishFr, MAX_COURSE_DISH);
-		if (labelEn === false || labelFr === false || dishEn === false || dishFr === false) return false;
-		if (dishFr === null) continue;
-		courses.push({ labelEn: labelEn ?? '', labelFr: labelFr ?? '', dishEn: dishEn ?? '', dishFr });
+		const dishes = parseDishes(course.dishes);
+		if (labelEn === false || labelFr === false || dishes === false) return false;
+		if (dishes.length === 0) continue;
+		courses.push({ labelEn: labelEn ?? '', labelFr: labelFr ?? '', dishes });
 	}
 	return courses.length > MAX_MENU_COURSES ? false : courses;
 }

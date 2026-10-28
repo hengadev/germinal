@@ -19,7 +19,7 @@
 	// submitting. Used by the event page's « Menus & tarifs » tab and the
 	// new-event form, where the Services are the ones just picked (not saved
 	// yet) and `serviceId` is a placeholder the server swaps for the real id.
-	import type { MenuCourse, PricingEditorData } from '$lib/types/pricing-editor';
+	import type { MenuCourse, MenuDish, PricingEditorData } from '$lib/types/pricing-editor';
 	import { FULL_PAYMENT_DEPOSIT, type DepositType } from '$lib/utils/pricing';
 	import {
 		DEFAULT_REFUND_POLICY,
@@ -31,9 +31,15 @@
 	import type { ServiceKind } from '$lib/utils/seating-times';
 	import { DEFAULT_EVENT_CURRENCY } from '$lib/utils/currency';
 
-	/** A Course as edited; `key` keeps its row while the list is reordered. */
-	export interface DraftCourse extends MenuCourse {
+	/** A dish as edited; `key` keeps its line while choices come and go. */
+	export interface DraftDish extends MenuDish {
 		key: number;
+	}
+
+	/** A Course as edited; `key` keeps its row while the list is reordered. */
+	export interface DraftCourse extends Omit<MenuCourse, 'dishes'> {
+		key: number;
+		dishes: DraftDish[];
 	}
 
 	/** A Menu as edited: its Courses, then the note (`description`). */
@@ -59,15 +65,20 @@
 		{ fr: 'Mignardises', en: 'Petits fours' },
 	];
 
-	/** A new Course, labelled as the one that usually follows `after`. */
-	export function newCourse(after?: MenuCourse, labelFr?: string): DraftCourse {
+	export function newDish(): DraftDish {
+		return { key: nextKey++, en: '', fr: '' };
+	}
+
+	/** A new Course with one dish to write, labelled as the one that
+	 * usually follows `after`. */
+	export function newCourse(after?: Pick<MenuCourse, 'labelFr'>, labelFr?: string): DraftCourse {
 		const i = after ? COURSE_LABELS.findIndex((label) => label.fr === after.labelFr) : -1;
 		const label = labelFr
 			? COURSE_LABELS.find((l) => l.fr === labelFr)
 			: i === -1
 				? undefined
 				: COURSE_LABELS[Math.min(i + 1, COURSE_LABELS.length - 1)];
-		return { key: nextKey++, labelFr: label?.fr ?? '', labelEn: label?.en ?? '', dishFr: '', dishEn: '' };
+		return { key: nextKey++, labelFr: label?.fr ?? '', labelEn: label?.en ?? '', dishes: [newDish()] };
 	}
 
 	export interface DraftPricingService {
@@ -113,7 +124,11 @@
 			id: menu.id,
 			nameEn: menu.nameEn,
 			nameFr: menu.nameFr,
-			courses: menu.courses.map((course) => ({ ...course, key: nextKey++ })),
+			courses: menu.courses.map((course) => ({
+				...course,
+				key: nextKey++,
+				dishes: course.dishes.map((dish) => ({ ...dish, key: nextKey++ })),
+			})),
 			descriptionEn: menu.descriptionEn ?? '',
 			descriptionFr: menu.descriptionFr ?? '',
 		}));
@@ -436,15 +451,16 @@
 				id: menu.id,
 				nameEn: menu.nameEn.trim(),
 				nameFr: menu.nameFr.trim(),
-				// A Course with nothing served yet is not saved (still being written).
+				// A dish or Course not written yet is not saved.
 				courses: menu.courses
-					.filter((course) => course.dishFr.trim())
 					.map((course) => ({
 						labelEn: course.labelEn.trim(),
 						labelFr: course.labelFr.trim(),
-						dishEn: course.dishEn.trim(),
-						dishFr: course.dishFr.trim(),
-					})),
+						dishes: course.dishes
+							.filter((dish) => dish.fr.trim())
+							.map((dish) => ({ en: dish.en.trim(), fr: dish.fr.trim() })),
+					}))
+					.filter((course) => course.dishes.length > 0),
 				descriptionEn: menu.descriptionEn.trim() || null,
 				descriptionFr: menu.descriptionFr.trim() || null,
 			})),
@@ -525,7 +541,7 @@
 		if (index === -1) return;
 		const menu = menus[index];
 		const touched =
-			menu.nameFr.trim() || menu.nameEn.trim() || menu.descriptionFr.trim() || menu.descriptionEn.trim() || menu.courses.some((c) => c.dishFr.trim());
+			menu.nameFr.trim() || menu.nameEn.trim() || menu.descriptionFr.trim() || menu.descriptionEn.trim() || menu.courses.some((c) => c.dishes.some((d) => d.fr.trim()));
 		if (touched) use(key);
 		else menus.splice(index, 1);
 	});

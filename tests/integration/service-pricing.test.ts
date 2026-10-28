@@ -74,8 +74,8 @@ const TASTING = {
 	nameEn: 'Tasting menu',
 	nameFr: 'Menu dégustation',
 	courses: [
-		{ labelEn: 'Starter', labelFr: 'Entrée', dishEn: 'Oysters', dishFr: 'Huîtres' },
-		{ labelEn: 'Main course', labelFr: 'Plat', dishEn: 'Lamb', dishFr: 'Agneau' },
+		{ labelEn: 'Starter', labelFr: 'Entrée', dishes: [{ en: 'Oysters', fr: 'Huîtres' }, { en: 'Soup', fr: 'Velouté' }] },
+		{ labelEn: 'Main course', labelFr: 'Plat', dishes: [{ en: 'Lamb', fr: 'Agneau' }] },
 	],
 	descriptionEn: 'Seven courses',
 	descriptionFr: 'Sept services',

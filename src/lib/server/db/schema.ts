@@ -264,7 +264,7 @@ export const eventMenus = pgTable('event_menus', {
     nameEn: varchar('name_en', { length: 255 }).notNull(),
     nameFr: varchar('name_fr', { length: 255 }).notNull(),
     courses: jsonb('courses')
-        .$type<{ labelEn: string; labelFr: string; dishEn: string; dishFr: string }[]>()
+        .$type<{ labelEn: string; labelFr: string; dishes: { en: string; fr: string }[] }[]>()
         .notNull()
         .default(sql`'[]'::jsonb`),
     descriptionEn: text('description_en'),
