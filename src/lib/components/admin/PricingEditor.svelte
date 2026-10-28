@@ -196,6 +196,7 @@
 		currencyLocked = false,
 		daysTabName,
 		seatingCountOf,
+		servicesList = true,
 	}: {
 		menus: DraftMenu[];
 		deposit: DraftDeposit;
@@ -210,6 +211,9 @@
 		/** Live Seating count per Service, when the host edits Seatings
 		 * alongside (new-event form); else the saved count is shown. */
 		seatingCountOf?: (serviceId: string) => number;
+		/** Off when the host edits each Service's Menu and price itself
+		 * (the programme of « Menus & tarifs »). */
+		servicesList?: boolean;
 	} = $props();
 
 	const englishAuto = getEnglishAuto();
@@ -784,6 +788,7 @@
 		</div>
 	</section>
 
+	{#if servicesList}
 	<section class="bg-background rounded-lg border border-border-card" aria-labelledby="service-prices-title">
 		<header class="p-4 lg:p-6 border-b border-border-card">
 			<h3 id="service-prices-title" class="text-lg font-semibold text-foreground">Menu et prix par repas</h3>
@@ -872,4 +877,5 @@
 			</div>
 		{/if}
 	</section>
+	{/if}
 </div>
