@@ -57,14 +57,15 @@
 		method="POST"
 		action="?/scanCheckIn"
 		class="flex items-center gap-2 border-t border-border-card px-4 py-3"
-		use:enhance={() => {
+		use:enhance={({ formData }) => {
 			submitting = true;
 			return async ({ result, update }) => {
 				submitting = false;
 				if (result.type === 'success') {
 					// Arrivées shows the new count too.
-					await update();
-					onDone(stepper);
+					const guests = Number(formData.get('guests'));
+					await update({ reset: false });
+					onDone(guests);
 				} else {
 					failure =
 						result.type === 'failure'

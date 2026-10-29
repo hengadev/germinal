@@ -21,7 +21,7 @@
 	let failure = $state<string | null>(null);
 </script>
 
-<div class="fixed inset-x-0 bottom-0 z-10 border-t-2 border-foreground bg-background shadow-[0_-8px_30px_rgb(0_0_0_/_0.25)]">
+<div class="fixed inset-x-0 bottom-0 z-[60] border-t-2 lg:left-64 border-foreground bg-background shadow-[0_-8px_30px_rgb(0_0_0_/_0.25)]">
 	<div class="mx-auto max-w-lg px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
 		<div class="mx-auto mb-3 h-1 w-10 rounded-full bg-border-card" aria-hidden="true"></div>
 
@@ -69,14 +69,15 @@
 			method="POST"
 			action="?/scanCheckIn"
 			class="mt-4 flex items-center gap-2"
-			use:enhance={() => {
+			use:enhance={({ formData }) => {
 				submitting = true;
 				return async ({ result, update }) => {
 					submitting = false;
 					if (result.type === 'success') {
 						// Arrivées shows the new count too.
-						await update();
-						onDone(stepper);
+						const guests = Number(formData.get('guests'));
+						await update({ reset: false });
+						onDone(guests);
 					} else {
 						failure =
 							result.type === 'failure'

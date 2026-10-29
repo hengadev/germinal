@@ -171,7 +171,7 @@
 				/>
 				<button
 					type="submit"
-					disabled={scanning || result !== null}
+					disabled={scanning || result?.kind === 'party'}
 					class="min-h-11 rounded-lg border border-border-card px-4 text-sm font-medium text-foreground hover:bg-muted disabled:opacity-60"
 				>
 					Simuler
