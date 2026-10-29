@@ -46,7 +46,7 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 			const query = searchQuery.toLowerCase();
 			reservations = reservations.filter(r =>
 				r.guestName.toLowerCase().includes(query) ||
-				r.guestEmail.toLowerCase().includes(query)
+				r.guestEmail?.toLowerCase().includes(query)
 			);
 		}
 

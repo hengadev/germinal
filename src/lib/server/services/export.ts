@@ -102,7 +102,7 @@ export async function exportReservationsToCSV(options: {
 		const query = search.trim().toLowerCase();
 		filtered = reservations_data.filter((r: typeof reservations_data[number]) =>
 			r.guestName.toLowerCase().includes(query) ||
-			r.guestEmail.toLowerCase().includes(query) ||
+			r.guestEmail?.toLowerCase().includes(query) ||
 			r.eventSession.event.titleEn.toLowerCase().includes(query) ||
 			r.eventSession.event.titleFr.toLowerCase().includes(query) ||
 			seatingTitle(r.eventSession, 'en', { timeZone: r.eventSession.event.timeZone }).toLowerCase().includes(query) ||
@@ -116,7 +116,7 @@ export async function exportReservationsToCSV(options: {
 		return {
 			'Reservation ID': r.id,
 			'Guest Name': r.guestName,
-			'Guest Email': r.guestEmail,
+			'Guest Email': r.guestEmail ?? '',
 			'Guest Phone': r.guestPhone || '',
 			'Notification Preference': r.notificationPreference,
 			'Quantity': r.quantity,
@@ -219,7 +219,7 @@ export async function exportPaymentsToCSV(options: {
 	const csvData = payments_data.map((p: typeof payments_data[number]) => ({
 		'Payment ID': p.id,
 		'Reservation ID': p.reservationId,
-		'Guest Email': p.reservation.guestEmail,
+		'Guest Email': p.reservation.guestEmail ?? '',
 		'Guest Name': p.reservation.guestName,
 		'Amount': p.amount / 100,
 		'Currency': p.currency,

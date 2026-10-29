@@ -9,7 +9,7 @@
 	 */
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
-	import { Check, ChefHat, Gift, LoaderCircle, Phone, UserCheck, UserX } from 'lucide-svelte';
+	import { Check, ChefHat, Footprints, Gift, LoaderCircle, Phone, UserCheck, UserX } from 'lucide-svelte';
 	import type { DayGuestParty } from '$lib/server/services/day-guest-list';
 	import { balanceDue, guests as guestsLabel, settleTimeLabel, type ArriveesFields } from './helpers';
 
@@ -65,11 +65,15 @@
 			<h3 class="pt-0.5 text-lg leading-snug font-semibold break-words text-foreground">
 				{party.guestName}
 			</h3>
-			{#if party.isComp || balance || (party.quantity !== undefined && arrived > 0)}
+			{#if party.isComp || party.origin === 'walk_in' || balance || (party.quantity !== undefined && arrived > 0)}
 				<div class="mt-1.5 flex flex-wrap gap-1.5">
 					{#if party.isComp}
 						<span class={PILL}><Gift size={14} aria-hidden="true" /> Offert</span>
-					{:else if balance && !party.balanceSettledAt}
+					{/if}
+					{#if party.origin === 'walk_in'}
+						<span class={PILL}><Footprints size={14} aria-hidden="true" /> Walk-in</span>
+					{/if}
+					{#if !party.isComp && balance && !party.balanceSettledAt}
 						<span class="{PILL} tabular-nums">Reste sur place {balance}</span>
 					{/if}
 					{#if party.quantity !== undefined && arrived > 0}

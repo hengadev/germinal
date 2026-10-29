@@ -338,6 +338,12 @@ ${practicalInfo ? `
 }
 
 export async function sendTicketConfirmationEmail(data: TicketEmailData): Promise<void> {
+	// A Walk-in (issue 020) may have no email at all: nobody to send to.
+	if (!data.guestEmail) {
+		logger.info({ reservationId: data.reservation.id }, '🎫 No guest email - ticket confirmation email skipped');
+		return;
+	}
+
 	// Generate QR code — non-fatal: email still sends if this fails
 	let qrCode: string | undefined;
 	try {
@@ -526,6 +532,11 @@ ${practicalInfo ? `
  * Send event reminder email
  */
 export async function sendEventReminderEmail(data: TicketEmailData & { daysUntil: number }): Promise<void> {
+	// A Walk-in (issue 020) may have no email at all: nobody to remind.
+	if (!data.guestEmail) {
+		logger.info({ reservationId: data.reservation.id }, '🔔 No guest email - event reminder email skipped');
+		return;
+	}
 	const textBody = generateEventReminderTextTemplate(data);
 	const htmlBody = generateEventReminderHtmlTemplate(data);
 
@@ -561,7 +572,7 @@ export async function sendEventReminderEmail(data: TicketEmailData & { daysUntil
 // ============================================
 
 export interface CancellationEmailData {
-	guestEmail: string;
+	guestEmail: string | null;
 	guestName: string;
 	eventTitle: string;
 	sessionTitle: string;
@@ -572,7 +583,7 @@ export interface CancellationEmailData {
 }
 
 export interface RefundEmailData {
-	guestEmail: string;
+	guestEmail: string | null;
 	guestName: string;
 	eventTitle: string;
 	sessionTitle: string;
@@ -659,6 +670,8 @@ function generateCancellationHtmlTemplate(data: CancellationEmailData): string {
  * use `sendRefundEmail` instead — it covers both in one notification.
  */
 export async function sendCancellationEmail(data: CancellationEmailData): Promise<void> {
+	// A Walk-in (issue 020) may have no email: nobody to notify.
+	if (!data.guestEmail) return;
 	const textBody = generateCancellationTextTemplate(data);
 	const htmlBody = generateCancellationHtmlTemplate(data);
 
@@ -774,6 +787,8 @@ function generateRefundHtmlTemplate(data: RefundEmailData): string {
  * the Stripe dashboard).
  */
 export async function sendRefundEmail(data: RefundEmailData): Promise<void> {
+	// A Walk-in (issue 020) may have no email: nobody to notify.
+	if (!data.guestEmail) return;
 	const textBody = generateRefundTextTemplate(data);
 	const htmlBody = generateRefundHtmlTemplate(data);
 

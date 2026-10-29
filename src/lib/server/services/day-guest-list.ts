@@ -19,6 +19,8 @@ export interface DayGuestParty {
 	balanceAmount?: number;
 	currency?: string;
 	isComp?: boolean;
+	/** Issue 020: a Walk-in recorded on the spot. */
+	origin?: 'online' | 'staff' | 'walk_in';
 	/** Sum of this party's non-undone Check-ins — only with the guest list. */
 	arrived?: number;
 	/** When this party's last non-undone Check-in was recorded — guest list only. */
@@ -85,6 +87,7 @@ function partyColumns(access: StaffAccess): PartyColumns {
 		columns.balanceAmount = reservations.balanceAmount;
 		columns.currency = reservations.currency;
 		columns.isComp = reservations.isComp;
+		columns.origin = reservations.origin;
 		// Guests already in: non-undone Check-ins only, so an undone one stops counting.
 		columns.arrived = sql`(
 			select coalesce(sum(ci.guests), 0)::int

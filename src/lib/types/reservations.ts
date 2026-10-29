@@ -61,7 +61,7 @@ export type ReservationWithDetails = Reservation & {
 };
 
 export type TicketEmailData = {
-	guestEmail: string;
+	guestEmail: string | null;
 	guestName: string;
 	accessToken: string;
 	reservation: Reservation;
