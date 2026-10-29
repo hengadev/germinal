@@ -1,7 +1,19 @@
 <script lang="ts">
 	import 'barcode-detector/polyfill';
+	import { prepareZXingModule } from 'barcode-detector/ponyfill';
+	import zxingReaderWasm from 'zxing-wasm/reader/zxing_reader.wasm?url';
 	import { onMount } from 'svelte';
 	import { parseTicketToken } from '$lib/staff/ticket-qr';
+
+	// Where the native BarcodeDetector is missing (iOS Safari), the polyfill
+	// decodes with WebAssembly. By default it fetches that file from a CDN,
+	// which the CSP blocks: serve the copy bundled with the app instead.
+	prepareZXingModule({
+		overrides: {
+			locateFile: (path: string, prefix: string) =>
+				path.endsWith('.wasm') ? zxingReaderWasm : prefix + path,
+		},
+	});
 
 	let { onScan }: { onScan: (token: string) => void } = $props();
 

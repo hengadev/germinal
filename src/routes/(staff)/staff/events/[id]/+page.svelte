@@ -5,13 +5,25 @@
 	import { getToastContext } from '$lib/components/toast/state.svelte';
 	import { STAFF_PERMISSION_LABELS_FR } from '$lib/staff/permissions';
 	import Arrivees from '$lib/components/staff/arrivees/Arrivees.svelte';
+import Scanner from '$lib/components/staff/scanner/Scanner.svelte';
+import { page } from '$app/state';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
 	const toast = getToastContext();
 
 	// At the door, Arrivées comes first; it only exists during a Day.
-	let activeTab = $state<'tasks' | 'arrivees'>(data.access.canArrivees ? 'arrivees' : 'tasks');
+	// ?onglet=taches|arrivees|scanner lets a link open a tab directly.
+	const fromUrl = page.url.searchParams.get('onglet');
+	const tabFromUrl =
+		fromUrl === 'taches'
+			? ('tasks' as const)
+			: fromUrl === 'arrivees' || fromUrl === 'scanner'
+				? fromUrl
+				: null;
+	let activeTab = $state<'tasks' | 'arrivees' | 'scanner'>(
+		tabFromUrl ?? (data.access.canArrivees ? 'arrivees' : 'tasks')
+	);
 
 	const title = $derived(data.event.titleFr || data.event.titleEn || 'Événement sans titre');
 
@@ -115,6 +127,18 @@
 						Arrivées
 					</button>
 				{/if}
+				{#if data.access.canScan}
+					<button
+						type="button"
+						onclick={() => (activeTab = 'scanner')}
+						aria-current={activeTab === 'scanner' ? 'page' : undefined}
+						class="px-1 py-3 text-sm font-medium border-b-2 {activeTab === 'scanner'
+							? 'border-foreground text-foreground'
+							: 'border-transparent text-muted-foreground hover:text-foreground'}"
+					>
+						Scanner
+					</button>
+				{/if}
 			</nav>
 		</div>
 
@@ -193,7 +217,14 @@
 			</section>
 		{/if}
 
-		{#if !(activeTab === 'tasks' && data.access.canTasks) && !(activeTab === 'arrivees' && data.access.canArrivees)}
+		<!-- Onglet Scanner -->
+		{#if activeTab === 'scanner' && data.access.canScan}
+			<section aria-label="Scanner">
+				<Scanner onSearchByName={() => (activeTab = 'arrivees')} />
+			</section>
+		{/if}
+
+		{#if !(activeTab === 'tasks' && data.access.canTasks) && !(activeTab === 'arrivees' && data.access.canArrivees) && !(activeTab === 'scanner' && data.access.canScan)}
 			<div class="bg-background border border-border-card rounded-lg p-8 text-center">
 				<p class="text-muted-foreground">
 					Vos permissions :

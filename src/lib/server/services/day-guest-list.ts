@@ -204,6 +204,45 @@ export async function getDayGuestList(
 	return { day, seatings };
 }
 
+/** Why a Ticket that lookupTicket returned null did not match. */
+export type TicketExplanation =
+	| { reason: 'unknown' }
+	| { reason: 'other_event' }
+	| { reason: 'cancelled' }
+	| { reason: 'other_day'; day: string };
+
+/**
+ * Explain a Ticket lookupTicket could not resolve, for the door's refusal
+ * message. Only called when lookupTicket returned null. Selects just the
+ * Reservation's status, its Event id and its Day's date — never a guest
+ * field, so nothing of another Event's party can leak.
+ */
+export async function explainTicket(
+	eventId: string,
+	token: string
+): Promise<TicketExplanation> {
+	if (!token) return { reason: 'unknown' };
+	const [row] = await db
+		.select({
+			status: reservations.status,
+			rowEventId: eventSessions.eventId,
+			day: eventDays.date,
+		})
+		.from(reservations)
+		.innerJoin(eventSessions, eq(reservations.eventSessionId, eventSessions.id))
+		.innerJoin(eventServices, eq(eventSessions.serviceId, eventServices.id))
+		.innerJoin(eventDays, eq(eventServices.dayId, eventDays.id))
+		.where(eq(reservations.accessToken, token))
+		.limit(1);
+	if (!row) return { reason: 'unknown' };
+	// Another Event's Ticket says only that, nothing about its Reservation.
+	if (row.rowEventId !== eventId) return { reason: 'other_event' };
+	if (row.status !== 'confirmed') return { reason: 'cancelled' };
+	// lookupTicket already excluded the current Day (or there is none), so a
+	// confirmed Ticket of this Event is for another Day.
+	return { reason: 'other_day', day: row.day };
+}
+
 /**
  * Resolve a Ticket token (`reservations.accessToken`) to one party of the
  * current Day at this Event, with the same permission shaping. Returns

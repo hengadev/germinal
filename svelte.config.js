@@ -34,7 +34,10 @@ const config = {
             mode: 'nonce',
             directives: {
                 'default-src': ['self'],
-                'script-src': ['self', ...__impeccableLiveDev],
+                // wasm-unsafe-eval: the Staff Scanner's QR decoder (WebAssembly) on
+                // phones without a native BarcodeDetector. It allows compiling
+                // WebAssembly only, not eval of JavaScript.
+                'script-src': ['self', 'wasm-unsafe-eval', ...__impeccableLiveDev],
                 'style-src': ['self', 'unsafe-inline'],
                 'font-src': ['self'],
                 'img-src': ['self', 'data:', 'blob:', 'https:', ...__localMediaDev],
