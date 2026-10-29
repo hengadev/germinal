@@ -1,5 +1,5 @@
 {
-  "id": "394c275b-a94d-45ba-8674-d97663352fbf",
+  "id": "527e6617-7903-4d49-8e0f-d24a4b11d720",
   "prevId": "7fdb816e-b3ef-4398-8029-e136a0230d2d",
   "version": "7",
   "dialect": "postgresql",
@@ -161,7 +161,7 @@
           "name": "checked_in_by",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "checked_in_at": {
           "name": "checked_in_at",
@@ -224,7 +224,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
+          "onDelete": "set null",
           "onUpdate": "no action"
         },
         "check_ins_undone_by_users_id_fk": {
@@ -244,7 +244,12 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "check_ins_guests_check": {
+          "name": "check_ins_guests_check",
+          "value": "guests > 0"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.contact_submissions": {

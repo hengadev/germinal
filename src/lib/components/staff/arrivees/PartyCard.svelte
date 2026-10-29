@@ -14,7 +14,7 @@
 	import { balanceDue, guests as guestsLabel, type ArriveesFields } from './helpers';
 
 	let {
-			party,
+		party,
 			fields,
 			canCheckIn = false,
 			canCorrect = false
@@ -22,7 +22,7 @@
 		$props();
 
 	const balance = $derived(balanceDue(party));
-	const arrived = party.arrived ?? 0;
+	const arrived = $derived(party.arrived ?? 0);
 	const expected = $derived((party.quantity ?? 0) - arrived);
 	const allIn = $derived(party.quantity !== undefined && arrived >= party.quantity);
 
@@ -96,7 +96,7 @@
 		</div>
 	{/if}
 
-	{#if party.id && party.quantity !== undefined && (canCheckIn || (canCorrect && arrived > 0))}
+	{#if party.id && party.quantity !== undefined && ((canCheckIn && expected > 0) || (canCorrect && arrived > 0))}
 		<div class="mt-3 flex flex-wrap items-center justify-end gap-2 border-t border-border-card pt-3">
 			{#if canCorrect && arrived > 0}
 				<form
@@ -125,7 +125,7 @@
 				</form>
 			{/if}
 
-			{#if canCheckIn}
+			{#if canCheckIn && expected > 0}
 				{#if admitting}
 					<!-- The stepper: how many are arriving, pre-filled with the Guests still expected. -->
 					<form
@@ -146,7 +146,7 @@
 						<span class="inline-flex items-center rounded-lg border border-border-card">
 							<button
 								type="button"
-								onclick={() => (stepper = Math.min(party.quantity!, Math.max(1, stepper - 1)))}
+								onclick={() => (stepper = Math.max(1, stepper - 1))}
 								aria-label="Une personne de moins"
 								class="min-h-11 px-3 text-lg font-semibold text-foreground hover:bg-muted"
 							>−</button
@@ -157,14 +157,14 @@
 								type="number"
 								inputmode="numeric"
 								min="1"
-								max={party.quantity}
+								max={expected}
 								bind:value={stepper}
 								required
 								class="w-14 border-x border-border-card bg-background py-2 text-center text-lg font-semibold tabular-nums text-foreground focus:ring-2 focus:ring-foreground focus:outline-none"
 							/>
 							<button
 								type="button"
-								onclick={() => (stepper = Math.min(party.quantity!, stepper + 1))}
+								onclick={() => (stepper = Math.min(expected, stepper + 1))}
 								aria-label="Une personne de plus"
 								class="min-h-11 px-3 text-lg font-semibold text-foreground hover:bg-muted"
 							>+</button
@@ -201,7 +201,7 @@
 				{/if}
 			{/if}
 		</div>
-		{#if result}<p class="mt-2 text-end text-sm font-medium text-destructive" role="status">{result}</p>{/if}
+		{#if result}<p class="mt-2 text-end text-sm font-medium text-red-600" role="status">{result}</p>{/if}
 	{/if}
 
 	{#if fields.contact && party.guestPhone}

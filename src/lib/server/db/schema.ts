@@ -1004,14 +1004,14 @@ export const checkIns = pgTable('check_ins', {
         .references(() => reservations.id, { onDelete: 'cascade' }),
     guests: integer('guests').notNull(),
     method: checkInMethodEnum('method').notNull(),
-    checkedInBy: uuid('checked_in_by')
-        .notNull()
-        .references(() => users.id, { onDelete: 'cascade' }),
+    // Kept when the account is deleted: the record of the evening stays.
+    checkedInBy: uuid('checked_in_by').references(() => users.id, { onDelete: 'set null' }),
     checkedInAt: timestamp('checked_in_at', { withTimezone: true }).defaultNow().notNull(),
     undoneAt: timestamp('undone_at', { withTimezone: true }),
     undoneBy: uuid('undone_by').references(() => users.id, { onDelete: 'set null' }),
 }, (table) => ({
     reservationIdIdx: index('check_ins_reservation_id_idx').on(table.reservationId),
+    guestsCheck: check('check_ins_guests_check', sql`guests > 0`),
 }));
 
 // ============================================

@@ -336,14 +336,14 @@
 					     first, so the list shrinks as the Day goes. -->
 					<details class="group">
 						<summary
-							class="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-lg border bg-muted/40 px-4 py-2 text-sm transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none [&::-webkit-details-marker]:hidden"
+							class="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-lg border border-border-card bg-muted/40 px-4 py-2 text-sm text-foreground transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-foreground focus-visible:outline-none [&::-webkit-details-marker]:hidden"
 						>
 							<Check class="size-4 shrink-0" aria-hidden="true" />
 							<span class="shrink-0 font-semibold tabular-nums">
 								{folded.length === 1 ? '1 arrivée' : `${folded.length} arrivées`}
 							</span>
 							<span class="shrink-0 text-muted-foreground tabular-nums">
-								· {folded.reduce((n, p) => n + (p.quantity ?? 0), 0)} personnes
+								· {guests(folded.reduce((n, p) => n + (p.quantity ?? 0), 0))}
 							</span>
 							<span class="min-w-0 flex-1 truncate text-muted-foreground">
 								· {folded.map((p) => p.guestName).join(', ')}

@@ -58,7 +58,9 @@ export async function recordCheckIn(input: {
 			.innerJoin(eventServices, eq(eventSessions.serviceId, eventServices.id))
 			.innerJoin(eventDays, eq(eventServices.dayId, eventDays.id))
 			.where(eq(reservations.id, reservationId))
-			.for('update');
+			// Only the Reservation's row: locking the joined Seating would queue
+			// every Check-in and online booking of that Seating behind this one.
+			.for('update', { of: reservations });
 
 		if (!party || party.eventId !== eventId) {
 			return { ok: false as const, error: 'Réservation introuvable.' };
@@ -126,7 +128,9 @@ export async function undoLastCheckIn(input: {
 			.from(reservations)
 			.innerJoin(eventSessions, eq(reservations.eventSessionId, eventSessions.id))
 			.where(eq(reservations.id, reservationId))
-			.for('update');
+			// Only the Reservation's row: locking the joined Seating would queue
+			// every Check-in and online booking of that Seating behind this one.
+			.for('update', { of: reservations });
 
 		if (!party || party.eventId !== eventId) {
 			return { ok: false as const, error: 'Réservation introuvable.' };
