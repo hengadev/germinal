@@ -5,6 +5,7 @@
     import { setToastContext } from "$lib/components/toast/state.svelte";
     import ThemeToggle from "$lib/components/admin/ThemeToggle.svelte";
     import { adminDarkMode } from "$lib/stores/adminDarkMode.svelte";
+    import { CalendarDays, KeyRound, LogOut } from "lucide-svelte";
     import type { LayoutData } from "./$types";
 
     let {
@@ -14,9 +15,6 @@
 
     // Set up toast context for all staff pages
     setToastContext();
-
-    // Mobile menu drawer state
-    let mobileMenuOpen = $state(false);
 
     // Apply dark mode class to html element only when in staff routes
     $effect(() => {
@@ -37,312 +35,118 @@
             }
         };
     });
+
+    function tabClass(active: boolean): string {
+        return active
+            ? "flex-1 flex flex-col items-center justify-center gap-1 pt-3 pb-6 text-foreground"
+            : "flex-1 flex flex-col items-center justify-center gap-1 pt-3 pb-6 text-muted-foreground hover:text-foreground-alt";
+    }
 </script>
 
 <div class="back-office contents">
-<!-- Mobile Layout -->
-<div class="lg:hidden h-screen h-[100dvh] flex flex-col overflow-hidden bg-muted/25">
-    <!-- Mobile Header - fixed at top -->
-    <header class="flex-shrink-0 bg-background border-b border-border-card z-40">
-        <div class="flex items-center justify-between px-4 py-3">
-            <div class="flex items-center gap-3">
-                <h1 class="text-lg font-semibold text-foreground">Staff</h1>
-            </div>
-            <div class="flex items-center gap-2">
+    <!-- Mise en page mobile -->
+    <div class="lg:hidden h-screen h-[100dvh] flex flex-col overflow-hidden bg-muted/25">
+        <!-- En-tête mobile -->
+        <header class="flex-shrink-0 bg-background border-b border-border-card z-40">
+            <div class="flex items-center justify-between px-4 py-3">
+                <h1 class="text-lg font-semibold text-foreground">Portail Staff</h1>
                 <ThemeToggle />
-                <button
-                    onclick={() => (mobileMenuOpen = true)}
-                    class="p-3 text-foreground-alt hover:text-foreground rounded-lg hover:bg-muted transition-colors"
-                    aria-label="Menu"
-                >
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="24"
-                        height="24"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                    >
-                        <line x1="3" x2="21" y1="6" y2="6"></line>
-                        <line x1="3" x2="21" y1="12" y2="12"></line>
-                        <line x1="3" x2="21" y1="18" y2="18"></line>
-                    </svg>
-                </button>
             </div>
-        </div>
-    </header>
+        </header>
 
-    <!-- Main Content Area - scrollable -->
-    <main class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
-        {@render children()}
-    </main>
+        <!-- Contenu, défilable -->
+        <main class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
+            {@render children()}
+        </main>
 
-    <!-- Mobile Bottom Navigation - fixed at bottom -->
-    <nav
-        class="flex-shrink-0 bg-background border-t border-border-card z-50 pb-[env(safe-area-inset-bottom)]"
-        aria-label="Mobile navigation"
-    >
-        <div class="flex items-stretch">
-            {#if page.url.pathname === "/staff"}
-                <a
-                    href="/staff"
-                    class="flex-1 flex flex-col items-center justify-center gap-1 pt-3 pb-6 text-foreground"
-                >
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                    >
-                        <rect width="7" height="9" x="3" y="3" rx="1" />
-                        <rect width="7" height="5" x="14" y="3" rx="1" />
-                        <rect width="7" height="9" x="14" y="12" rx="1" />
-                        <rect width="7" height="5" x="3" y="16" rx="1" />
-                    </svg>
-                    <span class="text-[10px] font-medium">Dashboard</span>
+        <!-- Barre d'onglets en bas -->
+        <nav
+            class="flex-shrink-0 bg-background border-t border-border-card z-50 pb-[env(safe-area-inset-bottom)]"
+            aria-label="Navigation mobile"
+        >
+            <div class="flex items-stretch">
+                <a href="/staff" class={tabClass(page.url.pathname === '/staff' || page.url.pathname.startsWith('/staff/events'))}>
+                    <CalendarDays size={20} />
+                    <span class="text-[10px] font-medium">Événements</span>
                 </a>
-            {:else}
-                <a
-                    href="/staff"
-                    class="flex-1 flex flex-col items-center justify-center gap-1 pt-3 pb-6 text-muted-foreground hover:text-foreground-alt"
-                >
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                    >
-                        <rect width="7" height="9" x="3" y="3" rx="1" />
-                        <rect width="7" height="5" x="14" y="3" rx="1" />
-                        <rect width="7" height="9" x="14" y="12" rx="1" />
-                        <rect width="7" height="5" x="3" y="16" rx="1" />
-                    </svg>
-                    <span class="text-[10px] font-medium">Dashboard</span>
+                <a href="/staff/change-password" class={tabClass(page.url.pathname === '/staff/change-password')}>
+                    <KeyRound size={20} />
+                    <span class="text-[10px] font-medium">Compte</span>
                 </a>
-            {/if}
-
-            {#if page.url.pathname.startsWith("/staff/events")}
-                <a
-                    href="/staff/events"
-                    class="flex-1 flex flex-col items-center justify-center gap-1 pt-3 pb-6 text-foreground"
-                >
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                    >
-                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"
-                        ></rect>
-                        <line x1="16" x2="16" y1="2" y2="6"></line>
-                        <line x1="8" x2="8" y1="2" y2="6"></line>
-                        <line x1="3" x2="21" y1="10" y2="10"></line>
-                    </svg>
-                    <span class="text-[10px] font-medium">Events</span>
-                </a>
-            {:else}
-                <a
-                    href="/staff/events"
-                    class="flex-1 flex flex-col items-center justify-center gap-1 pt-3 pb-6 text-muted-foreground hover:text-foreground-alt"
-                >
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                    >
-                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"
-                        ></rect>
-                        <line x1="16" x2="16" y1="2" y2="6"></line>
-                        <line x1="8" x2="8" y1="2" y2="6"></line>
-                        <line x1="3" x2="21" y1="10" y2="10"></line>
-                    </svg>
-                    <span class="text-[10px] font-medium">Events</span>
-                </a>
-            {/if}
-        </div>
-    </nav>
-
-    <!-- Toast notifications -->
-    <Toaster />
-</div>
-
-<!-- Toast notifications for desktop (outside flex container) -->
-<div class="hidden lg:block">
-    <Toaster />
-</div>
-
-<!-- Desktop Layout -->
-<div class="hidden lg:flex min-h-screen bg-muted/25">
-    <!-- Desktop Sidebar -->
-    <aside class="w-64 bg-background border-r border-border-card flex flex-col">
-        <!-- Logo/Header -->
-        <div class="p-6 border-b border-border-card">
-            <h1 class="text-xl font-bold text-foreground">Staff Portal</h1>
-            <p class="text-sm text-muted-foreground mt-1">Germinal Events</p>
-        </div>
-
-        <!-- Navigation -->
-        <nav class="flex-1 p-4 space-y-1">
-            <a
-                href="/staff"
-                class="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors {page.url.pathname === '/staff'
-                    ? 'bg-foreground text-background hover:bg-foreground/85'
-                    : 'text-foreground-alt hover:bg-surface-hover hover:text-foreground'}"
-            >
-                <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                >
-                    <rect width="7" height="9" x="3" y="3" rx="1" />
-                    <rect width="7" height="5" x="14" y="3" rx="1" />
-                    <rect width="7" height="9" x="14" y="12" rx="1" />
-                    <rect width="7" height="5" x="3" y="16" rx="1" />
-                </svg>
-                <span class="font-medium">Dashboard</span>
-            </a>
-
-            <a
-                href="/staff/events"
-                class="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors {page.url.pathname.startsWith('/staff/events')
-                    ? 'bg-foreground text-background hover:bg-foreground/85'
-                    : 'text-foreground-alt hover:bg-surface-hover hover:text-foreground'}"
-            >
-                <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                >
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"
-                    ></rect>
-                    <line x1="16" x2="16" y1="2" y2="6"></line>
-                    <line x1="8" x2="8" y1="2" y2="6"></line>
-                    <line x1="3" x2="21" y1="10" y2="10"></line>
-                </svg>
-                <span class="font-medium">My Events</span>
-            </a>
+            </div>
         </nav>
 
-        <!-- User Section -->
-        <div class="p-4 border-t border-border-card">
-            <div class="flex items-center gap-3 mb-4">
-                <div
-                    class="w-10 h-10 rounded-full flex items-center justify-center bg-muted border border-border-card"
-                >
-                    <span class="text-sm font-semibold text-foreground-alt uppercase">
-                        {data.user.email[0].toUpperCase()}
-                    </span>
-                </div>
-                <div class="flex-1 min-w-0">
-                    <p class="text-sm font-medium text-foreground truncate">
-                        {data.user.email}
-                    </p>
-                    <p class="text-xs text-muted-foreground capitalize">
-                        {data.user.role}
-                    </p>
-                </div>
+        <Toaster />
+    </div>
+
+    <!-- Mise en page bureau -->
+    <div class="hidden lg:flex min-h-screen bg-muted/25">
+        <!-- Barre latérale -->
+        <aside class="w-64 bg-background border-r border-border-card flex flex-col">
+            <div class="p-6 border-b border-border-card">
+                <h1 class="text-xl font-bold text-foreground">Portail Staff</h1>
+                <p class="text-sm text-muted-foreground mt-1">Germinal Events</p>
             </div>
 
-            <div class="space-y-1">
+            <nav class="flex-1 p-4 space-y-1">
+                <a
+                    href="/staff"
+                    class="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors {page.url.pathname === '/staff' || page.url.pathname.startsWith('/staff/events')
+                        ? 'bg-foreground text-background hover:bg-foreground/85'
+                        : 'text-foreground-alt hover:bg-surface-hover hover:text-foreground'}"
+                >
+                    <CalendarDays size={20} />
+                    <span class="font-medium">Événements</span>
+                </a>
+
                 <a
                     href="/staff/change-password"
-                    class="flex items-center gap-3 px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+                    class="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors {page.url.pathname === '/staff/change-password'
+                        ? 'bg-foreground text-background hover:bg-foreground/85'
+                        : 'text-foreground-alt hover:bg-surface-hover hover:text-foreground'}"
                 >
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="18"
-                        height="18"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                    >
-                        <path
-                            d="M2 18a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v2a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-2Z"
-                        ></path>
-                        <circle cx="12" cy="11" r="3"></circle>
-                    </svg>
-                    <span>Change Password</span>
+                    <KeyRound size={20} />
+                    <span class="font-medium">Mot de passe</span>
                 </a>
+            </nav>
+
+            <!-- Utilisateur -->
+            <div class="p-4 border-t border-border-card">
+                <div class="flex items-center gap-3 mb-4">
+                    <div
+                        class="w-10 h-10 rounded-full flex items-center justify-center bg-muted border border-border-card"
+                    >
+                        <span class="text-sm font-semibold text-foreground-alt uppercase">
+                            {data.user.email[0].toUpperCase()}
+                        </span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-foreground truncate">
+                            {data.user.email}
+                        </p>
+                        <p class="text-xs text-muted-foreground">
+                            {data.user.role === 'admin' ? 'Administration' : 'Staff'}
+                        </p>
+                    </div>
+                </div>
 
                 <form method="POST" action="/logout">
                     <button
                         type="submit"
-                        class="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors"
+                        class="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg transition-colors"
                     >
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="18"
-                            height="18"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                        >
-                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"
-                            ></path>
-                            <polyline points="16 17 21 12 16 7"></polyline>
-                            <line x1="21" x2="9" y1="12" y2="12"></line>
-                        </svg>
-                        <span>Logout</span>
+                        <LogOut size={18} />
+                        <span>Déconnexion</span>
                     </button>
                 </form>
             </div>
-        </div>
-    </aside>
+        </aside>
 
-    <!-- Main Content Area -->
-    <main class="flex-1 bg-background">
-        {@render children()}
-    </main>
+        <!-- Contenu -->
+        <main class="flex-1 bg-background min-w-0">
+            {@render children()}
+        </main>
 
-    <!-- Toast notifications -->
-    <Toaster />
+        <Toaster />
+    </div>
 </div>
-</div>
-
-<style>
-    :global(.safe-area-inset-bottom) {
-        padding-bottom: env(safe-area-inset-bottom);
-    }
-</style>
