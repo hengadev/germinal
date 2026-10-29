@@ -55,19 +55,19 @@ export const GET: RequestHandler = async ({ url }) => {
 			icons: [
 				{
 					src: '/pwa-admin-192x192.png',
-				sizes: '192x192',
-				type: 'image/png'
+					sizes: '192x192',
+					type: 'image/png'
 				},
 				{
 					src: '/pwa-admin-512x512.png',
-				sizes: '512x512',
-				type: 'image/png'
+					sizes: '512x512',
+					type: 'image/png'
 				},
 				{
 					src: '/pwa-admin-512x512.png',
-				sizes: '512x512',
-				type: 'image/png',
-				purpose: 'any maskable'
+					sizes: '512x512',
+					type: 'image/png',
+					purpose: 'any maskable'
 				}
 			]
 		});
@@ -87,19 +87,19 @@ export const GET: RequestHandler = async ({ url }) => {
 		icons: [
 			{
 				src: '/pwa-192x192.png',
-				sizes: '192x192',
-				type: 'image/png'
+					sizes: '192x192',
+					type: 'image/png'
 			},
 			{
 				src: '/pwa-512x512.png',
-				sizes: '512x512',
-				type: 'image/png'
+					sizes: '512x512',
+					type: 'image/png'
 			},
 			{
 				src: '/pwa-512x512.png',
-				sizes: '512x512',
-				type: 'image/png',
-				purpose: 'any maskable'
+					sizes: '512x512',
+					type: 'image/png',
+					purpose: 'any maskable'
 			}
 		]
 	});
