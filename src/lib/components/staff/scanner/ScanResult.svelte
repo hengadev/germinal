@@ -1,7 +1,7 @@
 <script lang="ts">
 	/**
-	 * Variante A — bottom sheet : la caméra reste visible en dessous, la
-	 * fiche du groupe glisse du bas de l'écran, pouce accessible.
+	 * Le résultat d'un scan (issue 018) : la caméra reste visible en dessous,
+	 * la fiche du groupe glisse du bas de l'écran, à portée de pouce.
 	 */
 	import { enhance } from '$app/forms';
 	import { ChefHat, Gift, LoaderCircle, UserCheck, X } from 'lucide-svelte';

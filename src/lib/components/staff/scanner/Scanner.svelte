@@ -11,23 +11,15 @@
 	import { Ban, Check, Search } from 'lucide-svelte';
 	import QrScanner from '$lib/components/staff/QrScanner.svelte';
 	import { parseTicketToken } from '$lib/staff/ticket-qr';
-	import ResultA from './ResultA.svelte';
-	import ResultB from './ResultB.svelte';
-	import ResultC from './ResultC.svelte';
+	import ScanResult from './ScanResult.svelte';
 	import type { ScanParty } from './types';
 
 	let { onSearchByName }: { onSearchByName: () => void } = $props();
 
-	// <!-- VARIANT-SWITCHER -->
-	let variant = $state<'a' | 'b' | 'c'>(
-		['a', 'b', 'c'].includes(page.url.searchParams.get('variante') ?? '')
-			? ((page.url.searchParams.get('variante') as 'a' | 'b' | 'c'))
-			: 'a'
-	);
 
-	type ScanResult = { kind: 'party'; party: ScanParty } | { kind: 'refusal'; message: string };
+	type ScanOutcome = { kind: 'party'; party: ScanParty } | { kind: 'refusal'; message: string };
 
-	let result = $state<ScanResult | null>(null);
+	let result = $state<ScanOutcome | null>(null);
 	let scanning = $state(false);
 	let flash = $state('');
 	let simulate = $state('');
@@ -92,24 +84,6 @@
 </script>
 
 <div class="mx-auto max-w-lg">
-	<!-- VARIANT-SWITCHER -->
-	<div class="mb-3 flex items-center justify-center gap-2" aria-label="Variante du résultat de scan">
-		<span class="text-xs text-muted-foreground">Variante</span>
-		{#each ['a', 'b', 'c'] as v (v)}
-			<button
-				type="button"
-				onclick={() => (variant = v as 'a' | 'b' | 'c')}
-				aria-label="Variante {v.toUpperCase()}"
-				aria-pressed={variant === v}
-				class="min-h-9 min-w-9 rounded-md border text-sm font-semibold {variant === v
-					? 'border-foreground bg-foreground text-background'
-					: 'border-border-card bg-background text-foreground hover:bg-muted'}"
-			>
-				{v.toUpperCase()}
-			</button>
-		{/each}
-	</div>
-
 	{#if flash}
 		<p
 			class="mb-3 flex min-h-11 items-center justify-center gap-2 rounded-lg bg-foreground px-4 text-base font-semibold text-background"
@@ -129,19 +103,11 @@
 		</div>
 	{/if}
 
-	<!-- Variante B remplace la caméra par la fiche ; A et C la gardent. -->
-	{#if result?.kind === 'party' && variant === 'b'}
-		<ResultB party={result.party} onDone={checkedIn} />
-	{:else}
-		<QrScanner onScan={handleScan} />
-	{/if}
+	<QrScanner onScan={handleScan} />
 
-	{#if result?.kind === 'party' && variant === 'a'}
-		<ResultA party={result.party} onDone={checkedIn} onDismiss={() => (result = null)} />
-	{:else if result?.kind === 'party' && variant === 'c'}
-		<div class="mt-3">
-			<ResultC party={result.party} onDone={checkedIn} onDismiss={() => (result = null)} />
-		</div>
+	<!-- The party slides up over the camera, within thumb's reach. -->
+	{#if result?.kind === 'party'}
+		<ScanResult party={result.party} onDone={checkedIn} onDismiss={() => (result = null)} />
 	{/if}
 
 	<div class="mt-4 flex flex-col gap-3">
@@ -155,7 +121,7 @@
 		</button>
 
 		{#if import.meta.env.DEV}
-			<!-- Développement seulement : essayer les variantes sans imprimer de billets. -->
+			<!-- Développement seulement : essayer un scan sans caméra ni billet imprimé. -->
 			<form
 				class="flex gap-2"
 				onsubmit={(e) => {
