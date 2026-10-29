@@ -85,7 +85,6 @@
 	let unsettledOnly = $state(false);
 	const hasBalanceDue = (p: DayGuestParty) =>
 		!p.isComp && (p.balanceAmount ?? 0) > 0 && p.balanceSettledAt === null;
-	// svelte-ignore state_referenced_locally
 
 	let query = $state('');
 
