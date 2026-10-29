@@ -6,7 +6,7 @@
  */
 import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest';
 import { eq } from 'drizzle-orm';
-import { events, staffRoles, users } from '../../src/lib/server/db/schema';
+import { auditLog, events, staffRoles, users } from '../../src/lib/server/db/schema';
 import {
 	getTestDatabase,
 	setupTestDatabase,
@@ -191,6 +191,49 @@ describe('staff roles', () => {
 		await expect(
 			createStaffRole({ name: `Test dup ${run}`, permissions: [] }, 'test-admin')
 		).rejects.toMatchObject({ code: 'NAME_TAKEN' });
+		await cleanupRoles();
+	});
+
+	it('records Staff Role changes in the audit log', async () => {
+		const [admin] = await testDb
+			.insert(users)
+			.values({ email: `admin-${crypto.randomUUID()}@example.com`, firstName: 'A', lastName: 'Dmin', passwordHash: 'x', role: 'admin' })
+			.returning();
+		const { createStaffRole, updateStaffRole, setStaffRoleArchived, deleteStaffRole } = await import('../../src/lib/server/services/staff-roles');
+
+		const role = await createStaffRole({ name: `Test audit ${crypto.randomUUID()}`, permissions: ['tasks'] }, admin.id);
+		await updateStaffRole(role.id, { permissions: ['tasks', 'dietary'] }, admin.id);
+		await setStaffRoleArchived(role.id, true, admin.id);
+		await setStaffRoleArchived(role.id, false, admin.id);
+		await deleteStaffRole(role.id, admin.id);
+
+		const rows = await testDb.select().from(auditLog).where(eq(auditLog.entityId, role.id));
+		expect(rows.map((r) => r.action).sort()).toEqual([
+			'staff_role.archive',
+			'staff_role.create',
+			'staff_role.delete',
+			'staff_role.restore',
+			'staff_role.update',
+		]);
+		expect(rows.every((r) => r.adminId === admin.id)).toBe(true);
+	});
+
+	it("changes an Assignment's role, but never to an archived one", async () => {
+		const { event, staff } = await seedEventAndStaff();
+		const { assignStaff, changeAssignmentRole, getStaffForEvent } = await import('../../src/lib/server/services/event-staff');
+		const { createStaffRole, setStaffRoleArchived } = await import('../../src/lib/server/services/staff-roles');
+
+		await assignStaff(event.id, staff.id, await roleId('Bar'));
+		await changeAssignmentRole(event.id, staff.id, await roleId('Cuisine'));
+		expect((await getStaffForEvent(event.id))[0].staffRole.name).toBe('Cuisine');
+
+		const archived = await createStaffRole({ name: `Test archived ${crypto.randomUUID()}`, permissions: ['tasks'] }, 'test-admin');
+		created.push(archived.id);
+		await setStaffRoleArchived(archived.id, true, 'test-admin');
+		await expect(changeAssignmentRole(event.id, staff.id, archived.id)).rejects.toMatchObject({
+			code: 'ROLE_NOT_ASSIGNABLE',
+		});
+		expect((await getStaffForEvent(event.id))[0].staffRole.name).toBe('Cuisine');
 		await cleanupRoles();
 	});
 });

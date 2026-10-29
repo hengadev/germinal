@@ -345,6 +345,7 @@
                                 </td>
                                 <td class="px-6 py-4">
                                     <select
+                                        aria-label="Rôle de {staff.user.firstName} {staff.user.lastName}"
                                         class="px-2 py-1 border border-border-input rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                                         value={staff.staffRole.id}
                                         disabled={processing}

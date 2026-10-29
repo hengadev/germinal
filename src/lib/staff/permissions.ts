@@ -27,7 +27,7 @@ export const STAFF_PERMISSION_LABELS_FR: Record<StaffPermission, string> = {
 	manual_check_in: 'Check-in à la main',
 	dietary: 'Régimes alimentaires',
 	contact: 'Coordonnées',
-	settle_balance: 'Encaisser un solde',
+	settle_balance: 'Marquer un solde réglé',
 	correct_mistake: 'Corriger une erreur',
 	move: 'Déplacer',
 	walk_in: 'Walk-in',

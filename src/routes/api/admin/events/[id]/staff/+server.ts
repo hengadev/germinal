@@ -72,7 +72,9 @@ export const PATCH: RequestHandler = async ({ locals, params, request }) => {
 		return json({ success: true });
 	} catch (error) {
 		if (error instanceof StaffAssignmentError) {
-			const status = error.code === 'NOT_FOUND' ? 404 : 400;
+			const status = error.code === 'NOT_FOUND' ? 404
+				: error.code === 'ROLE_NOT_ASSIGNABLE' ? 409
+				: 400;
 			return json({ error: error.message }, { status });
 		}
 		console.error('Failed to change staff role:', error);

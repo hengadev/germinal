@@ -1,6 +1,7 @@
 <script lang="ts">
     import { enhance } from "$app/forms";
-    import { Plus, Archive, ArchiveRestore, Trash2, Pencil, Loader2, X, CheckCircle2 } from "lucide-svelte";
+    import { Plus, Archive, ArchiveRestore, Trash2, Pencil, X, CheckCircle2, Loader2 } from "lucide-svelte";
+    import type { SubmitFunction } from "@sveltejs/kit";
     import type { ActionData } from "./$types";
     import {
         STAFF_PERMISSIONS,
@@ -8,7 +9,6 @@
         ACTS_ON_PARTIES_PERMISSIONS,
         type StaffPermission,
     } from "$lib/staff/permissions";
-    import { getToastContext } from "$lib/components/toast/state.svelte";
 
     interface Props {
         form?: ActionData;
@@ -58,6 +58,37 @@
         }
     }
 
+    // The form being submitted, to disable its button and show a spinner.
+    let pending = $state<string | null>(null);
+
+    // Close the open form once the server accepted it; errors keep it open.
+    const closeOnSuccess: SubmitFunction = ({ formElement }) => {
+        pending = formElement.dataset.key ?? null;
+        return async ({ result, update }) => {
+            await update({ reset: false });
+            pending = null;
+            if (result.type === 'success') {
+                showCreateForm = false;
+                newName = '';
+                newPermissions = [];
+                editingId = null;
+            }
+        };
+    };
+
+    // Same pending state for one-click actions; deleting asks first.
+    const rowAction: SubmitFunction = ({ formElement, cancel }) => {
+        if (formElement.dataset.confirm && !confirm(formElement.dataset.confirm)) {
+            cancel();
+            return;
+        }
+        pending = formElement.dataset.key ?? null;
+        return async ({ update }) => {
+            await update();
+            pending = null;
+        };
+    };
+
     function startEdit(role: StaffRoleRow) {
         editingId = role.id;
         editName = role.name;
@@ -86,7 +117,8 @@
         <form
             method="POST"
             action="?/createStaffRole"
-            use:enhance
+            data-key="create"
+            use:enhance={closeOnSuccess}
             class="bg-background border border-border-card rounded-lg p-6 space-y-4"
         >
             <h4 class="text-md font-semibold">Créer un rôle</h4>
@@ -122,8 +154,8 @@
                 </p>
             </div>
             <div class="flex items-center gap-3">
-                <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-foreground text-background rounded-lg hover:opacity-90 transition-colors">
-                    <CheckCircle2 size={16} />
+                <button type="submit" disabled={pending === 'create'} class="inline-flex items-center gap-2 px-4 py-2 bg-foreground text-background rounded-lg hover:opacity-90 transition-colors disabled:opacity-50">
+                    {#if pending === 'create'}<Loader2 size={16} class="animate-spin" />{:else}<CheckCircle2 size={16} />{/if}
                     <span>Créer</span>
                 </button>
                 <button
@@ -139,6 +171,7 @@
     {/if}
 
     <div class="bg-background border border-border-card rounded-lg overflow-hidden">
+        <div class="overflow-x-auto">
         <table class="w-full">
             <thead class="bg-muted border-b border-border-card">
                 <tr>
@@ -166,7 +199,7 @@
                         </td>
                         <td class="px-6 py-4 align-top">
                             {#if editingId === role.id}
-                                <form id="edit-role-{role.id}" method="POST" action="?/updateStaffRole" use:enhance class="space-y-3">
+                                <form id="edit-role-{role.id}" method="POST" action="?/updateStaffRole" data-key="update-{role.id}" use:enhance={closeOnSuccess} class="space-y-3">
                                     <input type="hidden" name="id" value={role.id} />
                                     <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
                                         {#each STAFF_PERMISSIONS as perm (perm)}
@@ -183,8 +216,8 @@
                                         {/each}
                                     </div>
                                     <div class="flex items-center gap-2">
-                                        <button type="submit" class="inline-flex items-center gap-2 px-3 py-1.5 bg-foreground text-background rounded-lg text-sm hover:opacity-90">
-                                            <CheckCircle2 size={14} />
+                                        <button type="submit" disabled={pending === `update-${role.id}`} class="inline-flex items-center gap-2 px-3 py-1.5 bg-foreground text-background rounded-lg text-sm hover:opacity-90 disabled:opacity-50">
+                                            {#if pending === `update-${role.id}`}<Loader2 size={14} class="animate-spin" />{:else}<CheckCircle2 size={14} />{/if}
                                             <span>Enregistrer</span>
                                         </button>
                                         <button type="button" onclick={() => (editingId = null)} class="inline-flex items-center gap-2 px-3 py-1.5 border border-border-input text-foreground rounded-lg text-sm hover:bg-muted">
@@ -213,20 +246,20 @@
                                 <button
                                     onclick={() => startEdit(role)}
                                     class="p-2 text-foreground hover:bg-muted rounded-lg transition-colors"
-                                    title="Modifier"
+                                    title="Modifier" aria-label="Modifier le rôle"
                                 >
                                     <Pencil size={16} />
                                 </button>
-                                <form method="POST" action="?/archiveStaffRole" use:enhance>
+                                <form method="POST" action="?/archiveStaffRole" data-key="archive-{role.id}" use:enhance={rowAction}>
                                     <input type="hidden" name="id" value={role.id} />
-                                    <button type="submit" class="p-2 text-foreground hover:bg-muted rounded-lg transition-colors" title="Archiver">
+                                    <button type="submit" disabled={pending?.endsWith(role.id)} class="disabled:opacity-50 p-2 text-foreground hover:bg-muted rounded-lg transition-colors" title="Archiver" aria-label="Archiver le rôle">
                                         <Archive size={16} />
                                     </button>
                                 </form>
                                 {#if role.assignmentCount === 0}
-                                    <form method="POST" action="?/deleteStaffRole" use:enhance>
+                                    <form method="POST" action="?/deleteStaffRole" data-key="delete-{role.id}" data-confirm="Supprimer le rôle « {role.name} » ?" use:enhance={rowAction}>
                                         <input type="hidden" name="id" value={role.id} />
-                                        <button type="submit" class="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors" title="Supprimer">
+                                        <button type="submit" disabled={pending?.endsWith(role.id)} class="disabled:opacity-50 p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors" title="Supprimer" aria-label="Supprimer le rôle">
                                             <Trash2 size={16} />
                                         </button>
                                     </form>
@@ -234,9 +267,16 @@
                             </div>
                         </td>
                     </tr>
+                {:else}
+                    <tr>
+                        <td colspan="4" class="px-6 py-8 text-center text-sm text-muted-foreground">
+                            Aucun rôle actif. Créez-en un ou restaurez un rôle archivé.
+                        </td>
+                    </tr>
                 {/each}
             </tbody>
         </table>
+        </div>
     </div>
 
     {#if archivedRoles.length > 0}
@@ -253,16 +293,16 @@
                             </p>
                         </div>
                         <div class="flex items-center gap-1">
-                            <form method="POST" action="?/restoreStaffRole" use:enhance>
+                            <form method="POST" action="?/restoreStaffRole" data-key="restore-{role.id}" use:enhance={rowAction}>
                                 <input type="hidden" name="id" value={role.id} />
-                                <button type="submit" class="p-2 text-foreground hover:bg-muted rounded-lg transition-colors" title="Restaurer">
+                                <button type="submit" disabled={pending?.endsWith(role.id)} class="disabled:opacity-50 p-2 text-foreground hover:bg-muted rounded-lg transition-colors" title="Restaurer" aria-label="Restaurer le rôle">
                                     <ArchiveRestore size={16} />
                                 </button>
                             </form>
                             {#if role.assignmentCount === 0}
-                                <form method="POST" action="?/deleteStaffRole" use:enhance>
+                                <form method="POST" action="?/deleteStaffRole" data-key="delete-{role.id}" data-confirm="Supprimer le rôle « {role.name} » ?" use:enhance={rowAction}>
                                     <input type="hidden" name="id" value={role.id} />
-                                    <button type="submit" class="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors" title="Supprimer">
+                                    <button type="submit" disabled={pending?.endsWith(role.id)} class="disabled:opacity-50 p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors" title="Supprimer" aria-label="Supprimer le rôle">
                                         <Trash2 size={16} />
                                     </button>
                                 </form>

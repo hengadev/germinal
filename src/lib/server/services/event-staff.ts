@@ -139,9 +139,8 @@ export async function assignStaff(
 }
 
 /**
- * Change the Staff Role of an existing Assignment. Archived roles keep
- * working on existing Assignments, so they are allowed here — but a new
- * assignment (assignStaff) refuses them.
+ * Change the Staff Role of an existing Assignment. Like assignStaff, an
+ * archived role can't be picked; an Assignment already on one keeps it.
  */
 export async function changeAssignmentRole(
 	eventId: string,
@@ -149,12 +148,25 @@ export async function changeAssignmentRole(
 	staffRoleId: string
 ): Promise<void> {
 	const [staffRole] = await db
-		.select({ id: staffRoles.id })
+		.select({ id: staffRoles.id, archivedAt: staffRoles.archivedAt })
 		.from(staffRoles)
 		.where(eq(staffRoles.id, staffRoleId))
 		.limit(1);
 	if (!staffRole) {
 		throw new StaffAssignmentError('Staff role not found', 'NOT_FOUND');
+	}
+
+	const [assignment] = await db
+		.select({ staffRoleId: eventStaff.staffRoleId })
+		.from(eventStaff)
+		.where(and(eq(eventStaff.eventId, eventId), eq(eventStaff.userId, userId)))
+		.limit(1);
+	if (!assignment) {
+		throw new StaffAssignmentError('Assignment not found', 'NOT_FOUND');
+	}
+	if (assignment.staffRoleId === staffRoleId) return;
+	if (staffRole.archivedAt) {
+		throw new StaffAssignmentError('Staff role is archived and cannot be assigned', 'ROLE_NOT_ASSIGNABLE');
 	}
 
 	await db

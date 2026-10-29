@@ -16,6 +16,7 @@ export class StaffRoleError extends Error {
 		public readonly code:
 			| 'NOT_FOUND'
 			| 'NAME_TAKEN'
+			| 'INVALID_NAME'
 			| 'INVALID_PERMISSIONS'
 			| 'IN_USE'
 	) {
@@ -69,7 +70,7 @@ export async function getStaffRole(id: string): Promise<StaffRole | null> {
 function validatePermissions(raw: unknown): StaffPermission[] {
 	const list = Array.isArray(raw) ? raw : [];
 	if (!list.every(isStaffPermission)) {
-		throw new StaffRoleError('Unknown staff permission', 'INVALID_PERMISSIONS');
+		throw new StaffRoleError('Permission inconnue', 'INVALID_PERMISSIONS');
 	}
 	return withImpliedPermissions(list as StaffPermission[]);
 }
@@ -84,7 +85,7 @@ export async function createStaffRole(
 	adminId: string
 ): Promise<StaffRole> {
 	const name = input.name.trim();
-	if (!name) throw new StaffRoleError('Name is required', 'NAME_TAKEN');
+	if (!name) throw new StaffRoleError('Le nom du rôle est requis', 'INVALID_NAME');
 	const permissions = validatePermissions(input.permissions);
 
 	try {
@@ -102,7 +103,7 @@ export async function createStaffRole(
 		return { ...row, permissions: parsePermissions(row.permissions) };
 	} catch (error) {
 		if (isUniqueNameViolation(error)) {
-			throw new StaffRoleError(`A staff role named "${name}" already exists`, 'NAME_TAKEN');
+			throw new StaffRoleError(`Un rôle nommé « ${name} » existe déjà`, 'NAME_TAKEN');
 		}
 		logger.error({ err: error }, 'Failed to create staff role');
 		throw error;
@@ -115,12 +116,12 @@ export async function updateStaffRole(
 	adminId: string
 ): Promise<StaffRole> {
 	const [existing] = await db.select().from(staffRoles).where(eq(staffRoles.id, id)).limit(1);
-	if (!existing) throw new StaffRoleError('Staff role not found', 'NOT_FOUND');
+	if (!existing) throw new StaffRoleError('Rôle introuvable', 'NOT_FOUND');
 
 	const values: Partial<{ name: string; permissions: StaffPermission[] }> = {};
 	if (input.name !== undefined) {
 		const name = input.name.trim();
-		if (!name) throw new StaffRoleError('Name is required', 'NAME_TAKEN');
+		if (!name) throw new StaffRoleError('Le nom du rôle est requis', 'INVALID_NAME');
 		values.name = name;
 	}
 	if (input.permissions !== undefined) {
@@ -143,7 +144,7 @@ export async function updateStaffRole(
 		return { ...row, permissions: parsePermissions(row.permissions) };
 	} catch (error) {
 		if (isUniqueNameViolation(error)) {
-			throw new StaffRoleError(`A staff role named "${values.name}" already exists`, 'NAME_TAKEN');
+			throw new StaffRoleError(`Un rôle nommé « ${values.name} » existe déjà`, 'NAME_TAKEN');
 		}
 		logger.error({ err: error }, 'Failed to update staff role');
 		throw error;
@@ -160,7 +161,7 @@ export async function setStaffRoleArchived(
 		.set({ archivedAt: archived ? new Date() : null, updatedAt: new Date() })
 		.where(eq(staffRoles.id, id))
 		.returning();
-	if (!row) throw new StaffRoleError('Staff role not found', 'NOT_FOUND');
+	if (!row) throw new StaffRoleError('Rôle introuvable', 'NOT_FOUND');
 	await recordAuditLog({
 		adminId,
 		action: archived ? 'staff_role.archive' : 'staff_role.restore',
@@ -178,12 +179,12 @@ export async function deleteStaffRole(id: string, adminId: string): Promise<void
 		.where(eq(eventStaff.staffRoleId, id));
 	if (count > 0) {
 		throw new StaffRoleError(
-			'Cannot delete a staff role used by an assignment; archive it instead',
+			'Ce rôle est utilisé par des assignations : archivez-le plutôt que de le supprimer',
 			'IN_USE'
 		);
 	}
 	const [row] = await db.delete(staffRoles).where(eq(staffRoles.id, id)).returning();
-	if (!row) throw new StaffRoleError('Staff role not found', 'NOT_FOUND');
+	if (!row) throw new StaffRoleError('Rôle introuvable', 'NOT_FOUND');
 	await recordAuditLog({
 		adminId,
 		action: 'staff_role.delete',
