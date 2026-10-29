@@ -16,7 +16,8 @@
 	 */
 	import { replaceState } from '$app/navigation';
 	import { page } from '$app/state';
-	import { ChefHat, Check, ChevronDown, Search, Users } from 'lucide-svelte';
+	import { ChefHat, Check, ChevronDown, LoaderCircle, Plus, Search, Users, X } from 'lucide-svelte';
+	import { enhance } from '$app/forms';
 	import type { DayGuestList, DayGuestParty } from '$lib/server/services/day-guest-list';
 	import PartyCard from './PartyCard.svelte';
 	import {
@@ -36,7 +37,8 @@
 		timeZone,
 		canCheckIn = false,
 		canCorrect = false,
-		canSettle = false
+		canSettle = false,
+		canWalkIn = false
 	}: {
 		list: DayGuestList;
 		fields: ArriveesFields;
@@ -44,6 +46,7 @@
 		canCheckIn?: boolean;
 		canCorrect?: boolean;
 		canSettle?: boolean;
+		canWalkIn?: boolean;
 	} = $props();
 
 	// The clock only moves the dot on the Seating under way, never the list.
@@ -87,6 +90,37 @@
 		!p.isComp && (p.balanceAmount ?? 0) > 0 && p.balanceSettledAt === null;
 
 	let query = $state('');
+
+	// « Ajouter un walk-in » (issue 020): an inline form, black and white,
+	// on the Service shown — started Seatings included, the one under way
+	// by default.
+	let addingWalkIn = $state(false);
+	let walkInSubmitting = $state(false);
+	let walkInSeating = $state('');
+	let walkInName = $state('');
+	let walkInQuantity = $state(2);
+	let walkInEmail = $state('');
+	let walkInPhone = $state('');
+	const walkInError = $derived.by(() => {
+		const form = page.form as { error?: string; walkIn?: boolean } | null;
+		return form && form.walkIn && form.error ? form.error : null;
+	});
+	function closeWalkIn() {
+		addingWalkIn = false;
+		walkInName = '';
+		walkInEmail = '';
+		walkInPhone = '';
+		walkInQuantity = 2;
+	}
+	function stepQuantity(delta: number) {
+		walkInQuantity = Math.max(1, walkInQuantity + delta);
+	}
+	const walkInSeatings = $derived(services.length > 0 ? (service?.seatings ?? []) : list.seatings);
+	const BTN =
+		'inline-flex min-h-11 items-center justify-center gap-2 rounded-md border px-4 text-sm font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-foreground focus-visible:outline-none';
+	const INPUT =
+		'min-h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus-visible:ring-2 focus-visible:ring-foreground focus-visible:outline-none';
+	const LABEL = 'block text-sm font-medium text-foreground';
 
 	/** The Seating the list is filtered to, kept in the address (`?heure=20h30`). */
 	const HOUR_PARAM = 'heure';
@@ -220,6 +254,118 @@
 				Arrivés, solde non réglé
 			</button>
 		</div>
+	{/if}
+
+	<!-- « Ajouter un walk-in » (issue 020) -->
+	{#if canWalkIn && fields.guestList}
+		<div class="flex flex-wrap items-center gap-2">
+			{#if addingWalkIn}
+				<button
+						type="button"
+						onclick={closeWalkIn}
+						class="{BTN} border-border-card bg-background text-foreground hover:bg-muted"
+					>
+					<X size={16} aria-hidden="true" /> Annuler
+				</button>
+			{:else}
+				<button
+					type="button"
+					onclick={() => {
+						walkInSeating = currentId ?? walkInSeatings[0]?.id ?? '';
+						addingWalkIn = true;
+					}}
+					class="{BTN} border-foreground bg-foreground text-background hover:bg-foreground/90"
+				>
+					<Plus size={16} aria-hidden="true" /> Ajouter un walk-in
+				</button>
+			{/if}
+		</div>
+		{#if addingWalkIn}
+			<form
+				method="POST"
+				action="?/walkIn"
+				class="rounded-lg border border-border-card bg-background p-4"
+				use:enhance={() => {
+					walkInSubmitting = true;
+					return async ({ update }) => {
+						await update();
+						walkInSubmitting = false;
+						const form = page.form as { error?: string; walkIn?: boolean } | null;
+						if (!(form && form.walkIn && form.error)) closeWalkIn();
+					};
+				}}
+			>
+				<fieldset class="space-y-3" disabled={walkInSubmitting}>
+					<legend class="sr-only">Ajouter un walk-in</legend>
+					<div>
+						<label class={LABEL} for="walk-in-seating">Séance</label>
+						<select
+							id="walk-in-seating"
+							name="seatingId"
+							bind:value={walkInSeating}
+							class={INPUT}
+							required
+						>
+							{#each walkInSeatings as seating (seating.id)}
+								<option value={seating.id}>{seatingTime(seating, timeZone)}</option>
+							{/each}
+						</select>
+					</div>
+					<div>
+						<label class={LABEL} for="walk-in-name">Nom</label>
+						<input id="walk-in-name" name="name" type="text" bind:value={walkInName} required class={INPUT} />
+					</div>
+					<div>
+						<span class={LABEL} id="walk-in-quantity-label">Personnes</span>
+						<div class="mt-1 inline-flex items-center gap-2" role="group" aria-labelledby="walk-in-quantity-label">
+							<button
+								type="button"
+								onclick={() => stepQuantity(-1)}
+								class="{BTN} border-border-card bg-background text-foreground hover:bg-muted"
+								aria-label="Retirer une personne"
+							>−</button
+							>
+							<span class="min-w-8 text-center text-lg font-semibold text-foreground tabular-nums">{walkInQuantity}</span>
+							<button
+								type="button"
+								onclick={() => stepQuantity(1)}
+								class="{BTN} border-border-card bg-background text-foreground hover:bg-muted"
+								aria-label="Ajouter une personne"
+							>+</button
+							>
+							<input type="hidden" name="quantity" value={walkInQuantity} />
+						</div>
+					</div>
+					<div class="grid gap-3 sm:grid-cols-2">
+						<div>
+							<label class={LABEL} for="walk-in-email">E-mail (facultatif)</label>
+							<input
+								id="walk-in-email"
+								name="email"
+								type="email"
+								bind:value={walkInEmail}
+								class={INPUT}
+							/>
+						</div>
+						<div>
+							<label class={LABEL} for="walk-in-phone">Téléphone (facultatif)</label>
+							<input id="walk-in-phone" name="phone" type="tel" bind:value={walkInPhone} class={INPUT} />
+						</div>
+					</div>
+					{#if walkInError}
+						<p class="text-sm font-medium text-red-600" role="alert">{walkInError}</p>
+					{/if}
+					<button
+						type="submit"
+						disabled={walkInSubmitting || walkInSeatings.length === 0}
+						class="{BTN} w-full border-foreground bg-foreground text-background hover:bg-foreground/90 disabled:opacity-50"
+					>
+						{#if walkInSubmitting}<LoaderCircle size={16} class="animate-spin" aria-hidden="true" />{/if}
+						Enregistrer
+					</button>
+				</fieldset>
+			</form>
+		{/if}
 	{/if}
 
 	<!-- The search box and the Seating times stay on screen while the list scrolls. -->

@@ -41,6 +41,12 @@ export const taskStatusEnum = pgEnum('task_status', ['pending', 'in_progress', '
 
 export const taskPriorityEnum = pgEnum('task_priority', ['low', 'medium', 'high']);
 
+export const reservationOriginEnum = pgEnum('reservation_origin', [
+    'online',
+    'staff',
+    'walk_in'
+]);
+
 export const notificationPreferenceEnum = pgEnum('notification_preference', [
     'email',
     'sms',
@@ -739,7 +745,8 @@ export const reservations = pgTable('reservations', {
     eventSessionId: uuid('event_session_id')
         .notNull()
         .references(() => eventSessions.id, { onDelete: 'restrict' }),
-    guestEmail: varchar('guest_email', { length: 255 }).notNull(),
+    // Issue 020: absent for Walk-ins, who may have no email at all.
+    guestEmail: varchar('guest_email', { length: 255 }),
     guestName: varchar('guest_name', { length: 255 }).notNull(),
     guestPhone: varchar('guest_phone', { length: 50 }),
     notificationPreference: notificationPreferenceEnum('notification_preference').notNull().default('both'),
@@ -757,6 +764,11 @@ export const reservations = pgTable('reservations', {
     reminderSent1Week: boolean('reminder_sent_1_week').default(false).notNull(),
     reminderSent1Day: boolean('reminder_sent_1_day').default(false).notNull(),
     isComp: boolean('is_comp').default(false).notNull(),
+    // Issue 020: where the Reservation came from, and which Staff member
+    // made it when it didn't come from the site. 'walk_in' marks a party
+    // seated on the spot (and 021 Comps on the spot, 022 Moves reuse this).
+    origin: reservationOriginEnum('origin').notNull().default('online'),
+    madeBy: uuid('made_by').references(() => users.id, { onDelete: 'set null' }),
     paymentId: uuid('payment_id').references(() => payments.id, { onDelete: 'set null' }),
     promotionCodeId: uuid('promotion_code_id').references(() => promotionCodes.id, { onDelete: 'set null' }),
     discountAmount: integer('discount_amount').default(0).notNull(),
