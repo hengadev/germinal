@@ -11,12 +11,12 @@
 	 * cuisine », every party's Dietary Requirements by Seating; Cuisine
 	 * (Dietary Requirements without the guest list) gets only that view.
 	 *
-	 * Until Check-ins exist (issue 017) every party is still expected; 017
-	 * folds the arrived ones under their Seating.
+	 * Parties fully arrived fold into one line under their Seating, last in
+	 * first, so the list shrinks as the Day goes (issue 017).
 	 */
 	import { replaceState } from '$app/navigation';
 	import { page } from '$app/state';
-	import { ChefHat, Search, Users } from 'lucide-svelte';
+	import { ChefHat, Check, ChevronDown, Search, Users } from 'lucide-svelte';
 	import type { DayGuestList } from '$lib/server/services/day-guest-list';
 	import PartyCard from './PartyCard.svelte';
 	import {
@@ -34,10 +34,14 @@
 		list,
 		fields,
 		timeZone,
+		canCheckIn = false,
+		canCorrect = false
 	}: {
 		list: DayGuestList;
 		fields: ArriveesFields;
 		timeZone: string;
+		canCheckIn?: boolean;
+		canCorrect?: boolean;
 	} = $props();
 
 	// The clock only moves the dot on the Seating under way, never the list.
@@ -100,6 +104,11 @@
 		replaceState(url, page.state);
 	}
 
+	// A party is still expected until every one of its Guests has arrived.
+	function isExpected(party: { quantity?: number; arrived?: number }): boolean {
+		return party.quantity === undefined || (party.arrived ?? 0) < party.quantity;
+	}
+
 	// A search covers the whole Day; otherwise the Service shown, or one of its times.
 	const seatings = $derived(
 		(query.trim() ? list.seatings : serviceSeatings)
@@ -108,7 +117,10 @@
 			.filter((s) => !query.trim() || s.parties.length > 0)
 	);
 	const found = $derived(seatings.reduce((n, s) => n + s.parties.length, 0));
-	const totalParties = $derived(serviceSeatings.reduce((n, s) => n + s.parties.length, 0));
+	// The chips count the parties still expected: those fully in fold away.
+	const expectedCount = (s: { parties: { quantity?: number; arrived?: number }[] }) =>
+		s.parties.filter(isExpected).length;
+	const totalParties = $derived(serviceSeatings.reduce((n, s) => n + expectedCount(s), 0));
 	const serviceBooked = $derived(serviceSeatings.reduce((n, s) => n + s.booked, 0));
 	// Null when one of the Seatings has no capacity: there is no total to show.
 	const serviceCapacity = $derived.by<number | null>(() => {
@@ -237,10 +249,10 @@
 								onclick={() => filterTo(seating.id)}
 								aria-pressed={active}
 								aria-current={seating.id === currentId ? 'time' : undefined}
-								aria-label="{time} : {seating.parties.length} {seating.parties.length === 1
+								aria-label="{time} : {expectedCount(seating)} {expectedCount(seating) === 1
 									? 'réservation'
 									: 'réservations'}"
-								class="{CHIP} {active ? SELECTED : IDLE} {seating.parties.length === 0 && !active
+								class="{CHIP} {active ? SELECTED : IDLE} {expectedCount(seating) === 0 && !active
 									? 'text-muted-foreground'
 									: ''}"
 							>
@@ -252,7 +264,7 @@
 									<span
 										class="min-w-5 rounded-md px-1.5 text-center text-xs leading-5 {active
 											? 'bg-background/20'
-											: 'bg-muted'}">{seating.parties.length}</span
+											: 'bg-muted'}">{expectedCount(seating)}</span
 									>
 								{/if}
 							</button>
@@ -310,10 +322,48 @@
 			</div>
 
 			{#if shownView === 'arrivees'}
-				{#if seating.parties.length > 0}
+				{@const stillExpected = seating.parties.filter(isExpected)}
+				{@const folded = seating.parties
+					.filter((p) => !isExpected(p))
+					.slice()
+					.sort(
+						(a, b) =>
+							(b.lastCheckInAt ? new Date(b.lastCheckInAt).getTime() : 0) -
+							(a.lastCheckInAt ? new Date(a.lastCheckInAt).getTime() : 0)
+					)}
+				{#if folded.length > 0}
+					<!-- The arrivals fold into one line under the Seating header, last in
+					     first, so the list shrinks as the Day goes. -->
+					<details class="group">
+						<summary
+							class="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-lg border bg-muted/40 px-4 py-2 text-sm transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none [&::-webkit-details-marker]:hidden"
+						>
+							<Check class="size-4 shrink-0" aria-hidden="true" />
+							<span class="shrink-0 font-semibold tabular-nums">
+								{folded.length === 1 ? '1 arrivée' : `${folded.length} arrivées`}
+							</span>
+							<span class="shrink-0 text-muted-foreground tabular-nums">
+								· {folded.reduce((n, p) => n + (p.quantity ?? 0), 0)} personnes
+							</span>
+							<span class="min-w-0 flex-1 truncate text-muted-foreground">
+								· {folded.map((p) => p.guestName).join(', ')}
+							</span>
+							<ChevronDown
+								class="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180"
+								aria-hidden="true"
+							/>
+						</summary>
+						<ul class="mt-2 space-y-2">
+							{#each folded as party, i (party.id ?? i)}
+								<li><PartyCard {party} {fields} canCheckIn={canCheckIn} canCorrect={canCorrect} /></li>
+							{/each}
+						</ul>
+					</details>
+				{/if}
+				{#if stillExpected.length > 0}
 					<ul class="space-y-2">
-						{#each seating.parties as party, i (party.id ?? i)}
-							<li><PartyCard {party} {fields} /></li>
+						{#each stillExpected as party, i (party.id ?? i)}
+							<li><PartyCard {party} {fields} canCheckIn={canCheckIn} canCorrect={canCorrect} /></li>
 						{/each}
 					</ul>
 				{/if}

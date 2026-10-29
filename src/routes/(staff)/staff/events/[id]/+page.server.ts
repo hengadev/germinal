@@ -4,6 +4,7 @@ import { getStaffEventAccess } from '$lib/server/services/staff-portal';
 import { getDayGuestList } from '$lib/server/services/day-guest-list';
 import { getTasksForUser, updateTaskStatus } from '$lib/server/services/tasks';
 import { taskStatusEnum } from '$lib/server/db/schema';
+import { recordCheckIn, undoLastCheckIn } from '$lib/server/services/check-ins';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
 	if (!locals.user) throw error(401, 'Non authentifié');
@@ -20,6 +21,8 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			canSeeGuests: access.canSeeGuests,
 			canTasks,
 			canArrivees,
+			canManualCheckIn: access.can('manual_check_in'),
+			canCorrect: access.can('correct_mistake'),
 		},
 		event: access.event,
 		staffRoleName: access.staffRoleName,
@@ -61,5 +64,62 @@ export const actions: Actions = {
 
 		await updateTaskStatus(taskId, status as (typeof taskStatusEnum.enumValues)[number]);
 		return { success: true };
+	},
+
+	checkIn: async ({ request, locals, params }) => {
+		if (!locals.user) return fail(401, { error: 'Non authentifié' });
+
+		// The Check-in permission is re-resolved on the server, never trusted
+		// from the client.
+		const access = await getStaffEventAccess(locals.user, params.id);
+
+		const formData = await request.formData();
+		const reservationId = formData.get('reservationId');
+		const guests = Number(formData.get('guests'));
+		if (!access.can('manual_check_in')) {
+			return fail(403, {
+				error: "Vous n'avez pas la permission de faire entrer à la main.",
+				reservationId
+			});
+		}
+		if (typeof reservationId !== 'string' || !Number.isInteger(guests)) {
+			return fail(400, { error: 'Requête invalide.' });
+		}
+
+		const result = await recordCheckIn({
+			access,
+			eventId: params.id,
+			reservationId,
+			guests,
+			method: 'manual',
+			actorId: locals.user.id,
+		});
+		if (!result.ok) return fail(422, { error: result.error, reservationId });
+	},
+
+	undoCheckIn: async ({ request, locals, params }) => {
+		if (!locals.user) return fail(401, { error: 'Non authentifié' });
+
+		const access = await getStaffEventAccess(locals.user, params.id);
+
+		const formData = await request.formData();
+		const reservationId = formData.get('reservationId');
+		if (!access.can('correct_mistake')) {
+			return fail(403, {
+				error: "Vous n'avez pas la permission de corriger une erreur.",
+				reservationId
+			});
+		}
+		if (typeof reservationId !== 'string') {
+			return fail(400, { error: 'Requête invalide.' });
+		}
+
+		const result = await undoLastCheckIn({
+			access,
+			eventId: params.id,
+			reservationId,
+			actorId: locals.user.id,
+		});
+		if (!result.ok) return fail(422, { error: result.error, reservationId });
 	},
 };
