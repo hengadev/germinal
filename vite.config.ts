@@ -14,14 +14,25 @@ export default defineConfig({
 			manifest: false,
 			workbox: {
 				globPatterns: ['**/*.{js,css,ico,png,svg,webp,woff,woff2,html}'],
-				navigateFallback: '/offline.html',
-				navigateFallbackDenylist: [/^\/api\//, /^\/staff/],
+				// No navigateFallback: Workbox's NavigationRoute would answer every
+				// navigation from the precache, and the plugin precaches offline.html as
+				// `offline`, so binding it to '/offline.html' made the SW fail to install.
+				navigateFallback: null,
 				runtimeCaching: [
 					{
 						// Always fetch HTML pages from the network so server-side redirects
 						// (e.g. maintenance mode) are never bypassed by the service worker cache.
+						// Only when the network fails, show the precached offline page.
 						urlPattern: ({ request }) => request.mode === 'navigate',
-						handler: 'NetworkOnly'
+						handler: 'NetworkOnly',
+						options: {
+							plugins: [
+								{
+									handlerDidError: async () =>
+										(await caches.match('/offline', { ignoreSearch: true })) ?? Response.error()
+								}
+							]
+						}
 					},
 					{
 						urlPattern: /^https:\/\/api\./i,
