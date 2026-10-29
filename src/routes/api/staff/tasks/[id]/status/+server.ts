@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type { RequestHandler } from './$types';
 import { requireStaff } from '$lib/server/auth-guards';
 import { updateTaskStatus, getTasksForUser } from '$lib/server/services/tasks';
+import { getStaffEventAccess } from '$lib/server/services/staff-portal';
 import { eq } from 'drizzle-orm';
 import { tasks, taskStatusEnum } from '$lib/server/db/schema';
 
@@ -37,6 +38,12 @@ export const PATCH: RequestHandler = async ({ locals, params, request }) => {
 
 		if (!task) {
 			return json({ error: 'Task not found or not assigned to you' }, { status: 404 });
+		}
+
+		// Same rule as the portal's Tâches tab: the Tasks permission at the Event.
+		const access = await getStaffEventAccess(locals.user, task.event.id).catch(() => null);
+		if (!access?.can('tasks')) {
+			return json({ error: 'Tasks permission required for this event' }, { status: 403 });
 		}
 
 		const updatedTask = await updateTaskStatus(params.id, status);

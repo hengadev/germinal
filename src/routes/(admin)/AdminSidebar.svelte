@@ -12,6 +12,7 @@
                 role: string;
                 createdAt: Date;
             };
+            staffPortalUrl: string;
         };
     }
 
@@ -209,6 +210,16 @@
                         >
                             <ExternalLink size={15} />
                             <span>Voir le site</span>
+                        </a>
+                        <a
+                            href={data.staffPortalUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onclick={closeUserMenu}
+                            class="flex items-center gap-2.5 px-3 py-2 text-sm text-foreground-alt hover:text-foreground hover:bg-muted transition-colors"
+                        >
+                            <ExternalLink size={15} />
+                            <span>Portail Staff</span>
                         </a>
                         <a
                             href="/admin/change-password"

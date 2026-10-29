@@ -4,7 +4,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const getTasksForUser = vi.hoisted(() => vi.fn());
 const updateTaskStatus = vi.hoisted(() => vi.fn());
 
+const getStaffEventAccess = vi.hoisted(() => vi.fn());
+
 vi.mock('$lib/server/services/tasks', () => ({ getTasksForUser, updateTaskStatus }));
+vi.mock('$lib/server/services/staff-portal', () => ({ getStaffEventAccess }));
 
 import { PATCH } from '../../../src/routes/api/staff/tasks/[id]/status/+server';
 
@@ -25,7 +28,8 @@ function patch(taskId: string, body: unknown) {
 describe('PATCH /api/staff/tasks/[id]/status', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
-		getTasksForUser.mockResolvedValue([{ id: 'task-own' }]);
+		getTasksForUser.mockResolvedValue([{ id: 'task-own', event: { id: 'event-1' } }]);
+		getStaffEventAccess.mockResolvedValue({ can: (perm: string) => perm === 'tasks' });
 		updateTaskStatus.mockImplementation(async (id: string, status: string) => ({ id, status }));
 	});
 
@@ -52,6 +56,16 @@ describe('PATCH /api/staff/tasks/[id]/status', () => {
 		const response = await patch('task-other', { status: 'done' });
 
 		expect(response.status).toBe(404);
+		expect(updateTaskStatus).not.toHaveBeenCalled();
+	});
+
+	it('refuses with 403 when Staff access withholds the Tasks permission', async () => {
+		getStaffEventAccess.mockResolvedValue({ can: () => false });
+
+		const response = await patch('task-own', { status: 'done' });
+
+		expect(response.status).toBe(403);
+		expect(getStaffEventAccess).toHaveBeenCalledWith(staffUser, 'event-1');
 		expect(updateTaskStatus).not.toHaveBeenCalled();
 	});
 });

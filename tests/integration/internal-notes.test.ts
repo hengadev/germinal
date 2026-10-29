@@ -284,8 +284,7 @@ describe('Internal Notes never leave the admin', () => {
 
 		const { load } = await import('../../src/routes/(staff)/staff/+page.server');
 		const data: any = await load({ locals: { user: staff, csrfToken: 'token' } } as any);
-		expect(data.events.map((e: { event: { id: string } }) => e.event.id)).toEqual([event.id]);
-		expect(data.tasks).toHaveLength(1);
+		expect(data.assignments.map((a: any) => a.event.id)).toEqual([event.id]);
 		expect(leaks(data)).toBe(false);
 
 		const { GET } = await import('../../src/routes/api/staff/tasks/+server');
