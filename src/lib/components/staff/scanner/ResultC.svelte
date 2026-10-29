@@ -18,6 +18,7 @@
 
 	let stepper = $state(Math.max(1, expected));
 	let submitting = $state(false);
+	let failure = $state<string | null>(null);
 </script>
 
 <div class="rounded-lg border-2 border-foreground bg-background">
@@ -61,9 +62,14 @@
 			return async ({ result, update }) => {
 				submitting = false;
 				if (result.type === 'success') {
+					// Arrivées shows the new count too.
+					await update();
 					onDone(stepper);
 				} else {
-					await update();
+					failure =
+						result.type === 'failure'
+							? ((result.data as { error?: string } | undefined)?.error ?? 'Une erreur est survenue.')
+							: 'Une erreur est survenue.';
 				}
 			};
 		}}
@@ -106,4 +112,5 @@
 			Faire entrer
 		</button>
 	</form>
+	{#if failure}<p class="mt-2 text-center text-sm font-semibold text-red-600" role="alert">{failure}</p>{/if}
 </div>

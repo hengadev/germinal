@@ -5,6 +5,8 @@
 	 * refus en français. Noir et blanc, grandes cibles, comme Arrivées.
 	 */
 	import { tick } from 'svelte';
+	import { deserialize } from '$app/forms';
+	import { replaceState } from '$app/navigation';
 	import { page } from '$app/state';
 	import { Ban, Check, Search } from 'lucide-svelte';
 	import QrScanner from '$lib/components/staff/QrScanner.svelte';
@@ -31,17 +33,32 @@
 	let simulate = $state('');
 	let flashTimer: ReturnType<typeof setTimeout> | null = null;
 
+	// The camera keeps reading the Ticket still in front of it: the same one
+	// is ignored for a few seconds, so a party just let in is not refused
+	// as « déjà entré » the instant after.
+	let lastToken = '';
+	let lastAt = 0;
+
 	async function handleScan(rawToken: string) {
 		const token = parseTicketToken(rawToken) ?? rawToken.trim();
-		if (!token || scanning || result) return;
+		// A party on screen waits for its answer; a refusal gives way to the next Ticket.
+		if (!token || scanning || result?.kind === 'party') return;
+		if (token === lastToken && Date.now() - lastAt < 4000) return;
+		lastToken = token;
+		lastAt = Date.now();
 		scanning = true;
 		try {
+			// A form action called by hand: SvelteKit answers JSON only when asked,
+			// in its own serialisation.
 			const res = await fetch('?/scan', {
 				method: 'POST',
+				headers: { accept: 'application/json', 'x-sveltekit-action': 'true' },
 				body: new URLSearchParams({ token }),
 			});
-			const action: { type: string; data?: { scan?: { party: ScanParty }; scanRefusal?: string } } =
-				await res.json();
+			const action = deserialize(await res.text()) as {
+				type: string;
+				data?: { scan?: { party: ScanParty }; scanRefusal?: string };
+			};
 			if (action.type === 'success' && action.data?.scan) {
 				result = { kind: 'party', party: action.data.scan.party };
 			} else {
@@ -57,6 +74,7 @@
 
 	function checkedIn(guests: number) {
 		result = null;
+		lastAt = Date.now();
 		flash = `${guests} ${guests === 1 ? 'personne entrée' : 'personnes entrées'}.`;
 		if (flashTimer !== null) clearTimeout(flashTimer);
 		flashTimer = setTimeout(() => (flash = ''), 2000);
@@ -64,7 +82,9 @@
 
 	async function searchByName() {
 		result = null;
-		history.replaceState(null, '', `?onglet=arrivees`);
+		const url = new URL(page.url.href);
+		url.searchParams.set('onglet', 'arrivees');
+		replaceState(url, page.state);
 		onSearchByName();
 		await tick();
 		document.getElementById('arrivees-search')?.focus();

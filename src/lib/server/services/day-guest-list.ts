@@ -235,8 +235,9 @@ export async function explainTicket(
 		.where(eq(reservations.accessToken, token))
 		.limit(1);
 	if (!row) return { reason: 'unknown' };
-	if (row.status !== 'confirmed') return { reason: 'cancelled' };
+	// Another Event's Ticket says only that, nothing about its Reservation.
 	if (row.rowEventId !== eventId) return { reason: 'other_event' };
+	if (row.status !== 'confirmed') return { reason: 'cancelled' };
 	// lookupTicket already excluded the current Day (or there is none), so a
 	// confirmed Ticket of this Event is for another Day.
 	return { reason: 'other_day', day: row.day };
