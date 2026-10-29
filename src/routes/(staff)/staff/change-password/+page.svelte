@@ -145,5 +145,15 @@
 				</button>
 			</form>
 		</div>
+
+		<!-- Sur téléphone, la déconnexion vit ici (la barre latérale l'offre sur ordinateur). -->
+		<form method="POST" action="/logout" class="lg:hidden mt-6">
+			<button
+				type="submit"
+				class="w-full py-3 px-4 text-sm text-red-600 border border-border-card rounded-lg hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
+			>
+				Déconnexion
+			</button>
+		</form>
 	</div>
 </div>

@@ -60,22 +60,21 @@
 									<span class="font-medium">Rôle :</span> {item.staffRoleName}
 								</p>
 							{/if}
-							{#if item.event.startDate}
+							{#if item.days.length > 0}
 								<p class="text-sm text-muted-foreground mt-1 flex items-center gap-1.5">
-									<CalendarDays size={14} />
+									<CalendarDays size={14} class="shrink-0" />
+									<span class="capitalize">{formatDay(item.days[0])}</span>
+									{#if item.days.length > 1}
+										→ {formatDay(item.days[item.days.length - 1])} ({item.days.length} jours)
+									{/if}
+								</p>
+							{:else if item.event.startDate}
+								<p class="text-sm text-muted-foreground mt-1 flex items-center gap-1.5">
+									<CalendarDays size={14} class="shrink-0" />
 									{formatRange(
 										item.event.startDate.toISOString(),
 										item.event.endDate?.toISOString() ?? item.event.startDate.toISOString()
 									)}
-								</p>
-							{/if}
-							{#if item.days.length > 0}
-								<p class="text-sm text-muted-foreground mt-1">
-									{item.days.length} jour{item.days.length > 1 ? 's' : ''}
-									– {formatDay(item.days[0])}
-									{#if item.days.length > 1}
-										→ {formatDay(item.days[item.days.length - 1])}
-									{/if}
 								</p>
 							{/if}
 						</div>

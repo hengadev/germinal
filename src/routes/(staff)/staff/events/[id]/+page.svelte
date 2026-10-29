@@ -18,7 +18,7 @@
 				day: 'numeric',
 				month: 'long',
 				year: 'numeric',
-				timeZone: data.event.timeZone,
+				timeZone: 'UTC',
 			}).format(new Date(`${data.access.day}T12:00:00Z`))
 			: null
 	);
@@ -42,7 +42,9 @@
 
 	function updateStatusEnhance() {
 		return ({ formElement }: { formElement: HTMLFormElement }) =>
-			async ({ result }: { result: import('@sveltejs/kit').ActionResult }) => {
+			async ({ result, update }: { result: import('@sveltejs/kit').ActionResult; update: () => Promise<void> }) => {
+				// Refresh the list so the badge shows the new status.
+				await update();
 				if (result.type === 'success') {
 					toast.success('Succès', 'Statut de la tâche mis à jour');
 				} else if (result.type === 'failure') {
@@ -129,7 +131,7 @@
 										name="status"
 										value={task.status}
 										onchange={(e) => e.currentTarget.form?.requestSubmit()}
-										class="px-2 py-1.5 text-sm border border-border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+										class="px-3 py-2 text-sm border border-border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
 										aria-label="Statut de la tâche"
 									>
 										<option value="pending">À faire</option>

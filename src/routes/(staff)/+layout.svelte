@@ -65,7 +65,7 @@
             aria-label="Navigation mobile"
         >
             <div class="flex items-stretch">
-                <a href="/staff" class={tabClass(page.url.pathname === '/staff' || page.url.pathname.startsWith('/staff/events'))}>
+                <a href="/staff?liste" class={tabClass(page.url.pathname === '/staff' || page.url.pathname.startsWith('/staff/events'))}>
                     <CalendarDays size={20} />
                     <span class="text-[10px] font-medium">Événements</span>
                 </a>
@@ -90,7 +90,7 @@
 
             <nav class="flex-1 p-4 space-y-1">
                 <a
-                    href="/staff"
+                    href="/staff?liste"
                     class="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors {page.url.pathname === '/staff' || page.url.pathname.startsWith('/staff/events')
                         ? 'bg-foreground text-background hover:bg-foreground/85'
                         : 'text-foreground-alt hover:bg-surface-hover hover:text-foreground'}"

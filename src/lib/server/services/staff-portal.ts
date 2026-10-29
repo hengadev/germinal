@@ -151,11 +151,15 @@ async function withDays(
 		days: dayMap.get(event.id) ?? [],
 		staffRoleName: roleNames ? roleNames[i] : null,
 	}));
-	// Upcoming Events first (by start, Events without a start last), then past.
-	return items.sort((a, b) => rank(a.event.startDate, now) - rank(b.event.startDate, now));
+	// Upcoming and ongoing Events first, soonest first; then Events without
+	// dates; then past ones, most recent first. An Event is past once its end
+	// (or start, if it has no end) is behind us.
+	const upcoming = items.filter((i) => endOf(i.event) !== null && endOf(i.event)! >= now);
+	const undated = items.filter((i) => endOf(i.event) === null);
+	const past = items.filter((i) => endOf(i.event) !== null && endOf(i.event)! < now).reverse();
+	return [...upcoming, ...undated, ...past];
 }
 
-function rank(startDate: Date | null, now: number): number {
-	if (!startDate) return 1; // no start date: keep after upcoming, order preserved
-	return startDate.getTime() >= now ? 0 : 2;
+function endOf(event: StaffPortalEvent): number | null {
+	return (event.endDate ?? event.startDate)?.getTime() ?? null;
 }

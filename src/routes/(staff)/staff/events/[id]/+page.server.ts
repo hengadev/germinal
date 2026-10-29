@@ -49,7 +49,8 @@ export const actions: Actions = {
 		// Only the person's own Tasks for this Event.
 		const task = (await getTasksForUser(locals.user.id)).find(
 			(t) => t.id === taskId && t.event.id === params.id
-		);		if (!task) {
+		);
+		if (!task) {
 			return fail(404, { error: 'Tâche introuvable.' });
 		}
 

@@ -8,7 +8,7 @@
  */
 import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest';
 import { eq } from 'drizzle-orm';
-import { events, eventDays, eventStaff, staffRoles, users } from '../../src/lib/server/db/schema';
+import { events, eventDays, eventStaff, staffRoles, tasks, users } from '../../src/lib/server/db/schema';
 import { dayOf } from '../../src/lib/utils/event-time';
 import {
 	getTestDatabase,
@@ -164,5 +164,38 @@ describe('staff portal access', () => {
 		// An Admin would pass the same gate.
 		const adminAccess = await svc.getStaffEventAccess(adminUser, futureEvent.id, now);
 		expect(adminAccess.can('tasks')).toBe(true);
+
+		// Both doors refuse: the portal's form action and the status API.
+		const [task] = await testDb
+			.insert(tasks)
+			.values({ eventId: futureEvent.id, assignedTo: staffUser.id, createdBy: adminUser.id, title: 'Accueil' })
+			.returning();
+		try {
+			const { actions } = await import('../../src/routes/(staff)/staff/events/[id]/+page.server');
+			const formData = new FormData();
+			formData.set('taskId', task.id);
+			formData.set('status', 'done');
+			const result: any = await actions.updateTaskStatus({
+				request: new Request('http://localhost', { method: 'POST', body: formData }),
+				locals: { user: staffUser },
+				params: { id: futureEvent.id },
+			} as any);
+			expect(result.status).toBe(403);
+
+			const { PATCH } = await import('../../src/routes/api/staff/tasks/[id]/status/+server');
+			const response = await PATCH({
+				request: new Request('http://localhost', { method: 'PATCH', body: JSON.stringify({ status: 'done' }) }),
+				locals: { user: staffUser },
+				params: { id: task.id },
+			} as any);
+			expect(response.status).toBe(403);
+
+			const [unchanged] = await testDb.select().from(tasks).where(eq(tasks.id, task.id));
+			expect(unchanged.status).toBe('pending');
+		} finally {
+			// staff_roles is never truncated: remove the role this test made.
+			await testDb.delete(eventStaff).where(eq(eventStaff.staffRoleId, role.id));
+			await testDb.delete(staffRoles).where(eq(staffRoles.id, role.id));
+		}
 	});
 });
