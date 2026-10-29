@@ -9,9 +9,9 @@
 	 */
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
-	import { Check, ChefHat, Footprints, Gift, LoaderCircle, Phone, UserCheck, UserX } from 'lucide-svelte';
-	import type { DayGuestParty } from '$lib/server/services/day-guest-list';
-	import { balanceDue, guests as guestsLabel, settleTimeLabel, type ArriveesFields } from './helpers';
+	import { ArrowRightLeft, Check, ChefHat, Footprints, Gift, LoaderCircle, Phone, UserCheck, UserX } from 'lucide-svelte';
+	import type { DayGuestParty, DayGuestSeating } from '$lib/server/services/day-guest-list';
+	import { balanceDue, capacityLabel, guests as guestsLabel, seatingTime, settleTimeLabel, type ArriveesFields } from './helpers';
 
 	let {
 		party,
@@ -19,7 +19,9 @@
 		timeZone,
 		canCheckIn = false,
 		canCorrect = false,
-		canSettle = false
+		canSettle = false,
+		canMove = false,
+		moveTargets = []
 	}: {
 		party: DayGuestParty;
 		fields: ArriveesFields;
@@ -27,6 +29,9 @@
 		canCheckIn?: boolean;
 		canCorrect?: boolean;
 		canSettle?: boolean;
+		canMove?: boolean;
+		/** The other Seatings of the party's Service on that Day (issue 022). */
+		moveTargets?: DayGuestSeating[];
 	} = $props();
 
 	const balance = $derived(balanceDue(party));
@@ -46,6 +51,8 @@
 	let undoing = $state(false);
 	let settling = $state(false);
 	let undoingSettle = $state(false);
+	let moving = $state(false);
+	let movingTo = $state(false);
 
 	function openStepper() {
 		stepper = Math.max(1, expected);
@@ -167,6 +174,69 @@
 				</button>
 			</form>
 		{/if}
+	{/if}
+
+	{#if canMove && party.id && moveTargets.length > 0}
+		<!-- « Déplacer » (issue 022): only the other Seatings of the same Service
+		     on the same Day — same menu, same price, nothing to pay changes. -->
+		{#if moving}
+			<div class="mt-3 space-y-2 border-t border-border-card pt-3">
+				<p class="text-sm font-medium text-foreground">Déplacer vers&nbsp;:</p>
+				<div class="flex flex-wrap gap-2">
+					{#each moveTargets as target (target.id)}
+						<form
+							method="POST"
+							action="?/move"
+							class="contents"
+							use:enhance={() => {
+								movingTo = true;
+								return async ({ update }) => {
+									await update();
+									movingTo = false;
+									moving = false;
+								};
+							}}
+						>
+							<input type="hidden" name="reservationId" value={party.id} />
+							<input type="hidden" name="toSeatingId" value={target.id} />
+							<button
+								type="submit"
+								disabled={movingTo}
+								aria-busy={movingTo}
+								class="inline-flex min-h-11 items-center gap-2 rounded-lg border border-foreground bg-background px-4 text-base font-medium tabular-nums text-foreground transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-foreground focus-visible:outline-none disabled:opacity-60"
+							>
+								{#if movingTo}<LoaderCircle size={16} class="animate-spin" aria-hidden="true" />
+								{:else}<ArrowRightLeft size={16} aria-hidden="true" />{/if}
+								{timeZone ? seatingTime(target, timeZone) : ''} · {capacityLabel(target).text} personnes
+							</button>
+						</form>
+					{/each}
+					<button
+						type="button"
+						onclick={() => (moving = false)}
+						class="min-h-11 rounded-lg px-3 text-base font-medium text-muted-foreground hover:text-foreground"
+					>Fermer</button					>
+				</div>
+			</div>
+		{:else}
+			<div class="mt-3 border-t border-border-card pt-3">
+				<button
+					type="button"
+					onclick={() => (moving = true)}
+					class="inline-flex min-h-11 items-center gap-2 rounded-lg border border-foreground bg-background px-4 text-base font-medium text-foreground transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-foreground focus-visible:outline-none"
+					aria-label="Déplacer {party.guestName}"
+				>
+					<ArrowRightLeft size={16} aria-hidden="true" />
+					Déplacer
+				</button>
+			</div>
+		{/if}
+	{/if}
+
+	{#if party.lastMovedAt !== undefined && party.lastMovedAt}
+		<p class="mt-2 text-xs text-muted-foreground">
+			Déplacé à {settleTimeLabel(party.lastMovedAt, timeZone)} par {party.lastMovedByName ?? '—'}
+		</p>
 	{/if}
 
 	{#if fields.dietary && party.dietaryRequirements}

@@ -173,7 +173,7 @@ async function lockAndDecrementSessionCapacity(
  *
  * Must be called from within a `db.transaction`.
  */
-async function lockAndDecrementSeatingAllowingOverflow(
+export async function lockAndDecrementSeatingAllowingOverflow(
 	tx: typeof db,
 	sessionId: string,
 	quantity: number

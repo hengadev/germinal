@@ -12,6 +12,7 @@ import { taskStatusEnum } from '$lib/server/db/schema';
 import { recordCheckIn, undoLastCheckIn } from '$lib/server/services/check-ins';
 import { createWalkIn } from '$lib/server/services/walk-ins';
 import { settleBalance, undoSettleBalance } from '$lib/server/services/balance';
+import { moveReservation } from '$lib/server/services/moves';
 import { formatCurrency } from '$lib/utils/currency';
 
 // The scan result party, shaped once for the wire: only what the Scanner
@@ -73,6 +74,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			canCorrect: access.can('correct_mistake'),
 			canScan: access.can('scan_check_in'),
 			canSettle: access.can('settle_balance'),
+			canMove: access.can('move'),
 			canWalkIn: access.can('walk_in'),
 		},
 		event: access.event,
@@ -292,6 +294,37 @@ export const actions: Actions = {
 			actorId: locals.user.id,
 		});
 		if (!result.ok) return fail(422, { error: result.error, reservationId });
+	},
+
+	move: async ({ request, locals, params }) => {
+		if (!locals.user) return fail(401, { error: 'Non authentifié' });
+
+		// The Move permission is re-resolved on the server, never trusted
+		// from the client.
+		const access = await getStaffEventAccess(locals.user, params.id);
+
+		const formData = await request.formData();
+		const reservationId = formData.get('reservationId');
+		const toSeatingId = formData.get('toSeatingId');
+		if (!access.can('move')) {
+			return fail(403, {
+				error: "Vous n'avez pas la permission de déplacer une réservation.",
+				reservationId
+			});
+		}
+		if (typeof reservationId !== 'string' || typeof toSeatingId !== 'string') {
+			return fail(400, { error: 'Requête invalide.', reservationId });
+		}
+
+		const result = await moveReservation({
+			access,
+			eventId: params.id,
+			reservationId,
+			toSeatingId,
+			actorId: locals.user.id,
+		});
+		if (!result.ok) return fail(422, { error: result.error, reservationId });
+		return { moved: true };
 	},
 
 	undoSettleBalance: async ({ request, locals, params }) => {

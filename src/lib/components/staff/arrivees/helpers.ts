@@ -92,3 +92,13 @@ export function servicesOf(
 	}
 	return services;
 }
+
+/** The other Seatings of the party's Service on that Day: the Move targets (issue 022). */
+export function moveTargetsOf(
+	seatings: DayGuestSeating[],
+	party: DayGuestParty
+): DayGuestSeating[] {
+	const current = seatings.find((s) => party.id !== undefined && s.parties.some((p) => p.id === party.id));
+	if (!current) return [];
+	return seatings.filter((s) => s.serviceId === current.serviceId && s.id !== current.id);
+}

@@ -25,6 +25,7 @@
 		currentSeatingId,
 		guests,
 		matches,
+		moveTargetsOf,
 		seatingTime,
 		serviceLabel,
 		servicesOf,
@@ -38,7 +39,8 @@
 		canCheckIn = false,
 		canCorrect = false,
 		canSettle = false,
-		canWalkIn = false
+		canWalkIn = false,
+		canMove = false
 	}: {
 		list: DayGuestList;
 		fields: ArriveesFields;
@@ -47,6 +49,7 @@
 		canCorrect?: boolean;
 		canSettle?: boolean;
 		canWalkIn?: boolean;
+		canMove?: boolean;
 	} = $props();
 
 	// The clock only moves the dot on the Seating under way, never the list.
@@ -485,6 +488,8 @@
 							canCheckIn={canCheckIn}
 							canCorrect={canCorrect}
 							canSettle={canSettle}
+							canMove={canMove}
+							moveTargets={moveTargetsOf(list.seatings, party)}
 						/>
 					</li>
 				{/each}
@@ -551,7 +556,7 @@
 						<ul class="mt-2 space-y-2">
 							{#each folded as party, i (party.id ?? i)}
 								<li>
-									<PartyCard {party} {fields} {timeZone} canCheckIn={canCheckIn} canCorrect={canCorrect} canSettle={canSettle} />
+									<PartyCard {party} {fields} {timeZone} canCheckIn={canCheckIn} canCorrect={canCorrect} canSettle={canSettle} canMove={canMove} moveTargets={moveTargetsOf(list.seatings, party)} />
 								</li>
 							{/each}
 						</ul>
@@ -561,7 +566,7 @@
 					<ul class="space-y-2">
 						{#each stillExpected as party, i (party.id ?? i)}
 							<li>
-								<PartyCard {party} {fields} {timeZone} canCheckIn={canCheckIn} canCorrect={canCorrect} canSettle={canSettle} />
+								<PartyCard {party} {fields} {timeZone} canCheckIn={canCheckIn} canCorrect={canCorrect} canSettle={canSettle} canMove={canMove} moveTargets={moveTargetsOf(list.seatings, party)} />
 							</li>
 						{/each}
 					</ul>
