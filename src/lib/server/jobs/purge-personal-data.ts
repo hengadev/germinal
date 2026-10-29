@@ -9,7 +9,7 @@ import {
 	users,
 	waitlist,
 } from '../db/schema';
-import { and, eq, inArray, isNotNull, lt, ne, notLike, or, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNotNull, lt, ne, notLike, or, sql, isNull } from 'drizzle-orm';
 import { jobLogger } from '../logger';
 import { DIETARY_REQUIREMENTS_RETENTION_DAYS } from '$lib/utils/dietary-requirements';
 
@@ -84,7 +84,9 @@ export async function purgePersonalData(now: Date = new Date()): Promise<PurgePe
 		})
 		.where(
 			and(
-				ne(reservations.guestEmail, ANONYMISED_EMAIL),
+				// A Walk-in may have no email (issue 020): NULL <> x is never true
+				// in SQL, so without isNull those parties would never be purged.
+				or(isNull(reservations.guestEmail), ne(reservations.guestEmail, ANONYMISED_EMAIL)),
 				or(
 					inArray(reservations.eventSessionId, endedSessions(RETENTION.reservationAfterSessionDays)),
 					and(

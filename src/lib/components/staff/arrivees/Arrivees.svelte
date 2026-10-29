@@ -119,7 +119,7 @@
 	const BTN =
 		'inline-flex min-h-11 items-center justify-center gap-2 rounded-md border px-4 text-sm font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-foreground focus-visible:outline-none';
 	const INPUT =
-		'min-h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus-visible:ring-2 focus-visible:ring-foreground focus-visible:outline-none';
+		'min-h-11 w-full rounded-md border border-border-input bg-background px-3 py-2 text-sm text-foreground focus-visible:ring-2 focus-visible:ring-foreground focus-visible:outline-none';
 	const LABEL = 'block text-sm font-medium text-foreground';
 
 	/** The Seating the list is filtered to, kept in the address (`?heure=20h30`). */

@@ -242,13 +242,23 @@ describe('walk-ins', () => {
 		const { exportReservationsToCSV } = await import('../../src/lib/server/services/export');
 		const csv = await exportReservationsToCSV({});
 		expect(csv).toContain('Sans Email');
-		expect(csv).toContain(',,') // no email, no phone: empty cells
-			;
+		expect(csv).toContain(',,'); // no email, no phone: empty cells
 
 		const { sendEventReminders } = await import('../../src/lib/server/jobs/send-event-reminders');
 		await expect(sendEventReminders()).resolves.toBeDefined();
 
 		const { purgePersonalData } = await import('../../src/lib/server/jobs/purge-personal-data');
 		await expect(purgePersonalData()).resolves.toBeDefined();
+
+		// Once the Seating is long past, the Walk-in is anonymised like any
+		// other party, its NULL email notwithstanding.
+		const { ANONYMISED_NAME } = await import('../../src/lib/server/jobs/purge-personal-data');
+		await purgePersonalData(new Date(now.getTime() + 400 * 24 * 60 * 60 * 1000));
+		const [purged] = await testDb
+			.select({ guestName: reservations.guestName, guestPhone: reservations.guestPhone })
+			.from(reservations)
+			.where(eq(reservations.id, (result as { reservationId: string }).reservationId));
+		expect(purged.guestName).toBe(ANONYMISED_NAME);
+		expect(purged.guestPhone).toBeNull();
 	});
 });

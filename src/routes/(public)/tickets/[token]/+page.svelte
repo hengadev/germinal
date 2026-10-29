@@ -438,7 +438,7 @@ END:VCALENDAR`;
 								<Mail size={15} class="text-muted-foreground" />
 								{$t('tickets.guestEmail')}
 							</dt>
-							<dd class="text-sm font-medium text-foreground text-right break-all">{data.reservation.guestEmail}</dd>
+							<dd class="text-sm font-medium text-foreground text-right break-all">{data.reservation.guestEmail ?? '—'}</dd>
 						</div>
 						<div class="flex items-center justify-between py-2.5 gap-4">
 							<dt class="flex items-center gap-2 text-sm text-muted-foreground flex-shrink-0">

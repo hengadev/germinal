@@ -943,8 +943,6 @@ function generateDisputeAlertHtmlTemplate(data: DisputeAlertEmailData): string {
  * Uses the same reliable queue-with-retry infrastructure as other transactional emails.
  */
 export async function sendDisputeAlertEmail(data: DisputeAlertEmailData): Promise<void> {
-	// A Walk-in (issue 020) may have no email: the alert goes without it.
-	const guestEmail = data.guestEmail ?? '';
 	const textBody = generateDisputeAlertTextTemplate(data);
 	const htmlBody = generateDisputeAlertHtmlTemplate(data);
 
