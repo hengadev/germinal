@@ -49,6 +49,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 			categories: MOCK_TALENT_CATEGORIES,
 			currentUserId,
 			englishAuto: isTranslationEnabled(),
+			staffRoles: [],
 		};
 	}
 
@@ -59,15 +60,136 @@ export const load: PageServerLoad = async ({ locals }) => {
 		getAllTalentCategories({ publishedOnly: false }),
 	]);
 
+	const { listStaffRoles } = await import('$lib/server/services/staff-roles');
+	const staffRoles = await listStaffRoles();
+
 	return {
 		talents: result.data as TalentWithMedia[],
 		categories,
 		currentUserId,
 		englishAuto: isTranslationEnabled(),
+		staffRoles,
 	};
 };
 
+function rolePermissionsOf(formData: FormData): string[] {
+	return formData.getAll('permissions').filter((v): v is string => typeof v === 'string');
+}
+
 export const actions: Actions = {
+	createStaffRole: async ({ request, locals }) => {
+		requireAdmin(locals);
+		const formData = await request.formData();
+		const name = formData.get('name');
+
+		if (!name || typeof name !== 'string' || !name.trim()) {
+			return fail(400, { error: 'Le nom du rôle est requis' });
+		}
+
+		const { createStaffRole, StaffRoleError } = await import('$lib/server/services/staff-roles');
+		try {
+			const role = await createStaffRole(
+				{ name, permissions: rolePermissionsOf(formData) },
+				locals.user!.id
+			);
+			return { success: `Rôle « ${role.name} » créé` };
+		} catch (error) {
+			if (error instanceof StaffRoleError) {
+				return fail(400, { error: error.message });
+			}
+			logger.error({ err: error }, 'Error creating staff role');
+			return fail(500, { error: 'Impossible de créer le rôle' });
+		}
+	},
+
+	updateStaffRole: async ({ request, locals }) => {
+		requireAdmin(locals);
+		const formData = await request.formData();
+		const id = formData.get('id');
+		const name = formData.get('name');
+
+		if (!id || typeof id !== 'string') return fail(400, { error: "L'identifiant du rôle est requis" });
+		if (!name || typeof name !== 'string' || !name.trim()) {
+			return fail(400, { error: 'Le nom du rôle est requis' });
+		}
+
+		const { updateStaffRole, StaffRoleError } = await import('$lib/server/services/staff-roles');
+		try {
+			const role = await updateStaffRole(
+				id,
+				{ name, permissions: rolePermissionsOf(formData) },
+				locals.user!.id
+			);
+			return { success: `Rôle « ${role.name} » mis à jour` };
+		} catch (error) {
+			if (error instanceof StaffRoleError) {
+				return fail(400, { error: error.message });
+			}
+			logger.error({ err: error }, 'Error updating staff role');
+			return fail(500, { error: 'Impossible de mettre à jour le rôle' });
+		}
+	},
+
+	archiveStaffRole: async ({ request, locals }) => {
+		requireAdmin(locals);
+		const formData = await request.formData();
+		const id = formData.get('id');
+
+		if (!id || typeof id !== 'string') return fail(400, { error: "L'identifiant du rôle est requis" });
+
+		const { setStaffRoleArchived, StaffRoleError } = await import('$lib/server/services/staff-roles');
+		try {
+			const role = await setStaffRoleArchived(id, true, locals.user!.id);
+			return { success: `Rôle « ${role.name} » archivé` };
+		} catch (error) {
+			if (error instanceof StaffRoleError) {
+				return fail(400, { error: error.message });
+			}
+			logger.error({ err: error }, 'Error archiving staff role');
+			return fail(500, { error: "Impossible d'archiver le rôle" });
+		}
+	},
+
+	restoreStaffRole: async ({ request, locals }) => {
+		requireAdmin(locals);
+		const formData = await request.formData();
+		const id = formData.get('id');
+
+		if (!id || typeof id !== 'string') return fail(400, { error: "L'identifiant du rôle est requis" });
+
+		const { setStaffRoleArchived, StaffRoleError } = await import('$lib/server/services/staff-roles');
+		try {
+			const role = await setStaffRoleArchived(id, false, locals.user!.id);
+			return { success: `Rôle « ${role.name} » restauré` };
+		} catch (error) {
+			if (error instanceof StaffRoleError) {
+				return fail(400, { error: error.message });
+			}
+			logger.error({ err: error }, 'Error restoring staff role');
+			return fail(500, { error: 'Impossible de restaurer le rôle' });
+		}
+	},
+
+	deleteStaffRole: async ({ request, locals }) => {
+		requireAdmin(locals);
+		const formData = await request.formData();
+		const id = formData.get('id');
+
+		if (!id || typeof id !== 'string') return fail(400, { error: "L'identifiant du rôle est requis" });
+
+		const { deleteStaffRole, StaffRoleError } = await import('$lib/server/services/staff-roles');
+		try {
+			await deleteStaffRole(id, locals.user!.id);
+			return { success: 'Rôle supprimé' };
+		} catch (error) {
+			if (error instanceof StaffRoleError) {
+				return fail(400, { error: error.message });
+			}
+			logger.error({ err: error }, 'Error deleting staff role');
+			return fail(500, { error: 'Impossible de supprimer le rôle' });
+		}
+	},
+
 	deleteTalent: async ({ request, locals }) => {
 		requireAdmin(locals);
 		const formData = await request.formData();

@@ -20,10 +20,15 @@
 
     const toast = getToastContext();
 
+    interface StaffRole {
+        id: string;
+        name: string;
+    }
+
     interface EventStaff {
         id: string;
         userId: string;
-        roleLabel: string | null;
+        staffRole: StaffRole;
         createdAt: Date;
         user: {
             id: string;
@@ -46,12 +51,13 @@
 
     let eventStaff = $state<EventStaff[]>([]);
     let allStaff = $state<StaffMember[]>([]);
+    let staffRoles = $state<StaffRole[]>([]);
     let loading = $state(true);
     let showAddForm = $state(false);
     let processing = $state(false);
 
     let selectedStaffId = $state('');
-    let roleLabel = $state('');
+    let selectedRoleId = $state('');
 
     async function loadData() {
         loading = true;
@@ -66,6 +72,12 @@
             const allStaffResponse = await fetch('/api/admin/staff');
             if (allStaffResponse.ok) {
                 allStaff = await allStaffResponse.json();
+            }
+
+            // Load the non-archived Staff Roles for the picker
+            const rolesResponse = await fetch('/api/admin/staff-roles?assignable=1');
+            if (rolesResponse.ok) {
+                staffRoles = await rolesResponse.json();
             }
         } catch (error) {
             console.error('Failed to load staff data:', error);
@@ -84,6 +96,10 @@
             toast.error('Erreur', 'Veuillez sélectionner un membre du staff');
             return;
         }
+        if (!selectedRoleId) {
+            toast.error('Erreur', 'Veuillez sélectionner un rôle');
+            return;
+        }
 
         processing = true;
 
@@ -93,7 +109,7 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     userId: selectedStaffId,
-                    roleLabel: roleLabel || undefined,
+                    staffRoleId: selectedRoleId,
                 }),
             });
 
@@ -105,12 +121,35 @@
 
             toast.success('Succès', 'Staff assigné avec succès');
             selectedStaffId = '';
-            roleLabel = '';
+            selectedRoleId = '';
             showAddForm = false;
             await loadData();
         } catch (error) {
             const errorMsg = error instanceof Error ? error.message : 'Échec de l\'assignation du staff';
             toast.error('Erreur', errorMsg);
+        } finally {
+            processing = false;
+        }
+    }
+
+    async function changeRole(staffUserId: string, staffRoleId: string) {
+        processing = true;
+        try {
+            const response = await fetch(`/api/admin/events/${data.event.id}/staff`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: staffUserId, staffRoleId }),
+            });
+            const result = await response.json();
+            if (!response.ok) {
+                throw new Error(result.error || 'Échec du changement de rôle');
+            }
+            toast.success('Succès', 'Rôle mis à jour');
+            await loadData();
+        } catch (error) {
+            const errorMsg = error instanceof Error ? error.message : 'Échec du changement de rôle';
+            toast.error('Erreur', errorMsg);
+            await loadData();
         } finally {
             processing = false;
         }
@@ -149,6 +188,14 @@
     }
 
     const assignedStaffIds = $derived(getAssignedStaffIds());
+
+    // Roles shown when changing an Assignment's role: the non-archived ones,
+    // plus the Assignment's own role (it may be archived).
+    function allRolesForChange(currentRoleId: string): StaffRole[] {
+        if (staffRoles.some((r) => r.id === currentRoleId)) return staffRoles;
+        const current = eventStaff.find((s) => s.staffRole.id === currentRoleId)?.staffRole;
+        return current ? [current, ...staffRoles] : staffRoles;
+    }
 </script>
 
 <div class="space-y-6">
@@ -194,19 +241,22 @@
                 </div>
 
                 <div>
-                    <label for="role-label" class="block text-sm font-medium text-foreground mb-2">
-                        Libellé du rôle (optionnel)
+                    <label for="role-select" class="block text-sm font-medium text-foreground mb-2">
+                        Rôle
                     </label>
-                    <input
-                        id="role-label"
-                        type="text"
-                        bind:value={roleLabel}
-                        placeholder="ex. Son, Porte, Photographie"
+                    <select
+                        id="role-select"
+                        bind:value={selectedRoleId}
                         class="w-full px-3 py-2 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                         disabled={processing}
-                    />
+                    >
+                        <option value="">Sélectionner un rôle...</option>
+                        {#each staffRoles as role (role.id)}
+                            <option value={role.id}>{role.name}</option>
+                        {/each}
+                    </select>
                     <p class="text-xs text-muted-foreground mt-1">
-                        Optionnel : spécifier le rôle du membre du staff pour cet événement
+                        Le rôle détermine les permissions du membre du staff pour cet événement
                     </p>
                 </div>
 
@@ -232,7 +282,7 @@
                         onclick={() => {
                             showAddForm = false;
                             selectedStaffId = '';
-                            roleLabel = '';
+                            selectedRoleId = '';
                         }}
                         class="inline-flex items-center gap-2 px-4 py-2 border border-border-input text-foreground rounded-lg hover:bg-muted transition-colors"
                         disabled={processing}
@@ -294,9 +344,16 @@
                                     </div>
                                 </td>
                                 <td class="px-6 py-4">
-                                    <p class="text-sm text-muted-foreground">
-                                        {staff.roleLabel || 'Staff'}
-                                    </p>
+                                    <select
+                                        class="px-2 py-1 border border-border-input rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                                        value={staff.staffRole.id}
+                                        disabled={processing}
+                                        onchange={(e) => changeRole(staff.userId, e.currentTarget.value)}
+                                    >
+                                        {#each allRolesForChange(staff.staffRole.id) as role (role.id)}
+                                            <option value={role.id}>{role.name}</option>
+                                        {/each}
+                                    </select>
                                 </td>
                                 <td class="px-6 py-4">
                                     <p class="text-sm text-muted-foreground">
