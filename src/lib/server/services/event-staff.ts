@@ -2,11 +2,17 @@ import { db } from '../db';
 import { eventStaff, users, events, staffRoles } from '../db/schema';
 import { eq, and } from 'drizzle-orm';
 import { logger } from '$lib/server/logger';
+import { isStaffPermission, STAFF_PERMISSIONS, type StaffPermission } from '$lib/staff/permissions';
 
 export class StaffAssignmentError extends Error {
 	constructor(
 		message: string,
-		public readonly code: 'NOT_FOUND' | 'WRONG_ROLE' | 'ALREADY_ASSIGNED' | 'ROLE_NOT_ASSIGNABLE'
+		public readonly code:
+			| 'NOT_FOUND'
+			| 'WRONG_ROLE'
+			| 'ALREADY_ASSIGNED'
+			| 'ROLE_NOT_ASSIGNABLE'
+			| 'INVALID_PERMISSION'
 	) {
 		super(message);
 		this.name = 'StaffAssignmentError';
@@ -17,7 +23,13 @@ export interface EventStaffWithUser {
 	id: string;
 	eventId: string;
 	userId: string;
-	staffRole: { id: string; name: string };
+	staffRole: {
+		id: string;
+		name: string;
+		permissions: StaffPermission[];
+	};
+	grantedPermissions: StaffPermission[];
+	withdrawnPermissions: StaffPermission[];
 	createdAt: Date;
 	user: {
 		id: string;
@@ -178,6 +190,56 @@ export async function changeAssignmentRole(
 }
 
 /**
+ * Adjust an Assignment's permissions (issue 014). `desired` is the exact
+ * set of permissions the Admin ticked (effective *before* the dependency
+ * closure); grants and withdrawals are stored relative to the Staff Role's
+ * current permissions, so re-ticking a withdrawn permission (or unticking
+ * a granted one) clears the adjustment instead of stacking a contradictory
+ * entry. The adjustments stay on this Assignment only and survive later
+ * edits of the Staff Role (an edit changes the base, not the adjustments).
+ */
+export async function adjustAssignmentPermissions(
+	eventId: string,
+	userId: string,
+	desired: StaffPermission[]
+): Promise<void> {
+	for (const perm of desired) {
+		if (!isStaffPermission(perm)) {
+			throw new StaffAssignmentError(`Unknown staff permission: ${String(perm)}`, 'INVALID_PERMISSION');
+		}
+	}
+
+	const [assignment] = await db
+		.select({ staffRoleId: eventStaff.staffRoleId })
+		.from(eventStaff)
+		.where(and(eq(eventStaff.eventId, eventId), eq(eventStaff.userId, userId)))
+		.limit(1);
+	if (!assignment) {
+		throw new StaffAssignmentError('Assignment not found', 'NOT_FOUND');
+	}
+	const [role] = await db
+		.select({ permissions: staffRoles.permissions })
+		.from(staffRoles)
+		.where(eq(staffRoles.id, assignment.staffRoleId))
+		.limit(1);
+	if (!role) {
+		throw new StaffAssignmentError('Staff role not found', 'NOT_FOUND');
+	}
+
+	const wanted = new Set(desired);
+	const base = new Set<string>(role.permissions);
+	const granted = STAFF_PERMISSIONS.filter((p) => wanted.has(p) && !base.has(p));
+	const withdrawn = STAFF_PERMISSIONS.filter((p) => !wanted.has(p) && base.has(p));
+
+	await db
+		.update(eventStaff)
+		.set({ grantedPermissions: granted, withdrawnPermissions: withdrawn })
+		.where(and(eq(eventStaff.eventId, eventId), eq(eventStaff.userId, userId)));
+
+	logger.info(`Adjusted permissions of ${userId} on event ${eventId}`);
+}
+
+/**
  * Remove a staff member from an event
  */
 export async function removeStaff(eventId: string, userId: string): Promise<void> {
@@ -214,7 +276,13 @@ export async function getStaffForEvent(eventId: string): Promise<EventStaffWithU
 
 		return staff.map(s => ({
 			...s,
-			staffRole: { id: s.staffRole.id, name: s.staffRole.name },
+			staffRole: {
+				id: s.staffRole.id,
+				name: s.staffRole.name,
+				permissions: s.staffRole.permissions as StaffPermission[],
+			},
+			grantedPermissions: s.grantedPermissions as StaffPermission[],
+			withdrawnPermissions: s.withdrawnPermissions as StaffPermission[],
 			user: {
 				id: s.user.id,
 				email: s.user.email,

@@ -5,10 +5,12 @@ import {
 	getStaffForEvent,
 	assignStaff,
 	changeAssignmentRole,
+	adjustAssignmentPermissions,
 	getAllStaff,
 	StaffAssignmentError,
 } from '$lib/server/services/event-staff';
 import { isAppError } from '$lib/server/errors';
+import { isStaffPermission } from '$lib/staff/permissions';
 
 // GET /api/admin/events/[id]/staff - Get all staff assigned to an event
 export const GET: RequestHandler = async ({ locals, params }) => {
@@ -53,17 +55,29 @@ export const POST: RequestHandler = async ({ locals, params, request }) => {
 	}
 };
 
-// PATCH /api/admin/events/[id]/staff - Change a staff member's Staff Role on an event
+// PATCH /api/admin/events/[id]/staff - Change a staff member's Staff Role on an
+// event ({ userId, staffRoleId }), or adjust an Assignment's permissions
+// ({ userId, permissions }) — the exact ticked set, effective before the
+// dependency closure (issue 014).
 export const PATCH: RequestHandler = async ({ locals, params, request }) => {
 	requireAdmin(locals);
 
 	try {
 		const body = await request.json();
-		const { userId, staffRoleId } = body;
+		const { userId, staffRoleId, permissions } = body;
 
 		if (!userId) {
 			return json({ error: 'User ID is required' }, { status: 400 });
 		}
+
+		if (Array.isArray(permissions)) {
+			if (!permissions.every(isStaffPermission)) {
+				return json({ error: 'Unknown staff permission' }, { status: 400 });
+			}
+			await adjustAssignmentPermissions(params.id, userId, permissions);
+			return json({ success: true });
+		}
+
 		if (!staffRoleId) {
 			return json({ error: 'Staff role ID is required' }, { status: 400 });
 		}
@@ -74,6 +88,7 @@ export const PATCH: RequestHandler = async ({ locals, params, request }) => {
 		if (error instanceof StaffAssignmentError) {
 			const status = error.code === 'NOT_FOUND' ? 404
 				: error.code === 'ROLE_NOT_ASSIGNABLE' ? 409
+				: error.code === 'INVALID_PERMISSION' ? 400
 				: 400;
 			return json({ error: error.message }, { status });
 		}
