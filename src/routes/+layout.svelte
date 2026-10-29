@@ -54,12 +54,14 @@
     {@render children()}
 {/if}
 
-{#if browser}
+<!-- Only once the messages are loaded: the prompts format them, and doing so
+     earlier throws, which aborts hydration of the whole page. -->
+{#if browser && !$isLoading}
     <PWAInstallPrompt />
     <IOSInstallPrompt />
 {/if}
 
-{#if browser}
+{#if browser && !$isLoading}
 <div
     class="fixed bottom-4 right-4 left-4 sm:left-auto z-50 flex items-center gap-3 rounded-lg bg-foreground px-4 py-3 text-sm text-background shadow-popover pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:pb-3"
     style="transition: opacity 300ms; opacity: {showBanner ? 1 : 0}; pointer-events: {showBanner ? 'auto' : 'none'};"

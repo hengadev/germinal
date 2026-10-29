@@ -1,6 +1,7 @@
 import { error, fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { getStaffEventAccess } from '$lib/server/services/staff-portal';
+import { getDayGuestList } from '$lib/server/services/day-guest-list';
 import { getTasksForUser, updateTaskStatus } from '$lib/server/services/tasks';
 import { taskStatusEnum } from '$lib/server/db/schema';
 
@@ -10,18 +11,22 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	const access = await getStaffEventAccess(locals.user, params.id);
 
 	const canTasks = access.can('tasks');
+	// Arrivées needs a visible Day and the guest list or Dietary Requirements.
+	const canArrivees = access.can('guest_list') || access.can('dietary');
 	return {
 		access: {
 			permissions: access.permissions,
 			day: access.day,
 			canSeeGuests: access.canSeeGuests,
 			canTasks,
+			canArrivees,
 		},
 		event: access.event,
 		staffRoleName: access.staffRoleName,
 		tasks: canTasks
 			? (await getTasksForUser(locals.user.id)).filter((t) => t.event.id === params.id)
 			: [],
+		arrivees: canArrivees ? await getDayGuestList(access, params.id) : null,
 	};
 };
 

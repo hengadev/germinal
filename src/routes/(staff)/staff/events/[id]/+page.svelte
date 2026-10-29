@@ -4,10 +4,14 @@
 	import type { ActionData, PageData } from './$types';
 	import { getToastContext } from '$lib/components/toast/state.svelte';
 	import { STAFF_PERMISSION_LABELS_FR } from '$lib/staff/permissions';
+	import Arrivees from '$lib/components/staff/arrivees/Arrivees.svelte';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
 	const toast = getToastContext();
+
+	// At the door, Arrivées comes first; it only exists during a Day.
+	let activeTab = $state<'tasks' | 'arrivees'>(data.access.canArrivees ? 'arrivees' : 'tasks');
 
 	const title = $derived(data.event.titleFr || data.event.titleEn || 'Événement sans titre');
 
@@ -88,16 +92,34 @@
 		<div class="border-b border-border-card mb-6">
 			<nav class="flex gap-6 -mb-px" aria-label="Sections de l'événement">
 				{#if data.access.canTasks}
-					<span class="px-1 py-3 text-sm font-medium border-b-2 border-foreground text-foreground">
+					<button
+						type="button"
+						onclick={() => (activeTab = 'tasks')}
+						aria-current={activeTab === 'tasks' ? 'page' : undefined}
+						class="px-1 py-3 text-sm font-medium border-b-2 {activeTab === 'tasks'
+							? 'border-foreground text-foreground'
+							: 'border-transparent text-muted-foreground hover:text-foreground'}"
+					>
 						Tâches
-					</span>
+					</button>
 				{/if}
-				<!-- Arrivées et Scanner arriveront dans les issues suivantes. -->
+				{#if data.access.canArrivees}
+					<button
+						type="button"
+						onclick={() => (activeTab = 'arrivees')}
+						aria-current={activeTab === 'arrivees' ? 'page' : undefined}
+						class="px-1 py-3 text-sm font-medium border-b-2 {activeTab === 'arrivees'
+							? 'border-foreground text-foreground'
+							: 'border-transparent text-muted-foreground hover:text-foreground'}"
+					>
+						Arrivées
+					</button>
+				{/if}
 			</nav>
 		</div>
 
 		<!-- Onglet Tâches -->
-		{#if data.access.canTasks}
+		{#if activeTab === 'tasks' && data.access.canTasks}
 			<section aria-label="Tâches">
 				{#if data.tasks.length === 0}
 					<div class="bg-background border border-border-card rounded-lg p-8 text-center">
@@ -145,7 +167,30 @@
 					</div>
 				{/if}
 			</section>
-		{:else}
+		{/if}
+
+		<!-- Onglet Arrivées -->
+		{#if activeTab === 'arrivees' && data.access.canArrivees}
+			<section aria-label="Arrivées">
+				{#if data.arrivees}
+					<Arrivees
+						list={data.arrivees}
+						fields={{
+							guestList: data.access.permissions.includes('guest_list'),
+							dietary: data.access.permissions.includes('dietary'),
+							contact: data.access.permissions.includes('contact')
+						}}
+						timeZone={data.event.timeZone}
+					/>
+				{:else}
+					<div class="bg-background border border-border-card rounded-lg p-8 text-center">
+						<p class="text-muted-foreground">Aucun jour en cours : les invités ne sont visibles que le jour J.</p>
+					</div>
+				{/if}
+			</section>
+		{/if}
+
+		{#if !(activeTab === 'tasks' && data.access.canTasks) && !(activeTab === 'arrivees' && data.access.canArrivees)}
 			<div class="bg-background border border-border-card rounded-lg p-8 text-center">
 				<p class="text-muted-foreground">
 					Vos permissions :
