@@ -185,6 +185,16 @@
         adjustPermissions = STAFF_PERMISSIONS.filter((p) => ticked.has(p));
     }
 
+    // Adjustments that still differ from the role: a role edit can make a
+    // stored grant or withdrawal redundant, and those aren't shown.
+    function shownAdjustments(staff: EventStaff) {
+        const role = new Set(staff.staffRole.permissions);
+        return {
+            granted: staff.grantedPermissions.filter((p) => !role.has(p)),
+            withdrawn: staff.withdrawnPermissions.filter((p) => role.has(p)),
+        };
+    }
+
     // Ticking a permission that acts on parties also ticks the guest list.
     function toggleAdjust(perm: StaffPermission) {
         if (!adjustPermissions.includes(perm) && ACTS_ON_PARTIES_PERMISSIONS.has(perm)) {
@@ -396,6 +406,7 @@
                     </thead>
                     <tbody class="divide-y divide-border-card">
                         {#each eventStaff as staff (staff.id)}
+                            {@const adjustments = shownAdjustments(staff)}
                             <tr class="hover:bg-muted/50 transition-colors">
                                 <td class="px-6 py-4">
                                     <div class="flex items-center gap-3">
@@ -422,15 +433,15 @@
                                             <option value={role.id}>{role.name}</option>
                                         {/each}
                                     </select>
-                                    {#if staff.grantedPermissions.length > 0 || staff.withdrawnPermissions.length > 0}
+                                    {#if adjustments.granted.length > 0 || adjustments.withdrawn.length > 0}
                                         <div class="flex flex-wrap gap-1 mt-1">
-                                            {#each [...staff.grantedPermissions] as perm (perm)}
+                                            {#each adjustments.granted as perm (perm)}
                                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary">
                                                     + {STAFF_PERMISSION_LABELS_FR[perm]}
                                                 </span>
                                             {/each}
-                                            {#each [...staff.withdrawnPermissions] as perm (perm)}
-                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-muted text-muted-foreground line-through">
+                                            {#each adjustments.withdrawn as perm (perm)}
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-muted text-muted-foreground">
                                                     &minus; {STAFF_PERMISSION_LABELS_FR[perm]}
                                                 </span>
                                             {/each}
@@ -446,12 +457,13 @@
                                     <div class="flex items-center justify-end gap-1">
                                         <button
                                             onclick={() => startAdjust(staff)}
-                                            class="p-2 text-foreground hover:bg-muted rounded-lg transition-colors"
-                                            title="Ajuster les permissions"
+                                            class="inline-flex items-center gap-1.5 px-2 py-1.5 text-sm text-foreground hover:bg-muted rounded-lg transition-colors"
                                             aria-label="Ajuster les permissions de {staff.user.firstName} {staff.user.lastName}"
+                                            aria-expanded={adjustingUserId === staff.userId}
                                             disabled={processing}
                                         >
                                             <SlidersHorizontal size={16} />
+                                            <span>Ajuster</span>
                                         </button>
                                         <button
                                             onclick={() => removeStaff(staff.userId, staff.user.firstName, staff.user.lastName)}
