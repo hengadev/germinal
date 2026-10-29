@@ -777,6 +777,13 @@ export const reservations = pgTable('reservations', {
     // venue. deposit_amount + balance_amount = total_amount.
     depositAmount: integer('deposit_amount').notNull(),
     balanceAmount: integer('balance_amount').notNull(),
+    // Issue 022: when Staff last Moved this Reservation to another
+    // Seating of its Service, and who did. The Token, Check-ins and
+    // Balance are untouched by a Move.
+    lastMovedAt: timestamp('last_moved_at', { withTimezone: true }),
+    lastMovedBy: uuid('last_moved_by').references(() => users.id, {
+        onDelete: 'set null',
+    }),
     // Issue 019: when Staff marked the Balance as settled on the venue's
     // terminal, and who did: who and when only — the terminal's own report
     // is the accounting for money taken on site. Both cleared on undo.
