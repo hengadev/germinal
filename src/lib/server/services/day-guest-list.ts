@@ -4,7 +4,7 @@
  * Staff permissions — fields not allowed are never selected from the
  * database. Internal Notes are never part of any query here.
  */
-import { and, asc, eq, inArray } from 'drizzle-orm';
+import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import { db } from '../db';
 import { eventDays, eventServices, eventSessions, reservations } from '../db/schema';
 import type { StaffAccess } from '$lib/staff/access';
@@ -19,6 +19,10 @@ export interface DayGuestParty {
 	balanceAmount?: number;
 	currency?: string;
 	isComp?: boolean;
+	/** Sum of this party's non-undone Check-ins — only with the guest list. */
+	arrived?: number;
+	/** When this party's last non-undone Check-in was recorded — guest list only. */
+	lastCheckInAt?: Date | null;
 	/** Only with the Dietary Requirements permission. */
 	dietaryRequirements?: string | null;
 	/** Only with the contact details permission. */
@@ -77,6 +81,16 @@ function partyColumns(access: StaffAccess): PartyColumns {
 		columns.balanceAmount = reservations.balanceAmount;
 		columns.currency = reservations.currency;
 		columns.isComp = reservations.isComp;
+		// Guests already in: non-undone Check-ins only, so an undone one stops counting.
+		columns.arrived = sql`(
+			select coalesce(sum(ci.guests), 0)::int
+			from check_ins ci
+			where ci.reservation_id = ${reservations.id} and ci.undone_at is null
+		)`;
+		columns.lastCheckInAt = sql`(
+			select max(ci.checked_in_at) from check_ins ci
+			where ci.reservation_id = ${reservations.id} and ci.undone_at is null
+		)`;
 	}
 	if (fields.dietary) {
 		columns.guestName = reservations.guestName;

@@ -181,6 +181,8 @@
 							contact: data.access.permissions.includes('contact')
 						}}
 						timeZone={data.event.timeZone}
+						canCheckIn={data.access.canManualCheckIn}
+						canCorrect={data.access.canCorrect}
 					/>
 				{:else}
 					<div class="bg-background border border-border-card rounded-lg p-8 text-center">

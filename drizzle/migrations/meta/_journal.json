@@ -295,6 +295,13 @@
       "when": 1793296720327,
       "tag": "0041_staff_roles",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1793310448389,
+      "tag": "0042_check_ins",
+      "breakpoints": true
     }
   ]
 }

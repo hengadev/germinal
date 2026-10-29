@@ -995,6 +995,25 @@ export const tasks = pgTable('tasks', {
     statusIdx: index('tasks_status_idx').on(table.status),
 }));
 
+export const checkInMethodEnum = pgEnum('check_in_method', ['scan', 'manual']);
+
+export const checkIns = pgTable('check_ins', {
+    id: uuid('id').defaultRandom().primaryKey(),
+    reservationId: uuid('reservation_id')
+        .notNull()
+        .references(() => reservations.id, { onDelete: 'cascade' }),
+    guests: integer('guests').notNull(),
+    method: checkInMethodEnum('method').notNull(),
+    // Kept when the account is deleted: the record of the evening stays.
+    checkedInBy: uuid('checked_in_by').references(() => users.id, { onDelete: 'set null' }),
+    checkedInAt: timestamp('checked_in_at', { withTimezone: true }).defaultNow().notNull(),
+    undoneAt: timestamp('undone_at', { withTimezone: true }),
+    undoneBy: uuid('undone_by').references(() => users.id, { onDelete: 'set null' }),
+}, (table) => ({
+    reservationIdIdx: index('check_ins_reservation_id_idx').on(table.reservationId),
+    guestsCheck: check('check_ins_guests_check', sql`guests > 0`),
+}));
+
 // ============================================
 // AUDIT LOG TABLE
 // ============================================
