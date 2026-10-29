@@ -10,7 +10,8 @@
 
 	const toast = getToastContext();
 
-	let activeTab = $state<'tasks' | 'arrivees'>(data.access.canTasks ? 'tasks' : 'arrivees');
+	// At the door, Arrivées comes first; it only exists during a Day.
+	let activeTab = $state<'tasks' | 'arrivees'>(data.access.canArrivees ? 'arrivees' : 'tasks');
 
 	const title = $derived(data.event.titleFr || data.event.titleEn || 'Événement sans titre');
 
@@ -92,24 +93,24 @@
 			<nav class="flex gap-6 -mb-px" aria-label="Sections de l'événement">
 				{#if data.access.canTasks}
 					<button
-					type="button"
-					onclick={() => (activeTab = 'tasks')}
-					aria-current={activeTab === 'tasks' ? 'page' : undefined}
-					class="px-1 py-3 text-sm font-medium border-b-2 {activeTab === 'tasks'
-						? 'border-foreground text-foreground'
-						: 'border-transparent text-muted-foreground hover:text-foreground'}"
+						type="button"
+						onclick={() => (activeTab = 'tasks')}
+						aria-current={activeTab === 'tasks' ? 'page' : undefined}
+						class="px-1 py-3 text-sm font-medium border-b-2 {activeTab === 'tasks'
+							? 'border-foreground text-foreground'
+							: 'border-transparent text-muted-foreground hover:text-foreground'}"
 					>
 						Tâches
 					</button>
 				{/if}
 				{#if data.access.canArrivees}
 					<button
-					type="button"
-					onclick={() => (activeTab = 'arrivees')}
-					aria-current={activeTab === 'arrivees' ? 'page' : undefined}
-					class="px-1 py-3 text-sm font-medium border-b-2 {activeTab === 'arrivees'
-						? 'border-foreground text-foreground'
-						: 'border-transparent text-muted-foreground hover:text-foreground'}"
+						type="button"
+						onclick={() => (activeTab = 'arrivees')}
+						aria-current={activeTab === 'arrivees' ? 'page' : undefined}
+						class="px-1 py-3 text-sm font-medium border-b-2 {activeTab === 'arrivees'
+							? 'border-foreground text-foreground'
+							: 'border-transparent text-muted-foreground hover:text-foreground'}"
 					>
 						Arrivées
 					</button>

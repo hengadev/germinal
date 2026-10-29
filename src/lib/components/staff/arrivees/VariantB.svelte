@@ -26,7 +26,7 @@
 				</span>
 			</h3>
 			<div class="grid gap-3 sm:grid-cols-2">
-				{#each seating.parties as party (party.id ?? partyLabel(party))}
+				{#each seating.parties as party, i (party.id ?? i)}
 					{@const balance = fields.guestList ? balanceLabel(party, fields) : null}
 					<div class="bg-background border border-border-card rounded-xl p-4">
 						<div class="flex items-start justify-between gap-3">
@@ -57,7 +57,7 @@
 						{#if fields.contact && (party.guestPhone || party.guestEmail)}
 							<div class="mt-3 space-y-1 text-sm text-muted-foreground">
 								{#if party.guestPhone}
-									<p class="flex items-center gap-2"><Phone size={14} /> {party.guestPhone}</p>
+									<a href="tel:{party.guestPhone}" class="flex items-center gap-2 hover:text-foreground"><Phone size={14} /> {party.guestPhone}</a>
 								{/if}
 								{#if party.guestEmail}
 									<p class="flex items-center gap-2 truncate"><Mail size={14} /> {party.guestEmail}</p>

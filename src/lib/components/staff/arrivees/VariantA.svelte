@@ -33,13 +33,22 @@
 				</div>
 			</div>
 			<ul class="divide-y divide-border-card">
-				{#each seating.parties as party (party.id ?? partyLabel(party))}
+				{#each seating.parties as party, i (party.id ?? i)}
 					{@const balance = fields.guestList ? balanceLabel(party, fields) : null}
-					<li class="py-2.5 flex items-center justify-between gap-3 text-sm">
-						<span class="font-medium text-foreground truncate">{partyLabel(party)}</span>
+					<li class="py-2.5 flex items-start justify-between gap-3 text-sm">
+						<span class="min-w-0">
+							<span class="block font-medium text-foreground truncate">{partyLabel(party)}</span>
+							{#if fields.contact && (party.guestPhone || party.guestEmail)}
+								<span class="block text-xs text-muted-foreground truncate">
+									{#if party.guestPhone}<a href="tel:{party.guestPhone}" class="hover:underline">{party.guestPhone}</a>{/if}
+									{#if party.guestPhone && party.guestEmail} · {/if}
+									{#if party.guestEmail}{party.guestEmail}{/if}
+								</span>
+							{/if}
+						</span>
 						<span class="flex items-center gap-3 shrink-0">
 							{#if fields.dietary && party.dietaryRequirements}
-								<span class="px-2 py-0.5 rounded bg-amber-100 text-amber-800 text-xs font-medium truncate max-w-40">
+								<span class="px-2 py-0.5 rounded bg-amber-100 text-amber-800 text-xs font-medium max-w-48 text-right">
 									{party.dietaryRequirements}
 								</span>
 							{/if}

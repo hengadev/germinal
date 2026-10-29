@@ -47,7 +47,7 @@
 						</tr>
 					</thead>
 					<tbody class="divide-y divide-border-card">
-						{#each seating.parties as party (party.id ?? partyLabel(party))}
+						{#each seating.parties as party, i (party.id ?? i)}
 							{@const balance = balanceLabel(party, fields)}
 							<tr>
 								<td class="py-2 pr-3 font-medium text-foreground">
@@ -64,7 +64,7 @@
 								{/if}
 								{#if cols[1]}
 									<td class="py-2 pr-3 text-muted-foreground">
-										{#if party.guestPhone}{party.guestPhone}{/if}
+										{#if party.guestPhone}<a href="tel:{party.guestPhone}" class="hover:underline">{party.guestPhone}</a>{/if}
 										{#if party.guestPhone && party.guestEmail} · {/if}
 										{#if party.guestEmail}{party.guestEmail}{/if}
 										{#if !party.guestPhone && !party.guestEmail}—{/if}
