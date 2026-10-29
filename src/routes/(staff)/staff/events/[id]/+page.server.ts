@@ -5,6 +5,7 @@ import { getDayGuestList } from '$lib/server/services/day-guest-list';
 import { getTasksForUser, updateTaskStatus } from '$lib/server/services/tasks';
 import { taskStatusEnum } from '$lib/server/db/schema';
 import { recordCheckIn, undoLastCheckIn } from '$lib/server/services/check-ins';
+import { settleBalance, undoSettleBalance } from '$lib/server/services/balance';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
 	if (!locals.user) throw error(401, 'Non authentifié');
@@ -23,6 +24,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			canArrivees,
 			canManualCheckIn: access.can('manual_check_in'),
 			canCorrect: access.can('correct_mistake'),
+			canSettle: access.can('settle_balance'),
 		},
 		event: access.event,
 		staffRoleName: access.staffRoleName,
@@ -115,6 +117,60 @@ export const actions: Actions = {
 		}
 
 		const result = await undoLastCheckIn({
+			access,
+			eventId: params.id,
+			reservationId,
+			actorId: locals.user.id,
+		});
+		if (!result.ok) return fail(422, { error: result.error, reservationId });
+	},
+
+	settleBalance: async ({ request, locals, params }) => {
+		if (!locals.user) return fail(401, { error: 'Non authentifié' });
+
+		// The settle permission is re-resolved on the server, never trusted
+		// from the client.
+		const access = await getStaffEventAccess(locals.user, params.id);
+
+		const formData = await request.formData();
+		const reservationId = formData.get('reservationId');
+		if (!access.can('settle_balance')) {
+			return fail(403, {
+				error: "Vous n'avez pas la permission de régler un solde.",
+				reservationId
+			});
+		}
+		if (typeof reservationId !== 'string') {
+			return fail(400, { error: 'Requête invalide.' });
+		}
+
+		const result = await settleBalance({
+			access,
+			eventId: params.id,
+			reservationId,
+			actorId: locals.user.id,
+		});
+		if (!result.ok) return fail(422, { error: result.error, reservationId });
+	},
+
+	undoSettleBalance: async ({ request, locals, params }) => {
+		if (!locals.user) return fail(401, { error: 'Non authentifié' });
+
+		const access = await getStaffEventAccess(locals.user, params.id);
+
+		const formData = await request.formData();
+		const reservationId = formData.get('reservationId');
+		if (!access.can('correct_mistake')) {
+			return fail(403, {
+				error: "Vous n'avez pas la permission de corriger une erreur.",
+				reservationId
+			});
+		}
+		if (typeof reservationId !== 'string') {
+			return fail(400, { error: 'Requête invalide.' });
+		}
+
+		const result = await undoSettleBalance({
 			access,
 			eventId: params.id,
 			reservationId,

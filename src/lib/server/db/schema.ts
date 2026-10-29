@@ -765,6 +765,13 @@ export const reservations = pgTable('reservations', {
     // venue. deposit_amount + balance_amount = total_amount.
     depositAmount: integer('deposit_amount').notNull(),
     balanceAmount: integer('balance_amount').notNull(),
+    // Issue 019: when Staff marked the Balance as settled on the venue's
+    // terminal, and who did: who and when only — the terminal's own report
+    // is the accounting for money taken on site. Both cleared on undo.
+    balanceSettledAt: timestamp('balance_settled_at', { withTimezone: true }),
+    balanceSettledBy: uuid('balance_settled_by').references(() => users.id, {
+        onDelete: 'set null',
+    }),
     // Dietary Requirements (issue 041, CONTEXT.md): allergies or a diet the
     // Guest declared for the whole Reservation, on an Event that asks. Health
     // data: stored only with the instant the Guest consented, shown only to
