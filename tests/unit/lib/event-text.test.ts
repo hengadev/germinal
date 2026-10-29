@@ -24,8 +24,8 @@ describe('adminEventTitle', () => {
 		expect(adminEventTitle({ titleEn: '', titleFr: ' ' })).toBe('Sans titre');
 	});
 
-	it('shows the title otherwise, the French one when only it is set', () => {
-		expect(adminEventTitle({ titleEn: 'Harvest Dinner', titleFr: 'Dîner des Moissons' })).toBe('Harvest Dinner');
-		expect(adminEventTitle({ titleEn: null, titleFr: 'Dîner des Moissons' })).toBe('Dîner des Moissons');
+	it('shows the French title otherwise, the English one when only it is set', () => {
+		expect(adminEventTitle({ titleEn: 'Harvest Dinner', titleFr: 'Dîner des Moissons' })).toBe('Dîner des Moissons');
+		expect(adminEventTitle({ titleEn: 'Harvest Dinner', titleFr: null })).toBe('Harvest Dinner');
 	});
 });

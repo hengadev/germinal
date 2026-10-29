@@ -9,11 +9,33 @@ import type { RefundPolicy } from '$lib/utils/refund-policy';
  * `parsePricingPayload`).
  */
 
-/** A Menu described once on the Event. */
+/** A dish served at a Course. */
+export interface MenuDish {
+	en: string;
+	fr: string;
+}
+
+/** One step of a Menu (« Entrée », « Plat »…): its label and what is
+ * served — one dish, or several for the guest to choose from at the
+ * table. The label may be left blank. */
+export interface MenuCourse {
+	labelEn: string;
+	labelFr: string;
+	dishes: MenuDish[];
+}
+
+export const MAX_MENU_COURSES = 20;
+export const MAX_COURSE_LABEL = 60;
+export const MAX_COURSE_DISHES = 6;
+export const MAX_COURSE_DISH = 500;
+
+/** A Menu described once on the Event: its Courses in order, then an
+ * optional note (the `description`: wine pairing, allergens…). */
 export interface EditorMenu {
 	id: string;
 	nameEn: string;
 	nameFr: string;
+	courses: MenuCourse[];
 	descriptionEn: string | null;
 	descriptionFr: string | null;
 }
@@ -62,6 +84,7 @@ export interface MenuPayload {
 	id: string | null;
 	nameEn: string;
 	nameFr: string;
+	courses: MenuCourse[];
 	descriptionEn: string | null;
 	descriptionFr: string | null;
 }

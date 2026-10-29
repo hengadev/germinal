@@ -4,6 +4,8 @@ import { and, eq, inArray, isNotNull, sql } from 'drizzle-orm';
 import type {
 	EditorMenu,
 	EditorServicePricing,
+	MenuCourse,
+	MenuDish,
 	MenuPayload,
 	PricingEditorData,
 	PricingPayload,
@@ -23,6 +25,7 @@ import type { ServiceKind } from '$lib/utils/seating-times';
 import { clockOf, DEFAULT_EVENT_TIME_ZONE } from '$lib/utils/event-time';
 import { DEFAULT_EVENT_CURRENCY, EVENT_CURRENCIES, parseEventCurrency } from '$lib/utils/currency';
 import { ScheduleSaveRefusedError } from './event-schedule';
+import { MAX_COURSE_DISH, MAX_COURSE_DISHES, MAX_COURSE_LABEL, MAX_MENU_COURSES } from '$lib/types/pricing-editor';
 
 /**
  * Menus and Service prices (issue 022).
@@ -83,6 +86,7 @@ export interface PublicServiceOffer {
 	menu: {
 		nameEn: string;
 		nameFr: string;
+		courses: MenuCourse[];
 		descriptionEn: string | null;
 		descriptionFr: string | null;
 	} | null;
@@ -100,6 +104,7 @@ export async function getServiceOffersByEventId(eventId: string): Promise<Map<st
 		currency: string;
 		menuNameEn: string | null;
 		menuNameFr: string | null;
+		menuCourses: MenuCourse[] | null;
 		menuDescriptionEn: string | null;
 		menuDescriptionFr: string | null;
 	}[] = await db
@@ -109,6 +114,7 @@ export async function getServiceOffersByEventId(eventId: string): Promise<Map<st
 			currency: events.currency,
 			menuNameEn: eventMenus.nameEn,
 			menuNameFr: eventMenus.nameFr,
+			menuCourses: eventMenus.courses,
 			menuDescriptionEn: eventMenus.descriptionEn,
 			menuDescriptionFr: eventMenus.descriptionFr,
 		})
@@ -124,6 +130,7 @@ export async function getServiceOffersByEventId(eventId: string): Promise<Map<st
 			? {
 				nameEn: row.menuNameEn,
 				nameFr: row.menuNameFr,
+				courses: row.menuCourses ?? [],
 				descriptionEn: row.menuDescriptionEn,
 				descriptionFr: row.menuDescriptionFr,
 			}
@@ -171,9 +178,46 @@ function optionalText(value: unknown, maxLength: number): string | null | false 
 	return trimmed === '' ? null : trimmed;
 }
 
+/** A Course's dishes as posted, in order; a dish with no French is
+ * dropped (a choice added but not written yet). False when malformed, too
+ * many or too long. */
+function parseDishes(value: unknown): MenuDish[] | false {
+	if (!Array.isArray(value)) return false;
+	const dishes: MenuDish[] = [];
+	for (const entry of value) {
+		if (typeof entry !== 'object' || entry === null) return false;
+		const dish = entry as Record<string, unknown>;
+		const en = optionalText(dish.en, MAX_COURSE_DISH);
+		const fr = optionalText(dish.fr, MAX_COURSE_DISH);
+		if (en === false || fr === false) return false;
+		if (fr !== null) dishes.push({ en: en ?? '', fr });
+	}
+	return dishes.length > MAX_COURSE_DISHES ? false : dishes;
+}
+
+/** A Menu's Courses as posted, in order; a Course with no dish is
+ * dropped (a step started but not written yet). False when malformed, too
+ * many or too long. */
+function parseCourses(value: unknown): MenuCourse[] | false {
+	if (value === undefined) return [];
+	if (!Array.isArray(value)) return false;
+	const courses: MenuCourse[] = [];
+	for (const entry of value) {
+		if (typeof entry !== 'object' || entry === null) return false;
+		const course = entry as Record<string, unknown>;
+		const labelEn = optionalText(course.labelEn, MAX_COURSE_LABEL);
+		const labelFr = optionalText(course.labelFr, MAX_COURSE_LABEL);
+		const dishes = parseDishes(course.dishes);
+		if (labelEn === false || labelFr === false || dishes === false) return false;
+		if (dishes.length === 0) continue;
+		courses.push({ labelEn: labelEn ?? '', labelFr: labelFr ?? '', dishes });
+	}
+	return courses.length > MAX_MENU_COURSES ? false : courses;
+}
+
 /**
  * Parse the payload posted by the « Menus & tarifs » tab: the Event's Menus
- * (FR name required, EN name and descriptions optional) and each Service's Menu and
+ * (FR name required, EN name, Courses and note optional) and each Service's Menu and
  * price (whole minor units, zero allowed, or null for “not set yet”), and
  * the Event's currency (issue 042; absent, it is left as is).
  * Returns a failure reason the admin form maps to French copy.
@@ -219,7 +263,8 @@ export function parsePricingPayload(raw: string | null): PricingParseResult {
 		}
 		const descriptionEn = optionalText(menu.descriptionEn, 10000);
 		const descriptionFr = optionalText(menu.descriptionFr, 10000);
-		if (descriptionEn === false || descriptionFr === false) {
+		const courses = parseCourses(menu.courses);
+		if (descriptionEn === false || descriptionFr === false || courses === false) {
 			return { ok: false, reason: 'menu' };
 		}
 		menuKeys.add(menu.key);
@@ -229,6 +274,7 @@ export function parsePricingPayload(raw: string | null): PricingParseResult {
 			id: menu.id as string | null,
 			nameEn: nameEn ?? '',
 			nameFr,
+			courses,
 			descriptionEn,
 			descriptionFr,
 		});
@@ -415,6 +461,13 @@ export async function eventHasReservations(tx: typeof db, eventId: string): Prom
 	return booked !== undefined;
 }
 
+/** What a pricing save made. */
+export interface SavedPricing {
+	/** Each posted Menu's id by its key, created ones included: the editor
+	 * keeps its drafts and takes their ids. */
+	menuIds: Record<string, string>;
+}
+
 /**
  * Save the « Menus & tarifs » tab in one transaction: new Menus are
  * created, listed ones updated, Menus left out deleted; each listed Service
@@ -426,8 +479,8 @@ export async function eventHasReservations(tx: typeof db, eventId: string): Prom
  * deleting a Menu still offered on a Service, and changing the currency
  * once the Event has a Reservation.
  */
-export async function savePricing(eventId: string, payload: PricingPayload): Promise<void> {
-	await db.transaction(async (tx: typeof db) => {
+export async function savePricing(eventId: string, payload: PricingPayload): Promise<SavedPricing> {
+	return db.transaction(async (tx: typeof db): Promise<SavedPricing> => {
 		const [event] = await tx.select({ id: events.id, currency: events.currency })
 			.from(events)
 			.where(eq(events.id, eventId))
@@ -501,6 +554,7 @@ export async function savePricing(eventId: string, payload: PricingPayload): Pro
 			const fields = {
 				nameEn: menu.nameEn,
 				nameFr: menu.nameFr,
+				courses: menu.courses,
 				descriptionEn: menu.descriptionEn,
 				descriptionFr: menu.descriptionFr,
 			};
@@ -557,6 +611,7 @@ export async function savePricing(eventId: string, payload: PricingPayload): Pro
 			await tx.delete(eventMenus)
 				.where(inArray(eventMenus.id, removed.map((menu) => menu.id)));
 		}
+		return { menuIds: Object.fromEntries(menuIdByKey) };
 	});
 }
 
@@ -598,6 +653,7 @@ export async function loadPricingEditor(eventId: string): Promise<PricingEditorD
 			id: eventMenus.id,
 			nameEn: eventMenus.nameEn,
 			nameFr: eventMenus.nameFr,
+			courses: eventMenus.courses,
 			descriptionEn: eventMenus.descriptionEn,
 			descriptionFr: eventMenus.descriptionFr,
 		})

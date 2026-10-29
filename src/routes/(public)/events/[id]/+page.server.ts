@@ -8,6 +8,7 @@ import type { PageServerLoad } from './$types';
 import type { EventWithMedia } from '$lib/types/events';
 import { seatingTitlesWithFallback } from '$lib/utils/seating-title';
 import type { ServiceKind } from '$lib/utils/seating-times';
+import type { MenuCourse } from '$lib/types/pricing-editor';
 import { toAccessEvent, toAccessSeating } from '$lib/server/services/event-access';
 import { eventAccess, isIndexed, seatingAvailability, viewerOf, type AccessEvent } from '$lib/utils/event-access';
 import { withoutPracticalInfo } from '$lib/utils/practical-info';
@@ -104,6 +105,7 @@ interface ServiceOffer {
   menu: {
     nameEn: string;
     nameFr: string;
+    courses: MenuCourse[];
     descriptionEn: string | null;
     descriptionFr: string | null;
   } | null;

@@ -8,21 +8,24 @@
 	import { enhance } from '$app/forms';
 	import { getToastContext } from '$lib/components/toast/state.svelte';
 	import { handleTabResult, type EditorEvent } from './editor-forms';
+	import { keepEdits } from '$lib/utils/editor-refresh';
 	import EnglishVersion from '$lib/components/admin/EnglishVersion.svelte';
 
-	let { event }: { event: EditorEvent | null } = $props();
+	let { event }: { event: EditorEvent } = $props();
 
 	const toast = getToastContext();
 	let saving = $state(false);
 
+	// The English may have been generated from the French on save: it is
+	// taken back, unless edited since the save started (issue 018).
 	function saveEnhance() {
 		saving = true;
-		return async ({ result }: { result: import('@sveltejs/kit').ActionResult }) => {
+		const sent = { practicalInfoEn };
+		return async ({ result, formElement }: { result: import('@sveltejs/kit').ActionResult; formElement: HTMLFormElement }) => {
 			saving = false;
-			if (await handleTabResult(result, toast, 'Modifications enregistrées')) {
-				// The English may have been generated from the French on save.
-				practicalInfoEn = event?.practicalInfoEn ?? '';
-			}
+			await handleTabResult(result, toast, 'Modifications enregistrées', formElement, () => {
+				({ practicalInfoEn } = keepEdits(sent, { practicalInfoEn }, { practicalInfoEn: event?.practicalInfoEn ?? '' }));
+			});
 		};
 	}
 
@@ -30,6 +33,13 @@
 	let practicalInfoEn = $state(event?.practicalInfoEn ?? '');
 	// Dietary Requirements (issue 041): whether the booking form asks.
 	let askDietaryRequirements = $state(event?.askDietaryRequirements ?? false);
+
+	/** Back to what is saved (a published Event's « Annuler », issue 020). */
+	export function restore() {
+		practicalInfoFr = event?.practicalInfoFr ?? '';
+		practicalInfoEn = event?.practicalInfoEn ?? '';
+		askDietaryRequirements = event?.askDietaryRequirements ?? false;
+	}
 </script>
 
 <div class="bg-background rounded-lg border border-border-card p-6 lg:p-8">
@@ -102,7 +112,8 @@
 			</div>
 		</div>
 
-		<div class="flex flex-col sm:flex-row sm:items-center gap-3 pt-4 border-t border-border-card">
+		<!-- Hidden on a Draft, which saves itself (issue 018). -->
+		<div data-editor-save class="flex flex-col sm:flex-row sm:items-center gap-3 pt-4 border-t border-border-card">
 			<button
 				type="submit"
 				disabled={saving}

@@ -1,4 +1,4 @@
-import { fail, redirect, error, type Actions, type ServerLoad } from '@sveltejs/kit';
+import { fail, error, isActionFailure } from '@sveltejs/kit';
 import { logger } from '$lib/server/logger';
 import { env } from '$lib/server/env';
 import { MOCK_EVENTS, MOCK_SESSIONS, MOCK_RESERVATIONS, MOCK_TALENTS } from '$lib/mock-data';
@@ -24,14 +24,10 @@ import {
 	type PickedServiceDay,
 } from '$lib/server/services/event-schedule';
 import { clockOf, dayOf, DEFAULT_EVENT_TIME_ZONE, isValidTimeZone, listTimeZones, serviceKindOf, wallClockToInstant } from '$lib/utils/event-time';
-import { BOOKING_WINDOW_ERROR_MESSAGES, parseBookingWindow } from '$lib/utils/booking-window';
-import { parseServiceRefs, refersOnlyTo, resolveServiceRefs, serviceKey } from '$lib/server/services/new-event-schedule';
+import { BOOKING_WINDOW_ERROR_FIELDS, BOOKING_WINDOW_ERROR_MESSAGES, parseBookingWindow } from '$lib/utils/booking-window';
+import { parseServiceRefs, resolveServiceRefs, serviceKey } from '$lib/server/services/new-event-schedule';
 import {
-	createDraftEvent,
 	EVENT_TEXT_FIELDS,
-	hasEventText,
-	NOTHING_TO_SAVE_MESSAGE,
-	pricingHasContent,
 	readAskDietaryRequirements,
 	readEventTextFields,
 	type EventTextFields,
@@ -40,15 +36,14 @@ import { fillEnglish } from '$lib/server/services/event-translation';
 import { translatePricing, type StoredPricingText } from '$lib/server/services/pricing-translation';
 import { translateSeatings } from '$lib/server/services/seating-translation';
 import { getTranslator, isTranslationEnabled } from '$lib/server/services/translator';
-import type { CreateEventInput } from '$lib/types/events';
 import type { PricingPayload } from '$lib/types/pricing-editor';
 import type { EditorService } from '$lib/types/seatings-editor';
 import type { PricingEditorData } from '$lib/types/pricing-editor';
 import { depositRuleOf } from '$lib/utils/pricing';
 import { refundPolicyOf } from '$lib/utils/refund-policy';
-import type { PageServerLoad } from './$types';
+import type { Actions, PageServerLoad } from './$types';
 import { requireAdmin } from '$lib/server/auth-guards';
-import { canBeSpotlight, canJoinPortfolio, parseVisibility, type Visibility } from '$lib/utils/event-access';
+import { canBeSpotlight, canJoinPortfolio, parseVisibility } from '$lib/utils/event-access';
 
 const SPOTLIGHT_REQUIRES_PUBLIC_MESSAGE = 'Seul un événement Public peut être mis en avant (Spotlight).';
 const PORTFOLIO_REQUIRES_OVER_MESSAGE =
@@ -80,6 +75,14 @@ async function lastSeatingStart(eventId: string): Promise<Date | null> {
 	const { db } = await import('$lib/server/db');
 	const { lastSeatingStartOf } = await import('$lib/server/services/event-access');
 	return lastSeatingStartOf(db, eventId);
+}
+
+/** Whether the Event is still a Draft: a Draft may drop all its Days (ADR 0010). */
+async function isDraft(eventId: string): Promise<boolean> {
+	const event = env.USE_MOCK_DATA
+		? MOCK_EVENTS.find((e) => e.id === eventId)
+		: await (await import('$lib/server/services/events')).getEventById(eventId).catch(() => undefined);
+	return event?.visibility === 'draft';
 }
 
 /**
@@ -121,7 +124,7 @@ async function applyTimeZone(eventId: string, raw: FormDataEntryValue | null) {
 	if (raw === null) return null;
 	const timeZone = String(raw).trim();
 	if (!isValidTimeZone(timeZone)) {
-		return fail(400, { error: TIME_ZONE_ERROR_MESSAGE });
+		return fail(400, { error: TIME_ZONE_ERROR_MESSAGE, fields: ['timeZone'] });
 	}
 	if (env.USE_MOCK_DATA) {
 		const mock = MOCK_EVENTS.find((e) => e.id === eventId);
@@ -132,53 +135,16 @@ async function applyTimeZone(eventId: string, raw: FormDataEntryValue | null) {
 		await changeEventTimeZone(eventId, timeZone);
 	} catch (refusal) {
 		if (refusal instanceof ScheduleSaveRefusedError) {
-			return fail(400, { error: refusal.message });
+			// The refused change is the zone's own (issue 017).
+			return fail(400, { error: refusal.message, fields: ['timeZone'] });
 		}
 		throw refusal;
 	}
 	return null;
 }
 
-/**
- * The Time Zone posted with a new Event's first save: the default one when
- * absent or blank, null when it is not an IANA name.
- */
-function parseNewEventTimeZone(raw: FormDataEntryValue | null): string | null {
-	const timeZone = typeof raw === 'string' && raw.trim() !== '' ? raw.trim() : DEFAULT_EVENT_TIME_ZONE;
-	return isValidTimeZone(timeZone) ? timeZone : null;
-}
-
-/**
- * Create the Draft a new Event's first save lands on (ADR 0008, issue 036),
- * with what that save holds. Returns its id.
- */
-async function createDraft(input: CreateEventInput): Promise<string> {
-	if (env.USE_MOCK_DATA) {
-		const id = crypto.randomUUID();
-		const blank = Object.fromEntries(EVENT_TEXT_FIELDS.map((field) => [field, null]));
-		MOCK_EVENTS.push({
-			...blank,
-			startDate: null,
-			endDate: null,
-			timeZone: DEFAULT_EVENT_TIME_ZONE,
-			coverMediaId: null,
-			coverMedia: null,
-			media: [],
-			isPortfolio: false,
-			...input,
-			id,
-			visibility: 'draft',
-			isSpotlight: false,
-			createdAt: new Date(),
-			updatedAt: new Date(),
-		} as unknown as typeof MOCK_EVENTS[number]);
-		return id;
-	}
-	return createDraftEvent(input);
-}
-
 /** « Dates & séances » with its English generated from the French (DeepL). */
-async function englishSeatings(services: ParsedServiceSeatings[], stored: EditorService[] | null, eventId: string | null) {
+async function englishSeatings(services: ParsedServiceSeatings[], stored: EditorService[] | null, eventId: string) {
 	const english = await translateSeatings(services, stored, getTranslator());
 	if (english.translationFailed) {
 		logger.error({ err: english.error, eventId }, 'Seatings English translation failed');
@@ -187,137 +153,12 @@ async function englishSeatings(services: ParsedServiceSeatings[], stored: Editor
 }
 
 /** « Menus & tarifs » with its English generated from the French (DeepL). */
-async function englishPricing(payload: PricingPayload, stored: StoredPricingText | null, eventId: string | null) {
+async function englishPricing(payload: PricingPayload, stored: StoredPricingText | null, eventId: string) {
 	const english = await translatePricing(payload, stored, getTranslator());
 	if (english.translationFailed) {
 		logger.error({ err: english.error, eventId }, 'Pricing English translation failed');
 	}
 	return english;
-}
-
-/** Where a new Event's first save lands: the Draft's own page. */
-function draftPage(id: string): string {
-	return `/admin/events/${id}`;
-}
-
-const SERVICE_REFS_MISMATCH_MESSAGE = 'Les repas des séances et des tarifs ne correspondent pas aux jours sélectionnés.';
-
-/**
- * First save of « Dates & séances » or « Menus & tarifs » on a new Event
- * (issue 036): both tabs post the Days and meals picked, the Seatings and
- * the pricing together, the meals being named by placeholder ids (see
- * new-event-schedule.ts), with the Time Zone picked in Lieu. Everything is
- * checked before the Draft is created, and nothing is left half-created
- * when a save is refused.
- */
-async function saveNewEventSchedule(formData: FormData) {
-	const rawDays = formData.get('days');
-	const pickedDays = parsePickedDays(typeof rawDays === 'string' ? rawDays : null);
-	let days: PickedServiceDay[] = [];
-	if (pickedDays.ok) {
-		days = pickedDays.days;
-	} else if (pickedDays.reason !== 'missing' && pickedDays.reason !== 'empty') {
-		// A Draft may have no Days; a malformed pick is still refused.
-		return fail(400, { error: pickedDaysErrorMessage(pickedDays.reason) });
-	}
-	const rawRefs = formData.get('serviceRefs');
-	const refs = parseServiceRefs(typeof rawRefs === 'string' ? rawRefs : null, days);
-	if (!refs) {
-		return fail(400, { error: SERVICE_REFS_MISMATCH_MESSAGE });
-	}
-	const rawSeatings = formData.get('services');
-	let seatingServices: ParsedServiceSeatings[] = [];
-	if (typeof rawSeatings === 'string' && rawSeatings.trim() !== '') {
-		const parsedSeatings = parseSeatingsPayload(rawSeatings);
-		if (!parsedSeatings.ok) {
-			return fail(400, { error: seatingsPayloadErrorMessage(parsedSeatings.reason) });
-		}
-		// A new Event: nothing is saved yet to compare the French with.
-		seatingServices = (await englishSeatings(parsedSeatings.services, null, null)).value;
-	}
-	const { parsePricingPayload, pricingPayloadErrorMessage, savePricing } = await import(
-		'$lib/server/services/service-pricing'
-	);
-	const rawPricing = formData.get('pricing');
-	let pricing: PricingPayload | null = null;
-	if (typeof rawPricing === 'string' && rawPricing.trim() !== '') {
-		const parsedPricing = parsePricingPayload(rawPricing);
-		if (!parsedPricing.ok) {
-			return fail(400, { error: pricingPayloadErrorMessage(parsedPricing.reason) });
-		}
-		// A new Event: nothing is saved yet to compare the French with.
-		pricing = (await englishPricing(parsedPricing.payload, null, null)).value;
-	}
-	if (!refersOnlyTo(seatingServices, refs) || (pricing && !refersOnlyTo(pricing.services, refs))) {
-		return fail(400, { error: SERVICE_REFS_MISMATCH_MESSAGE });
-	}
-	const rawVenueCapacity = formData.get('venueCapacity');
-	const venue = parseVenueCapacity(typeof rawVenueCapacity === 'string' ? rawVenueCapacity : null);
-	if (!venue.ok) {
-		return fail(400, { error: VENUE_CAPACITY_ERROR_MESSAGE });
-	}
-	// The Seatings' times are typed on the venue's clock (ADR 0006).
-	const timeZone = parseNewEventTimeZone(formData.get('timeZone'));
-	if (!timeZone) {
-		return fail(400, { error: TIME_ZONE_ERROR_MESSAGE });
-	}
-	// The Booking Window (issue 035), its opening typed on that clock too.
-	const rawOpensAt = formData.get('bookingOpensAt');
-	const rawClosesHoursBefore = formData.get('bookingClosesHoursBefore');
-	const bookingWindow = parseBookingWindow(
-		typeof rawOpensAt === 'string' ? rawOpensAt : null,
-		typeof rawClosesHoursBefore === 'string' ? rawClosesHoursBefore : null,
-		(day, minutes) => wallClockToInstant(day, minutes, timeZone)
-	);
-	if (!bookingWindow.ok) {
-		return fail(400, { error: BOOKING_WINDOW_ERROR_MESSAGES[bookingWindow.reason] });
-	}
-	const { opensAt, closesHoursBefore } = bookingWindow.window;
-
-	if (
-		days.length === 0 &&
-		venue.venueCapacity == null &&
-		opensAt === null &&
-		closesHoursBefore === null &&
-		!(pricing && pricingHasContent(pricing))
-	) {
-		return fail(400, { error: NOTHING_TO_SAVE_MESSAGE });
-	}
-
-	const id = await createDraft({ timeZone, venueCapacity: venue.venueCapacity ?? null });
-	if (env.USE_MOCK_DATA) {
-		redirect(303, draftPage(id));
-	}
-
-	try {
-		if (days.length > 0) {
-			// The Days first; this also sets the Event's start/end dates.
-			await saveEventSchedule(id, days);
-		}
-		// Then the Seatings and pricing, on the Services just created.
-		const realIds = new Map(
-			(await loadSeatingsEditor(id)).map((service) => [serviceKey(service.date, service.kind), service.serviceId])
-		);
-		if (seatingServices.length > 0) {
-			await saveServiceSeatings(id, resolveServiceRefs(seatingServices, refs, realIds), venue.venueCapacity);
-		}
-		if (pricing) {
-			await savePricing(id, { ...pricing, services: resolveServiceRefs(pricing.services, refs, realIds) });
-		}
-		await saveBookingWindow(id, bookingWindow.window);
-	} catch (err) {
-		// Nothing half-created: the Draft goes, with its Days, Services,
-		// Seatings and Menus (cascade).
-		const { deleteEvent } = await import('$lib/server/services/events');
-		await deleteEvent(id);
-		if (err instanceof ScheduleSaveRefusedError) {
-			return fail(400, { error: err.message });
-		}
-		logger.error({ err }, 'Save new event schedule error');
-		return fail(500, { error: 'Échec de l’enregistrement des séances et des tarifs : le brouillon n’a pas été créé.' });
-	}
-
-	redirect(303, draftPage(id));
 }
 
 export const load: PageServerLoad = async ({ params }) => {
@@ -580,19 +421,18 @@ export const load: PageServerLoad = async ({ params }) => {
 	}
 };
 
-export const actions: Actions = {
+const editorActions: Actions = {
 	// Save the Essentiel, Lieu or Programme tab: each posts only its own
-	// fields, and only those change (ADR 0008 — nothing is required). On a
-	// new Event (no id), the first save creates the Draft with them.
+	// fields, and only those change (ADR 0008 — nothing is required).
 	updateEvent: async ({ request, params, locals }) => {
 		requireAdmin(locals);
-		const id = params.id ?? null;
+		const { id } = params;
 
 		const formData = await request.formData();
 		// The English follows the French (DeepL), unless edited in this save.
 		const english = await fillEnglish(
 			readEventTextFields(formData),
-			id ? await storedEventText(id) : {},
+			await storedEventText(id),
 			getTranslator()
 		);
 		if (english.translationFailed) {
@@ -600,49 +440,16 @@ export const actions: Actions = {
 		}
 		const textFields = english.fields;
 		const savedMessage = english.translationFailed ? TRANSLATION_FAILED_MESSAGE : 'Modifications enregistrées.';
+		// A Draft's autosave shows no success toast, except for this warning.
+		const translationWarning = english.translationFailed ? { translationFailed: true as const } : {};
 		// The Dietary Requirements switch, from « Infos pratiques » (issue 041).
 		const askDietaryRequirements = readAskDietaryRequirements(formData);
 		const fields = askDietaryRequirements === undefined ? textFields : { ...textFields, askDietaryRequirements };
 
-		// Visibility, Spotlight and Portfolio come with the Essentiel tab of
-		// a saved Event; other tabs leave them as they are.
-		let publishing: { visibility: Visibility; isSpotlight: boolean; isPortfolio: boolean } | undefined;
-		if (id && formData.has('visibility')) {
-			const visibility = parseVisibility(formData.get('visibility'));
-			if (!visibility) {
-				return fail(400, { error: 'Visibilité invalide' });
-			}
-			const isSpotlight = formData.get('isSpotlight') === 'true';
-			// Only a Public Event can be the Spotlight (issue 032).
-			if (isSpotlight && !canBeSpotlight({ visibility })) {
-				return fail(400, { error: SPOTLIGHT_REQUIRES_PUBLIC_MESSAGE });
-			}
-			const isPortfolio = formData.get('isPortfolio') === 'true';
-			// The Portfolio (issue 044): an Event joins it only once its last
-			// Seating has started. updateEvent refuses it again on the database.
-			if (isPortfolio && !canJoinPortfolio({ visibility, isPortfolio, lastSeatingStart: await lastSeatingStart(id) }, new Date())) {
-				return fail(400, { error: PORTFOLIO_REQUIRES_OVER_MESSAGE });
-			}
-			publishing = { visibility, isSpotlight, isPortfolio };
-
-			// Publishing is never refused (ADR 0008, which supersedes ADR 0001):
-			// an Event without a Seating is announced but not bookable, and the
-			// editor's « À vérifier » list shows the gap (issue 038).
-		}
-
-		if (!id) {
-			const timeZone = parseNewEventTimeZone(formData.get('timeZone'));
-			if (!timeZone) {
-				return fail(400, { error: TIME_ZONE_ERROR_MESSAGE });
-			}
-			// The Time Zone alone counts once it is not the default one.
-			// So does the Dietary Requirements switch once turned on.
-			if (!hasEventText(textFields) && !askDietaryRequirements && timeZone === DEFAULT_EVENT_TIME_ZONE) {
-				return fail(400, { error: NOTHING_TO_SAVE_MESSAGE });
-			}
-			const created = await createDraft({ ...fields, timeZone });
-			redirect(303, draftPage(created));
-		}
+		// Visibility, Spotlight and Portfolio are no longer posted here: they
+		// belong to the « Publication » control and its own action below
+		// (ADR 0010), so saving this tab can never publish the Event. The
+		// action ignores them even if a stale form still posts them.
 
 		const timeZoneRefused = await applyTimeZone(id, formData.get('timeZone'));
 		if (timeZoneRefused) {
@@ -657,27 +464,21 @@ export const actions: Actions = {
 				return fail(404, { error: 'Event not found' });
 			}
 
-			// If isSpotlight is true, unset others in mock array
-			if (publishing?.isSpotlight) {
-				MOCK_EVENTS.forEach(e => e.isSpotlight = false);
-			}
-
 			MOCK_EVENTS[eventIndex] = {
 				...MOCK_EVENTS[eventIndex],
 				...fields,
-				...publishing,
 				updatedAt: new Date()
 			} as typeof MOCK_EVENTS[number];
 
-			return { success: `${savedMessage} (mode démo — non persistées)` };
+			return { success: `${savedMessage} (mode démo — non persistées)`, ...translationWarning };
 		}
 
 		// Database mode - use actual database functions
 		const { updateEvent } = await import('$lib/server/services/events');
 
 		try {
-			await updateEvent(id, { ...fields, ...publishing });
-			return { success: savedMessage };
+			await updateEvent(id, fields);
+			return { success: savedMessage, ...translationWarning };
 		} catch (error) {
 			const { SpotlightRequiresPublicError, PortfolioRequiresOverEventError } = await import('$lib/server/services/events');
 			if (error instanceof SpotlightRequiresPublicError) {
@@ -691,10 +492,81 @@ export const actions: Actions = {
 		}
 	},
 
-	// Update media action (Visuels tab). On a new Event (no id), the first
-	// save creates the Draft with the uploaded Visuals.
+	// Publication (ADR 0010): Visibility, Spotlight and Portfolio are saved
+	// only here, from their own control in « Essentiel » and never with the
+	// Event's text, so that no later autosave of a tab can ever publish an
+	// Event. The rules and messages are those of the Essentiel save before:
+	// only a Public Event can be the Spotlight (issue 032), an Event joins
+	// the Portfolio only once its last Seating has started (issue 044) —
+	// `updateEvent` repeats both on the database — and publishing itself is
+	// never refused (ADR 0008): « À vérifier » warns, the Admin decides
+	// (issue 038's confirmation lives in the control).
+	updatePublication: async ({ request, params, locals }) => {
+		requireAdmin(locals);
+		const { id } = params;
+
+		const formData = await request.formData();
+		const visibility = parseVisibility(formData.get('visibility'));
+		if (!visibility) {
+			return fail(400, { error: 'Visibilité invalide', fields: ['visibility'] });
+		}
+		const isSpotlight = formData.get('isSpotlight') === 'true';
+		if (isSpotlight && !canBeSpotlight({ visibility })) {
+			return fail(400, { error: SPOTLIGHT_REQUIRES_PUBLIC_MESSAGE, fields: ['isSpotlight'] });
+		}
+		const isPortfolio = formData.get('isPortfolio') === 'true';
+		if (
+			isPortfolio &&
+			!canJoinPortfolio(
+				{ visibility, isPortfolio, lastSeatingStart: await lastSeatingStart(id) },
+				new Date()
+			)
+		) {
+			return fail(400, { error: PORTFOLIO_REQUIRES_OVER_MESSAGE, fields: ['isPortfolio'] });
+		}
+
+		if (env.USE_MOCK_DATA) {
+			const eventIndex = MOCK_EVENTS.findIndex((e) => e.id === id);
+			if (eventIndex === -1) {
+				return fail(404, { error: 'Event not found' });
+			}
+			// Only one Spotlight at a time: making an Event the Spotlight
+			// takes it from the one that had it.
+			if (isSpotlight) {
+				MOCK_EVENTS.forEach(e => e.isSpotlight = false);
+			}
+			MOCK_EVENTS[eventIndex] = {
+				...MOCK_EVENTS[eventIndex],
+				visibility,
+				isSpotlight,
+				isPortfolio,
+				updatedAt: new Date()
+			} as typeof MOCK_EVENTS[number];
+			return { success: 'Publication enregistrée (mode démo — non persistée)' };
+		}
+
+		const { updateEvent } = await import('$lib/server/services/events');
+
+		try {
+			await updateEvent(id, { visibility, isSpotlight, isPortfolio });
+			return { success: 'Publication enregistrée.' };
+		} catch (error) {
+			const { SpotlightRequiresPublicError, PortfolioRequiresOverEventError } = await import('$lib/server/services/events');
+			if (error instanceof SpotlightRequiresPublicError) {
+				return fail(400, { error: SPOTLIGHT_REQUIRES_PUBLIC_MESSAGE, fields: ['isSpotlight'] });
+			}
+			if (error instanceof PortfolioRequiresOverEventError) {
+				return fail(400, { error: PORTFOLIO_REQUIRES_OVER_MESSAGE, fields: ['isPortfolio'] });
+			}
+			logger.error({ err: error }, 'Error updating publication');
+			return fail(500, { error: 'Échec de l’enregistrement de la publication.' });
+		}
+	},
+
+	// Update media action (Visuels tab).
 	updateMedia: async ({ request, params, locals }) => {
 		requireAdmin(locals);
+		const { id } = params;
 
 		const formData = await request.formData();
 		const coverMediaId = formData.get('coverMediaId')?.toString() || null;
@@ -703,10 +575,6 @@ export const actions: Actions = {
 		let galleryIds: string[] = [];
 		try { galleryIds = galleryMediaIdsRaw ? JSON.parse(galleryMediaIdsRaw) : []; } catch { /* ignore */ }
 
-		if (!params.id && !coverMediaId && galleryIds.length === 0) {
-			return fail(400, { error: NOTHING_TO_SAVE_MESSAGE });
-		}
-		const id = params.id ?? await createDraft({});
 
 		if (env.USE_MOCK_DATA) {
 			const eventIndex = MOCK_EVENTS.findIndex((e) => e.id === id);
@@ -716,7 +584,6 @@ export const actions: Actions = {
 				coverMediaId: coverMediaId || null,
 				updatedAt: new Date()
 			} as typeof MOCK_EVENTS[number];
-			if (!params.id) redirect(303, draftPage(id));
 			return { success: 'Photos mises à jour' };
 		}
 
@@ -730,22 +597,17 @@ export const actions: Actions = {
 			await updateEvent(id, { coverMediaId: coverMediaId && saved.includes(coverMediaId) ? coverMediaId : null });
 		} catch (error) {
 			logger.error({ err: error }, 'Error updating media');
-			if (!params.id) {
-				const { deleteEvent } = await import('$lib/server/services/events');
-				await deleteEvent(id);
-			}
 			return fail(500, { error: 'Échec de la mise à jour des photos' });
 		}
 
-		if (!params.id) redirect(303, draftPage(id));
 		return { success: 'Photos mises à jour' };
 	},
 
 	// Save the « Portfolio » tab's Event Photos (issue 045): the ones it
-	// holds and which is the project cover. Kept apart from the Visuals. On
-	// a new Event (no id), the first save creates the Draft with them.
+	// holds and which is the project cover. Kept apart from the Visuals.
 	updateEventPhotos: async ({ request, params, locals }) => {
 		requireAdmin(locals);
+		const { id } = params;
 
 		const formData = await request.formData();
 		const coverId = formData.get('eventPhotoCoverId')?.toString() || null;
@@ -755,13 +617,7 @@ export const actions: Actions = {
 			if (Array.isArray(parsed)) photoIds = parsed.filter((value): value is string => typeof value === 'string');
 		} catch { /* ignore */ }
 
-		if (!params.id && photoIds.length === 0) {
-			return fail(400, { error: NOTHING_TO_SAVE_MESSAGE });
-		}
-		const id = params.id ?? await createDraft({});
-
 		if (env.USE_MOCK_DATA) {
-			if (!params.id) redirect(303, draftPage(id));
 			return { success: 'Photos de l’événement enregistrées (mode démo — non persistées)' };
 		}
 
@@ -770,14 +626,9 @@ export const actions: Actions = {
 			await saveEventPhotos(id, photoIds, coverId);
 		} catch (error) {
 			logger.error({ err: error }, 'Error saving Event Photos');
-			if (!params.id) {
-				const { deleteEvent } = await import('$lib/server/services/events');
-				await deleteEvent(id);
-			}
 			return fail(500, { error: 'Échec de l’enregistrement des photos de l’événement.' });
 		}
 
-		if (!params.id) redirect(303, draftPage(id));
 		return { success: 'Photos de l’événement enregistrées.' };
 	},
 
@@ -785,7 +636,6 @@ export const actions: Actions = {
 	deletePhoto: async ({ request, params, locals }) => {
 		requireAdmin(locals);
 		const { id } = params;
-		if (!id) return fail(400, { error: 'Event ID is required' });
 
 		const formData = await request.formData();
 		const mediaId = formData.get('mediaId')?.toString();
@@ -819,36 +669,45 @@ export const actions: Actions = {
 	// entered as start times (issue 020) — with the Event's Venue Capacity,
 	// which inheriting Seatings follow (issue 021). A meal picked in the tab
 	// but not saved yet is named by a placeholder, mapped to its Day and
-	// meal by `serviceRefs` as on the new-event form.
+	// meal by `serviceRefs`.
 	saveSeatings: async ({ request, params, locals }) => {
 		requireAdmin(locals);
 		const { id } = params;
 		const formData = await request.formData();
-		// A new Event: the first save creates the Draft (issue 036).
-		if (!id) {
-			return saveNewEventSchedule(formData);
-		}
 
 		const pickedDays = parsePickedDays(
 			typeof formData.get('days') === 'string' ? formData.get('days') as string : null
 		);
-		if (!pickedDays.ok) {
-			return fail(400, { error: pickedDaysErrorMessage(pickedDays.reason) });
+		// A Draft may have no Days (ADR 0010), even after some were saved;
+		// a published Event cannot drop every saved Day.
+		let days: PickedServiceDay[];
+		if (pickedDays.ok) {
+			days = pickedDays.days;
+		} else if (
+			pickedDays.reason === 'empty' &&
+			(env.USE_MOCK_DATA || (await isDraft(id)) || (await loadScheduleDays(id)).length === 0)
+		) {
+			days = [];
+		} else {
+			return fail(400, { error: pickedDaysErrorMessage(pickedDays.reason), fields: ['days'] });
 		}
 		const rawRefs = formData.get('serviceRefs');
-		const refs = parseServiceRefs(typeof rawRefs === 'string' ? rawRefs : null, pickedDays.days);
+		const refs = parseServiceRefs(typeof rawRefs === 'string' ? rawRefs : null, days);
 		if (!refs) {
-			return fail(400, { error: 'Les repas des séances ne correspondent pas aux jours sélectionnés.' });
+			return fail(400, {
+				error: 'Les repas des séances ne correspondent pas aux jours sélectionnés.',
+				fields: ['days'],
+			});
 		}
 		const raw = formData.get('services');
 		const parsed = parseSeatingsPayload(typeof raw === 'string' ? raw : null);
 		if (!parsed.ok) {
-			return fail(400, { error: seatingsPayloadErrorMessage(parsed.reason) });
+			return fail(400, { error: seatingsPayloadErrorMessage(parsed.reason), fields: ['services'] });
 		}
 		const rawVenueCapacity = formData.get('venueCapacity');
 		const venue = parseVenueCapacity(typeof rawVenueCapacity === 'string' ? rawVenueCapacity : null);
 		if (!venue.ok) {
-			return fail(400, { error: VENUE_CAPACITY_ERROR_MESSAGE });
+			return fail(400, { error: VENUE_CAPACITY_ERROR_MESSAGE, fields: ['venueCapacity'] });
 		}
 
 		// The Booking Window (issue 035): the opening is typed on the
@@ -871,7 +730,10 @@ export const actions: Actions = {
 			(day, minutes) => wallClockToInstant(day, minutes, timeZone)
 		);
 		if (!bookingWindow.ok) {
-			return fail(400, { error: BOOKING_WINDOW_ERROR_MESSAGES[bookingWindow.reason] });
+			return fail(400, {
+				error: BOOKING_WINDOW_ERROR_MESSAGES[bookingWindow.reason],
+				fields: [BOOKING_WINDOW_ERROR_FIELDS[bookingWindow.reason]],
+			});
 		}
 
 		if (env.USE_MOCK_DATA) {
@@ -886,7 +748,7 @@ export const actions: Actions = {
 			// The Days first: this refuses to remove a Day or Service that
 			// still has Reservations, and recomputes the Event's start/end
 			// dates from its first and last Day.
-			await saveEventSchedule(id, pickedDays.days);
+			await saveEventSchedule(id, days);
 
 			// Then the Seatings, with the placeholders swapped for the
 			// Services just created; saved Services keep their id.
@@ -922,7 +784,14 @@ export const actions: Actions = {
 			const translation = english.translationFailed
 				? ' La traduction anglaise a échoué : elle sera retentée au prochain enregistrement.'
 				: '';
-			return { success: `Séances enregistrées.${warning}${translation}` };
+			// The new Seatings' ids, for the editor's drafts (issue 019); a
+			// Draft's autosave shows no success toast, except for the
+			// translation warning (overlaps are flagged in the editor).
+			return {
+				success: `Séances enregistrées.${warning}${translation}`,
+				seatingIds: result.seatingIds,
+				...(english.translationFailed ? { translationFailed: true as const } : {}),
+			};
 		} catch (err) {
 			if (err instanceof ScheduleSaveRefusedError) {
 				return fail(400, { error: err.message });
@@ -938,10 +807,6 @@ export const actions: Actions = {
 		requireAdmin(locals);
 		const { id } = params;
 		const formData = await request.formData();
-		// A new Event: the first save creates the Draft (issue 036).
-		if (!id) {
-			return saveNewEventSchedule(formData);
-		}
 
 		const { parsePricingPayload, pricingPayloadErrorMessage, savePricing } = await import(
 			'$lib/server/services/service-pricing'
@@ -949,7 +814,7 @@ export const actions: Actions = {
 		const raw = formData.get('pricing');
 		const parsed = parsePricingPayload(typeof raw === 'string' ? raw : null);
 		if (!parsed.ok) {
-			return fail(400, { error: pricingPayloadErrorMessage(parsed.reason) });
+			return fail(400, { error: pricingPayloadErrorMessage(parsed.reason), fields: ['pricing'] });
 		}
 
 		if (env.USE_MOCK_DATA) {
@@ -959,11 +824,15 @@ export const actions: Actions = {
 		try {
 			const { loadPricingEditor } = await import('$lib/server/services/service-pricing');
 			const english = await englishPricing(parsed.payload, await loadPricingEditor(id), id);
-			await savePricing(id, english.value);
+			const { menuIds } = await savePricing(id, english.value);
+			// The new Menus' ids, for the editor's drafts (issue 019); a
+			// Draft's autosave shows no success toast, except for this warning.
 			return {
 				success: english.translationFailed
 					? 'Menus et tarifs enregistrés, mais la traduction anglaise a échoué : elle sera retentée au prochain enregistrement.'
 					: 'Menus et tarifs enregistrés.',
+				menuIds,
+				...(english.translationFailed ? { translationFailed: true as const } : {}),
 			};
 		} catch (err) {
 			if (err instanceof ScheduleSaveRefusedError) {
@@ -978,7 +847,6 @@ export const actions: Actions = {
 	createPromoCode: async ({ request, params, locals }) => {
 		requireAdmin(locals);
 		const { id: eventId } = params;
-		if (!eventId) return fail(400, { error: 'Event ID is required' });
 
 		if (env.USE_MOCK_DATA) {
 			return { success: 'Code promo créé (mode démo — non persisté)' };
@@ -1048,3 +916,34 @@ export const actions: Actions = {
 		}
 	}
 };
+
+// The saves that change what the Event holds mark it modified, whatever
+// they write: the Events list sorts by « Dernière modification ».
+const CONTENT_ACTIONS = new Set([
+	'updateEvent',
+	'updatePublication',
+	'updateMedia',
+	'updateEventPhotos',
+	'deletePhoto',
+	'saveSeatings',
+	'savePricing',
+]);
+
+function touching(action: Actions[string]): Actions[string] {
+	return async (event) => {
+		const result = await action(event);
+		if (!isActionFailure(result) && !env.USE_MOCK_DATA) {
+			try {
+				const { touchEvent } = await import('$lib/server/services/events');
+				await touchEvent(event.params.id);
+			} catch (err) {
+				logger.warn({ err }, 'Could not mark the Event modified');
+			}
+		}
+		return result;
+	};
+}
+
+export const actions: Actions = Object.fromEntries(
+	Object.entries(editorActions).map(([name, action]) => [name, CONTENT_ACTIONS.has(name) ? touching(action) : action])
+);

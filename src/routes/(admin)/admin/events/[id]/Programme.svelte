@@ -5,28 +5,34 @@
 	import { enhance } from '$app/forms';
 	import { getToastContext } from '$lib/components/toast/state.svelte';
 	import { handleTabResult, type EditorEvent } from './editor-forms';
+	import { keepEdits } from '$lib/utils/editor-refresh';
 	import EnglishVersion from '$lib/components/admin/EnglishVersion.svelte';
 
 	let {
 		event,
 		talents,
 	}: {
-		event: EditorEvent | null;
+		event: EditorEvent;
 		talents: { id: string; firstName: string; lastName: string }[];
 	} = $props();
 
 	const toast = getToastContext();
 	let saving = $state(false);
 
+	// The English may have been generated from the French on save: it is
+	// taken back, unless edited since the save started (issue 018).
+	const english = () => ({ curatorEn, admissionInfoEn });
 	function saveEnhance() {
 		saving = true;
+		const sent = english();
 		return async ({ result, formElement }: { result: import('@sveltejs/kit').ActionResult; formElement: HTMLFormElement }) => {
 			saving = false;
-			if (await handleTabResult(result, toast, 'Modifications enregistrées', formElement)) {
-				// The English may have been generated from the French on save.
-				curatorEn = event?.curatorEn ?? '';
-				admissionInfoEn = event?.admissionInfoEn ?? '';
-			}
+			await handleTabResult(result, toast, 'Modifications enregistrées', formElement, () => {
+				({ curatorEn, admissionInfoEn } = keepEdits(sent, english(), {
+					curatorEn: event?.curatorEn ?? '',
+					admissionInfoEn: event?.admissionInfoEn ?? '',
+				}));
+			});
 		};
 	}
 
@@ -40,6 +46,16 @@
 	let curatorFr = $state(event?.curatorFr ?? "");
 	let admissionInfoEn = $state(event?.admissionInfoEn ?? "");
 	let admissionInfoFr = $state(event?.admissionInfoFr ?? "");
+
+	/** Back to what is saved (a published Event's « Annuler », issue 020). */
+	export function restore() {
+		collaborators = event?.collaborators ? JSON.parse(event.collaborators) : [];
+		timings = event?.timings ? JSON.parse(event.timings) : [];
+		curatorFr = event?.curatorFr ?? '';
+		curatorEn = event?.curatorEn ?? '';
+		admissionInfoFr = event?.admissionInfoFr ?? '';
+		admissionInfoEn = event?.admissionInfoEn ?? '';
+	}
 </script>
 
 <div class="bg-background rounded-lg border border-border-card p-6 lg:p-8">
@@ -165,7 +181,8 @@
             </EnglishVersion>
         </div>
 
-        <div class="flex flex-col sm:flex-row sm:items-center gap-3 pt-4 border-t border-border-card">
+        <!-- Hidden on a Draft, which saves itself (issue 018). -->
+        <div data-editor-save class="flex flex-col sm:flex-row sm:items-center gap-3 pt-4 border-t border-border-card">
             <button
                 type="submit"
                 disabled={saving}

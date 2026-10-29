@@ -2,13 +2,16 @@ import { describe, it, expect } from 'vitest';
 import {
 	editorEventWarnings,
 	editorPortfolioWarnings,
+	eventCompleteness,
 	eventWarnings,
 	portfolioWarnings,
+	savedEventWarnings,
 	type PortfolioWarningsInput,
 	type EditorWarningsEvent,
 	type EventWarningsInput,
 	type EventWarningCode,
 } from '../../../src/lib/utils/event-warnings';
+import { wallClockToInstant } from '../../../src/lib/utils/event-time';
 import type { EditorService } from '../../../src/lib/types/seatings-editor';
 import type { PricingEditorData } from '../../../src/lib/types/pricing-editor';
 import { FULL_PAYMENT_DEPOSIT } from '../../../src/lib/utils/pricing';
@@ -209,7 +212,7 @@ const SCHEDULE: EditorService[] = [
 ];
 
 const PRICING: PricingEditorData = {
-	menus: [{ id: 'm1', nameEn: 'Spring', nameFr: 'Printemps', descriptionEn: null, descriptionFr: null }],
+	menus: [{ id: 'm1', nameEn: 'Spring', nameFr: 'Printemps', courses: [], descriptionEn: null, descriptionFr: null }],
 	services: [
 		{ serviceId: 's1', date: '2027-03-12', kind: 'dinner', menuId: 'm1', priceAmount: 9000, seatingCount: 1, legacySeatings: [] },
 	],
@@ -364,5 +367,97 @@ describe('editorPortfolioWarnings (issue 045)', () => {
 		const event = { ...recaps, media: [photo('a', { isCover: true, altEn: null })] };
 		expect(editorPortfolioWarnings(event).map((w) => w.code)).toEqual(['event-photo-without-alt']);
 		expect(editorPortfolioWarnings(event, { a: { altEn: 'The table', altFr: 'La table' } })).toEqual([]);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Draft completeness (issue 013, ADR 0010)
+// ---------------------------------------------------------------------------
+
+describe('savedEventWarnings (issue 013)', () => {
+	it('reads a saved Event with the editor’s rules', () => {
+		const warnings = savedEventWarnings(
+			{ ...EVENT, titleEn: null, coverMediaId: null, coverMedia: null, media: [] },
+			[{ serviceId: 's1', date: '2027-03-12', kind: 'dinner', menuId: null, priceAmount: null }],
+			[{ startTime: wallClockToInstant('2027-03-12', 19 * 60, ZONE) }]
+		);
+		expect(warnings.map((warning) => warning.code)).toEqual([
+			'service-without-price',
+			'service-without-menu',
+			'missing-title-en',
+			'no-visual',
+		]);
+	});
+
+	it('agrees with editorEventWarnings on the same saved Event', () => {
+		expect(
+			savedEventWarnings(
+				EVENT,
+				[{ serviceId: 's1', date: '2027-03-12', kind: 'dinner', menuId: 'm1', priceAmount: 9000 }],
+				[{ startTime: wallClockToInstant('2027-03-12', 19 * 60, ZONE) }]
+			)
+		).toEqual(editorEventWarnings(EVENT, SCHEDULE, PRICING));
+	});
+});
+
+describe('eventCompleteness (issue 013)', () => {
+	it('groups the warnings per tab, the eight Event tabs in the editor’s order', () => {
+		const completeness = eventCompleteness(eventWarnings({}));
+		expect(completeness.tabs.map((tab) => tab.tab)).toEqual([
+			'essentiel',
+			'lieu',
+			'dates-seances',
+			'tarifs',
+			'programme',
+			'visuels',
+			'pratique',
+			'portfolio',
+		]);
+		// A tab no warning touches holds nothing.
+		expect(completeness.tabs.find((tab) => tab.tab === 'programme')?.warnings).toEqual([]);
+		expect(completeness.tabs.find((tab) => tab.tab === 'pratique')?.warnings).toEqual([]);
+	});
+
+	it('labels each tab as the editor does', () => {
+		expect(eventCompleteness([]).tabs.map((tab) => tab.title)).toEqual([
+			'Essentiel',
+			'Lieu',
+			'Dates & séances',
+			'Menus & tarifs',
+			'Programme',
+			'Visuels',
+			'Infos pratiques',
+			'Portfolio',
+		]);
+	});
+
+	it('counts only the tabs a rule checks', () => {
+		// An empty snapshot: Essentiel (titles, descriptions), Lieu, Dates &
+		// séances (no Seating) and Visuels lack something; Tarifs has no
+		// Service to warn about. Programme and Infos pratiques have no rule,
+		// and Portfolio is checked only for a Portfolio Event.
+		const completeness = eventCompleteness(eventWarnings({}));
+		expect(completeness.complete).toBe(1);
+		expect(completeness.total).toBe(5);
+	});
+
+	it('is 5/5 for a complete Event', () => {
+		expect(eventCompleteness(eventWarnings(COMPLETE))).toMatchObject({ complete: 5, total: 5 });
+	});
+
+	it('checks Portfolio for a Portfolio Event', () => {
+		const warnings = [...eventWarnings(COMPLETE), ...portfolioWarnings({})];
+		expect(eventCompleteness(warnings, { isPortfolio: true })).toMatchObject({ complete: 5, total: 6 });
+	});
+
+	it('groups the Portfolio list under the Portfolio tab', () => {
+		const portfolio = eventCompleteness(portfolioWarnings({})).tabs.find(
+			(tab) => tab.tab === 'portfolio'
+		);
+		expect(portfolio?.warnings.map((warning) => warning.code)).toEqual([
+			'missing-recap-fr',
+			'missing-recap-en',
+			'no-event-photo',
+		]);
 	});
 });

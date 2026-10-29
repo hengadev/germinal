@@ -19,9 +19,13 @@
     import Drawer from "$lib/components/ui/Drawer.svelte";
     import Modal from "$lib/components/ui/Modal.svelte";
     import DuplicateEventDialog from "$lib/components/admin/DuplicateEventDialog.svelte";
+    import SearchInput, { searchFromUrl } from "$lib/components/admin/SearchInput.svelte";
+    import { fuzzyFilter } from "$lib/utils/fuzzy-search";
     import { getToastContext } from "$lib/components/toast/state.svelte";
     import { VISIBILITY_LABELS } from "$lib/utils/event-access";
     import { adminEventTitle } from "$lib/utils/event-text";
+    import type { EventCompleteness } from "$lib/utils/event-warnings";
+    import { DEFAULT_EVENT_LIST_SORT, EVENT_LIST_SORTS } from "$lib/utils/event-list-sort";
 
     let {
         data,
@@ -43,6 +47,20 @@
     // Event type
     type Event = (typeof data.events)[number];
 
+    // The search, as typed: title, place and dates, in either language.
+    let query = $state(searchFromUrl());
+    const events = $derived(
+        fuzzyFilter(data.events, query, (event) => [
+            event.titleFr,
+            event.titleEn,
+            event.locationFr,
+            event.locationEn,
+            ...[event.startDate, event.endDate].flatMap((date) =>
+                date ? [formatDate(date), new Date(date).toLocaleDateString("fr-FR")] : []
+            ),
+        ])
+    );
+
     // The list's filter, kept in the URL so it survives a reload.
     const FILTERS = [
         { value: "all", label: "Tous" },
@@ -63,6 +81,18 @@
 
     // Currently selected event for delete
     let selectedEvent: Event | null = $state(null);
+
+    // « Nouvel événement » (ADR 0010): the action creates the Draft and
+    // redirects to its editor; only a refusal stays here.
+    function createEventEnhance() {
+        return async ({ result, update }: { result: import('@sveltejs/kit').ActionResult; update: () => Promise<void> }) => {
+            if (result.type === 'failure') {
+                toast.error("Erreur", (result.data as { error?: string })?.error ?? 'Une erreur est survenue');
+                return;
+            }
+            await update();
+        };
+    }
 
     function deleteEventEnhance() {
         return async ({ result, update }: { result: import('@sveltejs/kit').ActionResult; update: (opts?: { reset?: boolean }) => Promise<void> }) => {
@@ -92,21 +122,30 @@
  // A Draft may have no Days, hence no dates (issue 036).
  function formatDate(date: Date | string | null): string {
  if (!date) return "—";
- return new Date(date).toLocaleDateString("en-US", {
+ return new Date(date).toLocaleDateString("fr-FR", {
  year: "numeric",
  month: "short",
  day: "numeric",
  });
  }
 
- function formatDateTime(date: Date | string): string {
- return new Date(date).toLocaleString("en-US", {
- year: "numeric",
- month: "short",
- day: "numeric",
- hour: "2-digit",
- minute: "2-digit",
- });
+ // The filter, the order and the search share the URL: changing one keeps the others.
+ function listHref(filter: string, sort: string): string {
+ const params = new URLSearchParams();
+ if (filter !== "all") params.set("filter", filter);
+ if (sort !== DEFAULT_EVENT_LIST_SORT) params.set("sort", sort);
+ if (query.trim()) params.set("q", query.trim());
+ const search = params.toString();
+ return search ? `/admin/events?${search}` : "/admin/events";
+ }
+
+ // Draft completeness (issue 013, ADR 0010): each Draft row carries
+ // « 3/5 » (checked tabs complete), the tabs still missing something on hover.
+ function completenessTitle(completeness: EventCompleteness): string {
+ const missing = completeness.tabs.filter((tab) => tab.warnings.length > 0);
+ return missing.length === 0
+ ? "Tous les onglets sont complets"
+ : `À compléter : ${missing.map((tab) => tab.title).join(", ")}`;
  }
 </script>
 
@@ -116,25 +155,33 @@
 
 <div class="container mx-auto px-4 py-8 lg:py-12">
  <div
- class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8"
+ class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-8"
  >
  <div>
  <h1 class="text-3xl lg:text-4xl font-bold mb-2">Événements</h1>
  <p class="text-muted-foreground">Gérez vos événements</p>
  </div>
- <a
- href="/admin/events/new"
- class="inline-flex items-center gap-2 px-4 py-2 bg-foreground text-background rounded-lg hover:opacity-90 transition-colors self-start"
+ <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+ <SearchInput bind:value={query} label="Rechercher un événement" placeholder="Rechercher : titre, lieu, date…" />
+ <!-- « Nouvel événement » creates the Draft at once (ADR 0010): a POST,
+      so no link prefetch ever creates one. -->
+ <form method="POST" action="?/createEvent" use:enhance={createEventEnhance} class="self-start sm:self-auto">
+ <button
+ type="submit"
+ class="inline-flex items-center gap-2 px-4 py-2 bg-foreground text-background rounded-lg hover:opacity-90 transition-colors cursor-pointer"
  >
  <Plus size={18} />
- <span>Nouvel Événement</span>
- </a>
+ <span class="whitespace-nowrap">Nouvel Événement</span>
+ </button>
+ </form>
+ </div>
  </div>
 
- <nav aria-label="Filtrer les événements" class="flex flex-wrap gap-2 mb-6">
+ <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+ <nav aria-label="Filtrer les événements" class="flex flex-wrap gap-2">
  {#each FILTERS as f (f.value)}
  <a
- href={f.value === "all" ? "/admin/events" : `/admin/events?filter=${f.value}`}
+ href={listHref(f.value, data.sort)}
  aria-current={data.filter === f.value ? "page" : undefined}
  class="px-3 py-1.5 text-sm rounded-full border transition-colors {data.filter === f.value
  ? 'bg-foreground text-background border-foreground'
@@ -144,8 +191,26 @@
  </a>
  {/each}
  </nav>
+ <label class="inline-flex items-center gap-2 text-sm text-foreground-alt">
+ Trier par
+ <select
+ value={data.sort}
+ onchange={(e) => goto(listHref(data.filter, e.currentTarget.value), { keepFocus: true, noScroll: true })}
+ class="px-3 py-1.5 text-sm border border-border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-foreground cursor-pointer"
+ >
+ {#each EVENT_LIST_SORTS as option (option.value)}
+ <option value={option.value}>{option.label}</option>
+ {/each}
+ </select>
+ </label>
+ </div>
 
- {#if data.events.length === 0 && data.filter !== "all"}
+ {#if data.events.length > 0 && events.length === 0}
+ <div class="bg-background rounded-lg border border-border-card p-12 text-center">
+ <p class="text-muted-foreground">Aucun événement ne correspond à « {query.trim()} ».</p>
+ <button type="button" onclick={() => (query = "")} class="mt-3 text-sm font-medium text-foreground underline underline-offset-4 hover:opacity-80 cursor-pointer">Effacer la recherche</button>
+ </div>
+ {:else if data.events.length === 0 && data.filter !== "all"}
  <div class="bg-background rounded-lg border border-border-card p-12 text-center">
  <p class="text-muted-foreground">{EMPTY_FILTER_LABELS[data.filter]}</p>
  </div>
@@ -160,13 +225,15 @@
  <p class="text-muted-foreground mb-6">
  Créez votre premier événement pour commencer
  </p>
- <a
- href="/admin/events/new"
- class="inline-flex items-center gap-2 px-4 py-2 bg-foreground text-background rounded-lg hover:opacity-90 transition-colors"
+ <form method="POST" action="?/createEvent" use:enhance={createEventEnhance}>
+ <button
+ type="submit"
+ class="inline-flex items-center gap-2 px-4 py-2 bg-foreground text-background rounded-lg hover:opacity-90 transition-colors cursor-pointer"
  >
  <Plus size={18} />
  <span>Créer un Événement</span>
- </a>
+ </button>
+ </form>
  </div>
  {:else}
  <!-- Table view for desktop -->
@@ -204,7 +271,7 @@
  </tr>
  </thead>
  <tbody class="divide-y divide-border-card">
- {#each data.events as event (event.id)}
+ {#each events as event (event.id)}
  <tr
  class="hover:bg-muted transition-colors cursor-pointer"
  onclick={() => goto(`/admin/events/${event.id}`)}
@@ -242,7 +309,7 @@
  <td class="px-6 py-4">
  <div class="flex items-center gap-1 text-sm text-foreground-alt">
  <MapPin size={16} class="flex-shrink-0" />
- <span class="truncate">{event.locationEn ?? event.locationFr ?? "—"}</span>
+ <span class="truncate">{event.locationFr ?? event.locationEn ?? "—"}</span>
  </div>
  </td>
  <td class="px-6 py-4">
@@ -275,6 +342,16 @@
  >
  <Tag size={12} />
  À la une
+ </span>
+ {/if}
+ {#if event.visibility === 'draft' && data.completeness[event.id]}
+ {@const completeness = data.completeness[event.id]}
+ <span
+ class="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-muted text-foreground-alt"
+ title={completenessTitle(completeness)}
+ aria-label={completenessTitle(completeness)}
+ >
+ {completeness.complete}/{completeness.total}
  </span>
  {/if}
  </div>
@@ -319,7 +396,7 @@
 
  <!-- Card view for mobile -->
  <div class="lg:hidden space-y-4">
- {#each data.events as event (event.id)}
+ {#each events as event (event.id)}
  <div
  class="bg-background rounded-lg border border-border-card overflow-hidden cursor-pointer hover:border-foreground/30 transition-colors"
  onclick={() => goto(`/admin/events/${event.id}`)}
@@ -343,7 +420,7 @@
  </h3>
  <div class="flex items-center gap-1 text-sm text-foreground-alt mt-1">
  <MapPin size={14} class="flex-shrink-0" />
- <span class="truncate">{event.locationEn ?? event.locationFr ?? "—"}</span>
+ <span class="truncate">{event.locationFr ?? event.locationEn ?? "—"}</span>
  </div>
  </div>
  </div>
@@ -385,6 +462,16 @@
  <Calendar size={12} />
  {formatDate(event.startDate)}
  </span>
+ {#if event.visibility === 'draft' && data.completeness[event.id]}
+ {@const completeness = data.completeness[event.id]}
+ <span
+ class="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-muted text-foreground-alt"
+ title={completenessTitle(completeness)}
+ aria-label={completenessTitle(completeness)}
+ >
+ {completeness.complete}/{completeness.total}
+ </span>
+ {/if}
  </div>
 
  <div class="flex items-center justify-between gap-2 pt-3 border-t border-border-card">
@@ -457,13 +544,13 @@
                         onclick={() => (deleteDialogOpen = false)}
                         class="px-4 py-2 border border-border-input text-foreground-alt rounded-lg hover:bg-muted transition-colors font-medium text-sm"
                     >
-                        Cancel
+                        Annuler
                     </button>
                     <button
                         type="submit"
                         class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium text-sm"
                     >
-                        Delete
+                        Supprimer
                     </button>
                 </div>
             </form>

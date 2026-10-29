@@ -162,11 +162,18 @@
 		return `${span} Les dates de début et de fin de l'événement en sont dérivées.`;
 	});
 
-	// The form's enhance handler focuses here when the Days are missing.
+	// The form's enhance handler focuses here when the Days are invalid:
+	// the first Day without a meal, else the calendar button.
 	let wrapperEl: HTMLDivElement | undefined = $state();
 
 	export function focus() {
-		wrapperEl?.focus();
+		const mealless = sortedDays.find((day) => day.kinds.length === 0);
+		const target =
+			(mealless && document.getElementById(`${idPrefix}-${mealless.date}-lunch`)) ||
+			wrapperEl?.querySelector<HTMLElement>('[data-days-trigger]') ||
+			wrapperEl;
+		target?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+		target?.focus({ preventScroll: true });
 	}
 </script>
 
@@ -186,6 +193,7 @@
 	     the popover unmounting it when closed is safe. -->
 	<Popover.Root>
 		<Popover.Trigger
+			data-days-trigger
 			class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium border border-border-input rounded-lg text-foreground hover:bg-muted transition-colors cursor-pointer"
 		>
 			<CalendarDays size={16} aria-hidden="true" />

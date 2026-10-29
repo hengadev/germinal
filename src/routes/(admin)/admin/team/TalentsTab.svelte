@@ -16,13 +16,17 @@
     import Modal from "$lib/components/ui/Modal.svelte";
     import TalentCategoriesTab from "$lib/components/admin/TalentCategoriesTab.svelte";
     import { getToastContext } from "$lib/components/toast/state.svelte";
+    import SearchInput, { searchFromUrl } from "$lib/components/admin/SearchInput.svelte";
+    import { fuzzyFilter } from "$lib/utils/fuzzy-search";
 
     interface Talent {
         id: string;
         firstName: string;
         lastName: string;
         roleEn: string;
+        roleFr?: string;
         bioEn: string;
+        category?: { displayNameFr: string; displayNameEn: string } | null;
         published: boolean;
         profileMedia?: { url: string } | null;
     }
@@ -60,6 +64,19 @@
     }
 
     let activeTab = $state<'talents' | 'categories'>('talents');
+
+    // The search, as typed: name, role and category.
+    let query = $state(searchFromUrl());
+    const shown = $derived(
+        fuzzyFilter(talents, query, (talent) => [
+            talent.firstName,
+            talent.lastName,
+            talent.roleFr,
+            talent.roleEn,
+            talent.category?.displayNameFr,
+            talent.category?.displayNameEn,
+        ])
+    );
     let catCreateDialogOpen = $state(false);
 
     let deleteDialogOpen = $state(false);
@@ -134,6 +151,15 @@
             </a>
         </div>
     {:else}
+        <div class="mb-4">
+            <SearchInput bind:value={query} label="Rechercher un talent" placeholder="Rechercher : nom, rôle, catégorie…" />
+        </div>
+        {#if shown.length === 0}
+            <div class="bg-background rounded-lg border border-border-card p-12 text-center">
+                <p class="text-muted-foreground">Aucun talent ne correspond à « {query.trim()} ».</p>
+                <button type="button" onclick={() => (query = "")} class="mt-3 text-sm font-medium text-foreground underline underline-offset-4 hover:opacity-80 cursor-pointer">Effacer la recherche</button>
+            </div>
+        {:else}
         <!-- Table view for desktop -->
         <div class="bg-background rounded-lg border border-border-card overflow-hidden hidden lg:block">
             <table class="w-full">
@@ -147,7 +173,7 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-border-card">
-                    {#each talents as talent (talent.id)}
+                    {#each shown as talent (talent.id)}
                         <tr class="hover:bg-muted transition-colors cursor-pointer" onclick={() => goto(`/admin/talents/${talent.id}`)}>
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-4">
@@ -208,7 +234,7 @@
 
         <!-- Card view for mobile -->
         <div class="lg:hidden space-y-4">
-            {#each talents as talent (talent.id)}
+            {#each shown as talent (talent.id)}
                 <div
                     class="bg-background rounded-lg border border-border-card p-4 cursor-pointer hover:border-foreground/30 transition-colors"
                     onclick={() => goto(`/admin/talents/${talent.id}`)}
@@ -263,6 +289,7 @@
                 </div>
             {/each}
         </div>
+        {/if}
     {/if}
 {:else}
     <TalentCategoriesTab {categories} {isMobile} bind:createDialogOpen={catCreateDialogOpen} />

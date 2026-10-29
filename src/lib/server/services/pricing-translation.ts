@@ -1,10 +1,11 @@
-import type { EditorMenu, PricingPayload } from '$lib/types/pricing-editor';
+import { MAX_COURSE_DISH, MAX_COURSE_LABEL, type EditorMenu, type PricingPayload } from '$lib/types/pricing-editor';
 import { MAX_REFUND_POLICY_TEXT } from '$lib/utils/refund-policy';
 import { followFrench, type EnglishResult, type FrenchEnglishPair } from './event-translation';
 import type { Translator } from './translator';
 
 /**
- * The English of « Menus & tarifs » — Menu names and descriptions, the
+ * The English of « Menus & tarifs » — Menu names, Courses (label and
+ * dishes, each matched to the saved one at the same place) and notes, the
  * manual Refund Policy text — generated from the French on save, by the
  * same rule as the Event's own fields (event-translation.ts). A Menu's
  * English name is required: without a translation it takes the French.
@@ -12,7 +13,7 @@ import type { Translator } from './translator';
 
 /** What is saved of the Event's pricing texts; null for a new Event. */
 export interface StoredPricingText {
-	menus: readonly Pick<EditorMenu, 'id' | 'nameEn' | 'nameFr' | 'descriptionEn' | 'descriptionFr'>[];
+	menus: readonly Pick<EditorMenu, 'id' | 'nameEn' | 'nameFr' | 'courses' | 'descriptionEn' | 'descriptionFr'>[];
 	refundPolicy: { textEn: string | null; textFr: string | null };
 }
 
@@ -24,49 +25,76 @@ export async function translatePricing(
 	translator: Translator | null
 ): Promise<EnglishResult<PricingPayload>> {
 	const pairs: FrenchEnglishPair[] = [];
-	for (const menu of payload.menus) {
+	/** Each pair's place in `pairs` is its English's place in the result. */
+	const add = (pair: FrenchEnglishPair) => pairs.push(pair) - 1;
+	const menuAt = payload.menus.map((menu) => {
 		const saved = menu.id ? stored?.menus.find((m) => m.id === menu.id) : undefined;
-		pairs.push(
-			{
-				fr: norm(menu.nameFr),
-				en: norm(menu.nameEn),
-				storedFr: norm(saved?.nameFr),
-				storedEn: norm(saved?.nameEn),
-				required: true,
-				maxLength: 255,
-			},
-			{
-				fr: norm(menu.descriptionFr),
-				en: norm(menu.descriptionEn),
-				storedFr: norm(saved?.descriptionFr),
-				storedEn: norm(saved?.descriptionEn),
-				maxLength: 10000,
-			}
-		);
-	}
+		const name = add({
+			fr: norm(menu.nameFr),
+			en: norm(menu.nameEn),
+			storedFr: norm(saved?.nameFr),
+			storedEn: norm(saved?.nameEn),
+			required: true,
+			maxLength: 255,
+		});
+		const courses = menu.courses.map((course, i) => {
+			const savedCourse = saved?.courses[i];
+			return {
+				label: add({
+					fr: norm(course.labelFr),
+					en: norm(course.labelEn),
+					storedFr: norm(savedCourse?.labelFr),
+					storedEn: norm(savedCourse?.labelEn),
+					maxLength: MAX_COURSE_LABEL,
+				}),
+				dishes: course.dishes.map((dish, d) =>
+					add({
+						fr: norm(dish.fr),
+						en: norm(dish.en),
+						storedFr: norm(savedCourse?.dishes[d]?.fr),
+						storedEn: norm(savedCourse?.dishes[d]?.en),
+						maxLength: MAX_COURSE_DISH,
+					})
+				),
+			};
+		});
+		const description = add({
+			fr: norm(menu.descriptionFr),
+			en: norm(menu.descriptionEn),
+			storedFr: norm(saved?.descriptionFr),
+			storedEn: norm(saved?.descriptionEn),
+			maxLength: 10000,
+		});
+		return { name, courses, description };
+	});
 	const refund = payload.refundPolicy;
-	if (refund) {
-		pairs.push({
+	const refundAt = refund
+		? add({
 			fr: norm(refund.textFr),
 			en: norm(refund.textEn),
 			storedFr: norm(stored?.refundPolicy.textFr),
 			storedEn: norm(stored?.refundPolicy.textEn),
 			maxLength: MAX_REFUND_POLICY_TEXT,
-		});
-	}
+		})
+		: -1;
 
 	const english = await followFrench(pairs, translator);
 	const at = (i: number) => english.value[i];
 	const value: PricingPayload = {
 		...payload,
-		menus: payload.menus.map((menu, i) => ({
+		menus: payload.menus.map((menu, m) => ({
 			...menu,
-			nameEn: at(2 * i) ?? menu.nameFr,
-			descriptionEn: at(2 * i + 1),
+			nameEn: at(menuAt[m].name) ?? menu.nameFr,
+			courses: menu.courses.map((course, c) => ({
+				...course,
+				labelEn: at(menuAt[m].courses[c].label) ?? '',
+				dishes: course.dishes.map((dish, d) => ({ ...dish, en: at(menuAt[m].courses[c].dishes[d]) ?? '' })),
+			})),
+			descriptionEn: at(menuAt[m].description),
 		})),
 	};
 	if (refund) {
-		value.refundPolicy = { ...refund, textEn: at(2 * payload.menus.length) };
+		value.refundPolicy = { ...refund, textEn: at(refundAt) };
 	}
 	return { ...english, value };
 }

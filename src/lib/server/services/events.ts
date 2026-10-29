@@ -108,6 +108,15 @@ export async function getAllEvents(options: {
 	return createPaginatedResponse(publicEvents, pagination);
 }
 
+/**
+ * Mark the Event as just modified: a save in any editor tab, even one that
+ * only writes its Days, Seatings, prices or Visuals. The Events list sorts
+ * by it.
+ */
+export async function touchEvent(id: string): Promise<void> {
+    await db.update(events).set({ updatedAt: new Date() }).where(eq(events.id, id));
+}
+
 /** Event ids are random UUIDs and public URLs carry them (ADR 0007). */
 const EVENT_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
