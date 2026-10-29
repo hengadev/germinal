@@ -216,6 +216,9 @@ export const load: PageServerLoad = async ({ params }) => {
 					sessionStartTime: session?.startTime?.toISOString() || '',
 					paymentStatus: r.paymentStatus,
 					isComp: (r as { isComp?: boolean }).isComp ?? false,
+					origin: ((r as { origin?: 'online' | 'staff' | 'walk_in' }).origin ?? 'online'),
+					balanceSettledAt: null as string | null,
+					arrived: 0,
 					dietaryRequirements: (r as { dietaryRequirements?: string | null }).dietaryRequirements ?? null
 				};
 			});
@@ -381,6 +384,8 @@ export const load: PageServerLoad = async ({ params }) => {
 				badgeType: s.badgeType,
 				reservationCount: s.reservationCount
 			})),
+			const { arrivedByReservation } = await import('$lib/server/services/check-ins');
+			const arrived = await arrivedByReservation(reservationsData.map((r: typeof reservationsData[number]) => r.id));
 			reservations: reservationsData.map((r: typeof reservationsData[number]) => ({
 				id: r.id,
 				guestName: r.guestName,
@@ -399,6 +404,9 @@ export const load: PageServerLoad = async ({ params }) => {
 				sessionStartTime: r.eventSession.startTime.toISOString(),
 				paymentStatus: r.payment?.status || 'none',
 				isComp: r.isComp,
+				origin: r.origin,
+				balanceSettledAt: r.balanceSettledAt?.toISOString() ?? null,
+				arrived: arrived.get(r.id) ?? 0,
 				// Dietary Requirements (issue 041): Admins only.
 				dietaryRequirements: r.dietaryRequirements
 			})),

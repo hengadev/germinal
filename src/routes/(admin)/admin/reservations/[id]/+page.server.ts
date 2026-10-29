@@ -4,6 +4,7 @@ import { error, fail, redirect } from '@sveltejs/kit';
 import { requireAdmin } from '$lib/server/auth-guards';
 import type { PageServerLoad, Actions } from './$types';
 import { seatingTitlesWithFallback } from '$lib/utils/seating-title';
+import { sql } from 'drizzle-orm';
 import { cancellationPreFill, refundableAmount, type CancellationPreFill } from '$lib/utils/cancellation-refund';
 import { EMPTY_MANUAL_REFUND_POLICY } from '$lib/utils/refund-policy';
 
@@ -76,6 +77,10 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 				confirmedAt: reservation.confirmedAt,
 				cancelledAt: reservation.cancelledAt,
 				createdAt: reservation.createdAt,
+			origin: ((reservation as { origin?: 'online' | 'staff' | 'walk_in' }).origin ?? 'online'),
+			balanceSettledAt: null as string | null,
+			balanceSettledByName: null as string | null,
+			checkIns: [] as { id: string; guests: number; method: 'scan' | 'manual'; checkedInByName: string | null; checkedInAt: string; undoneAt: string | null; undoneByName: string | null }[],
 				session: {
 					titleEn: (session as any).titleEn || session.title,
 					titleFr: (session as any).titleFr || session.title,
@@ -110,6 +115,22 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 	try {
 		const reservation = await getReservationById(params.id);
+
+		// Arrivals (issue 023): the Check-in history and who settled the Balance.
+		const { checkInHistory } = await import('$lib/server/services/check-ins');
+		const checkInsHistory = await checkInHistory(params.id);
+		let balanceSettledByName: string | null = null;
+		if (reservation.balanceSettledBy) {
+			const { users } = await import('$lib/server/db/schema');
+			const { db } = await import('$lib/server/db');
+			const { eq } = await import('drizzle-orm');
+			const [settler] = await db
+				.select({ name: sql<string>`first_name || ' ' || last_name` })
+				.from(users)
+				.where(eq(users.id, reservation.balanceSettledBy))
+				.limit(1);
+			balanceSettledByName = settler?.name ?? null;
+		}
 
 		// The cancel screen's pre-fill from the Event's Refund Policy (issue 028).
 		let cancellation: CancellationPreFill | null = null;
@@ -150,6 +171,18 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 				confirmedAt: reservation.confirmedAt?.toISOString(),
 				cancelledAt: reservation.cancelledAt?.toISOString(),
 				createdAt: reservation.createdAt.toISOString(),
+			origin: reservation.origin,
+			balanceSettledAt: reservation.balanceSettledAt?.toISOString() ?? null,
+			balanceSettledByName,
+			checkIns: checkInsHistory.map((c) => ({
+				id: c.id,
+				guests: c.guests,
+				method: c.method,
+				checkedInByName: c.checkedInByName,
+				checkedInAt: c.checkedInAt.toISOString(),
+				undoneAt: c.undoneAt?.toISOString() ?? null,
+				undoneByName: c.undoneByName
+			})),
 				session: {
 					...seatingTitlesWithFallback(reservation.eventSession, { timeZone: reservation.eventSession.event.timeZone }),
 					startTime: reservation.eventSession.startTime.toISOString(),
