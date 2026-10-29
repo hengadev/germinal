@@ -204,9 +204,9 @@
                                     <p class="text-sm text-muted-foreground mb-2">
                                         {assignment.event.locationEn || assignment.event.location}
                                     </p>
-                                    {#if assignment.roleLabel}
+                                    {#if assignment.staffRole}
                                         <p class="text-sm text-muted-foreground">
-                                            <span class="font-medium">Role:</span> {assignment.roleLabel}
+                                            <span class="font-medium">Rôle :</span> {assignment.staffRole.name}
                                         </p>
                                     {/if}
                                 </div>

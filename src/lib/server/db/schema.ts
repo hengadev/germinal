@@ -943,6 +943,15 @@ export const promotionCodesRelations = relations(promotionCodes, ({ one, many })
 // STAFF AND TASKS TABLES
 // ============================================
 
+export const staffRoles = pgTable('staff_roles', {
+    id: uuid('id').defaultRandom().primaryKey(),
+    name: varchar('name', { length: 100 }).notNull().unique(),
+    permissions: text('permissions').array().notNull().default(sql`'{}'::text[]`),
+    archivedAt: timestamp('archived_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
 export const eventStaff = pgTable('event_staff', {
     id: uuid('id').defaultRandom().primaryKey(),
     eventId: uuid('event_id')
@@ -951,7 +960,11 @@ export const eventStaff = pgTable('event_staff', {
     userId: uuid('user_id')
         .notNull()
         .references(() => users.id, { onDelete: 'cascade' }),
-    roleLabel: varchar('role_label', { length: 100 }),
+    staffRoleId: uuid('staff_role_id')
+        .notNull()
+        .references(() => staffRoles.id, { onDelete: 'restrict' }),
+    grantedPermissions: text('granted_permissions').array().notNull().default(sql`'{}'::text[]`),
+    withdrawnPermissions: text('withdrawn_permissions').array().notNull().default(sql`'{}'::text[]`),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => ({
     eventIdIdx: index('event_staff_event_id_idx').on(table.eventId),
@@ -1025,6 +1038,10 @@ export const eventStaffRelations = relations(eventStaff, ({ one }) => ({
     user: one(users, {
         fields: [eventStaff.userId],
         references: [users.id],
+    }),
+    staffRole: one(staffRoles, {
+        fields: [eventStaff.staffRoleId],
+        references: [staffRoles.id],
     }),
 }));
 

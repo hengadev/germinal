@@ -1313,7 +1313,7 @@ interface StaffAssignmentEmailData {
 	lastName: string;
 	email: string;
 	eventTitle: string;
-	roleLabel?: string | null;
+	roleName?: string | null;
 }
 
 function generateStaffAssignmentTextTemplate(data: StaffAssignmentEmailData): string {
@@ -1324,7 +1324,7 @@ You've Been Assigned to an Event
 
 Hi ${data.firstName},
 
-You have been assigned to "${data.eventTitle}"${data.roleLabel ? ` as ${data.roleLabel}` : ''} on the Germinal staff portal.
+You have been assigned to "${data.eventTitle}"${data.roleName ? ` as ${data.roleName}` : ''} on the Germinal staff portal.
 
 View the event and your tasks:
 ${portalUrl}
@@ -1353,7 +1353,7 @@ function generateStaffAssignmentHtmlTemplate(data: StaffAssignmentEmailData): st
 
   <div style="background-color: #ffffff; border: 1px solid #e9ecef; border-radius: 8px; padding: 24px; margin-bottom: 16px;">
     <p style="margin: 0 0 16px 0; font-size: 16px;">Hi ${escapeHtml(data.firstName)},</p>
-    <p style="margin: 0 0 16px 0; font-size: 16px;">You have been assigned to <strong>${escapeHtml(data.eventTitle)}</strong>${data.roleLabel ? ` as <strong>${escapeHtml(data.roleLabel)}</strong>` : ''} on the Germinal staff portal.</p>
+    <p style="margin: 0 0 16px 0; font-size: 16px;">You have been assigned to <strong>${escapeHtml(data.eventTitle)}</strong>${data.roleName ? ` as <strong>${escapeHtml(data.roleName)}</strong>` : ''} on the Germinal staff portal.</p>
 
     <div style="margin: 24px 0; text-align: center;">
       <a href="${escapeHtmlAttr(portalUrl)}"
