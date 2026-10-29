@@ -7,9 +7,16 @@
         Loader2,
         CheckCircle2,
         X,
+        SlidersHorizontal,
     } from "lucide-svelte";
     import type { PageData, ActionData } from "../+page.server";
     import { getToastContext } from "$lib/components/toast/state.svelte";
+    import {
+        STAFF_PERMISSIONS,
+        STAFF_PERMISSION_LABELS_FR,
+        ACTS_ON_PARTIES_PERMISSIONS,
+        type StaffPermission,
+    } from "$lib/staff/permissions";
 
     interface Props {
         data: PageData;
@@ -23,12 +30,15 @@
     interface StaffRole {
         id: string;
         name: string;
+        permissions: StaffPermission[];
     }
 
     interface EventStaff {
         id: string;
         userId: string;
         staffRole: StaffRole;
+        grantedPermissions: StaffPermission[];
+        withdrawnPermissions: StaffPermission[];
         createdAt: Date;
         user: {
             id: string;
@@ -150,6 +160,63 @@
             const errorMsg = error instanceof Error ? error.message : 'Échec du changement de rôle';
             toast.error('Erreur', errorMsg);
             await loadData();
+        } finally {
+            processing = false;
+        }
+    }
+
+    // Permission adjustments (issue 014): which Assignment's checklist is
+    // open and its ticked set — the Staff Role plus grants, minus
+    // withdrawals (effective before the dependency closure).
+    let adjustingUserId = $state<string | null>(null);
+    let adjustPermissions = $state<StaffPermission[]>([]);
+
+    function startAdjust(staff: EventStaff) {
+        if (adjustingUserId === staff.userId) {
+            adjustingUserId = null;
+            return;
+        }
+        const ticked = new Set<StaffPermission>([
+            ...staff.staffRole.permissions,
+            ...staff.grantedPermissions,
+        ]);
+        for (const p of staff.withdrawnPermissions) ticked.delete(p);
+        adjustingUserId = staff.userId;
+        adjustPermissions = STAFF_PERMISSIONS.filter((p) => ticked.has(p));
+    }
+
+    // Ticking a permission that acts on parties also ticks the guest list.
+    function toggleAdjust(perm: StaffPermission) {
+        if (!adjustPermissions.includes(perm) && ACTS_ON_PARTIES_PERMISSIONS.has(perm)) {
+            adjustPermissions = [...adjustPermissions, perm];
+            if (!adjustPermissions.includes('guest_list')) {
+                adjustPermissions = [...adjustPermissions, 'guest_list'];
+            }
+        } else {
+            adjustPermissions = adjustPermissions.includes(perm)
+                ? adjustPermissions.filter((p) => p !== perm)
+                : [...adjustPermissions, perm];
+        }
+    }
+
+    async function saveAdjust(staffUserId: string) {
+        processing = true;
+        try {
+            const response = await fetch(`/api/admin/events/${data.event.id}/staff`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: staffUserId, permissions: adjustPermissions }),
+            });
+            const result = await response.json();
+            if (!response.ok) {
+                throw new Error(result.error || 'Échec de l\u2019ajustement des permissions');
+            }
+            toast.success('Succès', 'Permissions ajustées');
+            adjustingUserId = null;
+            await loadData();
+        } catch (error) {
+            const errorMsg = error instanceof Error ? error.message : 'Échec de l\u2019ajustement des permissions';
+            toast.error('Erreur', errorMsg);
         } finally {
             processing = false;
         }
@@ -355,6 +422,20 @@
                                             <option value={role.id}>{role.name}</option>
                                         {/each}
                                     </select>
+                                    {#if staff.grantedPermissions.length > 0 || staff.withdrawnPermissions.length > 0}
+                                        <div class="flex flex-wrap gap-1 mt-1">
+                                            {#each [...staff.grantedPermissions] as perm (perm)}
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary">
+                                                    + {STAFF_PERMISSION_LABELS_FR[perm]}
+                                                </span>
+                                            {/each}
+                                            {#each [...staff.withdrawnPermissions] as perm (perm)}
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-muted text-muted-foreground line-through">
+                                                    &minus; {STAFF_PERMISSION_LABELS_FR[perm]}
+                                                </span>
+                                            {/each}
+                                        </div>
+                                    {/if}
                                 </td>
                                 <td class="px-6 py-4">
                                     <p class="text-sm text-muted-foreground">
@@ -362,7 +443,16 @@
                                     </p>
                                 </td>
                                 <td class="px-6 py-4">
-                                    <div class="flex items-center justify-end">
+                                    <div class="flex items-center justify-end gap-1">
+                                        <button
+                                            onclick={() => startAdjust(staff)}
+                                            class="p-2 text-foreground hover:bg-muted rounded-lg transition-colors"
+                                            title="Ajuster les permissions"
+                                            aria-label="Ajuster les permissions de {staff.user.firstName} {staff.user.lastName}"
+                                            disabled={processing}
+                                        >
+                                            <SlidersHorizontal size={16} />
+                                        </button>
                                         <button
                                             onclick={() => removeStaff(staff.userId, staff.user.firstName, staff.user.lastName)}
                                             class="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors"
@@ -374,6 +464,48 @@
                                     </div>
                                 </td>
                             </tr>
+                            {#if adjustingUserId === staff.userId}
+                                <tr class="bg-muted/30">
+                                    <td colspan="4" class="px-6 py-4">
+                                        <p class="text-sm font-medium text-foreground mb-2">
+                                            Permissions de {staff.user.firstName} {staff.user.lastName}
+                                        </p>
+                                        <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+                                            {#each STAFF_PERMISSIONS as perm (perm)}
+                                                <label class="flex items-center gap-2 text-sm text-foreground">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={adjustPermissions.includes(perm)}
+                                                        onchange={() => toggleAdjust(perm)}
+                                                    />
+                                                    {STAFF_PERMISSION_LABELS_FR[perm]}
+                                                </label>
+                                            {/each}
+                                        </div>
+                                        <p class="text-xs text-muted-foreground mt-1">
+                                            Cocher une permission agissant sur les groupes coche aussi la liste des invités.
+                                        </p>
+                                        <div class="flex items-center gap-2 mt-3">
+                                            <button
+                                                onclick={() => saveAdjust(staff.userId)}
+                                                disabled={processing}
+                                                class="inline-flex items-center gap-2 px-3 py-1.5 bg-foreground text-background rounded-lg text-sm hover:opacity-90 transition-colors disabled:opacity-50"
+                                            >
+                                                {#if processing}<Loader2 size={14} class="animate-spin" />{:else}<CheckCircle2 size={14} />{/if}
+                                                <span>Enregistrer</span>
+                                            </button>
+                                            <button
+                                                onclick={() => (adjustingUserId = null)}
+                                                class="inline-flex items-center gap-2 px-3 py-1.5 border border-border-input text-foreground rounded-lg text-sm hover:bg-muted transition-colors"
+                                                disabled={processing}
+                                            >
+                                                <X size={14} />
+                                                <span>Annuler</span>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {/if}
                         {/each}
                     </tbody>
                 </table>
