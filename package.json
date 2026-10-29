@@ -58,6 +58,7 @@
     "@sentry/node": "^10.76.2",
     "@stripe/stripe-js": "^8.11.0",
     "argon2": "^0.44.0",
+    "barcode-detector": "^3.2.3",
     "bits-ui": "^2.20.0",
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.4",
