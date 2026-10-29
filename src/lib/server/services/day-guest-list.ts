@@ -29,6 +29,9 @@ export interface DayGuestParty {
 /** One Seating of the Day with its parties. */
 export interface DayGuestSeating {
 	id: string;
+	/** The Service the Seating belongs to (Déjeuner or Dîner of the Day). */
+	serviceId: string;
+	serviceKind: 'lunch' | 'dinner';
 	titleFr: string | null;
 	titleEn: string | null;
 	startTime: string;
@@ -97,6 +100,8 @@ async function daySeatings(eventId: string, day: string): Promise<DayGuestSeatin
 	const rows = await db
 		.select({
 			id: eventSessions.id,
+			serviceId: eventServices.id,
+			serviceKind: eventServices.kind,
 			titleFr: eventSessions.titleFr,
 			titleEn: eventSessions.titleEn,
 			startTime: eventSessions.startTime,
@@ -109,12 +114,16 @@ async function daySeatings(eventId: string, day: string): Promise<DayGuestSeatin
 		.orderBy(asc(eventSessions.startTime));
 	return rows.map((r: {
 		id: string;
+		serviceId: string;
+		serviceKind: 'lunch' | 'dinner';
 		titleFr: string | null;
 		titleEn: string | null;
 		startTime: Date;
 		totalCapacity: number | null;
 	}) => ({
 		id: r.id,
+		serviceId: r.serviceId,
+		serviceKind: r.serviceKind,
 		titleFr: r.titleFr,
 		titleEn: r.titleEn,
 		startTime: r.startTime.toISOString(),

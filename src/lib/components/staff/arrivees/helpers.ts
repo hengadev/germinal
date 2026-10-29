@@ -57,3 +57,24 @@ export function currentSeatingId(seatings: DayGuestSeating[], now: Date): string
 	const started = seatings.filter((s) => new Date(s.startTime).getTime() <= now.getTime());
 	return (started.at(-1) ?? seatings[0])?.id ?? null;
 }
+
+/** « Déjeuner », « Dîner ». */
+export function serviceLabel(kind: DayGuestSeating['serviceKind']): string {
+	return kind === 'lunch' ? 'Déjeuner' : 'Dîner';
+}
+
+/** The Day's Services, in order, each with its Seatings. */
+export function servicesOf(
+	seatings: DayGuestSeating[]
+): { id: string; kind: DayGuestSeating['serviceKind']; seatings: DayGuestSeating[] }[] {
+	const services: { id: string; kind: DayGuestSeating['serviceKind']; seatings: DayGuestSeating[] }[] = [];
+	for (const seating of seatings) {
+		let service = services.find((s) => s.id === seating.serviceId);
+		if (!service) {
+			service = { id: seating.serviceId, kind: seating.serviceKind, seatings: [] };
+			services.push(service);
+		}
+		service.seatings.push(seating);
+	}
+	return services;
+}

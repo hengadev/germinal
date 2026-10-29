@@ -1,10 +1,11 @@
 <script lang="ts">
 	/**
-	 * Arrivées (issue 016): the Day's parties, by Seating, shaped by the
-	 * viewer's permissions. The search box and the Seating times stay on
-	 * screen; one time at a time, or all of them, the one under way marked
-	 * with a dot. A search looks across every time: a party booked at 20 h 00
-	 * may well walk in at 20 h 45.
+	 * Arrivées (issue 016): the Day's parties, one Service at a time
+	 * (Déjeuner, Dîner), by Seating, shaped by the viewer's permissions. It
+	 * opens on the Service under way. The search box and the Seating times
+	 * stay on screen; one time at a time, or all of them, the one under way
+	 * marked with a dot. A search looks across the whole Day: a party booked
+	 * at 20 h 00 may well walk in at 20 h 45, or ask at lunch.
 	 *
 	 * Those with the Dietary Requirements permission also get « Notes
 	 * cuisine », every party's Dietary Requirements by Seating; Cuisine
@@ -24,6 +25,8 @@
 		guests,
 		matches,
 		seatingTime,
+		serviceLabel,
+		servicesOf,
 		type ArriveesFields,
 	} from './helpers';
 
@@ -45,6 +48,28 @@
 	});
 	const currentId = $derived(currentSeatingId(list.seatings, now));
 
+	/** The Service shown, kept in the address (`?service=diner`); by default the one under way. */
+	const SERVICE_PARAM = 'service';
+	const serviceKey = (kind: 'lunch' | 'dinner') => (kind === 'lunch' ? 'dejeuner' : 'diner');
+	const services = $derived(servicesOf(list.seatings));
+	// svelte-ignore state_referenced_locally
+	let serviceId = $state<string | null>(
+		servicesOf(list.seatings).find((s) => serviceKey(s.kind) === page.url.searchParams.get(SERVICE_PARAM))?.id ??
+			list.seatings.find((s) => s.id === currentSeatingId(list.seatings, new Date()))?.serviceId ??
+			null
+	);
+	const service = $derived(services.find((s) => s.id === serviceId) ?? services[0]);
+
+	function showService(id: string) {
+		serviceId = id;
+		filterId = null;
+		const url = new URL(page.url.href);
+		const chosen = services.find((s) => s.id === id);
+		if (chosen) url.searchParams.set(SERVICE_PARAM, serviceKey(chosen.kind));
+		url.searchParams.delete(HOUR_PARAM);
+		replaceState(url, page.state);
+	}
+
 	// Cuisine sees only the kitchen notes; others choose, the door first.
 	let view = $state<'arrivees' | 'cuisine'>('arrivees');
 	const shownView = $derived(fields.guestList ? view : 'cuisine');
@@ -59,8 +84,9 @@
 		list.seatings.find((s) => hourKey(seatingTime(s, timeZone)) === page.url.searchParams.get(HOUR_PARAM))
 			?.id ?? null
 	);
+	const serviceSeatings = $derived(service?.seatings ?? []);
 	const shownId = $derived(
-		query.trim() || list.seatings.length < 2 || !list.seatings.some((s) => s.id === filterId)
+		query.trim() || serviceSeatings.length < 2 || !serviceSeatings.some((s) => s.id === filterId)
 			? null
 			: filterId
 	);
@@ -74,16 +100,27 @@
 		replaceState(url, page.state);
 	}
 
+	// A search covers the whole Day; otherwise the Service shown, or one of its times.
 	const seatings = $derived(
-		list.seatings
+		(query.trim() ? list.seatings : serviceSeatings)
 			.filter((s) => shownId === null || s.id === shownId)
 			.map((s) => ({ ...s, parties: s.parties.filter((p) => matches(p, query)) }))
 			.filter((s) => !query.trim() || s.parties.length > 0)
 	);
 	const found = $derived(seatings.reduce((n, s) => n + s.parties.length, 0));
-	const totalParties = $derived(list.seatings.reduce((n, s) => n + s.parties.length, 0));
+	const totalParties = $derived(serviceSeatings.reduce((n, s) => n + s.parties.length, 0));
+	const serviceBooked = $derived(serviceSeatings.reduce((n, s) => n + s.booked, 0));
+	// Null when one of the Seatings has no capacity: there is no total to show.
+	const serviceCapacity = $derived.by<number | null>(() => {
+		let sum = 0;
+		for (const s of serviceSeatings) {
+			if (s.totalCapacity === null) return null;
+			sum += s.totalCapacity;
+		}
+		return sum;
+	});
 	const noteCount = $derived(
-		list.seatings.reduce((n, s) => n + s.parties.filter((p) => p.dietaryRequirements?.trim()).length, 0)
+		serviceSeatings.reduce((n, s) => n + s.parties.filter((p) => p.dietaryRequirements?.trim()).length, 0)
 	);
 
 	const CHIP =
@@ -93,6 +130,35 @@
 </script>
 
 <div class="space-y-4">
+	{#if services.length > 1}
+		<nav class="flex gap-1.5" aria-label="Service">
+			{#each services as s (s.id)}
+				<button
+					type="button"
+					onclick={() => showService(s.id)}
+					aria-pressed={s.id === service?.id}
+					class="min-h-11 flex-1 rounded-lg border px-4 text-base font-semibold transition-colors sm:flex-none pointer-fine:min-h-9 {s.id ===
+					service?.id
+						? 'border-foreground bg-foreground text-background'
+						: 'border-border-card bg-background text-foreground hover:bg-muted'}"
+				>
+					{serviceLabel(s.kind)}
+				</button>
+			{/each}
+		</nav>
+	{/if}
+
+	{#if service}
+		<p class="text-sm text-muted-foreground tabular-nums">
+			{#if services.length === 1}<span class="font-semibold text-foreground">{serviceLabel(service.kind)}</span> ·{/if}
+			<span class="font-medium text-foreground"
+				>{serviceBooked}{#if serviceCapacity !== null}&nbsp;/ {serviceCapacity}{/if}</span
+			>
+			{serviceBooked === 1 ? 'personne' : 'personnes'} · {totalParties}
+			{totalParties === 1 ? 'réservation' : 'réservations'}
+		</p>
+	{/if}
+
 	{#if fields.guestList && fields.dietary}
 		<div class="inline-flex rounded-lg border border-border-card p-0.5" role="group" aria-label="Vue">
 			<button
@@ -141,7 +207,7 @@
 			/>
 		</div>
 
-		{#if !query.trim() && list.seatings.length > 1}
+		{#if !query.trim() && serviceSeatings.length > 1}
 			<nav
 				aria-label="Filtrer par service"
 				class="-mx-4 overflow-x-auto px-4 py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
@@ -162,7 +228,7 @@
 							>
 						</button>
 					</li>
-					{#each list.seatings as seating (seating.id)}
+					{#each serviceSeatings as seating (seating.id)}
 						{@const active = seating.id === shownId}
 						{@const time = seatingTime(seating, timeZone)}
 						<li>
@@ -225,6 +291,9 @@
 			<!-- The time, then how many are booked: an outlined figure, red over capacity. -->
 			<div class="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-border-card pb-2">
 				<h2 id="seating-{seating.id}" class="text-lg leading-none font-semibold tabular-nums text-foreground">
+					{#if query.trim() && services.length > 1}<span class="font-normal text-muted-foreground"
+							>{serviceLabel(seating.serviceKind)} ·</span
+						>{/if}
 					{time}
 				</h2>
 				{#if seating.titleFr}
