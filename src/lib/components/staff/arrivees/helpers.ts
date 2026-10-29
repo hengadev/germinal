@@ -1,38 +1,59 @@
 /**
- * Shared bits of the Arrivées variants: display helpers over the
+ * Shared bits of the Arrivées screen: display helpers over the
  * permission-shaped party rows.
  */
-import { seatingTitle } from '$lib/utils/seating-title';
 import { formatCurrency } from '$lib/utils/currency';
 import type { DayGuestParty, DayGuestSeating } from '$lib/server/services/day-guest-list';
 
 export type ArriveesFields = { guestList: boolean; dietary: boolean; contact: boolean };
 
-/** A Seating's French title (stored or derived), e.g. « Dîner — …, 19h00 ». */
-export function seatingLabel(seating: DayGuestSeating, timeZone: string): string {
-	return seatingTitle(seating, 'fr', { timeZone });
+/** A Seating's start, the way the door says it: « 12 h 00 », « 20 h 30 ». */
+export function seatingTime(seating: DayGuestSeating, timeZone: string): string {
+	const parts = new Intl.DateTimeFormat('fr-FR', {
+		hour: 'numeric',
+		minute: '2-digit',
+		hourCycle: 'h23',
+		timeZone,
+	}).formatToParts(new Date(seating.startTime));
+	const hour = parts.find((p) => p.type === 'hour')?.value ?? '';
+	const minute = parts.find((p) => p.type === 'minute')?.value ?? '';
+	return `${Number(hour)} h ${minute}`;
 }
 
-/** « 34 » or « 34 / 32 » (red when over capacity). */
+/** « 34 » or « 34 / 32 » (over capacity when booked exceeds it). */
 export function capacityLabel(seating: DayGuestSeating): { text: string; over: boolean } {
 	if (seating.totalCapacity === null) return { text: `${seating.booked}`, over: false };
 	return {
-		text: `${seating.booked} / ${seating.totalCapacity}`,
+		text: `${seating.booked} / ${seating.totalCapacity}`,
 		over: seating.booked > seating.totalCapacity,
 	};
 }
 
-/** The best label a party offers under this access. */
-export function partyLabel(party: DayGuestParty): string {
-	return party.guestName ?? party.guestEmail ?? party.guestPhone ?? 'Sans nom';
+/** « 1 personne », « 4 personnes ». */
+export function guests(count: number): string {
+	return `${count} ${count === 1 ? 'personne' : 'personnes'}`;
 }
 
-/** Balance due in euros, only for accesses that may see it. */
-export function balanceLabel(
-	party: DayGuestParty,
-	fields: ArriveesFields
-): string | null {
-	if (!fields.guestList) return null;
-	if (party.balanceAmount === undefined || party.currency === undefined) return null;
+/** The Balance still due on site, or null when nothing is (or it may not be seen). */
+export function balanceDue(party: DayGuestParty): string | null {
+	if (party.isComp || !party.balanceAmount || !party.currency) return null;
 	return formatCurrency(party.balanceAmount, party.currency, 'fr-FR');
+}
+
+/** What the search box matches: the name, plus phone and e-mail when they may be seen. */
+export function matches(party: DayGuestParty, query: string): boolean {
+	const q = query.trim().toLowerCase();
+	if (!q) return true;
+	const digits = q.replace(/\D/g, '');
+	return (
+		(party.guestName ?? '').toLowerCase().includes(q) ||
+		(party.guestEmail ?? '').toLowerCase().includes(q) ||
+		(digits.length >= 3 && (party.guestPhone ?? '').replace(/\D/g, '').includes(digits))
+	);
+}
+
+/** The Seating under way: the last one already started, or the first before any has. */
+export function currentSeatingId(seatings: DayGuestSeating[], now: Date): string | null {
+	const started = seatings.filter((s) => new Date(s.startTime).getTime() <= now.getTime());
+	return (started.at(-1) ?? seatings[0])?.id ?? null;
 }

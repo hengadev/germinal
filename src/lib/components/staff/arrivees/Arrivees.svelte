@@ -1,16 +1,31 @@
 <script lang="ts">
 	/**
-	 * Arrivées (issue 016) — the Day's parties, grouped by Seating, shaped
-	 * by the viewer's permissions. Search and the "not yet arrived" filter
-	 * live here; the three toggleable variants below render the same data.
+	 * Arrivées (issue 016): the Day's parties, by Seating, shaped by the
+	 * viewer's permissions. The search box and the Seating times stay on
+	 * screen; one time at a time, or all of them, the one under way marked
+	 * with a dot. A search looks across every time: a party booked at 20 h 00
+	 * may well walk in at 20 h 45.
+	 *
+	 * Those with the Dietary Requirements permission also get « Notes
+	 * cuisine », every party's Dietary Requirements by Seating; Cuisine
+	 * (Dietary Requirements without the guest list) gets only that view.
+	 *
+	 * Until Check-ins exist (issue 017) every party is still expected; 017
+	 * folds the arrived ones under their Seating.
 	 */
 	import { replaceState } from '$app/navigation';
 	import { page } from '$app/state';
-	import { Search } from 'lucide-svelte';
-	import VariantA from './VariantA.svelte';
-	import VariantB from './VariantB.svelte';
-	import VariantC from './VariantC.svelte';
-	import type { DayGuestList, DayGuestSeating } from '$lib/server/services/day-guest-list';
+	import { ChefHat, Search, Users } from 'lucide-svelte';
+	import type { DayGuestList } from '$lib/server/services/day-guest-list';
+	import PartyCard from './PartyCard.svelte';
+	import {
+		capacityLabel,
+		currentSeatingId,
+		guests,
+		matches,
+		seatingTime,
+		type ArriveesFields,
+	} from './helpers';
 
 	let {
 		list,
@@ -18,94 +33,242 @@
 		timeZone,
 	}: {
 		list: DayGuestList;
-		fields: { guestList: boolean; dietary: boolean; contact: boolean };
+		fields: ArriveesFields;
 		timeZone: string;
 	} = $props();
 
-	const VALID = ['a', 'b', 'c'] as const;
-	type Variant = (typeof VALID)[number];
-
-	const initial = $derived.by(() => {
-		const v = page.url.searchParams.get('variante');
-		return VALID.includes(v as Variant) ? (v as Variant) : 'a';
+	// The clock only moves the dot on the Seating under way, never the list.
+	let now = $state(new Date());
+	$effect(() => {
+		const timer = setInterval(() => (now = new Date()), 60_000);
+		return () => clearInterval(timer);
 	});
+	const currentId = $derived(currentSeatingId(list.seatings, now));
 
-	let variante = $state<Variant>(initial);
-	let search = $state('');
-	let notArrivedOnly = $state(false);
+	// Cuisine sees only the kitchen notes; others choose, the door first.
+	let view = $state<'arrivees' | 'cuisine'>('arrivees');
+	const shownView = $derived(fields.guestList ? view : 'cuisine');
 
-	function switchTo(v: Variant) {
-		variante = v;
-		const url = new URL(page.url);
-		url.searchParams.set('variante', v);
-		replaceState(url.toString(), page.state);
+	let query = $state('');
+
+	/** The Seating the list is filtered to, kept in the address (`?heure=20h30`). */
+	const HOUR_PARAM = 'heure';
+	const hourKey = (time: string) => time.replace(' h ', 'h');
+	// svelte-ignore state_referenced_locally
+	let filterId = $state<string | null>(
+		list.seatings.find((s) => hourKey(seatingTime(s, timeZone)) === page.url.searchParams.get(HOUR_PARAM))
+			?.id ?? null
+	);
+	const shownId = $derived(
+		query.trim() || list.seatings.length < 2 || !list.seatings.some((s) => s.id === filterId)
+			? null
+			: filterId
+	);
+
+	function filterTo(id: string | null) {
+		filterId = id;
+		const url = new URL(page.url.href);
+		const seating = list.seatings.find((s) => s.id === id);
+		if (seating) url.searchParams.set(HOUR_PARAM, hourKey(seatingTime(seating, timeZone)));
+		else url.searchParams.delete(HOUR_PARAM);
+		replaceState(url, page.state);
 	}
 
-	const filtered = $derived.by(() => {
-		const q = search.trim().toLowerCase();
-		const out: DayGuestSeating[] = [];
-		for (const seating of list.seatings) {
-			// Until Check-ins exist (issue 017), every party counts as not
-			// arrived, so the filter keeps them all.
-			const parties = seating.parties.filter((p) => {
-				if (!q) return true;
-				return (p.guestName ?? '').toLowerCase().includes(q);
-			});
-			out.push({ ...seating, parties });
-		}
-		return out;
-	});
+	const seatings = $derived(
+		list.seatings
+			.filter((s) => shownId === null || s.id === shownId)
+			.map((s) => ({ ...s, parties: s.parties.filter((p) => matches(p, query)) }))
+			.filter((s) => !query.trim() || s.parties.length > 0)
+	);
+	const found = $derived(seatings.reduce((n, s) => n + s.parties.length, 0));
+	const totalParties = $derived(list.seatings.reduce((n, s) => n + s.parties.length, 0));
+	const noteCount = $derived(
+		list.seatings.reduce((n, s) => n + s.parties.filter((p) => p.dietaryRequirements?.trim()).length, 0)
+	);
 
-	const total = $derived(filtered.reduce((n, s) => n + s.parties.length, 0));
+	const CHIP =
+		'inline-flex h-11 items-center gap-1.5 rounded-lg border px-3 text-sm font-semibold tabular-nums transition-colors focus-visible:ring-2 focus-visible:ring-foreground focus-visible:outline-none pointer-fine:h-9';
+	const SELECTED = 'border-foreground bg-foreground text-background';
+	const IDLE = 'border-border-card bg-background text-foreground hover:bg-muted';
 </script>
 
 <div class="space-y-4">
-	<!-- VARIANT-SWITCHER -->
-	<div class="flex items-center gap-2" role="group" aria-label="Variante d'affichage">
-		<span class="text-xs text-muted-foreground">Affichage :</span>
-		{#each ['a', 'b', 'c'] as v}
+	{#if fields.guestList && fields.dietary}
+		<div class="inline-flex rounded-lg border border-border-card p-0.5" role="group" aria-label="Vue">
 			<button
 				type="button"
-				onclick={() => switchTo(v as Variant)}
-				aria-pressed={variante === v}
-				class="px-3 py-1 text-xs font-medium rounded-full border transition-colors {variante === v
-					? 'bg-foreground text-background border-foreground'
-					: 'bg-background text-muted-foreground border-border-card hover:text-foreground'}"
+				onclick={() => (view = 'arrivees')}
+				aria-pressed={shownView === 'arrivees'}
+				class="min-h-9 rounded-md px-3 text-sm font-medium {shownView === 'arrivees'
+					? 'bg-foreground text-background'
+					: 'text-muted-foreground hover:text-foreground'}"
 			>
-				{v.toUpperCase()}
+				Arrivées
 			</button>
-		{/each}
-	</div>
+			<button
+				type="button"
+				onclick={() => (view = 'cuisine')}
+				aria-pressed={shownView === 'cuisine'}
+				class="inline-flex min-h-9 items-center gap-1.5 rounded-md px-3 text-sm font-medium {shownView === 'cuisine'
+					? 'bg-foreground text-background'
+					: 'text-muted-foreground hover:text-foreground'}"
+			>
+				Notes cuisine
+				<span class="rounded bg-muted px-1.5 text-xs leading-5 text-foreground tabular-nums">{noteCount}</span>
+			</button>
+		</div>
+	{/if}
 
-	<!-- Recherche et filtre -->
-	<div class="flex flex-col sm:flex-row gap-3">
-		<div class="relative flex-1">
-			<Search size={16} class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+	<!-- The search box and the Seating times stay on screen while the list scrolls. -->
+	<div class="sticky top-0 z-10 -mx-4 space-y-2 bg-background px-4 py-2">
+		<div class="relative" role="search">
+			<label for="arrivees-search" class="sr-only">
+				{fields.contact ? 'Rechercher par nom, e-mail ou téléphone' : 'Rechercher par nom'}
+			</label>
+			<Search
+				size={20}
+				class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground"
+				aria-hidden="true"
+			/>
 			<input
+				id="arrivees-search"
 				type="search"
-				bind:value={search}
-				placeholder="Rechercher un invité…"
-				class="w-full pl-9 pr-3 py-2 text-sm border border-border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-				aria-label="Rechercher un invité"
+				bind:value={query}
+				placeholder={fields.contact ? 'Nom, e-mail ou téléphone' : 'Nom'}
+				autocomplete="off"
+				enterkeyhint="search"
+				class="h-12 w-full rounded-lg border border-border-input bg-background pr-3 pl-10 text-base text-foreground focus:ring-2 focus:ring-foreground focus:outline-none"
 			/>
 		</div>
-		<label class="flex items-center gap-2 text-sm text-foreground select-none py-2 sm:py-0">
-			<input type="checkbox" bind:checked={notArrivedOnly} class="accent-primary size-4" />
-			Pas encore arrivés
-		</label>
+
+		{#if !query.trim() && list.seatings.length > 1}
+			<nav
+				aria-label="Filtrer par service"
+				class="-mx-4 overflow-x-auto px-4 py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+			>
+				<ul class="flex w-max gap-1.5">
+					<li>
+						<button
+							type="button"
+							onclick={() => filterTo(null)}
+							aria-pressed={shownId === null}
+							class="{CHIP} {shownId === null ? SELECTED : IDLE}"
+						>
+							Tous
+							<span
+								class="min-w-5 rounded-md px-1.5 text-center text-xs leading-5 {shownId === null
+									? 'bg-background/20'
+									: 'bg-muted'}">{totalParties}</span
+							>
+						</button>
+					</li>
+					{#each list.seatings as seating (seating.id)}
+						{@const active = seating.id === shownId}
+						{@const time = seatingTime(seating, timeZone)}
+						<li>
+							<button
+								type="button"
+								onclick={() => filterTo(seating.id)}
+								aria-pressed={active}
+								aria-current={seating.id === currentId ? 'time' : undefined}
+								aria-label="{time} : {seating.parties.length} {seating.parties.length === 1
+									? 'réservation'
+									: 'réservations'}"
+								class="{CHIP} {active ? SELECTED : IDLE} {seating.parties.length === 0 && !active
+									? 'text-muted-foreground'
+									: ''}"
+							>
+								{#if seating.id === currentId}
+									<span class="size-1.5 rounded-full bg-current" aria-hidden="true"></span>
+								{/if}
+								{time}
+								{#if seating.parties.length > 0}
+									<span
+										class="min-w-5 rounded-md px-1.5 text-center text-xs leading-5 {active
+											? 'bg-background/20'
+											: 'bg-muted'}">{seating.parties.length}</span
+									>
+								{/if}
+							</button>
+						</li>
+					{/each}
+				</ul>
+			</nav>
+		{/if}
 	</div>
 
-	<p class="text-xs text-muted-foreground">{total} {total === 1 ? 'groupe' : 'groupes'}</p>
-
-	{#if total === 0}
-		<div class="bg-background border border-border-card rounded-lg p-8 text-center">
-			<p class="text-muted-foreground">Aucun invité {search ? 'ne correspond à cette recherche' : 'pour ce jour'}.</p>
-		</div>
-	{:else if variante === 'a'}
-		<VariantA {fields} {timeZone} seatings={filtered} />
-	{:else if variante === 'b'}
-		<VariantB {fields} {timeZone} seatings={filtered} />
-	{:else}
-		<VariantC {fields} {timeZone} seatings={filtered} />
+	{#if query.trim()}
+		<p class="text-sm text-muted-foreground" aria-live="polite">
+			{found === 0
+				? `Aucune réservation ne correspond à « ${query.trim()} ».`
+				: `${found} réservation${found === 1 ? '' : 's'} pour « ${query.trim()} ».`}
+			<button
+				type="button"
+				onclick={() => (query = '')}
+				class="ml-1 font-medium text-foreground underline decoration-foreground/30 underline-offset-4 hover:decoration-foreground"
+			>
+				Tout afficher
+			</button>
+		</p>
 	{/if}
+
+	{#if list.seatings.length === 0}
+		<div class="rounded-lg border border-border-card bg-background p-8 text-center">
+			<p class="text-muted-foreground">Aucun service ce jour.</p>
+		</div>
+	{/if}
+
+	{#each seatings as seating (seating.id)}
+		{@const capacity = capacityLabel(seating)}
+		{@const time = seatingTime(seating, timeZone)}
+		<section class="space-y-2" aria-labelledby="seating-{seating.id}">
+			<!-- The time, then how many are booked: an outlined figure, red over capacity. -->
+			<div class="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-border-card pb-2">
+				<h2 id="seating-{seating.id}" class="text-lg leading-none font-semibold tabular-nums text-foreground">
+					{time}
+				</h2>
+				{#if seating.titleFr}
+					<span class="text-sm text-muted-foreground">{seating.titleFr}</span>
+				{/if}
+				<p
+					class="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium tabular-nums {capacity.over
+						? 'border-red-600 text-red-600'
+						: 'border-border-card text-muted-foreground'}"
+				>
+					<Users size={14} aria-hidden="true" />
+					{capacity.text} personnes
+				</p>
+			</div>
+
+			{#if shownView === 'arrivees'}
+				{#if seating.parties.length > 0}
+					<ul class="space-y-2">
+						{#each seating.parties as party, i (party.id ?? i)}
+							<li><PartyCard {party} {fields} /></li>
+						{/each}
+					</ul>
+				{/if}
+			{:else if seating.parties.length > 0}
+				<!-- The kitchen's view: every party and its size, the Dietary Requirements outlined. -->
+				<ul class="divide-y divide-border-card rounded-lg border border-border-card bg-background">
+					{#each seating.parties as party, i (party.id ?? i)}
+						<li class="space-y-1.5 px-4 py-3">
+							<p class="text-sm text-foreground">
+								<span class="font-semibold">{party.guestName}</span>
+								{#if party.quantity !== undefined}
+									<span class="text-muted-foreground">· {guests(party.quantity)}</span>
+								{/if}
+							</p>
+							{#if party.dietaryRequirements?.trim()}
+								<p class="flex gap-2.5 font-medium break-words text-foreground">
+									<ChefHat size={16} class="mt-1 shrink-0 text-muted-foreground" aria-hidden="true" />
+									<span class="min-w-0">{party.dietaryRequirements}</span>
+								</p>
+							{/if}
+						</li>
+					{/each}
+				</ul>
+			{/if}
+		</section>
+	{/each}
 </div>
