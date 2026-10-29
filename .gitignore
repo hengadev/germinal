@@ -28,6 +28,7 @@ vite.config.ts.timestamp-*
 !PRODUCT.md
 !DESIGN.md
 !CLAUDE.md
+!AGENTS.md
 !docs/**/*.md
 !infrastructure/infisical/templates/README.md
 docs/issues/*.md
