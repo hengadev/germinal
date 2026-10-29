@@ -207,6 +207,7 @@ import { page } from '$app/state';
 						timeZone={data.event.timeZone}
 						canCheckIn={data.access.canManualCheckIn}
 						canCorrect={data.access.canCorrect}
+						canSettle={data.access.canSettle}
 					/>
 				{:else}
 					<div class="bg-background border border-border-card rounded-lg p-8 text-center">

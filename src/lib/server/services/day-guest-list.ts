@@ -6,7 +6,7 @@
  */
 import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import { db } from '../db';
-import { eventDays, eventServices, eventSessions, reservations } from '../db/schema';
+import { eventDays, eventServices, eventSessions, reservations, users } from '../db/schema';
 import type { StaffAccess } from '$lib/staff/access';
 
 /** One party (a confirmed Reservation), with only the allowed fields. */
@@ -23,6 +23,10 @@ export interface DayGuestParty {
 	arrived?: number;
 	/** When this party's last non-undone Check-in was recorded — guest list only. */
 	lastCheckInAt?: Date | null;
+	/** When the Balance was settled on site — only with the guest list. */
+	balanceSettledAt?: Date | null;
+	/** Who settled the Balance, "Prénom Nom" — only with the guest list. */
+	balanceSettledByName?: string | null;
 	/** Only with the Dietary Requirements permission. */
 	dietaryRequirements?: string | null;
 	/** Only with the contact details permission. */
@@ -90,6 +94,11 @@ function partyColumns(access: StaffAccess): PartyColumns {
 		columns.lastCheckInAt = sql`(
 			select max(ci.checked_in_at) from check_ins ci
 			where ci.reservation_id = ${reservations.id} and ci.undone_at is null
+		)`;
+		columns.balanceSettledAt = reservations.balanceSettledAt;
+		columns.balanceSettledByName = sql<string | null>`(
+			select u.first_name || ' ' || u.last_name
+			from users u where u.id = ${reservations.balanceSettledBy}
 		)`;
 	}
 	if (fields.dietary) {

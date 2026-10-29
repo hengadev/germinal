@@ -10,13 +10,14 @@ import {
 import { getTasksForUser, updateTaskStatus } from '$lib/server/services/tasks';
 import { taskStatusEnum } from '$lib/server/db/schema';
 import { recordCheckIn, undoLastCheckIn } from '$lib/server/services/check-ins';
+import { settleBalance, undoSettleBalance } from '$lib/server/services/balance';
 import { formatCurrency } from '$lib/utils/currency';
 
 // The scan result party, shaped once for the wire: only what the Scanner
 // shows — no Date, no contact details.
 function scanParty(party: DayGuestParty) {
 	const balance =
-		party.isComp || !party.balanceAmount || !party.currency
+		party.isComp || !party.balanceAmount || !party.currency || party.balanceSettledAt
 			? null
 			: formatCurrency(party.balanceAmount, party.currency, 'fr-FR');
 	return {
@@ -70,6 +71,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			canManualCheckIn: access.can('manual_check_in'),
 			canCorrect: access.can('correct_mistake'),
 			canScan: access.can('scan_check_in'),
+			canSettle: access.can('settle_balance'),
 		},
 		event: access.event,
 		staffRoleName: access.staffRoleName,
@@ -220,6 +222,60 @@ export const actions: Actions = {
 		}
 
 		const result = await undoLastCheckIn({
+			access,
+			eventId: params.id,
+			reservationId,
+			actorId: locals.user.id,
+		});
+		if (!result.ok) return fail(422, { error: result.error, reservationId });
+	},
+
+	settleBalance: async ({ request, locals, params }) => {
+		if (!locals.user) return fail(401, { error: 'Non authentifié' });
+
+		// The settle permission is re-resolved on the server, never trusted
+		// from the client.
+		const access = await getStaffEventAccess(locals.user, params.id);
+
+		const formData = await request.formData();
+		const reservationId = formData.get('reservationId');
+		if (!access.can('settle_balance')) {
+			return fail(403, {
+				error: "Vous n'avez pas la permission de régler un solde.",
+				reservationId
+			});
+		}
+		if (typeof reservationId !== 'string') {
+			return fail(400, { error: 'Requête invalide.' });
+		}
+
+		const result = await settleBalance({
+			access,
+			eventId: params.id,
+			reservationId,
+			actorId: locals.user.id,
+		});
+		if (!result.ok) return fail(422, { error: result.error, reservationId });
+	},
+
+	undoSettleBalance: async ({ request, locals, params }) => {
+		if (!locals.user) return fail(401, { error: 'Non authentifié' });
+
+		const access = await getStaffEventAccess(locals.user, params.id);
+
+		const formData = await request.formData();
+		const reservationId = formData.get('reservationId');
+		if (!access.can('correct_mistake')) {
+			return fail(403, {
+				error: "Vous n'avez pas la permission de corriger une erreur.",
+				reservationId
+			});
+		}
+		if (typeof reservationId !== 'string') {
+			return fail(400, { error: 'Requête invalide.' });
+		}
+
+		const result = await undoSettleBalance({
 			access,
 			eventId: params.id,
 			reservationId,
