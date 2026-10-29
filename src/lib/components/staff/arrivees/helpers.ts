@@ -40,6 +40,20 @@ export function balanceDue(party: DayGuestParty): string | null {
 	return formatCurrency(party.balanceAmount, party.currency, 'fr-FR');
 }
 
+/** When a Balance was settled, the way the door says it: « 20 h 05 ». */
+export function settleTimeLabel(at: Date, timeZone?: string): string {
+	const options: Intl.DateTimeFormatOptions = {
+		hour: 'numeric',
+		minute: '2-digit',
+		hourCycle: 'h23'
+	};
+	if (timeZone) options.timeZone = timeZone;
+	const parts = new Intl.DateTimeFormat('fr-FR', options).formatToParts(new Date(at));
+	const hour = parts.find((p) => p.type === 'hour')?.value ?? '';
+	const minute = parts.find((p) => p.type === 'minute')?.value ?? '';
+	return `${Number(hour)} h ${minute}`;
+}
+
 /** What the search box matches: the name, plus phone and e-mail when they may be seen. */
 export function matches(party: DayGuestParty, query: string): boolean {
 	const q = query.trim().toLowerCase();

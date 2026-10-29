@@ -177,7 +177,7 @@ describe('day guest list', () => {
 
 		// Exactly the guest-list fields, nothing more.
 		expect(Object.keys(seating.parties[0]).sort()).toEqual(
-			['arrived', 'balanceAmount', 'currency', 'guestName', 'id', 'isComp', 'lastCheckInAt', 'quantity'].sort()
+			['arrived', 'balanceAmount', 'balanceSettledAt', 'balanceSettledByName', 'currency', 'guestName', 'id', 'isComp', 'lastCheckInAt', 'quantity'].sort()
 		);
 		expect(leaks(list)).toBe(false);
 	});
@@ -221,7 +221,7 @@ describe('day guest list', () => {
 		const party = list!.seatings[0].parties[0];
 		expect(party.guestPhone).toBe('06 99 88 77 66');
 		expect(Object.keys(party).sort()).toEqual(
-			['arrived', 'balanceAmount', 'currency', 'guestEmail', 'guestName', 'guestPhone', 'id', 'isComp', 'lastCheckInAt', 'quantity'].sort()
+			['arrived', 'balanceAmount', 'balanceSettledAt', 'balanceSettledByName', 'currency', 'guestEmail', 'guestName', 'guestPhone', 'id', 'isComp', 'lastCheckInAt', 'quantity'].sort()
 		);
 
 		const withoutContact = accessFor(
@@ -280,7 +280,7 @@ describe('day guest list', () => {
 		expect(party).not.toBeNull();
 		expect(party!.guestName).toBe('Alice Martin');
 		expect(Object.keys(party!).sort()).toEqual(
-			['arrived', 'balanceAmount', 'currency', 'guestEmail', 'guestName', 'guestPhone', 'id', 'isComp', 'lastCheckInAt', 'quantity'].sort()
+			['arrived', 'balanceAmount', 'balanceSettledAt', 'balanceSettledByName', 'currency', 'guestEmail', 'guestName', 'guestPhone', 'id', 'isComp', 'lastCheckInAt', 'quantity'].sort()
 		);
 
 		// Another Day, another Event, a cancelled Ticket: all refused.

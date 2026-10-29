@@ -9,17 +9,25 @@
 	 */
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
-	import { ChefHat, Gift, LoaderCircle, Phone, UserCheck, UserX } from 'lucide-svelte';
+	import { Check, ChefHat, Gift, LoaderCircle, Phone, UserCheck, UserX } from 'lucide-svelte';
 	import type { DayGuestParty } from '$lib/server/services/day-guest-list';
-	import { balanceDue, guests as guestsLabel, type ArriveesFields } from './helpers';
+	import { balanceDue, guests as guestsLabel, settleTimeLabel, type ArriveesFields } from './helpers';
 
 	let {
 		party,
-			fields,
-			canCheckIn = false,
-			canCorrect = false
-	}: { party: DayGuestParty; fields: ArriveesFields; canCheckIn?: boolean; canCorrect?: boolean } =
-		$props();
+		fields,
+		timeZone,
+		canCheckIn = false,
+		canCorrect = false,
+		canSettle = false
+	}: {
+		party: DayGuestParty;
+		fields: ArriveesFields;
+		timeZone?: string;
+		canCheckIn?: boolean;
+		canCorrect?: boolean;
+		canSettle?: boolean;
+	} = $props();
 
 	const balance = $derived(balanceDue(party));
 	const arrived = $derived(party.arrived ?? 0);
@@ -36,6 +44,8 @@
 	let stepper = $state(0);
 	let submitting = $state(false);
 	let undoing = $state(false);
+	let settling = $state(false);
+	let undoingSettle = $state(false);
 
 	function openStepper() {
 		stepper = Math.max(1, expected);
@@ -76,6 +86,75 @@
 				</div>
 			{/if}
 		</div>
+
+		{#if balance && party.balanceSettledAt !== undefined}
+			{#if party.balanceSettledAt}
+				<!-- Settled: a solid black pill, and who and when — no amount, no method. -->
+				<div class="mt-1.5 flex flex-wrap items-center gap-1.5">
+					<span
+						class="inline-flex min-h-7 items-center gap-1.5 rounded-md border border-foreground bg-foreground px-2.5 text-sm font-semibold"
+					>
+						<Check size={14} aria-hidden="true" /> Solde réglé
+					</span>
+					{#if canCorrect && party.id}
+						<form
+							method="POST"
+							action="?/undoSettleBalance"
+							class="contents"
+							use:enhance={() => {
+								undoingSettle = true;
+								return async ({ update }) => {
+									await update();
+									undoingSettle = false;
+									};
+								}}
+							>
+								<input type="hidden" name="reservationId" value={party.id} />
+								<button
+									type="submit"
+									disabled={undoingSettle}
+									aria-busy={undoingSettle}
+									class="inline-flex min-h-7 items-center gap-1.5 rounded-md border border-border-card px-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-foreground focus-visible:outline-none disabled:opacity-60"
+								>
+									{#if undoingSettle}<LoaderCircle size={14} class="animate-spin" aria-hidden="true" />
+									{:else}<UserX size={14} aria-hidden="true" />{/if}
+									Annuler le règlement
+								</button>
+							</form>
+					{/if}
+				</div>
+				<p class="mt-1 text-xs text-muted-foreground">
+					par {party.balanceSettledByName ?? '—'} à {settleTimeLabel(party.balanceSettledAt, timeZone)}
+				</p>
+			{:else if canSettle && party.id}
+				<!-- Not settled yet: the door marks it settled on the venue's terminal. -->
+				<form
+					method="POST"
+					action="?/settleBalance"
+					class="mt-2"
+					use:enhance={() => {
+						settling = true;
+						return async ({ update }) => {
+							await update();
+							settling = false;
+						};
+					}}
+				>
+					<input type="hidden" name="reservationId" value={party.id} />
+					<button
+						type="submit"
+						disabled={settling}
+						aria-busy={settling}
+						class="inline-flex min-h-11 items-center gap-2 rounded-lg border border-foreground bg-background px-4 text-base font-medium text-foreground transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-foreground focus-visible:outline-none disabled:opacity-60"
+					>
+						{#if settling}<LoaderCircle size={16} class="animate-spin" aria-hidden="true" />
+						{:else}<Check size={16} aria-hidden="true" />{/if}
+						Réglé
+					</button>
+				</form>
+			{/if}
+		{/if}
+
 		{#if party.quantity !== undefined}
 			<p class="shrink-0 text-right">
 				<span class="block text-3xl leading-none font-semibold tracking-tight tabular-nums text-foreground">

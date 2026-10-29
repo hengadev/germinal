@@ -17,7 +17,7 @@
 	import { replaceState } from '$app/navigation';
 	import { page } from '$app/state';
 	import { ChefHat, Check, ChevronDown, Search, Users } from 'lucide-svelte';
-	import type { DayGuestList } from '$lib/server/services/day-guest-list';
+	import type { DayGuestList, DayGuestParty } from '$lib/server/services/day-guest-list';
 	import PartyCard from './PartyCard.svelte';
 	import {
 		capacityLabel,
@@ -35,13 +35,15 @@
 		fields,
 		timeZone,
 		canCheckIn = false,
-		canCorrect = false
+		canCorrect = false,
+		canSettle = false
 	}: {
 		list: DayGuestList;
 		fields: ArriveesFields;
 		timeZone: string;
 		canCheckIn?: boolean;
 		canCorrect?: boolean;
+		canSettle?: boolean;
 	} = $props();
 
 	// The clock only moves the dot on the Seating under way, never the list.
@@ -78,6 +80,13 @@
 	let view = $state<'arrivees' | 'cuisine'>('arrivees');
 	const shownView = $derived(fields.guestList ? view : 'cuisine');
 
+	// The door's chase list (issue 019): the arrived parties of the Service
+	// shown whose Balance is still to collect — flat, never folded away.
+	let unsettledOnly = $state(false);
+	const hasBalanceDue = (p: DayGuestParty) =>
+		!p.isComp && (p.balanceAmount ?? 0) > 0 && p.balanceSettledAt === null;
+	// svelte-ignore state_referenced_locally
+
 	let query = $state('');
 
 	/** The Seating the list is filtered to, kept in the address (`?heure=20h30`). */
@@ -89,6 +98,11 @@
 			?.id ?? null
 	);
 	const serviceSeatings = $derived(service?.seatings ?? []);
+	const dueParties = $derived(
+		unsettledOnly
+			? serviceSeatings.flatMap((s) => s.parties).filter((p) => (p.arrived ?? 0) > 0 && hasBalanceDue(p))
+			: []
+	);
 	const shownId = $derived(
 		query.trim() || serviceSeatings.length < 2 || !serviceSeatings.some((s) => s.id === filterId)
 			? null
@@ -171,28 +185,40 @@
 		</p>
 	{/if}
 
-	{#if fields.guestList && fields.dietary}
-		<div class="inline-flex rounded-lg border border-border-card p-0.5" role="group" aria-label="Vue">
+	{#if fields.guestList}
+		<div class="flex flex-wrap items-center gap-2">
+			{#if fields.dietary}
+				<div class="inline-flex rounded-lg border border-border-card p-0.5" role="group" aria-label="Vue">
+					<button
+						type="button"
+						onclick={() => (view = 'arrivees')}
+						aria-pressed={shownView === 'arrivees'}
+						class="min-h-9 rounded-md px-3 text-sm font-medium {shownView === 'arrivees'
+							? 'bg-foreground text-background'
+							: 'text-muted-foreground hover:text-foreground'}"
+					>
+						Arrivées
+					</button>
+					<button
+						type="button"
+						onclick={() => (view = 'cuisine')}
+						aria-pressed={shownView === 'cuisine'}
+						class="inline-flex min-h-9 items-center gap-1.5 rounded-md px-3 text-sm font-medium {shownView === 'cuisine'
+							? 'bg-foreground text-background'
+							: 'text-muted-foreground hover:text-foreground'}"
+					>
+						Notes cuisine
+						<span class="rounded bg-muted px-1.5 text-xs leading-5 text-foreground tabular-nums">{noteCount}</span>
+					</button>
+				</div>
+			{/if}
 			<button
 				type="button"
-				onclick={() => (view = 'arrivees')}
-				aria-pressed={shownView === 'arrivees'}
-				class="min-h-9 rounded-md px-3 text-sm font-medium {shownView === 'arrivees'
-					? 'bg-foreground text-background'
-					: 'text-muted-foreground hover:text-foreground'}"
+				onclick={() => (unsettledOnly = !unsettledOnly)}
+				aria-pressed={unsettledOnly}
+				class="{CHIP} {unsettledOnly ? SELECTED : IDLE}"
 			>
-				Arrivées
-			</button>
-			<button
-				type="button"
-				onclick={() => (view = 'cuisine')}
-				aria-pressed={shownView === 'cuisine'}
-				class="inline-flex min-h-9 items-center gap-1.5 rounded-md px-3 text-sm font-medium {shownView === 'cuisine'
-					? 'bg-foreground text-background'
-					: 'text-muted-foreground hover:text-foreground'}"
-			>
-				Notes cuisine
-				<span class="rounded bg-muted px-1.5 text-xs leading-5 text-foreground tabular-nums">{noteCount}</span>
+				Arrivés, solde non réglé
 			</button>
 		</div>
 	{/if}
@@ -296,7 +322,31 @@
 		</div>
 	{/if}
 
-	{#each seatings as seating (seating.id)}
+	{#if unsettledOnly && shownView === 'arrivees'}
+		<!-- Flat, never folded: exactly the Service's arrived parties with a
+	     Balance still to collect. -->
+		{#if dueParties.length === 0}
+			<div class="rounded-lg border border-border-card bg-background p-8 text-center">
+				<p class="text-muted-foreground">Aucun solde à récolter pour le moment.</p>
+			</div>
+		{:else}
+			<ul class="space-y-2">
+				{#each dueParties as party, i (party.id ?? i)}
+					<li>
+						<PartyCard
+							{party}
+							{fields}
+							{timeZone}
+							canCheckIn={canCheckIn}
+							canCorrect={canCorrect}
+							canSettle={canSettle}
+						/>
+					</li>
+				{/each}
+			</ul>
+		{/if}
+	{:else}
+		{#each seatings as seating (seating.id)}
 		{@const capacity = capacityLabel(seating)}
 		{@const time = seatingTime(seating, timeZone)}
 		<section class="space-y-2" aria-labelledby="seating-{seating.id}">
@@ -355,7 +405,9 @@
 						</summary>
 						<ul class="mt-2 space-y-2">
 							{#each folded as party, i (party.id ?? i)}
-								<li><PartyCard {party} {fields} canCheckIn={canCheckIn} canCorrect={canCorrect} /></li>
+								<li>
+									<PartyCard {party} {fields} {timeZone} canCheckIn={canCheckIn} canCorrect={canCorrect} canSettle={canSettle} />
+								</li>
 							{/each}
 						</ul>
 					</details>
@@ -363,7 +415,9 @@
 				{#if stillExpected.length > 0}
 					<ul class="space-y-2">
 						{#each stillExpected as party, i (party.id ?? i)}
-							<li><PartyCard {party} {fields} canCheckIn={canCheckIn} canCorrect={canCorrect} /></li>
+							<li>
+								<PartyCard {party} {fields} {timeZone} canCheckIn={canCheckIn} canCorrect={canCorrect} canSettle={canSettle} />
+							</li>
 						{/each}
 					</ul>
 				{/if}
@@ -388,6 +442,7 @@
 					{/each}
 				</ul>
 			{/if}
-		</section>
-	{/each}
+			</section>
+		{/each}
+	{/if}
 </div>
