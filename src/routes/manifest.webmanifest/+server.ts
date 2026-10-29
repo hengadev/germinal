@@ -6,14 +6,12 @@ export const GET: RequestHandler = async ({ url }) => {
 	const isAdmin = isAdminDomain(hostname);
 	const isStaff = isStaffDomain(hostname);
 
-	// Admin/Staff app manifest (dark theme, same icons)
-	if (isAdmin || isStaff) {
+	// Admin app manifest (dark theme)
+	if (isAdmin) {
 		return json({
-			name: isAdmin ? 'Germinal Admin' : 'Germinal Staff',
-			short_name: isAdmin ? 'Admin' : 'Staff',
-			description: isAdmin
-				? 'Germinal admin dashboard for event and reservation management'
-				: 'Germinal staff portal for event and reservation management',
+			name: 'Germinal Admin',
+			short_name: 'Admin',
+			description: 'Germinal admin dashboard for event and reservation management',
 			start_url: '/',
 			display: 'standalone',
 			background_color: '#1a1a1a',
@@ -36,6 +34,40 @@ export const GET: RequestHandler = async ({ url }) => {
 					sizes: '512x512',
 					type: 'image/png',
 					purpose: 'any maskable'
+				}
+			]
+		});
+	}
+
+	// Staff app manifest (dark theme, same icons, French)
+	if (isStaff) {
+		return json({
+			name: 'Germinal Staff',
+			short_name: 'Staff',
+			description:
+				'Portail du personnel Germinal pour la gestion des événements et des réservations',
+			start_url: '/',
+			display: 'standalone',
+			background_color: '#1a1a1a',
+			theme_color: '#1a1a1a',
+			lang: 'fr',
+			scope: '/',
+			icons: [
+				{
+					src: '/pwa-admin-192x192.png',
+				sizes: '192x192',
+				type: 'image/png'
+				},
+				{
+					src: '/pwa-admin-512x512.png',
+				sizes: '512x512',
+				type: 'image/png'
+				},
+				{
+					src: '/pwa-admin-512x512.png',
+				sizes: '512x512',
+				type: 'image/png',
+				purpose: 'any maskable'
 				}
 			]
 		});

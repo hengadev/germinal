@@ -15,7 +15,7 @@ export default defineConfig({
 			workbox: {
 				globPatterns: ['**/*.{js,css,ico,png,svg,webp,woff,woff2,html}'],
 				navigateFallback: '/offline.html',
-				navigateFallbackDenylist: [/^\/api\//],
+				navigateFallbackDenylist: [/^\/api\//, /^\/staff/],
 				runtimeCaching: [
 					{
 						// Always fetch HTML pages from the network so server-side redirects
