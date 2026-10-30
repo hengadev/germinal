@@ -6,6 +6,7 @@
 	import { page } from '$app/state';
 	import { formatCurrency } from '$lib/utils/currency';
 	import { t, locale } from 'svelte-i18n';
+	import { siteLocale } from '$lib/i18n/index';
 	import { seatingTitle } from '$lib/utils/seating-title';
 	import { formatSeatingDate, formatSeatingTime } from '$lib/utils/event-time';
 	import { FULL_PAYMENT_DEPOSIT, priceReservation, type DepositRule } from '$lib/utils/pricing';
@@ -123,6 +124,8 @@
 					phone: phone.trim() || undefined,
 					quantity,
 					notificationPreference,
+					// Issue 025: remember the language the Guest booked in.
+					locale: siteLocale($locale),
 					honeypot: '' // Anti-spam field
 				})
 			});

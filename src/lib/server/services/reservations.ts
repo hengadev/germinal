@@ -219,6 +219,10 @@ export type CreateReservationResult = {
  * This prevents race conditions when multiple users book simultaneously
  */
 export async function createReservation(input: CreateReservationInput): Promise<CreateReservationResult> {
+	// Issue 025: only the two site languages are kept; anything else
+	// (absent, or an unexpected value) means the language is unknown.
+	const locale = input.locale === 'fr' || input.locale === 'en' ? input.locale : null;
+
 	// Validate honeypot
 	if (input.honeypot && input.honeypot.trim() !== '') {
 		throw new Error('Invalid submission');
@@ -317,6 +321,7 @@ export async function createReservation(input: CreateReservationInput): Promise<
 				expiresAt: now,
 				confirmedAt: now,
 				isComp: false,
+				locale,
 				ipAddress: input.ipAddress ?? null,
 				userAgent: input.userAgent ?? null,
 				promotionCodeId,
@@ -346,6 +351,7 @@ export async function createReservation(input: CreateReservationInput): Promise<
 			status: 'pending',
 			accessToken,
 			expiresAt,
+			locale,
 			ipAddress: input.ipAddress ?? null,
 			userAgent: input.userAgent ?? null,
 			promotionCodeId,

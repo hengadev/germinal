@@ -18,6 +18,7 @@ import {
 	users,
 } from '../../src/lib/server/db/schema';
 import { dayOf } from '../../src/lib/utils/event-time';
+import { seatingTitle } from '../../src/lib/utils/seating-title';
 import { staffAccess, type StaffWho } from '../../src/lib/staff/access';
 import {
 	getTestDatabase,
@@ -132,13 +133,17 @@ async function seed(now: Date) {
 		})
 		.returning();
 
-	async function reservation(name: string, opts: { email?: string | null; quantity?: number } = {}) {
+	async function reservation(
+		name: string,
+		opts: { email?: string | null; quantity?: number; locale?: 'fr' | 'en' } = {}
+	) {
 		const [row] = await testDb
 			.insert(reservations)
 			.values({
 				eventSessionId: early.id,
 				guestEmail: 'email' in opts ? opts.email! : `${name.toLowerCase().replace(/\s+/g, '.')}@example.com`,
 				guestName: name,
+				locale: opts.locale ?? null,
 				quantity: opts.quantity ?? 4,
 				totalAmount: 2500 * 4,
 				depositAmount: 2500 * 4 - 2000,
@@ -209,6 +214,43 @@ describe('moveReservation', () => {
 			s.late.startTime
 		);
 		expect(sendReservationModifiedEmailMock.mock.calls[0][0].guestEmail).toBe(party.guestEmail);
+		// The language is unknown on this Reservation: English, as before.
+		expect(sendReservationModifiedEmailMock.mock.calls[0][0].locale).toBeNull();
+	});
+
+	it('emails the Guest in their Reservation’s language (issue 025)', async () => {
+		const now = new Date();
+		const s = await seed(now);
+		const party = await s.reservation('Alice Martin', { locale: 'fr' });
+
+		const result = await (await svc()).moveReservation({
+			access: accessFor({ kind: 'admin' }, [s.today], now),
+			eventId: s.event.id,
+			reservationId: party.id,
+			toSeatingId: s.late.id,
+			actorId: s.actor.id,
+		});
+		expect(result).toEqual({ ok: true });
+
+		expect(sendReservationModifiedEmailMock).toHaveBeenCalledTimes(1);
+		const email = sendReservationModifiedEmailMock.mock.calls[0][0];
+		expect(email.locale).toBe('fr');
+		// Event title and derived Seating title come in French.
+		expect(email.eventTitle).toBe('Dîner');
+		expect(email.sessionTitle).not.toBe(
+			seatingTitle(
+				{ titleEn: null, titleFr: null, startTime: s.late.startTime },
+				'en',
+				{ timeZone: ZONE }
+			)
+		);
+		expect(email.sessionTitle).toBe(
+			seatingTitle(
+				{ titleEn: null, titleFr: null, startTime: s.late.startTime },
+				'fr',
+				{ timeZone: ZONE }
+			)
+		);
 	});
 
 	it('moving an overflowing party back out never frees seats still taken', async () => {

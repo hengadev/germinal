@@ -55,6 +55,7 @@ export async function moveReservation(input: {
 				quantity: reservations.quantity,
 				guestEmail: reservations.guestEmail,
 				guestName: reservations.guestName,
+				locale: reservations.locale,
 				accessToken: reservations.accessToken,
 				currentSeatingId: eventSessions.id,
 				currentServiceId: eventServices.id,
@@ -160,20 +161,24 @@ export async function moveReservation(input: {
 			.from(eventSessions)
 			.where(eq(eventSessions.id, toSeatingId));
 
+		// Issue 025: the email is written in the Guest's language, defaulting
+		// to English when it is unknown (null).
+		const lang = party.locale === 'fr' ? 'fr' : 'en';
 		out.email = {
 			guestEmail: party.guestEmail,
 			guestName: party.guestName ?? '',
-			eventTitle: target.eventTitleEn || target.eventTitleFr || '',
+			eventTitle: (lang === 'fr' ? target.eventTitleFr || target.eventTitleEn : target.eventTitleEn || target.eventTitleFr) || '',
 			// An untitled Seating gets its derived title, never a blank line.
 			sessionTitle: seatingTitle(
 				{ titleEn: target.titleEn, titleFr: target.titleFr, startTime: seating.startTime },
-				'en',
+				lang,
 				{ timeZone: target.timeZone }
 			),
 			sessionStartTime: seating.startTime,
 			timeZone: target.timeZone,
 			reservationId,
 			accessToken: party.accessToken,
+			locale: party.locale as 'fr' | 'en' | null,
 		};
 
 		return { ok: true as const };

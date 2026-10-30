@@ -673,9 +673,34 @@ export interface ModifiedEmailData {
 	timeZone: string;
 	reservationId: string;
 	accessToken: string;
+	/** Issue 025: the Reservation's language. Null (unknown, Walk-ins,
+	 * older Reservations) falls back to English, as before. */
+	locale: 'fr' | 'en' | null;
 }
 
 export function generateModifiedTextTemplate(data: ModifiedEmailData): string {
+	const lang = data.locale ?? 'en';
+	if (lang === 'fr') {
+		return `
+Réservation modifiée
+
+Bonjour ${data.guestName},
+
+Votre réservation pour ${data.eventTitle} a été déplacée vers une autre séance.
+
+NOUVELLE SÉANCE :
+${data.sessionTitle}
+${formatSeatingDateTime(data.sessionStartTime, data.timeZone, 'fr')}
+
+Vos billets restent valables, inutile de réserver à nouveau :
+${env.PUBLIC_URL}/tickets/${data.accessToken}
+
+Si vous avez des questions, n'hésitez pas à nous contacter.
+
+---
+Ceci est une notification automatique de Germinal.
+  `.trim();
+	}
 	return `
 Reservation Modified
 
@@ -698,6 +723,56 @@ This is an automated notification from Germinal.
 }
 
 function generateModifiedHtmlTemplate(data: ModifiedEmailData): string {
+	const lang = data.locale ?? 'en';
+	if (lang === 'fr') {
+		return `
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Réservation modifiée</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background-color: #f8f9fa; border-radius: 8px; padding: 24px; margin-bottom: 24px;">
+    <h2 style="margin: 0 0 8px 0; color: #1a1a1a; font-size: 24px;">Réservation modifiée</h2>
+    <p style="margin: 0; color: #6c757d; font-size: 14px;">Réservation #${escapeHtml(data.reservationId.substring(0, 8))}</p>
+  </div>
+
+  <div style="background-color: #ffffff; border: 1px solid #e9ecef; border-radius: 8px; padding: 24px; margin-bottom: 16px;">
+    <p style="margin: 0 0 16px 0; font-size: 16px;">Bonjour ${escapeHtml(data.guestName)},</p>
+    <p style="margin: 0 0 16px 0; font-size: 16px;">Votre réservation pour <strong>${escapeHtml(data.eventTitle)}</strong> a été déplacée vers une autre séance.</p>
+
+    <h3 style="margin: 24px 0 12px 0; color: #495057; font-size: 16px; font-weight: 600;">Nouvelle séance</h3>
+    <table style="width: 100%; border-collapse: collapse;">
+      <tr>
+        <td style="padding: 8px 0; color: #212529;"><strong>${escapeHtml(data.sessionTitle)}</strong></td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0; color: #6c757d;">
+          ${formatSeatingDateTime(data.sessionStartTime, data.timeZone, 'fr')}
+        </td>
+      </tr>
+    </table>
+
+    <p style="margin: 24px 0 0 0;">
+      <a href="${env.PUBLIC_URL}/tickets/${data.accessToken}" style="display: inline-block; background-color: #1a1a1a; color: #ffffff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 600;">Voir vos billets</a>
+    </p>
+
+    <p style="margin: 24px 0 0 0; font-size: 14px; color: #6c757d;">
+      Vos billets restent valables, inutile de réserver à nouveau. Si vous avez des questions, n'hésitez pas à nous contacter.
+    </p>
+  </div>
+
+  <div style="border-top: 1px solid #e9ecef; padding-top: 16px;">
+    <p style="margin: 0; color: #6c757d; font-size: 12px; text-align: center;">
+      Ceci est une notification automatique de Germinal.
+    </p>
+  </div>
+</body>
+</html>
+  `.trim();
+	}
 	return `
 <!DOCTYPE html>
 <html lang="en">
@@ -767,10 +842,11 @@ export async function sendReservationModifiedEmail(data: ModifiedEmailData): Pro
 	}
 
 	const { queueEmail } = await import('../jobs/process-email-queue');
+	const lang = data.locale ?? 'en';
 	await queueEmail({
 		type: 'reservation_modified',
 		recipient: data.guestEmail,
-		subject: `Reservation Modified - ${data.eventTitle}`,
+		subject: lang === 'fr' ? `Réservation modifiée - ${data.eventTitle}` : `Reservation Modified - ${data.eventTitle}`,
 		textBody,
 		htmlBody,
 		metadata: {
