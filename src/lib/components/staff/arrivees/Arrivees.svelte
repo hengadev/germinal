@@ -48,7 +48,7 @@
 		canCorrect?: boolean;
 		canSettle?: boolean;
 		canWalkIn?: boolean;
-	canComp?: boolean;
+		canComp?: boolean;
 	} = $props();
 
 	// The clock only moves the dot on the Seating under way, never the list.
@@ -291,7 +291,7 @@
 					<button
 						type="button"
 						onclick={() => openSpot('comp')}
-						class="{BTN} border-foreground bg-foreground text-background hover:bg-foreground/90"
+						class="{BTN} border-foreground bg-background text-foreground hover:bg-muted"
 					>
 						<Gift size={16} aria-hidden="true" /> Offrir
 					</button>
@@ -314,7 +314,12 @@
 				}}
 			>
 				<fieldset class="space-y-3" disabled={walkInSubmitting}>
-					<legend class="sr-only">{isCompForm ? 'Offrir un comp' : 'Ajouter un walk-in'}</legend>
+					<legend class="text-base font-semibold text-foreground">
+						{isCompForm ? 'Offrir un Comp' : 'Ajouter un walk-in'}
+					</legend>
+					{#if isCompForm}
+						<p class="text-sm text-muted-foreground">Offert : rien à régler, aucun billet envoyé.</p>
+					{/if}
 					<div>
 						<label class={LABEL} for="walk-in-seating">Séance</label>
 						<select
