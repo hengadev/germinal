@@ -215,7 +215,8 @@
 						type="button"
 						onclick={() => (moving = false)}
 						class="min-h-11 rounded-lg px-3 text-base font-medium text-muted-foreground hover:text-foreground"
-					>Fermer</button					>
+					>Fermer</button
+					>
 				</div>
 			</div>
 		{:else}
@@ -235,7 +236,7 @@
 
 	{#if party.lastMovedAt !== undefined && party.lastMovedAt}
 		<p class="mt-2 text-xs text-muted-foreground">
-			Déplacé à {settleTimeLabel(party.lastMovedAt, timeZone)} par {party.lastMovedByName ?? '—'}
+			Déplacé par {party.lastMovedByName ?? '—'} à {settleTimeLabel(party.lastMovedAt, timeZone)}
 		</p>
 	{/if}
 

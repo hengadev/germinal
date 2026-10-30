@@ -681,7 +681,7 @@ Reservation Modified
 
 Hi ${data.guestName},
 
-Your reservation for ${data.eventTitle} has been moved to a later seating.
+Your reservation for ${data.eventTitle} has been moved to another seating.
 
 NEW SEATING:
 ${data.sessionTitle}
@@ -770,7 +770,7 @@ export async function sendReservationModifiedEmail(data: ModifiedEmailData): Pro
 	await queueEmail({
 		type: 'reservation_modified',
 		recipient: data.guestEmail,
-		subject: `Réservation modifiée - ${data.eventTitle}`,
+		subject: `Reservation Modified - ${data.eventTitle}`,
 		textBody,
 		htmlBody,
 		metadata: {
