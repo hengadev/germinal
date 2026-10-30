@@ -777,6 +777,10 @@ export const reservations = pgTable('reservations', {
     // venue. deposit_amount + balance_amount = total_amount.
     depositAmount: integer('deposit_amount').notNull(),
     balanceAmount: integer('balance_amount').notNull(),
+    // Issue 025: the language the Guest booked the site in, so guest
+    // emails can be written in it. Null: unknown (older Reservations,
+    // Walk-ins and Comps) — emails stay in English.
+    locale: varchar('locale', { length: 2 }),
     // Issue 022: when Staff last Moved this Reservation to another
     // Seating of its Service, and who did. The Token, Check-ins and
     // Balance are untouched by a Move.

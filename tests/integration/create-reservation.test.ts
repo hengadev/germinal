@@ -27,10 +27,12 @@ const testDb = getTestDatabase();
 // ---------------------------------------------------------------------------
 
 vi.mock('../../src/lib/server/services/stripe', () => ({
-	createCheckoutSession: vi.fn().mockResolvedValue({
-		id: 'cs_test_mock_checkout_session',
-		url: 'https://checkout.stripe.test/mock',
-	}),
+	createCheckoutSession: vi.fn().mockImplementation(() =>
+		Promise.resolve({
+			id: `cs_test_mock_checkout_session_${crypto.randomUUID()}`,
+			url: 'https://checkout.stripe.test/mock',
+		})
+	),
 	cancelCheckoutSession: vi.fn().mockResolvedValue(undefined),
 }));
 
@@ -543,6 +545,23 @@ describe('createReservation — Deposit', () => {
 
 		expect((await storedRows(result.reservation.id)).reservation)
 			.toMatchObject({ isComp: true, totalAmount: 0, depositAmount: 0, balanceAmount: 0 });
+	});
+
+	it('stores the language the Guest booked in; anything else is null (issue 025)', async () => {
+		const { session } = await seedPublishedSession();
+		const { createReservation } = await import('../../src/lib/server/services/reservations');
+
+		const fr = await createReservation(makeInput(session.id, { locale: 'fr' }));
+		const en = await createReservation(makeInput(session.id, { locale: 'en' }));
+		const invalid = await createReservation(makeInput(session.id, { locale: 'de' }));
+		const missing = await createReservation(makeInput(session.id));
+
+		const stored = async (id: string) =>
+			(await storedRows(id)).reservation.locale;
+		expect(await stored(fr.reservation.id)).toBe('fr');
+		expect(await stored(en.reservation.id)).toBe('en');
+		expect(await stored(invalid.reservation.id)).toBeNull();
+		expect(await stored(missing.reservation.id)).toBeNull();
 	});
 
 	it('the database refuses a Deposit and Balance that do not add up to the total', async () => {
