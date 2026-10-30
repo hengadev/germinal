@@ -295,19 +295,19 @@
 									</span>
 									{#if reservation.origin === 'walk_in'}
 										<span class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-blue-50 text-blue-700 rounded-full">
-											<Footprints size=12 />
+											<Footprints size={12} />
 											Walk-in
 										</span>
 									{/if}
 									{#if reservation.isComp}
 										<span class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-purple-50 text-purple-700 rounded-full">
-											<Gift size=12 />
+											<Gift size={12} />
 											Comp
 										</span>
 									{/if}
 									{#if reservation.balanceSettledAt}
 										<span class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-green-50 text-green-700 rounded-full">
-											<BadgeCheck size=12 />
+											<BadgeCheck size={12} />
 											Solde réglé
 										</span>
 									{/if}
@@ -368,23 +368,23 @@
 									</span>
 									{#if reservation.origin === 'walk_in'}
 										<span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-blue-50 text-blue-700 rounded-full">
-											<Footprints size=10 />
+											<Footprints size={10} />
 											Walk-in
 										</span>
 									{/if}
 									{#if reservation.isComp}
 										<span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-purple-50 text-purple-700 rounded-full">
-											<Gift size=10 />
+											<Gift size={10} />
 											Comp
 										</span>
 									{/if}
 									{#if reservation.balanceSettledAt}
 										<span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-green-50 text-green-700 rounded-full">
-											<BadgeCheck size=10 />
+											<BadgeCheck size={10} />
 											Solde réglé
 										</span>
 									{/if}
-									<DietaryRequirementsBadge dietaryRequirements={reservation.dietaryRequirements} />
+									<DietaryRequirementsBadge dietaryRequirements={reservation.dietaryRequirements} compact />
 								</div>
 							</div>
 							<p class="text-sm text-muted-foreground truncate">{reservation.guestEmail}</p>

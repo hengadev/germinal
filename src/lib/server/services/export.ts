@@ -1,6 +1,7 @@
 import { db } from '../db';
-import { reservations, payments, eventSessions, events, waitlist, users, checkIns } from '../db/schema';
-import { eq, and, desc, sql, inArray, isNull } from 'drizzle-orm';
+import { reservations, payments, eventSessions, events, waitlist, users } from '../db/schema';
+import { eq, and, desc, sql, inArray } from 'drizzle-orm';
+import { arrivedByReservation } from './check-ins';
 import { seatingTitle } from '$lib/utils/seating-title';
 import { reservationAmounts, balanceToCollect } from '$lib/utils/balance-due';
 
@@ -113,17 +114,7 @@ export async function exportReservationsToCSV(options: {
 	// Arrivals (issue 023): guests already in (undone Check-ins excluded),
 	// and who settled each Balance, both fetched in one query each.
 	const ids = filtered.map((r: typeof filtered[number]) => r.id);
-	const arrivedRows: { reservationId: string; arrived: number }[] = ids.length > 0
-		? await db
-			.select({
-				reservationId: checkIns.reservationId,
-				arrived: sql<number>`coalesce(sum(${checkIns.guests}), 0)::int`,
-			})
-			.from(checkIns)
-			.where(and(inArray(checkIns.reservationId, ids), isNull(checkIns.undoneAt)))
-			.groupBy(checkIns.reservationId)
-		: [];
-	const arrived = new Map(arrivedRows.map((row: { reservationId: string; arrived: number }) => [row.reservationId, row.arrived]));
+	const arrived = await arrivedByReservation(ids);
 	const settledSet = new Set<string>();
 	for (const r of filtered) {
 		const id = r.balanceSettledBy as string | null;

@@ -488,6 +488,8 @@ END:VCALENDAR`;
 								Solde réglé{#if data.reservation.balanceSettledByName} par {data.reservation.balanceSettledByName}{/if} le {formatDateTime(data.reservation.balanceSettledAt)}
 							</span>
 						</div>
+					{:else if data.reservation.isComp || !balanceDue}
+						<div class="text-muted-foreground">Rien à régler sur place</div>
 					{:else}
 						<div class="text-muted-foreground">Solde non réglé</div>
 					{/if}

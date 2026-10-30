@@ -36,9 +36,9 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 				sessionStartTime: session?.startTime?.toISOString() || '',
 				paymentStatus: r.paymentStatus,
 				isComp: (r as { isComp?: boolean }).isComp ?? false,
-			origin: ((r as { origin?: 'online' | 'staff' | 'walk_in' }).origin ?? 'online'),
-			balanceSettledAt: null as string | null,
-			arrived: 0,
+				origin: ((r as { origin?: 'online' | 'staff' | 'walk_in' }).origin ?? 'online'),
+				balanceSettledAt: null as string | null,
+				arrived: 0,
 				// Dietary Requirements (issue 041): Admins only.
 				dietaryRequirements: (r as { dietaryRequirements?: string | null }).dietaryRequirements ?? null
 			};
