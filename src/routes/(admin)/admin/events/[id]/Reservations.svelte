@@ -144,10 +144,10 @@
 	<div class="bg-background rounded-lg border border-border-card overflow-hidden mb-6">
 		<div class="px-6 py-4 border-b border-border-card">
 			<h3 class="text-base font-semibold text-foreground">Fréquentation</h3>
-			<p class="text-sm text-muted-foreground">Comptes définitifs par Séance, tous services confondus une fois l'événement terminé.</p>
+			<p class="text-sm text-muted-foreground">Comptes définitifs par Séance, l'événement terminé. Walk-ins et Offerts : tables · personnes.</p>
 		</div>
 		<div class="overflow-x-auto">
-			<table class="w-full text-sm">
+			<table class="w-full text-sm tabular-nums">
 				<thead class="bg-muted border-b border-border-card">
 					<tr>
 						<th class="px-4 py-3 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">Jour</th>
@@ -167,7 +167,7 @@
 							{#each service.seatings as seating, seatingIndex (seating.id)}
 								<tr class="hover:bg-muted transition-colors">
 									{#if serviceIndex === 0 && seatingIndex === 0}
-										<td rowspan={daySeatingCount} class="px-4 py-3 align-top font-medium text-foreground capitalize">{formatDayDate(day.date)}</td>
+										<td rowspan={daySeatingCount} class="px-4 py-3 align-top font-medium text-foreground first-letter:uppercase">{formatDayDate(day.date)}</td>
 									{/if}
 									{#if seatingIndex === 0}
 										<td rowspan={service.seatings.length} class="px-4 py-3 align-top text-foreground-alt">{service.kind === 'lunch' ? 'Déjeuner' : 'Dîner'}</td>
