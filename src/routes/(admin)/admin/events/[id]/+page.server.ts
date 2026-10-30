@@ -365,8 +365,29 @@ export const load: PageServerLoad = async ({ params }) => {
 		const { arrivedByReservation } = await import('$lib/server/services/check-ins');
 		const arrived = await arrivedByReservation(reservationsData.map((r: typeof reservationsData[number]) => r.id));
 
+		// Attendance (issue 024): each Seating's final counts, only once the
+		// Event is over — the last Seating's end time has passed.
+		const seatingEnds = sessionsData.map((s: typeof sessionsData[number]) => s.endTime.getTime());
+		const lastSeatingEnd = seatingEnds.length > 0 ? new Date(Math.max(...seatingEnds)) : null;
+		const { getEventAttendance, isEventOver } = await import('$lib/server/services/attendance');
+		let attendance = null;
+		if (isEventOver(lastSeatingEnd, new Date())) {
+			const eventAttendance = await getEventAttendance(id);
+			attendance = {
+				days: eventAttendance.days.map((d) => ({
+					date: d.date,
+					services: d.services.map((s) => ({
+						kind: s.kind,
+						seatings: s.seatings.map((se) => ({ ...se, startTime: se.startTime.toISOString() }))
+					}))
+				})),
+				totals: eventAttendance.totals
+			};
+		}
+
 		return {
 			event,
+			attendance,
 			promoCodes,
 			talents,
 			days,

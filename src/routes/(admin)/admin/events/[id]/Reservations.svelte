@@ -9,10 +9,39 @@
 		totalBalanceToCollect
 	} from '$lib/utils/balance-due';
 
+	interface AttendanceCategory {
+		parties: number;
+		guests: number;
+	}
+	interface SeatingAttendanceRow {
+		id: string;
+		startTime: string;
+		booked: number;
+		arrived: number;
+		noShows: number;
+		walkIns: AttendanceCategory;
+		comps: AttendanceCategory;
+	}
 	interface Props {
 		data: {
 			event: any;
 			reservations: any[];
+			attendance?: {
+				days: {
+					date: string;
+					services: {
+						kind: 'lunch' | 'dinner';
+						seatings: SeatingAttendanceRow[];
+					}[];
+				}[];
+				totals: {
+					booked: number;
+					arrived: number;
+					noShows: number;
+					walkIns: AttendanceCategory;
+					comps: AttendanceCategory;
+				};
+			} | null;
 		};
 	}
 
@@ -89,7 +118,85 @@
 			year: 'numeric'
 		});
 	}
+
+	// Attendance (issue 024): French date and Seating start time on the
+	// Event's clock.
+	function formatDayDate(date: string): string {
+		return new Date(`${date}T12:00:00Z`).toLocaleDateString('fr-FR', {
+			weekday: 'long',
+			day: 'numeric',
+			month: 'long',
+			year: 'numeric'
+		});
+	}
+
+	function formatSeatingTime(startTime: string): string {
+		return new Date(startTime).toLocaleTimeString('fr-FR', {
+			hour: '2-digit',
+			minute: '2-digit',
+			timeZone: data.event?.timeZone
+		});
+	}
 </script>
+
+<!-- Fréquentation (issue 024): only once the Event is over -->
+{#if data.attendance}
+	<div class="bg-background rounded-lg border border-border-card overflow-hidden mb-6">
+		<div class="px-6 py-4 border-b border-border-card">
+			<h3 class="text-base font-semibold text-foreground">Fréquentation</h3>
+			<p class="text-sm text-muted-foreground">Comptes définitifs par Séance, l'événement terminé. Walk-ins et Offerts : tables · personnes.</p>
+		</div>
+		<div class="overflow-x-auto">
+			<table class="w-full text-sm tabular-nums">
+				<thead class="bg-muted border-b border-border-card">
+					<tr>
+						<th class="px-4 py-3 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">Jour</th>
+						<th class="px-4 py-3 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">Service</th>
+						<th class="px-4 py-3 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">Séance</th>
+						<th class="px-4 py-3 text-right text-xs font-semibold text-foreground-alt uppercase tracking-wider">Réservés</th>
+						<th class="px-4 py-3 text-right text-xs font-semibold text-foreground-alt uppercase tracking-wider">Arrivés</th>
+						<th class="px-4 py-3 text-right text-xs font-semibold text-foreground-alt uppercase tracking-wider">No-shows</th>
+						<th class="px-4 py-3 text-right text-xs font-semibold text-foreground-alt uppercase tracking-wider">Walk-ins</th>
+						<th class="px-4 py-3 text-right text-xs font-semibold text-foreground-alt uppercase tracking-wider">Offerts</th>
+					</tr>
+				</thead>
+				<tbody class="divide-y divide-border-card">
+					{#each data.attendance.days as day (day.date)}
+						{@const daySeatingCount = day.services.reduce((n, s) => n + s.seatings.length, 0)}
+						{#each day.services as service, serviceIndex (service.kind)}
+							{#each service.seatings as seating, seatingIndex (seating.id)}
+								<tr class="hover:bg-muted transition-colors">
+									{#if serviceIndex === 0 && seatingIndex === 0}
+										<td rowspan={daySeatingCount} class="px-4 py-3 align-top font-medium text-foreground first-letter:uppercase">{formatDayDate(day.date)}</td>
+									{/if}
+									{#if seatingIndex === 0}
+										<td rowspan={service.seatings.length} class="px-4 py-3 align-top text-foreground-alt">{service.kind === 'lunch' ? 'Déjeuner' : 'Dîner'}</td>
+									{/if}
+									<td class="px-4 py-3 text-foreground-alt">{formatSeatingTime(seating.startTime)}</td>
+									<td class="px-4 py-3 text-right text-foreground">{seating.booked}</td>
+									<td class="px-4 py-3 text-right text-foreground">{seating.arrived}</td>
+									<td class="px-4 py-3 text-right text-foreground">{seating.noShows}</td>
+									<td class="px-4 py-3 text-right text-foreground-alt whitespace-nowrap">{seating.walkIns.parties} · {seating.walkIns.guests}</td>
+									<td class="px-4 py-3 text-right text-foreground-alt whitespace-nowrap">{seating.comps.parties} · {seating.comps.guests}</td>
+								</tr>
+							{/each}
+						{/each}
+					{/each}
+				</tbody>
+				<tfoot class="border-t border-border-card bg-muted">
+					<tr class="font-bold text-foreground">
+						<td colspan="3" class="px-4 py-3">Total événement</td>
+						<td class="px-4 py-3 text-right">{data.attendance.totals.booked}</td>
+						<td class="px-4 py-3 text-right">{data.attendance.totals.arrived}</td>
+						<td class="px-4 py-3 text-right">{data.attendance.totals.noShows}</td>
+						<td class="px-4 py-3 text-right whitespace-nowrap">{data.attendance.totals.walkIns.parties} · {data.attendance.totals.walkIns.guests}</td>
+						<td class="px-4 py-3 text-right whitespace-nowrap">{data.attendance.totals.comps.parties} · {data.attendance.totals.comps.guests}</td>
+					</tr>
+				</tfoot>
+			</table>
+		</div>
+	</div>
+{/if}
 
 <!-- Filters and Search -->
 <div class="bg-background rounded-lg border border-border-card p-4 mb-6">
