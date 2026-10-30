@@ -16,7 +16,7 @@
 	 */
 	import { replaceState } from '$app/navigation';
 	import { page } from '$app/state';
-	import { ChefHat, Check, ChevronDown, LoaderCircle, Plus, Search, Users, X } from 'lucide-svelte';
+	import { ChefHat, Check, ChevronDown, Gift, LoaderCircle, Plus, Search, Users, X } from 'lucide-svelte';
 	import { enhance } from '$app/forms';
 	import type { DayGuestList, DayGuestParty } from '$lib/server/services/day-guest-list';
 	import PartyCard from './PartyCard.svelte';
@@ -25,6 +25,7 @@
 		currentSeatingId,
 		guests,
 		matches,
+		moveTargetsOf,
 		seatingTime,
 		serviceLabel,
 		servicesOf,
@@ -38,7 +39,9 @@
 		canCheckIn = false,
 		canCorrect = false,
 		canSettle = false,
-		canWalkIn = false
+		canWalkIn = false,
+		canMove = false,
+		canComp = false
 	}: {
 		list: DayGuestList;
 		fields: ArriveesFields;
@@ -47,6 +50,8 @@
 		canCorrect?: boolean;
 		canSettle?: boolean;
 		canWalkIn?: boolean;
+		canMove?: boolean;
+		canComp?: boolean;
 	} = $props();
 
 	// The clock only moves the dot on the Seating under way, never the list.
@@ -91,10 +96,12 @@
 
 	let query = $state('');
 
-	// « Ajouter un walk-in » (issue 020): an inline form, black and white,
-	// on the Service shown — started Seatings included, the one under way
-	// by default.
-	let addingWalkIn = $state(false);
+	// « Ajouter un walk-in » (issue 020) and « Offrir » (issue 021): one
+	// inline form for both, black and white, on the Service shown — started
+	// Seatings included, the one under way by default. A Comp differs only
+	// in its action and its copy: it is offered and owes nothing.
+	let spotKind = $state<'walk_in' | 'comp' | null>(null);
+	const isCompForm = $derived(spotKind === 'comp');
 	let walkInSubmitting = $state(false);
 	let walkInSeating = $state('');
 	let walkInName = $state('');
@@ -102,15 +109,21 @@
 	let walkInEmail = $state('');
 	let walkInPhone = $state('');
 	const walkInError = $derived.by(() => {
-		const form = page.form as { error?: string; walkIn?: boolean } | null;
-		return form && form.walkIn && form.error ? form.error : null;
+		const form = page.form as { error?: string; walkIn?: boolean; comp?: boolean } | null;
+		return form && form.error && (spotKind === 'comp' ? form.comp : form.walkIn)
+			? form.error
+			: null;
 	});
 	function closeWalkIn() {
-		addingWalkIn = false;
+		spotKind = null;
 		walkInName = '';
 		walkInEmail = '';
 		walkInPhone = '';
 		walkInQuantity = 2;
+	}
+	function openSpot(kind: 'walk_in' | 'comp') {
+		walkInSeating = currentId ?? walkInSeatings[0]?.id ?? '';
+		spotKind = kind;
 	}
 	function stepQuantity(delta: number) {
 		walkInQuantity = Math.max(1, walkInQuantity + delta);
@@ -256,10 +269,10 @@
 		</div>
 	{/if}
 
-	<!-- « Ajouter un walk-in » (issue 020) -->
-	{#if canWalkIn && fields.guestList}
+	<!-- « Ajouter un walk-in » (issue 020) / « Offrir » (issue 021) -->
+	{#if (canWalkIn || canComp) && fields.guestList}
 		<div class="flex flex-wrap items-center gap-2">
-			{#if addingWalkIn}
+			{#if spotKind !== null}
 				<button
 						type="button"
 						onclick={closeWalkIn}
@@ -268,35 +281,48 @@
 					<X size={16} aria-hidden="true" /> Annuler
 				</button>
 			{:else}
-				<button
-					type="button"
-					onclick={() => {
-						walkInSeating = currentId ?? walkInSeatings[0]?.id ?? '';
-						addingWalkIn = true;
-					}}
-					class="{BTN} border-foreground bg-foreground text-background hover:bg-foreground/90"
-				>
-					<Plus size={16} aria-hidden="true" /> Ajouter un walk-in
-				</button>
+				{#if canWalkIn}
+					<button
+						type="button"
+						onclick={() => openSpot('walk_in')}
+						class="{BTN} border-foreground bg-foreground text-background hover:bg-foreground/90"
+					>
+						<Plus size={16} aria-hidden="true" /> Ajouter un walk-in
+					</button>
+				{/if}
+				{#if canComp}
+					<button
+						type="button"
+						onclick={() => openSpot('comp')}
+						class="{BTN} border-foreground bg-background text-foreground hover:bg-muted"
+					>
+						<Gift size={16} aria-hidden="true" /> Offrir
+					</button>
+				{/if}
 			{/if}
 		</div>
-		{#if addingWalkIn}
+		{#if spotKind !== null}
 			<form
 				method="POST"
-				action="?/walkIn"
+				action={isCompForm ? '?/comp' : '?/walkIn'}
 				class="rounded-lg border border-border-card bg-background p-4"
 				use:enhance={() => {
 					walkInSubmitting = true;
 					return async ({ update }) => {
 						await update();
 						walkInSubmitting = false;
-						const form = page.form as { error?: string; walkIn?: boolean } | null;
-						if (!(form && form.walkIn && form.error)) closeWalkIn();
+						const form = page.form as { error?: string; walkIn?: boolean; comp?: boolean } | null;
+						if (!(form && form.error && (isCompForm ? form.comp : form.walkIn))) closeWalkIn();
 					};
 				}}
 			>
 				<fieldset class="space-y-3" disabled={walkInSubmitting}>
-					<legend class="sr-only">Ajouter un walk-in</legend>
+					<legend class="text-base font-semibold text-foreground">
+						{isCompForm ? 'Offrir un Comp' : 'Ajouter un walk-in'}
+					</legend>
+					{#if isCompForm}
+						<p class="text-sm text-muted-foreground">Offert : rien à régler, aucun billet envoyé.</p>
+					{/if}
 					<div>
 						<label class={LABEL} for="walk-in-seating">Séance</label>
 						<select
@@ -361,7 +387,7 @@
 						class="{BTN} w-full border-foreground bg-foreground text-background hover:bg-foreground/90 disabled:opacity-50"
 					>
 						{#if walkInSubmitting}<LoaderCircle size={16} class="animate-spin" aria-hidden="true" />{/if}
-						Enregistrer
+						{isCompForm ? 'Offrir' : 'Enregistrer'}
 					</button>
 				</fieldset>
 			</form>
@@ -485,6 +511,8 @@
 							canCheckIn={canCheckIn}
 							canCorrect={canCorrect}
 							canSettle={canSettle}
+							canMove={canMove}
+							moveTargets={moveTargetsOf(list.seatings, party)}
 						/>
 					</li>
 				{/each}
@@ -551,7 +579,7 @@
 						<ul class="mt-2 space-y-2">
 							{#each folded as party, i (party.id ?? i)}
 								<li>
-									<PartyCard {party} {fields} {timeZone} canCheckIn={canCheckIn} canCorrect={canCorrect} canSettle={canSettle} />
+									<PartyCard {party} {fields} {timeZone} canCheckIn={canCheckIn} canCorrect={canCorrect} canSettle={canSettle} canMove={canMove} moveTargets={moveTargetsOf(list.seatings, party)} />
 								</li>
 							{/each}
 						</ul>
@@ -561,7 +589,7 @@
 					<ul class="space-y-2">
 						{#each stillExpected as party, i (party.id ?? i)}
 							<li>
-								<PartyCard {party} {fields} {timeZone} canCheckIn={canCheckIn} canCorrect={canCorrect} canSettle={canSettle} />
+								<PartyCard {party} {fields} {timeZone} canCheckIn={canCheckIn} canCorrect={canCorrect} canSettle={canSettle} canMove={canMove} moveTargets={moveTargetsOf(list.seatings, party)} />
 							</li>
 						{/each}
 					</ul>
