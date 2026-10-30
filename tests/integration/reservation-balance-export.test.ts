@@ -7,7 +7,7 @@
  * list of what to collect. Cancelled bookings never show a Balance to collect.
  */
 import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest';
-import { events, eventSessions, reservations } from '../../src/lib/server/db/schema';
+import { events, eventSessions, reservations, checkIns, users } from '../../src/lib/server/db/schema';
 import {
 	getTestDatabase,
 	setupTestDatabase,
@@ -86,10 +86,13 @@ async function seedReservation(
 		totalAmount: number;
 		depositAmount: number;
 		isComp?: boolean;
+		origin?: 'online' | 'staff' | 'walk_in';
+		balanceSettledAt?: Date | null;
+		balanceSettledBy?: string | null;
 	}
 ) {
 	seq += 1;
-	await testDb.insert(reservations).values({
+	const [row] = await testDb.insert(reservations).values({
 		eventSessionId: sessionId,
 		guestEmail: `guest${seq}@example.com`,
 		guestName: values.guestName,
@@ -100,17 +103,38 @@ async function seedReservation(
 		currency: 'EUR',
 		status: values.status,
 		isComp: values.isComp ?? false,
+		origin: values.origin ?? 'online',
+		balanceSettledAt: values.balanceSettledAt ?? null,
+		balanceSettledBy: values.balanceSettledBy ?? null,
 		accessToken: `atk-balance-${Date.now()}-${seq}`,
 		expiresAt: new Date(Date.now() + 15 * 60 * 1000),
-	});
+	}).returning();
+	return row;
 }
 
-/** Parse the CSV into header-keyed rows (no quoted commas in this fixture). */
+/** Parse the CSV into header-keyed rows (quoted cells may contain commas). */
 function parse(csv: string): Record<string, string>[] {
-	const [header, ...lines] = csv.split('\n');
-	const keys = header.split(',');
-	return lines.map((line) => {
-		const cells = line.split(',');
+	const lines = csv.split('\n');
+	const split = (line: string): string[] => {
+		const cells: string[] = [];
+		let current = '';
+		let inQuotes = false;
+		for (let i = 0; i < line.length; i++) {
+			const c = line[i];
+			if (inQuotes) {
+				if (c === '"' && line[i + 1] === '"') { current += '"'; i++; }
+				else if (c === '"') inQuotes = false;
+				else current += c;
+			} else if (c === '"') inQuotes = true;
+			else if (c === ',') { cells.push(current); current = ''; }
+			else current += c;
+		}
+		cells.push(current);
+		return cells;
+	};
+	const keys = split(lines[0]);
+	return lines.slice(1).map((line) => {
+		const cells = split(line);
 		return Object.fromEntries(keys.map((k, i) => [k, cells[i] ?? '']));
 	});
 }
@@ -156,5 +180,88 @@ describe('reservation export — Seating filter and Balance due', () => {
 
 		const all = parse(await exportReservationsToCSV({}));
 		expect(all.map((r) => r['Guest Name']).sort()).toEqual(['Alice', 'Cancelled Carl', 'Lunch Lou']);
+	});
+});
+
+describe('reservation export — arrivals, settled Balance and origin', () => {
+	beforeEach(async () => {
+		await setupTestDatabase();
+	});
+
+	it('exports arrived guests (undone Check-ins excluded), no-shows only once the Seating is over, and the settlement and origin', async () => {
+		const { event } = await seedEventWithTwoSeatings();
+		// One Seating already over (past end time), one still to come.
+		const pastStart = new Date(Date.now() - 3 * 60 * 60 * 1000);
+		const pastEnd = new Date(Date.now() - 60 * 60 * 1000);
+		const [past] = await testDb
+			.insert(eventSessions)
+			.values({
+				eventId: event.id,
+				serviceId: await seedServiceForSession(testDb, event.id, pastStart, pastEnd, { priceAmount: 6500 }),
+				startTime: pastStart,
+				endTime: pastEnd,
+				totalCapacity: 40,
+				availableCapacity: 40,
+				published: true,
+			})
+			.returning();
+		const futureStart = new Date('2099-06-10T12:00:00Z');
+		const futureEnd = new Date('2099-06-10T13:15:00Z');
+		const [future] = await testDb
+			.insert(eventSessions)
+			.values({
+				eventId: event.id,
+				serviceId: await seedServiceForSession(testDb, event.id, futureStart, futureEnd, { priceAmount: 6500 }),
+				startTime: futureStart,
+				endTime: futureEnd,
+				totalCapacity: 40,
+				availableCapacity: 40,
+				published: true,
+			})
+			.returning();
+
+		const [settler] = await testDb
+			.insert(users)
+			.values({ email: `settler-${crypto.randomUUID()}@example.com`, firstName: 'Jean', lastName: 'Porte', passwordHash: 'x', role: 'staff' })
+			.returning();
+
+		const alice = await seedReservation(future.id, { guestName: 'Alice', status: 'confirmed', totalAmount: 13000, depositAmount: 4000 });
+		const bob = await seedReservation(past.id, { guestName: 'Bob', status: 'confirmed', totalAmount: 6500, depositAmount: 2000, balanceSettledAt: new Date(), balanceSettledBy: settler.id });
+		await seedReservation(future.id, { guestName: 'Comp Guest', status: 'confirmed', totalAmount: 0, depositAmount: 0, isComp: true });
+		await seedReservation(past.id, { guestName: 'Wanda', status: 'confirmed', totalAmount: 6500, depositAmount: 2000, origin: 'walk_in' });
+
+		// Alice: one Check-in kept (1 guest), one undone (2 guests) — undone ones don't count.
+		await testDb.insert(checkIns).values([
+			{ reservationId: alice.id, guests: 2, method: 'manual', checkedInBy: settler.id, undoneAt: new Date(), undoneBy: settler.id },
+			{ reservationId: alice.id, guests: 1, method: 'scan', checkedInBy: settler.id },
+			// Bob: everyone came, and the Balance was settled.
+			{ reservationId: bob.id, guests: 2, method: 'scan', checkedInBy: settler.id },
+		]);
+
+		const { exportReservationsToCSV } = await import('../../src/lib/server/services/export');
+		const rows = parse(await exportReservationsToCSV({}));
+		const byName = Object.fromEntries(rows.map((r) => [r['Guest Name'], r]));
+
+		// Future Seating: arrivals count, no-shows stay empty.
+		expect(byName['Alice']['Guests Arrived']).toBe('1');
+		expect(byName['Alice']['No-shows']).toBe('');
+		expect(byName['Alice']['Balance Settled']).toBe('no');
+		expect(byName['Alice']['Balance Settled At']).toBe('');
+		expect(byName['Alice']['Balance Settled By']).toBe('');
+		expect(byName['Alice']['Origin']).toBe('online');
+
+		// Past Seating: everyone arrived, so no no-shows, and the settlement is attributed.
+		expect(byName['Bob']['Guests Arrived']).toBe('2');
+		expect(byName['Bob']['No-shows']).toBe('0');
+		expect(byName['Bob']['Balance Settled']).toBe('yes');
+		expect(byName['Bob']['Balance Settled At']).not.toBe('');
+		expect(byName['Bob']['Balance Settled By']).toBe('Jean Porte');
+		expect(byName['Bob']['Origin']).toBe('online');
+
+		expect(byName['Comp Guest']['Origin']).toBe('comp');
+		expect(byName['Wanda']['Origin']).toBe('walk_in');
+		// Walk-ins and Comps are never No-shows: only booked parties count.
+		expect(byName['Wanda']['No-shows']).toBe('');
+		expect(byName['Comp Guest']['No-shows']).toBe('');
 	});
 });

@@ -20,6 +20,7 @@
 	import DepositBreakdown from '$lib/components/booking/DepositBreakdown.svelte';
 	import RefundPolicyNote from '$lib/components/booking/RefundPolicyNote.svelte';
 	import { t, locale } from 'svelte-i18n';
+	import { siteLocale } from '$lib/i18n/index';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -154,6 +155,8 @@
 					phone: phone.trim() || undefined,
 					quantity,
 					notificationPreference,
+					// Issue 025: remember the language the Guest booked in.
+					locale: siteLocale($locale),
 					promoCode: appliedPromoCode?.code ?? undefined,
 					...(asksDietaryRequirements && dietaryRequirements.trim()
 						? { dietaryRequirements: dietaryRequirements.trim(), dietaryConsent }

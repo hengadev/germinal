@@ -1,12 +1,18 @@
 import { db } from '../db';
-import { eventStaff, users, events } from '../db/schema';
+import { eventStaff, users, events, staffRoles } from '../db/schema';
 import { eq, and } from 'drizzle-orm';
 import { logger } from '$lib/server/logger';
+import { isStaffPermission, STAFF_PERMISSIONS, type StaffPermission } from '$lib/staff/permissions';
 
 export class StaffAssignmentError extends Error {
 	constructor(
 		message: string,
-		public readonly code: 'NOT_FOUND' | 'WRONG_ROLE' | 'ALREADY_ASSIGNED'
+		public readonly code:
+			| 'NOT_FOUND'
+			| 'WRONG_ROLE'
+			| 'ALREADY_ASSIGNED'
+			| 'ROLE_NOT_ASSIGNABLE'
+			| 'INVALID_PERMISSION'
 	) {
 		super(message);
 		this.name = 'StaffAssignmentError';
@@ -17,7 +23,13 @@ export interface EventStaffWithUser {
 	id: string;
 	eventId: string;
 	userId: string;
-	roleLabel: string | null;
+	staffRole: {
+		id: string;
+		name: string;
+		permissions: StaffPermission[];
+	};
+	grantedPermissions: StaffPermission[];
+	withdrawnPermissions: StaffPermission[];
 	createdAt: Date;
 	user: {
 		id: string;
@@ -33,7 +45,7 @@ export interface EventStaffWithEvent {
 	id: string;
 	eventId: string;
 	userId: string;
-	roleLabel: string | null;
+	staffRole: { id: string; name: string };
 	createdAt: Date;
 	event: {
 		id: string;
@@ -50,7 +62,7 @@ export interface EventStaffWithEvent {
 export async function assignStaff(
 	eventId: string,
 	userId: string,
-	roleLabel?: string
+	staffRoleId: string
 ): Promise<EventStaffWithUser> {
 	try {
 		// Validate user exists and has staff role
@@ -76,12 +88,25 @@ export async function assignStaff(
 			);
 		}
 
+		const [staffRole] = await db
+			.select({ id: staffRoles.id, name: staffRoles.name, archivedAt: staffRoles.archivedAt })
+			.from(staffRoles)
+			.where(eq(staffRoles.id, staffRoleId))
+			.limit(1);
+
+		if (!staffRole) {
+			throw new StaffAssignmentError('Staff role not found', 'NOT_FOUND');
+		}
+		if (staffRole.archivedAt) {
+			throw new StaffAssignmentError('Staff role is archived and cannot be assigned', 'ROLE_NOT_ASSIGNABLE');
+		}
+
 		const [staff] = await db
 			.insert(eventStaff)
 			.values({
 				eventId,
 				userId,
-				roleLabel: roleLabel || null,
+				staffRoleId,
 			})
 			.returning();
 
@@ -92,7 +117,7 @@ export async function assignStaff(
 		// Fetch only the newly inserted record with its user
 		const [fullStaff] = await db.query.eventStaff.findMany({
 			where: eq(eventStaff.id, staff.id),
-			with: { user: true },
+			with: { user: true, staffRole: true },
 			limit: 1,
 		});
 
@@ -100,15 +125,16 @@ export async function assignStaff(
 			throw new Error('Failed to retrieve assigned staff');
 		}
 
-		logger.info(`Assigned staff ${userId} to event ${eventId} with role ${roleLabel || 'default'}`);
+		logger.info(`Assigned staff ${userId} to event ${eventId} with role ${staffRole.name}`);
 
 		// Notify the assigned staff member (non-blocking — must not fail the assignment)
-		notifyStaffOfAssignment(fullStaff.user, eventId, roleLabel).catch((err) => {
+		notifyStaffOfAssignment(fullStaff.user, eventId, staffRole.name).catch((err) => {
 			logger.error({ err }, 'Failed to send staff assignment notification');
 		});
 
 		return {
 			...fullStaff,
+			staffRole: { id: fullStaff.staffRole.id, name: fullStaff.staffRole.name },
 			user: {
 				id: fullStaff.user.id,
 				email: fullStaff.user.email,
@@ -122,6 +148,95 @@ export async function assignStaff(
 		logger.error({ err: error }, 'Failed to assign staff to event');
 		throw error;
 	}
+}
+
+/**
+ * Change the Staff Role of an existing Assignment. Like assignStaff, an
+ * archived role can't be picked; an Assignment already on one keeps it.
+ */
+export async function changeAssignmentRole(
+	eventId: string,
+	userId: string,
+	staffRoleId: string
+): Promise<void> {
+	const [staffRole] = await db
+		.select({ id: staffRoles.id, archivedAt: staffRoles.archivedAt })
+		.from(staffRoles)
+		.where(eq(staffRoles.id, staffRoleId))
+		.limit(1);
+	if (!staffRole) {
+		throw new StaffAssignmentError('Staff role not found', 'NOT_FOUND');
+	}
+
+	const [assignment] = await db
+		.select({ staffRoleId: eventStaff.staffRoleId })
+		.from(eventStaff)
+		.where(and(eq(eventStaff.eventId, eventId), eq(eventStaff.userId, userId)))
+		.limit(1);
+	if (!assignment) {
+		throw new StaffAssignmentError('Assignment not found', 'NOT_FOUND');
+	}
+	if (assignment.staffRoleId === staffRoleId) return;
+	if (staffRole.archivedAt) {
+		throw new StaffAssignmentError('Staff role is archived and cannot be assigned', 'ROLE_NOT_ASSIGNABLE');
+	}
+
+	await db
+		.update(eventStaff)
+		.set({ staffRoleId })
+		.where(and(eq(eventStaff.eventId, eventId), eq(eventStaff.userId, userId)));
+
+	logger.info(`Changed staff role of ${userId} on event ${eventId}`);
+}
+
+/**
+ * Adjust an Assignment's permissions (issue 014). `desired` is the exact
+ * set of permissions the Admin ticked (effective *before* the dependency
+ * closure); grants and withdrawals are stored relative to the Staff Role's
+ * current permissions, so re-ticking a withdrawn permission (or unticking
+ * a granted one) clears the adjustment instead of stacking a contradictory
+ * entry. The adjustments stay on this Assignment only and survive later
+ * edits of the Staff Role (an edit changes the base, not the adjustments).
+ */
+export async function adjustAssignmentPermissions(
+	eventId: string,
+	userId: string,
+	desired: StaffPermission[]
+): Promise<void> {
+	for (const perm of desired) {
+		if (!isStaffPermission(perm)) {
+			throw new StaffAssignmentError(`Unknown staff permission: ${String(perm)}`, 'INVALID_PERMISSION');
+		}
+	}
+
+	const [assignment] = await db
+		.select({ staffRoleId: eventStaff.staffRoleId })
+		.from(eventStaff)
+		.where(and(eq(eventStaff.eventId, eventId), eq(eventStaff.userId, userId)))
+		.limit(1);
+	if (!assignment) {
+		throw new StaffAssignmentError('Assignment not found', 'NOT_FOUND');
+	}
+	const [role] = await db
+		.select({ permissions: staffRoles.permissions })
+		.from(staffRoles)
+		.where(eq(staffRoles.id, assignment.staffRoleId))
+		.limit(1);
+	if (!role) {
+		throw new StaffAssignmentError('Staff role not found', 'NOT_FOUND');
+	}
+
+	const wanted = new Set(desired);
+	const base = new Set<string>(role.permissions);
+	const granted = STAFF_PERMISSIONS.filter((p) => wanted.has(p) && !base.has(p));
+	const withdrawn = STAFF_PERMISSIONS.filter((p) => !wanted.has(p) && base.has(p));
+
+	await db
+		.update(eventStaff)
+		.set({ grantedPermissions: granted, withdrawnPermissions: withdrawn })
+		.where(and(eq(eventStaff.eventId, eventId), eq(eventStaff.userId, userId)));
+
+	logger.info(`Adjusted permissions of ${userId} on event ${eventId}`);
 }
 
 /**
@@ -154,12 +269,20 @@ export async function getStaffForEvent(eventId: string): Promise<EventStaffWithU
 			where: eq(eventStaff.eventId, eventId),
 			with: {
 				user: true,
+				staffRole: true,
 			},
 			orderBy: (eventStaff, { asc }) => [asc(eventStaff.createdAt)],
 		});
 
 		return staff.map(s => ({
 			...s,
+			staffRole: {
+				id: s.staffRole.id,
+				name: s.staffRole.name,
+				permissions: s.staffRole.permissions as StaffPermission[],
+			},
+			grantedPermissions: s.grantedPermissions as StaffPermission[],
+			withdrawnPermissions: s.withdrawnPermissions as StaffPermission[],
 			user: {
 				id: s.user.id,
 				email: s.user.email,
@@ -188,12 +311,14 @@ export async function getEventsForStaff(userId: string): Promise<EventStaffWithE
 				event: {
 					columns: { id: true, titleEn: true, titleFr: true, startDate: true, endDate: true },
 				},
+				staffRole: true,
 			},
 			orderBy: (eventStaff, { desc }) => [desc(eventStaff.createdAt)],
 		});
 
 		return assignments.map(a => ({
 			...a,
+			staffRole: { id: a.staffRole.id, name: a.staffRole.name },
 			event: {
 				id: a.event.id,
 				titleEn: a.event.titleEn,
@@ -264,7 +389,7 @@ export async function isUserAssignedToEvent(userId: string, eventId: string): Pr
 async function notifyStaffOfAssignment(
 	user: { email: string; firstName: string; lastName: string; phone: string | null },
 	eventId: string,
-	roleLabel?: string
+	roleName: string
 ): Promise<void> {
 	const [event] = await db
 		.select({ titleEn: events.titleEn })
@@ -280,7 +405,7 @@ async function notifyStaffOfAssignment(
 		lastName: user.lastName,
 		email: user.email,
 		eventTitle,
-		roleLabel: roleLabel || null,
+		roleName: roleName,
 	}).catch((err) => logger.error({ err }, 'Failed to send staff assignment email'));
 
 	const smsPromise = user.phone
@@ -290,7 +415,7 @@ async function notifyStaffOfAssignment(
 						phone: user.phone as string,
 						firstName: user.firstName,
 						eventTitle,
-						roleLabel: roleLabel || null,
+						roleName: roleName,
 					})
 				)
 				.catch((err) => logger.error({ err }, 'Failed to send staff assignment SMS'))

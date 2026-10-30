@@ -187,7 +187,7 @@ One thing a **Staff** member may do or see at an **Event** (e.g. see the guest l
 - check Guests in by scanning their **Ticket**
 - check Guests in by hand, without a Ticket (found by name)
 - mark a **Balance** as settled
-- correct a mistake: undo a Check-in or a settled Balance (for trusted people; not in the starting Staff Roles)
+- correct a mistake: undo a Check-in or a settled Balance (for trusted people; among the starting Staff Roles, only Responsable holds it)
 - see **Dietary Requirements** (health data)
 - see Guests' contact details (phone, email)
 - **Move** a Reservation to another Seating of the same Service

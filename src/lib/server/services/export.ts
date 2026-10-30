@@ -1,6 +1,7 @@
 import { db } from '../db';
-import { reservations, payments, eventSessions, events, waitlist } from '../db/schema';
-import { eq, and, desc, sql } from 'drizzle-orm';
+import { reservations, payments, eventSessions, events, waitlist, users } from '../db/schema';
+import { eq, and, desc, sql, inArray } from 'drizzle-orm';
+import { arrivedByReservation } from './check-ins';
 import { seatingTitle } from '$lib/utils/seating-title';
 import { reservationAmounts, balanceToCollect } from '$lib/utils/balance-due';
 
@@ -102,7 +103,7 @@ export async function exportReservationsToCSV(options: {
 		const query = search.trim().toLowerCase();
 		filtered = reservations_data.filter((r: typeof reservations_data[number]) =>
 			r.guestName.toLowerCase().includes(query) ||
-			r.guestEmail.toLowerCase().includes(query) ||
+			r.guestEmail?.toLowerCase().includes(query) ||
 			r.eventSession.event.titleEn.toLowerCase().includes(query) ||
 			r.eventSession.event.titleFr.toLowerCase().includes(query) ||
 			seatingTitle(r.eventSession, 'en', { timeZone: r.eventSession.event.timeZone }).toLowerCase().includes(query) ||
@@ -110,13 +111,37 @@ export async function exportReservationsToCSV(options: {
 		);
 	}
 
+	// Arrivals (issue 023): guests already in (undone Check-ins excluded),
+	// and who settled each Balance, both fetched in one query each.
+	const ids = filtered.map((r: typeof filtered[number]) => r.id);
+	const arrived = await arrivedByReservation(ids);
+	const settledSet = new Set<string>();
+	for (const r of filtered) {
+		const id = r.balanceSettledBy as string | null;
+		if (id !== null) settledSet.add(id);
+	}
+	const settledByIds: string[] = [...settledSet];
+	const settlerRows: { id: string; name: string }[] = settledByIds.length > 0
+		? await db
+			.select({ id: users.id, name: sql<string>`first_name || ' ' || last_name` })
+			.from(users)
+			.where(inArray(users.id, settledByIds))
+		: [];
+	const settlers = new Map(settlerRows.map((row: { id: string; name: string }) => [row.id, row.name]));
+	const now = new Date();
+
 	const csvData = filtered.map((r: typeof filtered[number]) => {
 		const amounts = reservationAmounts(r);
 		const balanceDue = balanceToCollect(r);
+		const guestsArrived = arrived.get(r.id) ?? 0;
+		// No-shows only count once the Seating is over, and only for booked
+		// parties (confirmed, not a Walk-in or a Comp), as in the Attendance.
+		const counts = r.status === 'confirmed' && !r.isComp && r.origin !== 'walk_in';
+		const noShows = counts && r.eventSession.endTime < now ? Math.max(r.quantity - guestsArrived, 0) : '';
 		return {
 			'Reservation ID': r.id,
 			'Guest Name': r.guestName,
-			'Guest Email': r.guestEmail,
+			'Guest Email': r.guestEmail ?? '',
 			'Guest Phone': r.guestPhone || '',
 			'Notification Preference': r.notificationPreference,
 			'Quantity': r.quantity,
@@ -136,6 +161,12 @@ export async function exportReservationsToCSV(options: {
 			// Dietary Requirements (issue 041): Admin export only.
 			'Dietary Requirements': r.dietaryRequirements ?? '',
 			'Dietary Consent At': r.dietaryConsentAt,
+			'Guests Arrived': guestsArrived,
+			'No-shows': noShows,
+			'Balance Settled': r.balanceSettledAt ? 'yes' : 'no',
+			'Balance Settled At': r.balanceSettledAt,
+			'Balance Settled By': r.balanceSettledBy ? settlers.get(r.balanceSettledBy) ?? '' : '',
+			'Origin': r.isComp ? 'comp' : r.origin === 'walk_in' ? 'walk_in' : 'online',
 			'Confirmed At': r.confirmedAt,
 			'Created At': r.createdAt,
 		};
@@ -162,6 +193,12 @@ export async function exportReservationsToCSV(options: {
 		'Payment Method',
 		'Dietary Requirements',
 		'Dietary Consent At',
+		'Guests Arrived',
+		'No-shows',
+		'Balance Settled',
+		'Balance Settled At',
+		'Balance Settled By',
+		'Origin',
 		'Confirmed At',
 		'Created At',
 	];
@@ -219,7 +256,7 @@ export async function exportPaymentsToCSV(options: {
 	const csvData = payments_data.map((p: typeof payments_data[number]) => ({
 		'Payment ID': p.id,
 		'Reservation ID': p.reservationId,
-		'Guest Email': p.reservation.guestEmail,
+		'Guest Email': p.reservation.guestEmail ?? '',
 		'Guest Name': p.reservation.guestName,
 		'Amount': p.amount / 100,
 		'Currency': p.currency,

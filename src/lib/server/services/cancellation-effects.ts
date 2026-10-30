@@ -16,7 +16,7 @@ import { seatingTitle } from '$lib/utils/seating-title';
 /** What the guest notifications need of a Reservation. */
 export interface ReservationForNotification {
 	id: string;
-	guestEmail: string;
+	guestEmail: string | null;
 	guestName: string;
 	guestPhone: string | null;
 	notificationPreference: string;

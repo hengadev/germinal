@@ -19,6 +19,9 @@ export type CreateReservationInput = {
 	honeypot?: string;
 	ipAddress?: string | null;
 	userAgent?: string | null;
+	/** Issue 025: the language the site was shown in. Only 'fr' and 'en'
+	 * are kept; anything else (including absent) is stored as null. */
+	locale?: string | null;
 };
 
 /**
@@ -61,7 +64,7 @@ export type ReservationWithDetails = Reservation & {
 };
 
 export type TicketEmailData = {
-	guestEmail: string;
+	guestEmail: string | null;
 	guestName: string;
 	accessToken: string;
 	reservation: Reservation;

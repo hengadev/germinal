@@ -14,6 +14,23 @@ vi.mock('../../../src/lib/server/db', () => ({
 				findMany: (...args: unknown[]) => findManyMock(...args),
 			},
 		},
+		// Issue 023: the export also aggregates Check-ins and settler
+		// names through db.select chains (which then resolve empty).
+		select: () => ({
+			from: () => ({
+				where: () => {
+					const promise = Promise.resolve([]);
+					const chain = {
+						groupBy: () => promise,
+						then: (
+							onFulfilled?: (value: unknown[]) => unknown,
+							onRejected?: (reason: unknown) => unknown
+						) => promise.then(onFulfilled, onRejected),
+					};
+					return chain;
+				},
+			}),
+		}),
 	},
 }));
 

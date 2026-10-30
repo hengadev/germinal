@@ -1,7 +1,8 @@
 import { redirect, error } from '@sveltejs/kit';
 import type { LayoutServerLoad } from './$types';
+import { getStaffUrl } from '$lib/server/hostname';
 
-export const load: LayoutServerLoad = async ({ locals }) => {
+export const load: LayoutServerLoad = async ({ locals, url }) => {
 	// SECURITY: Admin routes only accessible from admin subdomain
 	if (!locals.isAdminDomain) {
 		throw error(404, 'Not Found');
@@ -20,6 +21,7 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 	// Pass user to admin pages
 	return {
 		user: locals.user,
-		csrfToken: locals.csrfToken
+		csrfToken: locals.csrfToken,
+		staffPortalUrl: getStaffUrl(url.hostname) + '/staff'
 	};
 };

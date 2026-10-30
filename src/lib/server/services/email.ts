@@ -338,6 +338,12 @@ ${practicalInfo ? `
 }
 
 export async function sendTicketConfirmationEmail(data: TicketEmailData): Promise<void> {
+	// A Walk-in (issue 020) may have no email at all: nobody to send to.
+	if (!data.guestEmail) {
+		logger.info({ reservationId: data.reservation.id }, '🎫 No guest email - ticket confirmation email skipped');
+		return;
+	}
+
 	// Generate QR code — non-fatal: email still sends if this fails
 	let qrCode: string | undefined;
 	try {
@@ -526,6 +532,11 @@ ${practicalInfo ? `
  * Send event reminder email
  */
 export async function sendEventReminderEmail(data: TicketEmailData & { daysUntil: number }): Promise<void> {
+	// A Walk-in (issue 020) may have no email at all: nobody to remind.
+	if (!data.guestEmail) {
+		logger.info({ reservationId: data.reservation.id }, '🔔 No guest email - event reminder email skipped');
+		return;
+	}
 	const textBody = generateEventReminderTextTemplate(data);
 	const htmlBody = generateEventReminderHtmlTemplate(data);
 
@@ -561,7 +572,7 @@ export async function sendEventReminderEmail(data: TicketEmailData & { daysUntil
 // ============================================
 
 export interface CancellationEmailData {
-	guestEmail: string;
+	guestEmail: string | null;
 	guestName: string;
 	eventTitle: string;
 	sessionTitle: string;
@@ -572,7 +583,7 @@ export interface CancellationEmailData {
 }
 
 export interface RefundEmailData {
-	guestEmail: string;
+	guestEmail: string | null;
 	guestName: string;
 	eventTitle: string;
 	sessionTitle: string;
@@ -652,6 +663,201 @@ function generateCancellationHtmlTemplate(data: CancellationEmailData): string {
   `.trim();
 }
 
+export interface ModifiedEmailData {
+	guestEmail: string | null;
+	guestName: string;
+	eventTitle: string;
+	sessionTitle: string;
+	sessionStartTime: Date;
+	/** The Event's Time Zone: the Seating's time is shown on its clock. */
+	timeZone: string;
+	reservationId: string;
+	accessToken: string;
+	/** Issue 025: the Reservation's language. Null (unknown, Walk-ins,
+	 * older Reservations) falls back to English, as before. */
+	locale: 'fr' | 'en' | null;
+}
+
+export function generateModifiedTextTemplate(data: ModifiedEmailData): string {
+	const lang = data.locale ?? 'en';
+	if (lang === 'fr') {
+		return `
+Réservation modifiée
+
+Bonjour ${data.guestName},
+
+Votre réservation pour ${data.eventTitle} a été déplacée vers une autre séance.
+
+NOUVELLE SÉANCE :
+${data.sessionTitle}
+${formatSeatingDateTime(data.sessionStartTime, data.timeZone, 'fr')}
+
+Vos billets restent valables, inutile de réserver à nouveau :
+${env.PUBLIC_URL}/tickets/${data.accessToken}
+
+Si vous avez des questions, n'hésitez pas à nous contacter.
+
+---
+Ceci est une notification automatique de Germinal.
+  `.trim();
+	}
+	return `
+Reservation Modified
+
+Hi ${data.guestName},
+
+Your reservation for ${data.eventTitle} has been moved to another seating.
+
+NEW SEATING:
+${data.sessionTitle}
+${formatSeatingDateTime(data.sessionStartTime, data.timeZone, 'en')}
+
+Your tickets remain valid — no need to book again:
+${env.PUBLIC_URL}/tickets/${data.accessToken}
+
+If you have any questions, please contact us.
+
+---
+This is an automated notification from Germinal.
+  `.trim();
+}
+
+function generateModifiedHtmlTemplate(data: ModifiedEmailData): string {
+	const lang = data.locale ?? 'en';
+	if (lang === 'fr') {
+		return `
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Réservation modifiée</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background-color: #f8f9fa; border-radius: 8px; padding: 24px; margin-bottom: 24px;">
+    <h2 style="margin: 0 0 8px 0; color: #1a1a1a; font-size: 24px;">Réservation modifiée</h2>
+    <p style="margin: 0; color: #6c757d; font-size: 14px;">Réservation #${escapeHtml(data.reservationId.substring(0, 8))}</p>
+  </div>
+
+  <div style="background-color: #ffffff; border: 1px solid #e9ecef; border-radius: 8px; padding: 24px; margin-bottom: 16px;">
+    <p style="margin: 0 0 16px 0; font-size: 16px;">Bonjour ${escapeHtml(data.guestName)},</p>
+    <p style="margin: 0 0 16px 0; font-size: 16px;">Votre réservation pour <strong>${escapeHtml(data.eventTitle)}</strong> a été déplacée vers une autre séance.</p>
+
+    <h3 style="margin: 24px 0 12px 0; color: #495057; font-size: 16px; font-weight: 600;">Nouvelle séance</h3>
+    <table style="width: 100%; border-collapse: collapse;">
+      <tr>
+        <td style="padding: 8px 0; color: #212529;"><strong>${escapeHtml(data.sessionTitle)}</strong></td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0; color: #6c757d;">
+          ${formatSeatingDateTime(data.sessionStartTime, data.timeZone, 'fr')}
+        </td>
+      </tr>
+    </table>
+
+    <p style="margin: 24px 0 0 0;">
+      <a href="${env.PUBLIC_URL}/tickets/${data.accessToken}" style="display: inline-block; background-color: #1a1a1a; color: #ffffff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 600;">Voir vos billets</a>
+    </p>
+
+    <p style="margin: 24px 0 0 0; font-size: 14px; color: #6c757d;">
+      Vos billets restent valables, inutile de réserver à nouveau. Si vous avez des questions, n'hésitez pas à nous contacter.
+    </p>
+  </div>
+
+  <div style="border-top: 1px solid #e9ecef; padding-top: 16px;">
+    <p style="margin: 0; color: #6c757d; font-size: 12px; text-align: center;">
+      Ceci est une notification automatique de Germinal.
+    </p>
+  </div>
+</body>
+</html>
+  `.trim();
+	}
+	return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reservation Modified</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background-color: #f8f9fa; border-radius: 8px; padding: 24px; margin-bottom: 24px;">
+    <h2 style="margin: 0 0 8px 0; color: #1a1a1a; font-size: 24px;">Reservation Modified</h2>
+    <p style="margin: 0; color: #6c757d; font-size: 14px;">Reservation #${escapeHtml(data.reservationId.substring(0, 8))}</p>
+  </div>
+
+  <div style="background-color: #ffffff; border: 1px solid #e9ecef; border-radius: 8px; padding: 24px; margin-bottom: 16px;">
+    <p style="margin: 0 0 16px 0; font-size: 16px;">Hi ${escapeHtml(data.guestName)},</p>
+    <p style="margin: 0 0 16px 0; font-size: 16px;">Your reservation for <strong>${escapeHtml(data.eventTitle)}</strong> has been moved to another seating.</p>
+
+    <h3 style="margin: 24px 0 12px 0; color: #495057; font-size: 16px; font-weight: 600;">New Seating</h3>
+    <table style="width: 100%; border-collapse: collapse;">
+      <tr>
+        <td style="padding: 8px 0; color: #212529;"><strong>${escapeHtml(data.sessionTitle)}</strong></td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0; color: #6c757d;">
+          ${formatSeatingDateTime(data.sessionStartTime, data.timeZone, 'en')}
+        </td>
+      </tr>
+    </table>
+
+    <p style="margin: 24px 0 0 0;">
+      <a href="${env.PUBLIC_URL}/tickets/${data.accessToken}" style="display: inline-block; background-color: #1a1a1a; color: #ffffff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 600;">View your tickets</a>
+    </p>
+
+    <p style="margin: 24px 0 0 0; font-size: 14px; color: #6c757d;">
+      Your tickets remain valid — no need to book again. If you have any questions, please contact us.
+    </p>
+  </div>
+
+  <div style="border-top: 1px solid #e9ecef; padding-top: 16px;">
+    <p style="margin: 0; color: #6c757d; font-size: 12px; text-align: center;">
+      This is an automated notification from Germinal.
+    </p>
+  </div>
+</body>
+</html>
+  `.trim();
+}
+
+/**
+ * Notify a Guest that Staff Moved their Reservation to another Seating of
+ * the same Service (issue 022): same menu, same price — only the time
+ * changed. Their Ticket keeps working, so the email links to it.
+ */
+export async function sendReservationModifiedEmail(data: ModifiedEmailData): Promise<void> {
+	// Without an email (e.g. a Walk-in) there is nobody to notify.
+	if (!data.guestEmail) return;
+	const textBody = generateModifiedTextTemplate(data);
+	const htmlBody = generateModifiedHtmlTemplate(data);
+
+	if (!isBrevoConfigured()) {
+		logger.info({
+			to: data.guestEmail,
+			reservationId: data.reservationId,
+		}, '📧 Brevo not configured - modified email would be sent');
+		return;
+	}
+
+	const { queueEmail } = await import('../jobs/process-email-queue');
+	const lang = data.locale ?? 'en';
+	await queueEmail({
+		type: 'reservation_modified',
+		recipient: data.guestEmail,
+		subject: lang === 'fr' ? `Réservation modifiée - ${data.eventTitle}` : `Reservation Modified - ${data.eventTitle}`,
+		textBody,
+		htmlBody,
+		metadata: {
+			reservationId: data.reservationId,
+			accessToken: data.accessToken,
+			guestName: data.guestName,
+		},
+	});
+	logger.info({ to: data.guestEmail }, '📋 Modified reservation email queued');
+}
+
 /**
  * Notify a Guest that their Reservation has been cancelled, with no money
  * changing hands (e.g. a comp Reservation, or an Admin cancellation that
@@ -659,6 +865,8 @@ function generateCancellationHtmlTemplate(data: CancellationEmailData): string {
  * use `sendRefundEmail` instead — it covers both in one notification.
  */
 export async function sendCancellationEmail(data: CancellationEmailData): Promise<void> {
+	// A Walk-in (issue 020) may have no email: nobody to notify.
+	if (!data.guestEmail) return;
 	const textBody = generateCancellationTextTemplate(data);
 	const htmlBody = generateCancellationHtmlTemplate(data);
 
@@ -774,6 +982,8 @@ function generateRefundHtmlTemplate(data: RefundEmailData): string {
  * the Stripe dashboard).
  */
 export async function sendRefundEmail(data: RefundEmailData): Promise<void> {
+	// A Walk-in (issue 020) may have no email: nobody to notify.
+	if (!data.guestEmail) return;
 	const textBody = generateRefundTextTemplate(data);
 	const htmlBody = generateRefundHtmlTemplate(data);
 
@@ -1313,7 +1523,7 @@ interface StaffAssignmentEmailData {
 	lastName: string;
 	email: string;
 	eventTitle: string;
-	roleLabel?: string | null;
+	roleName?: string | null;
 }
 
 function generateStaffAssignmentTextTemplate(data: StaffAssignmentEmailData): string {
@@ -1324,7 +1534,7 @@ You've Been Assigned to an Event
 
 Hi ${data.firstName},
 
-You have been assigned to "${data.eventTitle}"${data.roleLabel ? ` as ${data.roleLabel}` : ''} on the Germinal staff portal.
+You have been assigned to "${data.eventTitle}"${data.roleName ? ` as ${data.roleName}` : ''} on the Germinal staff portal.
 
 View the event and your tasks:
 ${portalUrl}
@@ -1353,7 +1563,7 @@ function generateStaffAssignmentHtmlTemplate(data: StaffAssignmentEmailData): st
 
   <div style="background-color: #ffffff; border: 1px solid #e9ecef; border-radius: 8px; padding: 24px; margin-bottom: 16px;">
     <p style="margin: 0 0 16px 0; font-size: 16px;">Hi ${escapeHtml(data.firstName)},</p>
-    <p style="margin: 0 0 16px 0; font-size: 16px;">You have been assigned to <strong>${escapeHtml(data.eventTitle)}</strong>${data.roleLabel ? ` as <strong>${escapeHtml(data.roleLabel)}</strong>` : ''} on the Germinal staff portal.</p>
+    <p style="margin: 0 0 16px 0; font-size: 16px;">You have been assigned to <strong>${escapeHtml(data.eventTitle)}</strong>${data.roleName ? ` as <strong>${escapeHtml(data.roleName)}</strong>` : ''} on the Germinal staff portal.</p>
 
     <div style="margin: 24px 0; text-align: center;">
       <a href="${escapeHtmlAttr(portalUrl)}"

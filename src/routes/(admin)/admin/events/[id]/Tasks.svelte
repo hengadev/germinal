@@ -90,7 +90,7 @@
     interface EventStaff {
         id: string;
         userId: string;
-        roleLabel: string | null;
+        staffRole: { id: string; name: string };
         createdAt: Date;
         user: {
             id: string;

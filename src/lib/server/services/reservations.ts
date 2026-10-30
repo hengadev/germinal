@@ -165,6 +165,44 @@ async function lockAndDecrementSessionCapacity(
 }
 
 /**
+ * Lock a Session row and decrement its available capacity without ever
+ * refusing a full or started Seating: a party that turns up without
+ * booking (issue 020) is seated anyway. The counter is floored at 0
+ * because the database check on it stays; a Seating without a limit
+ * (ADR 0009) keeps NULL.
+ *
+ * Must be called from within a `db.transaction`.
+ */
+export async function lockAndDecrementSeatingAllowingOverflow(
+	tx: typeof db,
+	sessionId: string,
+	quantity: number
+) {
+	const [session] = await tx
+		.select()
+		.from(eventSessions)
+		.where(eq(eventSessions.id, sessionId))
+		.for('update');
+
+	if (!session) {
+		throw new Error('Session not found');
+	}
+
+	await tx
+		.update(eventSessions)
+		.set({
+			availableCapacity: sql`case
+				when ${eventSessions.availableCapacity} is null then null
+				else greatest(${eventSessions.availableCapacity} - ${quantity}, 0)
+			end`,
+			updatedAt: new Date(),
+		})
+		.where(eq(eventSessions.id, sessionId));
+
+	return session;
+}
+
+/**
  * What booking returns. `checkoutUrl` is where the Guest pays the Deposit;
  * it is `null` when there is no Deposit — the Reservation is then already
  * confirmed (no Checkout Session, no expiry) and the Guest goes straight to
@@ -181,6 +219,10 @@ export type CreateReservationResult = {
  * This prevents race conditions when multiple users book simultaneously
  */
 export async function createReservation(input: CreateReservationInput): Promise<CreateReservationResult> {
+	// Issue 025: only the two site languages are kept; anything else
+	// (absent, or an unexpected value) means the language is unknown.
+	const locale = input.locale === 'fr' || input.locale === 'en' ? input.locale : null;
+
 	// Validate honeypot
 	if (input.honeypot && input.honeypot.trim() !== '') {
 		throw new Error('Invalid submission');
@@ -279,6 +321,7 @@ export async function createReservation(input: CreateReservationInput): Promise<
 				expiresAt: now,
 				confirmedAt: now,
 				isComp: false,
+				locale,
 				ipAddress: input.ipAddress ?? null,
 				userAgent: input.userAgent ?? null,
 				promotionCodeId,
@@ -308,6 +351,7 @@ export async function createReservation(input: CreateReservationInput): Promise<
 			status: 'pending',
 			accessToken,
 			expiresAt,
+			locale,
 			ipAddress: input.ipAddress ?? null,
 			userAgent: input.userAgent ?? null,
 			promotionCodeId,
@@ -524,6 +568,68 @@ export async function createCompReservation(input: CreateCompReservationInput) {
 	}
 
 	return { reservation: created.reservation };
+}
+
+export type CreateStaffReservationInput = {
+	kind: 'walk_in' | 'comp';
+	sessionId: string;
+	name: string;
+	quantity: number;
+	email?: string;
+	phone?: string;
+	actorId: string;
+};
+
+/**
+ * Create a Reservation made on the spot by Staff (issue 020: a Walk-in).
+ *
+ * Unlike a paid booking there is no Stripe Checkout Session and no Payment
+ * record: the Reservation is created directly `confirmed`, owes its full
+ * price as its Balance (no Deposit), and no Ticket email is sent — Staff
+ * seated the party, there is nobody to email.
+ *
+ * The caller may pass its own transaction so the Reservation is created
+ * atomically with what surrounds it (the Walk-in's or the Comp's Check-in,
+ * issues 021 and 022).
+ */
+export async function createStaffReservation(
+	input: CreateStaffReservationInput,
+	tx: typeof db = db
+) {
+	// A Walk-in may overflow the Seating: the available counter is
+	// decremented but floored at 0, and Seatings that already started are
+	// allowed (that is the point).
+	const session = await lockAndDecrementSeatingAllowingOverflow(tx, input.sessionId, input.quantity);
+	const price = await getSeatingPrice(tx, session.id);
+
+	const accessToken = generateAccessToken();
+	const now = new Date();
+	const isComp = input.kind === 'comp';
+	const total = isComp ? 0 : (price?.amount ?? 0) * input.quantity;
+
+	const [reservation] = await tx.insert(reservations).values({
+		eventSessionId: input.sessionId,
+		guestEmail: input.email ?? null,
+		guestName: input.name,
+		guestPhone: input.phone ?? null,
+		notificationPreference: 'both',
+		quantity: input.quantity,
+		// Everything is owed on site: no Deposit, the full price as Balance.
+		// A Comp is offered: it owes nothing at all.
+		totalAmount: total,
+		depositAmount: 0,
+		balanceAmount: total,
+		currency: price?.currency ?? 'EUR',
+		status: 'confirmed',
+		accessToken,
+		expiresAt: now,
+		confirmedAt: now,
+		origin: isComp ? 'staff' : input.kind,
+		isComp,
+		madeBy: input.actorId,
+	}).returning();
+
+	return { reservation };
 }
 
 /**

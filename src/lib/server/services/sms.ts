@@ -328,9 +328,9 @@ export async function sendStaffAssignmentSMS(options: {
     phone: string;
     firstName: string;
     eventTitle: string;
-    roleLabel?: string | null;
+    roleName?: string | null;
 }): Promise<void> {
-    const roleText = options.roleLabel ? ` as ${options.roleLabel}` : '';
+    const roleText = options.roleName ? ` as ${options.roleName}` : '';
 
     const message = `📋 New Assignment
 

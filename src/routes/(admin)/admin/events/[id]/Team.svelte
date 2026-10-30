@@ -7,9 +7,16 @@
         Loader2,
         CheckCircle2,
         X,
+        SlidersHorizontal,
     } from "lucide-svelte";
     import type { PageData, ActionData } from "../+page.server";
     import { getToastContext } from "$lib/components/toast/state.svelte";
+    import {
+        STAFF_PERMISSIONS,
+        STAFF_PERMISSION_LABELS_FR,
+        ACTS_ON_PARTIES_PERMISSIONS,
+        type StaffPermission,
+    } from "$lib/staff/permissions";
 
     interface Props {
         data: PageData;
@@ -20,10 +27,18 @@
 
     const toast = getToastContext();
 
+    interface StaffRole {
+        id: string;
+        name: string;
+        permissions: StaffPermission[];
+    }
+
     interface EventStaff {
         id: string;
         userId: string;
-        roleLabel: string | null;
+        staffRole: StaffRole;
+        grantedPermissions: StaffPermission[];
+        withdrawnPermissions: StaffPermission[];
         createdAt: Date;
         user: {
             id: string;
@@ -46,12 +61,13 @@
 
     let eventStaff = $state<EventStaff[]>([]);
     let allStaff = $state<StaffMember[]>([]);
+    let staffRoles = $state<StaffRole[]>([]);
     let loading = $state(true);
     let showAddForm = $state(false);
     let processing = $state(false);
 
     let selectedStaffId = $state('');
-    let roleLabel = $state('');
+    let selectedRoleId = $state('');
 
     async function loadData() {
         loading = true;
@@ -66,6 +82,12 @@
             const allStaffResponse = await fetch('/api/admin/staff');
             if (allStaffResponse.ok) {
                 allStaff = await allStaffResponse.json();
+            }
+
+            // Load the non-archived Staff Roles for the picker
+            const rolesResponse = await fetch('/api/admin/staff-roles?assignable=1');
+            if (rolesResponse.ok) {
+                staffRoles = await rolesResponse.json();
             }
         } catch (error) {
             console.error('Failed to load staff data:', error);
@@ -84,6 +106,10 @@
             toast.error('Erreur', 'Veuillez sélectionner un membre du staff');
             return;
         }
+        if (!selectedRoleId) {
+            toast.error('Erreur', 'Veuillez sélectionner un rôle');
+            return;
+        }
 
         processing = true;
 
@@ -93,7 +119,7 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     userId: selectedStaffId,
-                    roleLabel: roleLabel || undefined,
+                    staffRoleId: selectedRoleId,
                 }),
             });
 
@@ -105,11 +131,101 @@
 
             toast.success('Succès', 'Staff assigné avec succès');
             selectedStaffId = '';
-            roleLabel = '';
+            selectedRoleId = '';
             showAddForm = false;
             await loadData();
         } catch (error) {
             const errorMsg = error instanceof Error ? error.message : 'Échec de l\'assignation du staff';
+            toast.error('Erreur', errorMsg);
+        } finally {
+            processing = false;
+        }
+    }
+
+    async function changeRole(staffUserId: string, staffRoleId: string) {
+        processing = true;
+        try {
+            const response = await fetch(`/api/admin/events/${data.event.id}/staff`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: staffUserId, staffRoleId }),
+            });
+            const result = await response.json();
+            if (!response.ok) {
+                throw new Error(result.error || 'Échec du changement de rôle');
+            }
+            toast.success('Succès', 'Rôle mis à jour');
+            await loadData();
+        } catch (error) {
+            const errorMsg = error instanceof Error ? error.message : 'Échec du changement de rôle';
+            toast.error('Erreur', errorMsg);
+            await loadData();
+        } finally {
+            processing = false;
+        }
+    }
+
+    // Permission adjustments (issue 014): which Assignment's checklist is
+    // open and its ticked set — the Staff Role plus grants, minus
+    // withdrawals (effective before the dependency closure).
+    let adjustingUserId = $state<string | null>(null);
+    let adjustPermissions = $state<StaffPermission[]>([]);
+
+    function startAdjust(staff: EventStaff) {
+        if (adjustingUserId === staff.userId) {
+            adjustingUserId = null;
+            return;
+        }
+        const ticked = new Set<StaffPermission>([
+            ...staff.staffRole.permissions,
+            ...staff.grantedPermissions,
+        ]);
+        for (const p of staff.withdrawnPermissions) ticked.delete(p);
+        adjustingUserId = staff.userId;
+        adjustPermissions = STAFF_PERMISSIONS.filter((p) => ticked.has(p));
+    }
+
+    // Adjustments that still differ from the role: a role edit can make a
+    // stored grant or withdrawal redundant, and those aren't shown.
+    function shownAdjustments(staff: EventStaff) {
+        const role = new Set(staff.staffRole.permissions);
+        return {
+            granted: staff.grantedPermissions.filter((p) => !role.has(p)),
+            withdrawn: staff.withdrawnPermissions.filter((p) => role.has(p)),
+        };
+    }
+
+    // Ticking a permission that acts on parties also ticks the guest list.
+    function toggleAdjust(perm: StaffPermission) {
+        if (!adjustPermissions.includes(perm) && ACTS_ON_PARTIES_PERMISSIONS.has(perm)) {
+            adjustPermissions = [...adjustPermissions, perm];
+            if (!adjustPermissions.includes('guest_list')) {
+                adjustPermissions = [...adjustPermissions, 'guest_list'];
+            }
+        } else {
+            adjustPermissions = adjustPermissions.includes(perm)
+                ? adjustPermissions.filter((p) => p !== perm)
+                : [...adjustPermissions, perm];
+        }
+    }
+
+    async function saveAdjust(staffUserId: string) {
+        processing = true;
+        try {
+            const response = await fetch(`/api/admin/events/${data.event.id}/staff`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: staffUserId, permissions: adjustPermissions }),
+            });
+            const result = await response.json();
+            if (!response.ok) {
+                throw new Error(result.error || 'Échec de l\u2019ajustement des permissions');
+            }
+            toast.success('Succès', 'Permissions ajustées');
+            adjustingUserId = null;
+            await loadData();
+        } catch (error) {
+            const errorMsg = error instanceof Error ? error.message : 'Échec de l\u2019ajustement des permissions';
             toast.error('Erreur', errorMsg);
         } finally {
             processing = false;
@@ -149,6 +265,14 @@
     }
 
     const assignedStaffIds = $derived(getAssignedStaffIds());
+
+    // Roles shown when changing an Assignment's role: the non-archived ones,
+    // plus the Assignment's own role (it may be archived).
+    function allRolesForChange(currentRoleId: string): StaffRole[] {
+        if (staffRoles.some((r) => r.id === currentRoleId)) return staffRoles;
+        const current = eventStaff.find((s) => s.staffRole.id === currentRoleId)?.staffRole;
+        return current ? [current, ...staffRoles] : staffRoles;
+    }
 </script>
 
 <div class="space-y-6">
@@ -194,19 +318,22 @@
                 </div>
 
                 <div>
-                    <label for="role-label" class="block text-sm font-medium text-foreground mb-2">
-                        Libellé du rôle (optionnel)
+                    <label for="role-select" class="block text-sm font-medium text-foreground mb-2">
+                        Rôle
                     </label>
-                    <input
-                        id="role-label"
-                        type="text"
-                        bind:value={roleLabel}
-                        placeholder="ex. Son, Porte, Photographie"
+                    <select
+                        id="role-select"
+                        bind:value={selectedRoleId}
                         class="w-full px-3 py-2 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                         disabled={processing}
-                    />
+                    >
+                        <option value="">Sélectionner un rôle...</option>
+                        {#each staffRoles as role (role.id)}
+                            <option value={role.id}>{role.name}</option>
+                        {/each}
+                    </select>
                     <p class="text-xs text-muted-foreground mt-1">
-                        Optionnel : spécifier le rôle du membre du staff pour cet événement
+                        Le rôle détermine les permissions du membre du staff pour cet événement
                     </p>
                 </div>
 
@@ -232,7 +359,7 @@
                         onclick={() => {
                             showAddForm = false;
                             selectedStaffId = '';
-                            roleLabel = '';
+                            selectedRoleId = '';
                         }}
                         class="inline-flex items-center gap-2 px-4 py-2 border border-border-input text-foreground rounded-lg hover:bg-muted transition-colors"
                         disabled={processing}
@@ -279,6 +406,7 @@
                     </thead>
                     <tbody class="divide-y divide-border-card">
                         {#each eventStaff as staff (staff.id)}
+                            {@const adjustments = shownAdjustments(staff)}
                             <tr class="hover:bg-muted/50 transition-colors">
                                 <td class="px-6 py-4">
                                     <div class="flex items-center gap-3">
@@ -294,9 +422,31 @@
                                     </div>
                                 </td>
                                 <td class="px-6 py-4">
-                                    <p class="text-sm text-muted-foreground">
-                                        {staff.roleLabel || 'Staff'}
-                                    </p>
+                                    <select
+                                        aria-label="Rôle de {staff.user.firstName} {staff.user.lastName}"
+                                        class="px-2 py-1 border border-border-input rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                                        value={staff.staffRole.id}
+                                        disabled={processing}
+                                        onchange={(e) => changeRole(staff.userId, e.currentTarget.value)}
+                                    >
+                                        {#each allRolesForChange(staff.staffRole.id) as role (role.id)}
+                                            <option value={role.id}>{role.name}</option>
+                                        {/each}
+                                    </select>
+                                    {#if adjustments.granted.length > 0 || adjustments.withdrawn.length > 0}
+                                        <div class="flex flex-wrap gap-1 mt-1">
+                                            {#each adjustments.granted as perm (perm)}
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary">
+                                                    + {STAFF_PERMISSION_LABELS_FR[perm]}
+                                                </span>
+                                            {/each}
+                                            {#each adjustments.withdrawn as perm (perm)}
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-muted text-muted-foreground">
+                                                    &minus; {STAFF_PERMISSION_LABELS_FR[perm]}
+                                                </span>
+                                            {/each}
+                                        </div>
+                                    {/if}
                                 </td>
                                 <td class="px-6 py-4">
                                     <p class="text-sm text-muted-foreground">
@@ -304,7 +454,17 @@
                                     </p>
                                 </td>
                                 <td class="px-6 py-4">
-                                    <div class="flex items-center justify-end">
+                                    <div class="flex items-center justify-end gap-1">
+                                        <button
+                                            onclick={() => startAdjust(staff)}
+                                            class="inline-flex items-center gap-1.5 px-2 py-1.5 text-sm text-foreground hover:bg-muted rounded-lg transition-colors"
+                                            aria-label="Ajuster les permissions de {staff.user.firstName} {staff.user.lastName}"
+                                            aria-expanded={adjustingUserId === staff.userId}
+                                            disabled={processing}
+                                        >
+                                            <SlidersHorizontal size={16} />
+                                            <span>Ajuster</span>
+                                        </button>
                                         <button
                                             onclick={() => removeStaff(staff.userId, staff.user.firstName, staff.user.lastName)}
                                             class="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors"
@@ -316,6 +476,48 @@
                                     </div>
                                 </td>
                             </tr>
+                            {#if adjustingUserId === staff.userId}
+                                <tr class="bg-muted/30">
+                                    <td colspan="4" class="px-6 py-4">
+                                        <p class="text-sm font-medium text-foreground mb-2">
+                                            Permissions de {staff.user.firstName} {staff.user.lastName}
+                                        </p>
+                                        <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+                                            {#each STAFF_PERMISSIONS as perm (perm)}
+                                                <label class="flex items-center gap-2 text-sm text-foreground">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={adjustPermissions.includes(perm)}
+                                                        onchange={() => toggleAdjust(perm)}
+                                                    />
+                                                    {STAFF_PERMISSION_LABELS_FR[perm]}
+                                                </label>
+                                            {/each}
+                                        </div>
+                                        <p class="text-xs text-muted-foreground mt-1">
+                                            Cocher une permission agissant sur les groupes coche aussi la liste des invités.
+                                        </p>
+                                        <div class="flex items-center gap-2 mt-3">
+                                            <button
+                                                onclick={() => saveAdjust(staff.userId)}
+                                                disabled={processing}
+                                                class="inline-flex items-center gap-2 px-3 py-1.5 bg-foreground text-background rounded-lg text-sm hover:opacity-90 transition-colors disabled:opacity-50"
+                                            >
+                                                {#if processing}<Loader2 size={14} class="animate-spin" />{:else}<CheckCircle2 size={14} />{/if}
+                                                <span>Enregistrer</span>
+                                            </button>
+                                            <button
+                                                onclick={() => (adjustingUserId = null)}
+                                                class="inline-flex items-center gap-2 px-3 py-1.5 border border-border-input text-foreground rounded-lg text-sm hover:bg-muted transition-colors"
+                                                disabled={processing}
+                                            >
+                                                <X size={14} />
+                                                <span>Annuler</span>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {/if}
                         {/each}
                     </tbody>
                 </table>

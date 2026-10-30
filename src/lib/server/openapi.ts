@@ -483,7 +483,8 @@ export const openApiSpec = {
 					sessionId: { type: 'string', format: 'uuid', description: 'Event session ID' },
 					email: { type: 'string', format: 'email', description: 'User email address' },
 					name: { type: 'string', minLength: 1, maxLength: 255, description: 'User full name' },
-					quantity: { type: 'integer', minimum: 1, maximum: 10, description: 'Number of tickets to reserve' }
+					quantity: { type: 'integer', minimum: 1, maximum: 10, description: 'Number of tickets to reserve' },
+					locale: { type: 'string', enum: ['fr', 'en'], description: "Language the site was shown in (issue 025); kept only when 'fr' or 'en', stored as null otherwise" }
 				}
 			},
 			JoinWaitlist: {

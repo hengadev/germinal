@@ -14,7 +14,7 @@
  * the commit, never while a Seating row lock is held).
  */
 
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import { db } from '../db';
 import { incrementCheckoutCounter, incrementReservationCounter } from '../metrics';
 import { eventSessions, payments, reservationStatusEnum, reservations } from '../db/schema';
@@ -219,9 +219,14 @@ export async function cancelReservationTransition(
 /**
  * Give a released Reservation's seats back to its Seating, under the
  * Seating's row lock, never above its total. Winner-only: callers run it
- * inside the transaction whose conditional update they won.
+ * inside the transaction whose conditional update they won, after the
+ * Reservation stopped holding its seats there (status or Seating changed).
+ *
+ * Also never above the seats really free: a Walk-in or Comp may have
+ * overflowed the Seating with the counter floored at 0 (issue 020), and
+ * releasing a party there must not hand out seats that are still taken.
  */
-async function restoreCapacity(tx: typeof db, eventSessionId: string, quantity: number) {
+export async function restoreCapacity(tx: typeof db, eventSessionId: string, quantity: number) {
 	const [seating] = await tx
 		.select()
 		.from(eventSessions)
@@ -230,9 +235,20 @@ async function restoreCapacity(tx: typeof db, eventSessionId: string, quantity: 
 
 	// A Seating without a limit (ADR 0009) counts no seats to give back.
 	if (seating && seating.availableCapacity !== null && seating.totalCapacity !== null) {
+		const [{ held }] = await tx
+			.select({ held: sql<number>`coalesce(sum(${reservations.quantity}), 0)::int` })
+			.from(reservations)
+			.where(and(
+				eq(reservations.eventSessionId, eventSessionId),
+				inArray(reservations.status, ['pending', 'processing', 'confirmed'])
+			));
 		await tx.update(eventSessions)
 			.set({
-				availableCapacity: Math.min(seating.availableCapacity + quantity, seating.totalCapacity),
+				availableCapacity: Math.min(
+					seating.availableCapacity + quantity,
+					seating.totalCapacity,
+					Math.max(seating.totalCapacity - held, 0)
+				),
 				updatedAt: new Date(),
 			})
 			.where(eq(eventSessions.id, seating.id));

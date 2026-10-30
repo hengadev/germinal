@@ -281,6 +281,55 @@
       "when": 1793224229712,
       "tag": "0039_course_dishes",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1793296706276,
+      "tag": "0040_drop_event_staff_role_label",
+      "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1793296720327,
+      "tag": "0041_staff_roles",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1793310448389,
+      "tag": "0042_check_ins",
+      "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1793311118850,
+      "tag": "0043_balance_settled",
+      "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1793315340639,
+      "tag": "0044_walk_ins",
+      "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1793317598281,
+      "tag": "0045_staff_move",
+      "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1793351055294,
+      "tag": "0046_guest_locale",
+      "breakpoints": true
     }
   ]
 }

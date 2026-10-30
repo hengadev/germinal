@@ -33,6 +33,9 @@ export const createReservationSchema = z.object({
 	dietaryConsent: z.boolean().optional(),
 	// Honeypot for spam protection
 	honeypot: z.string().optional(),
+	// Issue 025: the language the site was shown in ('fr' | 'en'). Kept
+	// only when exactly one of those two; anything else stores null.
+	locale: z.string().optional(),
 }).refine(data => !data.honeypot || data.honeypot.trim() === '', {
 	message: 'Invalid submission detected',
 	path: ['honeypot'],

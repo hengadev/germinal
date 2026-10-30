@@ -73,7 +73,7 @@ export interface FilterableReservation {
 	sessionTitle: string;
 	sessionStartTime: string;
 	guestName: string;
-	guestEmail: string;
+	guestEmail: string | null;
 	eventTitle?: string;
 }
 
@@ -98,7 +98,7 @@ export function filterReservations<T extends FilterableReservation>(
 		if (status && r.status !== status) return false;
 		if (seatingId && r.seatingId !== seatingId) return false;
 		if (query) {
-			const haystack = [r.guestName, r.guestEmail, r.eventTitle ?? '', r.sessionTitle];
+			const haystack = [r.guestName, r.guestEmail ?? '', r.eventTitle ?? '', r.sessionTitle];
 			if (!haystack.some((v) => v.toLowerCase().includes(query))) return false;
 		}
 		return true;

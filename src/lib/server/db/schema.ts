@@ -41,6 +41,12 @@ export const taskStatusEnum = pgEnum('task_status', ['pending', 'in_progress', '
 
 export const taskPriorityEnum = pgEnum('task_priority', ['low', 'medium', 'high']);
 
+export const reservationOriginEnum = pgEnum('reservation_origin', [
+    'online',
+    'staff',
+    'walk_in'
+]);
+
 export const notificationPreferenceEnum = pgEnum('notification_preference', [
     'email',
     'sms',
@@ -739,7 +745,8 @@ export const reservations = pgTable('reservations', {
     eventSessionId: uuid('event_session_id')
         .notNull()
         .references(() => eventSessions.id, { onDelete: 'restrict' }),
-    guestEmail: varchar('guest_email', { length: 255 }).notNull(),
+    // Issue 020: absent for Walk-ins, who may have no email at all.
+    guestEmail: varchar('guest_email', { length: 255 }),
     guestName: varchar('guest_name', { length: 255 }).notNull(),
     guestPhone: varchar('guest_phone', { length: 50 }),
     notificationPreference: notificationPreferenceEnum('notification_preference').notNull().default('both'),
@@ -757,6 +764,11 @@ export const reservations = pgTable('reservations', {
     reminderSent1Week: boolean('reminder_sent_1_week').default(false).notNull(),
     reminderSent1Day: boolean('reminder_sent_1_day').default(false).notNull(),
     isComp: boolean('is_comp').default(false).notNull(),
+    // Issue 020: where the Reservation came from, and which Staff member
+    // made it when it didn't come from the site. 'walk_in' marks a party
+    // seated on the spot (and 021 Comps on the spot, 022 Moves reuse this).
+    origin: reservationOriginEnum('origin').notNull().default('online'),
+    madeBy: uuid('made_by').references(() => users.id, { onDelete: 'set null' }),
     paymentId: uuid('payment_id').references(() => payments.id, { onDelete: 'set null' }),
     promotionCodeId: uuid('promotion_code_id').references(() => promotionCodes.id, { onDelete: 'set null' }),
     discountAmount: integer('discount_amount').default(0).notNull(),
@@ -765,6 +777,24 @@ export const reservations = pgTable('reservations', {
     // venue. deposit_amount + balance_amount = total_amount.
     depositAmount: integer('deposit_amount').notNull(),
     balanceAmount: integer('balance_amount').notNull(),
+    // Issue 025: the language the Guest booked the site in, so guest
+    // emails can be written in it. Null: unknown (older Reservations,
+    // Walk-ins and Comps) — emails stay in English.
+    locale: varchar('locale', { length: 2 }),
+    // Issue 022: when Staff last Moved this Reservation to another
+    // Seating of its Service, and who did. The Token, Check-ins and
+    // Balance are untouched by a Move.
+    lastMovedAt: timestamp('last_moved_at', { withTimezone: true }),
+    lastMovedBy: uuid('last_moved_by').references(() => users.id, {
+        onDelete: 'set null',
+    }),
+    // Issue 019: when Staff marked the Balance as settled on the venue's
+    // terminal, and who did: who and when only — the terminal's own report
+    // is the accounting for money taken on site. Both cleared on undo.
+    balanceSettledAt: timestamp('balance_settled_at', { withTimezone: true }),
+    balanceSettledBy: uuid('balance_settled_by').references(() => users.id, {
+        onDelete: 'set null',
+    }),
     // Dietary Requirements (issue 041, CONTEXT.md): allergies or a diet the
     // Guest declared for the whole Reservation, on an Event that asks. Health
     // data: stored only with the instant the Guest consented, shown only to
@@ -943,6 +973,15 @@ export const promotionCodesRelations = relations(promotionCodes, ({ one, many })
 // STAFF AND TASKS TABLES
 // ============================================
 
+export const staffRoles = pgTable('staff_roles', {
+    id: uuid('id').defaultRandom().primaryKey(),
+    name: varchar('name', { length: 100 }).notNull().unique(),
+    permissions: text('permissions').array().notNull().default(sql`'{}'::text[]`),
+    archivedAt: timestamp('archived_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
 export const eventStaff = pgTable('event_staff', {
     id: uuid('id').defaultRandom().primaryKey(),
     eventId: uuid('event_id')
@@ -951,7 +990,11 @@ export const eventStaff = pgTable('event_staff', {
     userId: uuid('user_id')
         .notNull()
         .references(() => users.id, { onDelete: 'cascade' }),
-    roleLabel: varchar('role_label', { length: 100 }),
+    staffRoleId: uuid('staff_role_id')
+        .notNull()
+        .references(() => staffRoles.id, { onDelete: 'restrict' }),
+    grantedPermissions: text('granted_permissions').array().notNull().default(sql`'{}'::text[]`),
+    withdrawnPermissions: text('withdrawn_permissions').array().notNull().default(sql`'{}'::text[]`),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => ({
     eventIdIdx: index('event_staff_event_id_idx').on(table.eventId),
@@ -980,6 +1023,25 @@ export const tasks = pgTable('tasks', {
     assignedToIdx: index('tasks_assigned_to_idx').on(table.assignedTo),
     createdByIdx: index('tasks_created_by_idx').on(table.createdBy),
     statusIdx: index('tasks_status_idx').on(table.status),
+}));
+
+export const checkInMethodEnum = pgEnum('check_in_method', ['scan', 'manual']);
+
+export const checkIns = pgTable('check_ins', {
+    id: uuid('id').defaultRandom().primaryKey(),
+    reservationId: uuid('reservation_id')
+        .notNull()
+        .references(() => reservations.id, { onDelete: 'cascade' }),
+    guests: integer('guests').notNull(),
+    method: checkInMethodEnum('method').notNull(),
+    // Kept when the account is deleted: the record of the evening stays.
+    checkedInBy: uuid('checked_in_by').references(() => users.id, { onDelete: 'set null' }),
+    checkedInAt: timestamp('checked_in_at', { withTimezone: true }).defaultNow().notNull(),
+    undoneAt: timestamp('undone_at', { withTimezone: true }),
+    undoneBy: uuid('undone_by').references(() => users.id, { onDelete: 'set null' }),
+}, (table) => ({
+    reservationIdIdx: index('check_ins_reservation_id_idx').on(table.reservationId),
+    guestsCheck: check('check_ins_guests_check', sql`guests > 0`),
 }));
 
 // ============================================
@@ -1025,6 +1087,10 @@ export const eventStaffRelations = relations(eventStaff, ({ one }) => ({
     user: one(users, {
         fields: [eventStaff.userId],
         references: [users.id],
+    }),
+    staffRole: one(staffRoles, {
+        fields: [eventStaff.staffRoleId],
+        references: [staffRoles.id],
     }),
 }));
 

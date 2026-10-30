@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Eye, CheckCircle2, Clock, XCircle, AlertCircle, Search, Calendar, User, Mail, Ticket, CreditCard, ArrowRight, Gift } from 'lucide-svelte';
+	import { Eye, CheckCircle2, Clock, XCircle, AlertCircle, Search, Calendar, User, Mail, Ticket, CreditCard, ArrowRight, Gift, Footprints, BadgeCheck } from 'lucide-svelte';
 	import { formatCurrency } from '$lib/utils/currency';
 	import DietaryRequirementsBadge from '$lib/components/admin/DietaryRequirementsBadge.svelte';
 	import {
@@ -9,10 +9,39 @@
 		totalBalanceToCollect
 	} from '$lib/utils/balance-due';
 
+	interface AttendanceCategory {
+		parties: number;
+		guests: number;
+	}
+	interface SeatingAttendanceRow {
+		id: string;
+		startTime: string;
+		booked: number;
+		arrived: number;
+		noShows: number;
+		walkIns: AttendanceCategory;
+		comps: AttendanceCategory;
+	}
 	interface Props {
 		data: {
 			event: any;
 			reservations: any[];
+			attendance?: {
+				days: {
+					date: string;
+					services: {
+						kind: 'lunch' | 'dinner';
+						seatings: SeatingAttendanceRow[];
+					}[];
+				}[];
+				totals: {
+					booked: number;
+					arrived: number;
+					noShows: number;
+					walkIns: AttendanceCategory;
+					comps: AttendanceCategory;
+				};
+			} | null;
 		};
 	}
 
@@ -89,7 +118,85 @@
 			year: 'numeric'
 		});
 	}
+
+	// Attendance (issue 024): French date and Seating start time on the
+	// Event's clock.
+	function formatDayDate(date: string): string {
+		return new Date(`${date}T12:00:00Z`).toLocaleDateString('fr-FR', {
+			weekday: 'long',
+			day: 'numeric',
+			month: 'long',
+			year: 'numeric'
+		});
+	}
+
+	function formatSeatingTime(startTime: string): string {
+		return new Date(startTime).toLocaleTimeString('fr-FR', {
+			hour: '2-digit',
+			minute: '2-digit',
+			timeZone: data.event?.timeZone
+		});
+	}
 </script>
+
+<!-- Fréquentation (issue 024): only once the Event is over -->
+{#if data.attendance}
+	<div class="bg-background rounded-lg border border-border-card overflow-hidden mb-6">
+		<div class="px-6 py-4 border-b border-border-card">
+			<h3 class="text-base font-semibold text-foreground">Fréquentation</h3>
+			<p class="text-sm text-muted-foreground">Comptes définitifs par Séance, l'événement terminé. Walk-ins et Offerts : tables · personnes.</p>
+		</div>
+		<div class="overflow-x-auto">
+			<table class="w-full text-sm tabular-nums">
+				<thead class="bg-muted border-b border-border-card">
+					<tr>
+						<th class="px-4 py-3 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">Jour</th>
+						<th class="px-4 py-3 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">Service</th>
+						<th class="px-4 py-3 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">Séance</th>
+						<th class="px-4 py-3 text-right text-xs font-semibold text-foreground-alt uppercase tracking-wider">Réservés</th>
+						<th class="px-4 py-3 text-right text-xs font-semibold text-foreground-alt uppercase tracking-wider">Arrivés</th>
+						<th class="px-4 py-3 text-right text-xs font-semibold text-foreground-alt uppercase tracking-wider">No-shows</th>
+						<th class="px-4 py-3 text-right text-xs font-semibold text-foreground-alt uppercase tracking-wider">Walk-ins</th>
+						<th class="px-4 py-3 text-right text-xs font-semibold text-foreground-alt uppercase tracking-wider">Offerts</th>
+					</tr>
+				</thead>
+				<tbody class="divide-y divide-border-card">
+					{#each data.attendance.days as day (day.date)}
+						{@const daySeatingCount = day.services.reduce((n, s) => n + s.seatings.length, 0)}
+						{#each day.services as service, serviceIndex (service.kind)}
+							{#each service.seatings as seating, seatingIndex (seating.id)}
+								<tr class="hover:bg-muted transition-colors">
+									{#if serviceIndex === 0 && seatingIndex === 0}
+										<td rowspan={daySeatingCount} class="px-4 py-3 align-top font-medium text-foreground first-letter:uppercase">{formatDayDate(day.date)}</td>
+									{/if}
+									{#if seatingIndex === 0}
+										<td rowspan={service.seatings.length} class="px-4 py-3 align-top text-foreground-alt">{service.kind === 'lunch' ? 'Déjeuner' : 'Dîner'}</td>
+									{/if}
+									<td class="px-4 py-3 text-foreground-alt">{formatSeatingTime(seating.startTime)}</td>
+									<td class="px-4 py-3 text-right text-foreground">{seating.booked}</td>
+									<td class="px-4 py-3 text-right text-foreground">{seating.arrived}</td>
+									<td class="px-4 py-3 text-right text-foreground">{seating.noShows}</td>
+									<td class="px-4 py-3 text-right text-foreground-alt whitespace-nowrap">{seating.walkIns.parties} · {seating.walkIns.guests}</td>
+									<td class="px-4 py-3 text-right text-foreground-alt whitespace-nowrap">{seating.comps.parties} · {seating.comps.guests}</td>
+								</tr>
+							{/each}
+						{/each}
+					{/each}
+				</tbody>
+				<tfoot class="border-t border-border-card bg-muted">
+					<tr class="font-bold text-foreground">
+						<td colspan="3" class="px-4 py-3">Total événement</td>
+						<td class="px-4 py-3 text-right">{data.attendance.totals.booked}</td>
+						<td class="px-4 py-3 text-right">{data.attendance.totals.arrived}</td>
+						<td class="px-4 py-3 text-right">{data.attendance.totals.noShows}</td>
+						<td class="px-4 py-3 text-right whitespace-nowrap">{data.attendance.totals.walkIns.parties} · {data.attendance.totals.walkIns.guests}</td>
+						<td class="px-4 py-3 text-right whitespace-nowrap">{data.attendance.totals.comps.parties} · {data.attendance.totals.comps.guests}</td>
+					</tr>
+				</tfoot>
+			</table>
+		</div>
+	</div>
+{/if}
 
 <!-- Filters and Search -->
 <div class="bg-background rounded-lg border border-border-card p-4 mb-6">
@@ -235,6 +342,9 @@
 									<Ticket size={14} />
 									<span class="font-medium">{reservation.quantity}</span>
 								</div>
+								<div class="text-muted-foreground text-xs">
+									{reservation.arrived} / {reservation.quantity} arrivés
+								</div>
 								<div class="text-foreground">
 									{formatCurrency(reservation.totalAmount, reservation.currency)}
 								</div>
@@ -255,10 +365,22 @@
 									{/if}
 									{statusBadge.text}
 								</span>
+								{#if reservation.origin === 'walk_in'}
+									<span class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-blue-50 text-blue-700 rounded-full">
+										<Footprints size={12} />
+										Walk-in
+									</span>
+								{/if}
 								{#if reservation.isComp}
 									<span class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-purple-50 text-purple-700 rounded-full">
 										<Gift size={12} />
 										Comp
+									</span>
+								{/if}
+								{#if reservation.balanceSettledAt}
+									<span class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-green-50 text-green-700 rounded-full">
+										<BadgeCheck size={12} />
+										Solde réglé
 									</span>
 								{/if}
 								<DietaryRequirementsBadge dietaryRequirements={reservation.dietaryRequirements} />
@@ -316,10 +438,22 @@
 									{/if}
 									{statusBadge.text}
 								</span>
+								{#if reservation.origin === 'walk_in'}
+									<span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-blue-50 text-blue-700 rounded-full">
+										<Footprints size={10} />
+										Walk-in
+									</span>
+								{/if}
 								{#if reservation.isComp}
 									<span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-purple-50 text-purple-700 rounded-full">
 										<Gift size={10} />
 										Comp
+									</span>
+								{/if}
+								{#if reservation.balanceSettledAt}
+									<span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-green-50 text-green-700 rounded-full">
+										<BadgeCheck size={10} />
+										Solde réglé
 									</span>
 								{/if}
 								<DietaryRequirementsBadge dietaryRequirements={reservation.dietaryRequirements} compact />
@@ -336,7 +470,10 @@
 					</div>
 					<div>
 						<div class="text-xs text-muted-foreground">Tickets</div>
-						<div class="text-sm font-medium text-foreground">{reservation.quantity}</div>
+						<div class="text-sm font-medium text-foreground">
+							{reservation.quantity}
+							<span class="font-normal text-muted-foreground">· {reservation.arrived} arrivés</span>
+						</div>
 					</div>
 					<div>
 						<div class="text-xs text-muted-foreground">Total</div>

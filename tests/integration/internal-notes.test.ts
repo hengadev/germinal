@@ -7,7 +7,7 @@
  */
 import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest';
 import { eq } from 'drizzle-orm';
-import { events, eventSessions, eventStaff, tasks, users } from '../../src/lib/server/db/schema';
+import { events, eventSessions, eventStaff, staffRoles, tasks, users } from '../../src/lib/server/db/schema';
 import {
 	getTestDatabase,
 	setupTestDatabase,
@@ -149,7 +149,8 @@ async function seedStaffOn(eventId: string) {
 		.insert(users)
 		.values({ email: `staff-${run}@example.com`, firstName: 'S', lastName: 'Taff', passwordHash: 'x', role: 'staff' })
 		.returning();
-	await testDb.insert(eventStaff).values({ eventId, userId: staff.id, roleLabel: 'Service' });
+	const [role] = await testDb.select({ id: staffRoles.id }).from(staffRoles).where(eq(staffRoles.name, 'Responsable'));
+	await testDb.insert(eventStaff).values({ eventId, userId: staff.id, staffRoleId: role.id });
 	await testDb.insert(tasks).values({ eventId, assignedTo: staff.id, createdBy: admin.id, title: 'Mise en place' });
 	return { id: staff.id, email: staff.email, role: 'staff', createdAt: new Date() };
 }
@@ -283,8 +284,7 @@ describe('Internal Notes never leave the admin', () => {
 
 		const { load } = await import('../../src/routes/(staff)/staff/+page.server');
 		const data: any = await load({ locals: { user: staff, csrfToken: 'token' } } as any);
-		expect(data.events.map((e: { event: { id: string } }) => e.event.id)).toEqual([event.id]);
-		expect(data.tasks).toHaveLength(1);
+		expect(data.assignments.map((a: any) => a.event.id)).toEqual([event.id]);
 		expect(leaks(data)).toBe(false);
 
 		const { GET } = await import('../../src/routes/api/staff/tasks/+server');
