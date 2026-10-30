@@ -11,6 +11,7 @@ import { getTasksForUser, updateTaskStatus } from '$lib/server/services/tasks';
 import { taskStatusEnum } from '$lib/server/db/schema';
 import { recordCheckIn, undoLastCheckIn } from '$lib/server/services/check-ins';
 import { createWalkIn } from '$lib/server/services/walk-ins';
+import { createCompOnTheSpot } from '$lib/server/services/comps';
 import { settleBalance, undoSettleBalance } from '$lib/server/services/balance';
 import { formatCurrency } from '$lib/utils/currency';
 
@@ -74,6 +75,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			canScan: access.can('scan_check_in'),
 			canSettle: access.can('settle_balance'),
 			canWalkIn: access.can('walk_in'),
+			canComp: access.can('comp'),
 		},
 		event: access.event,
 		staffRoleName: access.staffRoleName,
@@ -180,6 +182,40 @@ export const actions: Actions = {
 			actorId: locals.user.id,
 		});
 		if (!result.ok) return fail(422, { error: result.error, walkIn: true });
+	},
+
+	comp: async ({ request, locals, params }) => {
+		if (!locals.user) return fail(401, { error: 'Non authentifié.', comp: true });
+
+		// The "offer a Comp" permission is re-resolved on the server, never
+		// trusted from the client.
+		const access = await getStaffEventAccess(locals.user, params.id);
+
+		const formData = await request.formData();
+		const seatingId = formData.get('seatingId');
+		const name = formData.get('name');
+		const quantity = Number(formData.get('quantity'));
+		const email = formData.get('email');
+		const phone = formData.get('phone');
+
+		if (!access.can('comp')) {
+			return fail(403, { error: "Vous n'avez pas la permission d'offrir un comp.", comp: true });
+		}
+		if (typeof seatingId !== 'string' || typeof name !== 'string' || !Number.isInteger(quantity)) {
+			return fail(400, { error: 'Requête invalide.', comp: true });
+		}
+
+		const result = await createCompOnTheSpot({
+			access,
+			eventId: params.id,
+			seatingId,
+			name,
+			quantity,
+			email: typeof email === 'string' && email.trim() !== '' ? email.trim() : undefined,
+			phone: typeof phone === 'string' && phone.trim() !== '' ? phone.trim() : undefined,
+			actorId: locals.user.id,
+		});
+		if (!result.ok) return fail(422, { error: result.error, comp: true });
 	},
 
 	scan: async ({ request, locals, params }) => {

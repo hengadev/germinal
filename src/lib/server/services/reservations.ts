@@ -565,7 +565,7 @@ export async function createCompReservation(input: CreateCompReservationInput) {
 }
 
 export type CreateStaffReservationInput = {
-	kind: 'walk_in';
+	kind: 'walk_in' | 'comp';
 	sessionId: string;
 	name: string;
 	quantity: number;
@@ -583,8 +583,8 @@ export type CreateStaffReservationInput = {
  * seated the party, there is nobody to email.
  *
  * The caller may pass its own transaction so the Reservation is created
- * atomically with what surrounds it (the Walk-in's Check-in, issues 021
- * and 022).
+ * atomically with what surrounds it (the Walk-in's or the Comp's Check-in,
+ * issues 021 and 022).
  */
 export async function createStaffReservation(
 	input: CreateStaffReservationInput,
@@ -598,7 +598,8 @@ export async function createStaffReservation(
 
 	const accessToken = generateAccessToken();
 	const now = new Date();
-	const total = (price?.amount ?? 0) * input.quantity;
+	const isComp = input.kind === 'comp';
+	const total = isComp ? 0 : (price?.amount ?? 0) * input.quantity;
 
 	const [reservation] = await tx.insert(reservations).values({
 		eventSessionId: input.sessionId,
@@ -608,6 +609,7 @@ export async function createStaffReservation(
 		notificationPreference: 'both',
 		quantity: input.quantity,
 		// Everything is owed on site: no Deposit, the full price as Balance.
+		// A Comp is offered: it owes nothing at all.
 		totalAmount: total,
 		depositAmount: 0,
 		balanceAmount: total,
@@ -616,7 +618,8 @@ export async function createStaffReservation(
 		accessToken,
 		expiresAt: now,
 		confirmedAt: now,
-		origin: input.kind,
+		origin: isComp ? 'staff' : input.kind,
+		isComp,
 		madeBy: input.actorId,
 	}).returning();
 

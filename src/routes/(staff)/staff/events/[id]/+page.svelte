@@ -209,6 +209,7 @@ import { page } from '$app/state';
 						canCorrect={data.access.canCorrect}
 						canSettle={data.access.canSettle}
 						canWalkIn={data.access.canWalkIn}
+						canComp={data.access.canComp}
 					/>
 				{:else}
 					<div class="bg-background border border-border-card rounded-lg p-8 text-center">
