@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Eye, CheckCircle2, Clock, XCircle, AlertCircle, Search, Calendar, User, Mail, Ticket, CreditCard, ArrowRight, Gift } from 'lucide-svelte';
+	import { Eye, CheckCircle2, Clock, XCircle, AlertCircle, Search, Calendar, User, Mail, Ticket, CreditCard, ArrowRight, Gift, Footprints, BadgeCheck } from 'lucide-svelte';
 	import { formatCurrency } from '$lib/utils/currency';
 	import DietaryRequirementsBadge from '$lib/components/admin/DietaryRequirementsBadge.svelte';
 	import {
@@ -235,6 +235,9 @@
 									<Ticket size={14} />
 									<span class="font-medium">{reservation.quantity}</span>
 								</div>
+								<div class="text-muted-foreground text-xs">
+									{reservation.arrived} / {reservation.quantity} arrivés
+								</div>
 								<div class="text-foreground">
 									{formatCurrency(reservation.totalAmount, reservation.currency)}
 								</div>
@@ -255,10 +258,22 @@
 									{/if}
 									{statusBadge.text}
 								</span>
+								{#if reservation.origin === 'walk_in'}
+									<span class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-blue-50 text-blue-700 rounded-full">
+										<Footprints size={12} />
+										Walk-in
+									</span>
+								{/if}
 								{#if reservation.isComp}
 									<span class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-purple-50 text-purple-700 rounded-full">
 										<Gift size={12} />
 										Comp
+									</span>
+								{/if}
+								{#if reservation.balanceSettledAt}
+									<span class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-green-50 text-green-700 rounded-full">
+										<BadgeCheck size={12} />
+										Solde réglé
 									</span>
 								{/if}
 								<DietaryRequirementsBadge dietaryRequirements={reservation.dietaryRequirements} />
@@ -316,10 +331,22 @@
 									{/if}
 									{statusBadge.text}
 								</span>
+								{#if reservation.origin === 'walk_in'}
+									<span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-blue-50 text-blue-700 rounded-full">
+										<Footprints size={10} />
+										Walk-in
+									</span>
+								{/if}
 								{#if reservation.isComp}
 									<span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-purple-50 text-purple-700 rounded-full">
 										<Gift size={10} />
 										Comp
+									</span>
+								{/if}
+								{#if reservation.balanceSettledAt}
+									<span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-green-50 text-green-700 rounded-full">
+										<BadgeCheck size={10} />
+										Solde réglé
 									</span>
 								{/if}
 								<DietaryRequirementsBadge dietaryRequirements={reservation.dietaryRequirements} compact />
@@ -336,7 +363,10 @@
 					</div>
 					<div>
 						<div class="text-xs text-muted-foreground">Tickets</div>
-						<div class="text-sm font-medium text-foreground">{reservation.quantity}</div>
+						<div class="text-sm font-medium text-foreground">
+							{reservation.quantity}
+							<span class="font-normal text-muted-foreground">· {reservation.arrived} arrivés</span>
+						</div>
 					</div>
 					<div>
 						<div class="text-xs text-muted-foreground">Total</div>

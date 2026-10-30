@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { ArrowLeft, User, Mail, Phone, Ticket, Calendar, Clock, MapPin, CreditCard, CheckCircle2, ExternalLink, Download, Printer, XCircle, MailCheck, RotateCcw, AlertCircle, Gift, Utensils } from 'lucide-svelte';
+	import { ArrowLeft, User, Mail, Phone, Ticket, Calendar, Clock, MapPin, CreditCard, CheckCircle2, ExternalLink, Download, Printer, XCircle, MailCheck, RotateCcw, AlertCircle, Gift, Utensils, BadgeCheck } from 'lucide-svelte';
 	import type { PageData, ActionData } from './$types';
 	import { formatCurrency } from '$lib/utils/currency';
 	import { reservationAmounts, balanceToCollect } from '$lib/utils/balance-due';
@@ -448,6 +448,61 @@ END:VCALENDAR`;
 				{:else}
 					<div class="text-muted-foreground">Aucune information de paiement disponible</div>
 				{/if}
+			</div>
+
+			<!-- Arrivals (issue 023) -->
+			<div class="bg-background rounded-lg border border-border-card p-6">
+				<h2 class="text-lg font-semibold text-foreground mb-4">Arrivées</h2>
+				{#if data.reservation.checkIns.length === 0}
+					<div class="text-muted-foreground">Aucune arrivée enregistrée</div>
+				{:else}
+					<div class="space-y-3">
+						{#each data.reservation.checkIns as checkIn (checkIn.id)}
+							<div class="flex items-start gap-3 {checkIn.undoneAt ? 'opacity-60' : ''}">
+								<div class="w-2 h-2 {checkIn.undoneAt ? 'bg-muted-foreground' : 'bg-green-600'} rounded-full mt-2"></div>
+								<div>
+									<div class="font-medium text-foreground">
+										{checkIn.guests} {checkIn.guests === 1 ? 'personne' : 'personnes'}
+										<span class="text-muted-foreground font-normal">· {checkIn.method === 'scan' ? 'Scan' : 'À la main'}</span>
+									</div>
+									<div class="text-sm text-muted-foreground">
+										{checkIn.checkedInByName ?? 'Compte supprimé'} · {formatDateTime(checkIn.checkedInAt)}
+									</div>
+									{#if checkIn.undoneAt}
+										<div class="text-sm text-red-600">
+											Annulée{#if checkIn.undoneByName}{' '}par {checkIn.undoneByName}{/if} le {formatDateTime(checkIn.undoneAt)}
+										</div>
+									{/if}
+								</div>
+							</div>
+						{/each}
+					</div>
+				{/if}
+
+				{#if data.reservation.lastMovedAt}
+					<div class="mt-6 pt-4 border-t border-border-card">
+						<h3 class="text-sm font-semibold text-foreground mb-2">Déplacement</h3>
+						<div class="text-sm text-foreground">
+							Déplacée{#if data.reservation.lastMovedByName}{' '}par {data.reservation.lastMovedByName}{/if} le {formatDateTime(data.reservation.lastMovedAt)}
+						</div>
+					</div>
+				{/if}
+
+				<div class="mt-6 pt-4 border-t border-border-card">
+					<h3 class="text-sm font-semibold text-foreground mb-2">Solde sur place</h3>
+					{#if data.reservation.balanceSettledAt}
+						<div class="flex items-center gap-2 text-sm">
+							<BadgeCheck size={16} class="text-green-600" />
+							<span class="text-foreground">
+								Solde réglé{#if data.reservation.balanceSettledByName}{' '}par {data.reservation.balanceSettledByName}{/if} le {formatDateTime(data.reservation.balanceSettledAt)}
+							</span>
+						</div>
+					{:else if data.reservation.isComp || !balanceDue}
+						<div class="text-muted-foreground">Rien à régler sur place</div>
+					{:else}
+						<div class="text-muted-foreground">Solde non réglé</div>
+					{/if}
+				</div>
 			</div>
 
 			<!-- Timeline -->

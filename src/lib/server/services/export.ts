@@ -1,6 +1,7 @@
 import { db } from '../db';
-import { reservations, payments, eventSessions, events, waitlist } from '../db/schema';
-import { eq, and, desc, sql } from 'drizzle-orm';
+import { reservations, payments, eventSessions, events, waitlist, users } from '../db/schema';
+import { eq, and, desc, sql, inArray } from 'drizzle-orm';
+import { arrivedByReservation } from './check-ins';
 import { seatingTitle } from '$lib/utils/seating-title';
 import { reservationAmounts, balanceToCollect } from '$lib/utils/balance-due';
 
@@ -110,9 +111,31 @@ export async function exportReservationsToCSV(options: {
 		);
 	}
 
+	// Arrivals (issue 023): guests already in (undone Check-ins excluded),
+	// and who settled each Balance, both fetched in one query each.
+	const ids = filtered.map((r: typeof filtered[number]) => r.id);
+	const arrived = await arrivedByReservation(ids);
+	const settledSet = new Set<string>();
+	for (const r of filtered) {
+		const id = r.balanceSettledBy as string | null;
+		if (id !== null) settledSet.add(id);
+	}
+	const settledByIds: string[] = [...settledSet];
+	const settlerRows: { id: string; name: string }[] = settledByIds.length > 0
+		? await db
+			.select({ id: users.id, name: sql<string>`first_name || ' ' || last_name` })
+			.from(users)
+			.where(inArray(users.id, settledByIds))
+		: [];
+	const settlers = new Map(settlerRows.map((row: { id: string; name: string }) => [row.id, row.name]));
+	const now = new Date();
+
 	const csvData = filtered.map((r: typeof filtered[number]) => {
 		const amounts = reservationAmounts(r);
 		const balanceDue = balanceToCollect(r);
+		const guestsArrived = arrived.get(r.id) ?? 0;
+		// No-shows only count once the Seating is over.
+		const noShows = r.eventSession.endTime < now ? r.quantity - guestsArrived : '';
 		return {
 			'Reservation ID': r.id,
 			'Guest Name': r.guestName,
@@ -136,6 +159,12 @@ export async function exportReservationsToCSV(options: {
 			// Dietary Requirements (issue 041): Admin export only.
 			'Dietary Requirements': r.dietaryRequirements ?? '',
 			'Dietary Consent At': r.dietaryConsentAt,
+			'Guests Arrived': guestsArrived,
+			'No-shows': noShows,
+			'Balance Settled': r.balanceSettledAt ? 'yes' : 'no',
+			'Balance Settled At': r.balanceSettledAt,
+			'Balance Settled By': r.balanceSettledBy ? settlers.get(r.balanceSettledBy) ?? '' : '',
+			'Origin': r.isComp ? 'comp' : r.origin === 'walk_in' ? 'walk_in' : 'online',
 			'Confirmed At': r.confirmedAt,
 			'Created At': r.createdAt,
 		};
@@ -162,6 +191,12 @@ export async function exportReservationsToCSV(options: {
 		'Payment Method',
 		'Dietary Requirements',
 		'Dietary Consent At',
+		'Guests Arrived',
+		'No-shows',
+		'Balance Settled',
+		'Balance Settled At',
+		'Balance Settled By',
+		'Origin',
 		'Confirmed At',
 		'Created At',
 	];

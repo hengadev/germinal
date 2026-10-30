@@ -36,6 +36,9 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 				sessionStartTime: session?.startTime?.toISOString() || '',
 				paymentStatus: r.paymentStatus,
 				isComp: (r as { isComp?: boolean }).isComp ?? false,
+				origin: ((r as { origin?: 'online' | 'staff' | 'walk_in' }).origin ?? 'online'),
+				balanceSettledAt: null as string | null,
+				arrived: 0,
 				// Dietary Requirements (issue 041): Admins only.
 				dietaryRequirements: (r as { dietaryRequirements?: string | null }).dietaryRequirements ?? null
 			};
@@ -57,6 +60,7 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 	const { db } = await import('$lib/server/db');
 	const { reservations } = await import('$lib/server/db/schema');
 	const { desc } = await import('drizzle-orm');
+	const { arrivedByReservation } = await import('$lib/server/services/check-ins');
 
 	// Build where clause for search
 	let whereClause = undefined;
@@ -92,6 +96,8 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		}
 	});
 
+	const arrived = await arrivedByReservation(allReservations.map((r: typeof allReservations[number]) => r.id));
+
 	return {
 		reservations: allReservations.map((r: typeof allReservations[number]) => ({
 			id: r.id,
@@ -111,6 +117,9 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 			sessionStartTime: r.eventSession.startTime.toISOString(),
 			paymentStatus: r.payment?.status || 'none',
 			isComp: r.isComp,
+			origin: r.origin,
+			balanceSettledAt: r.balanceSettledAt?.toISOString() ?? null,
+			arrived: arrived.get(r.id) ?? 0,
 			// Dietary Requirements (issue 041): Admins only.
 			dietaryRequirements: r.dietaryRequirements
 		})),

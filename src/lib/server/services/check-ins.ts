@@ -6,9 +6,10 @@
  * expected are counted, so two simultaneous Check-ins never add up to
  * more than the party size. Undoing keeps the row, marked undone.
  */
-import { and, desc, eq, isNull, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 import { db } from '../db';
-import { checkIns, eventDays, eventServices, eventSessions, reservations } from '../db/schema';
+import { checkIns, eventDays, eventServices, eventSessions, reservations, users } from '../db/schema';
 import type { StaffAccess } from '$lib/staff/access';
 import { recordAuditLog } from './audit-log';
 
@@ -102,6 +103,62 @@ export async function recordCheckIn(input: {
 
 		return { ok: true as const, arrived: arrived + guests, quantity: party.quantity };
 	});
+}
+
+/**
+ * Guests already arrived (non-undone Check-ins) per Reservation, for the
+ * admin lists and the CSV export (issue 023).
+ */
+export async function arrivedByReservation(
+	reservationIds: string[]
+): Promise<Map<string, number>> {
+	if (reservationIds.length === 0) return new Map();
+	const rows: { reservationId: string; arrived: number }[] = await db
+		.select({
+			reservationId: checkIns.reservationId,
+			arrived: sql<number>`coalesce(sum(${checkIns.guests}), 0)::int`,
+		})
+		.from(checkIns)
+		.where(and(inArray(checkIns.reservationId, reservationIds), isNull(checkIns.undoneAt)))
+		.groupBy(checkIns.reservationId);
+	return new Map(rows.map((r: { reservationId: string; arrived: number }) => [r.reservationId, r.arrived]));
+}
+
+export interface CheckInHistoryRow {
+	id: string;
+	guests: number;
+	method: 'scan' | 'manual';
+	/** "Prénom Nom" of whoever recorded it, or null if the account is gone. */
+	checkedInByName: string | null;
+	checkedInAt: Date;
+	undoneAt: Date | null;
+	undoneByName: string | null;
+}
+
+/**
+ * The Reservation's full Check-in history, undone ones included, for the
+ * admin Reservation page (issue 023). The who is kept even when the
+ * account has since been deleted (the record of the evening stays).
+ */
+export async function checkInHistory(reservationId: string): Promise<CheckInHistoryRow[]> {
+	const checker = alias(users, 'checker');
+	const undoner = alias(users, 'undoner');
+	const rows = await db
+		.select({
+			id: checkIns.id,
+			guests: checkIns.guests,
+			method: checkIns.method,
+			checkedInByName: sql<string | null>`(${checker.firstName} || ' ' || ${checker.lastName})`,
+			checkedInAt: checkIns.checkedInAt,
+			undoneAt: checkIns.undoneAt,
+			undoneByName: sql<string | null>`(${undoner.firstName} || ' ' || ${undoner.lastName})`,
+		})
+		.from(checkIns)
+		.leftJoin(checker, eq(checkIns.checkedInBy, checker.id))
+		.leftJoin(undoner, eq(checkIns.undoneBy, undoner.id))
+		.where(eq(checkIns.reservationId, reservationId))
+		.orderBy(desc(checkIns.checkedInAt));
+	return rows;
 }
 
 /**
