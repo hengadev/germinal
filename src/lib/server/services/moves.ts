@@ -41,8 +41,9 @@ export async function moveReservation(input: {
 	}
 
 	// Email data filled inside the transaction, sent only once it commits:
-	// a send failure must not fail the Move.
-	let email: Parameters<typeof sendReservationModifiedEmail>[0] | null = null;
+	// a send failure must not fail the Move. A box, so the transaction's
+	// assignment is visible after it.
+	const out: { email?: Parameters<typeof sendReservationModifiedEmail>[0] } = {};
 
 	const result = await db.transaction(async (tx: typeof db) => {
 		// Lock the Reservation's row so two simultaneous Moves cannot
@@ -157,7 +158,7 @@ export async function moveReservation(input: {
 			.from(eventSessions)
 			.where(eq(eventSessions.id, toSeatingId));
 
-		email = {
+		out.email = {
 			guestEmail: party.guestEmail,
 			guestName: party.guestName ?? '',
 			eventTitle: target.eventTitleEn || target.eventTitleFr || '',
@@ -173,6 +174,7 @@ export async function moveReservation(input: {
 
 	if (!result.ok) return result;
 
+	const email = out.email;
 	if (email?.guestEmail) {
 		try {
 			await sendReservationModifiedEmail(email);
