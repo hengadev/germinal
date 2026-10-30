@@ -54,47 +54,60 @@
 			detect: (source: HTMLVideoElement) => Promise<{ rawValue: string }[]>;
 		})({ formats: ['qr_code'] });
 
-		navigator.mediaDevices
-			.getUserMedia({ video: { facingMode: 'environment' } })
-			.then((mediaStream) => {
-				stream = mediaStream;
-				video.srcObject = mediaStream;
-				void video.play();
-
-				timer = setInterval(async () => {
-					if (document.hidden || video.readyState < 2) return;
-					try {
-						const codes = await detector.detect(video);
-						for (const code of codes) {
-							const token = parseTicketToken(code.rawValue);
-							if (token === null) {
-								unrecognized = 'QR non reconnu';
-								continue;
-							}
-							const now = Date.now();
-							if (token === lastToken && now - lastTokenAt < DEBOUNCE_MS) continue;
-							lastToken = token;
-							lastTokenAt = now;
-							unrecognized = '';
-							onScan(token);
-						}
-					} catch {
-						// Transient decode errors are ignored; the loop keeps running.
+		// Started on mount, stopped when the page is hidden (screen locked, app
+		// switched) and started again when it comes back.
+		function startCamera() {
+			if (!video) return;
+			const cam = video;
+			void navigator.mediaDevices
+				.getUserMedia({ video: { facingMode: 'environment' } })
+				.then((mediaStream) => {
+					// Hidden (or started twice) while the camera was opening: let go.
+					if (document.hidden || stream !== null) {
+						for (const track of mediaStream.getTracks()) track.stop();
+						return;
 					}
-				}, 400);
-			})
-			.catch((e: unknown) => {
-				if (e instanceof DOMException) {
-					if (e.name === 'NotAllowedError') error = 'permission';
-					else if (e.name === 'NotFoundError') error = 'no-camera';
-					else error = 'unknown';
-				} else {
-					error = 'unknown';
-				}
-			});
+					stream = mediaStream;
+					cam.srcObject = mediaStream;
+					void cam.play();
+
+					timer = setInterval(async () => {
+						if (document.hidden || cam.readyState < 2) return;
+						try {
+							const codes = await detector.detect(cam);
+							for (const code of codes) {
+								const token = parseTicketToken(code.rawValue);
+								if (token === null) {
+									unrecognized = 'QR non reconnu';
+									continue;
+								}
+								const now = Date.now();
+								if (token === lastToken && now - lastTokenAt < DEBOUNCE_MS) continue;
+								lastToken = token;
+								lastTokenAt = now;
+								unrecognized = '';
+								onScan(token);
+							}
+						} catch {
+							// Transient decode errors are ignored; the loop keeps running.
+						}
+					}, 400);
+				})
+				.catch((e: unknown) => {
+					if (e instanceof DOMException) {
+						if (e.name === 'NotAllowedError') error = 'permission';
+						else if (e.name === 'NotFoundError') error = 'no-camera';
+						else error = 'unknown';
+					} else {
+						error = 'unknown';
+					}
+				});
+		}
+		startCamera();
 
 		const onVisibility = () => {
 			if (document.hidden) stopCamera();
+			else if (stream === null && error === null) startCamera();
 		};
 		document.addEventListener('visibilitychange', onVisibility);
 
