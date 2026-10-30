@@ -113,7 +113,7 @@ export async function exportReservationsToCSV(options: {
 	// Arrivals (issue 023): guests already in (undone Check-ins excluded),
 	// and who settled each Balance, both fetched in one query each.
 	const ids = filtered.map((r: typeof filtered[number]) => r.id);
-	const arrivedRows = ids.length > 0
+	const arrivedRows: { reservationId: string; arrived: number }[] = ids.length > 0
 		? await db
 			.select({
 				reservationId: checkIns.reservationId,
@@ -123,15 +123,20 @@ export async function exportReservationsToCSV(options: {
 			.where(and(inArray(checkIns.reservationId, ids), isNull(checkIns.undoneAt)))
 			.groupBy(checkIns.reservationId)
 		: [];
-	const arrived = new Map(arrivedRows.map((row) => [row.reservationId, row.arrived]));
-	const settledByIds = [...new Set(filtered.map((r: typeof filtered[number]) => r.balanceSettledBy).filter((id): id is string => id !== null))];
-	const settlerRows = settledByIds.length > 0
+	const arrived = new Map(arrivedRows.map((row: { reservationId: string; arrived: number }) => [row.reservationId, row.arrived]));
+	const settledSet = new Set<string>();
+	for (const r of filtered) {
+		const id = r.balanceSettledBy as string | null;
+		if (id !== null) settledSet.add(id);
+	}
+	const settledByIds: string[] = [...settledSet];
+	const settlerRows: { id: string; name: string }[] = settledByIds.length > 0
 		? await db
 			.select({ id: users.id, name: sql<string>`first_name || ' ' || last_name` })
 			.from(users)
 			.where(inArray(users.id, settledByIds))
 		: [];
-	const settlers = new Map(settlerRows.map((row) => [row.id, row.name]));
+	const settlers = new Map(settlerRows.map((row: { id: string; name: string }) => [row.id, row.name]));
 	const now = new Date();
 
 	const csvData = filtered.map((r: typeof filtered[number]) => {

@@ -361,6 +361,10 @@ export const load: PageServerLoad = async ({ params }) => {
 		const seatingStarts = sessionsData.map((s: typeof sessionsData[number]) => s.startTime.getTime());
 		const lastSeatingStart = seatingStarts.length > 0 ? new Date(Math.max(...seatingStarts)) : null;
 
+		// Arrivals (issue 023): guests already in, for the Réservations tab.
+		const { arrivedByReservation } = await import('$lib/server/services/check-ins');
+		const arrived = await arrivedByReservation(reservationsData.map((r: typeof reservationsData[number]) => r.id));
+
 		return {
 			event,
 			promoCodes,
@@ -384,8 +388,6 @@ export const load: PageServerLoad = async ({ params }) => {
 				badgeType: s.badgeType,
 				reservationCount: s.reservationCount
 			})),
-			const { arrivedByReservation } = await import('$lib/server/services/check-ins');
-			const arrived = await arrivedByReservation(reservationsData.map((r: typeof reservationsData[number]) => r.id));
 			reservations: reservationsData.map((r: typeof reservationsData[number]) => ({
 				id: r.id,
 				guestName: r.guestName,

@@ -362,8 +362,8 @@
 						<div class="text-sm font-medium text-foreground truncate">{reservation.sessionTitle}</div>
 					</div>
 					<div>
-						<div class="text-xs text-muted-foreground"Tickets</div>
-					<div class="text-sm font-medium text-foreground">
+						<div class="text-xs text-muted-foreground">Tickets</div>
+										<div class="text-sm font-medium text-foreground">
 						{reservation.quantity}
 						<span class="font-normal text-muted-foreground">· {reservation.arrived} arrivés</span>
 					</div>

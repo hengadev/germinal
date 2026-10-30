@@ -113,7 +113,7 @@ export async function arrivedByReservation(
 	reservationIds: string[]
 ): Promise<Map<string, number>> {
 	if (reservationIds.length === 0) return new Map();
-	const rows = await db
+	const rows: { reservationId: string; arrived: number }[] = await db
 		.select({
 			reservationId: checkIns.reservationId,
 			arrived: sql<number>`coalesce(sum(${checkIns.guests}), 0)::int`,
@@ -121,7 +121,7 @@ export async function arrivedByReservation(
 		.from(checkIns)
 		.where(and(inArray(checkIns.reservationId, reservationIds), isNull(checkIns.undoneAt)))
 		.groupBy(checkIns.reservationId);
-	return new Map(rows.map((r) => [r.reservationId, r.arrived]));
+	return new Map(rows.map((r: { reservationId: string; arrived: number }) => [r.reservationId, r.arrived]));
 }
 
 export interface CheckInHistoryRow {
