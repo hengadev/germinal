@@ -203,6 +203,26 @@ describe('check-ins', () => {
 		if (!result.ok) expect(result.error).toContain('jour en cours');
 	});
 
+	it('refuses to undo a Check-in of another Day', async () => {
+		const now = new Date();
+		const s = await seed(now);
+		const party = await s.reservation('Hier Invité');
+		await (await svc()).recordCheckIn({
+			access: accessFor({ kind: 'admin' }, [s.today], now),
+			eventId: s.event.id, reservationId: party.id, guests: 2, method: 'manual', actorId: s.actor.id,
+		});
+		// The next Day, yesterday's arrivals are no longer the door's to correct.
+		const tomorrow = dayOf(new Date(now.getTime() + 24 * 3600 * 1000), ZONE);
+		const access = accessFor({ kind: 'admin' }, [s.today, tomorrow], new Date(`${tomorrow}T20:00:00Z`));
+		const result = await (await svc()).undoLastCheckIn({
+			access, eventId: s.event.id, reservationId: party.id, actorId: s.actor.id,
+		});
+		expect(result.ok).toBe(false);
+		if (!result.ok) expect(result.error).toContain('jour en cours');
+		const [row] = await testDb.select().from(checkIns);
+		expect(row.undoneAt).toBeNull();
+	});
+
 	it('refuses without the manual check-in permission', async () => {
 		const now = new Date();
 		const s = await seed(now);

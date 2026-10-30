@@ -181,9 +181,11 @@ export async function undoLastCheckIn(input: {
 	return db.transaction(async (tx: typeof db) => {
 		// Lock the Reservation's row so two undos cannot pick the same Check-in.
 		const [party] = await tx
-			.select({ eventId: eventSessions.eventId })
+			.select({ eventId: eventSessions.eventId, day: eventDays.date })
 			.from(reservations)
 			.innerJoin(eventSessions, eq(reservations.eventSessionId, eventSessions.id))
+			.innerJoin(eventServices, eq(eventSessions.serviceId, eventServices.id))
+			.innerJoin(eventDays, eq(eventServices.dayId, eventDays.id))
 			.where(eq(reservations.id, reservationId))
 			// Only the Reservation's row: locking the joined Seating would queue
 			// every Check-in and online booking of that Seating behind this one.
@@ -191,6 +193,10 @@ export async function undoLastCheckIn(input: {
 
 		if (!party || party.eventId !== eventId) {
 			return { ok: false as const, error: 'Réservation introuvable.' };
+		}
+		// Corrections stay on the Day under way, like the actions they undo.
+		if (access.day === null || String(party.day) !== access.day) {
+			return { ok: false as const, error: "Cette réservation n'est pas pour le jour en cours." };
 		}
 
 		const [last] = await tx

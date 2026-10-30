@@ -109,14 +109,24 @@ export async function undoSettleBalance(input: {
 
 	return db.transaction(async (tx: typeof db) => {
 		const [party] = await tx
-			.select({ eventId: eventSessions.eventId, balanceSettledAt: reservations.balanceSettledAt })
+			.select({
+				eventId: eventSessions.eventId,
+				day: eventDays.date,
+				balanceSettledAt: reservations.balanceSettledAt,
+			})
 			.from(reservations)
 			.innerJoin(eventSessions, eq(reservations.eventSessionId, eventSessions.id))
+			.innerJoin(eventServices, eq(eventSessions.serviceId, eventServices.id))
+			.innerJoin(eventDays, eq(eventServices.dayId, eventDays.id))
 			.where(eq(reservations.id, reservationId))
 			.for('update', { of: reservations });
 
 		if (!party || party.eventId !== eventId) {
 			return { ok: false as const, error: 'Réservation introuvable.' };
+		}
+		// Corrections stay on the Day under way, like the actions they undo.
+		if (access.day === null || String(party.day) !== access.day) {
+			return { ok: false as const, error: "Cette réservation n'est pas pour le jour en cours." };
 		}
 		if (party.balanceSettledAt === null) {
 			return { ok: false as const, error: 'Le solde de cette réservation n’est pas réglé.' };
