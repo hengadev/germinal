@@ -14,6 +14,32 @@ import { recordAuditLog } from './audit-log';
 export type WalkInResult = { ok: true; reservationId: string } | { ok: false; error: string };
 
 /**
+ * Check a party seated on the spot (a Walk-in, or a Comp — issue 021)
+ * before it reaches the database: a French message, or null when fine.
+ * The limits are the columns' own, so a long paste never fails the insert.
+ */
+export function spotPartyError(input: {
+	name: string;
+	quantity: number;
+	email?: string;
+	phone?: string;
+}): string | null {
+	const name = input.name.trim();
+	if (name === '') return 'Le nom est obligatoire.';
+	if (name.length > 255) return 'Le nom est trop long.';
+	if (!Number.isInteger(input.quantity) || input.quantity < 1) {
+		return 'Le nombre de personnes doit être au moins 1.';
+	}
+	if (input.email !== undefined) {
+		if (input.email.length > 255 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.email)) {
+			return "L'adresse e-mail n'est pas valide.";
+		}
+	}
+	if (input.phone !== undefined && input.phone.length > 50) return 'Le numéro de téléphone est trop long.';
+	return null;
+}
+
+/**
  * Seat a Walk-in: create the Reservation (origin 'walk_in', attributed to
  * the actor) and its whole-party Check-in in one transaction. The Seating
  * must belong to the Event and to the Day the actor works; one that has
@@ -35,12 +61,8 @@ export async function createWalkIn(input: {
 	if (!access.can('walk_in')) {
 		return { ok: false, error: "Vous n'avez pas la permission d'ajouter un walk-in." };
 	}
-	if (name.trim() === '') {
-		return { ok: false, error: 'Le nom est obligatoire.' };
-	}
-	if (!Number.isInteger(quantity) || quantity < 1) {
-		return { ok: false, error: 'Le nombre de personnes doit être au moins 1.' };
-	}
+	const invalid = spotPartyError({ name, quantity, email, phone });
+	if (invalid) return { ok: false, error: invalid };
 
 	return db.transaction(async (tx: typeof db) => {
 		const [seating] = await tx

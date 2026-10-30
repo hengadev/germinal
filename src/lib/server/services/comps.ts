@@ -10,6 +10,7 @@ import { checkIns, eventDays, eventServices, eventSessions } from '../db/schema'
 import type { StaffAccess } from '$lib/staff/access';
 import { createStaffReservation } from './reservations';
 import { recordAuditLog } from './audit-log';
+import { spotPartyError } from './walk-ins';
 
 export type CompResult = { ok: true; reservationId: string } | { ok: false; error: string };
 
@@ -35,12 +36,8 @@ export async function createCompOnTheSpot(input: {
 	if (!access.can('comp')) {
 		return { ok: false, error: "Vous n'avez pas la permission d'offrir un comp." };
 	}
-	if (name.trim() === '') {
-		return { ok: false, error: 'Le nom est obligatoire.' };
-	}
-	if (!Number.isInteger(quantity) || quantity < 1) {
-		return { ok: false, error: 'Le nombre de personnes doit être au moins 1.' };
-	}
+	const invalid = spotPartyError({ name, quantity, email, phone });
+	if (invalid) return { ok: false, error: invalid };
 
 	return db.transaction(async (tx: typeof db) => {
 		const [seating] = await tx
