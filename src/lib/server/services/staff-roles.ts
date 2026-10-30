@@ -1,6 +1,6 @@
 import { db } from '../db';
 import { staffRoles, eventStaff } from '../db/schema';
-import { eq, sql, asc, isNull } from 'drizzle-orm';
+import { eq, sql, asc, desc, isNull } from 'drizzle-orm';
 import { logger } from '$lib/server/logger';
 import {
 	STAFF_PERMISSIONS,
@@ -58,7 +58,7 @@ export async function listStaffRoles(): Promise<StaffRoleWithUsage[]> {
 			assignmentCount: sql<number>`(select count(*)::int from ${eventStaff} where ${eventStaff.staffRoleId} = ${staffRoles.id})`,
 		})
 		.from(staffRoles)
-		.orderBy(asc(isNull(staffRoles.archivedAt)), asc(staffRoles.name));
+		.orderBy(desc(isNull(staffRoles.archivedAt)), asc(staffRoles.name));
 	return rows.map((r: typeof rows[number]) => ({ ...r, permissions: parsePermissions(r.permissions) }));
 }
 
