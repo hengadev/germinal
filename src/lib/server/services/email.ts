@@ -663,6 +663,125 @@ function generateCancellationHtmlTemplate(data: CancellationEmailData): string {
   `.trim();
 }
 
+export interface ModifiedEmailData {
+	guestEmail: string | null;
+	guestName: string;
+	eventTitle: string;
+	sessionTitle: string;
+	sessionStartTime: Date;
+	/** The Event's Time Zone: the Seating's time is shown on its clock. */
+	timeZone: string;
+	reservationId: string;
+	accessToken: string;
+}
+
+export function generateModifiedTextTemplate(data: ModifiedEmailData): string {
+	return `
+Reservation Modified
+
+Hi ${data.guestName},
+
+Your reservation for ${data.eventTitle} has been moved to another seating.
+
+NEW SEATING:
+${data.sessionTitle}
+${formatSeatingDateTime(data.sessionStartTime, data.timeZone, 'en')}
+
+Your tickets remain valid — no need to book again:
+${env.PUBLIC_URL}/tickets/${data.accessToken}
+
+If you have any questions, please contact us.
+
+---
+This is an automated notification from Germinal.
+  `.trim();
+}
+
+function generateModifiedHtmlTemplate(data: ModifiedEmailData): string {
+	return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reservation Modified</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background-color: #f8f9fa; border-radius: 8px; padding: 24px; margin-bottom: 24px;">
+    <h2 style="margin: 0 0 8px 0; color: #1a1a1a; font-size: 24px;">Reservation Modified</h2>
+    <p style="margin: 0; color: #6c757d; font-size: 14px;">Reservation #${escapeHtml(data.reservationId.substring(0, 8))}</p>
+  </div>
+
+  <div style="background-color: #ffffff; border: 1px solid #e9ecef; border-radius: 8px; padding: 24px; margin-bottom: 16px;">
+    <p style="margin: 0 0 16px 0; font-size: 16px;">Hi ${escapeHtml(data.guestName)},</p>
+    <p style="margin: 0 0 16px 0; font-size: 16px;">Your reservation for <strong>${escapeHtml(data.eventTitle)}</strong> has been moved to another seating.</p>
+
+    <h3 style="margin: 24px 0 12px 0; color: #495057; font-size: 16px; font-weight: 600;">New Seating</h3>
+    <table style="width: 100%; border-collapse: collapse;">
+      <tr>
+        <td style="padding: 8px 0; color: #212529;"><strong>${escapeHtml(data.sessionTitle)}</strong></td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0; color: #6c757d;">
+          ${formatSeatingDateTime(data.sessionStartTime, data.timeZone, 'en')}
+        </td>
+      </tr>
+    </table>
+
+    <p style="margin: 24px 0 0 0;">
+      <a href="${env.PUBLIC_URL}/tickets/${data.accessToken}" style="display: inline-block; background-color: #1a1a1a; color: #ffffff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 600;">View your tickets</a>
+    </p>
+
+    <p style="margin: 24px 0 0 0; font-size: 14px; color: #6c757d;">
+      Your tickets remain valid — no need to book again. If you have any questions, please contact us.
+    </p>
+  </div>
+
+  <div style="border-top: 1px solid #e9ecef; padding-top: 16px;">
+    <p style="margin: 0; color: #6c757d; font-size: 12px; text-align: center;">
+      This is an automated notification from Germinal.
+    </p>
+  </div>
+</body>
+</html>
+  `.trim();
+}
+
+/**
+ * Notify a Guest that Staff Moved their Reservation to another Seating of
+ * the same Service (issue 022): same menu, same price — only the time
+ * changed. Their Ticket keeps working, so the email links to it.
+ */
+export async function sendReservationModifiedEmail(data: ModifiedEmailData): Promise<void> {
+	// Without an email (e.g. a Walk-in) there is nobody to notify.
+	if (!data.guestEmail) return;
+	const textBody = generateModifiedTextTemplate(data);
+	const htmlBody = generateModifiedHtmlTemplate(data);
+
+	if (!isBrevoConfigured()) {
+		logger.info({
+			to: data.guestEmail,
+			reservationId: data.reservationId,
+		}, '📧 Brevo not configured - modified email would be sent');
+		return;
+	}
+
+	const { queueEmail } = await import('../jobs/process-email-queue');
+	await queueEmail({
+		type: 'reservation_modified',
+		recipient: data.guestEmail,
+		subject: `Reservation Modified - ${data.eventTitle}`,
+		textBody,
+		htmlBody,
+		metadata: {
+			reservationId: data.reservationId,
+			accessToken: data.accessToken,
+			guestName: data.guestName,
+		},
+	});
+	logger.info({ to: data.guestEmail }, '📋 Modified reservation email queued');
+}
+
 /**
  * Notify a Guest that their Reservation has been cancelled, with no money
  * changing hands (e.g. a comp Reservation, or an Admin cancellation that

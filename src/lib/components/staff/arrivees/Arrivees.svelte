@@ -25,6 +25,7 @@
 		currentSeatingId,
 		guests,
 		matches,
+		moveTargetsOf,
 		seatingTime,
 		serviceLabel,
 		servicesOf,
@@ -39,6 +40,7 @@
 		canCorrect = false,
 		canSettle = false,
 		canWalkIn = false,
+		canMove = false,
 		canComp = false
 	}: {
 		list: DayGuestList;
@@ -48,6 +50,7 @@
 		canCorrect?: boolean;
 		canSettle?: boolean;
 		canWalkIn?: boolean;
+		canMove?: boolean;
 		canComp?: boolean;
 	} = $props();
 
@@ -508,6 +511,8 @@
 							canCheckIn={canCheckIn}
 							canCorrect={canCorrect}
 							canSettle={canSettle}
+							canMove={canMove}
+							moveTargets={moveTargetsOf(list.seatings, party)}
 						/>
 					</li>
 				{/each}
@@ -574,7 +579,7 @@
 						<ul class="mt-2 space-y-2">
 							{#each folded as party, i (party.id ?? i)}
 								<li>
-									<PartyCard {party} {fields} {timeZone} canCheckIn={canCheckIn} canCorrect={canCorrect} canSettle={canSettle} />
+									<PartyCard {party} {fields} {timeZone} canCheckIn={canCheckIn} canCorrect={canCorrect} canSettle={canSettle} canMove={canMove} moveTargets={moveTargetsOf(list.seatings, party)} />
 								</li>
 							{/each}
 						</ul>
@@ -584,7 +589,7 @@
 					<ul class="space-y-2">
 						{#each stillExpected as party, i (party.id ?? i)}
 							<li>
-								<PartyCard {party} {fields} {timeZone} canCheckIn={canCheckIn} canCorrect={canCorrect} canSettle={canSettle} />
+								<PartyCard {party} {fields} {timeZone} canCheckIn={canCheckIn} canCorrect={canCorrect} canSettle={canSettle} canMove={canMove} moveTargets={moveTargetsOf(list.seatings, party)} />
 							</li>
 						{/each}
 					</ul>

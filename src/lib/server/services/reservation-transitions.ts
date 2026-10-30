@@ -221,7 +221,7 @@ export async function cancelReservationTransition(
  * Seating's row lock, never above its total. Winner-only: callers run it
  * inside the transaction whose conditional update they won.
  */
-async function restoreCapacity(tx: typeof db, eventSessionId: string, quantity: number) {
+export async function restoreCapacity(tx: typeof db, eventSessionId: string, quantity: number) {
 	const [seating] = await tx
 		.select()
 		.from(eventSessions)

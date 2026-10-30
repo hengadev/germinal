@@ -29,6 +29,10 @@ export interface DayGuestParty {
 	balanceSettledAt?: Date | null;
 	/** Who settled the Balance, "Prénom Nom" — only with the guest list. */
 	balanceSettledByName?: string | null;
+	/** When Staff last Moved this party to another Seating — guest list only. */
+	lastMovedAt?: Date | null;
+	/** Who moved it, "Prénom Nom" — guest list only. */
+	lastMovedByName?: string | null;
 	/** Only with the Dietary Requirements permission. */
 	dietaryRequirements?: string | null;
 	/** Only with the contact details permission. */
@@ -102,6 +106,11 @@ function partyColumns(access: StaffAccess): PartyColumns {
 		columns.balanceSettledByName = sql<string | null>`(
 			select u.first_name || ' ' || u.last_name
 			from users u where u.id = ${reservations.balanceSettledBy}
+		)`;
+		columns.lastMovedAt = reservations.lastMovedAt;
+		columns.lastMovedByName = sql<string | null>`(
+			select u.first_name || ' ' || u.last_name
+			from users u where u.id = ${reservations.lastMovedBy}
 		)`;
 	}
 	if (fields.dietary) {
