@@ -211,6 +211,33 @@ describe('moveReservation', () => {
 		expect(sendReservationModifiedEmailMock.mock.calls[0][0].guestEmail).toBe(party.guestEmail);
 	});
 
+	it('moving an overflowing party back out never frees seats still taken', async () => {
+		const now = new Date();
+		const s = await seed(now);
+		// The late Seating (4 seats) is full with a booked party of 4.
+		const full = await s.reservation('Bernard Plein');
+		await testDb.update(reservations).set({ eventSessionId: s.late.id }).where(eq(reservations.id, full.id));
+		await testDb.update(eventSessions).set({ availableCapacity: 0 }).where(eq(eventSessions.id, s.late.id));
+		const party = await s.reservation('Alice Martin');
+		const access = accessFor({ kind: 'admin' }, [s.today], now);
+		const move = async (toSeatingId: string) =>
+			(await svc()).moveReservation({
+				access,
+				eventId: s.event.id,
+				reservationId: party.id,
+				toSeatingId,
+				actorId: s.actor.id,
+			});
+
+		// Into the full Seating (overflow, counter floored at 0), then back out.
+		expect(await move(s.late.id)).toEqual({ ok: true });
+		expect(await move(s.early.id)).toEqual({ ok: true });
+
+		// The 4 seats given back were never free: the booked party still holds them.
+		const [late] = await testDb.select().from(eventSessions).where(eq(eventSessions.id, s.late.id));
+		expect(late.availableCapacity).toBe(0);
+	});
+
 	it('never emails a guest without an address', async () => {
 		const now = new Date();
 		const s = await seed(now);

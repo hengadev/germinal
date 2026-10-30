@@ -15,6 +15,7 @@ import { lockAndDecrementSeatingAllowingOverflow } from './reservations';
 import { restoreCapacity } from './reservation-transitions';
 import { sendReservationModifiedEmail } from './email';
 import { logger } from '$lib/server/logger';
+import { seatingTitle } from '$lib/utils/seating-title';
 export type MoveResult = { ok: true } | { ok: false; error: string };
 
 /**
@@ -132,13 +133,14 @@ export async function moveReservation(input: {
 
 		// Release on the old Seating, take on the new one: the new Seating
 		// may be exceeded, with the counter floored at 0 as for Walk-ins.
-		await restoreCapacity(tx, party.currentSeatingId, party.quantity);
-		await lockAndDecrementSeatingAllowingOverflow(tx, toSeatingId, party.quantity);
-
+		// The Reservation leaves its Seating first, so the release on the old
+		// one counts the seats still held there without it.
 		await tx
 			.update(reservations)
 			.set({ eventSessionId: toSeatingId, lastMovedAt: now, lastMovedBy: actorId, updatedAt: now })
 			.where(eq(reservations.id, reservationId));
+		await restoreCapacity(tx, party.currentSeatingId, party.quantity);
+		await lockAndDecrementSeatingAllowingOverflow(tx, toSeatingId, party.quantity);
 
 		await recordAuditLog({
 			adminId: actorId,
@@ -162,7 +164,12 @@ export async function moveReservation(input: {
 			guestEmail: party.guestEmail,
 			guestName: party.guestName ?? '',
 			eventTitle: target.eventTitleEn || target.eventTitleFr || '',
-			sessionTitle: target.titleEn || target.titleFr || '',
+			// An untitled Seating gets its derived title, never a blank line.
+			sessionTitle: seatingTitle(
+				{ titleEn: target.titleEn, titleFr: target.titleFr, startTime: seating.startTime },
+				'en',
+				{ timeZone: target.timeZone }
+			),
 			sessionStartTime: seating.startTime,
 			timeZone: target.timeZone,
 			reservationId,
