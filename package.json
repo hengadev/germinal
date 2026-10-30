@@ -60,7 +60,7 @@
     "argon2": "^0.44.0",
     "barcode-detector": "^3.2.3",
     "bits-ui": "^2.20.0",
-    "dotenv": "^17.4.2",
+    "dotenv": "^18.0.9",
     "drizzle-orm": "^0.45.4",
     "ics": "^3.12.1",
     "ioredis": "^6.0.0",
