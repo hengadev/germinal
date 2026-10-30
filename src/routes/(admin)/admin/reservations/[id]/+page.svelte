@@ -470,7 +470,7 @@ END:VCALENDAR`;
 									</div>
 									{#if checkIn.undoneAt}
 										<div class="text-sm text-red-600">
-											Annulée{#if checkIn.undoneByName} par {checkIn.undoneByName}{/if} le {formatDateTime(checkIn.undoneAt)}
+											Annulée{#if checkIn.undoneByName}{' '}par {checkIn.undoneByName}{/if} le {formatDateTime(checkIn.undoneAt)}
 										</div>
 									{/if}
 								</div>
@@ -483,7 +483,7 @@ END:VCALENDAR`;
 					<div class="mt-6 pt-4 border-t border-border-card">
 						<h3 class="text-sm font-semibold text-foreground mb-2">Déplacement</h3>
 						<div class="text-sm text-foreground">
-							Déplacée{#if data.reservation.lastMovedByName} par {data.reservation.lastMovedByName}{/if} le {formatDateTime(data.reservation.lastMovedAt)}
+							Déplacée{#if data.reservation.lastMovedByName}{' '}par {data.reservation.lastMovedByName}{/if} le {formatDateTime(data.reservation.lastMovedAt)}
 						</div>
 					</div>
 				{/if}
@@ -494,7 +494,7 @@ END:VCALENDAR`;
 						<div class="flex items-center gap-2 text-sm">
 							<BadgeCheck size={16} class="text-green-600" />
 							<span class="text-foreground">
-								Solde réglé{#if data.reservation.balanceSettledByName} par {data.reservation.balanceSettledByName}{/if} le {formatDateTime(data.reservation.balanceSettledAt)}
+								Solde réglé{#if data.reservation.balanceSettledByName}{' '}par {data.reservation.balanceSettledByName}{/if} le {formatDateTime(data.reservation.balanceSettledAt)}
 							</span>
 						</div>
 					{:else if data.reservation.isComp || !balanceDue}
