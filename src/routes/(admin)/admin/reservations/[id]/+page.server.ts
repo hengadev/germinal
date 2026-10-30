@@ -80,6 +80,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 				origin: ((reservation as { origin?: 'online' | 'staff' | 'walk_in' }).origin ?? 'online'),
 				balanceSettledAt: null as string | null,
 				balanceSettledByName: null as string | null,
+				lastMovedAt: null as string | null,
+				lastMovedByName: null as string | null,
 				checkIns: [] as { id: string; guests: number; method: 'scan' | 'manual'; checkedInByName: string | null; checkedInAt: string; undoneAt: string | null; undoneByName: string | null }[],
 				session: {
 					titleEn: (session as any).titleEn || session.title,
@@ -119,18 +121,21 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		// Arrivals (issue 023): the Check-in history and who settled the Balance.
 		const { checkInHistory } = await import('$lib/server/services/check-ins');
 		const checkInsHistory = await checkInHistory(params.id);
-		let balanceSettledByName: string | null = null;
-		if (reservation.balanceSettledBy) {
-			const { users } = await import('$lib/server/db/schema');
-			const { db } = await import('$lib/server/db');
-			const { eq } = await import('drizzle-orm');
-			const [settler] = await db
+		// Who settled the Balance and who last Moved it (issue 022), by name.
+		const { users } = await import('$lib/server/db/schema');
+		const { db } = await import('$lib/server/db');
+		const { eq } = await import('drizzle-orm');
+		const nameOf = async (userId: string | null): Promise<string | null> => {
+			if (!userId) return null;
+			const [user] = await db
 				.select({ name: sql<string>`first_name || ' ' || last_name` })
 				.from(users)
-				.where(eq(users.id, reservation.balanceSettledBy))
+				.where(eq(users.id, userId))
 				.limit(1);
-			balanceSettledByName = settler?.name ?? null;
-		}
+			return user?.name ?? null;
+		};
+		const balanceSettledByName = await nameOf(reservation.balanceSettledBy);
+		const lastMovedByName = await nameOf(reservation.lastMovedBy);
 
 		// The cancel screen's pre-fill from the Event's Refund Policy (issue 028).
 		let cancellation: CancellationPreFill | null = null;
@@ -171,18 +176,20 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 				confirmedAt: reservation.confirmedAt?.toISOString(),
 				cancelledAt: reservation.cancelledAt?.toISOString(),
 				createdAt: reservation.createdAt.toISOString(),
-			origin: reservation.origin,
-			balanceSettledAt: reservation.balanceSettledAt?.toISOString() ?? null,
-			balanceSettledByName,
-			checkIns: checkInsHistory.map((c) => ({
-				id: c.id,
-				guests: c.guests,
-				method: c.method,
-				checkedInByName: c.checkedInByName,
-				checkedInAt: c.checkedInAt.toISOString(),
-				undoneAt: c.undoneAt?.toISOString() ?? null,
-				undoneByName: c.undoneByName
-			})),
+				origin: reservation.origin,
+				balanceSettledAt: reservation.balanceSettledAt?.toISOString() ?? null,
+				balanceSettledByName,
+				lastMovedAt: reservation.lastMovedAt?.toISOString() ?? null,
+				lastMovedByName,
+				checkIns: checkInsHistory.map((c) => ({
+					id: c.id,
+					guests: c.guests,
+					method: c.method,
+					checkedInByName: c.checkedInByName,
+					checkedInAt: c.checkedInAt.toISOString(),
+					undoneAt: c.undoneAt?.toISOString() ?? null,
+					undoneByName: c.undoneByName
+				})),
 				session: {
 					...seatingTitlesWithFallback(reservation.eventSession, { timeZone: reservation.eventSession.event.timeZone }),
 					startTime: reservation.eventSession.startTime.toISOString(),

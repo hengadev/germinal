@@ -479,6 +479,15 @@ END:VCALENDAR`;
 					</div>
 				{/if}
 
+				{#if data.reservation.lastMovedAt}
+					<div class="mt-6 pt-4 border-t border-border-card">
+						<h3 class="text-sm font-semibold text-foreground mb-2">Déplacement</h3>
+						<div class="text-sm text-foreground">
+							Déplacée{#if data.reservation.lastMovedByName} par {data.reservation.lastMovedByName}{/if} le {formatDateTime(data.reservation.lastMovedAt)}
+						</div>
+					</div>
+				{/if}
+
 				<div class="mt-6 pt-4 border-t border-border-card">
 					<h3 class="text-sm font-semibold text-foreground mb-2">Solde sur place</h3>
 					{#if data.reservation.balanceSettledAt}
