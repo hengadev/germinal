@@ -22,8 +22,10 @@ vi.mock('../../../src/lib/server/db', () => ({
 					const promise = Promise.resolve([]);
 					const chain = {
 						groupBy: () => promise,
-						then: (onFulfilled, onRejected) =>
-							promise.then(onFulfilled, onRejected),
+						then: (
+							onFulfilled?: (value: unknown[]) => unknown,
+							onRejected?: (reason: unknown) => unknown
+						) => promise.then(onFulfilled, onRejected),
 					};
 					return chain;
 				},
