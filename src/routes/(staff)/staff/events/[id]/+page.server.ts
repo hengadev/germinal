@@ -39,6 +39,8 @@ function refusalMessage(explanation: Awaited<ReturnType<typeof explainTicket>>):
 	switch (explanation.reason) {
 		case 'cancelled':
 			return 'Cette réservation est annulée.';
+		case 'not_confirmed':
+			return "Cette réservation n'a pas été confirmée (paiement non finalisé).";
 		case 'other_event':
 			return 'Ce billet est pour un autre événement.';
 		case 'other_day': {

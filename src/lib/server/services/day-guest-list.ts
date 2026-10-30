@@ -221,6 +221,7 @@ export type TicketExplanation =
 	| { reason: 'unknown' }
 	| { reason: 'other_event' }
 	| { reason: 'cancelled' }
+	| { reason: 'not_confirmed' }
 	| { reason: 'other_day'; day: string };
 
 /**
@@ -249,7 +250,10 @@ export async function explainTicket(
 	if (!row) return { reason: 'unknown' };
 	// Another Event's Ticket says only that, nothing about its Reservation.
 	if (row.rowEventId !== eventId) return { reason: 'other_event' };
-	if (row.status !== 'confirmed') return { reason: 'cancelled' };
+	// Unpaid (pending, processing) or expired is not the same as cancelled:
+	// the Guest may only have a booking to finish, so say so at the door.
+	if (row.status === 'cancelled') return { reason: 'cancelled' };
+	if (row.status !== 'confirmed') return { reason: 'not_confirmed' };
 	// lookupTicket already excluded the current Day (or there is none), so a
 	// confirmed Ticket of this Event is for another Day.
 	return { reason: 'other_day', day: row.day };
