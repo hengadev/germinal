@@ -260,7 +260,8 @@ describe('reservation export — arrivals, settled Balance and origin', () => {
 
 		expect(byName['Comp Guest']['Origin']).toBe('comp');
 		expect(byName['Wanda']['Origin']).toBe('walk_in');
-		// No Check-in at all: everyone is a no-show once the Seating is over.
-		expect(byName['Wanda']['No-shows']).toBe('2');
+		// Walk-ins and Comps are never No-shows: only booked parties count.
+		expect(byName['Wanda']['No-shows']).toBe('');
+		expect(byName['Comp Guest']['No-shows']).toBe('');
 	});
 });

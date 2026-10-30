@@ -134,8 +134,10 @@ export async function exportReservationsToCSV(options: {
 		const amounts = reservationAmounts(r);
 		const balanceDue = balanceToCollect(r);
 		const guestsArrived = arrived.get(r.id) ?? 0;
-		// No-shows only count once the Seating is over.
-		const noShows = r.eventSession.endTime < now ? r.quantity - guestsArrived : '';
+		// No-shows only count once the Seating is over, and only for booked
+		// parties (confirmed, not a Walk-in or a Comp), as in the Attendance.
+		const counts = r.status === 'confirmed' && !r.isComp && r.origin !== 'walk_in';
+		const noShows = counts && r.eventSession.endTime < now ? Math.max(r.quantity - guestsArrived, 0) : '';
 		return {
 			'Reservation ID': r.id,
 			'Guest Name': r.guestName,
