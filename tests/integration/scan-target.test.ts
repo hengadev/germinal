@@ -150,3 +150,58 @@ describe('scanTargetsFor', () => {
 		expect(await svc.scanTargetsFor(staffUser, now)).toEqual([]);
 	});
 });
+
+describe('headerActionTargetsFor', () => {
+	async function admin() {
+		const [user] = await testDb
+			.insert(users)
+			.values({ email: `admin-${crypto.randomUUID()}@example.com`, firstName: 'A', lastName: 'Dmin', passwordHash: 'x', role: 'admin' })
+			.returning();
+		return user;
+	}
+
+	it('gives an Admin every shortcut on an Event whose Day is under way', async () => {
+		const { event } = await seed();
+		const now = new Date();
+		await testDb.insert(eventDays).values({ eventId: event.id, date: dayOf(now, ZONE) });
+
+		const svc = await import('../../src/lib/server/services/staff-portal');
+		const target = { eventId: event.id, title: 'Dîner A' };
+		expect(await svc.headerActionTargetsFor(await admin(), now)).toEqual({
+			invite: [target],
+			closeBookings: [target],
+			walkIn: [target]
+		});
+	});
+
+	it('offers an Admin no walk-in on an Event whose Days are all to come, and nothing once they are over', async () => {
+		const { event } = await seed();
+		const [past] = await testDb
+			.insert(events)
+			.values({ titleFr: 'Passé', titleEn: 'Past', startDate: new Date('2000-01-01T19:00:00Z'), visibility: 'public', timeZone: ZONE })
+			.returning();
+		await testDb.insert(eventDays).values([
+			{ eventId: event.id, date: '2100-01-01' },
+			{ eventId: past.id, date: '2000-01-01' }
+		]);
+
+		const svc = await import('../../src/lib/server/services/staff-portal');
+		const target = { eventId: event.id, title: 'Dîner A' };
+		expect(await svc.headerActionTargetsFor(await admin(), new Date())).toEqual({
+			invite: [target],
+			closeBookings: [target],
+			walkIn: []
+		});
+	});
+
+	it('offers a Staff member nothing their Staff Role does not hold', async () => {
+		const { event, staffUser } = await seed();
+		const now = new Date();
+		await testDb.insert(eventDays).values({ eventId: event.id, date: dayOf(now, ZONE) });
+		const bar = await roleId('Bar'); // tasks only
+		await testDb.insert(eventStaff).values({ eventId: event.id, userId: staffUser.id, staffRoleId: bar });
+
+		const svc = await import('../../src/lib/server/services/staff-portal');
+		expect(await svc.headerActionTargetsFor(staffUser, now)).toEqual({ invite: [], closeBookings: [], walkIn: [] });
+	});
+});

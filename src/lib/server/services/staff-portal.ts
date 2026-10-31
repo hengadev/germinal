@@ -8,7 +8,7 @@ import { and, asc, eq, gte, inArray } from 'drizzle-orm';
 import { error } from '@sveltejs/kit';
 import { db } from '../db';
 import { eventDays, eventServices, eventSessions, eventStaff, events, staffRoles } from '../db/schema';
-import { staffAccess, activeDay, type StaffAccess, type StaffWho } from '$lib/staff/access';
+import { staffAccess, activeDay, hasDayAhead, type StaffAccess, type StaffWho } from '$lib/staff/access';
 import type { StaffPermission } from '$lib/staff/permissions';
 
 /** The least the portal needs to know about the signed-in person. */
@@ -223,6 +223,43 @@ export async function scanTargetsFor(
 		}
 	}
 	return targets;
+}
+
+/**
+ * The Events each shortcut of the portal's header can start on, in the
+ * Assignments list's order:
+ * - « Nouvelle réservation »: `invite`, an Event with a Day still to come;
+ * - « Fermer aux réservations »: `close_bookings`, the Day under way for a
+ *   Staff member, a Day still to come for an Admin (as on the Event page);
+ * - « Ajouter un walk-in »: `walk_in`, the Day under way.
+ */
+export interface HeaderActionTargets {
+	invite: ScanTarget[];
+	closeBookings: ScanTarget[];
+	walkIn: ScanTarget[];
+}
+
+export async function headerActionTargetsFor(
+	user: StaffPortalUser,
+	now: Date = new Date()
+): Promise<HeaderActionTargets> {
+	const [invite, closeBookings, walkIn] = await Promise.all([
+		listStaffEventsWithPermission(user, 'invite'),
+		listStaffEventsWithPermission(user, 'close_bookings'),
+		listStaffEventsWithPermission(user, 'walk_in')
+	]);
+	const underWay = (item: StaffEventListItem) =>
+		activeDay(item.days, item.event.timeZone, now) !== null;
+	const ahead = (item: StaffEventListItem) => hasDayAhead(item.days, item.event.timeZone, now);
+	const target = (item: StaffEventListItem): ScanTarget => ({
+		eventId: item.event.id,
+		title: item.event.titleFr || item.event.titleEn || 'Événement sans titre'
+	});
+	return {
+		invite: invite.filter(ahead).map(target),
+		closeBookings: closeBookings.filter(user.role === 'admin' ? ahead : underWay).map(target),
+		walkIn: walkIn.filter(underWay).map(target)
+	};
 }
 
 async function withDays(

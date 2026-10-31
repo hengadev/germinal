@@ -3,10 +3,11 @@
     import { browser } from "$app/environment";
     import Toaster from "$lib/components/toast/Toaster.svelte";
     import { setToastContext } from "$lib/components/toast/state.svelte";
-    import ThemeToggle from "$lib/components/admin/ThemeToggle.svelte";
     import { adminDarkMode } from "$lib/stores/adminDarkMode.svelte";
     import { CalendarDays, KeyRound, ListChecks, LogOut, ScanLine } from "lucide-svelte";
     import BottomBar from "$lib/components/staff/nav/BottomBar.svelte";
+    import HeaderActions from "$lib/components/staff/nav/HeaderActions.svelte";
+    import EventPicker from "$lib/components/staff/nav/EventPicker.svelte";
     import ScanOverlay from "$lib/components/staff/scanner/ScanOverlay.svelte";
     import { openScanOverlay } from "$lib/components/staff/scanner/scan-overlay.svelte";
     import type { LayoutData } from "./$types";
@@ -45,9 +46,9 @@
     <div class="lg:hidden h-screen h-[100dvh] flex flex-col overflow-hidden bg-muted/25">
         <!-- En-tête mobile -->
         <header class="flex-shrink-0 bg-background border-b border-border-card z-40">
-            <div class="flex items-center justify-between px-4 py-3">
+            <div class="flex items-center justify-between gap-3 px-4 py-1.5">
                 <h1 class="text-lg font-semibold text-foreground">Portail Staff</h1>
-                <ThemeToggle />
+                <HeaderActions targets={data.headerActions} />
             </div>
         </header>
 
@@ -66,9 +67,12 @@
     <div class="hidden lg:flex min-h-screen bg-muted/25">
         <!-- Barre latérale -->
         <aside class="w-64 bg-background border-r border-border-card flex flex-col">
-            <div class="p-6 border-b border-border-card">
-                <h1 class="text-xl font-bold text-foreground">Portail Staff</h1>
-                <p class="text-sm text-muted-foreground mt-1">Germinal Events</p>
+            <div class="flex items-start justify-between gap-2 p-6 pr-4 border-b border-border-card">
+                <div class="min-w-0">
+                    <h1 class="text-xl font-bold text-foreground">Portail Staff</h1>
+                    <p class="text-sm text-muted-foreground mt-1">Germinal Events</p>
+                </div>
+                <HeaderActions targets={data.headerActions} />
             </div>
 
             <nav class="flex-1 p-4 space-y-1">
@@ -158,3 +162,6 @@
 <!-- Le scanner en plein écran (issue 034), rendu une seule fois, au-dessus
      des deux mises en page mobile et bureau. -->
 <ScanOverlay targets={data.scanTargets} />
+
+<!-- « Pour quel événement ? », des raccourcis de l'en-tête, rendu une seule fois. -->
+<EventPicker />

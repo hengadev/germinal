@@ -74,6 +74,18 @@ export function activeDay(eventDays: string[], timeZone: string, now: Date): str
 	return result;
 }
 
+/**
+ * Whether one of the Event's Days is under way or still to come: its
+ * night (until 6 a.m. the next morning) has not ended yet, on the Event's
+ * clock.
+ */
+export function hasDayAhead(eventDays: string[], timeZone: string, now: Date): boolean {
+	const instant = now.getTime();
+	return eventDays.some(
+		(day) => wallClockToInstant(day, DAY_END_MINUTES + 24 * 60, timeZone).getTime() > instant
+	);
+}
+
 export interface StaffAccess {
 	/** Effective permissions after the dependency closure. */
 	permissions: StaffPermission[];

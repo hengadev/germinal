@@ -9,6 +9,7 @@ import { describe, it, expect } from 'vitest';
 import {
 	effectivePermissions,
 	activeDay,
+	hasDayAhead,
 	staffAccess,
 } from '../../../../src/lib/staff/access';
 import { STAFF_PERMISSIONS, type StaffPermission } from '../../../../src/lib/staff/permissions';
@@ -51,6 +52,23 @@ describe('effectivePermissions', () => {
 	it('closes grants over a role that lacked the guest list', () => {
 		const who = assignment(['tasks'], ['manual_check_in']);
 		expect(effectivePermissions(who)).toEqual(['tasks', 'guest_list', 'manual_check_in']);
+	});
+});
+
+describe('hasDayAhead', () => {
+	const zone = 'America/New_York';
+	const days = ['2026-07-10', '2026-07-12'];
+	const at = (day: string, hhmm: string) => new Date(`${day}T${hhmm}:00-04:00`); // EDT in July
+
+	it('holds before, during and between Days, until the last night ends at 6 a.m.', () => {
+		expect(hasDayAhead(days, zone, at('2026-07-01', '12:00'))).toBe(true);
+		expect(hasDayAhead(days, zone, at('2026-07-11', '12:00'))).toBe(true);
+		expect(hasDayAhead(days, zone, at('2026-07-13', '05:59'))).toBe(true);
+		expect(hasDayAhead(days, zone, at('2026-07-13', '06:00'))).toBe(false);
+	});
+
+	it('is false without Days', () => {
+		expect(hasDayAhead([], zone, at('2026-07-01', '12:00'))).toBe(false);
 	});
 });
 
