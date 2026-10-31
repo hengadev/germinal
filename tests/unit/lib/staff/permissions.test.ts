@@ -87,3 +87,17 @@ describe('close_bookings (039)', () => {
 		}
 	});
 });
+
+describe('invite (040)', () => {
+	it('exists with its French label and does not act on parties', () => {
+		expect(STAFF_PERMISSIONS).toContain('invite');
+		expect(STAFF_PERMISSION_LABELS_FR.invite).toBe('Créer une invitation');
+		expect(ACTS_ON_PARTIES_PERMISSIONS.has('invite')).toBe(false);
+	});
+
+	it('is in no starting Staff Role', () => {
+		for (const role of STARTING_STAFF_ROLES) {
+			expect(role.permissions).not.toContain('invite');
+		}
+	});
+});

@@ -4,6 +4,7 @@ import {
 	getStaffEventAccess,
 	seatingsForBookingClosure,
 	setSeatingBookingsClosed,
+	upcomingSeatingsForInvitation,
 } from '$lib/server/services/staff-portal';
 import {
 	getDayGuestList,
@@ -84,6 +85,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	const canSeeArrivees = canArrivees || canCuisine;
 	const isAdmin = locals.user.role === 'admin';
 	const canCloseBookings = access.can('close_bookings');
+	const canInvite = access.can('invite');
 	return {
 		access: {
 			permissions: access.permissions,
@@ -100,12 +102,16 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			canComp: access.can('comp'),
 			canCancelRefund: access.can('cancel_refund'),
 			canCloseBookings,
+			canInvite,
 		},
 		// « Fermé aux réservations » (039) : les séances du Jour en cours,
 		// ou — pour un Admin — toutes les séances à venir de l'événement.
 		closeBookings: canCloseBookings
 			? await seatingsForBookingClosure(params.id, access.day, isAdmin)
 			: [],
+		// « Nouvelle réservation » (040) : toute séance publiée à venir de
+		// l'événement, pas seulement celle du Jour en cours.
+		invite: canInvite ? await upcomingSeatingsForInvitation(params.id) : [],
 		event: access.event,
 		staffRoleName: access.staffRoleName,
 		brief,
@@ -471,6 +477,90 @@ export const actions: Actions = {
 		});
 		if (!result.ok) return fail(422, { error: result.error, reservationId });
 		return { refundReservation: true, reservationId, message: result.message };
+	},
+
+	// « Nouvelle réservation » (issue 040) : crée une invitation (un Comp)
+	// sur une séance à venir de cet événement et envoie le billet par
+	// email. La permission est revérifiée sur le serveur, jamais depuis le
+	// client. Contrairement aux permissions d'invités, elle fonctionne
+	// aussi hors d'un Jour : elle ne montre aucune donnée d'invité.
+	invite: async ({ request, locals, params }) => {
+		if (!locals.user) return fail(401, { error: 'Non authentifié.', invite: true });
+
+		const access = await getStaffEventAccess(locals.user, params.id);
+		if (!access.can('invite')) {
+			return fail(403, {
+					error: "Vous n'avez pas la permission de créer une invitation.",
+				invite: true
+			});
+		}
+
+		const formData = await request.formData();
+		const seatingId = formData.get('seatingId');
+		const name = formData.get('name')?.toString().trim();
+		const email = formData.get('email')?.toString().trim();
+		const phone = formData.get('phone')?.toString().trim();
+		const quantity = parseInt(formData.get('quantity')?.toString() ?? '1', 10);
+		if (typeof seatingId !== 'string' || !seatingId) {
+			return fail(400, { error: 'Choisissez une séance.', invite: true });
+		}
+		if (!name) {
+			return fail(400, { error: "Le nom de l'invité est requis.", invite: true });
+		}
+		if (!email || !email.includes('@')) {
+			return fail(400, { error: 'Un email valide est requis : le billet est envoyé par email.', invite: true });
+		}
+		if (!Number.isInteger(quantity) || quantity < 1) {
+			return fail(400, { error: 'Le nombre d\u2019invités doit être un entier positif.', invite: true });
+		}
+
+		// Même validation que l'action create de l'admin (/admin/reservations/new) :
+		// la séance doit appartenir à cet événement, être publiée et à venir —
+		// createCompReservation revérifie la publication et l'heure, mais pas
+		// l'événement.
+		const { db } = await import('$lib/server/db');
+		const { eventSessions } = await import('$lib/server/db/schema');
+		const { and, eq, gt } = await import('drizzle-orm');
+		const [seating] = await db
+			.select({ id: eventSessions.id })
+			.from(eventSessions)
+			.where(
+				and(
+					eq(eventSessions.id, seatingId),
+					eq(eventSessions.eventId, params.id),
+					eq(eventSessions.published, true),
+					gt(eventSessions.startTime, new Date())
+				)
+			);
+		if (!seating) {
+			return fail(422, { error: 'Séance introuvable pour cet événement.', invite: true });
+		}
+
+		try {
+			const { createCompReservation } = await import('$lib/server/services/reservations');
+			const result = await createCompReservation({
+				sessionId: seatingId,
+				email,
+				name,
+				phone: phone || undefined,
+				quantity,
+				// Le billet part par email ; pas d'option SMS depuis le portail.
+				notificationPreference: 'email'
+			});
+			await recordAuditLog({
+				adminId: locals.user.id,
+				action: 'reservation.invite',
+				entityType: 'reservation',
+				entityId: result.reservation.id,
+				metadata: { seatingId, quantity, name }
+			});
+			return { invited: true, message: `Invitation envoyée à ${name}` };
+		} catch (err) {
+			return fail(422, {
+					error: err instanceof Error ? err.message : 'Échec de la création de l\u2019invitation.',
+				invite: true
+			});
+		}
 	},
 
 	// « Fermé aux réservations » (issue 039) : ferme une ou plusieurs
