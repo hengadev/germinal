@@ -86,8 +86,6 @@
 		replaceState(url, page.state);
 	}
 
-
-
 	let query = $state('');
 
 	// « Ajouter un walk-in » (issue 020) and « Offrir » (issue 021): one
@@ -216,7 +214,6 @@
 			{totalParties === 1 ? 'réservation' : 'réservations'}
 		</p>
 	{/if}
-
 
 	<!-- « Ajouter un walk-in » (issue 020) / « Offrir » (issue 021) -->
 	{#if (canWalkIn || canComp) && fields.guestList}

@@ -4,7 +4,7 @@
 import NotesCuisine from '$lib/components/staff/arrivees/NotesCuisine.svelte';
 import { noteCount as countNotes } from '$lib/components/staff/arrivees/helpers';
 import { page } from '$app/state';
-	import { ArrowLeft } from 'lucide-svelte';
+import { ArrowLeft } from 'lucide-svelte';
 import { afterNavigate, replaceState } from '$app/navigation';
 import { fly } from 'svelte/transition';
 import { motion, cubicOut } from '$lib/components/staff/motion';
@@ -138,7 +138,7 @@ import {
 			<a
 				href="/staff?liste"
 				aria-label="Retour aux événements"
-				class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+				class="-ml-3 flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
 			>
 				<ArrowLeft size={22} aria-hidden="true" />
 			</a>
