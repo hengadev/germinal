@@ -560,6 +560,8 @@ export async function createCompReservation(input: CreateCompReservationInput) {
 				practicalInfoEn: created.event?.practicalInfoEn ?? null,
 				practicalInfoFr: created.event?.practicalInfoFr ?? null,
 			},
+			// Issue 026: the email is written in the Guest's language.
+			locale: (created.reservation.locale as 'fr' | 'en' | null) ?? null,
 		});
 	} catch (error) {
 		logger.error({ err: error }, 'Failed to send comp ticket confirmation email');
@@ -763,6 +765,8 @@ export async function resendTicketsForEmail(email: string): Promise<void> {
 				guestName: reservation.guestName,
 				guestEmail: reservation.guestEmail,
 				accessToken: reservation.accessToken,
+				// Issue 026: each re-sent email uses its own Reservation's language.
+				locale: (reservation.locale as 'fr' | 'en' | null) ?? null,
 			});
 		} catch (error) {
 			logger.error(
@@ -1055,6 +1059,8 @@ export async function sendReservationReminder(reservationId: string) {
 		guestName: reservation.guestName,
 		guestEmail: reservation.guestEmail,
 		accessToken: reservation.accessToken,
+		// Issue 026: the email is written in the Guest's language.
+		locale: (reservation.locale as 'fr' | 'en' | null) ?? null,
 	});
 
 	// Send SMS if phone number exists and preference is not email-only

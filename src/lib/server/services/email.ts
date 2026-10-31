@@ -11,13 +11,25 @@ import { bookedUnitPriceAmount } from '$lib/utils/seating-price';
 import { localizedPracticalInfo } from '$lib/utils/practical-info';
 
 // An Event may be published with English text missing (ADR 0008): the
-// emails fall back to the French text rather than print "null".
-function eventTitleOf(event: { titleEn: string | null; titleFr: string | null }): string {
-	return event.titleEn || event.titleFr || '';
+// emails fall back to the other language rather than print "null". Which
+// one leads depends on the email's language (issue 026): English first in
+// English, French first in French.
+function eventTitleOf(event: { titleEn: string | null; titleFr: string | null }, lang: 'fr' | 'en' = 'en'): string {
+	return lang === 'fr'
+		? event.titleFr || event.titleEn || ''
+		: event.titleEn || event.titleFr || '';
 }
 
-function eventLocationOf(event: { locationEn: string | null; locationFr?: string | null }): string {
-	return event.locationEn || event.locationFr || '';
+function eventLocationOf(event: { locationEn: string | null; locationFr?: string | null }, lang: 'fr' | 'en' = 'en'): string {
+	return lang === 'fr'
+		? event.locationFr || event.locationEn || ''
+		: event.locationEn || event.locationFr || '';
+}
+
+/** The email's language as a currency locale (issue 026): amounts are
+ * formatted the French way in a French email. */
+function currencyLocaleOf(lang: 'fr' | 'en'): string {
+	return lang === 'fr' ? 'fr-FR' : 'en-US';
 }
 
 /** The Event's venue columns the emails may show (issue 040). */
@@ -38,25 +50,27 @@ interface VenueAddressEvent {
 }
 
 /**
- * The venue's name and address (issue 040), one line each: English first —
- * the emails are in English — falling back to the French text. Empty when
- * the Event has no address, so the location line stands in.
+ * The venue's name and address (issue 040), one line each, in the email's
+ * language (issue 026). Empty when the
+ * Event has no address, so the location line stands in.
  */
-function venueAddressLinesOf(event: VenueAddressEvent): string[] {
-	const venue = event.venueNameEn || event.venueNameFr || '';
-	const street = event.streetAddressEn || event.streetAddressFr || '';
-	const cityLine = [event.postalCode ?? '', event.cityEn || event.cityFr || '']
+function venueAddressLinesOf(event: VenueAddressEvent, lang: 'fr' | 'en' = 'en'): string[] {
+	const pick = (en: string | null | undefined, fr: string | null | undefined) =>
+		lang === 'fr' ? fr || en || '' : en || fr || '';
+	const venue = pick(event.venueNameEn, event.venueNameFr);
+	const street = pick(event.streetAddressEn, event.streetAddressFr);
+	const cityLine = [event.postalCode ?? '', pick(event.cityEn, event.cityFr)]
 		.filter((part) => part.trim() !== '')
 		.join(' ');
-	const country = event.countryEn || event.countryFr || '';
+	const country = pick(event.countryEn, event.countryFr);
 	return [venue, street, cityLine, country].map((line) => line.trim()).filter(Boolean);
 }
 
 /** Where the email points the Guest: the venue's address when there is
  * one, else the Event's location line. */
-function venueOf(event: VenueAddressEvent): string[] {
-	const lines = venueAddressLinesOf(event);
-	return lines.length > 0 ? lines : [eventLocationOf(event)].filter((line) => line !== '');
+function venueOf(event: VenueAddressEvent, lang: 'fr' | 'en' = 'en'): string[] {
+	const lines = venueAddressLinesOf(event, lang);
+	return lines.length > 0 ? lines : [eventLocationOf(event, lang)].filter((line) => line !== '');
 }
 
 function formatInquiryType(type: string): string {
@@ -186,77 +200,155 @@ export async function sendContactEmail(data: ContactEmailData): Promise<void> {
 }
 
 export function generateTicketTextTemplate(data: TicketEmailData): string {
+	// Issue 026: the email is written in the Guest's language, defaulting
+	// to English when it is unknown (null).
+	const lang = data.locale ?? 'en';
+	const fr = lang === 'fr';
+	const money = (n: number, c: string) => formatCurrency(n, c, currencyLocaleOf(lang));
 	// The venue's address and the Practical Info (issue 040): what a Guest
 	// needs to arrive. The Practical Info falls back to the other language;
 	// empty renders no section at all.
-	const where = venueOf(data.event);
-	const practicalInfo = localizedPracticalInfo(data.event, 'en');
+	const where = venueOf(data.event, lang);
+	const practicalInfo = localizedPracticalInfo(data.event, lang);
+
+	const L = fr ? {
+		heading: 'Confirmation de votre billet',
+		greeting: `Bonjour ${data.guestName},`,
+		confirmed: `Vos billets pour ${eventTitleOf(data.event, lang)} sont confirmés !`,
+		details: "DÉTAILS DE L'ÉVÉNEMENT :",
+		practicalInfo: 'INFOS PRATIQUES :',
+		tickets: 'BILLETS :',
+		total: 'Total :',
+		depositPaid: 'Acompte payé :',
+		balanceDue: 'Reste à régler sur place :',
+		view: 'VOIR VOS BILLETS :',
+		present: 'Présentez ce lien ou le QR code à l’entrée de l’événement.',
+		calendar: 'AJOUTER AU CALENDRIER :',
+		closing: 'À bientôt !',
+		footer: 'Ceci est une confirmation automatique de Germinal.',
+	} : {
+		heading: 'Your Ticket Confirmation',
+		greeting: `Hi ${data.guestName},`,
+		confirmed: `Your tickets for ${eventTitleOf(data.event, lang)} are confirmed!`,
+		details: 'EVENT DETAILS:',
+		practicalInfo: 'PRACTICAL INFO:',
+		tickets: 'TICKETS:',
+		total: 'Total: ',
+		depositPaid: 'Deposit paid: ',
+		balanceDue: 'Balance due at the venue: ',
+		view: 'VIEW YOUR TICKETS:',
+		present: 'Present this link or QR code at the event entrance.',
+		calendar: 'ADD TO CALENDAR:',
+		closing: 'See you there!',
+		footer: 'This is an automated confirmation from Germinal.',
+	};
 
 	return `
-Your Ticket Confirmation
+${L.heading}
 
-Hi ${data.guestName},
+${L.greeting}
 
-Your tickets for ${eventTitleOf(data.event)} are confirmed!
+${L.confirmed}
 
-EVENT DETAILS:
-${seatingTitle(data.session, 'en', { timeZone: data.event.timeZone })}
-${formatSeatingDateTime(data.session.startTime, data.event.timeZone, 'en')}
+${L.details}
+${seatingTitle(data.session, lang, { timeZone: data.event.timeZone })}
+${formatSeatingDateTime(data.session.startTime, data.event.timeZone, lang)}
 ${where.join('\n')}
-${practicalInfo ? `\nPRACTICAL INFO:\n${practicalInfo}` : ''}
+${practicalInfo ? `\n${L.practicalInfo}\n${practicalInfo}` : ''}
 
-TICKETS:
-${data.reservation.quantity} × ${formatCurrency(bookedUnitPriceAmount(data.reservation), data.reservation.currency)}
-Total: ${formatCurrency(data.reservation.totalAmount, data.reservation.currency)}${data.reservation.balanceAmount > 0 ? `
-Deposit paid: ${formatCurrency(data.reservation.depositAmount, data.reservation.currency)}
-Balance due at the venue: ${formatCurrency(data.reservation.balanceAmount, data.reservation.currency)}` : ''}
+${L.tickets}
+${data.reservation.quantity} × ${money(bookedUnitPriceAmount(data.reservation), data.reservation.currency)}
+${L.total}${money(data.reservation.totalAmount, data.reservation.currency)}${data.reservation.balanceAmount > 0 ? `
+${L.depositPaid}${money(data.reservation.depositAmount, data.reservation.currency)}
+${L.balanceDue}${money(data.reservation.balanceAmount, data.reservation.currency)}` : ''}
 
-VIEW YOUR TICKETS:
+${L.view}
 ${env.PUBLIC_URL}/tickets/${data.accessToken}
 
-Present this link or QR code at the event entrance.
-${data.googleCalendarUrl ? `\nADD TO CALENDAR:\n${data.googleCalendarUrl}` : ''}
+${L.present}
+${data.googleCalendarUrl ? `\n${L.calendar}\n${data.googleCalendarUrl}` : ''}
 
-See you there!
+${L.closing}
 
 ---
-This is an automated confirmation from Germinal.
+${L.footer}
   `.trim();
 }
 
 export function generateTicketHtmlTemplate(data: TicketEmailData): string {
+	// Issue 026: the email is written in the Guest's language, defaulting
+	// to English when it is unknown (null).
+	const lang = data.locale ?? 'en';
+	const fr = lang === 'fr';
+	const money = (n: number, c: string) => formatCurrency(n, c, currencyLocaleOf(lang));
 	// The venue's address and the Practical Info (issue 040): what a Guest
 	// needs to arrive. The Practical Info falls back to the other language;
 	// empty renders no section at all.
-	const where = venueOf(data.event);
-	const practicalInfo = localizedPracticalInfo(data.event, 'en');
+	const where = venueOf(data.event, lang);
+	const practicalInfo = localizedPracticalInfo(data.event, lang);
+
+	const L = fr ? {
+		htmlTitle: 'Confirmation de votre billet',
+		heading: '🎫 Confirmation de votre billet',
+		order: 'Commande #',
+		greeting: `Bonjour ${escapeHtml(data.guestName)},`,
+		confirmedPrefix: 'Vos billets pour <strong>',
+		confirmedSuffix: '</strong> sont confirmés !',
+		details: "Détails de l'événement",
+		practicalInfoHeading: 'Infos pratiques',
+		tickets: 'Billets',
+		total: 'Total',
+		depositPaid: 'Acompte payé',
+		balanceDue: 'Reste à régler sur place',
+		button: 'Voir vos billets',
+		qrHint: 'Présentez ce QR code à l’entrée de l’événement',
+		calendar: 'Ajouter au calendrier',
+		footer: 'Ceci est une confirmation automatique de Germinal.<br>Si vous avez des questions, n’hésitez pas à nous contacter.',
+	} : {
+		htmlTitle: 'Your Ticket Confirmation',
+		heading: '🎫 Ticket Confirmation',
+		order: 'Order #',
+		greeting: `Hi ${escapeHtml(data.guestName)},`,
+		confirmedPrefix: 'Your tickets for <strong>',
+		confirmedSuffix: '</strong> are confirmed!',
+		details: 'Event Details',
+		practicalInfoHeading: 'Practical Info',
+		tickets: 'Tickets',
+		total: 'Total',
+		depositPaid: 'Deposit paid',
+		balanceDue: 'Balance due at the venue',
+		button: 'View Your Tickets',
+		qrHint: 'Present this QR code at the event entrance',
+		calendar: 'Add to your calendar',
+		footer: 'This is an automated confirmation from Germinal.<br>If you have any questions, please contact us.',
+	};
 
 	return `
 <!DOCTYPE html>
-<html lang="en">
+<html lang="${lang}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Your Ticket Confirmation</title>
+  <title>${L.htmlTitle}</title>
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
   <div style="background-color: #f8f9fa; border-radius: 8px; padding: 24px; margin-bottom: 24px;">
-    <h2 style="margin: 0 0 8px 0; color: #1a1a1a; font-size: 24px;">🎫 Ticket Confirmation</h2>
-    <p style="margin: 0; color: #6c757d; font-size: 14px;">Order #${data.reservation.id.substring(0, 8)}</p>
+    <h2 style="margin: 0 0 8px 0; color: #1a1a1a; font-size: 24px;">${L.heading}</h2>
+    <p style="margin: 0; color: #6c757d; font-size: 14px;">${L.order}${data.reservation.id.substring(0, 8)}</p>
   </div>
 
   <div style="background-color: #ffffff; border: 1px solid #e9ecef; border-radius: 8px; padding: 24px; margin-bottom: 16px;">
-    <p style="margin: 0 0 16px 0; font-size: 16px;">Hi ${escapeHtml(data.guestName)},</p>
-    <p style="margin: 0 0 16px 0; font-size: 16px;">Your tickets for <strong>${escapeHtml(eventTitleOf(data.event))}</strong> are confirmed!</p>
+    <p style="margin: 0 0 16px 0; font-size: 16px;">${L.greeting}</p>
+    <p style="margin: 0 0 16px 0; font-size: 16px;">${L.confirmedPrefix}${escapeHtml(eventTitleOf(data.event, lang))}${L.confirmedSuffix}</p>
 
-    <h3 style="margin: 24px 0 12px 0; color: #495057; font-size: 16px; font-weight: 600;">Event Details</h3>
+    <h3 style="margin: 24px 0 12px 0; color: #495057; font-size: 16px; font-weight: 600;">${L.details}</h3>
     <table style="width: 100%; border-collapse: collapse;">
       <tr>
-        <td style="padding: 8px 0; color: #212529;"><strong>${escapeHtml(seatingTitle(data.session, 'en', { timeZone: data.event.timeZone }))}</strong></td>
+        <td style="padding: 8px 0; color: #212529;"><strong>${escapeHtml(seatingTitle(data.session, lang, { timeZone: data.event.timeZone }))}</strong></td>
       </tr>
       <tr>
         <td style="padding: 8px 0; color: #6c757d;">
-          ${formatSeatingDateTime(data.session.startTime, data.event.timeZone, 'en')}
+          ${formatSeatingDateTime(data.session.startTime, data.event.timeZone, lang)}
         </td>
       </tr>
       ${where.map((line) => `
@@ -267,36 +359,36 @@ export function generateTicketHtmlTemplate(data: TicketEmailData): string {
       </tr>`).join('')}
     </table>
 ${practicalInfo ? `
-    <h3 style="margin: 24px 0 12px 0; color: #495057; font-size: 16px; font-weight: 600;">Practical Info</h3>
+    <h3 style="margin: 24px 0 12px 0; color: #495057; font-size: 16px; font-weight: 600;">${L.practicalInfoHeading}</h3>
     <p style="margin: 0; color: #212529; white-space: pre-wrap;">${escapeHtml(practicalInfo)}</p>
 ` : ''}
 
-    <h3 style="margin: 24px 0 12px 0; color: #495057; font-size: 16px; font-weight: 600;">Tickets</h3>
+    <h3 style="margin: 24px 0 12px 0; color: #495057; font-size: 16px; font-weight: 600;">${L.tickets}</h3>
     <table style="width: 100%; border-collapse: collapse;">
       <tr>
         <td style="padding: 8px 0; border-bottom: 1px solid #e9ecef;">
-          ${data.reservation.quantity} × ${formatCurrency(bookedUnitPriceAmount(data.reservation), data.reservation.currency)}
+          ${data.reservation.quantity} × ${money(bookedUnitPriceAmount(data.reservation), data.reservation.currency)}
         </td>
         <td style="padding: 8px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
-          ${formatCurrency(data.reservation.totalAmount, data.reservation.currency)}
+          ${money(data.reservation.totalAmount, data.reservation.currency)}
         </td>
       </tr>
       <tr>
-        <td style="padding: 12px 0; font-weight: 600;">Total</td>
+        <td style="padding: 12px 0; font-weight: 600;">${L.total}</td>
         <td style="padding: 12px 0; text-align: right; font-weight: 600;">
-          ${formatCurrency(data.reservation.totalAmount, data.reservation.currency)}
+          ${money(data.reservation.totalAmount, data.reservation.currency)}
         </td>
       </tr>${data.reservation.balanceAmount > 0 ? `
       <tr>
-        <td style="padding: 8px 0; border-top: 1px solid #e9ecef;">Deposit paid</td>
+        <td style="padding: 8px 0; border-top: 1px solid #e9ecef;">${L.depositPaid}</td>
         <td style="padding: 8px 0; border-top: 1px solid #e9ecef; text-align: right;">
-          ${formatCurrency(data.reservation.depositAmount, data.reservation.currency)}
+          ${money(data.reservation.depositAmount, data.reservation.currency)}
         </td>
       </tr>
       <tr>
-        <td style="padding: 8px 0; font-weight: 600;">Balance due at the venue</td>
+        <td style="padding: 8px 0; font-weight: 600;">${L.balanceDue}</td>
         <td style="padding: 8px 0; text-align: right; font-weight: 600;">
-          ${formatCurrency(data.reservation.balanceAmount, data.reservation.currency)}
+          ${money(data.reservation.balanceAmount, data.reservation.currency)}
         </td>
       </tr>` : ''}
     </table>
@@ -304,20 +396,20 @@ ${practicalInfo ? `
     <div style="margin-top: 24px; text-align: center;">
       <a href="${env.PUBLIC_URL}/tickets/${data.accessToken}"
          style="display: inline-block; background-color: #007bff; color: white; text-decoration: none; padding: 12px 32px; border-radius: 6px; font-weight: 600;">
-        View Your Tickets
+        ${L.button}
       </a>
     </div>
 
     ${data.qrCode ? `
     <div style="margin-top: 24px; text-align: center;">
-      <p style="margin: 0 0 12px 0; font-size: 14px; color: #6c757d;">Present this QR code at the event entrance</p>
+      <p style="margin: 0 0 12px 0; font-size: 14px; color: #6c757d;">${L.qrHint}</p>
       <img src="${data.qrCode}" alt="Entry QR Code" width="200" height="200" style="display: block; margin: 0 auto; border: 1px solid #e9ecef; border-radius: 8px;" />
     </div>
     ` : ''}
 
     ${data.googleCalendarUrl || data.icsUrl ? `
     <div style="margin-top: 24px; text-align: center; border-top: 1px solid #e9ecef; padding-top: 20px;">
-      <p style="margin: 0 0 12px 0; font-size: 14px; color: #6c757d; font-weight: 600;">Add to your calendar</p>
+      <p style="margin: 0 0 12px 0; font-size: 14px; color: #6c757d; font-weight: 600;">${L.calendar}</p>
       <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
         ${data.googleCalendarUrl ? `<a href="${escapeHtmlAttr(data.googleCalendarUrl)}" style="display: inline-block; background-color: #ffffff; border: 1px solid #e9ecef; color: #495057; text-decoration: none; padding: 8px 20px; border-radius: 6px; font-size: 14px;">Google Calendar</a>` : ''}
         ${data.icsUrl ? `<a href="${escapeHtmlAttr(data.icsUrl)}" style="display: inline-block; background-color: #ffffff; border: 1px solid #e9ecef; color: #495057; text-decoration: none; padding: 8px 20px; border-radius: 6px; font-size: 14px;">Download .ics</a>` : ''}
@@ -328,8 +420,7 @@ ${practicalInfo ? `
 
   <div style="border-top: 1px solid #e9ecef; padding-top: 16px;">
     <p style="margin: 0; color: #6c757d; font-size: 12px; text-align: center;">
-      This is an automated confirmation from Germinal.<br>
-      If you have any questions, please contact us.
+      ${L.footer}
     </p>
   </div>
 </body>
@@ -393,10 +484,13 @@ export async function sendTicketConfirmationEmail(data: TicketEmailData): Promis
 
 	// Always queue for delivery with automatic retry
 	const { queueEmail } = await import('../jobs/process-email-queue');
+	const lang = data.locale ?? 'en';
 	await queueEmail({
 		type: 'ticket_confirmation',
 		recipient: data.guestEmail,
-		subject: `Your Tickets - ${eventTitleOf(data.event)}`,
+		subject: lang === 'fr'
+			? `Vos billets - ${eventTitleOf(data.event, lang)}`
+			: `Your Tickets - ${eventTitleOf(data.event, lang)}`,
 		textBody,
 		htmlBody,
 		metadata: {
@@ -412,36 +506,64 @@ export async function sendTicketConfirmationEmail(data: TicketEmailData): Promis
  * Generate event reminder email text template
  */
 export function generateEventReminderTextTemplate(data: TicketEmailData & { daysUntil: number }): string {
-	const timePhrase = data.daysUntil === 1 ? 'tomorrow' : `in ${data.daysUntil} days`;
+	// Issue 026: the email is written in the Guest's language, defaulting
+	// to English when it is unknown (null).
+	const lang = data.locale ?? 'en';
+	const fr = lang === 'fr';
+	const timePhrase = fr
+		? (data.daysUntil === 1 ? 'demain' : `dans ${data.daysUntil} jours`)
+		: (data.daysUntil === 1 ? 'tomorrow' : `in ${data.daysUntil} days`);
 	// The venue's address and the Practical Info (issue 040): what a Guest
 	// needs to arrive. The Practical Info falls back to the other language;
 	// empty renders no section at all.
-	const where = venueOf(data.event);
-	const practicalInfo = localizedPracticalInfo(data.event, 'en');
+	const where = venueOf(data.event, lang);
+	const practicalInfo = localizedPracticalInfo(data.event, lang);
+
+	const L = fr ? {
+		heading: `Rappel d’événement : ${eventTitleOf(data.event, lang)}`,
+		greeting: `Bonjour ${data.guestName},`,
+		reminder: `Petit rappel : votre événement a lieu ${timePhrase} !`,
+		details: "DÉTAILS DE L'ÉVÉNEMENT :",
+		practicalInfo: 'INFOS PRATIQUES :',
+		tickets: 'BILLETS :',
+		view: 'VOIR VOS BILLETS :',
+		closing: 'Nous nous réjouissons de vous y voir !',
+		footer: 'Ceci est un rappel automatique de Germinal.',
+	} : {
+		heading: `Event Reminder: ${eventTitleOf(data.event, lang)}`,
+		greeting: `Hi ${data.guestName},`,
+		reminder: `This is a friendly reminder that your event is coming up ${timePhrase}!`,
+		details: 'EVENT DETAILS:',
+		practicalInfo: 'PRACTICAL INFO:',
+		tickets: 'TICKETS:',
+		view: 'VIEW YOUR TICKETS:',
+		closing: 'We look forward to seeing you there!',
+		footer: 'This is an automated reminder from Germinal.',
+	};
 
 	return `
-Event Reminder: ${eventTitleOf(data.event)}
+${L.heading}
 
-Hi ${data.guestName},
+${L.greeting}
 
-This is a friendly reminder that your event is coming up ${timePhrase}!
+${L.reminder}
 
-EVENT DETAILS:
-${seatingTitle(data.session, 'en', { timeZone: data.event.timeZone })}
-${formatSeatingDateTime(data.session.startTime, data.event.timeZone, 'en')}
+${L.details}
+${seatingTitle(data.session, lang, { timeZone: data.event.timeZone })}
+${formatSeatingDateTime(data.session.startTime, data.event.timeZone, lang)}
 ${where.join('\n')}
-${practicalInfo ? `\nPRACTICAL INFO:\n${practicalInfo}` : ''}
+${practicalInfo ? `\n${L.practicalInfo}\n${practicalInfo}` : ''}
 
-TICKETS:
+${L.tickets}
 ${data.reservation.quantity} × ${formatCurrency(bookedUnitPriceAmount(data.reservation), data.reservation.currency)}
 
-VIEW YOUR TICKETS:
+${L.view}
 ${env.PUBLIC_URL}/tickets/${data.accessToken}
 
-We look forward to seeing you there!
+${L.closing}
 
 ---
-This is an automated reminder from Germinal.
+${L.footer}
   `.trim();
 }
 
@@ -449,39 +571,73 @@ This is an automated reminder from Germinal.
  * Generate event reminder email HTML template
  */
 export function generateEventReminderHtmlTemplate(data: TicketEmailData & { daysUntil: number }): string {
-	const timePhrase = data.daysUntil === 1 ? 'tomorrow' : `in ${data.daysUntil} days`;
+	// Issue 026: the email is written in the Guest's language, defaulting
+	// to English when it is unknown (null).
+	const lang = data.locale ?? 'en';
+	const fr = lang === 'fr';
+	const timePhrase = fr
+		? (data.daysUntil === 1 ? 'demain' : `dans ${data.daysUntil} jours`)
+		: (data.daysUntil === 1 ? 'tomorrow' : `in ${data.daysUntil} days`);
 	// The venue's address and the Practical Info (issue 040): what a Guest
 	// needs to arrive. The Practical Info falls back to the other language;
 	// empty renders no section at all.
-	const where = venueOf(data.event);
-	const practicalInfo = localizedPracticalInfo(data.event, 'en');
+	const where = venueOf(data.event, lang);
+	const practicalInfo = localizedPracticalInfo(data.event, lang);
+
+	const L = fr ? {
+		htmlTitle: 'Rappel d’événement',
+		heading: '🔔 Rappel d’événement',
+		banner: `Votre événement a lieu ${timePhrase} !`,
+		greeting: `Bonjour ${escapeHtml(data.guestName)},`,
+		reminderPrefix: 'Petit rappel : <strong>',
+		reminderSuffix: `</strong> a lieu ${timePhrase}.`,
+		details: "Détails de l'événement",
+		practicalInfoHeading: 'Infos pratiques',
+		tickets: 'Vos billets',
+		button: 'Voir vos billets',
+		closing: 'Nous nous réjouissons de vous y voir !',
+		footer: 'Ceci est un rappel automatique de Germinal.<br>Si vous avez des questions, n’hésitez pas à nous contacter.',
+	} : {
+		htmlTitle: 'Event Reminder',
+		heading: '🔔 Event Reminder',
+		banner: `Your event is coming up ${timePhrase}!`,
+		greeting: `Hi ${escapeHtml(data.guestName)},`,
+		reminderPrefix: 'This is a friendly reminder that <strong>',
+		reminderSuffix: `</strong> is coming up ${timePhrase}.`,
+		details: 'Event Details',
+		practicalInfoHeading: 'Practical Info',
+		tickets: 'Your Tickets',
+		button: 'View Your Tickets',
+		closing: 'We look forward to seeing you there!',
+		footer: 'This is an automated reminder from Germinal.<br>If you have any questions, please contact us.',
+	};
 
 	return `
 <!DOCTYPE html>
-<html lang="en">
+<html lang="${lang}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Event Reminder</title>
+  <title>${L.htmlTitle}</title>
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
   <div style="background-color: #f8f9fa; border-radius: 8px; padding: 24px; margin-bottom: 24px;">
-    <h2 style="margin: 0 0 8px 0; color: #1a1a1a; font-size: 24px;">🔔 Event Reminder</h2>
-    <p style="margin: 0; color: #6c757d; font-size: 14px;">Your event is coming up ${timePhrase}!</p>
+    <h2 style="margin: 0 0 8px 0; color: #1a1a1a; font-size: 24px;">${L.heading}</h2>
+    <p style="margin: 0; color: #6c757d; font-size: 14px;">${L.banner}</p>
   </div>
 
   <div style="background-color: #ffffff; border: 1px solid #e9ecef; border-radius: 8px; padding: 24px; margin-bottom: 16px;">
-    <p style="margin: 0 0 16px 0; font-size: 16px;">Hi ${escapeHtml(data.guestName)},</p>
-    <p style="margin: 0 0 16px 0; font-size: 16px;">This is a friendly reminder that <strong>${escapeHtml(eventTitleOf(data.event))}</strong> is coming up ${timePhrase}.</p>
+    <p style="margin: 0 0 16px 0; font-size: 16px;">${L.greeting}</p>
+    <p style="margin: 0 0 16px 0; font-size: 16px;">${L.reminderPrefix}${escapeHtml(eventTitleOf(data.event, lang))}${L.reminderSuffix}</p>
 
-    <h3 style="margin: 24px 0 12px 0; color: #495057; font-size: 16px; font-weight: 600;">Event Details</h3>
+    <h3 style="margin: 24px 0 12px 0; color: #495057; font-size: 16px; font-weight: 600;">${L.details}</h3>
     <table style="width: 100%; border-collapse: collapse;">
       <tr>
-        <td style="padding: 8px 0; color: #212529;"><strong>${escapeHtml(seatingTitle(data.session, 'en', { timeZone: data.event.timeZone }))}</strong></td>
+        <td style="padding: 8px 0; color: #212529;"><strong>${escapeHtml(seatingTitle(data.session, lang, { timeZone: data.event.timeZone }))}</strong></td>
       </tr>
       <tr>
         <td style="padding: 8px 0; color: #6c757d;">
-          ${formatSeatingDateTime(data.session.startTime, data.event.timeZone, 'en')}
+          ${formatSeatingDateTime(data.session.startTime, data.event.timeZone, lang)}
         </td>
       </tr>
       ${where.map((line) => `
@@ -492,11 +648,11 @@ export function generateEventReminderHtmlTemplate(data: TicketEmailData & { days
       </tr>`).join('')}
     </table>
 ${practicalInfo ? `
-    <h3 style="margin: 24px 0 12px 0; color: #495057; font-size: 16px; font-weight: 600;">Practical Info</h3>
+    <h3 style="margin: 24px 0 12px 0; color: #495057; font-size: 16px; font-weight: 600;">${L.practicalInfoHeading}</h3>
     <p style="margin: 0; color: #212529; white-space: pre-wrap;">${escapeHtml(practicalInfo)}</p>
 ` : ''}
 
-    <h3 style="margin: 24px 0 12px 0; color: #495057; font-size: 16px; font-weight: 600;">Your Tickets</h3>
+    <h3 style="margin: 24px 0 12px 0; color: #495057; font-size: 16px; font-weight: 600;">${L.tickets}</h3>
     <table style="width: 100%; border-collapse: collapse;">
       <tr>
         <td style="padding: 8px 0; border-bottom: 1px solid #e9ecef;">
@@ -508,19 +664,18 @@ ${practicalInfo ? `
     <div style="margin-top: 24px; text-align: center;">
       <a href="${env.PUBLIC_URL}/tickets/${data.accessToken}"
          style="display: inline-block; background-color: #007bff; color: white; text-decoration: none; padding: 12px 32px; border-radius: 6px; font-weight: 600;">
-        View Your Tickets
+        ${L.button}
       </a>
     </div>
 
     <p style="margin: 24px 0 0 0; font-size: 14px; color: #6c757d; text-align: center;">
-      We look forward to seeing you there!
+      ${L.closing}
     </p>
   </div>
 
   <div style="border-top: 1px solid #e9ecef; padding-top: 16px;">
     <p style="margin: 0; color: #6c757d; font-size: 12px; text-align: center;">
-      This is an automated reminder from Germinal.<br>
-      If you have any questions, please contact us.
+      ${L.footer}
     </p>
   </div>
 </body>
@@ -543,7 +698,7 @@ export async function sendEventReminderEmail(data: TicketEmailData & { daysUntil
 	if (!isBrevoConfigured()) {
 		logger.info({
 			to: data.guestEmail,
-			event: eventTitleOf(data.event),
+			event: eventTitleOf(data.event, data.locale ?? 'en'),
 			daysUntil: data.daysUntil,
 		}, '🔔 Brevo not configured - event reminder email would be sent');
 		return;
@@ -551,10 +706,16 @@ export async function sendEventReminderEmail(data: TicketEmailData & { daysUntil
 
 	// Always queue for delivery with automatic retry
 	const { queueEmail } = await import('../jobs/process-email-queue');
+	const lang = data.locale ?? 'en';
+	const timePhrase = lang === 'fr'
+		? (data.daysUntil === 1 ? 'demain' : `dans ${data.daysUntil} jours`)
+		: (data.daysUntil === 1 ? 'tomorrow' : `in ${data.daysUntil} days`);
 	await queueEmail({
 		type: 'event_reminder',
 		recipient: data.guestEmail,
-		subject: `Reminder: ${eventTitleOf(data.event)} is coming up ${data.daysUntil === 1 ? 'tomorrow' : `in ${data.daysUntil} days`}`,
+		subject: lang === 'fr'
+			? `Rappel : ${eventTitleOf(data.event, lang)} a lieu ${timePhrase}`
+			: `Reminder: ${eventTitleOf(data.event, lang)} is coming up ${timePhrase}`,
 		textBody,
 		htmlBody,
 		metadata: {
@@ -580,6 +741,8 @@ export interface CancellationEmailData {
 	/** The Event's Time Zone: the Seating's time is shown on its clock. */
 	timeZone: string;
 	reservationId: string;
+	/** Issue 026: the Reservation's language. Null falls back to English. */
+	locale: 'fr' | 'en' | null;
 }
 
 export interface RefundEmailData {
@@ -594,68 +757,116 @@ export interface RefundEmailData {
 	amount: number;
 	currency: string;
 	isPartialRefund: boolean;
+	/** Issue 026: the Reservation's language. Null falls back to English. */
+	locale: 'fr' | 'en' | null;
 }
 
 export function generateCancellationTextTemplate(data: CancellationEmailData): string {
+	const lang = data.locale ?? 'en';
+	const fr = lang === 'fr';
+
+	const L = fr ? {
+		heading: 'Réservation annulée',
+		greeting: `Bonjour ${data.guestName},`,
+		cancelled: `Votre réservation pour ${data.eventTitle} a été annulée.`,
+		details: 'DÉTAILS DE LA RÉSERVATION :',
+		id: 'Numéro de réservation : ',
+		contact: 'Si vous n’êtes pas à l’origine de cette annulation ou si vous avez des questions, n’hésitez pas à nous contacter.',
+		footer: 'Ceci est une notification automatique de Germinal.',
+	} : {
+		heading: 'Reservation Cancelled',
+		greeting: `Hi ${data.guestName},`,
+		cancelled: `Your reservation for ${data.eventTitle} has been cancelled.`,
+		details: 'RESERVATION DETAILS:',
+		id: 'Reservation ID: ',
+		contact: "If you didn't request this cancellation or have any questions, please contact us.",
+		footer: 'This is an automated notification from Germinal.',
+	};
+
 	return `
-Reservation Cancelled
+${L.heading}
 
-Hi ${data.guestName},
+${L.greeting}
 
-Your reservation for ${data.eventTitle} has been cancelled.
+${L.cancelled}
 
-RESERVATION DETAILS:
+${L.details}
 ${data.sessionTitle}
-${formatSeatingDateTime(data.sessionStartTime, data.timeZone, 'en')}
+${formatSeatingDateTime(data.sessionStartTime, data.timeZone, lang)}
 
-Reservation ID: ${data.reservationId.substring(0, 8)}
+${L.id}${data.reservationId.substring(0, 8)}
 
-If you didn't request this cancellation or have any questions, please contact us.
+${L.contact}
 
 ---
-This is an automated notification from Germinal.
+${L.footer}
   `.trim();
 }
 
 function generateCancellationHtmlTemplate(data: CancellationEmailData): string {
+	const lang = data.locale ?? 'en';
+	const fr = lang === 'fr';
+
+	const L = fr ? {
+		htmlTitle: 'Réservation annulée',
+		heading: 'Réservation annulée',
+		order: 'Réservation n° ',
+		greeting: `Bonjour ${escapeHtml(data.guestName)},`,
+		cancelledPrefix: 'Votre réservation pour <strong>',
+		cancelledSuffix: '</strong> a été annulée.',
+		details: 'Détails de la réservation',
+		contact: 'Si vous n’êtes pas à l’origine de cette annulation ou si vous avez des questions, n’hésitez pas à nous contacter.',
+		footer: 'Ceci est une notification automatique de Germinal.',
+	} : {
+		htmlTitle: 'Reservation Cancelled',
+		heading: 'Reservation Cancelled',
+		order: 'Reservation #',
+		greeting: `Hi ${escapeHtml(data.guestName)},`,
+		cancelledPrefix: 'Your reservation for <strong>',
+		cancelledSuffix: '</strong> has been cancelled.',
+		details: 'Reservation Details',
+		contact: "If you didn't request this cancellation or have any questions, please contact us.",
+		footer: 'This is an automated notification from Germinal.',
+	};
+
 	return `
 <!DOCTYPE html>
-<html lang="en">
+<html lang="${lang}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Reservation Cancelled</title>
+  <title>${L.htmlTitle}</title>
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
   <div style="background-color: #f8f9fa; border-radius: 8px; padding: 24px; margin-bottom: 24px;">
-    <h2 style="margin: 0 0 8px 0; color: #1a1a1a; font-size: 24px;">Reservation Cancelled</h2>
-    <p style="margin: 0; color: #6c757d; font-size: 14px;">Reservation #${escapeHtml(data.reservationId.substring(0, 8))}</p>
+    <h2 style="margin: 0 0 8px 0; color: #1a1a1a; font-size: 24px;">${L.heading}</h2>
+    <p style="margin: 0; color: #6c757d; font-size: 14px;">${L.order}${escapeHtml(data.reservationId.substring(0, 8))}</p>
   </div>
 
   <div style="background-color: #ffffff; border: 1px solid #e9ecef; border-radius: 8px; padding: 24px; margin-bottom: 16px;">
-    <p style="margin: 0 0 16px 0; font-size: 16px;">Hi ${escapeHtml(data.guestName)},</p>
-    <p style="margin: 0 0 16px 0; font-size: 16px;">Your reservation for <strong>${escapeHtml(data.eventTitle)}</strong> has been cancelled.</p>
+    <p style="margin: 0 0 16px 0; font-size: 16px;">${L.greeting}</p>
+    <p style="margin: 0 0 16px 0; font-size: 16px;">${L.cancelledPrefix}${escapeHtml(data.eventTitle)}${L.cancelledSuffix}</p>
 
-    <h3 style="margin: 24px 0 12px 0; color: #495057; font-size: 16px; font-weight: 600;">Reservation Details</h3>
+    <h3 style="margin: 24px 0 12px 0; color: #495057; font-size: 16px; font-weight: 600;">${L.details}</h3>
     <table style="width: 100%; border-collapse: collapse;">
       <tr>
         <td style="padding: 8px 0; color: #212529;"><strong>${escapeHtml(data.sessionTitle)}</strong></td>
       </tr>
       <tr>
         <td style="padding: 8px 0; color: #6c757d;">
-          ${formatSeatingDateTime(data.sessionStartTime, data.timeZone, 'en')}
+          ${formatSeatingDateTime(data.sessionStartTime, data.timeZone, lang)}
         </td>
       </tr>
     </table>
 
     <p style="margin: 24px 0 0 0; font-size: 14px; color: #6c757d;">
-      If you didn't request this cancellation or have any questions, please contact us.
+      ${L.contact}
     </p>
   </div>
 
   <div style="border-top: 1px solid #e9ecef; padding-top: 16px;">
     <p style="margin: 0; color: #6c757d; font-size: 12px; text-align: center;">
-      This is an automated notification from Germinal.
+      ${L.footer}
     </p>
   </div>
 </body>
@@ -879,10 +1090,13 @@ export async function sendCancellationEmail(data: CancellationEmailData): Promis
 	}
 
 	const { queueEmail } = await import('../jobs/process-email-queue');
+	const lang = data.locale ?? 'en';
 	await queueEmail({
 		type: 'reservation_cancelled',
 		recipient: data.guestEmail,
-		subject: `Reservation Cancelled - ${data.eventTitle}`,
+		subject: lang === 'fr'
+			? `Réservation annulée - ${data.eventTitle}`
+			: `Reservation Cancelled - ${data.eventTitle}`,
 		textBody,
 		htmlBody,
 		metadata: {
@@ -894,35 +1108,85 @@ export async function sendCancellationEmail(data: CancellationEmailData): Promis
 }
 
 function generateRefundTextTemplate(data: RefundEmailData): string {
-	const refundLabel = data.isPartialRefund ? 'Partial Refund Processed' : 'Refund Processed';
+	const lang = data.locale ?? 'en';
+	const fr = lang === 'fr';
+	const money = (n: number, c: string) => formatCurrency(n, c, currencyLocaleOf(lang));
+	const refundLabel = data.isPartialRefund
+		? (fr ? 'Remboursement partiel effectué' : 'Partial Refund Processed')
+		: (fr ? 'Remboursement effectué' : 'Refund Processed');
+
+	const L = fr ? {
+		greeting: `Bonjour ${data.guestName},`,
+		body: `Votre réservation pour ${data.eventTitle} a été annulée et ${data.isPartialRefund ? 'un remboursement partiel' : 'un remboursement'} de ${money(data.amount, data.currency)} a été effectué.`,
+		details: 'DÉTAILS DE LA RÉSERVATION :',
+		id: 'Numéro de réservation : ',
+		refundAmount: 'Montant remboursé : ',
+		timeline: 'Le remboursement apparaît généralement sur votre relevé sous 5 à 10 jours ouvrés, selon votre banque.',
+		footer: 'Ceci est une notification automatique de Germinal.',
+	} : {
+		greeting: `Hi ${data.guestName},`,
+		body: `Your reservation for ${data.eventTitle} has been cancelled and ${data.isPartialRefund ? 'a partial refund' : 'a refund'} of ${money(data.amount, data.currency)} has been processed.`,
+		details: 'RESERVATION DETAILS:',
+		id: 'Reservation ID: ',
+		refundAmount: 'Refund Amount: ',
+		timeline: 'Refunds typically appear on your statement within 5-10 business days, depending on your bank.',
+		footer: 'This is an automated notification from Germinal.',
+	};
 
 	return `
 ${refundLabel}
 
-Hi ${data.guestName},
+${L.greeting}
 
-Your reservation for ${data.eventTitle} has been cancelled and ${data.isPartialRefund ? 'a partial refund' : 'a refund'} of ${formatCurrency(data.amount, data.currency)} has been processed.
+${L.body}
 
-RESERVATION DETAILS:
+${L.details}
 ${data.sessionTitle}
-${formatSeatingDateTime(data.sessionStartTime, data.timeZone, 'en')}
+${formatSeatingDateTime(data.sessionStartTime, data.timeZone, lang)}
 
-Reservation ID: ${data.reservationId.substring(0, 8)}
-Refund Amount: ${formatCurrency(data.amount, data.currency)}
+${L.id}${data.reservationId.substring(0, 8)}
+${L.refundAmount}${money(data.amount, data.currency)}
 
-Refunds typically appear on your statement within 5-10 business days, depending on your bank.
+${L.timeline}
 
 ---
-This is an automated notification from Germinal.
+${L.footer}
   `.trim();
 }
 
 function generateRefundHtmlTemplate(data: RefundEmailData): string {
-	const refundLabel = data.isPartialRefund ? 'Partial Refund Processed' : 'Refund Processed';
+	const lang = data.locale ?? 'en';
+	const fr = lang === 'fr';
+	const money = (n: number, c: string) => formatCurrency(n, c, currencyLocaleOf(lang));
+	const refundLabel = data.isPartialRefund
+		? (fr ? 'Remboursement partiel effectué' : 'Partial Refund Processed')
+		: (fr ? 'Remboursement effectué' : 'Refund Processed');
+
+	const L = fr ? {
+		order: 'Réservation n° ',
+		greeting: `Bonjour ${escapeHtml(data.guestName)},`,
+		bodyPrefix: 'Votre réservation pour <strong>',
+		bodySuffix: `</strong> a été annulée et ${data.isPartialRefund ? 'un remboursement partiel' : 'un remboursement'} de <strong>`,
+		bodyEnd: '</strong> a été effectué.',
+		details: 'Détails de la réservation',
+		refundAmount: 'Montant remboursé',
+		timeline: 'Le remboursement apparaît généralement sur votre relevé sous 5 à 10 jours ouvrés, selon votre banque.',
+		footer: 'Ceci est une notification automatique de Germinal.',
+	} : {
+		order: 'Reservation #',
+		greeting: `Hi ${escapeHtml(data.guestName)},`,
+		bodyPrefix: 'Your reservation for <strong>',
+		bodySuffix: `</strong> has been cancelled and ${data.isPartialRefund ? 'a partial refund' : 'a refund'} of <strong>`,
+		bodyEnd: '</strong> has been processed.',
+		details: 'Reservation Details',
+		refundAmount: 'Refund Amount',
+		timeline: 'Refunds typically appear on your statement within 5-10 business days, depending on your bank.',
+		footer: 'This is an automated notification from Germinal.',
+	};
 
 	return `
 <!DOCTYPE html>
-<html lang="en">
+<html lang="${lang}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -931,42 +1195,41 @@ function generateRefundHtmlTemplate(data: RefundEmailData): string {
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
   <div style="background-color: #f8f9fa; border-radius: 8px; padding: 24px; margin-bottom: 24px;">
     <h2 style="margin: 0 0 8px 0; color: #1a1a1a; font-size: 24px;">💳 ${escapeHtml(refundLabel)}</h2>
-    <p style="margin: 0; color: #6c757d; font-size: 14px;">Reservation #${escapeHtml(data.reservationId.substring(0, 8))}</p>
+    <p style="margin: 0; color: #6c757d; font-size: 14px;">${L.order}${escapeHtml(data.reservationId.substring(0, 8))}</p>
   </div>
 
   <div style="background-color: #ffffff; border: 1px solid #e9ecef; border-radius: 8px; padding: 24px; margin-bottom: 16px;">
-    <p style="margin: 0 0 16px 0; font-size: 16px;">Hi ${escapeHtml(data.guestName)},</p>
+    <p style="margin: 0 0 16px 0; font-size: 16px;">${L.greeting}</p>
     <p style="margin: 0 0 16px 0; font-size: 16px;">
-      Your reservation for <strong>${escapeHtml(data.eventTitle)}</strong> has been cancelled and
-      ${data.isPartialRefund ? 'a partial refund' : 'a refund'} of <strong>${escapeHtml(formatCurrency(data.amount, data.currency))}</strong> has been processed.
+      ${L.bodyPrefix}${escapeHtml(data.eventTitle)}${L.bodySuffix}${escapeHtml(money(data.amount, data.currency))}${L.bodyEnd}
     </p>
 
-    <h3 style="margin: 24px 0 12px 0; color: #495057; font-size: 16px; font-weight: 600;">Reservation Details</h3>
+    <h3 style="margin: 24px 0 12px 0; color: #495057; font-size: 16px; font-weight: 600;">${L.details}</h3>
     <table style="width: 100%; border-collapse: collapse;">
       <tr>
         <td style="padding: 8px 0; color: #212529;"><strong>${escapeHtml(data.sessionTitle)}</strong></td>
       </tr>
       <tr>
         <td style="padding: 8px 0; color: #6c757d;">
-          ${formatSeatingDateTime(data.sessionStartTime, data.timeZone, 'en')}
+          ${formatSeatingDateTime(data.sessionStartTime, data.timeZone, lang)}
         </td>
       </tr>
       <tr>
-        <td style="padding: 12px 0 0 0; font-weight: 600;">Refund Amount</td>
+        <td style="padding: 12px 0 0 0; font-weight: 600;">${L.refundAmount}</td>
       </tr>
       <tr>
-        <td style="padding: 0 0 8px 0;">${escapeHtml(formatCurrency(data.amount, data.currency))}</td>
+        <td style="padding: 0 0 8px 0;">${escapeHtml(money(data.amount, data.currency))}</td>
       </tr>
     </table>
 
     <p style="margin: 24px 0 0 0; font-size: 14px; color: #6c757d;">
-      Refunds typically appear on your statement within 5-10 business days, depending on your bank.
+      ${L.timeline}
     </p>
   </div>
 
   <div style="border-top: 1px solid #e9ecef; padding-top: 16px;">
     <p style="margin: 0; color: #6c757d; font-size: 12px; text-align: center;">
-      This is an automated notification from Germinal.
+      ${L.footer}
     </p>
   </div>
 </body>
@@ -998,12 +1261,13 @@ export async function sendRefundEmail(data: RefundEmailData): Promise<void> {
 	}
 
 	const { queueEmail } = await import('../jobs/process-email-queue');
+	const lang = data.locale ?? 'en';
 	await queueEmail({
 		type: 'reservation_refunded',
 		recipient: data.guestEmail,
 		subject: data.isPartialRefund
-			? `Partial Refund Processed - ${data.eventTitle}`
-			: `Refund Processed - ${data.eventTitle}`,
+			? (lang === 'fr' ? `Remboursement partiel effectué - ${data.eventTitle}` : `Partial Refund Processed - ${data.eventTitle}`)
+			: (lang === 'fr' ? `Remboursement effectué - ${data.eventTitle}` : `Refund Processed - ${data.eventTitle}`),
 		textBody,
 		htmlBody,
 		metadata: {

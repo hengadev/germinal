@@ -162,6 +162,8 @@ async function sendReminder(
 		guestEmail: reservation.guestEmail,
 		accessToken: reservation.accessToken,
 		daysUntil,
+		// Issue 026: the email is written in the Guest's language.
+		locale: (reservation.locale as 'fr' | 'en' | null) ?? null,
 	});
 
 	// Send SMS if phone number exists and preference is not email-only
