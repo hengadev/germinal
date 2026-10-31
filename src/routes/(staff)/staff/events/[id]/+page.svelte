@@ -6,6 +6,8 @@
 	import { STAFF_PERMISSION_LABELS_FR } from '$lib/staff/permissions';
 	import Arrivees from '$lib/components/staff/arrivees/Arrivees.svelte';
 import Scanner from '$lib/components/staff/scanner/Scanner.svelte';
+import NotesCuisine from '$lib/components/staff/arrivees/NotesCuisine.svelte';
+import { noteCount as countNotes } from '$lib/components/staff/arrivees/helpers';
 import { page } from '$app/state';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -13,19 +15,22 @@ import { page } from '$app/state';
 	const toast = getToastContext();
 
 	// At the door, Arrivées comes first; it only exists during a Day.
-	// ?onglet=taches|arrivees|scanner lets a link open a tab directly.
+	// ?onglet=taches|arrivees|cuisine|scanner lets a link open a tab directly.
 	const fromUrl = page.url.searchParams.get('onglet');
 	const tabFromUrl =
 		fromUrl === 'taches'
 			? ('tasks' as const)
-			: fromUrl === 'arrivees' || fromUrl === 'scanner'
+			: fromUrl === 'arrivees' || fromUrl === 'cuisine' || fromUrl === 'scanner'
 				? fromUrl
 				: null;
-	let activeTab = $state<'tasks' | 'arrivees' | 'scanner'>(
-		tabFromUrl ?? (data.access.canArrivees ? 'arrivees' : 'tasks')
+	let activeTab = $state<'tasks' | 'arrivees' | 'cuisine' | 'scanner'>(
+		tabFromUrl ?? (data.access.canArrivees ? 'arrivees' : data.access.canCuisine ? 'cuisine' : 'tasks')
 	);
 
 	const title = $derived(data.event.titleFr || data.event.titleEn || 'Événement sans titre');
+
+	// The Cuisine tab's badge: the parties with Dietary Requirements.
+	const notes = $derived(data.arrivees ? countNotes(data.arrivees) : 0);
 
 	const dayLabel = $derived(
 		data.access.day
@@ -127,6 +132,19 @@ import { page } from '$app/state';
 						Arrivées
 					</button>
 				{/if}
+				{#if data.access.canCuisine}
+					<button
+						type="button"
+						onclick={() => (activeTab = 'cuisine')}
+						aria-current={activeTab === 'cuisine' ? 'page' : undefined}
+						class="inline-flex items-center gap-1.5 px-1 py-3 text-sm font-medium border-b-2 {activeTab === 'cuisine'
+							? 'border-foreground text-foreground'
+							: 'border-transparent text-muted-foreground hover:text-foreground'}"
+					>
+						Cuisine
+						<span class="rounded bg-muted px-1.5 text-xs leading-5 text-foreground tabular-nums">{notes}</span>
+					</button>
+				{/if}
 				{#if data.access.canScan}
 					<button
 						type="button"
@@ -220,6 +238,19 @@ import { page } from '$app/state';
 			</section>
 		{/if}
 
+		<!-- Onglet Cuisine -->
+		{#if activeTab === 'cuisine' && data.access.canCuisine}
+			<section aria-label="Cuisine">
+				{#if data.arrivees}
+					<NotesCuisine list={data.arrivees} timeZone={data.event.timeZone} />
+				{:else}
+					<div class="bg-background border border-border-card rounded-lg p-8 text-center">
+						<p class="text-muted-foreground">Aucun jour en cours : les invités ne sont visibles que le jour J.</p>
+					</div>
+				{/if}
+			</section>
+		{/if}
+
 		<!-- Onglet Scanner -->
 		{#if activeTab === 'scanner' && data.access.canScan}
 			<section aria-label="Scanner">
@@ -227,7 +258,7 @@ import { page } from '$app/state';
 			</section>
 		{/if}
 
-		{#if !(activeTab === 'tasks' && data.access.canTasks) && !(activeTab === 'arrivees' && data.access.canArrivees) && !(activeTab === 'scanner' && data.access.canScan)}
+		{#if !(activeTab === 'tasks' && data.access.canTasks) && !(activeTab === 'arrivees' && data.access.canArrivees) && !(activeTab === 'cuisine' && data.access.canCuisine) && !(activeTab === 'scanner' && data.access.canScan)}
 			<div class="bg-background border border-border-card rounded-lg p-8 text-center">
 				<p class="text-muted-foreground">
 					Vos permissions :

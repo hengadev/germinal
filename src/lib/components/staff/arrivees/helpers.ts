@@ -3,7 +3,7 @@
  * permission-shaped party rows.
  */
 import { formatCurrency } from '$lib/utils/currency';
-import type { DayGuestParty, DayGuestSeating } from '$lib/server/services/day-guest-list';
+import type { DayGuestList, DayGuestParty, DayGuestSeating } from '$lib/server/services/day-guest-list';
 
 export type ArriveesFields = { guestList: boolean; dietary: boolean; contact: boolean };
 
@@ -75,6 +75,14 @@ export function currentSeatingId(seatings: DayGuestSeating[], now: Date): string
 /** « Déjeuner », « Dîner ». */
 export function serviceLabel(kind: DayGuestSeating['serviceKind']): string {
 	return kind === 'lunch' ? 'Déjeuner' : 'Dîner';
+}
+
+/** How many parties of the Day have Dietary Requirements: the Cuisine tab's badge. */
+export function noteCount(list: DayGuestList): number {
+	return list.seatings.reduce(
+		(n, s) => n + s.parties.filter((p) => p.dietaryRequirements?.trim()).length,
+		0
+	);
 }
 
 /** The Day's Services, in order, each with its Seatings. */
