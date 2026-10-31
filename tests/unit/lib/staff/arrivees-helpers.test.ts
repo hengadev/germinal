@@ -12,6 +12,7 @@ function seating(id: string, overrides: Partial<DayGuestSeating> = {}): DayGuest
 		startTime: '2025-06-01T12:00:00.000Z',
 		booked: 0,
 		totalCapacity: null,
+		bookingsClosed: false,
 		parties: [],
 		...overrides,
 	};

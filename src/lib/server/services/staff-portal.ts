@@ -313,14 +313,23 @@ export async function seatingsForBookingClosure(
 		.innerJoin(eventDays, eq(eventServices.dayId, eventDays.id))
 		.where(and(...conditions))
 		.orderBy(asc(eventDays.date), asc(eventSessions.startTime));
-	return rows.map((r) => ({
-		id: r.id,
-		dayDate: String(r.dayDate),
-		serviceId: r.serviceId,
-		serviceKind: r.serviceKind,
-		startTime: r.startTime.toISOString(),
-		closed: r.bookingsClosedAt !== null
-	}));
+	return rows.map(
+		(r: {
+			id: string;
+			dayDate: string;
+			serviceId: string;
+			serviceKind: 'lunch' | 'dinner';
+			startTime: Date;
+			bookingsClosedAt: Date | null;
+		}) => ({
+			id: r.id,
+			dayDate: String(r.dayDate),
+			serviceId: r.serviceId,
+			serviceKind: r.serviceKind,
+			startTime: r.startTime.toISOString(),
+			closed: r.bookingsClosedAt !== null
+		})
+	);
 }
 
 /**
@@ -356,7 +365,7 @@ export async function setSeatingBookingsClosed(input: {
 	if (rows.length !== input.seatingIds.length) {
 		return { ok: false, error: 'Séance introuvable pour cet événement.' };
 	}
-	const written = rows.map((r) => r.id);
+	const written = rows.map((r: { id: string }) => r.id);
 	await db
 		.update(eventSessions)
 		.set(

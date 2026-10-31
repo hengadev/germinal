@@ -46,8 +46,8 @@ vi.mock('../../src/lib/server/rate-limit', () => ({
 	checkRateLimit: vi.fn().mockResolvedValue({ status: 'allowed' }),
 }));
 
-vi.mock('../../src/lib/server/mock-data', async (importOriginal) => ({
-	...(await importOriginal<typeof import('../../src/lib/server/mock-data')>()),
+vi.mock('../../src/lib/mock-data', async (importOriginal) => ({
+	...(await importOriginal<typeof import('../../src/lib/mock-data')>()),
 	USE_MOCK_DATA: false,
 }));
 

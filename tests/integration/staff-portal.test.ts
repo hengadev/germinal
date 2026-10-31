@@ -135,8 +135,10 @@ describe('staff portal access', () => {
 
 		const access = await svc.getStaffEventAccess(adminUser, futureEvent.id);
 		expect(access.staffRoleName).toBeNull();
-		expect(access.permissions).toHaveLength(11);
+		expect(access.permissions).toHaveLength(12);
 		expect(access.can('tasks')).toBe(true);
+		// An Admin holds close_bookings everywhere (039), even outside a Day.
+		expect(access.can('close_bookings')).toBe(true);
 
 		// A Staff member only sees their own Assignments, upcoming first.
 		const staffList = await svc.listStaffEvents(staffUser);

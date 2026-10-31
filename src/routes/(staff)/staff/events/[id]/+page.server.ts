@@ -1,6 +1,10 @@
 import { error, fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { getStaffEventAccess } from '$lib/server/services/staff-portal';
+import {
+	getStaffEventAccess,
+	seatingsForBookingClosure,
+	setSeatingBookingsClosed,
+} from '$lib/server/services/staff-portal';
 import {
 	getDayGuestList,
 	lookupTicket,
@@ -12,11 +16,6 @@ import { createWalkIn } from '$lib/server/services/walk-ins';
 import { createCompOnTheSpot } from '$lib/server/services/comps';
 import { settleBalance, undoSettleBalance } from '$lib/server/services/balance';
 import { getEventBrief } from '$lib/server/services/staff-brief';
-import {
-	getStaffEventAccess,
-	seatingsForBookingClosure,
-	setSeatingBookingsClosed,
-} from '$lib/server/services/staff-portal';
 import { recordAuditLog } from '$lib/server/services/audit-log';
 import { moveReservation } from '$lib/server/services/moves';
 import { formatCurrency } from '$lib/utils/currency';
