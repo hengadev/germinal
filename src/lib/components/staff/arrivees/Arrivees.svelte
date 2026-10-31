@@ -269,6 +269,7 @@
 			<form
 				method="POST"
 				action={isCompForm ? '?/comp' : '?/walkIn'}
+				data-no-swipe
 				class="rounded-lg border border-border-card bg-background p-4"
 				use:enhance={() => {
 					walkInSubmitting = true;
@@ -383,6 +384,7 @@
 		{#if !query.trim() && serviceSeatings.length > 1}
 			<nav
 				aria-label="Filtrer par service"
+				data-no-swipe
 				class="-mx-4 overflow-x-auto px-4 py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
 			>
 				<ul class="flex w-max gap-1.5">
