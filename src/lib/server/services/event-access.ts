@@ -36,7 +36,7 @@ export function toAccessEvent(event: {
 
 /** The Event access snapshot of a Seating row and the price it is booked at. */
 export function toAccessSeating(
-	seating: { published: boolean; startTime: Date; availableCapacity: number | null; allowWaitlist: boolean },
+	seating: { published: boolean; startTime: Date; availableCapacity: number | null; allowWaitlist: boolean; bookingsClosedAt?: Date | null },
 	price: SeatingPrice | null
 ): AccessSeating {
 	return {
@@ -45,6 +45,7 @@ export function toAccessSeating(
 		startTime: seating.startTime,
 		availableCapacity: seating.availableCapacity,
 		allowWaitlist: seating.allowWaitlist,
+		bookingsClosedAt: seating.bookingsClosedAt ?? null,
 	};
 }
 

@@ -16,6 +16,7 @@ export const STAFF_PERMISSIONS = [
 	'move',
 	'walk_in',
 	'comp',
+	'close_bookings',
 ] as const;
 
 export type StaffPermission = (typeof STAFF_PERMISSIONS)[number];
@@ -32,6 +33,7 @@ export const STAFF_PERMISSION_LABELS_FR: Record<StaffPermission, string> = {
 	move: 'Déplacer',
 	walk_in: 'Walk-in',
 	comp: 'Offrir une invitation',
+	close_bookings: 'Fermer aux réservations',
 };
 
 /**
@@ -72,7 +74,11 @@ export const STARTING_STAFF_ROLES: ReadonlyArray<{
 }> = [
 	{
 		name: 'Responsable',
-		permissions: withImpliedPermissions(STAFF_PERMISSIONS.filter((p) => p !== 'comp')),
+		permissions: withImpliedPermissions(
+			// comp (never a starting role) and close_bookings (issue 039: only
+			// an Admin grants it) stay out of every starting Staff Role.
+			STAFF_PERMISSIONS.filter((p) => p !== 'comp' && p !== 'close_bookings')
+		),
 	},
 	{
 		name: 'Porte',
