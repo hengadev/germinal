@@ -249,7 +249,7 @@
 						class="{BTN} w-full border-foreground bg-foreground text-background hover:bg-foreground/90 disabled:opacity-50"
 					>
 						{#if submitting}<LoaderCircle size={16} class="animate-spin" aria-hidden="true" />{/if}
-						Rembourser {amount ? `${amount} €` : ''}
+						Rembourser {amount && Number.isFinite(Number(amount)) ? formatCurrency(Math.round(Number(amount) * 100), target.currency, 'fr-FR') : ''}
 					</button>
 				</fieldset>
 			</form>

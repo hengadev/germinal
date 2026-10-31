@@ -33,22 +33,22 @@ function refusal(access: StaffAccess): string | null {
 	return null;
 }
 
-/** The Reservation belongs to this Event's current Day (null: it doesn't). */
+/** The Reservation's currency when it belongs to this Event's current Day (null: it doesn't). */
 async function currentDayReservation(
 	access: StaffAccess,
 	eventId: string,
 	reservationId: string
-): Promise<boolean> {
+): Promise<string | null> {
 	const [row] = await db
-		.select({ rowEventId: eventSessions.eventId, day: eventDays.date })
+		.select({ rowEventId: eventSessions.eventId, day: eventDays.date, currency: reservations.currency })
 		.from(reservations)
 		.innerJoin(eventSessions, eq(reservations.eventSessionId, eventSessions.id))
 		.innerJoin(eventServices, eq(eventSessions.serviceId, eventServices.id))
 		.innerJoin(eventDays, eq(eventServices.dayId, eventDays.id))
 		.where(eq(reservations.id, reservationId))
 		.limit(1);
-	if (!row || row.rowEventId !== eventId) return false;
-	return access.day !== null && String(row.day) === access.day;
+	if (!row || row.rowEventId !== eventId) return null;
+	return access.day !== null && String(row.day) === access.day ? row.currency : null;
 }
 
 /** processRefund's English messages, in French for the Staff member. */
@@ -129,7 +129,8 @@ export async function refundParty(input: {
 }): Promise<PartyActionResult> {
 	const denied = refusal(input.access);
 	if (denied) return { ok: false, error: denied };
-	if (!(await currentDayReservation(input.access, input.eventId, input.reservationId))) {
+	const currency = await currentDayReservation(input.access, input.eventId, input.reservationId);
+	if (!currency) {
 		return { ok: false, error: "Cette réservation n'est pas pour le jour en cours." };
 	}
 
@@ -148,7 +149,7 @@ export async function refundParty(input: {
 	return {
 		ok: true,
 		message: input.amount
-			? `Remboursement de ${formatCurrency(input.amount, 'EUR', 'fr-FR')} effectué`
+			? `Remboursement de ${formatCurrency(input.amount, currency, 'fr-FR')} effectué`
 			: 'Remboursement effectué',
 	};
 }
