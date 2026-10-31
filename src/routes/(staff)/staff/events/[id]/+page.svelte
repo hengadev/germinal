@@ -10,7 +10,9 @@ import { page } from '$app/state';
 	// ?onglet=arrivees|scanner lets a link open a tab directly.
 	const fromUrl = page.url.searchParams.get('onglet');
 	const tabFromUrl = fromUrl === 'arrivees' || fromUrl === 'scanner' ? fromUrl : null;
-	let activeTab = $state<'arrivees' | 'scanner'>(tabFromUrl ?? 'arrivees');
+	let activeTab = $state<'arrivees' | 'scanner'>(
+		tabFromUrl ?? (data.access.canArrivees || !data.access.canScan ? 'arrivees' : 'scanner')
+	);
 
 	const title = $derived(data.event.titleFr || data.event.titleEn || 'Événement sans titre');
 

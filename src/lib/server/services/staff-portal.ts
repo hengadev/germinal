@@ -8,7 +8,7 @@ import { and, asc, eq, inArray } from 'drizzle-orm';
 import { error } from '@sveltejs/kit';
 import { db } from '../db';
 import { eventDays, eventStaff, events, staffRoles } from '../db/schema';
-import { staffAccess, activeDay, type StaffAccess, type StaffWho } from '$lib/staff/access';
+import { staffAccess, type StaffAccess, type StaffWho } from '$lib/staff/access';
 import type { StaffPermission } from '$lib/staff/permissions';
 
 /** The least the portal needs to know about the signed-in person. */
