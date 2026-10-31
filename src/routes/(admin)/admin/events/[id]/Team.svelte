@@ -265,7 +265,7 @@
 
     const assignedStaffIds = $derived(getAssignedStaffIds());
 
- when changing an Assignment's role: the non-archived ones,
+    // Roles shown when changing an Assignment's role: the non-archived ones,
     // plus the Assignment's own role (it may be archived).
     function allRolesForChange(currentRoleId: string): StaffRole[] {
         if (staffRoles.some((r) => r.id === currentRoleId)) return staffRoles;

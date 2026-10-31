@@ -1,17 +1,19 @@
 <script lang="ts">
-    import { onMount } from 'svelte';
+    import { untrack } from 'svelte';
     import { enhance } from "$app/forms";
     import { Loader2, CheckCircle2 } from "lucide-svelte";
-    import type { PageData, ActionData } from "../+page.server";
+    import type { PageData, ActionData } from "./$types";
     import { getToastContext } from "$lib/components/toast/state.svelte";
     import type { StaffPermission } from "$lib/staff/permissions";
 
     interface Props {
         data: PageData;
         form?: ActionData;
+        /** The Brief tab is open: the editor keeps every panel mounted. */
+        active: boolean;
     }
 
-    let { data, form }: Props = $props();
+    let { data, form, active }: Props = $props();
 
     const toast = getToastContext();
 
@@ -41,8 +43,9 @@
     let eventStaff = $state<EventStaff[]>([]);
     let loading = $state(true);
 
+    // The spinner only on the first load: a reload keeps the role fields
+    // (keyed by role) and what the Admin is typing in them.
     async function loadData() {
-        loading = true;
         try {
             const staffResponse = await fetch(`/api/admin/events/${data.event.id}/staff`);
             if (staffResponse.ok) {
@@ -56,8 +59,9 @@
         }
     }
 
-    onMount(() => {
-        loadData();
+    // Each time the tab opens, so roles just assigned in Team appear.
+    $effect(() => {
+        if (active) untrack(loadData);
     });
 
     // Brief (issue 032): one part per Staff role assigned on the Event.
@@ -79,7 +83,7 @@
         if (result.type === 'success') {
             toast.success('Succès', ((result.data as { success?: string })?.success) ?? 'Brief enregistré.');
         } else if (result.type === 'failure') {
-            toast.error('Erreur', ((result.data as { error?: string })?.error) ?? 'Échec de l\u2019enregistrement du brief.'));
+            toast.error('Erreur', ((result.data as { error?: string })?.error) ?? 'Échec de l\u2019enregistrement du brief.');
         }
     }
 </script>

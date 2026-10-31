@@ -787,7 +787,7 @@
 	{@render panel('portfolio', portfolio)}
 
 	{#snippet team()}<Team {data} {form} />{/snippet}
-	{#snippet brief()}<Brief {data} {form} />{/snippet}
+	{#snippet brief()}<Brief {data} {form} active={activeTab === panelIndex('brief')} />{/snippet}
 	{#snippet tasks()}<Tasks {data} {form} />{/snippet}
 	{#snippet reservations()}<Reservations {data} />{/snippet}
 	{#snippet promotions()}<PromoCodes {data} {form} />{/snippet}
