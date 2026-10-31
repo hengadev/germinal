@@ -54,7 +54,7 @@
 		<DropdownMenu.Content
 			align="end"
 			sideOffset={4}
-			class="z-50 min-w-56 rounded-lg border border-border-card bg-background p-1 text-foreground shadow-popover outline-none"
+			class="back-office z-50 min-w-56 rounded-lg border border-border-card bg-background p-1 text-foreground shadow-popover outline-none"
 			onCloseAutoFocus={(event) => {
 				if (!chosen) return;
 				event.preventDefault();

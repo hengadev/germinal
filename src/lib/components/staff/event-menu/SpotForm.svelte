@@ -9,6 +9,7 @@
 	import { page } from '$app/state';
 	import { enhance } from '$app/forms';
 	import { fade, fly } from 'svelte/transition';
+	import { untrack } from 'svelte';
 	import { LoaderCircle, Minus, Plus, X } from 'lucide-svelte';
 	import { motion, cubicOut } from '$lib/components/staff/motion';
 	import type { DayGuestList } from '$lib/server/services/day-guest-list';
@@ -26,6 +27,8 @@
 		onsaved?: () => void;
 	} = $props();
 
+	// The page renders twice (mobile and desktop): ids unique per copy.
+	const uid = $props.id();
 	const isCompForm = $derived(spotForm.kind === 'comp');
 	let sheetEl = $state<HTMLElement | null>(null);
 	let submitting = $state(false);
@@ -37,8 +40,11 @@
 
 	$effect(() => {
 		if (spotForm.kind) {
-			// La Séance en cours par défaut, sinon la première du Jour.
-			seatingId = currentSeatingId(seatings, new Date()) ?? seatings[0]?.id ?? '';
+			// La Séance en cours par défaut, sinon la première du Jour. Pas
+			// relue quand la liste se recharge : le choix fait reste.
+			untrack(() => {
+				seatingId = currentSeatingId(seatings, new Date()) ?? seatings[0]?.id ?? '';
+			});
 			sheetEl?.focus();
 		}
 	});
@@ -120,23 +126,23 @@
 					<p class="text-sm text-muted-foreground">Offert : rien à régler, aucun billet envoyé.</p>
 				{/if}
 				<div>
-					<label class={LABEL} for="walk-in-seating">Séance</label>
-					<select id="walk-in-seating" name="seatingId" bind:value={seatingId} class={INPUT} required>
+					<label class={LABEL} for="{uid}-seating">Séance</label>
+					<select id="{uid}-seating" name="seatingId" bind:value={seatingId} class={INPUT} required>
 						{#each seatings as seating (seating.id)}
 							<option value={seating.id}>{seatingTime(seating, timeZone)}</option>
 						{/each}
 					</select>
 				</div>
 				<div>
-					<label class={LABEL} for="walk-in-name">Nom</label>
-					<input id="walk-in-name" name="name" type="text" bind:value={name} required class={INPUT} />
+					<label class={LABEL} for="{uid}-name">Nom</label>
+					<input id="{uid}-name" name="name" type="text" bind:value={name} required class={INPUT} />
 				</div>
 				<div>
-					<span class={LABEL} id="walk-in-quantity-label">Personnes</span>
+					<span class={LABEL} id="{uid}-quantity-label">Personnes</span>
 					<div
 						class="mt-1 inline-flex items-center gap-2"
 						role="group"
-						aria-labelledby="walk-in-quantity-label"
+						aria-labelledby="{uid}-quantity-label"
 					>
 						<button
 							type="button"
@@ -160,12 +166,12 @@
 				</div>
 				<div class="grid gap-3 sm:grid-cols-2">
 					<div>
-						<label class={LABEL} for="walk-in-email">E-mail (facultatif)</label>
-						<input id="walk-in-email" name="email" type="email" bind:value={email} class={INPUT} />
+						<label class={LABEL} for="{uid}-email">E-mail (facultatif)</label>
+						<input id="{uid}-email" name="email" type="email" bind:value={email} class={INPUT} />
 					</div>
 					<div>
-						<label class={LABEL} for="walk-in-phone">Téléphone (facultatif)</label>
-						<input id="walk-in-phone" name="phone" type="tel" bind:value={phone} class={INPUT} />
+						<label class={LABEL} for="{uid}-phone">Téléphone (facultatif)</label>
+						<input id="{uid}-phone" name="phone" type="tel" bind:value={phone} class={INPUT} />
 					</div>
 				</div>
 				{#if error}
