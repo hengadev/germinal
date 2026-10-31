@@ -291,7 +291,8 @@ import {
 						{#each data.brief.roles as role (role.staffRoleId)}
 							<div class="bg-background border border-border-card rounded-lg p-6">
 								<h2 class="text-sm font-semibold text-foreground mb-2">
-									Pour votre rôle : {role.staffRoleName}
+									<!-- An Admin sees every role's part: no « votre ». -->
+									{data.staffRoleName ? 'Pour votre rôle' : 'Rôle'} : {role.staffRoleName}
 								</h2>
 								<p class="text-sm text-foreground whitespace-pre-line">{role.body}</p>
 							</div>

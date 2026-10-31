@@ -79,7 +79,7 @@ export async function getStaffEventAccess(
 				granted: eventStaff.grantedPermissions,
 				withdrawn: eventStaff.withdrawnPermissions,
 				roleName: staffRoles.name,
-			roleId: eventStaff.staffRoleId,
+				roleId: eventStaff.staffRoleId,
 			})
 			.from(eventStaff)
 			.innerJoin(staffRoles, eq(eventStaff.staffRoleId, staffRoles.id))
