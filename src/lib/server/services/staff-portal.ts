@@ -8,7 +8,7 @@ import { and, asc, eq, inArray } from 'drizzle-orm';
 import { error } from '@sveltejs/kit';
 import { db } from '../db';
 import { eventDays, eventStaff, events, staffRoles } from '../db/schema';
-import { staffAccess, type StaffAccess, type StaffWho } from '$lib/staff/access';
+import { staffAccess, activeDay, type StaffAccess, type StaffWho } from '$lib/staff/access';
 import type { StaffPermission } from '$lib/staff/permissions';
 
 /** The least the portal needs to know about the signed-in person. */
@@ -124,6 +124,70 @@ export async function listStaffEvents(user: StaffPortalUser): Promise<StaffEvent
 		rows.map((r: { event: StaffPortalEvent; roleName: string | null }) => r.event),
 		rows.map((r: { event: StaffPortalEvent; roleName: string | null }) => r.roleName)
 	);
+}
+
+/**
+ * The Events where `user` holds `permission`, with their Days, in the
+ * list's order (upcoming first, then past). Admins hold every permission
+ * at every Event. One batched rule, not one access lookup per Event.
+ */
+export async function listStaffEventsWithPermission(
+	user: StaffPortalUser,
+	permission: StaffPermission
+): Promise<StaffEventListItem[]> {
+	if (user.role === 'admin') return listStaffEvents(user);
+
+	type PermissionRow = {
+		event: StaffPortalEvent;
+		rolePermissions: unknown;
+		granted: unknown;
+		withdrawn: unknown;
+	};
+	const rows: PermissionRow[] = await db
+		.select({
+			event: eventColumns,
+			rolePermissions: staffRoles.permissions,
+			granted: eventStaff.grantedPermissions,
+			withdrawn: eventStaff.withdrawnPermissions,
+		})
+		.from(eventStaff)
+		.innerJoin(events, eq(eventStaff.eventId, events.id))
+		.innerJoin(staffRoles, eq(eventStaff.staffRoleId, staffRoles.id))
+		.where(eq(eventStaff.userId, user.id))
+		.orderBy(asc(events.startDate));
+
+	const items = await withDays(
+		rows.map((r) => r.event),
+		rows.map(() => null)
+	);
+	const whoByEvent = new Map(
+		rows.map(
+			(r: PermissionRow) =>
+				[
+					r.event.id,
+				{
+						rolePermissions: r.rolePermissions as StaffPermission[],
+						granted: r.granted as StaffPermission[],
+						withdrawn: r.withdrawn as StaffPermission[],
+					},
+				] as const
+		)
+	);
+	const now = new Date();
+	// Keep the list's upcoming-then-past order, not the query's date order.
+	const kept: StaffEventListItem[] = [];
+	for (const item of items) {
+		const who = whoByEvent.get(item.event.id);
+		if (!who) continue;
+		const asking: StaffWho = {
+			kind: 'assignment',
+			rolePermissions: who.rolePermissions,
+			granted: who.granted,
+			withdrawn: who.withdrawn,
+		};
+		if (staffAccess(asking, item.days, item.event.timeZone, now).can(permission)) kept.push(item);
+	}
+	return kept;
 }
 
 async function withDays(
