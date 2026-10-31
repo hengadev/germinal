@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { Eye, CheckCircle2, Clock, XCircle, AlertCircle, Search, Calendar, User, Mail, Ticket, CreditCard, ArrowRight, Download, Gift, Footprints, BadgeCheck } from 'lucide-svelte';
+	import { goto } from '$app/navigation';
+	import { CheckCircle2, Clock, XCircle, AlertCircle, Search, Calendar, User, Mail, Ticket, CreditCard, Download, Gift, Footprints, BadgeCheck } from 'lucide-svelte';
 	import type { PageData } from './$types';
 	import { formatCurrency } from '$lib/utils/currency';
 	import DietaryRequirementsBadge from '$lib/components/admin/DietaryRequirementsBadge.svelte';
@@ -230,9 +231,6 @@
 						<th class="px-6 py-4 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">
 							Date
 						</th>
-						<th class="px-6 py-4 text-right text-xs font-semibold text-foreground-alt uppercase tracking-wider">
-							Actions
-						</th>
 					</tr>
 				</thead>
 				<tbody class="divide-y divide-border-card">
@@ -240,14 +238,17 @@
 						{@const statusBadge = getStatusBadge(reservation.status)}
 						{@const paymentBadge = getPaymentStatusBadge(reservation.paymentStatus)}
 						{@const balance = balanceToCollect(reservation)}
-						<tr class="hover:bg-muted transition-colors">
+						<tr
+							class="hover:bg-muted transition-colors cursor-pointer"
+							onclick={() => goto(`/admin/reservations/${reservation.id}`)}
+						>
 							<td class="px-6 py-4">
 								<div class="flex items-center gap-3">
 									<div class="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
 										<User size={18} class="text-muted-foreground" />
 									</div>
 									<div>
-										<div class="font-medium text-foreground">{reservation.guestName}</div>
+										<a href="/admin/reservations/{reservation.id}" class="font-medium text-foreground">{reservation.guestName}</a>
 										<div class="text-sm text-muted-foreground flex items-center gap-1">
 											<Mail size={12} />
 											{reservation.guestEmail}
@@ -326,17 +327,6 @@
 									{formatDateTime(reservation.createdAt)}
 								</div>
 							</td>
-							<td class="px-6 py-4">
-								<div class="flex items-center justify-end gap-2">
-									<a
-										href="/admin/reservations/{reservation.id}"
-										class="p-2 text-foreground-alt hover:text-foreground hover:bg-muted rounded-lg transition-colors"
-										title="Voir Détails"
-									>
-										<Eye size={18} />
-									</a>
-								</div>
-							</td>
 						</tr>
 					{/each}
 				</tbody>
@@ -349,7 +339,10 @@
 				{@const statusBadge = getStatusBadge(reservation.status)}
 				{@const paymentBadge = getPaymentStatusBadge(reservation.paymentStatus)}
 				{@const balance = balanceToCollect(reservation)}
-				<div class="bg-background rounded-lg border border-border-card p-4">
+				<div
+					class="bg-background rounded-lg border border-border-card p-4 cursor-pointer hover:border-foreground/30 transition-colors"
+					onclick={() => goto(`/admin/reservations/${reservation.id}`)}
+				>
 					<div class="flex items-start gap-3 mb-3">
 						<div class="w-10 h-10 bg-muted rounded-full flex items-center justify-center flex-shrink-0">
 							<User size={18} class="text-muted-foreground" />
@@ -357,7 +350,7 @@
 						<div class="flex-1 min-w-0">
 							<div class="flex items-start justify-between gap-2 mb-1">
 								<h3 class="font-semibold text-foreground truncate">
-									{reservation.guestName}
+									<a href="/admin/reservations/{reservation.id}">{reservation.guestName}</a>
 								</h3>
 								<div class="flex items-center gap-1 flex-shrink-0">
 									<span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium {statusBadge.class} rounded-full">
@@ -423,17 +416,8 @@
 						</div>
 					</div>
 
-					<div class="flex items-center justify-between pt-3 border-t border-border-card">
-						<div class="text-xs text-muted-foreground">
-							{formatDateTime(reservation.createdAt)}
-						</div>
-						<a
-							href="/admin/reservations/{reservation.id}"
-							class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-foreground-alt hover:text-foreground hover:bg-muted rounded-lg transition-colors"
-						>
-							Voir Détails
-							<ArrowRight size={14} />
-						</a>
+					<div class="pt-3 border-t border-border-card text-xs text-muted-foreground">
+						{formatDateTime(reservation.createdAt)}
 					</div>
 				</div>
 			{/each}
