@@ -30,13 +30,21 @@ const all = { canArrivees: true, canCuisine: true, canScan: true };
 
 describe('visibleTabs', () => {
 	it('lists the tabs in order, filtered by access', () => {
-		expect(visibleTabs(all)).toEqual(['arrivees', 'cuisine', 'scanner']);
+		expect(visibleTabs(all)).toEqual(['arrivees', 'cuisine', 'scanner', 'brief']);
 		expect(visibleTabs({ canArrivees: false, canCuisine: true, canScan: true })).toEqual([
 			'cuisine',
-			'scanner'
+			'scanner',
+			'brief'
 		]);
 		expect(visibleTabs({ canArrivees: true, canCuisine: false, canScan: false })).toEqual([
-			'arrivees'
+			'arrivees',
+			'brief'
+		]);
+	});
+
+	it('always shows Brief, with no permission at all (issue 032)', () => {
+		expect(visibleTabs({ canArrivees: false, canCuisine: false, canScan: false })).toEqual([
+			'brief'
 		]);
 	});
 });
@@ -45,17 +53,20 @@ describe('tabAfterSwipe', () => {
 	it('moves to the next tab on a left swipe and the previous on a right one', () => {
 		expect(tabAfterSwipe('left', 'arrivees', all)).toBe('cuisine');
 		expect(tabAfterSwipe('right', 'scanner', all)).toBe('cuisine');
+		expect(tabAfterSwipe('left', 'scanner', all)).toBe('brief');
+		expect(tabAfterSwipe('right', 'brief', all)).toBe('scanner');
 	});
 
 	it('does not wrap around at either end', () => {
 		expect(tabAfterSwipe('right', 'arrivees', all)).toBeNull();
-		expect(tabAfterSwipe('left', 'scanner', all)).toBeNull();
+		expect(tabAfterSwipe('left', 'brief', all)).toBeNull();
 	});
 
 	it('skips tabs the viewer cannot see', () => {
 		const access = { canArrivees: true, canCuisine: false, canScan: true };
 		expect(tabAfterSwipe('left', 'arrivees', access)).toBe('scanner');
 		expect(tabAfterSwipe('right', 'scanner', access)).toBe('arrivees');
+		expect(tabAfterSwipe('left', 'scanner', access)).toBe('brief');
 	});
 });
 

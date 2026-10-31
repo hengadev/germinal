@@ -23,16 +23,20 @@ import {
 	// ?onglet=arrivees|cuisine|scanner lets a link open a tab directly.
 	const fromUrl = page.url.searchParams.get('onglet');
 	const tabFromUrl =
-		fromUrl === 'arrivees' || fromUrl === 'cuisine' || fromUrl === 'scanner' ? fromUrl : null;
-	let activeTab = $state<'arrivees' | 'cuisine' | 'scanner'>(
+		fromUrl === 'arrivees' || fromUrl === 'cuisine' || fromUrl === 'scanner' || fromUrl === 'brief'
+			? fromUrl
+			: null;
+	let activeTab = $state<'arrivees' | 'cuisine' | 'scanner' | 'brief'>(
 		tabFromUrl ??
-			(data.access.canArrivees
-				? 'arrivees'
-				: data.access.canCuisine
-					? 'cuisine'
-					: data.access.canScan
-						? 'scanner'
-						: 'arrivees')
+			(!data.access.day
+				? 'brief'
+				: data.access.canArrivees
+					? 'arrivees'
+					: data.access.canCuisine
+						? 'cuisine'
+						: data.access.canScan
+							? 'scanner'
+							: 'brief')
 	);
 
 	// ?onglet= follows the active tab, keeping ?service= and the other params.
@@ -149,15 +153,9 @@ import {
 		</p>
 	</div>
 
-	<!-- Onglets : seulement ce que l'accès autorise -->
-	{#if !data.access.permissions.length}
-		<div class="bg-background border border-border-card rounded-lg p-8 text-center">
-			<p class="text-muted-foreground">
-				Vous n'avez aucune permission sur cet événement. Contactez l'organisateur.
-			</p>
-		</div>
-	{:else}
-		<div class="border-b border-border-card mb-6">
+	<!-- Onglets : seulement ce que l'accès autorise, plus le Brief
+	     (issue 032) pour tout membre du staff assigné -->
+	<div class="border-b border-border-card mb-6">
 			<nav
 				class="flex gap-6 -mb-px overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
 				aria-label="Sections de l'événement"
@@ -200,6 +198,16 @@ import {
 						Scanner
 					</button>
 				{/if}
+				<button
+					type="button"
+					onclick={() => goToTab('brief')}
+					aria-current={activeTab === 'brief' ? 'page' : undefined}
+					class="px-1 py-3 text-sm font-medium border-b-2 {activeTab === 'brief'
+						? 'border-foreground text-foreground'
+						: 'border-transparent text-muted-foreground hover:text-foreground'}"
+				>
+					Brief
+				</button>
 			</nav>
 		</div>
 
@@ -265,16 +273,40 @@ import {
 			</section>
 		{/if}
 
-			{#if !(activeTab === 'arrivees' && data.access.canArrivees) && !(activeTab === 'cuisine' && data.access.canCuisine) && !(activeTab === 'scanner' && data.access.canScan)}
-				<div class="bg-background border border-border-card rounded-lg p-8 text-center">
-					<p class="text-muted-foreground">
-						Vos tâches sont réunies sur la page
-						<a href="/staff/taches" class="text-foreground font-medium underline">Mes tâches</a>.
-					</p>
-				</div>
+			<!-- Onglet Brief (issue 032) : le brief général puis la ou les
+			     parties de rôle, en texte brut, sans Markdown -->
+			{#if activeTab === 'brief'}
+				<section aria-label="Brief" class="space-y-4">
+					{#if !data.brief.general && !data.brief.roles.length}
+						<div class="bg-background border border-border-card rounded-lg p-8 text-center">
+							<p class="text-muted-foreground">Pas encore de brief pour cet événement.</p>
+						</div>
+					{:else}
+						{#if data.brief.general}
+							<div class="bg-background border border-border-card rounded-lg p-6">
+								<h2 class="text-sm font-semibold text-foreground mb-2">Brief général</h2>
+								<p class="text-sm text-foreground whitespace-pre-line">{data.brief.general}</p>
+							</div>
+						{/if}
+						{#each data.brief.roles as role (role.staffRoleId)}
+							<div class="bg-background border border-border-card rounded-lg p-6">
+								<h2 class="text-sm font-semibold text-foreground mb-2">
+									Pour votre rôle : {role.staffRoleName}
+								</h2>
+								<p class="text-sm text-foreground whitespace-pre-line">{role.body}</p>
+							</div>
+						{/each}
+					{/if}
+					{#if !data.access.permissions.length}
+						<div class="bg-background border border-border-card rounded-lg p-8 text-center">
+							<p class="text-muted-foreground">
+								Vous n'avez aucune autre permission sur cet événement. Contactez l'organisateur.
+							</p>
+						</div>
+					{/if}
+				</section>
 			{/if}
 				</div>
 			{/key}
 		</div>
-	{/if}
 </div>
