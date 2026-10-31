@@ -64,8 +64,10 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	const access = await getStaffEventAccess(locals.user, params.id);
 
 	const canTasks = access.can('tasks');
-	// Arrivées needs a visible Day and the guest list or Dietary Requirements.
-	const canArrivees = access.can('guest_list') || access.can('dietary');
+	// Arrivées needs a visible Day and the guest list; Cuisine, Dietary Requirements.
+	const canArrivees = access.can('guest_list');
+	const canCuisine = access.can('dietary');
+	const canSeeArrivees = canArrivees || canCuisine;
 	return {
 		access: {
 			permissions: access.permissions,
@@ -73,6 +75,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			canSeeGuests: access.canSeeGuests,
 			canTasks,
 			canArrivees,
+			canCuisine,
 			canManualCheckIn: access.can('manual_check_in'),
 			canCorrect: access.can('correct_mistake'),
 			canScan: access.can('scan_check_in'),
@@ -86,7 +89,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		tasks: canTasks
 			? (await getTasksForUser(locals.user.id)).filter((t) => t.event.id === params.id)
 			: [],
-		arrivees: canArrivees ? await getDayGuestList(access, params.id) : null,
+		arrivees: canSeeArrivees ? await getDayGuestList(access, params.id) : null,
 	};
 };
 

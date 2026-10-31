@@ -7,16 +7,15 @@
 	 * marked with a dot. A search looks across the whole Day: a party booked
 	 * at 20 h 00 may well walk in at 20 h 45, or ask at lunch.
 	 *
-	 * Those with the Dietary Requirements permission also get « Notes
-	 * cuisine », every party's Dietary Requirements by Seating; Cuisine
-	 * (Dietary Requirements without the guest list) gets only that view.
+	 * Those with the Dietary Requirements permission get the Cuisine tab
+	 * (issue 028); the badge on each PartyCard stays.
 	 *
 	 * Parties fully arrived fold into one line under their Seating, last in
 	 * first, so the list shrinks as the Day goes (issue 017).
 	 */
 	import { replaceState } from '$app/navigation';
 	import { page } from '$app/state';
-	import { ChefHat, Check, ChevronDown, Gift, LoaderCircle, Plus, Search, Users, X } from 'lucide-svelte';
+	import { Check, ChevronDown, Gift, LoaderCircle, Plus, Search, Users, X } from 'lucide-svelte';
 	import { enhance } from '$app/forms';
 	import type { DayGuestList, DayGuestParty } from '$lib/server/services/day-guest-list';
 	import PartyCard from './PartyCard.svelte';
@@ -84,12 +83,6 @@
 		replaceState(url, page.state);
 	}
 
-	// Cuisine sees only the kitchen notes; others choose, the door first.
-	let view = $state<'arrivees' | 'cuisine'>('arrivees');
-	const shownView = $derived(fields.guestList ? view : 'cuisine');
-
-	// The door's chase list (issue 019): the arrived parties of the Service
-	// shown whose Balance is still to collect — flat, never folded away.
 	let unsettledOnly = $state(false);
 	const hasBalanceDue = (p: DayGuestParty) =>
 		!p.isComp && (p.balanceAmount ?? 0) > 0 && p.balanceSettledAt === null;
@@ -191,10 +184,6 @@
 		}
 		return sum;
 	});
-	const noteCount = $derived(
-		serviceSeatings.reduce((n, s) => n + s.parties.filter((p) => p.dietaryRequirements?.trim()).length, 0)
-	);
-
 	const CHIP =
 		'inline-flex h-11 items-center gap-1.5 rounded-lg border px-3 text-sm font-semibold tabular-nums transition-colors focus-visible:ring-2 focus-visible:ring-foreground focus-visible:outline-none pointer-fine:h-9';
 	const SELECTED = 'border-foreground bg-foreground text-background';
@@ -231,43 +220,16 @@
 		</p>
 	{/if}
 
-	{#if fields.guestList}
-		<div class="flex flex-wrap items-center gap-2">
-			{#if fields.dietary}
-				<div class="inline-flex rounded-lg border border-border-card p-0.5" role="group" aria-label="Vue">
-					<button
-						type="button"
-						onclick={() => (view = 'arrivees')}
-						aria-pressed={shownView === 'arrivees'}
-						class="min-h-9 rounded-md px-3 text-sm font-medium {shownView === 'arrivees'
-							? 'bg-foreground text-background'
-							: 'text-muted-foreground hover:text-foreground'}"
-					>
-						Arrivées
-					</button>
-					<button
-						type="button"
-						onclick={() => (view = 'cuisine')}
-						aria-pressed={shownView === 'cuisine'}
-						class="inline-flex min-h-9 items-center gap-1.5 rounded-md px-3 text-sm font-medium {shownView === 'cuisine'
-							? 'bg-foreground text-background'
-							: 'text-muted-foreground hover:text-foreground'}"
-					>
-						Notes cuisine
-						<span class="rounded bg-muted px-1.5 text-xs leading-5 text-foreground tabular-nums">{noteCount}</span>
-					</button>
-				</div>
-			{/if}
-			<button
-				type="button"
-				onclick={() => (unsettledOnly = !unsettledOnly)}
-				aria-pressed={unsettledOnly}
-				class="{CHIP} {unsettledOnly ? SELECTED : IDLE}"
-			>
-				Arrivés, solde non réglé
-			</button>
-		</div>
-	{/if}
+<div class="flex flex-wrap items-center gap-2">
+		<button
+			type="button"
+			onclick={() => (unsettledOnly = !unsettledOnly)}
+			aria-pressed={unsettledOnly}
+			class="{CHIP} {unsettledOnly ? SELECTED : IDLE}"
+		>
+			Arrivés, solde non réglé
+		</button>
+	</div>
 
 	<!-- « Ajouter un walk-in » (issue 020) / « Offrir » (issue 021) -->
 	{#if (canWalkIn || canComp) && fields.guestList}
@@ -493,7 +455,7 @@
 		</div>
 	{/if}
 
-	{#if unsettledOnly && shownView === 'arrivees'}
+	{#if unsettledOnly}
 		<!-- Flat, never folded: exactly the Service's arrived parties with a
 	     Balance still to collect. -->
 		{#if dueParties.length === 0}
@@ -522,6 +484,15 @@
 		{#each seatings as seating (seating.id)}
 		{@const capacity = capacityLabel(seating)}
 		{@const time = seatingTime(seating, timeZone)}
+		{@const stillExpected = seating.parties.filter(isExpected)}
+			{@const folded = seating.parties
+				.filter((p) => !isExpected(p))
+				.slice()
+				.sort(
+					(a, b) =>
+						(b.lastCheckInAt ? new Date(b.lastCheckInAt).getTime() : 0) -
+						(a.lastCheckInAt ? new Date(a.lastCheckInAt).getTime() : 0)
+				)}
 		<section class="space-y-2" aria-labelledby="seating-{seating.id}">
 			<!-- The time, then how many are booked: an outlined figure, red over capacity. -->
 			<div class="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-border-card pb-2">
@@ -544,73 +515,42 @@
 				</p>
 			</div>
 
-			{#if shownView === 'arrivees'}
-				{@const stillExpected = seating.parties.filter(isExpected)}
-				{@const folded = seating.parties
-					.filter((p) => !isExpected(p))
-					.slice()
-					.sort(
-						(a, b) =>
-							(b.lastCheckInAt ? new Date(b.lastCheckInAt).getTime() : 0) -
-							(a.lastCheckInAt ? new Date(a.lastCheckInAt).getTime() : 0)
-					)}
 				{#if folded.length > 0}
-					<!-- The arrivals fold into one line under the Seating header, last in
-					     first, so the list shrinks as the Day goes. -->
-					<details class="group">
-						<summary
-							class="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-lg border border-border-card bg-muted/40 px-4 py-2 text-sm text-foreground transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-foreground focus-visible:outline-none [&::-webkit-details-marker]:hidden"
-						>
-							<Check class="size-4 shrink-0" aria-hidden="true" />
-							<span class="shrink-0 font-semibold tabular-nums">
-								{folded.length === 1 ? '1 arrivée' : `${folded.length} arrivées`}
-							</span>
-							<span class="shrink-0 text-muted-foreground tabular-nums">
-								· {guests(folded.reduce((n, p) => n + (p.quantity ?? 0), 0))}
-							</span>
-							<span class="min-w-0 flex-1 truncate text-muted-foreground">
-								· {folded.map((p) => p.guestName).join(', ')}
-							</span>
-							<ChevronDown
-								class="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180"
-								aria-hidden="true"
-							/>
-						</summary>
-						<ul class="mt-2 space-y-2">
-							{#each folded as party, i (party.id ?? i)}
-								<li>
-									<PartyCard {party} {fields} {timeZone} canCheckIn={canCheckIn} canCorrect={canCorrect} canSettle={canSettle} canMove={canMove} moveTargets={moveTargetsOf(list.seatings, party)} />
-								</li>
-							{/each}
-						</ul>
-					</details>
-				{/if}
-				{#if stillExpected.length > 0}
-					<ul class="space-y-2">
-						{#each stillExpected as party, i (party.id ?? i)}
+				<!-- The arrivals fold into one line under the Seating header, last in
+				     first, so the list shrinks as the Day goes. -->
+				<details class="group">
+					<summary
+						class="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-lg border border-border-card bg-muted/40 px-4 py-2 text-sm text-foreground transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-foreground focus-visible:outline-none [&::-webkit-details-marker]:hidden"
+					>
+						<Check class="size-4 shrink-0" aria-hidden="true" />
+						<span class="shrink-0 font-semibold tabular-nums">
+							{folded.length === 1 ? '1 arrivée' : `${folded.length} arrivées`}
+						</span>
+						<span class="shrink-0 text-muted-foreground tabular-nums">
+							· {guests(folded.reduce((n, p) => n + (p.quantity ?? 0), 0))}
+						</span>
+						<span class="min-w-0 flex-1 truncate text-muted-foreground">
+							· {folded.map((p) => p.guestName).join(', ')}
+						</span>
+						<ChevronDown
+							class="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180"
+							aria-hidden="true"
+						/>
+					</summary>
+					<ul class="mt-2 space-y-2">
+						{#each folded as party, i (party.id ?? i)}
 							<li>
 								<PartyCard {party} {fields} {timeZone} canCheckIn={canCheckIn} canCorrect={canCorrect} canSettle={canSettle} canMove={canMove} moveTargets={moveTargetsOf(list.seatings, party)} />
 							</li>
 						{/each}
 					</ul>
-				{/if}
-			{:else if seating.parties.length > 0}
-				<!-- The kitchen's view: every party and its size, the Dietary Requirements outlined. -->
-				<ul class="divide-y divide-border-card rounded-lg border border-border-card bg-background">
-					{#each seating.parties as party, i (party.id ?? i)}
-						<li class="space-y-1.5 px-4 py-3">
-							<p class="text-sm text-foreground">
-								<span class="font-semibold">{party.guestName}</span>
-								{#if party.quantity !== undefined}
-									<span class="text-muted-foreground">· {guests(party.quantity)}</span>
-								{/if}
-							</p>
-							{#if party.dietaryRequirements?.trim()}
-								<p class="flex gap-2.5 font-medium break-words text-foreground">
-									<ChefHat size={16} class="mt-1 shrink-0 text-muted-foreground" aria-hidden="true" />
-									<span class="min-w-0">{party.dietaryRequirements}</span>
-								</p>
-							{/if}
+				</details>
+			{/if}
+			{#if stillExpected.length > 0}
+				<ul class="space-y-2">
+					{#each stillExpected as party, i (party.id ?? i)}
+						<li>
+							<PartyCard {party} {fields} {timeZone} canCheckIn={canCheckIn} canCorrect={canCorrect} canSettle={canSettle} canMove={canMove} moveTargets={moveTargetsOf(list.seatings, party)} />
 						</li>
 					{/each}
 				</ul>
