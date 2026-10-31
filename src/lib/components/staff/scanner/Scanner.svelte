@@ -6,15 +6,15 @@
 	 */
 	import { tick } from 'svelte';
 	import { deserialize } from '$app/forms';
-	import { replaceState } from '$app/navigation';
-	import { page } from '$app/state';
+	import { goto } from '$app/navigation';
 	import { Ban, Check, Search } from 'lucide-svelte';
 	import QrScanner from '$lib/components/staff/QrScanner.svelte';
 	import { parseTicketToken } from '$lib/staff/ticket-qr';
 	import ScanResult from './ScanResult.svelte';
+	import { closeScanOverlay } from './scan-overlay.svelte';
 	import type { ScanParty } from './types';
 
-	let { onSearchByName }: { onSearchByName: () => void } = $props();
+	let { eventId }: { eventId: string } = $props();
 
 
 	type ScanOutcome = { kind: 'party'; party: ScanParty } | { kind: 'refusal'; message: string };
@@ -42,7 +42,7 @@
 		try {
 			// A form action called by hand: SvelteKit answers JSON only when asked,
 			// in its own serialisation.
-			const res = await fetch('?/scan', {
+			const res = await fetch(`/staff/events/${eventId}?/scan`, {
 				method: 'POST',
 				headers: { accept: 'application/json', 'x-sveltekit-action': 'true' },
 				body: new URLSearchParams({ token }),
@@ -74,10 +74,8 @@
 
 	async function searchByName() {
 		result = null;
-		const url = new URL(page.url.href);
-		url.searchParams.set('onglet', 'arrivees');
-		replaceState(url, page.state);
-		onSearchByName();
+		closeScanOverlay();
+		await goto(`/staff/events/${eventId}?onglet=arrivees`);
 		await tick();
 		document.getElementById('arrivees-search')?.focus();
 	}
@@ -107,7 +105,7 @@
 
 	<!-- The party slides up over the camera, within thumb's reach. -->
 	{#if result?.kind === 'party'}
-		<ScanResult party={result.party} onDone={checkedIn} onDismiss={() => (result = null)} />
+		<ScanResult eventId={eventId} party={result.party} onDone={checkedIn} onDismiss={() => (result = null)} />
 	{/if}
 
 	<div class="mt-4 flex flex-col gap-3">

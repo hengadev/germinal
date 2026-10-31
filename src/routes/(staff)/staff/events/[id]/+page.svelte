@@ -1,7 +1,6 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import Arrivees from '$lib/components/staff/arrivees/Arrivees.svelte';
-import Scanner from '$lib/components/staff/scanner/Scanner.svelte';
 import NotesCuisine from '$lib/components/staff/arrivees/NotesCuisine.svelte';
 import { noteCount as countNotes } from '$lib/components/staff/arrivees/helpers';
 import { page } from '$app/state';
@@ -20,13 +19,13 @@ import {
 	let { data }: { data: PageData } = $props();
 
 	// At the door, Arrivées comes first; it only exists during a Day.
-	// ?onglet=arrivees|cuisine|scanner lets a link open a tab directly.
+	// ?onglet=arrivees|cuisine|brief lets a link open a tab directly
+	// (the old ?onglet=scanner falls back to the default: no Scanner tab
+	// any more, issue 034 — the floating button scans).
 	const fromUrl = page.url.searchParams.get('onglet');
 	const tabFromUrl =
-		fromUrl === 'arrivees' || fromUrl === 'cuisine' || fromUrl === 'scanner' || fromUrl === 'brief'
-			? fromUrl
-			: null;
-	let activeTab = $state<'arrivees' | 'cuisine' | 'scanner' | 'brief'>(
+		fromUrl === 'arrivees' || fromUrl === 'cuisine' || fromUrl === 'brief' ? fromUrl : null;
+	let activeTab = $state<'arrivees' | 'cuisine' | 'brief'>(
 		tabFromUrl ??
 			(!data.access.day
 				? 'brief'
@@ -34,9 +33,7 @@ import {
 					? 'arrivees'
 					: data.access.canCuisine
 						? 'cuisine'
-						: data.access.canScan
-							? 'scanner'
-							: 'brief')
+						: 'brief')
 	);
 
 	// ?onglet= follows the active tab, keeping ?service= and the other params.
@@ -182,18 +179,6 @@ import {
 						<span class="rounded bg-muted px-1.5 text-xs leading-5 text-foreground tabular-nums">{notes}</span>
 					</button>
 				{/if}
-				{#if data.access.canScan}
-					<button
-						type="button"
-						onclick={() => goToTab('scanner')}
-						aria-current={activeTab === 'scanner' ? 'page' : undefined}
-						class="px-1 py-3 text-sm font-medium border-b-2 {activeTab === 'scanner'
-							? 'border-foreground text-foreground'
-							: 'border-transparent text-muted-foreground hover:text-foreground'}"
-					>
-						Scanner
-					</button>
-				{/if}
 				<button
 					type="button"
 					onclick={() => goToTab('brief')}
@@ -259,13 +244,6 @@ import {
 						<p class="text-muted-foreground">Aucun jour en cours : les invités ne sont visibles que le jour J.</p>
 					</div>
 				{/if}
-			</section>
-		{/if}
-
-		<!-- Onglet Scanner -->
-		{#if activeTab === 'scanner' && data.access.canScan}
-			<section aria-label="Scanner">
-				<Scanner onSearchByName={() => (activeTab = 'arrivees')} />
 			</section>
 		{/if}
 
