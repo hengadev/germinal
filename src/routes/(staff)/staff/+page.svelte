@@ -1,8 +1,22 @@
+<script module lang="ts">
+	// Both the mobile and the desktop instances share this module state:
+	// the stagger plays on the first load only (issue 033), not on every
+	// navigation back.
+	let firstLoad = true;
+</script>
+
 <script lang="ts">
+	import { onMount } from 'svelte';
+	import { fade } from 'svelte/transition';
 	import { CalendarDays } from 'lucide-svelte';
+	import { motion, stagger } from '$lib/components/staff/motion';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
+
+	onMount(() => {
+		firstLoad = false;
+	});
 
 	function titleOf(event: { titleFr: string | null; titleEn: string | null }): string {
 		return event.titleFr || event.titleEn || 'Événement sans titre';
@@ -45,10 +59,11 @@
 		</div>
 	{:else}
 		<div class="bg-background border border-border-card rounded-lg divide-y divide-border-card">
-			{#each data.assignments as item (item.event.id)}
+			{#each data.assignments as item, i (item.event.id)}
 				<a
 					href="/staff/events/{item.event.id}"
 					class="block p-6 hover:bg-muted/50 transition-colors"
+					in:fade={{ duration: firstLoad ? motion(150) : 0, delay: firstLoad ? stagger(i) : 0 }}
 				>
 					<div class="flex items-start justify-between gap-4">
 						<div class="flex-1 min-w-0">

@@ -1,10 +1,24 @@
+<script module lang="ts">
+	// Both the mobile and the desktop instances share this module state:
+	// the stagger plays on the first load only (issue 033), not on every
+	// navigation back.
+	let firstLoad = true;
+</script>
+
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { enhance } from '$app/forms';
+	import { fade } from 'svelte/transition';
 	import { CheckCircle2, Circle, Clock } from 'lucide-svelte';
 	import type { ActionData, PageData } from './$types';
 	import { getToastContext } from '$lib/components/toast/state.svelte';
+	import { motion, stagger } from '$lib/components/staff/motion';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
+
+	onMount(() => {
+		firstLoad = false;
+	});
 
 	const toast = getToastContext();
 
@@ -109,9 +123,15 @@
 						</a>
 					</h2>
 					<div class="bg-background border border-border-card rounded-lg divide-y divide-border-card">
-						{#each group.tasks as task (task.id)}
-							{@const badge = statusBadge(task.status)}
-							<div class="p-5 flex items-start justify-between gap-4">
+							{#each group.tasks as task, i (task.id)}
+								{@const badge = statusBadge(task.status)}
+								<!-- A task marked done fades out of the « À faire » list
+							     (issue 033). -->
+								<div
+									class="p-5 flex items-start justify-between gap-4"
+									in:fade={{ duration: firstLoad ? motion(150) : 0, delay: firstLoad ? stagger(i) : 0 }}
+									out:fade={{ duration: motion(200) }}
+								>
 								<div class="flex-1 min-w-0">
 									<h3 class="text-base font-semibold text-foreground truncate">{task.title}</h3>
 									{#if task.description}

@@ -15,6 +15,33 @@
 			page.url.pathname.startsWith("/staff/events")
 	);
 
+	// The active entry's marker (issue 033): a 2 px bar above the entry,
+	// which slides to the newly active one (CSS only, disabled by Tailwind's
+	// motion-reduce under `prefers-reduced-motion: reduce`).
+	const activeIndex = $derived(
+		page.url.pathname === '/staff' || page.url.pathname.startsWith('/staff/events')
+			? 0
+			: page.url.pathname === '/staff/taches'
+				? 1
+				: page.url.pathname.startsWith('/staff/change-password')
+					? 2
+					: 0
+	);
+	let row = $state<HTMLElement | null>(null);
+	let markerLeft = $state(0);
+	let markerWidth = $state(0);
+	let markerShown = $state(false);
+	$effect(() => {
+		activeIndex;
+		requestAnimationFrame(() => {
+			const link = row?.children[activeIndex] as HTMLElement | undefined;
+			if (!link) return;
+			markerLeft = link.offsetLeft;
+			markerWidth = link.offsetWidth;
+			markerShown = true;
+		});
+	});
+
 	function tabClass(active: boolean): string {
 		return active
 			? "flex-1 flex flex-col items-center justify-center gap-1 pt-3 pb-6 min-h-[44px] text-foreground"
@@ -26,7 +53,7 @@
 	{#if scanHref && !onScannerTab}
 		<a
 			href={scanHref}
-			class="absolute right-4 bottom-full mb-4 w-14 h-14 rounded-full bg-foreground text-background shadow-lg flex items-center justify-center"
+			class="absolute right-4 bottom-full mb-4 w-14 h-14 rounded-full bg-foreground text-background shadow-lg flex items-center justify-center transition-transform duration-200 ease-out motion-reduce:transition-none active:scale-95"
 			aria-label="Scanner un billet"
 		>
 			<ScanLine size={24} />
@@ -37,7 +64,14 @@
 		class="bg-background border-t border-border-card pb-[env(safe-area-inset-bottom)]"
 		aria-label="Navigation mobile"
 	>
-		<div class="flex items-stretch">
+		<div class="relative flex items-stretch" bind:this={row}>
+			<span
+				aria-hidden="true"
+				class="absolute top-0 h-0.5 bg-foreground transition-[left,width] duration-200 ease-out motion-reduce:transition-none {markerShown
+					? ''
+					: 'hidden'}"
+				style="left:{markerLeft}px;width:{markerWidth}px"
+			></span>
 			<a
 				href="/staff?liste"
 				class={tabClass(page.url.pathname === '/staff' || page.url.pathname.startsWith('/staff/events'))}

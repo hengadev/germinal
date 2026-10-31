@@ -15,6 +15,9 @@
 	 */
 	import { replaceState } from '$app/navigation';
 	import { page } from '$app/state';
+	import { flip } from 'svelte/animate';
+	import { slide } from 'svelte/transition';
+	import { motion, cubicOut } from '$lib/components/staff/motion';
 	import { Check, ChevronDown, Gift, LoaderCircle, Plus, Search, Users, X } from 'lucide-svelte';
 	import { enhance } from '$app/forms';
 	import type { DayGuestList, DayGuestParty } from '$lib/server/services/day-guest-list';
@@ -271,6 +274,7 @@
 				action={isCompForm ? '?/comp' : '?/walkIn'}
 				data-no-swipe
 				class="rounded-lg border border-border-card bg-background p-4"
+				transition:slide={{ duration: motion(200), easing: cubicOut }}
 				use:enhance={() => {
 					walkInSubmitting = true;
 					return async ({ update }) => {
@@ -543,7 +547,7 @@
 					</summary>
 					<ul class="mt-2 space-y-2">
 						{#each folded as party, i (party.id ?? i)}
-							<li>
+							<li animate:flip={{ duration: motion(200) }}>
 								<PartyCard {party} {fields} {timeZone} canCheckIn={canCheckIn} canCorrect={canCorrect} canSettle={canSettle} canMove={canMove} moveTargets={moveTargetsOf(list.seatings, party)} />
 							</li>
 						{/each}
@@ -553,7 +557,13 @@
 			{#if stillExpected.length > 0}
 				<ul class="space-y-2">
 					{#each stillExpected as party, i (party.id ?? i)}
-						<li>
+						<!-- A fully arrived party collapses into the folded line
+						     instead of vanishing, and the list closes the gap
+						     with flip (issue 033). -->
+						<li
+							animate:flip={{ duration: motion(200) }}
+							out:slide={{ duration: motion(200), easing: cubicOut }}
+						>
 							<PartyCard {party} {fields} {timeZone} canCheckIn={canCheckIn} canCorrect={canCorrect} canSettle={canSettle} canMove={canMove} moveTargets={moveTargetsOf(list.seatings, party)} />
 						</li>
 					{/each}
