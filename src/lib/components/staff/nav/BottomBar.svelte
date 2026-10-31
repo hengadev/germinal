@@ -34,7 +34,8 @@
 	$effect(() => {
 		activeIndex;
 		requestAnimationFrame(() => {
-			const link = row?.children[activeIndex] as HTMLElement | undefined;
+			// The links only: the marker span is the row's first child.
+			const link = row?.querySelectorAll<HTMLElement>(':scope > a')[activeIndex];
 			if (!link) return;
 			markerLeft = link.offsetLeft;
 			markerWidth = link.offsetWidth;

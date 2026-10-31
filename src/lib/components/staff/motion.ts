@@ -26,4 +26,11 @@ export function stagger(index: number, step = 40, max = 6): number {
 	return prefersReducedMotion() ? 0 : Math.min(index, max - 1) * step;
 }
 
+/**
+ * A list item's fade-in on the page's first load. A CSS animation, not a
+ * Svelte transition: local intros don't play when the page first mounts.
+ * Reduced motion skips it (motion-safe).
+ */
+export const REVEAL = 'motion-safe:animate-fade-in [animation-fill-mode:both]';
+
 export { cubicOut };

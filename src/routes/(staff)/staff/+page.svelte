@@ -7,9 +7,8 @@
 
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { fade } from 'svelte/transition';
 	import { CalendarDays } from 'lucide-svelte';
-	import { motion, stagger } from '$lib/components/staff/motion';
+	import { REVEAL, stagger } from '$lib/components/staff/motion';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -62,8 +61,8 @@
 			{#each data.assignments as item, i (item.event.id)}
 				<a
 					href="/staff/events/{item.event.id}"
-					class="block p-6 hover:bg-muted/50 transition-colors"
-					in:fade={{ duration: firstLoad ? motion(150) : 0, delay: firstLoad ? stagger(i) : 0 }}
+					class="block p-6 hover:bg-muted/50 transition-colors {firstLoad ? REVEAL : ''}"
+					style:animation-delay={firstLoad ? `${stagger(i)}ms` : undefined}
 				>
 					<div class="flex items-start justify-between gap-4">
 						<div class="flex-1 min-w-0">

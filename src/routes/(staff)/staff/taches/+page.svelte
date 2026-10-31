@@ -12,7 +12,7 @@
 	import { CheckCircle2, Circle, Clock } from 'lucide-svelte';
 	import type { ActionData, PageData } from './$types';
 	import { getToastContext } from '$lib/components/toast/state.svelte';
-	import { motion, stagger } from '$lib/components/staff/motion';
+	import { motion, REVEAL, stagger } from '$lib/components/staff/motion';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -128,8 +128,8 @@
 								<!-- A task marked done fades out of the « À faire » list
 							     (issue 033). -->
 								<div
-									class="p-5 flex items-start justify-between gap-4"
-									in:fade={{ duration: firstLoad ? motion(150) : 0, delay: firstLoad ? stagger(i) : 0 }}
+									class="p-5 flex items-start justify-between gap-4 {firstLoad ? REVEAL : ''}"
+									style:animation-delay={firstLoad ? `${stagger(i)}ms` : undefined}
 									out:fade={{ duration: motion(200) }}
 								>
 								<div class="flex-1 min-w-0">
