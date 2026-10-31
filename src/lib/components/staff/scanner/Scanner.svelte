@@ -74,8 +74,10 @@
 
 	async function searchByName() {
 		result = null;
+		// Closing the overlay clears the Event id this prop reads from.
+		const id = eventId;
 		closeScanOverlay();
-		await goto(`/staff/events/${eventId}?onglet=arrivees`);
+		await goto(`/staff/events/${id}?onglet=arrivees`);
 		await tick();
 		document.getElementById('arrivees-search')?.focus();
 	}
