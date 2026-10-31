@@ -171,14 +171,13 @@ describe('staff portal access', () => {
 			.values({ eventId: futureEvent.id, assignedTo: staffUser.id, createdBy: adminUser.id, title: 'Accueil' })
 			.returning();
 		try {
-			const { actions } = await import('../../src/routes/(staff)/staff/events/[id]/+page.server');
+			const { actions } = await import('../../src/routes/(staff)/staff/taches/+page.server');
 			const formData = new FormData();
 			formData.set('taskId', task.id);
 			formData.set('status', 'done');
 			const result: any = await actions.updateTaskStatus({
 				request: new Request('http://localhost', { method: 'POST', body: formData }),
 				locals: { user: staffUser },
-				params: { id: futureEvent.id },
 			} as any);
 			expect(result.status).toBe(403);
 

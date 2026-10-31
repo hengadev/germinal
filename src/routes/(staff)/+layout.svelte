@@ -5,7 +5,7 @@
     import { setToastContext } from "$lib/components/toast/state.svelte";
     import ThemeToggle from "$lib/components/admin/ThemeToggle.svelte";
     import { adminDarkMode } from "$lib/stores/adminDarkMode.svelte";
-    import { CalendarDays, KeyRound, LogOut } from "lucide-svelte";
+    import { CalendarDays, KeyRound, ListChecks, LogOut } from "lucide-svelte";
     import type { LayoutData } from "./$types";
 
     let {
@@ -69,6 +69,10 @@
                     <CalendarDays size={20} />
                     <span class="text-[10px] font-medium">Événements</span>
                 </a>
+                <a href="/staff/taches" class={tabClass(page.url.pathname === '/staff/taches')}>
+                    <ListChecks size={20} />
+                    <span class="text-[10px] font-medium">Tâches</span>
+                </a>
                 <a href="/staff/change-password" class={tabClass(page.url.pathname === '/staff/change-password')}>
                     <KeyRound size={20} />
                     <span class="text-[10px] font-medium">Compte</span>
@@ -97,6 +101,16 @@
                 >
                     <CalendarDays size={20} />
                     <span class="font-medium">Événements</span>
+                </a>
+
+                <a
+                    href="/staff/taches"
+                    class="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors {page.url.pathname === '/staff/taches'
+                        ? 'bg-foreground text-background hover:bg-foreground/85'
+                        : 'text-foreground-alt hover:bg-surface-hover hover:text-foreground'}"
+                >
+                    <ListChecks size={20} />
+                    <span class="font-medium">Tâches</span>
                 </a>
 
                 <a
