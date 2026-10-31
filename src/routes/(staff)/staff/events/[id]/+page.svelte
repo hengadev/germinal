@@ -5,6 +5,8 @@ import NotesCuisine from '$lib/components/staff/arrivees/NotesCuisine.svelte';
 import { noteCount as countNotes } from '$lib/components/staff/arrivees/helpers';
 import { page } from '$app/state';
 import { ArrowLeft } from 'lucide-svelte';
+import EventActionsMenu from '$lib/components/staff/event-menu/EventActionsMenu.svelte';
+import SpotForm from '$lib/components/staff/event-menu/SpotForm.svelte';
 import { afterNavigate, replaceState } from '$app/navigation';
 import { fly } from 'svelte/transition';
 import { motion, cubicOut } from '$lib/components/staff/motion';
@@ -143,6 +145,11 @@ import {
 				<ArrowLeft size={22} aria-hidden="true" />
 			</a>
 			<h1 class="text-2xl lg:text-3xl font-bold text-foreground">{title}</h1>
+			<EventActionsMenu
+				canWalkIn={data.access.canWalkIn}
+				canComp={data.access.canComp}
+				duringDay={Boolean(data.access.day && data.arrivees)}
+			/>
 		</div>
 		<p class="text-sm text-muted-foreground mt-1">
 			{#if data.staffRoleName}
@@ -232,9 +239,7 @@ import {
 						canCheckIn={data.access.canManualCheckIn}
 						canCorrect={data.access.canCorrect}
 						canSettle={data.access.canSettle}
-						canWalkIn={data.access.canWalkIn}
 						canMove={data.access.canMove}
-						canComp={data.access.canComp}
 					/>
 				{:else}
 					<div class="bg-background border border-border-card rounded-lg p-8 text-center">
@@ -294,4 +299,13 @@ import {
 				</div>
 			{/key}
 		</div>
+
+	<!-- Le formulaire walk-in / invitation du menu ⋮, par-dessus tout -->
+	{#if data.arrivees}
+		<SpotForm
+			seatings={data.arrivees.seatings}
+			timeZone={data.event.timeZone}
+			onsaved={() => goToTab('arrivees')}
+		/>
+	{/if}
 </div>
