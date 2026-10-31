@@ -63,10 +63,12 @@ export async function sendTicketNotifications(
 			await sendTicketConfirmationSMS({
 				phone: reservation.guestPhone,
 				guestName: reservation.guestName,
-				eventTitle: reservation.eventSession.event.titleEn,
+				event: reservation.eventSession.event,
 				sessionStartTime: reservation.eventSession.startTime,
 				timeZone: reservation.eventSession.event.timeZone,
 				accessToken: reservation.accessToken,
+				// Issue 027: the SMS is written in the Guest's language.
+				locale: (reservation.locale as 'fr' | 'en' | null) ?? null,
 			});
 		} catch (error) {
 			logger.error({ err: error }, 'Failed to send ticket confirmation SMS');
