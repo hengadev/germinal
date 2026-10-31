@@ -12,34 +12,6 @@
 
 	let { scanTargets }: { scanTargets: { eventId: string; title: string }[] } = $props();
 
-	// The active entry's marker (issue 033): a 2 px bar above the entry,
-	// which slides to the newly active one (CSS only, disabled by Tailwind's
-	// motion-reduce under `prefers-reduced-motion: reduce`).
-	const activeIndex = $derived(
-		page.url.pathname === '/staff' || page.url.pathname.startsWith('/staff/events')
-			? 0
-			: page.url.pathname === '/staff/taches'
-				? 1
-				: page.url.pathname.startsWith('/staff/change-password')
-					? 2
-					: 0
-	);
-	let row = $state<HTMLElement | null>(null);
-	let markerLeft = $state(0);
-	let markerWidth = $state(0);
-	let markerShown = $state(false);
-	$effect(() => {
-		activeIndex;
-		requestAnimationFrame(() => {
-			// The links only: the marker span is the row's first child.
-			const link = row?.querySelectorAll<HTMLElement>(':scope > a')[activeIndex];
-			if (!link) return;
-			markerLeft = link.offsetLeft;
-			markerWidth = link.offsetWidth;
-			markerShown = true;
-		});
-	});
-
 	function tabClass(active: boolean): string {
 		return active
 			? "flex-1 flex flex-col items-center justify-center gap-1 min-h-14 text-xs text-background dark:text-foreground"
@@ -59,15 +31,8 @@
 		</button>
 	{/if}
 
-	<nav class="bg-foreground dark:bg-black dark:border-t dark:border-border-card pb-[env(safe-area-inset-bottom)]" aria-label="Navigation mobile">
-		<div class="relative flex items-stretch" bind:this={row}>
-			<span
-				aria-hidden="true"
-				class="absolute top-0 h-0.5 bg-background dark:bg-foreground transition-[left,width] duration-200 ease-out motion-reduce:transition-none {markerShown
-					? ''
-					: 'hidden'}"
-				style="left:{markerLeft}px;width:{markerWidth}px"
-			></span>
+	<nav class="bg-foreground dark:bg-black dark:border-t dark:border-border-card pb-[max(0.25rem,env(safe-area-inset-bottom))]" aria-label="Navigation mobile">
+		<div class="flex items-stretch">
 			<a
 				href="/staff?liste"
 				class={tabClass(page.url.pathname === '/staff' || page.url.pathname.startsWith('/staff/events'))}

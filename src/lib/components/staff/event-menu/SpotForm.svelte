@@ -87,7 +87,7 @@
 		aria-modal="true"
 		aria-label={isCompForm ? 'Offrir une invitation' : 'Ajouter un walk-in'}
 		tabindex="-1"
-		class="fixed inset-x-0 bottom-0 z-[60] mx-auto max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-t-2xl border-t border-border-card bg-background p-4 shadow-lg"
+		class="fixed inset-x-0 bottom-0 z-[60] mx-auto max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-t-2xl border-t border-border-card bg-background p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-lg"
 		transition:fly={{ y: 320, duration: motion(250), easing: cubicOut }}
 		onkeydown={(event) => event.key === 'Escape' && close()}
 		data-no-swipe
