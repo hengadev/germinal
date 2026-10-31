@@ -195,23 +195,34 @@ export async function listStaffEventsWithPermission(
 	return kept;
 }
 
+/** An Event the user can scan right now (issue 034). */
+export interface ScanTarget {
+	eventId: string;
+	title: string;
+}
+
 /**
- * The Event page's Scanner tab to open with one tap from anywhere in the
- * portal (issue 031), or null: the first of the user's Events, in the
- * Assignments list's order, whose Day is under way and where they hold
- * `scan_check_in`.
+ * The Events whose Day is under way and where the user holds
+ * `scan_check_in` (Admins: every Event), in the Assignments list's
+ * order. The floating Scan button opens the scanner over the current
+ * page for one of these (issue 034), with a picker when there are
+ * several.
  */
-export async function scanTargetFor(
+export async function scanTargetsFor(
 	user: StaffPortalUser,
 	now: Date = new Date()
-): Promise<string | null> {
+): Promise<ScanTarget[]> {
 	const items = await listStaffEventsWithPermission(user, 'scan_check_in');
+	const targets: ScanTarget[] = [];
 	for (const item of items) {
 		if (activeDay(item.days, item.event.timeZone, now) !== null) {
-			return `/staff/events/${item.event.id}?onglet=scanner`;
+			targets.push({
+				eventId: item.event.id,
+				title: item.event.titleFr || item.event.titleEn || 'Événement sans titre'
+			});
 		}
 	}
-	return null;
+	return targets;
 }
 
 async function withDays(

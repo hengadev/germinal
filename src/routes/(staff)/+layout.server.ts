@@ -1,5 +1,5 @@
 import { redirect, error } from '@sveltejs/kit';
-import { scanTargetFor } from '$lib/server/services/staff-portal';
+import { scanTargetsFor } from '$lib/server/services/staff-portal';
 import type { LayoutServerLoad } from './$types';
 
 export const load: LayoutServerLoad = async ({ locals }) => {
@@ -18,14 +18,14 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 		throw redirect(302, '/');
 	}
 
-	// One tap to the Scanner (issue 031): the Event whose Day is under way
-	// and where the user may scan.
-	const scanHref = await scanTargetFor(locals.user);
+	// The floating Scan button (issue 034): the Events whose Day is under
+	// way and where the user may scan.
+	const scanTargets = await scanTargetsFor(locals.user);
 
 	// Pass user to staff pages
 	return {
 		user: locals.user,
 		csrfToken: locals.csrfToken,
-		scanHref
+		scanTargets
 	};
 };

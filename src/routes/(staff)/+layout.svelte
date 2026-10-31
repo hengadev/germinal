@@ -7,6 +7,8 @@
     import { adminDarkMode } from "$lib/stores/adminDarkMode.svelte";
     import { CalendarDays, KeyRound, ListChecks, LogOut, ScanLine } from "lucide-svelte";
     import BottomBar from "$lib/components/staff/nav/BottomBar.svelte";
+    import ScanOverlay from "$lib/components/staff/scanner/ScanOverlay.svelte";
+    import { openScanOverlay } from "$lib/components/staff/scanner/scan-overlay.svelte";
     import type { LayoutData } from "./$types";
 
     let {
@@ -55,7 +57,7 @@
         </main>
 
         <!-- Barre d'onglets en bas, avec le bouton Scanner flottant -->
-        <BottomBar scanHref={data.scanHref} />
+        <BottomBar scanTargets={data.scanTargets} />
 
         <Toaster />
     </div>
@@ -80,16 +82,15 @@
                     <span class="font-medium">Événements</span>
                 </a>
 
-                {#if data.scanHref}
-                    <a
-                        href={data.scanHref}
-                        class="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors {page.url.searchParams.get('onglet') === 'scanner' && page.url.pathname.startsWith('/staff/events')
-                            ? 'bg-foreground text-background hover:bg-foreground/85'
-                            : 'text-foreground-alt hover:bg-surface-hover hover:text-foreground'}"
+                {#if data.scanTargets.length > 0}
+                    <button
+                        type="button"
+                        onclick={() => openScanOverlay(data.scanTargets)}
+                        class="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-foreground-alt hover:bg-surface-hover hover:text-foreground"
                     >
                         <ScanLine size={20} />
                         <span class="font-medium">Scanner</span>
-                    </a>
+                    </button>
                 {/if}
 
                 <a
@@ -153,3 +154,7 @@
         <Toaster />
     </div>
 </div>
+
+<!-- Le scanner en plein écran (issue 034), rendu une seule fois, au-dessus
+     des deux mises en page mobile et bureau. -->
+<ScanOverlay targets={data.scanTargets} />
