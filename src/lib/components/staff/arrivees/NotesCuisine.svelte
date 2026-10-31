@@ -80,12 +80,14 @@
 					{/if}
 				</div>
 
-				<p class="text-sm text-muted-foreground">{covers(seatingGuestTotal(seating))}</p>
 				{#if seating.parties.length === 0}
 					<p class="text-sm text-muted-foreground">Aucune réservation pour cette séance.</p>
-				{:else if notes.length === 0}
-					<p class="text-sm text-muted-foreground">Aucune restriction alimentaire.</p>
 				{:else}
+					<p class="text-sm font-medium text-foreground tabular-nums">{covers(seatingGuestTotal(seating))}</p>
+				{/if}
+				{#if seating.parties.length > 0 && notes.length === 0}
+					<p class="text-sm text-muted-foreground">Aucune restriction alimentaire.</p>
+				{:else if notes.length > 0}
 					<!-- Only the parties with a Dietary Requirement. -->
 					<ul class="divide-y divide-border-card rounded-lg border border-border-card bg-background">
 						{#each notes as party, i (party.id ?? i)}
