@@ -45,6 +45,7 @@
 	import PracticalInfo from './PracticalInfo.svelte';
 	import Portfolio from './Portfolio.svelte';
 	import Team from './Team.svelte';
+	import Brief from './Brief.svelte';
 	import Tasks from './Tasks.svelte';
 	import Reservations from './Reservations.svelte';
 	import PromoCodes from './PromoCodes.svelte';
@@ -78,6 +79,7 @@
 	// Its team, tasks, Reservations and Promo Codes.
 	const OPERATIONAL_TABS = [
 		{ id: 'team', title: 'Team' },
+		{ id: 'brief', title: 'Brief' },
 		{ id: 'tasks', title: 'Tasks' },
 		{ id: 'reservations', title: 'Réservations' },
 		{ id: 'promotions', title: 'Promotions' },
@@ -785,10 +787,12 @@
 	{@render panel('portfolio', portfolio)}
 
 	{#snippet team()}<Team {data} {form} />{/snippet}
+	{#snippet brief()}<Brief {data} {form} />{/snippet}
 	{#snippet tasks()}<Tasks {data} {form} />{/snippet}
 	{#snippet reservations()}<Reservations {data} />{/snippet}
 	{#snippet promotions()}<PromoCodes {data} {form} />{/snippet}
 	{@render panel('team', team, false)}
+	{@render panel('brief', brief, false)}
 	{@render panel('tasks', tasks, false)}
 	{@render panel('reservations', reservations, false)}
 	{@render panel('promotions', promotions, false)}
