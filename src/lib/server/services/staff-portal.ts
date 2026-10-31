@@ -8,7 +8,7 @@ import { and, asc, eq, inArray } from 'drizzle-orm';
 import { error } from '@sveltejs/kit';
 import { db } from '../db';
 import { eventDays, eventStaff, events, staffRoles } from '../db/schema';
-import { staffAccess, type StaffAccess, type StaffWho } from '$lib/staff/access';
+import { staffAccess, activeDay, type StaffAccess, type StaffWho } from '$lib/staff/access';
 import type { StaffPermission } from '$lib/staff/permissions';
 
 /** The least the portal needs to know about the signed-in person. */
@@ -188,6 +188,25 @@ export async function listStaffEventsWithPermission(
 		if (staffAccess(asking, item.days, item.event.timeZone, now).can(permission)) kept.push(item);
 	}
 	return kept;
+}
+
+/**
+ * The Event page's Scanner tab to open with one tap from anywhere in the
+ * portal (issue 031), or null: the first of the user's Events, in the
+ * Assignments list's order, whose Day is under way and where they hold
+ * `scan_check_in`.
+ */
+export async function scanTargetFor(
+	user: StaffPortalUser,
+	now: Date = new Date()
+): Promise<string | null> {
+	const items = await listStaffEventsWithPermission(user, 'scan_check_in');
+	for (const item of items) {
+		if (activeDay(item.days, item.event.timeZone, now) !== null) {
+			return `/staff/events/${item.event.id}?onglet=scanner`;
+		}
+	}
+	return null;
 }
 
 async function withDays(
