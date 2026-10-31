@@ -7,6 +7,7 @@ import { page } from '$app/state';
 import { ArrowLeft } from 'lucide-svelte';
 import EventActionsMenu from '$lib/components/staff/event-menu/EventActionsMenu.svelte';
 import SpotForm from '$lib/components/staff/event-menu/SpotForm.svelte';
+import CancelRefundSheet from '$lib/components/staff/arrivees/CancelRefundSheet.svelte';
 import { afterNavigate, replaceState } from '$app/navigation';
 import { fly } from 'svelte/transition';
 import { motion, cubicOut } from '$lib/components/staff/motion';
@@ -240,6 +241,7 @@ import {
 						canCorrect={data.access.canCorrect}
 						canSettle={data.access.canSettle}
 						canMove={data.access.canMove}
+						canCancelRefund={data.access.canCancelRefund}
 					/>
 				{:else}
 					<div class="bg-background border border-border-card rounded-lg p-8 text-center">
@@ -307,5 +309,10 @@ import {
 			timeZone={data.event.timeZone}
 			onsaved={() => goToTab('arrivees')}
 		/>
+	{/if}
+
+	<!-- La feuille Annuler / Rembourser du menu ⋮ d'une carte, par-dessus tout -->
+	{#if data.arrivees && data.access.canCancelRefund}
+		<CancelRefundSheet />
 	{/if}
 </div>

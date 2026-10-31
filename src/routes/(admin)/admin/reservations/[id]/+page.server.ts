@@ -228,15 +228,17 @@ export const actions: Actions = {
 
 		let amount: number | undefined;
 		if (cancelledBy === 'guest') {
-			if (typeof amountRaw !== 'string' || amountRaw.trim() === '') {
-				return fail(400, { error: 'Indiquez le montant à rembourser (0 pour aucun remboursement)' });
+			const { parseAmountInput } = await import('$lib/utils/currency');
+			const parsed = parseAmountInput(amountRaw);
+			if ('error' in parsed) {
+				return fail(400, {
+					error:
+						parsed.error === 'blank'
+							? 'Indiquez le montant à rembourser (0 pour aucun remboursement)'
+							: 'Montant à rembourser invalide'
+				});
 			}
-			const { parseCurrency } = await import('$lib/utils/currency');
-			try {
-				amount = parseCurrency(amountRaw.trim().replace(',', '.'));
-			} catch {
-				return fail(400, { error: 'Montant à rembourser invalide' });
-			}
+			amount = parsed.cents;
 		}
 
 		if (env.USE_MOCK_DATA) {
@@ -289,12 +291,12 @@ export const actions: Actions = {
 
 		let amount: number | undefined;
 		if (typeof amountRaw === 'string' && amountRaw.trim() !== '') {
-			const { parseCurrency } = await import('$lib/utils/currency');
-			try {
-				amount = parseCurrency(amountRaw);
-			} catch {
+			const { parseAmountInput } = await import('$lib/utils/currency');
+			const parsed = parseAmountInput(amountRaw);
+			if ('error' in parsed) {
 				return fail(400, { error: 'Invalid refund amount' });
 			}
+			amount = parsed.cents;
 			if (!Number.isFinite(amount) || amount <= 0) {
 				return fail(400, { error: 'Refund amount must be greater than zero' });
 			}

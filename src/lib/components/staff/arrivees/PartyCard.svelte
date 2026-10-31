@@ -13,6 +13,7 @@
 	import { motion, cubicOut } from '$lib/components/staff/motion';
 	import { ArrowRightLeft, Check, ChefHat, Footprints, Gift, LoaderCircle, Phone, UserCheck, UserX } from 'lucide-svelte';
 	import type { DayGuestParty, DayGuestSeating } from '$lib/server/services/day-guest-list';
+	import PartyActionsMenu from './PartyActionsMenu.svelte';
 	import { balanceDue, capacityLabel, guests as guestsLabel, seatingTime, settleTimeLabel, type ArriveesFields } from './helpers';
 
 	let {
@@ -23,7 +24,9 @@
 		canCorrect = false,
 		canSettle = false,
 		canMove = false,
-		moveTargets = []
+		moveTargets = [],
+		canCancelRefund = false,
+		seatingLabel = ''
 	}: {
 		party: DayGuestParty;
 		fields: ArriveesFields;
@@ -34,6 +37,10 @@
 		canMove?: boolean;
 		/** The other Seatings of the party's Service on that Day (issue 022). */
 		moveTargets?: DayGuestSeating[];
+		/** Cancel or refund this Reservation (issue 041). */
+		canCancelRefund?: boolean;
+		/** L'heure de la Seating, « 12 h 30 », pour la feuille Annuler/Rembourser. */
+		seatingLabel?: string;
 	} = $props();
 
 	const balance = $derived(balanceDue(party));
@@ -84,7 +91,7 @@
 	aria-label={party.guestName}
 >
 	<header class="flex items-start justify-between gap-4">
-		<div class="min-w-0">
+		<div class="min-w-0 flex-1">
 			<h3 class="pt-0.5 text-lg leading-snug font-semibold break-words text-foreground">
 				{party.guestName}
 			</h3>
@@ -119,14 +126,19 @@
 			{/if}
 		</div>
 
-		{#if party.quantity !== undefined}
-			<p class="shrink-0 text-right">
+		<div class="flex shrink-0 items-start gap-1">
+			{#if party.quantity !== undefined}
+				<p class="text-right">
 				<span class="block text-3xl leading-none font-semibold tracking-tight tabular-nums text-foreground">
 					{party.quantity}
 				</span>
 				<span class="text-xs text-muted-foreground">{party.quantity === 1 ? 'personne' : 'personnes'}</span>
-			</p>
-		{/if}
+				</p>
+			{/if}
+			{#if canCancelRefund && party.id}
+				<PartyActionsMenu {party} seatingLabel={seatingLabel || ''} />
+			{/if}
+		</div>
 	</header>
 
 	{#if balance && party.balanceSettledAt !== undefined}

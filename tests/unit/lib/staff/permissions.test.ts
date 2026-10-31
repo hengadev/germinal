@@ -35,6 +35,16 @@ describe('staff permissions catalogue', () => {
 		]);
 	});
 
+	it('adds cancel_refund: labelled, acting on parties, absent from starting roles', () => {
+		expect(STAFF_PERMISSIONS).toContain('cancel_refund');
+		expect(STAFF_PERMISSION_LABELS_FR.cancel_refund).toBe('Annuler et rembourser');
+		expect(ACTS_ON_PARTIES_PERMISSIONS.has('cancel_refund')).toBe(true);
+		expect(withImpliedPermissions(['cancel_refund'])).toEqual(['guest_list', 'cancel_refund']);
+		for (const role of STARTING_STAFF_ROLES) {
+			expect(role.permissions).not.toContain('cancel_refund');
+		}
+	});
+
 	it('recognises only catalogue members', () => {
 		expect(isStaffPermission('tasks')).toBe(true);
 		expect(isStaffPermission('cancel')).toBe(false);

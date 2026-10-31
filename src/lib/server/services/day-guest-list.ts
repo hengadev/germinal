@@ -38,6 +38,13 @@ export interface DayGuestParty {
 	/** Only with the contact details permission. */
 	guestPhone?: string | null;
 	guestEmail?: string;
+	/** Deposit paid online, in cents — only with cancel_refund (issue 041). */
+	paidOnline?: number;
+	/** What remains refundable, in cents — only with cancel_refund. */
+	refundable?: number;
+	/** The Refund Policy's suggestion for a guest cancellation, in cents,
+	 * null when the policy suggests nothing (a manual policy). */
+	suggestedRefund?: number | null;
 }
 
 /** One Seating of the Day with its parties. */
