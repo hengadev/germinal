@@ -11,6 +11,7 @@ import { recordCheckIn, undoLastCheckIn } from '$lib/server/services/check-ins';
 import { createWalkIn } from '$lib/server/services/walk-ins';
 import { createCompOnTheSpot } from '$lib/server/services/comps';
 import { settleBalance, undoSettleBalance } from '$lib/server/services/balance';
+import { getEventBrief } from '$lib/server/services/staff-brief';
 import { moveReservation } from '$lib/server/services/moves';
 import { formatCurrency } from '$lib/utils/currency';
 
@@ -61,6 +62,16 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
 	const access = await getStaffEventAccess(locals.user, params.id);
 
+	// Brief (issue 032): everyone sees the general part; a Staff member
+	// only their own role's part, an Admin every part.
+	const briefAll = await getEventBrief(params.id);
+	const brief = {
+		general: briefAll.general,
+		roles: access.staffRoleId
+			? briefAll.roles.filter((r) => r.staffRoleId === access.staffRoleId)
+			: briefAll.roles,
+	};
+
 	// Arrivées needs a visible Day and the guest list; Cuisine, Dietary Requirements.
 	const canArrivees = access.can('guest_list');
 	const canCuisine = access.can('dietary');
@@ -82,6 +93,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		},
 		event: access.event,
 		staffRoleName: access.staffRoleName,
+		brief,
 		arrivees: canSeeArrivees ? await getDayGuestList(access, params.id) : null,
 	};
 };

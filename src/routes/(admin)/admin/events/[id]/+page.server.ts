@@ -302,7 +302,7 @@ export const load: PageServerLoad = async ({ params }) => {
 		const seatingStarts = sessions.map((s) => new Date(s.startTime).getTime());
 		const lastSeatingStart = seatingStarts.length > 0 ? new Date(Math.max(...seatingStarts)) : null;
 
-		return { event, sessions, reservations, promoCodes: [], talents, days, schedule, venueCapacity, pricing, timeZones: listTimeZones(), timeZoneLocked: reservations.length > 0, lastSeatingStart, englishAuto: isTranslationEnabled() };
+		return { event, sessions, reservations, promoCodes: [], talents, days, schedule, venueCapacity, pricing, timeZones: listTimeZones(), timeZoneLocked: reservations.length > 0, lastSeatingStart, englishAuto: isTranslationEnabled(), staffBrief: { general: null, roles: [] } };
 	}
 
 	// Database mode - fetch from database
@@ -443,6 +443,8 @@ export const load: PageServerLoad = async ({ params }) => {
 			lastSeatingStart,
 			// The English is generated from the French on save (DeepL).
 			englishAuto: isTranslationEnabled(),
+			// Staff Brief (issue 032), written in the Équipe tab.
+			staffBrief: await (await import('$lib/server/services/staff-brief')).getEventBrief(id),
 		};
 	} catch (err) {
 		if (err instanceof Error && err.message === 'Event not found') {
@@ -453,6 +455,40 @@ export const load: PageServerLoad = async ({ params }) => {
 };
 
 const editorActions: Actions = {
+	// Save the staff Brief (issue 032): the general part plus one part
+	// per Staff role assigned on the Event, written in the Équipe tab.
+	saveBrief: async ({ request, params, locals }) => {
+		requireAdmin(locals);
+
+		const formData = await request.formData();
+		const general = formData.get('general');
+		const roles: Record<string, string> = {};
+		for (const [key, value] of formData.entries()) {
+			if (key.startsWith('role_') && typeof value === 'string') {
+				roles[key.slice('role_'.length)] = value;
+			}
+		}
+
+		const { saveEventBrief, UnassignedRoleError } = await import(
+			'$lib/server/services/staff-brief'
+		);
+		try {
+			await saveEventBrief(params.id, {
+				general: typeof general === 'string' ? general : '',
+				roles,
+			});
+			return { success: 'Brief enregistré.' };
+		} catch (err) {
+			if (err instanceof UnassignedRoleError) {
+				return fail(400, {
+					error: 'Un rôle du brief n’est plus assigné sur cet événement. Rechargez la page.',
+				});
+			}
+			logger.error({ err }, 'Error saving the event brief');
+			return fail(500, { error: 'Échec de l’enregistrement du brief.' });
+		}
+	},
+
 	// Save the Essentiel, Lieu or Programme tab: each posts only its own
 	// fields, and only those change (ADR 0008 — nothing is required).
 	updateEvent: async ({ request, params, locals }) => {

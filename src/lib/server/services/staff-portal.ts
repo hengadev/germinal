@@ -39,6 +39,8 @@ export interface StaffPortalEvent {
 export interface StaffEventAccess extends StaffAccess {
 	event: StaffPortalEvent;
 	staffRoleName: string | null;
+	/** The Assignment's Staff Role, or null for an Admin. */
+	staffRoleId: string | null;
 }
 
 /**
@@ -67,6 +69,7 @@ export async function getStaffEventAccess(
 
 	let who: StaffWho;
 	let staffRoleName: string | null = null;
+	let staffRoleId: string | null = null;
 	if (user.role === 'admin') {
 		who = { kind: 'admin' };
 	} else {
@@ -76,6 +79,7 @@ export async function getStaffEventAccess(
 				granted: eventStaff.grantedPermissions,
 				withdrawn: eventStaff.withdrawnPermissions,
 				roleName: staffRoles.name,
+				roleId: eventStaff.staffRoleId,
 			})
 			.from(eventStaff)
 			.innerJoin(staffRoles, eq(eventStaff.staffRoleId, staffRoles.id))
@@ -89,9 +93,10 @@ export async function getStaffEventAccess(
 			withdrawn: assignment.withdrawn as StaffPermission[],
 		};
 		staffRoleName = assignment.roleName;
+		staffRoleId = assignment.roleId;
 	}
 
-	return { event, staffRoleName, ...staffAccess(who, dates, event.timeZone, now) };
+	return { event, staffRoleName, staffRoleId, ...staffAccess(who, dates, event.timeZone, now) };
 }
 
 /** One row of the portal's Assignments list. */
