@@ -5,7 +5,7 @@ import Scanner from '$lib/components/staff/scanner/Scanner.svelte';
 import NotesCuisine from '$lib/components/staff/arrivees/NotesCuisine.svelte';
 import { noteCount as countNotes } from '$lib/components/staff/arrivees/helpers';
 import { page } from '$app/state';
-import { replaceState } from '$app/navigation';
+import { afterNavigate, replaceState } from '$app/navigation';
 import { fly } from 'svelte/transition';
 import { cubicOut } from 'svelte/easing';
 import {
@@ -67,20 +67,37 @@ import {
 		});
 	});
 
-	// Swipe between tabs on a touch screen (issue 029).
+	// A link to another tab of this page (the bar's Scan button) navigates
+	// without remounting it: follow ?onglet=.
+	afterNavigate(({ type }) => {
+		if (type === 'enter') return;
+		const tab = page.url.searchParams.get('onglet');
+		if (tab && visibleTabs({ ...data.access }).includes(tab as StaffEventTab)) {
+			goToTab(tab as StaffEventTab);
+		}
+	});
+
+	// Swipe between tabs on a touch screen (issue 029). Touch events, not
+	// pointer events: once the browser starts panning it cancels the pointer
+	// and pointerup never comes, while touchend always does.
 	let swipeStart: { x: number; y: number } | null = null;
 
-	function onPointerDown(event: PointerEvent) {
-		if (event.pointerType !== 'touch' || !tabPanel) return;
+	function onTouchStart(event: TouchEvent) {
+		if (event.touches.length !== 1 || !tabPanel) {
+			swipeStart = null;
+			return;
+		}
+		const touch = event.touches[0];
 		swipeStart = swipeStartIgnored(event.target as Element, tabPanel)
 			? null
-			: { x: event.clientX, y: event.clientY };
+			: { x: touch.clientX, y: touch.clientY };
 	}
 
-	function onPointerUp(event: PointerEvent) {
+	function onTouchEnd(event: TouchEvent) {
 		if (!swipeStart) return;
-		const dx = event.clientX - swipeStart.x;
-		const dy = event.clientY - swipeStart.y;
+		const touch = event.changedTouches[0];
+		const dx = touch.clientX - swipeStart.x;
+		const dy = touch.clientY - swipeStart.y;
 		swipeStart = null;
 		const direction = swipeDirection(dx, dy);
 		if (!direction) return;
@@ -181,7 +198,12 @@ import {
 		</div>
 
 		<!-- Contenu de l'onglet : balayable horizontalement sur mobile -->
-		<div bind:this={tabPanel} onpointerdown={onPointerDown} onpointerup={onPointerUp}>
+		<div
+			bind:this={tabPanel}
+			ontouchstart={onTouchStart}
+			ontouchend={onTouchEnd}
+			ontouchcancel={() => (swipeStart = null)}
+		>
 			{#key activeTab}
 				<div
 					in:fly={{
