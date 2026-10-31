@@ -112,7 +112,7 @@
 				class="inline-flex items-center gap-2 px-4 py-2 border border-border-input text-foreground rounded-lg hover:bg-muted transition-colors font-medium text-sm"
 			>
 				<Gift size={16} />
-				Réservation Comp
+				Invitation
 			</a>
 			<a
 				href={exportUrl()}
@@ -303,7 +303,7 @@
 									{#if reservation.isComp}
 										<span class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-purple-50 text-purple-700 rounded-full">
 											<Gift size={12} />
-											Comp
+											Invitation
 										</span>
 									{/if}
 									{#if reservation.balanceSettledAt}
@@ -318,7 +318,7 @@
 							<td class="px-6 py-4">
 								<div class="flex items-center gap-2">
 									<span class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium {paymentBadge.class} rounded-full">
-										{reservation.isComp ? 'Comp' : paymentBadge.text}
+										{reservation.isComp ? 'Invitation' : paymentBadge.text}
 									</span>
 								</div>
 							</td>
@@ -368,7 +368,7 @@
 									{#if reservation.isComp}
 										<span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-purple-50 text-purple-700 rounded-full">
 											<Gift size={10} />
-											Comp
+											Invitation
 										</span>
 									{/if}
 									{#if reservation.balanceSettledAt}
@@ -411,7 +411,7 @@
 						<div>
 							<div class="text-xs text-muted-foreground">Paiement</div>
 							<span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium {paymentBadge.class} rounded-full">
-								{reservation.isComp ? 'Comp' : paymentBadge.text}
+								{reservation.isComp ? 'Invitation' : paymentBadge.text}
 							</span>
 						</div>
 					</div>

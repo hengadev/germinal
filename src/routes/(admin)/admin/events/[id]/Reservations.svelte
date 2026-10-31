@@ -144,7 +144,7 @@
 	<div class="bg-background rounded-lg border border-border-card overflow-hidden mb-6">
 		<div class="px-6 py-4 border-b border-border-card">
 			<h3 class="text-base font-semibold text-foreground">Fréquentation</h3>
-			<p class="text-sm text-muted-foreground">Comptes définitifs par Séance, l'événement terminé. Walk-ins et Offerts : tables · personnes.</p>
+			<p class="text-sm text-muted-foreground">Comptes définitifs par Séance, l'événement terminé. Walk-ins et Invitations : tables · personnes.</p>
 		</div>
 		<div class="overflow-x-auto">
 			<table class="w-full text-sm tabular-nums">
@@ -157,7 +157,7 @@
 						<th class="px-4 py-3 text-right text-xs font-semibold text-foreground-alt uppercase tracking-wider">Arrivés</th>
 						<th class="px-4 py-3 text-right text-xs font-semibold text-foreground-alt uppercase tracking-wider">No-shows</th>
 						<th class="px-4 py-3 text-right text-xs font-semibold text-foreground-alt uppercase tracking-wider">Walk-ins</th>
-						<th class="px-4 py-3 text-right text-xs font-semibold text-foreground-alt uppercase tracking-wider">Offerts</th>
+						<th class="px-4 py-3 text-right text-xs font-semibold text-foreground-alt uppercase tracking-wider">Invitations</th>
 					</tr>
 				</thead>
 				<tbody class="divide-y divide-border-card">
@@ -374,7 +374,7 @@
 								{#if reservation.isComp}
 									<span class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-purple-50 text-purple-700 rounded-full">
 										<Gift size={12} />
-										Comp
+										Invitation
 									</span>
 								{/if}
 								{#if reservation.balanceSettledAt}
@@ -389,7 +389,7 @@
 						<td class="px-6 py-4">
 							<div class="flex items-center gap-2">
 								<span class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium {paymentBadge.class} rounded-full">
-									{reservation.isComp ? 'Comp' : paymentBadge.text}
+									{reservation.isComp ? 'Invitation' : paymentBadge.text}
 								</span>
 							</div>
 						</td>
@@ -447,7 +447,7 @@
 								{#if reservation.isComp}
 									<span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-purple-50 text-purple-700 rounded-full">
 										<Gift size={10} />
-										Comp
+										Invitation
 									</span>
 								{/if}
 								{#if reservation.balanceSettledAt}

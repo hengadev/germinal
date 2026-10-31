@@ -133,7 +133,7 @@
 			sub: 'en moyenne'
 		},
 		{
-			label: 'Réservations Comp',
+			label: 'Invitations',
 			value: data.metrics.compReservations.toString(),
 			icon: Gift,
 			sub: 'billets offerts, hors paiement'

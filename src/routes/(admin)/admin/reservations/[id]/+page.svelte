@@ -288,7 +288,7 @@ END:VCALENDAR`;
 					{#if data.reservation.isComp}
 						<span class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium bg-purple-50 text-purple-700 rounded-full">
 							<Gift size={16} />
-							Comp
+							Invitation
 						</span>
 					{/if}
 				</div>
@@ -405,7 +405,7 @@ END:VCALENDAR`;
 					<div class="flex items-center gap-3 text-purple-700 bg-purple-50 rounded-lg px-4 py-3">
 						<Gift size={20} />
 						<div>
-							<div class="font-medium">Réservation comp — aucun paiement collecté</div>
+							<div class="font-medium">Invitation — aucun paiement collecté</div>
 							<div class="text-sm text-purple-700/80">Cette réservation a été créée directement par un Admin, sans passer par le paiement.</div>
 						</div>
 					</div>

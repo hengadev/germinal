@@ -179,7 +179,7 @@ export const actions: Actions = {
 		const phone = formData.get('phone');
 
 		if (!access.can('comp')) {
-			return fail(403, { error: "Vous n'avez pas la permission d'offrir un comp.", comp: true });
+			return fail(403, { error: "Vous n'avez pas la permission d'offrir une invitation.", comp: true });
 		}
 		if (typeof seatingId !== 'string' || typeof name !== 'string' || !Number.isInteger(quantity)) {
 			return fail(400, { error: 'Requête invalide.', comp: true });

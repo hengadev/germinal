@@ -34,7 +34,7 @@ export async function createCompOnTheSpot(input: {
 	const { access, eventId, seatingId, name, quantity, email, phone, actorId } = input;
 
 	if (!access.can('comp')) {
-		return { ok: false, error: "Vous n'avez pas la permission d'offrir un comp." };
+		return { ok: false, error: "Vous n'avez pas la permission d'offrir une invitation." };
 	}
 	const invalid = spotPartyError({ name, quantity, email, phone });
 	if (invalid) return { ok: false, error: invalid };

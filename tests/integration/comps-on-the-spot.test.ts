@@ -201,7 +201,7 @@ describe('comps on the spot', () => {
 			quantity: 2,
 			actorId: s.actorId,
 		});
-		expect(result).toEqual({ ok: false, error: "Vous n'avez pas la permission d'offrir un comp." });
+		expect(result).toEqual({ ok: false, error: "Vous n'avez pas la permission d'offrir une invitation." });
 
 		const rows = await testDb.select().from(reservations);
 		expect(rows).toHaveLength(0);

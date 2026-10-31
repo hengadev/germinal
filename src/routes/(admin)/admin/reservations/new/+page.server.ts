@@ -99,7 +99,7 @@ export const actions: Actions = {
 		if (env.USE_MOCK_DATA) {
 			return {
 				success: true,
-				message: `Réservation comp créée pour ${name} (mock — non persistée)`,
+				message: `Invitation créée pour ${name} (mock — non persistée)`,
 				reservationId: null,
 			};
 		}
@@ -117,12 +117,12 @@ export const actions: Actions = {
 
 			return {
 				success: true,
-				message: `Réservation comp créée pour ${name}`,
+				message: `Invitation créée pour ${name}`,
 				reservationId: result.reservation.id,
 			};
 		} catch (err) {
 			return fail(400, {
-				error: err instanceof Error ? err.message : 'Échec de la création de la réservation comp',
+				error: err instanceof Error ? err.message : 'Échec de la création de l\'invitation',
 			});
 		}
 	},

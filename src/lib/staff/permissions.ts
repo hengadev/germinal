@@ -31,7 +31,7 @@ export const STAFF_PERMISSION_LABELS_FR: Record<StaffPermission, string> = {
 	correct_mistake: 'Corriger une erreur',
 	move: 'Déplacer',
 	walk_in: 'Walk-in',
-	comp: 'Comp',
+	comp: 'Offrir une invitation',
 };
 
 /**

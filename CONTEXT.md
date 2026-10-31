@@ -124,6 +124,7 @@ _Avoid_: Drop-in, sur place (in code/docs)
 
 **Comp**:
 A **Reservation** offered for free: no Deposit, no **Balance**. Made by an **Admin**, or on the spot by a **Staff** member whose **Assignment** grants the "offer a Comp" **Staff Permission** (never in a starting Staff Role; an Admin grants it to people they trust). A Comp made on the spot behaves like a **Walk-in** otherwise: no Ticket, checked in at once, attributed, may exceed capacity.
+In the French UI: « Invitation ».
 _Avoid_: Invitation, free ticket, offert (in code/docs)
 
 **Cancelled**:

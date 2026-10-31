@@ -287,7 +287,7 @@
 			>
 				<fieldset class="space-y-3" disabled={walkInSubmitting}>
 					<legend class="text-base font-semibold text-foreground">
-						{isCompForm ? 'Offrir un Comp' : 'Ajouter un walk-in'}
+						{isCompForm ? 'Offrir une invitation' : 'Ajouter un walk-in'}
 					</legend>
 					{#if isCompForm}
 						<p class="text-sm text-muted-foreground">Offert : rien à régler, aucun billet envoyé.</p>

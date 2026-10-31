@@ -31,7 +31,7 @@
 </script>
 
 <svelte:head>
-	<title>Nouvelle Réservation Comp | Tableau de bord Admin</title>
+	<title>Nouvelle invitation | Tableau de bord Admin</title>
 </svelte:head>
 
 <div class="container mx-auto px-4 py-8 lg:py-12 max-w-2xl">
@@ -47,7 +47,7 @@
 		<div class="flex-1 min-w-0">
 			<h1 class="text-3xl lg:text-4xl font-bold mb-2 flex items-center gap-3">
 				<Gift size={32} />
-				Réservation Comp
+				Nouvelle invitation
 			</h1>
 			<p class="text-muted-foreground">
 				Créez une réservation confirmée pour un invité sans passer par le paiement. La capacité de la
@@ -109,7 +109,7 @@
 					Prix normal : {selectedSession.priceAmount === null
 						? 'non défini (tarif du repas à renseigner)'
 						: formatCurrency(selectedSession.priceAmount, selectedSession.currency)} — sera
-					offert (0 {selectedSession.currency}) pour cette réservation comp.
+					offert (0 {selectedSession.currency}) pour cette invitation.
 				</p>
 			{/if}
 		</div>
@@ -195,7 +195,7 @@
 				class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-foreground text-background rounded-lg hover:opacity-90 transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
 			>
 				<Gift size={18} />
-				{isSubmitting ? 'Création…' : 'Créer la Réservation Comp'}
+				{isSubmitting ? 'Création…' : 'Créer l\'invitation'}
 			</button>
 		</div>
 	</form>
