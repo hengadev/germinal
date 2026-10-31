@@ -294,6 +294,9 @@
 						>{/if}
 					{time}
 				</h2>
+				{#if seating.bookingsClosed}
+					<span class="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">Réservations fermées</span>
+				{/if}
 				{#if seating.titleFr}
 					<span class="text-sm text-muted-foreground">{seating.titleFr}</span>
 				{/if}

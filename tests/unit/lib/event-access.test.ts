@@ -322,3 +322,27 @@ describe('the Booking Window (035)', () => {
 		expect(seatingAvailability({ event, seating: seating({ availableCapacity: 0 }), viewer: ANONYMOUS, now: NOW })).toEqual(expected);
 	});
 });
+
+describe('a Seating closed to bookings (039)', () => {
+	const closed = { bookingsClosedAt: EARLIER };
+
+	it('refuses booking like a closed Booking Window, whatever its capacity', () => {
+		expect(seatingBooking({ event: PUBLIC, seating: seating(closed), viewer: ANONYMOUS, now: NOW }))
+			.toEqual({ bookable: false, reason: 'closed' });
+	});
+
+	it('refuses the Waitlist too', () => {
+		expect(waitlistAccess({ event: PUBLIC, seating: seating(closed), viewer: ANONYMOUS, now: NOW }))
+			.toEqual({ allowed: false, reason: 'closed' });
+	});
+
+	it('shows « Réservations fermées », with no Waitlist, even when full', () => {
+		expect(seatingAvailability({ event: PUBLIC, seating: seating({ ...closed, availableCapacity: 0 }), viewer: ANONYMOUS, now: NOW }))
+			.toEqual({ bookingRefusal: 'closed', bookingOpensAt: null, waitlistOpen: false });
+	});
+
+	it('an open Seating (null) still books', () => {
+		expect(seatingBooking({ event: PUBLIC, seating: seating({ bookingsClosedAt: null }), viewer: ANONYMOUS, now: NOW }))
+			.toEqual({ bookable: true });
+	});
+});

@@ -724,6 +724,13 @@ export const eventSessions = pgTable('event_sessions', {
     published: boolean('published').default(false).notNull(),
     allowWaitlist: boolean('allow_waitlist').default(false).notNull(),
     badgeType: badgeTypeEnum('badge_type').notNull().default('none'),
+    // « Fermé aux réservations » (issue 039): set when a Staff member or
+    // Admin stopped taking online bookings for this Seating. Null = open.
+    // Nothing already booked changes; Walk-ins, Comps and Moves still work.
+    bookingsClosedAt: timestamp('bookings_closed_at', { withTimezone: true }),
+    bookingsClosedBy: uuid('bookings_closed_by').references(() => users.id, {
+        onDelete: 'set null',
+    }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => ({

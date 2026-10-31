@@ -4,10 +4,10 @@
  * Assignment, then delegates to the pure Staff access module. The UI only
  * reflects the answer.
  */
-import { and, asc, eq, inArray } from 'drizzle-orm';
+import { and, asc, eq, gte, inArray } from 'drizzle-orm';
 import { error } from '@sveltejs/kit';
 import { db } from '../db';
-import { eventDays, eventStaff, events, staffRoles } from '../db/schema';
+import { eventDays, eventServices, eventSessions, eventStaff, events, staffRoles } from '../db/schema';
 import { staffAccess, activeDay, type StaffAccess, type StaffWho } from '$lib/staff/access';
 import type { StaffPermission } from '$lib/staff/permissions';
 
@@ -261,4 +261,118 @@ async function withDays(
 
 function endOf(event: StaffPortalEvent): number | null {
 	return (event.endDate ?? event.startDate)?.getTime() ?? null;
+}
+
+// ---------------------------------------------------------------------------
+// « Fermé aux réservations » (issue 039)
+// ---------------------------------------------------------------------------
+
+/** One Seating the close-bookings sheet (issue 039) offers. */
+export interface StaffBookingSeating {
+	id: string;
+	/** The Seating's Day, 'YYYY-MM-DD'. */
+	dayDate: string;
+	/** Its Service (Déjeuner / Dîner), grouped by the sheet. */
+	serviceId: string;
+	serviceKind: 'lunch' | 'dinner';
+	/** ISO start time. */
+	startTime: string;
+	/** Whether the Seating is closed to bookings. */
+	closed: boolean;
+}
+
+/**
+ * The Seatings the close-bookings sheet may act on: for a Staff member,
+ * the current Day's; for an Admin, every upcoming Seating of the Event
+ * (grouped by Day in the sheet).
+ */
+export async function seatingsForBookingClosure(
+	eventId: string,
+	day: string | null,
+	admin: boolean
+): Promise<StaffBookingSeating[]> {
+	const now = new Date();
+	const conditions = [eq(eventSessions.eventId, eventId)];
+	if (admin) {
+		conditions.push(gte(eventSessions.startTime, now));
+	} else {
+		if (day === null) return [];
+		conditions.push(eq(eventDays.date, day));
+	}
+	const rows = await db
+		.select({
+			id: eventSessions.id,
+			dayDate: eventDays.date,
+			serviceId: eventServices.id,
+			serviceKind: eventServices.kind,
+			startTime: eventSessions.startTime,
+			bookingsClosedAt: eventSessions.bookingsClosedAt
+		})
+		.from(eventSessions)
+		.innerJoin(eventServices, eq(eventSessions.serviceId, eventServices.id))
+		.innerJoin(eventDays, eq(eventServices.dayId, eventDays.id))
+		.where(and(...conditions))
+		.orderBy(asc(eventDays.date), asc(eventSessions.startTime));
+	return rows.map(
+		(r: {
+			id: string;
+			dayDate: string;
+			serviceId: string;
+			serviceKind: 'lunch' | 'dinner';
+			startTime: Date;
+			bookingsClosedAt: Date | null;
+		}) => ({
+			id: r.id,
+			dayDate: String(r.dayDate),
+			serviceId: r.serviceId,
+			serviceKind: r.serviceKind,
+			startTime: r.startTime.toISOString(),
+			closed: r.bookingsClosedAt !== null
+		})
+	);
+}
+
+/**
+ * Close (or reopen) Seatings to online bookings (issue 039). Refuses a
+ * Seating of another Event, and — for a Staff member, who may only act
+ * during a Day — one of another Day than the current. Returns the ids
+ * actually written to, for the audit entry.
+ */
+export async function setSeatingBookingsClosed(input: {
+	eventId: string;
+	seatingIds: string[];
+	closed: boolean;
+	actorId: string;
+	/** A Staff member acts only on the current Day's Seatings. */
+	day: string | null;
+	admin: boolean;
+}): Promise<{ ok: true; written: string[] } | { ok: false; error: string }> {
+	if (input.seatingIds.length === 0) return { ok: false, error: 'Aucune séance choisie.' };
+	if (!input.admin && input.day === null) {
+		return { ok: false, error: "Aucun jour en cours : impossible de fermer aux réservations." };
+	}
+	const conditions = [
+		eq(eventSessions.eventId, input.eventId),
+		inArray(eventSessions.id, input.seatingIds)
+	];
+	if (!input.admin) conditions.push(eq(eventDays.date, input.day!));
+	const rows = await db
+		.select({ id: eventSessions.id })
+		.from(eventSessions)
+		.innerJoin(eventServices, eq(eventSessions.serviceId, eventServices.id))
+		.innerJoin(eventDays, eq(eventServices.dayId, eventDays.id))
+		.where(and(...conditions));
+	if (rows.length !== input.seatingIds.length) {
+		return { ok: false, error: 'Séance introuvable pour cet événement.' };
+	}
+	const written = rows.map((r: { id: string }) => r.id);
+	await db
+		.update(eventSessions)
+		.set(
+			input.closed
+				? { bookingsClosedAt: new Date(), bookingsClosedBy: input.actorId, updatedAt: new Date() }
+				: { bookingsClosedAt: null, bookingsClosedBy: null, updatedAt: new Date() }
+		)
+		.where(inArray(eventSessions.id, written));
+	return { ok: true, written };
 }

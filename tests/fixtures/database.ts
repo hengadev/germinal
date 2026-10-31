@@ -25,6 +25,7 @@ export async function closeTestDatabase() {
 
 export async function setupTestDatabase() {
 	const db = getTestDatabase();
+	await db.execute(sql`TRUNCATE TABLE audit_log CASCADE`);
 	await db.execute(sql`TRUNCATE TABLE reservations CASCADE`);
 	await db.execute(sql`TRUNCATE TABLE check_ins CASCADE`);
 	await db.execute(sql`TRUNCATE TABLE payments CASCADE`);

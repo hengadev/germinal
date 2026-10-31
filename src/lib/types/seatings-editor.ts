@@ -32,6 +32,9 @@ export interface EditorSeating {
 	badgeType: SeatingBadge;
 	/** Reservations of any status pointing at the Seating (blocks removal). */
 	reservationCount: number;
+	/** « Fermée aux réservations » (039) : when it was closed, null = open.
+	 * Read-only in the editor (closed from the Staff portal). */
+	bookingsClosedAt?: Date | string | null;
 }
 
 /** One Service (a Day's lunch or dinner) with its Seatings, by start. */
