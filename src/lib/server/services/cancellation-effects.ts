@@ -141,17 +141,19 @@ export async function notifyGuestOfCancellation(
 				await sms.sendRefundSMS({
 					phone: reservation.guestPhone,
 					name: reservation.guestName,
-					eventTitle: eventSession.event.titleEn,
+					event: eventSession.event,
 					amount: refund.amount,
 					currency: refund.currency,
+					locale: lang,
 				});
 			} else {
 				await sms.sendCancellationSMS({
 					phone: reservation.guestPhone,
 					name: reservation.guestName,
-					eventTitle: eventSession.event.titleEn,
+					event: eventSession.event,
 					sessionStartTime: eventSession.startTime,
 					timeZone,
+					locale: lang,
 				});
 			}
 		} catch (error) {

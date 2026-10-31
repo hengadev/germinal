@@ -209,9 +209,11 @@ async function refundLatePayment(payment: PaymentWithReservation, paymentIntentI
 			await sendRefundSMS({
 				phone: payment.reservation.guestPhone,
 				name: payment.reservation.guestName,
-				eventTitle: payment.reservation.eventSession.event.titleEn,
+				event: payment.reservation.eventSession.event,
 				amount: refund.amount,
 				currency: payment.currency,
+				// Issue 027: the SMS is written in the Guest's language.
+				locale: payment.reservation.locale === 'fr' ? 'fr' : 'en',
 			});
 		} catch (error) {
 			logger.error({ err: error }, 'Failed to send late-payment refund SMS');
@@ -354,9 +356,11 @@ export async function handleRefund(charge: Stripe.Charge) {
 				await sendRefundSMS({
 					phone: reservation.guestPhone,
 					name: reservation.guestName,
-					eventTitle: reservation.eventSession.event.titleEn,
+					event: reservation.eventSession.event,
 					amount: refundedAmount,
 					currency: payment.currency,
+					// Issue 027: the SMS is written in the Guest's language.
+					locale: reservation.locale === 'fr' ? 'fr' : 'en',
 				});
 			} catch (error) {
 				logger.error({ err: error }, 'Failed to send refund SMS');

@@ -1070,9 +1070,11 @@ export async function sendReservationReminder(reservationId: string) {
 			await sendTicketReminderSMS({
 				phone: reservation.guestPhone,
 				name: reservation.guestName,
-				eventTitle: reservation.eventSession.event.titleEn,
+				event: reservation.eventSession.event,
 				eventTime: reservation.eventSession.startTime,
 				timeZone: reservation.eventSession.event.timeZone,
+				// Issue 027: the SMS is written in the Guest's language.
+				locale: (reservation.locale as 'fr' | 'en' | null) ?? null,
 			});
 		} catch (error) {
 			logger.error({ err: error }, 'Failed to send reminder SMS');

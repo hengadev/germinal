@@ -173,11 +173,13 @@ async function sendReminder(
 			await sendEventReminderSMS({
 				phone: reservation.guestPhone,
 				guestName: reservation.guestName,
-				eventTitle: reservation.eventSession.event?.titleEn || 'Event',
+				event: reservation.eventSession.event ?? { titleEn: 'Event', titleFr: 'Event' },
 				sessionStartTime: reservation.eventSession.startTime,
 				timeZone: reservation.eventSession.event?.timeZone ?? DEFAULT_EVENT_TIME_ZONE,
 				accessToken: reservation.accessToken,
 				daysUntil,
+				// Issue 027: the SMS is written in the Guest's language.
+				locale: (reservation.locale as 'fr' | 'en' | null) ?? null,
 			});
 		} catch (error) {
 			logger.error({ err: error }, '[Event Reminders] Failed to send SMS');
