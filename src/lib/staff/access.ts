@@ -32,7 +32,9 @@ export type StaffWho =
 
 /** Permissions that read or act on Guests: everything except Tasks. */
 export const GUEST_PERMISSIONS: ReadonlySet<StaffPermission> = new Set(
-	STAFF_PERMISSIONS.filter((p) => p !== 'tasks')
+	// Tasks and closing bookings (039) work outside a Day too; closing
+	// still targets only the Day's Seatings for a Staff member.
+	STAFF_PERMISSIONS.filter((p) => p !== 'tasks' && p !== 'close_bookings')
 );
 
 /**

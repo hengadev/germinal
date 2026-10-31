@@ -63,3 +63,17 @@ describe('staff permissions catalogue', () => {
 		expect(STARTING_STAFF_ROLES[2].permissions).toEqual(['tasks', 'guest_list', 'settle_balance']);
 	});
 });
+
+describe('close_bookings (039)', () => {
+	it('exists with its French label and does not act on parties', () => {
+		expect(STAFF_PERMISSIONS).toContain('close_bookings');
+		expect(STAFF_PERMISSION_LABELS_FR.close_bookings).toBe('Fermer aux réservations');
+		expect(ACTS_ON_PARTIES_PERMISSIONS.has('close_bookings')).toBe(false);
+	});
+
+	it('is in no starting Staff Role', () => {
+		for (const role of STARTING_STAFF_ROLES) {
+			expect(role.permissions).not.toContain('close_bookings');
+		}
+	});
+});
