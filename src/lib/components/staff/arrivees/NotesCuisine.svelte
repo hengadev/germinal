@@ -1,7 +1,7 @@
 <!--
-	The kitchen's view (issue 028): every party of the Day's Seatings with its
-	size, the Dietary Requirements outlined, one Service at a time (Déjeuner,
-	Dîner), opening on the Service under way.
+	The kitchen's view (issue 028, refined in 035): per Seating the total number of
+	couverts and only the parties with a Dietary Requirement, one Service at a time
+	(Déjeuner, Dîner), opening on the Service under way.
 -->
 <script lang="ts">
 	import { replaceState } from '$app/navigation';
@@ -9,8 +9,11 @@
 	import { ChefHat } from 'lucide-svelte';
 	import type { DayGuestList } from '$lib/server/services/day-guest-list';
 	import {
+		covers,
 		currentSeatingId,
 		guests,
+		partiesWithNotes,
+		seatingGuestTotal,
 		seatingTime,
 		serviceLabel,
 		servicesOf,
@@ -66,6 +69,7 @@
 	{:else}
 		{#each serviceSeatings as seating (seating.id)}
 			{@const time = seatingTime(seating, timeZone)}
+			{@const notes = partiesWithNotes(seating)}
 			<section class="space-y-2" aria-labelledby="cuisine-seating-{seating.id}">
 				<div class="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-border-card pb-2">
 					<h2 id="cuisine-seating-{seating.id}" class="text-lg leading-none font-semibold tabular-nums text-foreground">
@@ -76,10 +80,15 @@
 					{/if}
 				</div>
 
-				{#if seating.parties.length > 0}
-					<!-- Every party and its size, the Dietary Requirements outlined. -->
+				<p class="text-sm text-muted-foreground">{covers(seatingGuestTotal(seating))}</p>
+				{#if seating.parties.length === 0}
+					<p class="text-sm text-muted-foreground">Aucune réservation pour cette séance.</p>
+				{:else if notes.length === 0}
+					<p class="text-sm text-muted-foreground">Aucune restriction alimentaire.</p>
+				{:else}
+					<!-- Only the parties with a Dietary Requirement. -->
 					<ul class="divide-y divide-border-card rounded-lg border border-border-card bg-background">
-						{#each seating.parties as party, i (party.id ?? i)}
+						{#each notes as party, i (party.id ?? i)}
 							<li class="space-y-1.5 px-4 py-3">
 								<p class="text-sm text-foreground">
 									<span class="font-semibold">{party.guestName}</span>
@@ -87,17 +96,13 @@
 										<span class="text-muted-foreground">· {guests(party.quantity)}</span>
 									{/if}
 								</p>
-								{#if party.dietaryRequirements?.trim()}
-									<p class="flex gap-2.5 font-medium break-words text-foreground">
-										<ChefHat size={16} class="mt-1 shrink-0 text-muted-foreground" aria-hidden="true" />
-										<span class="min-w-0">{party.dietaryRequirements}</span>
-									</p>
-								{/if}
+								<p class="flex gap-2.5 font-medium break-words text-foreground">
+									<ChefHat size={16} class="mt-1 shrink-0 text-muted-foreground" aria-hidden="true" />
+									<span class="min-w-0">{party.dietaryRequirements}</span>
+								</p>
 							</li>
 						{/each}
 					</ul>
-				{:else}
-					<p class="text-sm text-muted-foreground">Aucune réservation pour cette séance.</p>
 				{/if}
 			</section>
 		{/each}

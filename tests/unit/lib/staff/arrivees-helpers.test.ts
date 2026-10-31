@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { noteCount, currentSeatingId, servicesOf } from '$lib/components/staff/arrivees/helpers';
+import { noteCount, currentSeatingId, servicesOf, covers, seatingGuestTotal, partiesWithNotes } from '$lib/components/staff/arrivees/helpers';
 import type { DayGuestList, DayGuestSeating } from '$lib/server/services/day-guest-list';
 
 function seating(id: string, overrides: Partial<DayGuestSeating> = {}): DayGuestSeating {
@@ -38,6 +38,36 @@ describe('noteCount', () => {
 
 	it('is zero with no seatings', () => {
 		expect(noteCount({ day: '2025-06-01', seatings: [] })).toBe(0);
+	});
+});
+
+describe('seatingGuestTotal', () => {
+	it('sums the party quantities, missing quantity counted as 0', () => {
+		const s = seating('a', {
+			parties: [{ quantity: 4 }, { quantity: 2 }, {}, { quantity: 0 }]
+		});
+		expect(seatingGuestTotal(s)).toBe(6);
+	});
+
+	it('is zero with no parties', () => {
+		expect(seatingGuestTotal(seating('a'))).toBe(0);
+	});
+});
+
+describe('partiesWithNotes', () => {
+	it('keeps only parties with a non-blank Dietary Requirement', () => {
+		const withNote = { dietaryRequirements: 'Végétarien' };
+		const s = seating('a', {
+			parties: [withNote, { dietaryRequirements: '   ' }, { dietaryRequirements: null }, { guestName: 'Sans note' }]
+		});
+		expect(partiesWithNotes(s)).toEqual([withNote]);
+	});
+});
+
+describe('covers', () => {
+	it('pluralises', () => {
+		expect(covers(1)).toBe('1 couvert');
+		expect(covers(24)).toBe('24 couverts');
 	});
 });
 
