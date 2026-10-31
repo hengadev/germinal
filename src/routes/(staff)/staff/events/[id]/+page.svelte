@@ -4,6 +4,7 @@
 import NotesCuisine from '$lib/components/staff/arrivees/NotesCuisine.svelte';
 import { noteCount as countNotes } from '$lib/components/staff/arrivees/helpers';
 import { page } from '$app/state';
+	import { ArrowLeft } from 'lucide-svelte';
 import { afterNavigate, replaceState } from '$app/navigation';
 import { fly } from 'svelte/transition';
 import { motion, cubicOut } from '$lib/components/staff/motion';
@@ -133,7 +134,16 @@ import {
 <div class="container mx-auto px-4 py-8 lg:py-12">
 	<!-- En-tête : l'événement et le jour en cours -->
 	<div class="mb-6">
-		<h1 class="text-2xl lg:text-3xl font-bold text-foreground">{title}</h1>
+		<div class="flex items-center gap-2">
+			<a
+				href="/staff?liste"
+				aria-label="Retour aux événements"
+				class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+			>
+				<ArrowLeft size={22} aria-hidden="true" />
+			</a>
+			<h1 class="text-2xl lg:text-3xl font-bold text-foreground">{title}</h1>
+		</div>
 		<p class="text-sm text-muted-foreground mt-1">
 			{#if data.staffRoleName}
 				<span class="font-medium">Rôle :</span> {data.staffRoleName} —

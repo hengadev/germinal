@@ -20,7 +20,7 @@
 	import { motion, cubicOut } from '$lib/components/staff/motion';
 	import { Check, ChevronDown, Gift, LoaderCircle, Plus, Search, Users, X } from 'lucide-svelte';
 	import { enhance } from '$app/forms';
-	import type { DayGuestList, DayGuestParty } from '$lib/server/services/day-guest-list';
+	import type { DayGuestList } from '$lib/server/services/day-guest-list';
 	import PartyCard from './PartyCard.svelte';
 	import {
 		capacityLabel,
@@ -86,11 +86,7 @@
 		replaceState(url, page.state);
 	}
 
-	// The door's chase list (issue 019): the arrived parties of the Service
-	// shown whose Balance is still to collect — flat, never folded away.
-	let unsettledOnly = $state(false);
-	const hasBalanceDue = (p: DayGuestParty) =>
-		!p.isComp && (p.balanceAmount ?? 0) > 0 && p.balanceSettledAt === null;
+
 
 	let query = $state('');
 
@@ -141,12 +137,8 @@
 		list.seatings.find((s) => hourKey(seatingTime(s, timeZone)) === page.url.searchParams.get(HOUR_PARAM))
 			?.id ?? null
 	);
+
 	const serviceSeatings = $derived(service?.seatings ?? []);
-	const dueParties = $derived(
-		unsettledOnly
-			? serviceSeatings.flatMap((s) => s.parties).filter((p) => (p.arrived ?? 0) > 0 && hasBalanceDue(p))
-			: []
-	);
 	const shownId = $derived(
 		query.trim() || serviceSeatings.length < 2 || !serviceSeatings.some((s) => s.id === filterId)
 			? null
@@ -225,16 +217,6 @@
 		</p>
 	{/if}
 
-	<div class="flex flex-wrap items-center gap-2">
-		<button
-			type="button"
-			onclick={() => (unsettledOnly = !unsettledOnly)}
-			aria-pressed={unsettledOnly}
-			class="{CHIP} {unsettledOnly ? SELECTED : IDLE}"
-		>
-			Arrivés, solde non réglé
-		</button>
-	</div>
 
 	<!-- « Ajouter un walk-in » (issue 020) / « Offrir » (issue 021) -->
 	{#if (canWalkIn || canComp) && fields.guestList}
@@ -463,33 +445,7 @@
 		</div>
 	{/if}
 
-	{#if unsettledOnly}
-		<!-- Flat, never folded: exactly the Service's arrived parties with a
-	     Balance still to collect. -->
-		{#if dueParties.length === 0}
-			<div class="rounded-lg border border-border-card bg-background p-8 text-center">
-				<p class="text-muted-foreground">Aucun solde à récolter pour le moment.</p>
-			</div>
-		{:else}
-			<ul class="space-y-2">
-				{#each dueParties as party, i (party.id ?? i)}
-					<li>
-						<PartyCard
-							{party}
-							{fields}
-							{timeZone}
-							canCheckIn={canCheckIn}
-							canCorrect={canCorrect}
-							canSettle={canSettle}
-							canMove={canMove}
-							moveTargets={moveTargetsOf(list.seatings, party)}
-						/>
-					</li>
-				{/each}
-			</ul>
-		{/if}
-	{:else}
-		{#each seatings as seating (seating.id)}
+	{#each seatings as seating (seating.id)}
 		{@const capacity = capacityLabel(seating)}
 		{@const time = seatingTime(seating, timeZone)}
 		{@const stillExpected = seating.parties.filter(isExpected)}
@@ -571,5 +527,4 @@
 			{/if}
 			</section>
 		{/each}
-	{/if}
 </div>
