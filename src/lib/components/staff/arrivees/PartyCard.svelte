@@ -9,6 +9,8 @@
 	 */
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
+	import { fly, slide } from 'svelte/transition';
+	import { motion, cubicOut } from '$lib/components/staff/motion';
 	import { ArrowRightLeft, Check, ChefHat, Footprints, Gift, LoaderCircle, Phone, UserCheck, UserX } from 'lucide-svelte';
 	import type { DayGuestParty, DayGuestSeating } from '$lib/server/services/day-guest-list';
 	import { balanceDue, capacityLabel, guests as guestsLabel, seatingTime, settleTimeLabel, type ArriveesFields } from './helpers';
@@ -54,6 +56,16 @@
 	let moving = $state(false);
 	let movingTo = $state(false);
 
+	// Motion (issue 033): the card flashes briefly when a check-in succeeds.
+	let flash = $state(false);
+	let flashTimer: ReturnType<typeof setTimeout> | null = null;
+	function flashOnSuccess() {
+		if (result) return;
+		flash = true;
+		if (flashTimer !== null) clearTimeout(flashTimer);
+		flashTimer = setTimeout(() => (flash = false), 400);
+	}
+
 	function openStepper() {
 		stepper = Math.max(1, expected);
 		admitting = true;
@@ -64,7 +76,11 @@
 </script>
 
 <article
-	class="rounded-lg border border-border-card p-4 {allIn ? 'bg-muted/40' : 'bg-background'}"
+	class="rounded-lg border border-border-card p-4 transition-colors duration-300 ease-out motion-reduce:transition-none {flash
+		? 'bg-foreground/10'
+		: allIn
+			? 'bg-muted/40'
+			: 'bg-background'}"
 	aria-label={party.guestName}
 >
 	<header class="flex items-start justify-between gap-4">
@@ -91,7 +107,12 @@
 								: 'border-foreground bg-background text-foreground'}"
 							>
 							<UserCheck size={14} aria-hidden="true" />
-							{arrived} / {party.quantity} arrivé{arrived === 1 ? '' : 's'}
+							<!-- The count ticks to its new value (issue 033). -->
+							{#key arrived}<span
+								class="inline-block tabular-nums"
+								in:fly={{ y: -6, duration: motion(150), easing: cubicOut }}
+								>{arrived}</span
+							>{/key} / {party.quantity} arrivé{arrived === 1 ? '' : 's'}
 						</span>
 					{/if}
 				</div>
@@ -180,7 +201,10 @@
 		<!-- « Déplacer » (issue 022): only the other Seatings of the same Service
 		     on the same Day — same menu, same price, nothing to pay changes. -->
 		{#if moving}
-			<div class="mt-3 space-y-2 border-t border-border-card pt-3">
+			<div
+				class="mt-3 space-y-2 border-t border-border-card pt-3"
+				transition:slide={{ duration: motion(200), easing: cubicOut }}
+			>
 				<p class="text-sm font-medium text-foreground">Déplacer vers&nbsp;:</p>
 				<div class="flex flex-wrap gap-2">
 					{#each moveTargets as target (target.id)}
@@ -220,7 +244,10 @@
 				</div>
 			</div>
 		{:else}
-			<div class="mt-3 border-t border-border-card pt-3">
+			<div
+				class="mt-3 border-t border-border-card pt-3"
+				transition:slide={{ duration: motion(200), easing: cubicOut }}
+			>
 				<button
 					type="button"
 					onclick={() => (moving = true)}
@@ -292,6 +319,7 @@
 								await update();
 								submitting = false;
 								admitting = false;
+								flashOnSuccess();
 							};
 						}}
 					>

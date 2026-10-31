@@ -7,7 +7,7 @@ import { noteCount as countNotes } from '$lib/components/staff/arrivees/helpers'
 import { page } from '$app/state';
 import { afterNavigate, replaceState } from '$app/navigation';
 import { fly } from 'svelte/transition';
-import { cubicOut } from 'svelte/easing';
+import { motion, cubicOut } from '$lib/components/staff/motion';
 import { untrack } from 'svelte';
 import {
 	swipeDirection,
@@ -58,10 +58,6 @@ import {
 	let tabPanel = $state<HTMLElement | null>(null);
 	let tabBar = $state<HTMLElement | null>(null);
 	let tabDirection = $state(1);
-	const reducedMotion =
-		typeof window !== 'undefined' &&
-		window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
 	function goToTab(tab: StaffEventTab) {
 		if (tab === activeTab) return;
 		const order = visibleTabs({ ...data.access });
@@ -221,7 +217,7 @@ import {
 			{#key activeTab}
 				<div
 					in:fly={{
-					duration: reducedMotion ? 0 : 200,
+					duration: motion(200),
 					x: tabDirection * 320,
 					easing: cubicOut
 				}}
