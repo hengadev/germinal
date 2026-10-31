@@ -13,7 +13,15 @@ import {
 import { getCookieDomain, getSessionCookieName } from '$lib/server/hostname';
 import type { PageServerLoad } from './$types';
 
-// Redirect to /admin if already logged in
+// Where a signed-in user lands. On the staff subdomain everyone goes to the
+// Staff portal: /admin only exists on the admin subdomain, so sending an
+// Admin there would 404. Localhost serves both, so the role decides.
+function landingPath(role: string, locals: App.Locals): '/staff' | '/admin' {
+	if (locals.isStaffDomain && !locals.isAdminDomain) return '/staff';
+	return role === 'staff' ? '/staff' : '/admin';
+}
+
+// Redirect to the user's landing page if already logged in
 export const load: PageServerLoad = async ({ locals }) => {
 	// SECURITY: Login only accessible from admin or staff subdomain
 	if (!locals.isAdminDomain && !locals.isStaffDomain) {
@@ -21,8 +29,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 	}
 
 	if (locals.user) {
-		const redirectPath = locals.user.role === 'staff' ? '/staff' : '/admin';
-		throw redirect(302, redirectPath);
+		throw redirect(302, landingPath(locals.user.role, locals));
 	}
 
 	const showMockCredentials = env.USE_MOCK_DATA;
@@ -97,7 +104,7 @@ export const actions: Actions = {
 				maxAge: 60 * 60 * 24 * 7
 			});
 
-			throw redirect(302, role === 'staff' ? '/staff' : '/admin');
+			throw redirect(302, landingPath(role, locals));
 		}
 
 		// Database mode: verify against database
@@ -130,8 +137,6 @@ export const actions: Actions = {
 			maxAge: 60 * 60 * 24 * 7 // 7 days
 		});
 
-		// Redirect based on user role
-		const redirectPath = user.role === 'staff' ? '/staff' : '/admin';
-		throw redirect(302, redirectPath);
+		throw redirect(302, landingPath(user.role, locals));
 	}
 };
