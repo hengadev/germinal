@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, timestamp, boolean, integer, pgEnum, index, check, jsonb, unique, uniqueIndex, date } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, timestamp, boolean, integer, pgEnum, index, check, jsonb, unique, uniqueIndex, date, primaryKey } from 'drizzle-orm/pg-core';
 import { relations, sql } from 'drizzle-orm';
 
 // ============================================
@@ -212,6 +212,10 @@ export const events = pgTable('events', {
     // for its Portfolio project page, which leads with it.
     recapEn: text('recap_en'),
     recapFr: text('recap_fr'),
+    // Staff Brief (issue 032): the general part every assigned Staff
+    // member sees in the portal; each role's part lives in
+    // event_role_briefs.
+    staffBrief: text('staff_brief'),
     coverMediaId: uuid('cover_media_id'),
     coverVideoId: uuid('cover_video_id'),
     visibility: eventVisibilityEnum('visibility').notNull().default('draft'),
@@ -412,6 +416,7 @@ export const eventsRelations = relations(events, ({ many, one }) => ({
     menus: many(eventMenus),
     coupons: many(coupons),
     staff: many(eventStaff),
+    roleBriefs: many(eventRoleBriefs),
     tasks: many(tasks),
 }));
 
@@ -1002,6 +1007,22 @@ export const eventStaff = pgTable('event_staff', {
     uniqueEventUser: unique('event_staff_event_user_unique').on(table.eventId, table.userId),
 }));
 
+// A Staff role's part of an Event's Brief (issue 032): what only the
+// members holding that role (and Admins) see in the portal. An empty
+// body deletes the row.
+export const eventRoleBriefs = pgTable('event_role_briefs', {
+    eventId: uuid('event_id')
+        .notNull()
+        .references(() => events.id, { onDelete: 'cascade' }),
+    staffRoleId: uuid('staff_role_id')
+        .notNull()
+        .references(() => staffRoles.id, { onDelete: 'cascade' }),
+    body: text('body').notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+    pk: primaryKey({ columns: [table.eventId, table.staffRoleId] }),
+}));
+
 export const tasks = pgTable('tasks', {
     id: uuid('id').defaultRandom().primaryKey(),
     eventId: uuid('event_id')
@@ -1090,6 +1111,17 @@ export const eventStaffRelations = relations(eventStaff, ({ one }) => ({
     }),
     staffRole: one(staffRoles, {
         fields: [eventStaff.staffRoleId],
+        references: [staffRoles.id],
+    }),
+}));
+
+export const eventRoleBriefsRelations = relations(eventRoleBriefs, ({ one }) => ({
+    event: one(events, {
+        fields: [eventRoleBriefs.eventId],
+        references: [events.id],
+    }),
+    staffRole: one(staffRoles, {
+        fields: [eventRoleBriefs.staffRoleId],
         references: [staffRoles.id],
     }),
 }));

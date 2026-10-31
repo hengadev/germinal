@@ -330,6 +330,13 @@
       "when": 1793351055294,
       "tag": "0046_guest_locale",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1793467872916,
+      "tag": "0047_event_staff_brief",
+      "breakpoints": true
     }
   ]
 }
