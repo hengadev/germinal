@@ -83,6 +83,8 @@
 		replaceState(url, page.state);
 	}
 
+	// The door's chase list (issue 019): the arrived parties of the Service
+	// shown whose Balance is still to collect — flat, never folded away.
 	let unsettledOnly = $state(false);
 	const hasBalanceDue = (p: DayGuestParty) =>
 		!p.isComp && (p.balanceAmount ?? 0) > 0 && p.balanceSettledAt === null;
@@ -220,7 +222,7 @@
 		</p>
 	{/if}
 
-<div class="flex flex-wrap items-center gap-2">
+	<div class="flex flex-wrap items-center gap-2">
 		<button
 			type="button"
 			onclick={() => (unsettledOnly = !unsettledOnly)}
