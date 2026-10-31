@@ -20,9 +20,11 @@ export interface ReservationForNotification {
 	guestName: string;
 	guestPhone: string | null;
 	notificationPreference: string;
+	/** Issue 026: the language the Guest booked in; null is English. */
+	locale: string | null;
 	eventSession: {
 		startTime: Date;
-		event: { titleEn: string; timeZone: string };
+		event: { titleEn: string; titleFr?: string | null; timeZone: string };
 	} & Parameters<typeof seatingTitle>[0];
 }
 
@@ -94,7 +96,11 @@ export async function notifyGuestOfCancellation(
 ) {
 	const { eventSession } = reservation;
 	const timeZone = eventSession.event.timeZone;
-	const sessionTitle = seatingTitle(eventSession, 'en', { timeZone });
+	// Issue 026: the email is written in the Guest's language, defaulting
+	// to English when it is unknown (null).
+	const lang = reservation.locale === 'fr' ? 'fr' : 'en';
+	const eventTitle = (lang === 'fr' ? eventSession.event.titleFr || eventSession.event.titleEn : eventSession.event.titleEn) || '';
+	const sessionTitle = seatingTitle(eventSession, lang, { timeZone });
 
 	try {
 		const email = await import('./email');
@@ -102,7 +108,7 @@ export async function notifyGuestOfCancellation(
 			await email.sendRefundEmail({
 				guestEmail: reservation.guestEmail,
 				guestName: reservation.guestName,
-				eventTitle: eventSession.event.titleEn,
+				eventTitle,
 				sessionTitle,
 				sessionStartTime: eventSession.startTime,
 				timeZone,
@@ -110,16 +116,18 @@ export async function notifyGuestOfCancellation(
 				amount: refund.amount,
 				currency: refund.currency,
 				isPartialRefund: options.isPartialRefund ?? false,
+				locale: lang,
 			});
 		} else {
 			await email.sendCancellationEmail({
 				guestEmail: reservation.guestEmail,
 				guestName: reservation.guestName,
-				eventTitle: eventSession.event.titleEn,
+				eventTitle,
 				sessionTitle,
 				sessionStartTime: eventSession.startTime,
 				timeZone,
 				reservationId: reservation.id,
+				locale: lang,
 			});
 		}
 	} catch (error) {
@@ -133,17 +141,19 @@ export async function notifyGuestOfCancellation(
 				await sms.sendRefundSMS({
 					phone: reservation.guestPhone,
 					name: reservation.guestName,
-					eventTitle: eventSession.event.titleEn,
+					event: eventSession.event,
 					amount: refund.amount,
 					currency: refund.currency,
+					locale: lang,
 				});
 			} else {
 				await sms.sendCancellationSMS({
 					phone: reservation.guestPhone,
 					name: reservation.guestName,
-					eventTitle: eventSession.event.titleEn,
+					event: eventSession.event,
 					sessionStartTime: eventSession.startTime,
 					timeZone,
+					locale: lang,
 				});
 			}
 		} catch (error) {

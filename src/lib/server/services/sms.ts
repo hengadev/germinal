@@ -92,25 +92,56 @@ export function formatPhoneNumber(phone: string): string {
 }
 
 /**
+ * The language a Guest-facing SMS is written in (issue 027): `fr` for
+ * French, `en` or null for English, as in the guest emails (issue 026).
+ */
+type SmsLocale = 'fr' | 'en' | null;
+
+/** An Event may be published with one of its titles missing (ADR 0008): the
+ * SMS fall back to the other language's title, like the emails (026). */
+function eventTitleOf(
+	event: { titleEn?: string | null; titleFr?: string | null },
+	lang: 'fr' | 'en'
+): string {
+	return lang === 'fr'
+		? event.titleFr || event.titleEn || ''
+		: event.titleEn || event.titleFr || '';
+}
+
+/**
  * Send ticket confirmation SMS
  */
 export async function sendTicketConfirmationSMS(options: {
 	phone: string;
 	guestName: string;
-	eventTitle: string;
+	event: { titleEn?: string | null; titleFr?: string | null };
 	sessionStartTime: Date;
 	/** The Event's Time Zone. */
 	timeZone: string;
 	accessToken: string;
+	/** Issue 027: the SMS is written in the Guest's language. */
+	locale?: SmsLocale;
 }): Promise<void> {
+	const lang = options.locale ?? 'en';
 	// On the Event's clock (ADR 0006), never the server's.
-	const formattedDate = formatSeatingDate(options.sessionStartTime, options.timeZone, 'en', {
+	const formattedDate = formatSeatingDate(options.sessionStartTime, options.timeZone, lang, {
 		month: 'short',
 		day: 'numeric',
 	});
-	const formattedTime = formatSeatingTime(options.sessionStartTime, options.timeZone, 'en');
+	const formattedTime = formatSeatingTime(options.sessionStartTime, options.timeZone, lang);
 
-	const message = `🎫 ${options.eventTitle}
+	const message =
+		lang === 'fr'
+			? `🎫 ${eventTitleOf(options.event, lang)}
+
+Bonjour ${options.guestName} ! Vos billets sont confirmés.
+
+📅 ${formattedDate} à ${formattedTime}
+
+Vos billets : ${env.PUBLIC_URL}/tickets/${options.accessToken}
+
+Présentez votre QR code à l'entrée. À bientôt !`
+			: `🎫 ${eventTitleOf(options.event, lang)}
 
 Hi ${options.guestName}! Your tickets are confirmed.
 
@@ -132,23 +163,38 @@ Present your QR code at the entrance. See you there!`;
 export async function sendEventReminderSMS(options: {
 	phone: string;
 	guestName: string;
-	eventTitle: string;
+	event: { titleEn?: string | null; titleFr?: string | null };
 	sessionStartTime: Date;
 	/** The Event's Time Zone. */
 	timeZone: string;
 	accessToken: string;
 	daysUntil: number;
+	/** Issue 027: the SMS is written in the Guest's language. */
+	locale?: SmsLocale;
 }): Promise<void> {
+	const lang = options.locale ?? 'en';
 	// On the Event's clock (ADR 0006), never the server's.
-	const formattedDate = formatSeatingDate(options.sessionStartTime, options.timeZone, 'en', {
+	const formattedDate = formatSeatingDate(options.sessionStartTime, options.timeZone, lang, {
 		month: 'short',
 		day: 'numeric',
 	});
-	const formattedTime = formatSeatingTime(options.sessionStartTime, options.timeZone, 'en');
+	const formattedTime = formatSeatingTime(options.sessionStartTime, options.timeZone, lang);
 
-	const timePhrase = options.daysUntil === 1 ? 'tomorrow' : `in ${options.daysUntil} days`;
+	const timePhrase =
+		options.daysUntil === 1 ? 'tomorrow' : `in ${options.daysUntil} days`;
+	const timePhraseFr =
+		options.daysUntil === 1 ? 'demain' : `dans ${options.daysUntil} jours`;
 
-	const message = `🔔 Reminder: ${options.eventTitle}
+	const message =
+		lang === 'fr'
+			? `🔔 Rappel : ${eventTitleOf(options.event, lang)}
+
+Bonjour ${options.guestName} ! Votre événement a lieu ${timePhraseFr}.
+
+📅 ${formattedDate} à ${formattedTime}
+
+Vos billets : ${env.PUBLIC_URL}/tickets/${options.accessToken}`
+			: `🔔 Reminder: ${eventTitleOf(options.event, lang)}
 
 Hi ${options.guestName}! Your event is coming up ${timePhrase}.
 
@@ -191,19 +237,31 @@ This link is valid for 24 hours.`;
 export async function sendTicketReminderSMS(options: {
 	phone: string;
 	name: string;
-	eventTitle: string;
+	event: { titleEn?: string | null; titleFr?: string | null };
 	eventTime: Date;
 	/** The Event's Time Zone. */
 	timeZone: string;
+	/** Issue 027: the SMS is written in the Guest's language. */
+	locale?: SmsLocale;
 }): Promise<void> {
+	const lang = options.locale ?? 'en';
 	// On the Event's clock (ADR 0006), never the server's.
-	const formattedDate = formatSeatingDate(options.eventTime, options.timeZone, 'en', {
+	const formattedDate = formatSeatingDate(options.eventTime, options.timeZone, lang, {
 		month: 'short',
 		day: 'numeric',
 	});
-	const formattedTime = formatSeatingTime(options.eventTime, options.timeZone, 'en');
+	const formattedTime = formatSeatingTime(options.eventTime, options.timeZone, lang);
 
-	const message = `🔔 Ticket Reminder: ${options.eventTitle}
+	const message =
+		lang === 'fr'
+			? `🔔 Rappel billets : ${eventTitleOf(options.event, lang)}
+
+Bonjour ${options.name} ! Voici un rappel pour votre événement à venir.
+
+📅 ${formattedDate} à ${formattedTime}
+
+N'oubliez pas vos billets ! À bientôt.`
+			: `🔔 Ticket Reminder: ${eventTitleOf(options.event, lang)}
 
 Hi ${options.name}! Here's a reminder for your upcoming event.
 
@@ -224,19 +282,29 @@ Don't forget to bring your tickets! See you there.`;
 export async function sendCancellationSMS(options: {
 	phone: string;
 	name: string;
-	eventTitle: string;
+	event: { titleEn?: string | null; titleFr?: string | null };
 	sessionStartTime: Date;
 	/** The Event's Time Zone. */
 	timeZone: string;
+	/** Issue 027: the SMS is written in the Guest's language. */
+	locale?: SmsLocale;
 }): Promise<void> {
+	const lang = options.locale ?? 'en';
 	// On the Event's clock (ADR 0006), never the server's.
-	const formattedDate = formatSeatingDate(options.sessionStartTime, options.timeZone, 'en', {
+	const formattedDate = formatSeatingDate(options.sessionStartTime, options.timeZone, lang, {
 		month: 'short',
 		day: 'numeric',
 	});
-	const formattedTime = formatSeatingTime(options.sessionStartTime, options.timeZone, 'en');
+	const formattedTime = formatSeatingTime(options.sessionStartTime, options.timeZone, lang);
 
-	const message = `Reservation Cancelled: ${options.eventTitle}
+	const message =
+		lang === 'fr'
+			? `Réservation annulée : ${eventTitleOf(options.event, lang)}
+
+Bonjour ${options.name}, votre réservation du ${formattedDate} à ${formattedTime} a été annulée.
+
+Une question ? Contactez-nous.`
+			: `Reservation Cancelled: ${eventTitleOf(options.event, lang)}
 
 Hi ${options.name}, your reservation for ${formattedDate} at ${formattedTime} has been cancelled.
 
@@ -254,13 +322,25 @@ Questions? Contact us.`;
 export async function sendRefundSMS(options: {
 	phone: string;
 	name: string;
-	eventTitle: string;
+	event: { titleEn?: string | null; titleFr?: string | null };
 	amount: number;
 	currency: string;
+	/** Issue 027: the SMS is written in the Guest's language. */
+	locale?: SmsLocale;
 }): Promise<void> {
-	const message = `💳 Refund Processed: ${options.eventTitle}
+	const lang = options.locale ?? 'en';
+	const money = formatCurrency(options.amount, options.currency, lang === 'fr' ? 'fr-FR' : 'en-US');
 
-Hi ${options.name}, your reservation has been cancelled and ${formatCurrency(options.amount, options.currency)} has been refunded.
+	const message =
+		lang === 'fr'
+			? `💳 Remboursement effectué : ${eventTitleOf(options.event, lang)}
+
+Bonjour ${options.name}, votre réservation a été annulée et ${money} a été remboursé.
+
+Comptez 5 à 10 jours ouvrables pour le voir sur votre relevé.`
+			: `💳 Refund Processed: ${eventTitleOf(options.event, lang)}
+
+Hi ${options.name}, your reservation has been cancelled and ${money} has been refunded.
 
 It may take 5-10 business days to appear on your statement.`;
 

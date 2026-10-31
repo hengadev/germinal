@@ -180,6 +180,7 @@ describe('Seatings in the Event’s Time Zone', () => {
 				sessionStartTime: seating.startTime,
 				timeZone: event.timeZone,
 				reservationId: reservation.id,
+				locale: null,
 			}),
 		]) {
 			expect(text).toContain('15 July 2099 at 20:00');
