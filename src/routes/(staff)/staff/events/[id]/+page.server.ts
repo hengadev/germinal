@@ -12,6 +12,12 @@ import { createWalkIn } from '$lib/server/services/walk-ins';
 import { createCompOnTheSpot } from '$lib/server/services/comps';
 import { settleBalance, undoSettleBalance } from '$lib/server/services/balance';
 import { getEventBrief } from '$lib/server/services/staff-brief';
+import {
+	getStaffEventAccess,
+	seatingsForBookingClosure,
+	setSeatingBookingsClosed,
+} from '$lib/server/services/staff-portal';
+import { recordAuditLog } from '$lib/server/services/audit-log';
 import { moveReservation } from '$lib/server/services/moves';
 import { formatCurrency } from '$lib/utils/currency';
 
@@ -76,6 +82,8 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	const canArrivees = access.can('guest_list');
 	const canCuisine = access.can('dietary');
 	const canSeeArrivees = canArrivees || canCuisine;
+	const isAdmin = locals.user.role === 'admin';
+	const canCloseBookings = access.can('close_bookings');
 	return {
 		access: {
 			permissions: access.permissions,
@@ -90,7 +98,13 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			canMove: access.can('move'),
 			canWalkIn: access.can('walk_in'),
 			canComp: access.can('comp'),
+			canCloseBookings,
 		},
+		// « Fermé aux réservations » (039) : les séances du Jour en cours,
+		// ou — pour un Admin — toutes les séances à venir de l'événement.
+		closeBookings: canCloseBookings
+			? await seatingsForBookingClosure(params.id, access.day, isAdmin)
+			: [],
 		event: access.event,
 		staffRoleName: access.staffRoleName,
 		brief,
@@ -365,5 +379,79 @@ export const actions: Actions = {
 			actorId: locals.user.id,
 		});
 		if (!result.ok) return fail(422, { error: result.error, reservationId });
+	},
+
+	// « Fermé aux réservations » (issue 039) : ferme une ou plusieurs
+	// séances aux réservations en ligne. La permission est revérifiée sur
+	// le serveur, jamais depuis le client.
+	closeBookings: async ({ request, locals, params }) => {
+		if (!locals.user) return fail(401, { error: 'Non authentifié.', closeBookingsForm: true });
+
+		const access = await getStaffEventAccess(locals.user, params.id);
+		if (!access.can('close_bookings')) {
+			return fail(403, {
+				error: "Vous n'avez pas la permission de fermer aux réservations.",
+				closeBookingsForm: true
+			});
+		}
+
+		const formData = await request.formData();
+		const seatingIds = formData
+			.getAll('seatingId')
+			.filter((v): v is string => typeof v === 'string' && v !== '');
+
+		const result = await setSeatingBookingsClosed({
+			eventId: params.id,
+			seatingIds,
+			closed: true,
+			actorId: locals.user.id,
+			day: access.day,
+			admin: locals.user.role === 'admin'
+		});
+		if (!result.ok) return fail(422, { error: result.error, closeBookingsForm: true });
+		await recordAuditLog({
+			adminId: locals.user.id,
+			action: 'seating.close_bookings',
+			entityType: 'session',
+			entityId: result.written[0] ?? null,
+			metadata: { seatingIds: result.written }
+		});
+		return { bookingsClosed: true };
+	},
+
+	reopenBookings: async ({ request, locals, params }) => {
+		if (!locals.user) return fail(401, { error: 'Non authentifié.', closeBookingsForm: true });
+
+		const access = await getStaffEventAccess(locals.user, params.id);
+		if (!access.can('close_bookings')) {
+			return fail(403, {
+				error: "Vous n'avez pas la permission de rouvrir les réservations.",
+				closeBookingsForm: true
+			});
+		}
+
+		const formData = await request.formData();
+		const seatingId = formData.get('seatingId');
+		if (typeof seatingId !== 'string' || !seatingId) {
+			return fail(400, { error: 'Requête invalide.', closeBookingsForm: true });
+		}
+
+		const result = await setSeatingBookingsClosed({
+			eventId: params.id,
+			seatingIds: [seatingId],
+			closed: false,
+			actorId: locals.user.id,
+			day: access.day,
+			admin: locals.user.role === 'admin'
+		});
+		if (!result.ok) return fail(422, { error: result.error, closeBookingsForm: true });
+		await recordAuditLog({
+			adminId: locals.user.id,
+			action: 'seating.reopen_bookings',
+			entityType: 'session',
+			entityId: seatingId,
+			metadata: { seatingIds: result.written }
+		});
+		return { bookingsReopened: true };
 	},
 };

@@ -7,16 +7,18 @@
 	 * suivantes (039–041) ajoutent leurs entrées ici.
 	 */
 	import { DropdownMenu } from 'bits-ui';
-	import { EllipsisVertical, Gift, LoaderCircle, Plus, RefreshCw } from 'lucide-svelte';
+	import { EllipsisVertical, Gift, LoaderCircle, Lock, Plus, RefreshCw } from 'lucide-svelte';
 	import { invalidateAll } from '$app/navigation';
 	import { openSpotForm } from './spot-form.svelte';
+	import { openCloseBookingsForm } from './close-bookings-form.svelte';
 
 	let {
 		canWalkIn = false,
 		canComp = false,
+		canCloseBookings = false,
 		/** Un Jour est-il en cours, avec la liste des invités chargée ? */
 		duringDay = false
-	}: { canWalkIn?: boolean; canComp?: boolean; duringDay?: boolean } = $props();
+	}: { canWalkIn?: boolean; canComp?: boolean; canCloseBookings?: boolean; duringDay?: boolean } = $props();
 
 	// Le walk-in et l'invitation se font sur la liste des invités d'un Jour
 	// en cours, comme avant (issue 020–021).
@@ -75,8 +77,14 @@
 					Offrir une invitation
 				</DropdownMenu.Item>
 			{/if}
-			{#if spots}
+			{#if spots || canCloseBookings}
 				<DropdownMenu.Separator class="-mx-1 my-1 h-px bg-border" />
+			{/if}
+			{#if canCloseBookings}
+				<DropdownMenu.Item class={ITEM} onSelect={() => (chosen = openCloseBookingsForm)}>
+					<Lock class="size-4" aria-hidden="true" />
+					Fermer aux réservations
+				</DropdownMenu.Item>
 			{/if}
 			<DropdownMenu.Item class={ITEM} disabled={reloading} onSelect={reload}>
 				<RefreshCw class="size-4" aria-hidden="true" />

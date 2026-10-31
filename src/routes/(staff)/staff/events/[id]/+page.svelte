@@ -6,6 +6,7 @@ import { noteCount as countNotes } from '$lib/components/staff/arrivees/helpers'
 import { page } from '$app/state';
 import { ArrowLeft } from 'lucide-svelte';
 import EventActionsMenu from '$lib/components/staff/event-menu/EventActionsMenu.svelte';
+import CloseBookings from '$lib/components/staff/event-menu/CloseBookings.svelte';
 import SpotForm from '$lib/components/staff/event-menu/SpotForm.svelte';
 import { afterNavigate, replaceState } from '$app/navigation';
 import { fly } from 'svelte/transition';
@@ -148,6 +149,7 @@ import {
 			<EventActionsMenu
 				canWalkIn={data.access.canWalkIn}
 				canComp={data.access.canComp}
+				canCloseBookings={data.access.canCloseBookings}
 				duringDay={Boolean(data.access.day && data.arrivees)}
 			/>
 		</div>
@@ -306,6 +308,15 @@ import {
 			seatings={data.arrivees.seatings}
 			timeZone={data.event.timeZone}
 			onsaved={() => goToTab('arrivees')}
+		/>
+	{/if}
+
+	<!-- La feuille « Fermer aux réservations » du menu ⋮, par-dessus tout -->
+	{#if data.access.canCloseBookings}
+		<CloseBookings
+			seatings={data.closeBookings}
+			timeZone={data.event.timeZone}
+			isAdmin={!data.staffRoleName}
 		/>
 	{/if}
 </div>
