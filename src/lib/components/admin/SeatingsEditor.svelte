@@ -42,6 +42,8 @@
 		allowWaitlist: boolean;
 		badgeType: SeatingBadge;
 		reservationCount: number;
+		/** « Fermée aux réservations » (039) : badge en lecture seule. */
+		bookingsClosed: boolean;
 		/** Seats held (pending, processing, confirmed) — capacity cannot go below. */
 		soldSeats: number;
 		detailsOpen: boolean;
@@ -85,6 +87,7 @@
 					allowWaitlist: seating.allowWaitlist,
 					badgeType: seating.badgeType,
 					reservationCount: seating.reservationCount,
+					bookingsClosed: seating.bookingsClosedAt != null,
 					soldSeats: seating.heldSeats,
 					detailsOpen: false,
 				};
@@ -111,6 +114,7 @@
 			allowWaitlist: template?.allowWaitlist ?? false,
 			badgeType: 'none',
 			reservationCount: 0,
+			bookingsClosed: false,
 			soldSeats: 0,
 			detailsOpen: false,
 		};
@@ -652,6 +656,9 @@
 											<div class="grid grid-cols-2 gap-3 @md:grid-cols-3 @md:items-end @3xl:grid-cols-[7rem_9rem_9rem_auto_auto_1fr]">
 												<div>
 													<label for="seating-{seating.key}-start" class={LABEL_CLASS}>Début</label>
+													{#if seating.bookingsClosed}
+														<span class="mb-1 inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">Fermée aux réservations</span>
+													{/if}
 													<input
 														id="seating-{seating.key}-start"
 														type="time"

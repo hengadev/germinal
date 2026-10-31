@@ -35,6 +35,16 @@ describe('staff permissions catalogue', () => {
 		]);
 	});
 
+	it('adds cancel_refund: labelled, acting on parties, absent from starting roles', () => {
+		expect(STAFF_PERMISSIONS).toContain('cancel_refund');
+		expect(STAFF_PERMISSION_LABELS_FR.cancel_refund).toBe('Annuler et rembourser');
+		expect(ACTS_ON_PARTIES_PERMISSIONS.has('cancel_refund')).toBe(true);
+		expect(withImpliedPermissions(['cancel_refund'])).toEqual(['guest_list', 'cancel_refund']);
+		for (const role of STARTING_STAFF_ROLES) {
+			expect(role.permissions).not.toContain('cancel_refund');
+		}
+	});
+
 	it('recognises only catalogue members', () => {
 		expect(isStaffPermission('tasks')).toBe(true);
 		expect(isStaffPermission('cancel')).toBe(false);
@@ -61,5 +71,33 @@ describe('staff permissions catalogue', () => {
 			'walk_in',
 		]);
 		expect(STARTING_STAFF_ROLES[2].permissions).toEqual(['tasks', 'guest_list', 'settle_balance']);
+	});
+});
+
+describe('close_bookings (039)', () => {
+	it('exists with its French label and does not act on parties', () => {
+		expect(STAFF_PERMISSIONS).toContain('close_bookings');
+		expect(STAFF_PERMISSION_LABELS_FR.close_bookings).toBe('Fermer aux réservations');
+		expect(ACTS_ON_PARTIES_PERMISSIONS.has('close_bookings')).toBe(false);
+	});
+
+	it('is in no starting Staff Role', () => {
+		for (const role of STARTING_STAFF_ROLES) {
+			expect(role.permissions).not.toContain('close_bookings');
+		}
+	});
+});
+
+describe('invite (040)', () => {
+	it('exists with its French label and does not act on parties', () => {
+		expect(STAFF_PERMISSIONS).toContain('invite');
+		expect(STAFF_PERMISSION_LABELS_FR.invite).toBe('Créer une invitation');
+		expect(ACTS_ON_PARTIES_PERMISSIONS.has('invite')).toBe(false);
+	});
+
+	it('is in no starting Staff Role', () => {
+		for (const role of STARTING_STAFF_ROLES) {
+			expect(role.permissions).not.toContain('invite');
+		}
 	});
 });

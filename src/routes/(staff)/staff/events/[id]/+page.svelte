@@ -4,6 +4,12 @@
 import NotesCuisine from '$lib/components/staff/arrivees/NotesCuisine.svelte';
 import { noteCount as countNotes } from '$lib/components/staff/arrivees/helpers';
 import { page } from '$app/state';
+import { ArrowLeft } from 'lucide-svelte';
+import EventActionsMenu from '$lib/components/staff/event-menu/EventActionsMenu.svelte';
+import CloseBookings from '$lib/components/staff/event-menu/CloseBookings.svelte';
+import Invite from '$lib/components/staff/event-menu/Invite.svelte';
+import SpotForm from '$lib/components/staff/event-menu/SpotForm.svelte';
+import CancelRefundSheet from '$lib/components/staff/arrivees/CancelRefundSheet.svelte';
 import { afterNavigate, replaceState } from '$app/navigation';
 import { fly } from 'svelte/transition';
 import { motion, cubicOut } from '$lib/components/staff/motion';
@@ -133,7 +139,23 @@ import {
 <div class="container mx-auto px-4 py-8 lg:py-12">
 	<!-- En-tête : l'événement et le jour en cours -->
 	<div class="mb-6">
-		<h1 class="text-2xl lg:text-3xl font-bold text-foreground">{title}</h1>
+		<div class="flex items-center gap-2">
+			<a
+				href="/staff?liste"
+				aria-label="Retour aux événements"
+				class="-ml-3 flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+			>
+				<ArrowLeft size={22} aria-hidden="true" />
+			</a>
+			<h1 class="text-2xl lg:text-3xl font-bold text-foreground">{title}</h1>
+			<EventActionsMenu
+				canWalkIn={data.access.canWalkIn}
+				canComp={data.access.canComp}
+				canCloseBookings={data.access.canCloseBookings}
+				canInvite={data.access.canInvite}
+				duringDay={Boolean(data.access.day && data.arrivees)}
+			/>
+		</div>
 		<p class="text-sm text-muted-foreground mt-1">
 			{#if data.staffRoleName}
 				<span class="font-medium">Rôle :</span> {data.staffRoleName} —
@@ -222,9 +244,8 @@ import {
 						canCheckIn={data.access.canManualCheckIn}
 						canCorrect={data.access.canCorrect}
 						canSettle={data.access.canSettle}
-						canWalkIn={data.access.canWalkIn}
 						canMove={data.access.canMove}
-						canComp={data.access.canComp}
+						canCancelRefund={data.access.canCancelRefund}
 					/>
 				{:else}
 					<div class="bg-background border border-border-card rounded-lg p-8 text-center">
@@ -284,4 +305,32 @@ import {
 				</div>
 			{/key}
 		</div>
+
+	<!-- Le formulaire walk-in / invitation du menu ⋮, par-dessus tout -->
+	{#if data.arrivees}
+		<SpotForm
+			seatings={data.arrivees.seatings}
+			timeZone={data.event.timeZone}
+			onsaved={() => goToTab('arrivees')}
+		/>
+	{/if}
+
+	<!-- La feuille Annuler / Rembourser du menu ⋮ d'une carte, par-dessus tout -->
+	{#if data.arrivees && data.access.canCancelRefund}
+		<CancelRefundSheet />
+	{/if}
+
+	<!-- La feuille « Fermer aux réservations » du menu ⋮, par-dessus tout -->
+	{#if data.access.canCloseBookings}
+		<CloseBookings
+			seatings={data.closeBookings}
+			timeZone={data.event.timeZone}
+			isAdmin={!data.staffRoleName}
+		/>
+	{/if}
+
+	<!-- La feuille « Nouvelle réservation » du menu ⋮, par-dessus tout -->
+	{#if data.access.canInvite}
+		<Invite seatings={data.invite} timeZone={data.event.timeZone} />
+	{/if}
 </div>

@@ -38,6 +38,13 @@ export interface DayGuestParty {
 	/** Only with the contact details permission. */
 	guestPhone?: string | null;
 	guestEmail?: string;
+	/** Deposit paid online, in cents — only with cancel_refund (issue 041). */
+	paidOnline?: number;
+	/** What remains refundable, in cents — only with cancel_refund. */
+	refundable?: number;
+	/** The Refund Policy's suggestion for a guest cancellation, in cents,
+	 * null when the policy suggests nothing (a manual policy). */
+	suggestedRefund?: number | null;
 }
 
 /** One Seating of the Day with its parties. */
@@ -53,6 +60,8 @@ export interface DayGuestSeating {
 	booked: number;
 	/** The Seating's capacity, or null when it has none. */
 	totalCapacity: number | null;
+	/** « Fermé aux réservations » (039): the heading shows a mark. */
+	bookingsClosed: boolean;
 	parties: DayGuestParty[];
 }
 
@@ -141,6 +150,7 @@ async function daySeatings(eventId: string, day: string): Promise<DayGuestSeatin
 			titleEn: eventSessions.titleEn,
 			startTime: eventSessions.startTime,
 			totalCapacity: eventSessions.totalCapacity,
+			bookingsClosedAt: eventSessions.bookingsClosedAt,
 		})
 		.from(eventSessions)
 		.innerJoin(eventServices, eq(eventSessions.serviceId, eventServices.id))
@@ -155,6 +165,7 @@ async function daySeatings(eventId: string, day: string): Promise<DayGuestSeatin
 		titleEn: string | null;
 		startTime: Date;
 		totalCapacity: number | null;
+		bookingsClosedAt: Date | null;
 	}) => ({
 		id: r.id,
 		serviceId: r.serviceId,
@@ -163,6 +174,7 @@ async function daySeatings(eventId: string, day: string): Promise<DayGuestSeatin
 		titleEn: r.titleEn,
 		startTime: r.startTime.toISOString(),
 		totalCapacity: r.totalCapacity,
+		bookingsClosed: r.bookingsClosedAt !== null,
 		booked: 0,
 		parties: [],
 	}));

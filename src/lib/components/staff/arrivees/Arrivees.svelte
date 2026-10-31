@@ -18,9 +18,8 @@
 	import { flip } from 'svelte/animate';
 	import { slide } from 'svelte/transition';
 	import { motion, cubicOut } from '$lib/components/staff/motion';
-	import { Check, ChevronDown, Gift, LoaderCircle, Plus, Search, Users, X } from 'lucide-svelte';
-	import { enhance } from '$app/forms';
-	import type { DayGuestList, DayGuestParty } from '$lib/server/services/day-guest-list';
+	import { Check, ChevronDown, Search, Users } from 'lucide-svelte';
+	import type { DayGuestList } from '$lib/server/services/day-guest-list';
 	import PartyCard from './PartyCard.svelte';
 	import {
 		capacityLabel,
@@ -41,9 +40,8 @@
 		canCheckIn = false,
 		canCorrect = false,
 		canSettle = false,
-		canWalkIn = false,
 		canMove = false,
-		canComp = false
+		canCancelRefund = false,
 	}: {
 		list: DayGuestList;
 		fields: ArriveesFields;
@@ -51,9 +49,8 @@
 		canCheckIn?: boolean;
 		canCorrect?: boolean;
 		canSettle?: boolean;
-		canWalkIn?: boolean;
 		canMove?: boolean;
-		canComp?: boolean;
+		canCancelRefund?: boolean;
 	} = $props();
 
 	// The clock only moves the dot on the Seating under way, never the list.
@@ -86,52 +83,7 @@
 		replaceState(url, page.state);
 	}
 
-	// The door's chase list (issue 019): the arrived parties of the Service
-	// shown whose Balance is still to collect — flat, never folded away.
-	let unsettledOnly = $state(false);
-	const hasBalanceDue = (p: DayGuestParty) =>
-		!p.isComp && (p.balanceAmount ?? 0) > 0 && p.balanceSettledAt === null;
-
 	let query = $state('');
-
-	// « Ajouter un walk-in » (issue 020) and « Offrir » (issue 021): one
-	// inline form for both, black and white, on the Service shown — started
-	// Seatings included, the one under way by default. A Comp differs only
-	// in its action and its copy: it is offered and owes nothing.
-	let spotKind = $state<'walk_in' | 'comp' | null>(null);
-	const isCompForm = $derived(spotKind === 'comp');
-	let walkInSubmitting = $state(false);
-	let walkInSeating = $state('');
-	let walkInName = $state('');
-	let walkInQuantity = $state(2);
-	let walkInEmail = $state('');
-	let walkInPhone = $state('');
-	const walkInError = $derived.by(() => {
-		const form = page.form as { error?: string; walkIn?: boolean; comp?: boolean } | null;
-		return form && form.error && (spotKind === 'comp' ? form.comp : form.walkIn)
-			? form.error
-			: null;
-	});
-	function closeWalkIn() {
-		spotKind = null;
-		walkInName = '';
-		walkInEmail = '';
-		walkInPhone = '';
-		walkInQuantity = 2;
-	}
-	function openSpot(kind: 'walk_in' | 'comp') {
-		walkInSeating = currentId ?? walkInSeatings[0]?.id ?? '';
-		spotKind = kind;
-	}
-	function stepQuantity(delta: number) {
-		walkInQuantity = Math.max(1, walkInQuantity + delta);
-	}
-	const walkInSeatings = $derived(services.length > 0 ? (service?.seatings ?? []) : list.seatings);
-	const BTN =
-		'inline-flex min-h-11 items-center justify-center gap-2 rounded-md border px-4 text-sm font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-foreground focus-visible:outline-none';
-	const INPUT =
-		'min-h-11 w-full rounded-md border border-border-input bg-background px-3 py-2 text-sm text-foreground focus-visible:ring-2 focus-visible:ring-foreground focus-visible:outline-none';
-	const LABEL = 'block text-sm font-medium text-foreground';
 
 	/** The Seating the list is filtered to, kept in the address (`?heure=20h30`). */
 	const HOUR_PARAM = 'heure';
@@ -141,12 +93,8 @@
 		list.seatings.find((s) => hourKey(seatingTime(s, timeZone)) === page.url.searchParams.get(HOUR_PARAM))
 			?.id ?? null
 	);
+
 	const serviceSeatings = $derived(service?.seatings ?? []);
-	const dueParties = $derived(
-		unsettledOnly
-			? serviceSeatings.flatMap((s) => s.parties).filter((p) => (p.arrived ?? 0) > 0 && hasBalanceDue(p))
-			: []
-	);
 	const shownId = $derived(
 		query.trim() || serviceSeatings.length < 2 || !serviceSeatings.some((s) => s.id === filterId)
 			? null
@@ -223,144 +171,6 @@
 			{serviceBooked === 1 ? 'personne' : 'personnes'} · {totalParties}
 			{totalParties === 1 ? 'réservation' : 'réservations'}
 		</p>
-	{/if}
-
-	<div class="flex flex-wrap items-center gap-2">
-		<button
-			type="button"
-			onclick={() => (unsettledOnly = !unsettledOnly)}
-			aria-pressed={unsettledOnly}
-			class="{CHIP} {unsettledOnly ? SELECTED : IDLE}"
-		>
-			Arrivés, solde non réglé
-		</button>
-	</div>
-
-	<!-- « Ajouter un walk-in » (issue 020) / « Offrir » (issue 021) -->
-	{#if (canWalkIn || canComp) && fields.guestList}
-		<div class="flex flex-wrap items-center gap-2">
-			{#if spotKind !== null}
-				<button
-						type="button"
-						onclick={closeWalkIn}
-						class="{BTN} border-border-card bg-background text-foreground hover:bg-muted"
-					>
-					<X size={16} aria-hidden="true" /> Annuler
-				</button>
-			{:else}
-				{#if canWalkIn}
-					<button
-						type="button"
-						onclick={() => openSpot('walk_in')}
-						class="{BTN} border-foreground bg-foreground text-background hover:bg-foreground/90"
-					>
-						<Plus size={16} aria-hidden="true" /> Ajouter un walk-in
-					</button>
-				{/if}
-				{#if canComp}
-					<button
-						type="button"
-						onclick={() => openSpot('comp')}
-						class="{BTN} border-foreground bg-background text-foreground hover:bg-muted"
-					>
-						<Gift size={16} aria-hidden="true" /> Offrir
-					</button>
-				{/if}
-			{/if}
-		</div>
-		{#if spotKind !== null}
-			<form
-				method="POST"
-				action={isCompForm ? '?/comp' : '?/walkIn'}
-				data-no-swipe
-				class="rounded-lg border border-border-card bg-background p-4"
-				transition:slide={{ duration: motion(200), easing: cubicOut }}
-				use:enhance={() => {
-					walkInSubmitting = true;
-					return async ({ update }) => {
-						await update();
-						walkInSubmitting = false;
-						const form = page.form as { error?: string; walkIn?: boolean; comp?: boolean } | null;
-						if (!(form && form.error && (isCompForm ? form.comp : form.walkIn))) closeWalkIn();
-					};
-				}}
-			>
-				<fieldset class="space-y-3" disabled={walkInSubmitting}>
-					<legend class="text-base font-semibold text-foreground">
-						{isCompForm ? 'Offrir une invitation' : 'Ajouter un walk-in'}
-					</legend>
-					{#if isCompForm}
-						<p class="text-sm text-muted-foreground">Offert : rien à régler, aucun billet envoyé.</p>
-					{/if}
-					<div>
-						<label class={LABEL} for="walk-in-seating">Séance</label>
-						<select
-							id="walk-in-seating"
-							name="seatingId"
-							bind:value={walkInSeating}
-							class={INPUT}
-							required
-						>
-							{#each walkInSeatings as seating (seating.id)}
-								<option value={seating.id}>{seatingTime(seating, timeZone)}</option>
-							{/each}
-						</select>
-					</div>
-					<div>
-						<label class={LABEL} for="walk-in-name">Nom</label>
-						<input id="walk-in-name" name="name" type="text" bind:value={walkInName} required class={INPUT} />
-					</div>
-					<div>
-						<span class={LABEL} id="walk-in-quantity-label">Personnes</span>
-						<div class="mt-1 inline-flex items-center gap-2" role="group" aria-labelledby="walk-in-quantity-label">
-							<button
-								type="button"
-								onclick={() => stepQuantity(-1)}
-								class="{BTN} border-border-card bg-background text-foreground hover:bg-muted"
-								aria-label="Retirer une personne"
-							>−</button
-							>
-							<span class="min-w-8 text-center text-lg font-semibold text-foreground tabular-nums">{walkInQuantity}</span>
-							<button
-								type="button"
-								onclick={() => stepQuantity(1)}
-								class="{BTN} border-border-card bg-background text-foreground hover:bg-muted"
-								aria-label="Ajouter une personne"
-							>+</button
-							>
-							<input type="hidden" name="quantity" value={walkInQuantity} />
-						</div>
-					</div>
-					<div class="grid gap-3 sm:grid-cols-2">
-						<div>
-							<label class={LABEL} for="walk-in-email">E-mail (facultatif)</label>
-							<input
-								id="walk-in-email"
-								name="email"
-								type="email"
-								bind:value={walkInEmail}
-								class={INPUT}
-							/>
-						</div>
-						<div>
-							<label class={LABEL} for="walk-in-phone">Téléphone (facultatif)</label>
-							<input id="walk-in-phone" name="phone" type="tel" bind:value={walkInPhone} class={INPUT} />
-						</div>
-					</div>
-					{#if walkInError}
-						<p class="text-sm font-medium text-red-600" role="alert">{walkInError}</p>
-					{/if}
-					<button
-						type="submit"
-						disabled={walkInSubmitting || walkInSeatings.length === 0}
-						class="{BTN} w-full border-foreground bg-foreground text-background hover:bg-foreground/90 disabled:opacity-50"
-					>
-						{#if walkInSubmitting}<LoaderCircle size={16} class="animate-spin" aria-hidden="true" />{/if}
-						{isCompForm ? 'Offrir' : 'Enregistrer'}
-					</button>
-				</fieldset>
-			</form>
-		{/if}
 	{/if}
 
 	<!-- The search box and the Seating times stay on screen while the list scrolls. -->
@@ -463,33 +273,7 @@
 		</div>
 	{/if}
 
-	{#if unsettledOnly}
-		<!-- Flat, never folded: exactly the Service's arrived parties with a
-	     Balance still to collect. -->
-		{#if dueParties.length === 0}
-			<div class="rounded-lg border border-border-card bg-background p-8 text-center">
-				<p class="text-muted-foreground">Aucun solde à récolter pour le moment.</p>
-			</div>
-		{:else}
-			<ul class="space-y-2">
-				{#each dueParties as party, i (party.id ?? i)}
-					<li>
-						<PartyCard
-							{party}
-							{fields}
-							{timeZone}
-							canCheckIn={canCheckIn}
-							canCorrect={canCorrect}
-							canSettle={canSettle}
-							canMove={canMove}
-							moveTargets={moveTargetsOf(list.seatings, party)}
-						/>
-					</li>
-				{/each}
-			</ul>
-		{/if}
-	{:else}
-		{#each seatings as seating (seating.id)}
+	{#each seatings as seating (seating.id)}
 		{@const capacity = capacityLabel(seating)}
 		{@const time = seatingTime(seating, timeZone)}
 		{@const stillExpected = seating.parties.filter(isExpected)}
@@ -510,6 +294,9 @@
 						>{/if}
 					{time}
 				</h2>
+				{#if seating.bookingsClosed}
+					<span class="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">Réservations fermées</span>
+				{/if}
 				{#if seating.titleFr}
 					<span class="text-sm text-muted-foreground">{seating.titleFr}</span>
 				{/if}
@@ -548,7 +335,7 @@
 					<ul class="mt-2 space-y-2">
 						{#each folded as party, i (party.id ?? i)}
 							<li animate:flip={{ duration: motion(200) }}>
-								<PartyCard {party} {fields} {timeZone} canCheckIn={canCheckIn} canCorrect={canCorrect} canSettle={canSettle} canMove={canMove} moveTargets={moveTargetsOf(list.seatings, party)} />
+								<PartyCard {party} {fields} {timeZone} canCheckIn={canCheckIn} canCorrect={canCorrect} canSettle={canSettle} canMove={canMove} canCancelRefund={canCancelRefund} seatingLabel={time} moveTargets={moveTargetsOf(list.seatings, party)} />
 							</li>
 						{/each}
 					</ul>
@@ -564,12 +351,11 @@
 							animate:flip={{ duration: motion(200) }}
 							out:slide={{ duration: motion(200), easing: cubicOut }}
 						>
-							<PartyCard {party} {fields} {timeZone} canCheckIn={canCheckIn} canCorrect={canCorrect} canSettle={canSettle} canMove={canMove} moveTargets={moveTargetsOf(list.seatings, party)} />
+							<PartyCard {party} {fields} {timeZone} canCheckIn={canCheckIn} canCorrect={canCorrect} canSettle={canSettle} canMove={canMove} canCancelRefund={canCancelRefund} seatingLabel={time} moveTargets={moveTargetsOf(list.seatings, party)} />
 						</li>
 					{/each}
 				</ul>
 			{/if}
 			</section>
 		{/each}
-	{/if}
 </div>

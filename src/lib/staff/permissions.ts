@@ -16,6 +16,9 @@ export const STAFF_PERMISSIONS = [
 	'move',
 	'walk_in',
 	'comp',
+	'cancel_refund',
+	'close_bookings',
+	'invite',
 ] as const;
 
 export type StaffPermission = (typeof STAFF_PERMISSIONS)[number];
@@ -32,6 +35,9 @@ export const STAFF_PERMISSION_LABELS_FR: Record<StaffPermission, string> = {
 	move: 'Déplacer',
 	walk_in: 'Walk-in',
 	comp: 'Offrir une invitation',
+	cancel_refund: 'Annuler et rembourser',
+	close_bookings: 'Fermer aux réservations',
+	invite: 'Créer une invitation',
 };
 
 /**
@@ -46,6 +52,7 @@ export const ACTS_ON_PARTIES_PERMISSIONS: ReadonlySet<StaffPermission> = new Set
 	'move',
 	'walk_in',
 	'comp',
+	'cancel_refund',
 ]);
 
 /**
@@ -72,7 +79,18 @@ export const STARTING_STAFF_ROLES: ReadonlyArray<{
 }> = [
 	{
 		name: 'Responsable',
-		permissions: withImpliedPermissions(STAFF_PERMISSIONS.filter((p) => p !== 'comp')),
+		permissions: withImpliedPermissions(
+			// comp, cancel_refund, close_bookings (039, 041) and invite
+			// (040) stay out of every starting Staff Role: only an Admin
+			// grants them.
+			STAFF_PERMISSIONS.filter(
+				(p) =>
+					p !== 'comp' &&
+					p !== 'cancel_refund' &&
+					p !== 'close_bookings' &&
+					p !== 'invite'
+			)
+		),
 	},
 	{
 		name: 'Porte',

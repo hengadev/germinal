@@ -1,6 +1,11 @@
 import { error, fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { getStaffEventAccess } from '$lib/server/services/staff-portal';
+import {
+	getStaffEventAccess,
+	seatingsForBookingClosure,
+	setSeatingBookingsClosed,
+	upcomingSeatingsForInvitation,
+} from '$lib/server/services/staff-portal';
 import {
 	getDayGuestList,
 	lookupTicket,
@@ -12,8 +17,10 @@ import { createWalkIn } from '$lib/server/services/walk-ins';
 import { createCompOnTheSpot } from '$lib/server/services/comps';
 import { settleBalance, undoSettleBalance } from '$lib/server/services/balance';
 import { getEventBrief } from '$lib/server/services/staff-brief';
+import { recordAuditLog } from '$lib/server/services/audit-log';
 import { moveReservation } from '$lib/server/services/moves';
-import { formatCurrency } from '$lib/utils/currency';
+import { cancelParty, refundParty, withRefundInfo } from '$lib/server/services/party-cancel-refund';
+import { formatCurrency, parseAmountInput } from '$lib/utils/currency';
 
 // The scan result party, shaped once for the wire: only what the Scanner
 // shows — no Date, no contact details.
@@ -76,6 +83,9 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	const canArrivees = access.can('guest_list');
 	const canCuisine = access.can('dietary');
 	const canSeeArrivees = canArrivees || canCuisine;
+	const isAdmin = locals.user.role === 'admin';
+	const canCloseBookings = access.can('close_bookings');
+	const canInvite = access.can('invite');
 	return {
 		access: {
 			permissions: access.permissions,
@@ -90,13 +100,31 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			canMove: access.can('move'),
 			canWalkIn: access.can('walk_in'),
 			canComp: access.can('comp'),
+			canCancelRefund: access.can('cancel_refund'),
+			canCloseBookings,
+			canInvite,
 		},
+		// « Fermé aux réservations » (039) : les séances du Jour en cours,
+		// ou — pour un Admin — toutes les séances à venir de l'événement.
+		closeBookings: canCloseBookings
+			? await seatingsForBookingClosure(params.id, access.day, isAdmin)
+			: [],
+		// « Nouvelle réservation » (040) : toute séance publiée à venir de
+		// l'événement, pas seulement celle du Jour en cours.
+		invite: canInvite ? await upcomingSeatingsForInvitation(params.id) : [],
 		event: access.event,
 		staffRoleName: access.staffRoleName,
 		brief,
-		arrivees: canSeeArrivees ? await getDayGuestList(access, params.id) : null,
+		arrivees: canSeeArrivees ? await loadArrivees(access, params.id) : null,
 	};
 };
+
+/** The Day guest list, with each party's refund figures when the viewer can cancel/refund. */
+async function loadArrivees(access: Awaited<ReturnType<typeof getStaffEventAccess>>, eventId: string) {
+	const list = await getDayGuestList(access, eventId);
+	if (list && access.can('cancel_refund')) return withRefundInfo(access, eventId, list);
+	return list;
+}
 
 export const actions: Actions = {
 	checkIn: async ({ request, locals, params }) => {
@@ -365,5 +393,247 @@ export const actions: Actions = {
 			actorId: locals.user.id,
 		});
 		if (!result.ok) return fail(422, { error: result.error, reservationId });
+	},
+
+	cancelReservation: async ({ request, locals, params }) => {
+		if (!locals.user) return fail(401, { error: 'Non authentifié' });
+
+		// The cancel/refund permission is re-resolved on the server, never
+		// trusted from the client.
+		const access = await getStaffEventAccess(locals.user, params.id);
+
+		const formData = await request.formData();
+		const reservationId = formData.get('reservationId');
+		if (!access.can('cancel_refund')) {
+			return fail(403, {
+				error: "Vous n'avez pas la permission d'annuler une réservation.",
+				reservationId
+			});
+		}
+		if (typeof reservationId !== 'string') {
+			return fail(400, { error: 'Requête invalide.' });
+		}
+
+		// cancelledBy guest: an amount in major units, comma accepted (0 allowed);
+		// germinal: the whole refundable amount, whatever was sent.
+		const cancelledBy = formData.get('cancelledBy') === 'germinal' ? 'germinal' : 'guest';
+		let amount: number | undefined;
+		if (cancelledBy === 'guest') {
+			const parsed = parseAmountInput(formData.get('amount'));
+			if ('error' in parsed) {
+				return fail(400, {
+					error:
+						parsed.error === 'blank'
+							? 'Indiquez le montant à rembourser (0 pour aucun remboursement)'
+							: 'Montant à rembourser invalide',
+					reservationId
+				});
+			}
+			amount = parsed.cents;
+		}
+
+		const result = await cancelParty({
+			access,
+			eventId: params.id,
+			reservationId,
+			cancelledBy,
+			amount,
+			actorId: locals.user.id,
+		});
+		if (!result.ok) return fail(422, { error: result.error, reservationId });
+		return { cancelReservation: true, reservationId, message: result.message };
+	},
+
+	refundReservation: async ({ request, locals, params }) => {
+		if (!locals.user) return fail(401, { error: 'Non authentifié' });
+
+		const access = await getStaffEventAccess(locals.user, params.id);
+
+		const formData = await request.formData();
+		const reservationId = formData.get('reservationId');
+		if (!access.can('cancel_refund')) {
+			return fail(403, {
+				error: "Vous n'avez pas la permission de rembourser une réservation.",
+				reservationId
+			});
+		}
+		if (typeof reservationId !== 'string') {
+			return fail(400, { error: 'Requête invalide.' });
+		}
+
+		// Partial refund in major units, comma accepted; blank means the whole
+		// refundable remainder.
+		const parsed = parseAmountInput(formData.get('amount'));
+		if ('error' in parsed && parsed.error === 'invalid') {
+			return fail(400, { error: 'Montant à rembourser invalide', reservationId });
+		}
+
+		const result = await refundParty({
+			access,
+			eventId: params.id,
+			reservationId,
+			amount: 'cents' in parsed ? parsed.cents : undefined,
+			actorId: locals.user.id,
+		});
+		if (!result.ok) return fail(422, { error: result.error, reservationId });
+		return { refundReservation: true, reservationId, message: result.message };
+	},
+
+	// « Nouvelle réservation » (issue 040) : crée une invitation (un Comp)
+	// sur une séance à venir de cet événement et envoie le billet par
+	// email. La permission est revérifiée sur le serveur, jamais depuis le
+	// client. Contrairement aux permissions d'invités, elle fonctionne
+	// aussi hors d'un Jour : elle ne montre aucune donnée d'invité.
+	invite: async ({ request, locals, params }) => {
+		if (!locals.user) return fail(401, { error: 'Non authentifié.', invite: true });
+
+		const access = await getStaffEventAccess(locals.user, params.id);
+		if (!access.can('invite')) {
+			return fail(403, {
+				error: "Vous n'avez pas la permission de créer une invitation.",
+				invite: true
+			});
+		}
+
+		const formData = await request.formData();
+		const seatingId = formData.get('seatingId');
+		const name = formData.get('name')?.toString().trim();
+		const email = formData.get('email')?.toString().trim();
+		const phone = formData.get('phone')?.toString().trim();
+		const quantity = parseInt(formData.get('quantity')?.toString() ?? '1', 10);
+		if (typeof seatingId !== 'string' || !seatingId) {
+			return fail(400, { error: 'Choisissez une séance.', invite: true });
+		}
+		if (!name) {
+			return fail(400, { error: "Le nom de l'invité est requis.", invite: true });
+		}
+		if (!email || !email.includes('@')) {
+			return fail(400, { error: 'Un email valide est requis : le billet est envoyé par email.', invite: true });
+		}
+		if (!Number.isInteger(quantity) || quantity < 1) {
+			return fail(400, { error: 'Le nombre d\u2019invités doit être un entier positif.', invite: true });
+		}
+
+		// Même validation que l'action create de l'admin (/admin/reservations/new) :
+		// la séance doit appartenir à cet événement, être publiée et à venir —
+		// createCompReservation revérifie la publication et l'heure, mais pas
+		// l'événement.
+		const { db } = await import('$lib/server/db');
+		const { eventSessions } = await import('$lib/server/db/schema');
+		const { and, eq, gt } = await import('drizzle-orm');
+		const [seating] = await db
+			.select({ id: eventSessions.id })
+			.from(eventSessions)
+			.where(
+				and(
+					eq(eventSessions.id, seatingId),
+					eq(eventSessions.eventId, params.id),
+					eq(eventSessions.published, true),
+					gt(eventSessions.startTime, new Date())
+				)
+			);
+		if (!seating) {
+			return fail(422, { error: 'Séance introuvable pour cet événement.', invite: true });
+		}
+
+		try {
+			const { createCompReservation } = await import('$lib/server/services/reservations');
+			const result = await createCompReservation({
+				sessionId: seatingId,
+				email,
+				name,
+				phone: phone || undefined,
+				quantity,
+				// Le billet part par email ; pas d'option SMS depuis le portail.
+				notificationPreference: 'email'
+			});
+			await recordAuditLog({
+				adminId: locals.user.id,
+				action: 'reservation.invite',
+				entityType: 'reservation',
+				entityId: result.reservation.id,
+				metadata: { seatingId, quantity, name }
+			});
+			return { invited: true, message: `Invitation envoyée à ${name}` };
+		} catch (err) {
+			return fail(422, {
+				error: err instanceof Error ? err.message : 'Échec de la création de l\u2019invitation.',
+				invite: true
+			});
+		}
+	},
+
+	// « Fermé aux réservations » (issue 039) : ferme une ou plusieurs
+	// séances aux réservations en ligne. La permission est revérifiée sur
+	// le serveur, jamais depuis le client.
+	closeBookings: async ({ request, locals, params }) => {
+		if (!locals.user) return fail(401, { error: 'Non authentifié.', closeBookingsForm: true });
+
+		const access = await getStaffEventAccess(locals.user, params.id);
+		if (!access.can('close_bookings')) {
+			return fail(403, {
+				error: "Vous n'avez pas la permission de fermer aux réservations.",
+				closeBookingsForm: true
+			});
+		}
+
+		const formData = await request.formData();
+		const seatingIds = formData
+			.getAll('seatingId')
+			.filter((v): v is string => typeof v === 'string' && v !== '');
+
+		const result = await setSeatingBookingsClosed({
+			eventId: params.id,
+			seatingIds,
+			closed: true,
+			actorId: locals.user.id,
+			day: access.day,
+			admin: locals.user.role === 'admin'
+		});
+		if (!result.ok) return fail(422, { error: result.error, closeBookingsForm: true });
+		await recordAuditLog({
+			adminId: locals.user.id,
+			action: 'seating.close_bookings',
+			entityType: 'session',
+			entityId: result.written[0] ?? null,
+			metadata: { seatingIds: result.written }
+		});
+		return { bookingsClosed: true };
+	},
+
+	reopenBookings: async ({ request, locals, params }) => {
+		if (!locals.user) return fail(401, { error: 'Non authentifié.', closeBookingsForm: true });
+
+		const access = await getStaffEventAccess(locals.user, params.id);
+		if (!access.can('close_bookings')) {
+			return fail(403, {
+				error: "Vous n'avez pas la permission de rouvrir les réservations.",
+				closeBookingsForm: true
+			});
+		}
+
+		const formData = await request.formData();
+		const seatingId = formData.get('seatingId');
+		if (typeof seatingId !== 'string' || !seatingId) {
+			return fail(400, { error: 'Requête invalide.', closeBookingsForm: true });
+		}
+
+		const result = await setSeatingBookingsClosed({
+			eventId: params.id,
+			seatingIds: [seatingId],
+			closed: false,
+			actorId: locals.user.id,
+			day: access.day,
+			admin: locals.user.role === 'admin'
+		});
+		if (!result.ok) return fail(422, { error: result.error, closeBookingsForm: true });
+		await recordAuditLog({
+			adminId: locals.user.id,
+			action: 'seating.reopen_bookings',
+			entityType: 'session',
+			entityId: seatingId,
+			metadata: { seatingIds: result.written }
+		});
+		return { bookingsReopened: true };
 	},
 };

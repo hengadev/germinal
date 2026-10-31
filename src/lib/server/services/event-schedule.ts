@@ -1370,6 +1370,7 @@ export async function loadSeatingsEditor(eventId: string): Promise<EditorService
 					badgeType: seating.badgeType,
 					reservationCount: seating.reservationCount,
 					heldSeats: seating.heldSeats,
+					bookingsClosedAt: seating.bookingsClosedAt ?? null,
 				})),
 		}));
 }

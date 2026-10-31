@@ -64,6 +64,10 @@ export interface AccessSeating {
 	/** Null on a Seating without a limit (ADR 0009): never full. */
 	availableCapacity: number | null;
 	allowWaitlist: boolean;
+	/** « Fermé aux réservations » (039): when it was closed, null when it
+	 * still takes online bookings. Absent on callers that do not know it:
+	 * fail open for them (only the database paths close bookings). */
+	bookingsClosedAt?: Date | null;
 }
 
 /** Which page an Event is shown as: its announcement; its Portfolio
@@ -152,6 +156,10 @@ function refusalBeforeCapacity({ event, seating, viewer, now }: SeatingAccessInp
 	if (!seating.published) return { reason: 'seating-unpublished' };
 	if (!seating.priced) return { reason: 'not-priced' };
 	if (seating.startTime.getTime() <= now.getTime()) return { reason: 'started' };
+	// « Fermé aux réservations » (039): closed to bookings whatever the
+	// Booking Window and capacity say — same refusal and message as a
+	// closed window, so the public UI reads « Réservations fermées ».
+	if (seating.bookingsClosedAt != null) return { reason: 'closed' };
 	// The Booking Window (035): before it opens, or once it has closed
 	// for this Seating, it can neither be booked nor wait-listed.
 	const window = bookingWindowState(event.bookingWindow ?? DEFAULT_BOOKING_WINDOW, seating.startTime, now);
