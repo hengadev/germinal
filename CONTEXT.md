@@ -39,7 +39,7 @@ What a Guest still owes at the venue: the price minus the Deposit already paid. 
 _Avoid_: Remainder, solde (in code/docs)
 
 **Refund Policy**:
-The rule deciding whether a Guest who cancels gets their Deposit back, chosen by the Admin per Event. Either **manual** (a free-text statement; each refund is decided by an Admin) or **rule-based** (one or more tiers such as "100% refunded until 48h before the Seating, then 0%"; "always refundable" and "never refundable" are single-tier presets). Whatever the policy, when Germinal cancels a Seating or an Event every Deposit is refunded in full, and an Admin may always refund as a goodwill gesture.
+The rule deciding whether a Guest who cancels gets their Deposit back, chosen by the Admin per Event. Either **manual** (a free-text statement; each refund is decided by an Admin) or **rule-based** (one or more tiers such as "100% refunded until 48h before the Seating, then 0%"; "always refundable" and "never refundable" are single-tier presets). Whatever the policy, when Germinal cancels a Seating or an Event every Deposit is refunded in full, and an Admin may always refund as a goodwill gesture. On the day, a **Staff** member holding the "cancel and refund" **Staff Permission** may do the same for that Day's Reservations: the refund the policy suggests is a pre-filled amount they confirm or change.
 _Avoid_: Cancellation policy, conditions d'annulation (in code/docs)
 
 **Venue Capacity**:
@@ -49,6 +49,11 @@ _Avoid_: Max guests, covers
 **Time Zone**:
 The local time of the Event's venue (e.g., Europe/Paris, Europe/London). Set once per Event; every Seating time is entered and displayed in it, whoever is looking and wherever they are. A Seating's Day and whether it falls at lunch or dinner are read in this local time.
 _Avoid_: Fuseau (in code/docs), UTC times, local time (ambiguous)
+
+**Closed to bookings**:
+A **Seating** a **Staff** member or an **Admin** stopped taking online Reservations for, e.g. on the day when the room is full in practice. It refuses new Reservations and **Waitlist** entries until someone reopens it, whatever its **Booking Window** and capacity say. Nothing already booked changes, and the door still works: **Walk-ins**, **Comps** and **Moves** into it are still allowed. Closing a whole **Service** closes each of its Seatings. Attributed to whoever closed it.
+In the French UI: « Fermé aux réservations ».
+_Avoid_: Locked, blocked, sold out (it may not be full)
 
 **Badge**:
 A marketing label applied to a Seating to highlight it on the booking UI. Purely display — has no effect on pricing or access rules. Options: `featured`, `vip`, `popular`, `best_value`, `limited`. A Seating has at most one Badge (or none).
@@ -123,7 +128,7 @@ A **Reservation** a **Staff** member or **Admin** makes on the spot, during a **
 _Avoid_: Drop-in, sur place (in code/docs)
 
 **Comp**:
-A **Reservation** offered for free: no Deposit, no **Balance**. Made by an **Admin**, or on the spot by a **Staff** member whose **Assignment** grants the "offer a Comp" **Staff Permission** (never in a starting Staff Role; an Admin grants it to people they trust). A Comp made on the spot behaves like a **Walk-in** otherwise: no Ticket, checked in at once, attributed, may exceed capacity.
+A **Reservation** offered for free: no Deposit, no **Balance**. Made by an **Admin** or by a **Staff** member with the "create an invitation" **Staff Permission**, on any upcoming Seating of the Event, with a **Ticket** sent to the Guest; or on the spot by a **Staff** member whose **Assignment** grants the "offer a Comp" **Staff Permission** (never in a starting Staff Role; an Admin grants it to people they trust). A Comp made on the spot behaves like a **Walk-in** otherwise: no Ticket, checked in at once, attributed, may exceed capacity.
 In the French UI: « Invitation ».
 _Avoid_: Invitation, free ticket, offert (in code/docs)
 
@@ -194,10 +199,13 @@ One thing a **Staff** member may do or see at an **Event** (e.g. see the guest l
 - **Move** a Reservation to another Seating of the same Service
 - add a **Walk-in**
 - offer a **Comp** (never in a starting Staff Role: an Admin grants it per Assignment)
+- create an invitation: a **Comp** on any upcoming **Seating** of the Event, Ticket emailed (never in a starting Staff Role)
+- close Seatings to bookings, and reopen them (**Closed to bookings**; never in a starting Staff Role)
+- cancel a Reservation and refund it, or refund part of it (never in a starting Staff Role)
 
-Every permission but the Tasks one concerns Guests, and works only during a **Day** of the Event, on that Day's Reservations alone: before it, after it, or for another Day, a Staff member sees no Guest at all, whatever their Staff Role. Guests' data is needed on the day, never before.
+Every permission but the Tasks and the create-an-invitation ones concerns Guests or the Day's Seatings, and works only during a **Day** of the Event, on that Day's Reservations alone: before it, after it, or for another Day, a Staff member sees no Guest at all, whatever their Staff Role. Guests' data is needed on the day, never before.
 
-Acting on parties (scanning, checking in by hand, settling a Balance, a Move, a Walk-in, a Comp) requires seeing the guest list, so granting one grants that too. Seeing Dietary Requirements shows each party's name and size with them, not the whole guest list.
+Acting on parties (scanning, checking in by hand, settling a Balance, a Move, a Walk-in, a Comp, a cancellation or refund) requires seeing the guest list, so granting one grants that too. Seeing Dietary Requirements shows each party's name and size with them, not the whole guest list.
 
 Never a Staff Permission, whatever the trust: cancelling or refunding a Reservation, and seeing **Internal Notes**. Those stay with Admins.
 _Avoid_: Right, access, capability
