@@ -490,7 +490,7 @@ export const actions: Actions = {
 		const access = await getStaffEventAccess(locals.user, params.id);
 		if (!access.can('invite')) {
 			return fail(403, {
-					error: "Vous n'avez pas la permission de créer une invitation.",
+				error: "Vous n'avez pas la permission de créer une invitation.",
 				invite: true
 			});
 		}
@@ -557,7 +557,7 @@ export const actions: Actions = {
 			return { invited: true, message: `Invitation envoyée à ${name}` };
 		} catch (err) {
 			return fail(422, {
-					error: err instanceof Error ? err.message : 'Échec de la création de l\u2019invitation.',
+				error: err instanceof Error ? err.message : 'Échec de la création de l\u2019invitation.',
 				invite: true
 			});
 		}
