@@ -26,7 +26,7 @@
 	{#if scanHref && !onScannerTab}
 		<a
 			href={scanHref}
-			class="absolute right-4 -top-7 w-14 h-14 rounded-full bg-foreground text-background shadow-lg flex items-center justify-center"
+			class="absolute right-4 bottom-full mb-4 w-14 h-14 rounded-full bg-foreground text-background shadow-lg flex items-center justify-center"
 			aria-label="Scanner un billet"
 		>
 			<ScanLine size={24} />
