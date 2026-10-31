@@ -10,10 +10,11 @@
 	import type { ScanParty } from './types';
 
 	let {
+		eventId,
 		party,
 		onDone,
 		onDismiss
-	}: { party: ScanParty; onDone: (guests: number) => void; onDismiss: () => void } = $props();
+	}: { eventId: string; party: ScanParty; onDone: (guests: number) => void; onDismiss: () => void } = $props();
 
 	const arrived = $derived(party.arrived);
 	const expected = $derived((party.quantity ?? 1) - arrived);
@@ -27,13 +28,13 @@
      slides back down on close. The transitions are global so they also run
      when Scanner removes the component. -->
 <div
-	class="fixed inset-0 z-[55] bg-foreground/25"
+	class="fixed inset-0 z-[65] bg-foreground/25"
 	transition:fade|global={{ duration: motion(200) }}
 	aria-hidden="true"
 ></div>
 <div
 	data-no-swipe
-	class="fixed inset-x-0 bottom-0 z-[60] border-t-2 lg:left-64 border-foreground bg-background shadow-[0_-8px_30px_rgb(0_0_0_/_0.25)]"
+	class="fixed inset-x-0 bottom-0 z-[70] border-t-2 border-foreground bg-background shadow-[0_-8px_30px_rgb(0_0_0_/_0.25)]"
 	transition:fly|global={{ y: 320, duration: motion(250), easing: cubicOut }}
 >
 	<div class="mx-auto max-w-lg px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
@@ -81,7 +82,7 @@
 
 		<form
 			method="POST"
-			action="?/scanCheckIn"
+			action={`/staff/events/${eventId}?/scanCheckIn`}
 			class="mt-4 flex items-center gap-2"
 			use:enhance={({ formData }) => {
 				submitting = true;

@@ -77,6 +77,21 @@ export function serviceLabel(kind: DayGuestSeating['serviceKind']): string {
 	return kind === 'lunch' ? 'Déjeuner' : 'Dîner';
 }
 
+/** « 1 couvert », « 24 couverts ». */
+export function covers(count: number): string {
+	return `${count} ${count === 1 ? 'couvert' : 'couverts'}`;
+}
+
+/** The total number of guests booked for a Seating (parties without quantity count as 0). */
+export function seatingGuestTotal(seating: DayGuestSeating): number {
+	return seating.parties.reduce((n, p) => n + (p.quantity ?? 0), 0);
+}
+
+/** Only the parties of a Seating with a non-blank Dietary Requirement. */
+export function partiesWithNotes(seating: DayGuestSeating): DayGuestParty[] {
+	return seating.parties.filter((p) => p.dietaryRequirements?.trim());
+}
+
 /** How many parties of the Day have Dietary Requirements: the Cuisine tab's badge. */
 export function noteCount(list: DayGuestList): number {
 	return list.seatings.reduce(

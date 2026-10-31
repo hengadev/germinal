@@ -2,18 +2,15 @@
 	/**
 	 * The Staff portal's bottom bar (issue 031, variant B picked by the
 	 * user): Événements | Tâches | Compte, and a round black Scan button
-	 * floating above the bar's right side during a Day (hidden when there is no scan target, and on
-	 * the Scanner tab itself).
+	 * floating above the bar's right side during a Day (hidden when there is
+	 * no Event to scan). It opens the scan overlay over the current page
+	 * (issue 034).
 	 */
 	import { page } from "$app/state";
 	import { CalendarDays, KeyRound, ListChecks, ScanLine } from "lucide-svelte";
+	import { openScanOverlay } from "$lib/components/staff/scanner/scan-overlay.svelte";
 
-	let { scanHref }: { scanHref: string | null } = $props();
-
-	const onScannerTab = $derived(
-		page.url.searchParams.get("onglet") === "scanner" &&
-			page.url.pathname.startsWith("/staff/events")
-	);
+	let { scanTargets }: { scanTargets: { eventId: string; title: string }[] } = $props();
 
 	// The active entry's marker (issue 033): a 2 px bar above the entry,
 	// which slides to the newly active one (CSS only, disabled by Tailwind's
@@ -51,14 +48,15 @@
 </script>
 
 <div class="flex-shrink-0 relative z-50">
-	{#if scanHref && !onScannerTab}
-		<a
-			href={scanHref}
+	{#if scanTargets.length > 0}
+		<button
+			type="button"
+			onclick={() => openScanOverlay(scanTargets)}
 			class="absolute right-4 bottom-full mb-4 w-14 h-14 rounded-full bg-foreground text-background shadow-lg flex items-center justify-center transition-transform duration-200 ease-out motion-reduce:transition-none active:scale-95"
 			aria-label="Scanner un billet"
 		>
 			<ScanLine size={24} />
-		</a>
+		</button>
 	{/if}
 
 	<nav

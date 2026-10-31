@@ -1,6 +1,5 @@
 <script lang="ts">
     import { onMount } from 'svelte';
-    import { enhance } from "$app/forms";
     import {
         Plus,
         UserMinus,
@@ -266,29 +265,6 @@
 
     const assignedStaffIds = $derived(getAssignedStaffIds());
 
-    // Brief (issue 032): one part per Staff role assigned on the Event.
-    const briefRoles = $derived(
-        [...new Map(eventStaff.map((s) => [s.staffRole.id, s.staffRole])).values()].sort((a, b) =>
-            a.name.localeCompare(b.name, 'fr')
-        )
-    );
-    const brief = data.staffBrief ?? { general: null as string | null, roles: [] as { staffRoleId: string; body: string }[] };
-
-    let savingBrief = $state(false);
-
-    function briefRoleBody(roleId: string): string {
-        return brief.roles.find((r: { staffRoleId: string }) => r.staffRoleId === roleId)?.body ?? '';
-    }
-
-    async function submitBrief({ result }: { result: import('@sveltejs/kit').ActionResult }) {
-        savingBrief = false;
-        if (result.type === 'success') {
-            toast.success('Succès', ((result.data as { success?: string })?.success) ?? 'Brief enregistré.');
-        } else if (result.type === 'failure') {
-            toast.error('Erreur', ((result.data as { error?: string })?.error) ?? 'Échec de l\u2019enregistrement du brief.');
-        }
-    }
-
     // Roles shown when changing an Assignment's role: the non-archived ones,
     // plus the Assignment's own role (it may be archived).
     function allRolesForChange(currentRoleId: string): StaffRole[] {
@@ -548,49 +524,4 @@
         </div>
     {/if}
 
-    <!-- Brief de l'événement (issue 032) -->
-    <div class="bg-background border border-border-card rounded-lg p-6">
-        <h4 class="text-md font-semibold mb-1">Brief</h4>
-        <p class="text-sm text-muted-foreground mb-4">
-            Ce que le staff lit dans le portail&nbsp;: une partie générale pour tous, puis une partie par rôle assigné à l'événement.
-        </p>
-        <form method="POST" action="?/saveBrief" use:enhance={() => { savingBrief = true; return submitBrief; }} class="space-y-4">
-            <div>
-                <label for="brief-general" class="block text-sm font-medium text-foreground mb-2">
-                    Brief général
-                </label>
-                <textarea
-                    id="brief-general"
-                    name="general"
-                    rows="4"
-                    class="w-full px-3 py-2 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                    disabled={savingBrief}
-                >{brief.general ?? ''}</textarea>
-            </div>
-            {#each briefRoles as role (role.id)}
-                <div>
-                    <label for="brief-role-{role.id}" class="block text-sm font-medium text-foreground mb-2">
-                        Pour le rôle&nbsp;: {role.name}
-                    </label>
-                    <textarea
-                        id="brief-role-{role.id}"
-                        name="role_{role.id}"
-                        rows="3"
-                        class="w-full px-3 py-2 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                        disabled={savingBrief}
-                    >{briefRoleBody(role.id)}</textarea>
-                </div>
-            {/each}
-            <div>
-                <button
-                    type="submit"
-                    disabled={savingBrief}
-                    class="inline-flex items-center gap-2 px-4 py-2 bg-foreground text-background rounded-lg hover:opacity-90 transition-colors disabled:opacity-50"
-                >
-                    {#if savingBrief}<Loader2 size={16} class="animate-spin" />{:else}<CheckCircle2 size={16} />{/if}
-                    <span>Enregistrer le brief</span>
-                </button>
-            </div>
-        </form>
-    </div>
 </div>
