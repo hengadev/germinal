@@ -135,7 +135,7 @@ describe('staff portal access', () => {
 
 		const access = await svc.getStaffEventAccess(adminUser, futureEvent.id);
 		expect(access.staffRoleName).toBeNull();
-		expect(access.permissions).toHaveLength(13);
+		expect(access.permissions).toHaveLength(14);
 		// Admins hold every permission; cancel_refund still only acts during a Day.
 		expect(access.permissions).toContain('cancel_refund');
 		expect(access.can('tasks')).toBe(true);

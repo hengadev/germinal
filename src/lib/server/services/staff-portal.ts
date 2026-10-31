@@ -376,3 +376,66 @@ export async function setSeatingBookingsClosed(input: {
 		.where(inArray(eventSessions.id, written));
 	return { ok: true, written };
 }
+
+// ---------------------------------------------------------------------------
+// « Nouvelle réservation » (issue 040)
+// ---------------------------------------------------------------------------
+
+/** One upcoming published Seating the invitation sheet (issue 040) offers. */
+export interface StaffInviteSeating {
+	id: string;
+	/** The Seating's Day, 'YYYY-MM-DD'. */
+	dayDate: string;
+	/** Its Service (Déjeuner / Dîner), grouped by the sheet. */
+	serviceKind: 'lunch' | 'dinner';
+	/** ISO start time. */
+	startTime: string;
+	/**
+	 * Remaining capacity, or null when the Seating has no limit (ADR 0009).
+	 * `createCompReservation` refuses a full Seating, so the sheet marks
+	 * those « Complet ».
+	 */
+	remaining: number | null;
+}
+
+/**
+ * Every upcoming published Seating of an Event (issue 040): the invitation
+ * sheet offers any of them, today first — unlike a Walk-in, an invitation
+ * is not limited to the current Day.
+ */
+export async function upcomingSeatingsForInvitation(eventId: string): Promise<StaffInviteSeating[]> {
+	const rows = await db
+		.select({
+			id: eventSessions.id,
+			dayDate: eventDays.date,
+			serviceKind: eventServices.kind,
+			startTime: eventSessions.startTime,
+			availableCapacity: eventSessions.availableCapacity
+		})
+		.from(eventSessions)
+		.innerJoin(eventServices, eq(eventSessions.serviceId, eventServices.id))
+		.innerJoin(eventDays, eq(eventServices.dayId, eventDays.id))
+		.where(
+			and(
+				eq(eventSessions.eventId, eventId),
+				eq(eventSessions.published, true),
+				gte(eventSessions.startTime, new Date())
+			)
+		)
+		.orderBy(asc(eventDays.date), asc(eventSessions.startTime));
+	return rows.map(
+		(r: {
+			id: string;
+			dayDate: string;
+			serviceKind: 'lunch' | 'dinner';
+			startTime: Date;
+			availableCapacity: number | null;
+		}) => ({
+			id: r.id,
+			dayDate: String(r.dayDate),
+			serviceKind: r.serviceKind,
+			startTime: r.startTime.toISOString(),
+			remaining: r.availableCapacity
+		})
+	);
+}
