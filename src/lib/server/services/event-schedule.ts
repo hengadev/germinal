@@ -1368,7 +1368,7 @@ export async function loadSeatingsEditor(eventId: string): Promise<EditorService
 					published: seating.published,
 					allowWaitlist: seating.allowWaitlist,
 					badgeType: seating.badgeType,
-				reservationCount: seating.reservationCount,
+					reservationCount: seating.reservationCount,
 					heldSeats: seating.heldSeats,
 					bookingsClosedAt: seating.bookingsClosedAt ?? null,
 				})),

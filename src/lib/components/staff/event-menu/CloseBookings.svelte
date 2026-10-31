@@ -8,6 +8,7 @@
 	 */
 	import { fade, fly } from 'svelte/transition';
 	import { invalidateAll } from '$app/navigation';
+	import { deserialize } from '$app/forms';
 	import { LoaderCircle, Lock, LockOpen, X } from 'lucide-svelte';
 	import { motion, cubicOut } from '$lib/components/staff/motion';
 	import { getToastContext } from '$lib/components/toast/state.svelte';
@@ -70,7 +71,9 @@
 			hour: '2-digit',
 			minute: '2-digit',
 			timeZone
-		}).format(new Date(s.startTime));
+		})
+			.format(new Date(s.startTime))
+			.replace(':', ' h ');
 	}
 	const kindLabel = (kind: 'lunch' | 'dinner') => (kind === 'lunch' ? 'Déjeuner' : 'Dîner');
 
@@ -100,15 +103,21 @@
 		checked = checked.includes(id) ? checked.filter((c) => c !== id) : [...checked, id];
 	}
 
-	// Les deux actions renvoient du JSON : un succès ferme la feuille (ou
-	// rafraîchit), un échec montre le message du serveur.
+	// Les deux actions, appelées comme use:enhance le fait (en-tête
+	// x-sveltekit-action) : un succès ferme la feuille (ou rafraîchit), un
+	// échec montre le message du serveur.
 	async function post(action: string, data: FormData): Promise<boolean> {
 		submitting = true;
 		error = null;
 		try {
-			const response = await fetch(`?/${action}`, { method: 'POST', body: data });
-			if (!response.ok) {
-				const payload = (await response.json()) as { error?: string } | null;
+			const response = await fetch(`?/${action}`, {
+				method: 'POST',
+				body: data,
+				headers: { 'x-sveltekit-action': 'true' }
+			});
+			const result = deserialize(await response.text());
+			if (result.type !== 'success') {
+				const payload = result.type === 'failure' ? (result.data as { error?: string } | undefined) : undefined;
 				error = payload?.error ?? 'Une erreur est survenue.';
 				return false;
 			}
