@@ -1,13 +1,19 @@
 <script lang="ts">
 	/**
-	 * Variant C — Bandeau scan (issue 031): Événements | Tâches | Compte in
-	 * the bar, and a full-width black « Scanner un billet » strip just above
-	 * it during a Day.
+	 * The Staff portal's bottom bar (issue 031, variant B picked by the
+	 * user): Événements | Tâches | Compte, and a round black Scan button
+	 * floating above the bar's right side during a Day (hidden when there is no scan target, and on
+	 * the Scanner tab itself).
 	 */
 	import { page } from "$app/state";
 	import { CalendarDays, KeyRound, ListChecks, ScanLine } from "lucide-svelte";
 
 	let { scanHref }: { scanHref: string | null } = $props();
+
+	const onScannerTab = $derived(
+		page.url.searchParams.get("onglet") === "scanner" &&
+			page.url.pathname.startsWith("/staff/events")
+	);
 
 	function tabClass(active: boolean): string {
 		return active
@@ -16,14 +22,14 @@
 	}
 </script>
 
-<div class="flex-shrink-0 z-50">
-	{#if scanHref}
+<div class="flex-shrink-0 relative z-50">
+	{#if scanHref && !onScannerTab}
 		<a
 			href={scanHref}
-			class="flex items-center justify-center gap-2 w-full min-h-[44px] py-3 bg-foreground text-background text-sm font-medium"
+			class="absolute right-4 bottom-full mb-4 w-14 h-14 rounded-full bg-foreground text-background shadow-lg flex items-center justify-center"
+			aria-label="Scanner un billet"
 		>
-			<ScanLine size={20} />
-			<span>Scanner un billet</span>
+			<ScanLine size={24} />
 		</a>
 	{/if}
 
