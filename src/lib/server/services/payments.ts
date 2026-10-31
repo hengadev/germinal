@@ -181,11 +181,14 @@ async function refundLatePayment(payment: PaymentWithReservation, paymentIntentI
 	// Notify the Guest — best-effort, never blocks the webhook response.
 	try {
 		const { sendRefundEmail } = await import('./email');
+		// Issue 026: the email is written in the Guest's language.
+		const lang = payment.reservation.locale === 'fr' ? 'fr' : 'en';
+		const event = payment.reservation.eventSession.event;
 		await sendRefundEmail({
 			guestEmail: payment.reservation.guestEmail,
 			guestName: payment.reservation.guestName,
-			eventTitle: payment.reservation.eventSession.event.titleEn,
-			sessionTitle: seatingTitle(payment.reservation.eventSession, 'en', {
+			eventTitle: (lang === 'fr' ? event.titleFr || event.titleEn : event.titleEn) || '',
+			sessionTitle: seatingTitle(payment.reservation.eventSession, lang, {
 				timeZone: payment.reservation.eventSession.event.timeZone,
 			}),
 			sessionStartTime: payment.reservation.eventSession.startTime,
@@ -194,6 +197,7 @@ async function refundLatePayment(payment: PaymentWithReservation, paymentIntentI
 			amount: refund.amount,
 			currency: payment.currency,
 			isPartialRefund: false,
+			locale: lang,
 		});
 	} catch (error) {
 		logger.error({ err: error }, 'Failed to send late-payment refund email');
@@ -324,17 +328,20 @@ export async function handleRefund(charge: Stripe.Charge) {
 	if (reservation) {
 		try {
 			const { sendRefundEmail } = await import('./email');
+			// Issue 026: the email is written in the Guest's language.
+			const lang = reservation.locale === 'fr' ? 'fr' : 'en';
 			await sendRefundEmail({
 				guestEmail: reservation.guestEmail,
 				guestName: reservation.guestName,
-				eventTitle: reservation.eventSession.event.titleEn,
-				sessionTitle: seatingTitle(reservation.eventSession, 'en', { timeZone: reservation.eventSession.event.timeZone }),
+				eventTitle: (lang === 'fr' ? reservation.eventSession.event.titleFr || reservation.eventSession.event.titleEn : reservation.eventSession.event.titleEn) || '',
+				sessionTitle: seatingTitle(reservation.eventSession, lang, { timeZone: reservation.eventSession.event.timeZone }),
 				sessionStartTime: reservation.eventSession.startTime,
 				timeZone: reservation.eventSession.event.timeZone,
 				reservationId: reservation.id,
 				amount: refundedAmount,
 				currency: payment.currency,
 				isPartialRefund: !isFullyRefunded,
+				locale: lang,
 			});
 		} catch (error) {
 			logger.error({ err: error }, 'Failed to send refund email');

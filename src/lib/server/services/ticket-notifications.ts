@@ -50,6 +50,8 @@ export async function sendTicketNotifications(
 			reservation,
 			session: reservation.eventSession,
 			event: reservation.eventSession.event,
+			// Issue 026: the email is written in the Guest's language.
+			locale: (reservation.locale as 'fr' | 'en' | null) ?? null,
 		});
 	} catch (error) {
 		logger.error({ err: error }, 'Failed to send ticket confirmation email');

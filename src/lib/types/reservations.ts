@@ -97,4 +97,7 @@ export type TicketEmailData = {
 	qrCode?: string;
 	googleCalendarUrl?: string;
 	icsUrl?: string;
+	/** Issue 026: the Reservation's language. Null (unknown, Walk-ins,
+	 * older Reservations) falls back to English, as before. */
+	locale?: 'fr' | 'en' | null;
 };
