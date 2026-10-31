@@ -8,6 +8,7 @@ import { page } from '$app/state';
 import { afterNavigate, replaceState } from '$app/navigation';
 import { fly } from 'svelte/transition';
 import { cubicOut } from 'svelte/easing';
+import { untrack } from 'svelte';
 import {
 	swipeDirection,
 	swipeStartIgnored,
@@ -35,12 +36,17 @@ import {
 	);
 
 	// ?onglet= follows the active tab, keeping ?service= and the other params.
+	// Only the tab drives this, not the address: a navigation to another
+	// ?onglet= is followed by afterNavigate below.
 	$effect(() => {
-		const url = new URL(page.url.href);
-		if (url.searchParams.get('onglet') !== activeTab) {
-			url.searchParams.set('onglet', activeTab);
-			replaceState(url, page.state);
-		}
+		const tab = activeTab;
+		untrack(() => {
+			const url = new URL(page.url.href);
+			if (url.searchParams.get('onglet') !== tab) {
+				url.searchParams.set('onglet', tab);
+				replaceState(url, page.state);
+			}
+		});
 	});
 
 	// Changing tab by tap or swipe: the content slides in from the side it
