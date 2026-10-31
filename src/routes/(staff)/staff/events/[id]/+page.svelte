@@ -1,31 +1,120 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
-	import { CheckCircle2, Circle, Clock } from 'lucide-svelte';
-	import type { ActionData, PageData } from './$types';
-	import { getToastContext } from '$lib/components/toast/state.svelte';
-	import { STAFF_PERMISSION_LABELS_FR } from '$lib/staff/permissions';
+	import type { PageData } from './$types';
 	import Arrivees from '$lib/components/staff/arrivees/Arrivees.svelte';
 import Scanner from '$lib/components/staff/scanner/Scanner.svelte';
+import NotesCuisine from '$lib/components/staff/arrivees/NotesCuisine.svelte';
+import { noteCount as countNotes } from '$lib/components/staff/arrivees/helpers';
 import { page } from '$app/state';
+import { afterNavigate, replaceState } from '$app/navigation';
+import { fly } from 'svelte/transition';
+import { motion, cubicOut } from '$lib/components/staff/motion';
+import { untrack } from 'svelte';
+import {
+	swipeDirection,
+	swipeStartIgnored,
+	tabAfterSwipe,
+	visibleTabs,
+	type StaffEventTab
+} from '$lib/components/staff/swipe';
 
-	let { data, form }: { data: PageData; form: ActionData } = $props();
-
-	const toast = getToastContext();
+	let { data }: { data: PageData } = $props();
 
 	// At the door, Arrivées comes first; it only exists during a Day.
-	// ?onglet=taches|arrivees|scanner lets a link open a tab directly.
+	// ?onglet=arrivees|cuisine|scanner lets a link open a tab directly.
 	const fromUrl = page.url.searchParams.get('onglet');
 	const tabFromUrl =
-		fromUrl === 'taches'
-			? ('tasks' as const)
-			: fromUrl === 'arrivees' || fromUrl === 'scanner'
-				? fromUrl
-				: null;
-	let activeTab = $state<'tasks' | 'arrivees' | 'scanner'>(
-		tabFromUrl ?? (data.access.canArrivees ? 'arrivees' : 'tasks')
+		fromUrl === 'arrivees' || fromUrl === 'cuisine' || fromUrl === 'scanner' || fromUrl === 'brief'
+			? fromUrl
+			: null;
+	let activeTab = $state<'arrivees' | 'cuisine' | 'scanner' | 'brief'>(
+		tabFromUrl ??
+			(!data.access.day
+				? 'brief'
+				: data.access.canArrivees
+					? 'arrivees'
+					: data.access.canCuisine
+						? 'cuisine'
+						: data.access.canScan
+							? 'scanner'
+							: 'brief')
 	);
 
+	// ?onglet= follows the active tab, keeping ?service= and the other params.
+	// Only the tab drives this, not the address: a navigation to another
+	// ?onglet= is followed by afterNavigate below.
+	$effect(() => {
+		const tab = activeTab;
+		untrack(() => {
+			const url = new URL(page.url.href);
+			if (url.searchParams.get('onglet') !== tab) {
+				url.searchParams.set('onglet', tab);
+				replaceState(url, page.state);
+			}
+		});
+	});
+
+	// Changing tab by tap or swipe: the content slides in from the side it
+	// came from, and the active button scrolls into view if the bar overflows.
+	let tabPanel = $state<HTMLElement | null>(null);
+	let tabBar = $state<HTMLElement | null>(null);
+	let tabDirection = $state(1);
+	function goToTab(tab: StaffEventTab) {
+		if (tab === activeTab) return;
+		const order = visibleTabs({ ...data.access });
+		tabDirection = order.indexOf(tab) > order.indexOf(activeTab) ? 1 : -1;
+		activeTab = tab;
+	}
+
+	$effect(() => {
+		activeTab;
+		tabBar?.querySelector('[aria-current="page"]')?.scrollIntoView({
+			block: 'nearest',
+			inline: 'nearest'
+		});
+	});
+
+	// A link to another tab of this page (the bar's Scan button) navigates
+	// without remounting it: follow ?onglet=.
+	afterNavigate(({ type }) => {
+		if (type === 'enter') return;
+		const tab = page.url.searchParams.get('onglet');
+		if (tab && visibleTabs({ ...data.access }).includes(tab as StaffEventTab)) {
+			goToTab(tab as StaffEventTab);
+		}
+	});
+
+	// Swipe between tabs on a touch screen (issue 029). Touch events, not
+	// pointer events: once the browser starts panning it cancels the pointer
+	// and pointerup never comes, while touchend always does.
+	let swipeStart: { x: number; y: number } | null = null;
+
+	function onTouchStart(event: TouchEvent) {
+		if (event.touches.length !== 1 || !tabPanel) {
+			swipeStart = null;
+			return;
+		}
+		const touch = event.touches[0];
+		swipeStart = swipeStartIgnored(event.target as Element, tabPanel)
+			? null
+			: { x: touch.clientX, y: touch.clientY };
+	}
+
+	function onTouchEnd(event: TouchEvent) {
+		if (!swipeStart) return;
+		const touch = event.changedTouches[0];
+		const dx = touch.clientX - swipeStart.x;
+		const dy = touch.clientY - swipeStart.y;
+		swipeStart = null;
+		const direction = swipeDirection(dx, dy);
+		if (!direction) return;
+		const next = tabAfterSwipe(direction, activeTab, { ...data.access });
+		if (next) goToTab(next);
+	}
+
 	const title = $derived(data.event.titleFr || data.event.titleEn || 'Événement sans titre');
+
+	// The Cuisine tab's badge: the parties with Dietary Requirements.
+	const notes = $derived(data.arrivees ? countNotes(data.arrivees) : 0);
 
 	const dayLabel = $derived(
 		data.access.day
@@ -38,39 +127,6 @@ import { page } from '$app/state';
 			}).format(new Date(`${data.access.day}T12:00:00Z`))
 			: null
 	);
-
-	const TASK_STATUS_LABELS: Record<string, string> = {
-		pending: 'À faire',
-		in_progress: 'En cours',
-		done: 'Terminée',
-	};
-
-	function statusBadge(status: string) {
-		switch (status) {
-			case 'done':
-				return { class: 'bg-green-100 text-green-800', icon: CheckCircle2 };
-			case 'in_progress':
-				return { class: 'bg-blue-100 text-blue-800', icon: Clock };
-			default:
-				return { class: 'bg-muted text-foreground-alt', icon: Circle };
-		}
-	}
-
-	function updateStatusEnhance() {
-		return ({ formElement }: { formElement: HTMLFormElement }) =>
-			async ({ result, update }: { result: import('@sveltejs/kit').ActionResult; update: () => Promise<void> }) => {
-				// Refresh the list so the badge shows the new status.
-				await update();
-				if (result.type === 'success') {
-					toast.success('Succès', 'Statut de la tâche mis à jour');
-				} else if (result.type === 'failure') {
-					toast.error(
-						'Erreur',
-						(result.data as { error?: string })?.error ?? 'Une erreur est survenue'
-					);
-				}
-			};
-	}
 </script>
 
 <svelte:head>
@@ -93,32 +149,18 @@ import { page } from '$app/state';
 		</p>
 	</div>
 
-	<!-- Onglets : seulement ce que l'accès autorise -->
-	{#if !data.access.permissions.length}
-		<div class="bg-background border border-border-card rounded-lg p-8 text-center">
-			<p class="text-muted-foreground">
-				Vous n'avez aucune permission sur cet événement. Contactez l'organisateur.
-			</p>
-		</div>
-	{:else}
-		<div class="border-b border-border-card mb-6">
-			<nav class="flex gap-6 -mb-px" aria-label="Sections de l'événement">
-				{#if data.access.canTasks}
-					<button
-						type="button"
-						onclick={() => (activeTab = 'tasks')}
-						aria-current={activeTab === 'tasks' ? 'page' : undefined}
-						class="px-1 py-3 text-sm font-medium border-b-2 {activeTab === 'tasks'
-							? 'border-foreground text-foreground'
-							: 'border-transparent text-muted-foreground hover:text-foreground'}"
-					>
-						Tâches
-					</button>
-				{/if}
+	<!-- Onglets : seulement ce que l'accès autorise, plus le Brief
+	     (issue 032) pour tout membre du staff assigné -->
+	<div class="border-b border-border-card mb-6">
+			<nav
+				class="flex gap-6 -mb-px overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+				aria-label="Sections de l'événement"
+				bind:this={tabBar}
+			>
 				{#if data.access.canArrivees}
 					<button
 						type="button"
-						onclick={() => (activeTab = 'arrivees')}
+						onclick={() => goToTab('arrivees')}
 						aria-current={activeTab === 'arrivees' ? 'page' : undefined}
 						class="px-1 py-3 text-sm font-medium border-b-2 {activeTab === 'arrivees'
 							? 'border-foreground text-foreground'
@@ -127,10 +169,23 @@ import { page } from '$app/state';
 						Arrivées
 					</button>
 				{/if}
+				{#if data.access.canCuisine}
+					<button
+						type="button"
+						onclick={() => goToTab('cuisine')}
+						aria-current={activeTab === 'cuisine' ? 'page' : undefined}
+						class="inline-flex items-center gap-1.5 px-1 py-3 text-sm font-medium border-b-2 {activeTab === 'cuisine'
+							? 'border-foreground text-foreground'
+							: 'border-transparent text-muted-foreground hover:text-foreground'}"
+					>
+						Cuisine
+						<span class="rounded bg-muted px-1.5 text-xs leading-5 text-foreground tabular-nums">{notes}</span>
+					</button>
+				{/if}
 				{#if data.access.canScan}
 					<button
 						type="button"
-						onclick={() => (activeTab = 'scanner')}
+						onclick={() => goToTab('scanner')}
 						aria-current={activeTab === 'scanner' ? 'page' : undefined}
 						class="px-1 py-3 text-sm font-medium border-b-2 {activeTab === 'scanner'
 							? 'border-foreground text-foreground'
@@ -139,62 +194,36 @@ import { page } from '$app/state';
 						Scanner
 					</button>
 				{/if}
+				<button
+					type="button"
+					onclick={() => goToTab('brief')}
+					aria-current={activeTab === 'brief' ? 'page' : undefined}
+					class="px-1 py-3 text-sm font-medium border-b-2 {activeTab === 'brief'
+						? 'border-foreground text-foreground'
+						: 'border-transparent text-muted-foreground hover:text-foreground'}"
+				>
+					Brief
+				</button>
 			</nav>
 		</div>
 
-		<!-- Onglet Tâches -->
-		{#if activeTab === 'tasks' && data.access.canTasks}
-			<section aria-label="Tâches">
-				{#if data.tasks.length === 0}
-					<div class="bg-background border border-border-card rounded-lg p-8 text-center">
-						<p class="text-muted-foreground">Aucune tâche ne vous est affectée sur cet événement.</p>
-					</div>
-				{:else}
-					<div class="bg-background border border-border-card rounded-lg divide-y divide-border-card">
-						{#each data.tasks as task (task.id)}
-							{@const badge = statusBadge(task.status)}
-							<div class="p-5 flex items-start justify-between gap-4">
-								<div class="flex-1 min-w-0">
-									<h3 class="text-base font-semibold text-foreground truncate">{task.title}</h3>
-									{#if task.description}
-										<p class="text-sm text-muted-foreground mt-1 line-clamp-2">{task.description}</p>
-									{/if}
-									<div class="flex items-center gap-2 mt-2">
-										<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium {badge.class}">
-											<svelte:component this={badge.icon} size={12} />
-											{TASK_STATUS_LABELS[task.status] ?? task.status}
-										</span>
-									</div>
-								</div>
-								<form
-									method="POST"
-									action="?/updateTaskStatus"
-									use:enhance={updateStatusEnhance()}
-									class="flex items-center gap-2"
-								>
-									<input type="hidden" name="taskId" value={task.id} />
-									<select
-										name="status"
-										value={task.status}
-										onchange={(e) => e.currentTarget.form?.requestSubmit()}
-										class="px-3 py-2 text-sm border border-border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-										aria-label="Statut de la tâche"
-									>
-										<option value="pending">À faire</option>
-										<option value="in_progress">En cours</option>
-										<option value="done">Terminée</option>
-									</select>
-									<noscript><button type="submit" class="text-sm text-primary hover:underline">OK</button></noscript>
-								</form>
-							</div>
-						{/each}
-					</div>
-				{/if}
-			</section>
-		{/if}
-
-		<!-- Onglet Arrivées -->
-		{#if activeTab === 'arrivees' && data.access.canArrivees}
+		<!-- Contenu de l'onglet : balayable horizontalement sur mobile -->
+		<div
+			bind:this={tabPanel}
+			ontouchstart={onTouchStart}
+			ontouchend={onTouchEnd}
+			ontouchcancel={() => (swipeStart = null)}
+		>
+			{#key activeTab}
+				<div
+					in:fly={{
+					duration: motion(200),
+					x: tabDirection * 320,
+					easing: cubicOut
+				}}
+			>
+			<!-- Onglet Arrivées -->
+			{#if activeTab === 'arrivees' && data.access.canArrivees}
 			<section aria-label="Arrivées">
 				{#if data.arrivees}
 					<Arrivees
@@ -220,6 +249,19 @@ import { page } from '$app/state';
 			</section>
 		{/if}
 
+		<!-- Onglet Cuisine -->
+		{#if activeTab === 'cuisine' && data.access.canCuisine}
+			<section aria-label="Cuisine">
+				{#if data.arrivees}
+					<NotesCuisine list={data.arrivees} timeZone={data.event.timeZone} />
+				{:else}
+					<div class="bg-background border border-border-card rounded-lg p-8 text-center">
+						<p class="text-muted-foreground">Aucun jour en cours : les invités ne sont visibles que le jour J.</p>
+					</div>
+				{/if}
+			</section>
+		{/if}
+
 		<!-- Onglet Scanner -->
 		{#if activeTab === 'scanner' && data.access.canScan}
 			<section aria-label="Scanner">
@@ -227,14 +269,41 @@ import { page } from '$app/state';
 			</section>
 		{/if}
 
-		{#if !(activeTab === 'tasks' && data.access.canTasks) && !(activeTab === 'arrivees' && data.access.canArrivees) && !(activeTab === 'scanner' && data.access.canScan)}
-			<div class="bg-background border border-border-card rounded-lg p-8 text-center">
-				<p class="text-muted-foreground">
-					Vos permissions :
-					{data.access.permissions.map((p) => STAFF_PERMISSION_LABELS_FR[p]).join(', ')}.
-					Les autres onglets arriveront prochainement.
-				</p>
-			</div>
-		{/if}
-	{/if}
+			<!-- Onglet Brief (issue 032) : le brief général puis la ou les
+			     parties de rôle, en texte brut, sans Markdown -->
+			{#if activeTab === 'brief'}
+				<section aria-label="Brief" class="space-y-4">
+					{#if !data.brief.general && !data.brief.roles.length}
+						<div class="bg-background border border-border-card rounded-lg p-8 text-center">
+							<p class="text-muted-foreground">Pas encore de brief pour cet événement.</p>
+						</div>
+					{:else}
+						{#if data.brief.general}
+							<div class="bg-background border border-border-card rounded-lg p-6">
+								<h2 class="text-sm font-semibold text-foreground mb-2">Brief général</h2>
+								<p class="text-sm text-foreground whitespace-pre-line">{data.brief.general}</p>
+							</div>
+						{/if}
+						{#each data.brief.roles as role (role.staffRoleId)}
+							<div class="bg-background border border-border-card rounded-lg p-6">
+								<h2 class="text-sm font-semibold text-foreground mb-2">
+									<!-- An Admin sees every role's part: no « votre ». -->
+									{data.staffRoleName ? 'Pour votre rôle' : 'Rôle'} : {role.staffRoleName}
+								</h2>
+								<p class="text-sm text-foreground whitespace-pre-line">{role.body}</p>
+							</div>
+						{/each}
+					{/if}
+					{#if !data.access.permissions.length}
+						<div class="bg-background border border-border-card rounded-lg p-8 text-center">
+							<p class="text-muted-foreground">
+								Vous n'avez aucune autre permission sur cet événement. Contactez l'organisateur.
+							</p>
+						</div>
+					{/if}
+				</section>
+			{/if}
+				</div>
+			{/key}
+		</div>
 </div>

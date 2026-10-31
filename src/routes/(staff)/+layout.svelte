@@ -5,7 +5,8 @@
     import { setToastContext } from "$lib/components/toast/state.svelte";
     import ThemeToggle from "$lib/components/admin/ThemeToggle.svelte";
     import { adminDarkMode } from "$lib/stores/adminDarkMode.svelte";
-    import { CalendarDays, KeyRound, LogOut } from "lucide-svelte";
+    import { CalendarDays, KeyRound, ListChecks, LogOut, ScanLine } from "lucide-svelte";
+    import BottomBar from "$lib/components/staff/nav/BottomBar.svelte";
     import type { LayoutData } from "./$types";
 
     let {
@@ -35,12 +36,6 @@
             }
         };
     });
-
-    function tabClass(active: boolean): string {
-        return active
-            ? "flex-1 flex flex-col items-center justify-center gap-1 pt-3 pb-6 text-foreground"
-            : "flex-1 flex flex-col items-center justify-center gap-1 pt-3 pb-6 text-muted-foreground hover:text-foreground-alt";
-    }
 </script>
 
 <div class="back-office contents">
@@ -59,22 +54,8 @@
             {@render children()}
         </main>
 
-        <!-- Barre d'onglets en bas -->
-        <nav
-            class="flex-shrink-0 bg-background border-t border-border-card z-50 pb-[env(safe-area-inset-bottom)]"
-            aria-label="Navigation mobile"
-        >
-            <div class="flex items-stretch">
-                <a href="/staff?liste" class={tabClass(page.url.pathname === '/staff' || page.url.pathname.startsWith('/staff/events'))}>
-                    <CalendarDays size={20} />
-                    <span class="text-[10px] font-medium">Événements</span>
-                </a>
-                <a href="/staff/change-password" class={tabClass(page.url.pathname === '/staff/change-password')}>
-                    <KeyRound size={20} />
-                    <span class="text-[10px] font-medium">Compte</span>
-                </a>
-            </div>
-        </nav>
+        <!-- Barre d'onglets en bas, avec le bouton Scanner flottant -->
+        <BottomBar scanHref={data.scanHref} />
 
         <Toaster />
     </div>
@@ -97,6 +78,28 @@
                 >
                     <CalendarDays size={20} />
                     <span class="font-medium">Événements</span>
+                </a>
+
+                {#if data.scanHref}
+                    <a
+                        href={data.scanHref}
+                        class="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors {page.url.searchParams.get('onglet') === 'scanner' && page.url.pathname.startsWith('/staff/events')
+                            ? 'bg-foreground text-background hover:bg-foreground/85'
+                            : 'text-foreground-alt hover:bg-surface-hover hover:text-foreground'}"
+                    >
+                        <ScanLine size={20} />
+                        <span class="font-medium">Scanner</span>
+                    </a>
+                {/if}
+
+                <a
+                    href="/staff/taches"
+                    class="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors {page.url.pathname === '/staff/taches'
+                        ? 'bg-foreground text-background hover:bg-foreground/85'
+                        : 'text-foreground-alt hover:bg-surface-hover hover:text-foreground'}"
+                >
+                    <ListChecks size={20} />
+                    <span class="font-medium">Tâches</span>
                 </a>
 
                 <a

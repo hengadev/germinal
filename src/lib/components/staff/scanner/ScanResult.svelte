@@ -4,7 +4,9 @@
 	 * la fiche du groupe glisse du bas de l'écran, à portée de pouce.
 	 */
 	import { enhance } from '$app/forms';
+	import { fade, fly } from 'svelte/transition';
 	import { ChefHat, Gift, LoaderCircle, UserCheck, X } from 'lucide-svelte';
+	import { motion, cubicOut } from '$lib/components/staff/motion';
 	import type { ScanParty } from './types';
 
 	let {
@@ -21,7 +23,19 @@
 	let failure = $state<string | null>(null);
 </script>
 
-<div class="fixed inset-x-0 bottom-0 z-[60] border-t-2 lg:left-64 border-foreground bg-background shadow-[0_-8px_30px_rgb(0_0_0_/_0.25)]">
+<!-- Motion (issue 033): the sheet slides up over a fading backdrop and
+     slides back down on close. The transitions are global so they also run
+     when Scanner removes the component. -->
+<div
+	class="fixed inset-0 z-[55] bg-foreground/25"
+	transition:fade|global={{ duration: motion(200) }}
+	aria-hidden="true"
+></div>
+<div
+	data-no-swipe
+	class="fixed inset-x-0 bottom-0 z-[60] border-t-2 lg:left-64 border-foreground bg-background shadow-[0_-8px_30px_rgb(0_0_0_/_0.25)]"
+	transition:fly|global={{ y: 320, duration: motion(250), easing: cubicOut }}
+>
 	<div class="mx-auto max-w-lg px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
 		<div class="mx-auto mb-3 h-1 w-10 rounded-full bg-border-card" aria-hidden="true"></div>
 
