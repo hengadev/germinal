@@ -77,6 +77,22 @@ export function parseCurrency(amountString: string): number {
 	return Math.round(parsed * 100);
 }
 
+/** A form's amount field, parsed or refused (issue 041). */
+export type ParsedAmount = { cents: number } | { error: 'blank' | 'invalid' };
+
+/**
+ * Parse an amount typed in a form ("12.50" or "12,50", major units) into
+ * cents. Shared by the admin and Staff cancel/refund actions.
+ */
+export function parseAmountInput(raw: FormDataEntryValue | null): ParsedAmount {
+	if (typeof raw !== 'string' || raw.trim() === '') return { error: 'blank' };
+	try {
+		return { cents: parseCurrency(raw.trim().replace(',', '.')) };
+	} catch {
+		return { error: 'invalid' };
+	}
+}
+
 /**
  * Validate currency code (ISO 4217)
  */
