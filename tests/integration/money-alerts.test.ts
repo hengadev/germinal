@@ -6,7 +6,7 @@
 // (admin refund action / refund-after-cancellation, or the Stripe webhook).
 import { describe, it, expect, beforeEach, beforeAll, afterAll, vi } from 'vitest';
 import { eq } from 'drizzle-orm';
-import { events, eventSessions, reservations, payments } from '../../src/lib/server/db/schema';
+import { disputeStatusEnum, disputes, events, eventSessions, reservations, payments } from '../../src/lib/server/db/schema';
 import {
 	getTestDatabase,
 	setupTestDatabase,
@@ -219,10 +219,10 @@ describe('refund_failed alerts', () => {
 		expect(found[0].amount).toBe(3000);
 	});
 
-	it('says nothing without the error, once fully refunded, or for a live Reservation', async () => {
-		await seedReservation({ lastError: null });
-		await seedReservation({ refunded: 5000 });
+	it('says nothing once fully refunded, or for a live Reservation', async () => {
+		await seedReservation({ lastError: null, refunded: 5000 });
 		await seedReservation({ reservationStatus: 'confirmed' });
+		await seedReservation({ refunded: 5000 });
 		expect(await alerts()).toHaveLength(0);
 	});
 
@@ -270,5 +270,143 @@ describe('a successful refund clears the recorded failure', () => {
 		expect(after?.lastError).toBeNull();
 		expect(after?.refundedAmount).toBe(payment.amount);
 		expect(await alerts()).toHaveLength(0);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Issue 043 — paid_without_seat
+// ---------------------------------------------------------------------------
+
+describe('paid_without_seat alerts', () => {
+	it('lists an expired Reservation with an unrefunded payment, and says when it was paid', async () => {
+		const { reservation, payment } = await seedReservation({ reservationStatus: 'expired', lastError: null });
+		const found = await alerts();
+		expect(found).toHaveLength(1);
+		expect(found[0]).toMatchObject({
+			kind: 'paid_without_seat',
+			reservationId: reservation.id,
+			amount: payment.amount,
+			currency: 'EUR',
+			href: `/admin/reservations/${reservation.id}`
+		});
+		expect(found[0].detail).toContain('Payé le');
+	});
+
+	it('disappears once fully refunded, and says nothing for a live Reservation', async () => {
+		await seedReservation({ reservationStatus: 'expired', lastError: null, refunded: 5000 });
+		await seedReservation({ reservationStatus: 'confirmed', lastError: null });
+		expect(await alerts()).toHaveLength(0);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Issue 043 — refunded_but_active
+// ---------------------------------------------------------------------------
+
+describe('refunded_but_active alerts', () => {
+	it('lists a confirmed Reservation whose Payment is refunded in full, with the refunded amount', async () => {
+		const { reservation, payment } = await seedReservation({ reservationStatus: 'confirmed', lastError: null });
+		await testDb
+			.update(payments)
+			.set({ status: 'refunded', refundedAmount: payment.amount })
+			.where(eq(payments.id, payment.id));
+		const found = await alerts();
+		expect(found).toHaveLength(1);
+		expect(found[0]).toMatchObject({
+			kind: 'refunded_but_active',
+			reservationId: reservation.id,
+			amount: payment.amount,
+			currency: 'EUR',
+			href: `/admin/reservations/${reservation.id}`
+		});
+		expect(found[0].detail).toContain('Remboursé');
+	});
+
+	it('ignores a confirmed Reservation with only a partial refund', async () => {
+		await seedReservation({ reservationStatus: 'confirmed', lastError: null, refunded: 2000 });
+		expect(await alerts()).toHaveLength(0);
+	});
+
+	it('disappears once the Reservation is cancelled', async () => {
+		const { payment, reservation } = await seedReservation({ reservationStatus: 'confirmed', lastError: null });
+		await testDb
+			.update(payments)
+			.set({ status: 'refunded', refundedAmount: payment.amount })
+			.where(eq(payments.id, payment.id));
+		await testDb.update(reservations).set({ status: 'cancelled' }).where(eq(reservations.id, reservation.id));
+		expect(await alerts()).toHaveLength(0);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Issue 043 — dispute_open
+// ---------------------------------------------------------------------------
+
+async function seedDispute(
+	paymentId: string,
+	options: { status?: (typeof disputeStatusEnum.enumValues)[number]; reason?: string; dueIn?: number } = {}
+) {
+	const [dispute] = await testDb
+		.insert(disputes)
+		.values({
+			paymentId,
+			stripeDisputeId: `dp_test_${paymentId}_${Math.random().toString(36).slice(2, 8)}`,
+			status: options.status ?? 'needs_response',
+			reason: options.reason ?? 'fraudulent',
+			amount: 5000,
+			currency: 'EUR',
+			evidenceDueBy: new Date(NOW.getTime() + (options.dueIn ?? 7 * 24) * HOUR)
+		})
+		.returning();
+	return dispute;
+}
+
+describe('dispute_open alerts', () => {
+	it('lists disputes needing a response, soonest deadline first, linking to Stripe', async () => {
+		const first = await seedReservation({ reservationStatus: 'confirmed', lastError: null });
+		const second = await seedReservation({ reservationStatus: 'confirmed', lastError: null });
+		await seedDispute(second.payment.id, { dueIn: 10 * 24 });
+		await seedDispute(first.payment.id, { reason: 'product_unacceptable', dueIn: 2 * 24 });
+
+		const found = await alerts();
+		expect(found.map((a) => a.kind)).toEqual(['dispute_open', 'dispute_open']);
+		expect(found[0]).toMatchObject({
+			reservationId: first.reservation.id,
+			amount: 5000,
+			currency: 'EUR',
+			href: `https://dashboard.stripe.com/test/disputes/${(await testDb.query.disputes.findFirst({ where: eq(disputes.paymentId, first.payment.id) }))!.stripeDisputeId}`
+		});
+		expect(found[0].detail).toContain('product_unacceptable');
+		expect(found[0].detail).toContain('réponse attendue avant le');
+	});
+
+	it('ignores disputes not needing a response, and clears once the status moves on', async () => {
+		const { payment } = await seedReservation({ reservationStatus: 'confirmed', lastError: null });
+		await seedDispute(payment.id, { status: 'under_review' });
+		await seedDispute(payment.id, { status: 'won' });
+		expect(await alerts()).toHaveLength(0);
+
+		const open = await seedDispute(payment.id, { status: 'warning_needs_response' });
+		expect((await alerts()).map((a) => a.kind)).toEqual(['dispute_open']);
+
+		await testDb.update(disputes).set({ status: 'under_review' }).where(eq(disputes.id, open.id));
+		expect(await alerts()).toHaveLength(0);
+	});
+
+	it('counts every kind for the badge', async () => {
+		const live = await seedReservation({ reservationStatus: 'confirmed', lastError: null });
+		await testDb
+			.update(payments)
+			.set({ status: 'refunded', refundedAmount: live.payment.amount })
+			.where(eq(payments.id, live.payment.id));
+		await seedReservation({ reservationStatus: 'expired', lastError: null });
+		await seedReservation();
+		await seedDispute(live.payment.id);
+
+		const counts = await moneyAlertsService.moneyAlertCounts(NOW);
+		expect(counts).toEqual({
+			total: 4,
+			byKind: { refund_failed: 1, paid_without_seat: 1, refunded_but_active: 1, dispute_open: 1 }
+		});
 	});
 });
