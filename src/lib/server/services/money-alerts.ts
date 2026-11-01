@@ -139,8 +139,13 @@ async function paidWithoutSeatAlerts(): Promise<MoneyAlert[]> {
 				inArray(payments.status, ['succeeded', 'partially_refunded']),
 				inArray(reservations.status, ['expired', 'cancelled']),
 				lt(payments.refundedAmount, payments.amount),
-				// Those are the refund_failed alerts: don't list them twice.
-				or(isNull(payments.lastError), notLike(payments.lastError, 'Refund failed:%'))
+				// A cancelled one with a refused refund is a refund_failed
+				// alert: don't list it twice. An expired one never is.
+				or(
+					eq(reservations.status, 'expired'),
+					isNull(payments.lastError),
+					notLike(payments.lastError, 'Refund failed:%')
+				)
 			)
 		);
 
