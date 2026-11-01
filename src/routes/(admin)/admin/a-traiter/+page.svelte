@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { AlertTriangle } from 'lucide-svelte';
+	import { AlertTriangle, CircleAlert } from 'lucide-svelte';
 	import type { PageData } from './$types';
 	import { formatCurrency } from '$lib/utils/currency';
 
@@ -26,6 +26,24 @@
 				"Stripe a refusé le remboursement (annulation ou personnes en moins). Ouvrez la réservation et remboursez le montant dû à la main, ici ou dans Stripe."
 		},
 		{
+			kind: 'paid_without_seat',
+			title: 'Payés sans place',
+			whatToDo:
+				'Une réservation expirée ou annulée garde un paiement non remboursé. Ouvrez la réservation et remboursez l’acompte à la main.'
+		},
+		{
+			kind: 'refunded_but_active',
+			title: 'Remboursées mais toujours actives',
+			whatToDo:
+				"L'acompte a été remboursé (souvent à la main dans Stripe) mais la réservation reste confirmée : ses places restent prises. Ouvrez-la et annulez-la."
+		},
+		{
+			kind: 'dispute_open',
+			title: 'Litiges Stripe à répondre',
+			whatToDo:
+				"Un litige Stripe attend une réponse avant son échéance. Ouvrez-le dans Stripe et soumettez vos preuves."
+		},
+		{
 			kind: 'balance_unsettled',
 			title: 'Soldes non réglés',
 			whatToDo:
@@ -35,6 +53,7 @@
 
 	const alertsOf = (kind: Alert['kind']) => data.alerts.filter((alert) => alert.kind === kind);
 	const knownKinds = new Set(groups.map((g) => g.kind));
+	const isExternal = (href: string) => href.startsWith('http');
 </script>
 
 <svelte:head>
@@ -58,8 +77,10 @@
 				<section class="mb-8">
 					<div class="mb-3">
 						<h2 class="text-lg font-semibold text-foreground flex items-center gap-2">
-							{#if group.kind === 'refund_failed'}
+							{#if group.kind === 'refund_failed' || group.kind === 'dispute_open'}
 								<AlertTriangle size={17} class="text-red-600" />
+							{:else}
+								<CircleAlert size={17} class="text-amber-500" />
 							{/if}
 							{group.title}
 							<span class="text-sm font-normal text-muted-foreground">({alerts.length})</span>
@@ -93,6 +114,7 @@
 										<td class="px-4 py-3 text-right">
 											<a
 												href={alert.href}
+												{...isExternal(alert.href) ? { target: '_blank', rel: 'noopener' } : {}}
 												class="inline-flex items-center px-3 py-1.5 bg-background border border-border-input text-foreground-alt rounded-lg hover:bg-muted transition-colors text-sm font-medium"
 											>
 												Ouvrir

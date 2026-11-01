@@ -42,6 +42,13 @@
 		if (total === 0) return 0;
 		return Math.round((reserved / total) * 100);
 	}
+	const alertKindLabels: Record<string, (n: number) => string> = {
+	refund_failed: (n) => `${n} remboursement${n > 1 ? 's' : ''} refusé${n > 1 ? 's' : ''}`,
+	paid_without_seat: (n) => `${n} paiement${n > 1 ? 's' : ''} sans place`,
+	refunded_but_active: (n) => `${n} réservation${n > 1 ? 's' : ''} remboursée${n > 1 ? 's' : ''} mais active${n > 1 ? 's' : ''}`,
+	dispute_open: (n) => `${n} litige${n > 1 ? 's' : ''} à répondre`,
+	balance_unsettled: (n) => `${n} solde${n > 1 ? 's' : ''} non réglé${n > 1 ? 's' : ''}`
+};
 </script>
 
 <svelte:head>
@@ -100,12 +107,9 @@
 					<p class="text-sm font-medium text-foreground">
 						{data.moneyAlerts.total}
 						{data.moneyAlerts.total > 1 ? 'réservations à traiter' : 'réservation à traiter'}
-						{#if data.moneyAlerts.byKind.refund_failed}
-							— dont {data.moneyAlerts.byKind.refund_failed} remboursement{data.moneyAlerts.byKind.refund_failed > 1 ? 's' : ''} refusé{data.moneyAlerts.byKind.refund_failed > 1 ? 's' : ''}
-						{/if}
-						{#if data.moneyAlerts.byKind.balance_unsettled}
-							— dont {data.moneyAlerts.byKind.balance_unsettled} solde{data.moneyAlerts.byKind.balance_unsettled > 1 ? 's' : ''} non réglé{data.moneyAlerts.byKind.balance_unsettled > 1 ? 's' : ''}
-						{/if}
+						{#each Object.entries(data.moneyAlerts.byKind).filter(([k, n]) => (n ?? 0) > 0 && alertKindLabels[k]) as [k, n] (k)}
+							— dont {alertKindLabels[k](n ?? 0)}
+						{/each}
 					</p>
 				</div>
 				<a
