@@ -47,9 +47,25 @@ vi.mock('../../src/lib/server/services/email', () => ({
 	sendReservationModifiedEmail: sendReservationModifiedEmailMock,
 }));
 
+// Stripe mocked at the service boundary (prior art: cancel-with-policy-refund).
+const createRefundMock = vi.fn(async (_paymentIntentId: string, amount?: number) => ({
+	id: 're_test_mock',
+	amount: amount ?? 0,
+	status: 'succeeded',
+}));
+vi.mock('../../src/lib/server/services/stripe', () => ({
+	createRefund: createRefundMock,
+}));
+
 beforeEach(async () => {
 	await setupTestDatabase();
 	sendReservationModifiedEmailMock.mockClear();
+	createRefundMock.mockClear();
+	createRefundMock.mockImplementation(async (_pi: string, amount?: number) => ({
+		id: 're_test_mock',
+		amount: amount ?? 0,
+		status: 'succeeded',
+	}));
 });
 
 afterAll(async () => {
@@ -250,21 +266,106 @@ describe('changeGuests', () => {
 		expect(!result.ok && result.error).toContain('3');
 	});
 
-	it('refuses a removal that would over-pay, changing nothing', async () => {
+	it('an over-paid removal without a refund requested changes everything, refunds nothing', async () => {
 		const s = await seed();
 		const party = await s.reservation();
 
-		// Down to 1 Guest: total 2500 < the 5000 Deposit paid.
+		// Down to 1 Guest: total 2500 < the 5000 Deposit paid → 2500 over-paid.
 		const result = await (await svc()).changeGuests({
 			reservationId: party.id,
 			quantity: 1,
 			actorId: s.actor.id,
 		});
-		expect(result).toMatchObject({ ok: false });
+		expect(result).toMatchObject({ ok: true, quantity: 1, total: 2500, balance: 0, refunded: 0 });
+
+		expect(createRefundMock).not.toHaveBeenCalled();
+		const [payment] = await testDb.select().from(payments).where(eq(payments.reservationId, party.id));
+		expect(payment.refundedAmount).toBe(0);
+	});
+
+	it('refunds the over-paid amount once, even if the action is retried', async () => {
+		const s = await seed();
+		const party = await s.reservation();
+
+		const first = await (await svc()).changeGuests({
+			reservationId: party.id,
+			quantity: 1,
+			refundAmount: 2500,
+			actorId: s.actor.id,
+		});
+		expect(first).toMatchObject({ ok: true, quantity: 1, refunded: 2500 });
+
+		expect(createRefundMock).toHaveBeenCalledTimes(1);
+		expect(createRefundMock).toHaveBeenCalledWith(
+			expect.any(String),
+			2500,
+			{ idempotencyKey: expect.stringContaining(`party-size:${party.id}:4->1:`) }
+		);
+		const [payment] = await testDb.select().from(payments).where(eq(payments.reservationId, party.id));
+		expect(payment.refundedAmount).toBe(2500);
+		expect(payment.status).toBe('partially_refunded');
+
+		// A retried action finds the quantity already changed: a no-op that
+		// refunds nothing more.
+		const retry = await (await svc()).changeGuests({
+			reservationId: party.id,
+			quantity: 1,
+			refundAmount: 2500,
+			actorId: s.actor.id,
+		});
+		expect(retry).toMatchObject({ ok: true, quantity: 1, refunded: 0 });
+		expect(createRefundMock).toHaveBeenCalledTimes(1);
+		const [after] = await testDb.select().from(payments).where(eq(payments.reservationId, party.id));
+		expect(after.refundedAmount).toBe(2500);
+
+		// The audit records the refund, and the email mentions it.
+		const audits = await testDb.select().from(auditLog).where(eq(auditLog.entityId, party.id));
+		expect(audits.some((a) => (a.metadata as Record<string, number>).refundAmount === 2500)).toBe(true);
+		expect(sendReservationModifiedEmailMock.mock.calls[0][0].partyChange).toEqual({
+			quantity: 1,
+			balanceDue: 0,
+			currency: 'EUR',
+			refundedAmount: 2500,
+		});
+	});
+
+	it('a refund never exceeds the over-paid or refundable amount', async () => {
+		const s = await seed();
+		const party = await s.reservation();
+		// 1000 already refunded: only 1500 is over-paid down to 1 Guest.
+		await testDb
+			.update(payments)
+			.set({ refundedAmount: 1000, status: 'partially_refunded' })
+			.where(eq(payments.reservationId, party.id));
+
+		const result = await (await svc()).changeGuests({
+			reservationId: party.id,
+			quantity: 1,
+			refundAmount: 99999,
+			actorId: s.actor.id,
+		});
+		expect(result).toMatchObject({ ok: true, refunded: 1500 });
+		expect(createRefundMock).toHaveBeenCalledWith(expect.any(String), 1500, expect.anything());
+	});
+
+	it('a Stripe failure leaves the change done and the failure recorded on the Payment', async () => {
+		const s = await seed();
+		const party = await s.reservation();
+		createRefundMock.mockRejectedValueOnce(new Error('Stripe is down'));
+
+		const result = await (await svc()).changeGuests({
+			reservationId: party.id,
+			quantity: 1,
+			refundAmount: 2500,
+			actorId: s.actor.id,
+		});
+		expect(result).toMatchObject({ ok: true, quantity: 1, total: 2500 });
 
 		const [row] = await testDb.select().from(reservations).where(eq(reservations.id, party.id));
-		expect(row.quantity).toBe(4);
-		expect(sendReservationModifiedEmailMock).not.toHaveBeenCalled();
+		expect(row.quantity).toBe(1);
+		const [payment] = await testDb.select().from(payments).where(eq(payments.reservationId, party.id));
+		expect(payment.refundedAmount).toBe(0);
+		expect(payment.lastError).toContain('Stripe is down');
 	});
 
 	it('refuses a Reservation that is not confirmed', async () => {

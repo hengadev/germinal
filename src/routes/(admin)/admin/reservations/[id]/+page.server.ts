@@ -6,7 +6,7 @@ import type { PageServerLoad, Actions } from './$types';
 import { seatingTitlesWithFallback } from '$lib/utils/seating-title';
 import { sql } from 'drizzle-orm';
 import { cancellationPreFill, refundableAmount, type CancellationPreFill } from '$lib/utils/cancellation-refund';
-import { EMPTY_MANUAL_REFUND_POLICY } from '$lib/utils/refund-policy';
+import { EMPTY_MANUAL_REFUND_POLICY, refundPolicyOf } from '$lib/utils/refund-policy';
 
 /** Only an active Reservation gets the cancel screen's pre-fill. */
 function isCancellable(status: string): boolean {
@@ -55,13 +55,15 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 		return {
 			cancellation,
-			// Issue 046: what « Modifier le nombre » needs. Mock rows carry no
-			// Seating capacity: no warning.
 			party: {
 				depositPaid: 0,
 				checkedIn: 0,
 				availableCapacity: null as number | null,
-				totalCapacity: null as number | null
+				totalCapacity: null as number | null,
+				// Issue 047: the over-paid refund suggestion needs the policy and
+				// the Seating's start. Mock Events carry no policy.
+				refundPolicy: EMPTY_MANUAL_REFUND_POLICY,
+				seatingStart: session.startTime.toISOString()
 			},
 			reservation: {
 				id: reservation.id,
@@ -184,7 +186,10 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 				depositPaid,
 				checkedIn,
 				availableCapacity: seating?.availableCapacity ?? null,
-				totalCapacity: seating?.totalCapacity ?? null
+				totalCapacity: seating?.totalCapacity ?? null,
+				// Issue 047: for the over-paid refund suggestion.
+				refundPolicy: refundPolicyOf(reservation.eventSession.event),
+				seatingStart: reservation.eventSession.startTime.toISOString()
 			},
 			reservation: {
 				id: reservation.id,
@@ -392,6 +397,22 @@ export const actions: Actions = {
 			return fail(400, { error: 'Nombre de personnes invalide.' });
 		}
 
+		// The refund of the over-paid amount (issue 047), in euros in the
+		// dialog, cents on the server — blank or 0 means no refund.
+		const refundRaw = formData.get('refundAmount');
+		let refundAmount: number | undefined;
+		{
+			const { parseAmountInput } = await import('$lib/utils/currency');
+			const parsed = parseAmountInput(refundRaw);
+			if ('error' in parsed) {
+				if (parsed.error !== 'blank') {
+					return fail(400, { error: 'Montant de remboursement invalide.' });
+				}
+			} else {
+				refundAmount = parsed.cents;
+			}
+		}
+
 		if (env.USE_MOCK_DATA) {
 			return { success: true, message: `Nombre modifié : ${quantity} personnes (données fictives)` };
 		}
@@ -401,6 +422,7 @@ export const actions: Actions = {
 			const result = await changeGuests({
 				reservationId: params.id,
 				quantity,
+				refundAmount,
 				actorId: locals.user!.id,
 			});
 			if (!result.ok) {
@@ -412,6 +434,9 @@ export const actions: Actions = {
 				message:
 					`Nombre modifié : ${result.quantity} personne${result.quantity > 1 ? 's' : ''}, ` +
 					`reste à payer sur place ${formatCurrency(result.balance, result.currency, 'fr-FR')}` +
+					(result.refunded > 0
+						? `, ${formatCurrency(result.refunded, result.currency, 'fr-FR')} remboursés`
+						: '') +
 					(result.overflow > 0 ? ` — ${result.overflow} place${result.overflow > 1 ? 's' : ''} au-delà de la capacité` : ''),
 			};
 		} catch (err) {

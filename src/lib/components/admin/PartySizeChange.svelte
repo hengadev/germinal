@@ -3,6 +3,7 @@
 	import { enhance } from '$app/forms';
 	import { formatCurrency } from '$lib/utils/currency';
 	import { quotePartySize } from '$lib/utils/party-size';
+	import type { RefundPolicy } from '$lib/utils/refund-policy';
 
 	/**
 	 * « Modifier le nombre » (issue 046): the trigger and the panel that
@@ -31,6 +32,10 @@
 			checkedIn: number;
 			availableCapacity: number | null;
 			totalCapacity: number | null;
+			/** Issue 047: for the over-paid refund suggestion. */
+			refundPolicy: RefundPolicy;
+			/** ISO: the Seating's start. */
+			seatingStart: string;
 		};
 		onsuccess: (message: string) => void;
 		onerror: (error: string) => void;
@@ -61,7 +66,10 @@
 				balance: reservation.balanceAmount ?? 0,
 				isComp: reservation.isComp,
 				checkedIn: party.checkedIn,
-				status: reservation.status
+				status: reservation.status,
+				refundPolicy: party.refundPolicy,
+				seatingStart: new Date(party.seatingStart),
+				now: new Date()
 			},
 			qty ?? 0
 		)
@@ -76,6 +84,15 @@
 	);
 
 	let changed = $derived((qty ?? 0) !== reservation.quantity);
+
+	// The over-paid refund (issue 047): pre-filled with the policy's
+	// suggestion, in euros in the form, reset as the number changes.
+	let overPaid = $derived((quote.ok ? quote.quote.overPaid : 0));
+	let refundAmount = $state<number | null>(null);
+	$effect(() => {
+		const suggestion = quote.ok ? quote.quote.overPaidRefund : null;
+		refundAmount = suggestion ? suggestion.amount / 100 : 0;
+	});
 </script>
 
 {#if !showPanel}
@@ -144,6 +161,29 @@
 					<span class="font-semibold text-foreground">{formatCurrency(quote.quote.balance, reservation.currency, 'fr-FR')}</span>
 				</div>
 			</div>
+			{#if overPaid > 0}
+				<div class="space-y-1 text-sm">
+					<div class="flex items-center justify-between">
+						<span class="text-foreground-alt">Trop-perçu</span>
+						<span class="font-semibold text-foreground">{formatCurrency(overPaid, reservation.currency, 'fr-FR')}</span>
+					</div>
+					{#if quote.quote.overPaidRefund}
+						<p class="text-xs text-foreground-alt">{quote.quote.overPaidRefund.reasonFr}</p>
+					{/if}
+					<label class="block space-y-1">
+						<span class="text-foreground-alt">Remboursement ({reservation.currency})</span>
+						<input
+							type="number"
+							name="refundAmount"
+							min="0"
+							step="0.01"
+							max={overPaid / 100}
+							bind:value={refundAmount}
+							class="w-full px-3 py-2 border border-border-input rounded-lg text-sm bg-background text-foreground"
+						/>
+					</label>
+				</div>
+			{/if}
 			{#if overflow > 0}
 				<div class="flex items-center gap-1.5 text-xs text-amber-700">
 					<AlertCircle size={14} />
