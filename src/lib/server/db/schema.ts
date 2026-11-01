@@ -1089,6 +1089,19 @@ export const checkIns = pgTable('check_ins', {
 // AUDIT LOG TABLE
 // ============================================
 
+export const guestNotes = pgTable('guest_notes', {
+    // The Guest's normalised email (issue 050): one row per Guest,
+    // created on the first note or tag.
+    email: varchar('email', { length: 320 }).primaryKey(),
+    // Private Admin note, plain text.
+    note: text('note'),
+    // Free-text tags, at most MAX_GUEST_TAGS, each up to MAX_GUEST_TAG_LENGTH.
+    tags: text('tags').array().notNull().default(sql`'{}'::text[]`),
+    // Who last saved the note and tags.
+    updatedBy: uuid('updated_by').references(() => users.id, { onDelete: 'set null' }),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
 // Records who performed a destructive/sensitive admin action, what the
 // action was, which entity it affected, and when. Kept intentionally
 // lightweight (single table, single insert helper) for v1 - no

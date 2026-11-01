@@ -20,7 +20,8 @@
 		const current: Record<string, string | number> = {
 			search: data.search,
 			sort: data.sort,
-			page: data.page
+			page: data.page,
+			tag: data.tag
 		};
 		for (const [key, value] of Object.entries({ ...current, ...params })) {
 			const str = String(value);
@@ -65,6 +66,28 @@
 						placeholder="Rechercher par nom ou email..."
 						class="w-full pl-10 pr-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
 					/>
+				</div>
+				<div class="mt-3">
+					<label for="{uid}-tag" class="block text-sm font-medium text-foreground-alt mb-1">Filtrer par tag</label>
+					<div class="relative">
+						<datalist id="{uid}-tag-options">
+							{#each data.tagSuggestions as tag (tag)}
+								<option value={tag}></option>
+							{/each}
+						</datalist>
+						<input
+							id="{uid}-tag"
+							type="text"
+							name="tag"
+							value={data.tag}
+							list="{uid}-tag-options"
+							placeholder="Tag…"
+							class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
+						/>
+					</div>
+				</div>
+				<div class="mt-3">
+					<button type="submit" class="px-4 py-2 border border-border-input rounded-lg text-sm text-foreground hover:bg-muted">Appliquer</button>
 				</div>
 			</form>
 			<div class="flex-1">
@@ -125,6 +148,13 @@
 								<td class="px-6 py-4">
 									<a href="/admin/clients/{guestKeyFromEmail(guest.email)}" class="font-medium text-foreground hover:underline">{guest.name}</a>
 									<p class="text-sm text-muted-foreground">{guest.email}</p>
+									{#if guest.tags.length > 0}
+										<div class="mt-1 flex flex-wrap gap-1">
+											{#each guest.tags as tag (tag)}
+												<span class="inline-block px-2 py-0.5 rounded-full bg-muted text-xs text-foreground-alt">{tag}</span>
+											{/each}
+										</div>
+									{/if}
 								</td>
 								<td class="px-6 py-4 text-foreground">{guest.visits}</td>
 								<td class="px-6 py-4 text-foreground">{guest.guestsArrived}</td>
@@ -161,6 +191,13 @@
 						{/if}
 					</div>
 					<p class="text-sm text-muted-foreground truncate">{guest.email}</p>
+				{#if guest.tags.length > 0}
+					<div class="mt-1 flex flex-wrap gap-1">
+						{#each guest.tags as tag (tag)}
+							<span class="inline-block px-2 py-0.5 rounded-full bg-muted text-xs text-foreground-alt">{tag}</span>
+						{/each}
+					</div>
+				{/if}
 					<div class="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-sm text-foreground-alt">
 						<span>Visites : {guest.visits}</span>
 						<span>À venir : {guest.upcoming}</span>

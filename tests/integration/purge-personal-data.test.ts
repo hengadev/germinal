@@ -7,6 +7,7 @@ import {
 	emailQueue,
 	events,
 	eventSessions,
+	guestNotes,
 	reservations,
 	sessions,
 	tasks,
@@ -122,10 +123,15 @@ describe('purgePersonalData', () => {
 	it('anonymises a reservation one year after its session, keeping the amounts', async () => {
 		const old = await seedReservation((await seedSession(366)).id);
 		const recent = await seedReservation((await seedSession(300)).id);
+		// Guest notes and tags (issue 050) follow the identity out. The shared
+		// 'guest@example.com' identity survives (a recent Reservation), so use
+		// an email with no Reservation left at all.
+		await testDb.insert(guestNotes).values({ email: 'notes@example.com', note: 'n', tags: ['VIP'] });
 
 		const result = await purgePersonalData(NOW);
 
 		expect(result.reservationsAnonymised).toBe(1);
+		expect(result.guestNotesDeleted).toBe(1);
 		const anonymised = await reservation(old.id);
 		expect(anonymised).toMatchObject({
 			guestEmail: ANONYMISED_EMAIL,
@@ -275,6 +281,7 @@ describe('purgePersonalData', () => {
 			emailsDeleted: 0,
 			teamAccountsAnonymised: 0,
 			auditLogDeleted: 0,
+			guestNotesDeleted: 0,
 		});
 	});
 

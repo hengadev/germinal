@@ -14,6 +14,7 @@ import { db } from '../db';
 import { eventSessions, events, payments, reservations } from '../db/schema';
 import { ANONYMISED_EMAIL } from '../jobs/purge-personal-data';
 import { emailFromGuestKey, guestKeyFromEmail } from '$lib/utils/guest-email';
+import { getGuestNotes, tagsByEmail, type GuestNotesRecord } from './guest-notes';
 
 /** The Guest's identity: the normalised email. */
 const emailExpr = sql<string>`lower(btrim(${reservations.guestEmail}))`;
@@ -58,6 +59,8 @@ export interface GuestRow {
 	lastVisit: string | null;
 	/** Confirmed Reservations whose Seating is not over. */
 	upcoming: number;
+	/** Tags from the Guest's notes-and-tags row (issue 050). */
+	tags: string[];
 }
 
 export interface GuestListResult {
@@ -81,6 +84,8 @@ export interface GuestReservation {
 
 export interface GuestDetail extends GuestRow {
 	reservations: GuestReservation[];
+	/** Private note and its last edit (issue 050), null when never saved. */
+	notes: GuestNotesRecord | null;
 }
 
 const DEFAULT_PAGE_SIZE = 25;
@@ -147,6 +152,8 @@ export async function listGuests(params: {
 	sort?: GuestSort;
 	page?: number;
 	pageSize?: number;
+	/** Only Guests carrying this tag (issue 050). */
+	tag?: string;
 }): Promise<GuestListResult> {
 	const search = params.search?.trim() ?? '';
 	const sort: GuestSort = params.sort ?? 'last-visit';
@@ -168,8 +175,10 @@ export async function listGuests(params: {
 	) as GuestAggregates[];
 
 	const amounts = await amountsByEmail();
+	const tag = params.tag?.trim() ?? '';
+	const tags = await tagsByEmail(rows.map((row) => row.email));
 
-	const guests: GuestRow[] = rows.map((row) => ({
+	let guests: GuestRow[] = rows.map((row) => ({
 		email: row.email,
 		name: row.name,
 		visits: row.visits,
@@ -177,8 +186,11 @@ export async function listGuests(params: {
 		noShows: row.noShows,
 		amounts: amounts.get(row.email) ?? [],
 		lastVisit: row.lastVisit ? new Date(row.lastVisit).toISOString() : null,
-		upcoming: row.upcoming
+		upcoming: row.upcoming,
+		tags: tags.get(row.email) ?? []
 	}));
+
+	guests = guests.filter((guest) => tag === '' || guest.tags.some((t) => t.toLowerCase() === tag.toLowerCase()));
 
 	guests.sort((a, b) => {
 		if (sort === 'visits') {
@@ -247,6 +259,7 @@ export async function getGuest(key: string): Promise<GuestDetail | null> {
 		.orderBy(sql`${eventSessions.startTime} desc`);
 
 	const amounts = await amountsByEmail();
+	const notes = await getGuestNotes(email);
 
 	return {
 		email: aggregate.email,
@@ -257,6 +270,8 @@ export async function getGuest(key: string): Promise<GuestDetail | null> {
 		amounts: amounts.get(aggregate.email) ?? [],
 		lastVisit: aggregate.lastVisit ? new Date(aggregate.lastVisit).toISOString() : null,
 		upcoming: aggregate.upcoming,
+		tags: notes?.tags ?? [],
+		notes,
 		reservations: history.map((row: GuestReservationHistoryRow) => ({
 			...row,
 			seatingStart: new Date(row.seatingStart).toISOString()
