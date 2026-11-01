@@ -23,7 +23,7 @@
 			kind: 'refund_failed',
 			title: 'Remboursements refusés',
 			whatToDo:
-				"Le remboursement automatique a été refusé par Stripe. Ouvrez la réservation et remboursez l'acompte à la main."
+				"Stripe a refusé le remboursement (annulation ou personnes en moins). Ouvrez la réservation et remboursez le montant dû à la main, ici ou dans Stripe."
 		}
 	];
 

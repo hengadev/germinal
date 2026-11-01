@@ -3,7 +3,7 @@
 // disappears once its cause is fixed. Later issues add other kinds; keep
 // one query per kind in moneyAlerts, and moneyAlertCounts just counts.
 
-import { and, eq, like, lt } from 'drizzle-orm';
+import { and, eq, gt, like, lt, or, sql } from 'drizzle-orm';
 import { db } from '../db';
 import { events, eventSessions, payments, reservations } from '../db/schema';
 
@@ -29,10 +29,12 @@ export interface MoneyAlertCounts {
 }
 
 /**
- * refund_failed: a cancelled Reservation whose Payment records a refused
- * refund (« Refund failed: … » written by the refund-after-cancellation
- * path) and is not refunded up to the Deposit paid. The link goes to the
- * Reservation's Admin page, whose refund action refunds by hand.
+ * refund_failed: a Payment that records a refused refund (« Refund failed:
+ * … » written by the refund-after-cancellation path) and still holds money
+ * owed to the Guest: on a cancelled Reservation, whatever is not refunded
+ * yet; on a confirmed one (Guests removed, issue 047), what was paid beyond
+ * the Deposit the Reservation now keeps. The link goes to the Reservation's
+ * Admin page.
  */
 async function refundFailedAlerts(): Promise<MoneyAlert[]> {
 	type Row = {
@@ -42,6 +44,8 @@ async function refundFailedAlerts(): Promise<MoneyAlert[]> {
 		eventTitle: string | null;
 		eventTitleEn: string;
 		seatingStart: Date;
+		status: string;
+		depositAmount: number;
 		amount: number;
 		refundedAmount: number;
 		currency: string;
@@ -55,6 +59,8 @@ async function refundFailedAlerts(): Promise<MoneyAlert[]> {
 			eventTitle: events.titleFr,
 			eventTitleEn: events.titleEn,
 			seatingStart: eventSessions.startTime,
+			status: reservations.status,
+			depositAmount: reservations.depositAmount,
 			amount: payments.amount,
 			refundedAmount: payments.refundedAmount,
 			currency: payments.currency,
@@ -66,9 +72,15 @@ async function refundFailedAlerts(): Promise<MoneyAlert[]> {
 		.innerJoin(events, eq(eventSessions.eventId, events.id))
 		.where(
 			and(
-				eq(reservations.status, 'cancelled'),
 				like(payments.lastError, 'Refund failed:%'),
-				lt(payments.refundedAmount, payments.amount)
+				lt(payments.refundedAmount, payments.amount),
+				or(
+					eq(reservations.status, 'cancelled'),
+					and(
+						eq(reservations.status, 'confirmed'),
+						gt(sql`${payments.amount} - ${payments.refundedAmount}`, reservations.depositAmount)
+					)
+				)
 			)
 		);
 
@@ -80,7 +92,8 @@ async function refundFailedAlerts(): Promise<MoneyAlert[]> {
 			// The back office is French (CONTEXT.md); fall back to English.
 			eventTitle: row.eventTitle || row.eventTitleEn,
 			seatingStart: row.seatingStart,
-			amount: row.amount - row.refundedAmount,
+			amount:
+				row.amount - row.refundedAmount - (row.status === 'confirmed' ? row.depositAmount : 0),
 			currency: row.currency,
 			detail: row.lastError ?? '',
 			href: `/admin/reservations/${row.reservationId}`

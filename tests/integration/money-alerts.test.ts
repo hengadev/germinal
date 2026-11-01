@@ -226,6 +226,15 @@ describe('refund_failed alerts', () => {
 		expect(await alerts()).toHaveLength(0);
 	});
 
+	it('lists a refused party-size refund on a confirmed Reservation, for what was paid beyond its Deposit (issue 047)', async () => {
+		const { reservation } = await seedReservation({ reservationStatus: 'confirmed' });
+		// Guests removed: the Reservation now keeps 3000 of the 5000 paid.
+		await testDb.update(reservations).set({ quantity: 1, totalAmount: 3000, depositAmount: 3000, balanceAmount: 0 }).where(eq(reservations.id, reservation.id));
+		const found = await alerts();
+		expect(found).toHaveLength(1);
+		expect(found[0]).toMatchObject({ kind: 'refund_failed', reservationId: reservation.id, amount: 2000 });
+	});
+
 	it('counts by kind for the sidebar badge', async () => {
 		await seedReservation();
 		const counts = await moneyAlertsService.moneyAlertCounts(NOW);
