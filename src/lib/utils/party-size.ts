@@ -8,9 +8,17 @@
  * quantity, so a Promo Code discount carries over. Guests added pay their
  * whole price on site (the Deposit never grows); Guests removed come off
  * the Balance first, never below 0 — whatever falls beyond is over-paid,
- * and refunding it is issue 047, so in this issue such a removal is
- * refused. A Comp changes only its quantity: every amount stays 0.
+ * and the quote suggests refunding it under the Event's Refund Policy
+ * (issue 047): the same rule a Guest's cancellation follows, applied to
+ * the over-paid amount. A Comp changes only its quantity: every amount
+ * stays 0.
  */
+
+import {
+	describeCancellationRefundFr,
+	suggestCancellationRefund,
+} from './cancellation-refund';
+import type { RefundPolicy } from './refund-policy';
 
 export interface PartySizeInput {
 	/** The Reservation's current number of Guests. */
@@ -26,6 +34,14 @@ export interface PartySizeInput {
 	checkedIn: number;
 	/** Only a confirmed Reservation can change size. */
 	status: string;
+	/** The Event's Refund Policy, for the over-paid refund suggestion
+	 * (issue 047). Without it an over-paid change is still allowed, just
+	 * without a suggestion. */
+	refundPolicy?: RefundPolicy;
+	/** The Seating's start, on the Event's clock, for the policy's tiers. */
+	seatingStart?: Date;
+	/** When the change happens, for the policy's tiers. */
+	now?: Date;
 }
 
 export interface PartySizeQuote {
@@ -35,11 +51,16 @@ export interface PartySizeQuote {
 	total: number;
 	/** The new Balance to collect on site, in cents. */
 	balance: number;
-	/** What the Guest would be over-paid by this change, in cents (0 here:
-	 * a removal that over-pays is refused until issue 047 refunds it). */
+	/** What the Guest would be over-paid by this change, in cents: the
+	 * removal goes past the Balance into the Deposit already paid. */
 	overPaid: number;
 	/** The price per Guest the change is priced at, in cents. */
 	pricePerGuest: number;
+	/** What the policy suggests refunding of the over-paid amount, in
+	 * cents, and why in French (as the cancel screen's reason): null when
+	 * nothing is over-paid or no policy was given. Under a manual policy
+	 * the whole over-paid amount is suggested. */
+	overPaidRefund: { amount: number; reasonFr: string } | null;
 }
 
 export type PartySizeResult = { ok: true; quote: PartySizeQuote } | { ok: false; error: string };
@@ -66,6 +87,7 @@ export function quotePartySize(input: PartySizeInput, newQuantity: number): Part
 				balance: input.balance,
 				overPaid: 0,
 				pricePerGuest: input.isComp ? 0 : Math.round(input.total / input.quantity),
+				overPaidRefund: null,
 			},
 		};
 	}
@@ -74,7 +96,7 @@ export function quotePartySize(input: PartySizeInput, newQuantity: number): Part
 	if (input.isComp) {
 		return {
 			ok: true,
-			quote: { quantity: newQuantity, total: 0, balance: 0, overPaid: 0, pricePerGuest: 0 },
+			quote: { quantity: newQuantity, total: 0, balance: 0, overPaid: 0, pricePerGuest: 0, overPaidRefund: null },
 		};
 	}
 
@@ -85,14 +107,25 @@ export function quotePartySize(input: PartySizeInput, newQuantity: number): Part
 	// Removals come off the Balance first, never below 0.
 	const balance = Math.max(input.balance + (total - input.total), 0);
 	// Beyond the Balance, the change eats into the Deposit already paid:
-	// over-paid, refundable (issue 047) — refused for now.
+	// over-paid, refundable under the Refund Policy (issue 047).
 	const overPaid = Math.max(input.depositPaid - (total - balance), 0);
-	if (overPaid > 0) {
-		return {
-			ok: false,
-			error:
-				'Cette réduction laisserait un trop-perçu à rembourser, ce n’est pas encore possible.',
+	let overPaidRefund: PartySizeQuote['overPaidRefund'] = null;
+	if (overPaid > 0 && input.refundPolicy && input.seatingStart && input.now) {
+		const times = { seatingStart: input.seatingStart, cancelledAt: input.now };
+		const decision = suggestCancellationRefund({
+			policy: input.refundPolicy,
+			...times,
+			refundable: overPaid,
+			cancelledBy: 'guest',
+		});
+		// A manual policy: the Admin decides — pre-fill the whole amount.
+		overPaidRefund = {
+			amount: decision.kind === 'refund' ? decision.amount : overPaid,
+			reasonFr: describeCancellationRefundFr(decision, times),
 		};
 	}
-	return { ok: true, quote: { quantity: newQuantity, total, balance, overPaid: 0, pricePerGuest } };
+	return {
+		ok: true,
+		quote: { quantity: newQuantity, total, balance, overPaid, pricePerGuest, overPaidRefund },
+	};
 }

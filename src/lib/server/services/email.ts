@@ -893,6 +893,9 @@ export interface ModifiedEmailData {
 		quantity: number;
 		balanceDue: number;
 		currency: string;
+		/** Issue 047: refunded when the removal went past the Balance into
+		 * the Deposit already paid. */
+		refundedAmount?: number;
 	};
 }
 
@@ -911,6 +914,9 @@ ${data.partyChange
 ${data.partyChange.balanceDue > 0
 			? `Reste à payer sur place : ${money(data.partyChange.balanceDue)}`
 			: 'Il ne reste rien à payer sur place.'}
+${data.partyChange.refundedAmount
+			? `Montant remboursé : ${money(data.partyChange.refundedAmount)}`
+			: ''}
 
 SÉANCE :
 ${data.sessionTitle}
@@ -941,6 +947,9 @@ ${data.partyChange
 ${data.partyChange.balanceDue > 0
 			? `Left to pay on site: ${money(data.partyChange.balanceDue)}`
 			: 'There is nothing left to pay on site.'}
+${data.partyChange.refundedAmount
+			? `Amount refunded: ${money(data.partyChange.refundedAmount)}`
+			: ''}
 
 SEATING:
 ${data.sessionTitle}
@@ -991,6 +1000,11 @@ function generateModifiedHtmlTemplate(data: ModifiedEmailData): string {
       <p style="margin: 0; font-size: 15px;">
         <strong>${lang === 'fr' ? 'Reste à payer sur place :' : 'Left to pay on site:'}</strong> ${money(data.partyChange.balanceDue)}
       </p>
+      ${data.partyChange.refundedAmount
+		? `<p style="margin: 12px 0 0 0; font-size: 15px;">
+        <strong>${lang === 'fr' ? 'Montant remboursé :' : 'Amount refunded:'}</strong> ${money(data.partyChange.refundedAmount)}
+      </p>`
+		: ''}
     </div>
 
     <h3 style="margin: 24px 0 12px 0; color: #495057; font-size: 16px; font-weight: 600;">${lang === 'fr' ? 'Séance' : 'Seating'}</h3>

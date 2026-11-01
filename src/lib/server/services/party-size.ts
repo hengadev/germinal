@@ -23,19 +23,25 @@ import {
 import { recordAuditLog } from './audit-log';
 import { lockAndDecrementSeatingAllowingOverflow } from './reservations';
 import { restoreCapacity } from './reservation-transitions';
+import { refundAfterCancellation } from './cancellation-effects';
 import { sendReservationModifiedEmail } from './email';
 import { logger } from '$lib/server/logger';
 import { seatingTitle } from '$lib/utils/seating-title';
 import { quotePartySize } from '$lib/utils/party-size';
+import { refundableAmount } from '$lib/utils/cancellation-refund';
+import { refundPolicyOf } from '$lib/utils/refund-policy';
 
 export type ChangeGuestsResult =
-	| { ok: true; overflow: number; quantity: number; total: number; balance: number; currency: string }
+	| { ok: true; overflow: number; quantity: number; total: number; balance: number; currency: string; refunded: number }
 	| { ok: false; error: string };
 
 export async function changeGuests(input: {
 	reservationId: string;
 	quantity: number;
 	actorId: string;
+	/** The refund the Admin asked for, in cents (issue 047): clamped to
+	 * the over-paid amount and to what the Payment can still refund. */
+	refundAmount?: number;
 	now?: Date;
 }): Promise<ChangeGuestsResult> {
 	const { reservationId, quantity, actorId } = input;
@@ -45,6 +51,12 @@ export async function changeGuests(input: {
 	// a send failure must not fail the change. A box, so the transaction's
 	// assignment is visible after it.
 	const out: { email?: Parameters<typeof sendReservationModifiedEmail>[0] } = {};
+	// The refund (issue 047), decided inside the transaction, made after it.
+	const refund: {
+		amount: number;
+		payment?: { id: string; stripePaymentIntentId: string; currency: string; refundedAmount: number };
+		idempotencyKey?: string;
+	} = { amount: 0 };
 
 	const result = await db.transaction(async (tx: typeof db) => {
 		// Lock the Reservation's row so a simultaneous change, cancellation
@@ -69,6 +81,10 @@ export async function changeGuests(input: {
 				timeZone: events.timeZone,
 				eventTitleEn: events.titleEn,
 				eventTitleFr: events.titleFr,
+				refundPolicyType: events.refundPolicyType,
+				refundPolicyTextEn: events.refundPolicyTextEn,
+				refundPolicyTextFr: events.refundPolicyTextFr,
+				refundPolicyTiers: events.refundPolicyTiers,
 			})
 			.from(reservations)
 			.innerJoin(eventSessions, eq(reservations.eventSessionId, eventSessions.id))
@@ -81,12 +97,23 @@ export async function changeGuests(input: {
 		// The Deposit really paid online, minus refunds (null payment: a
 		// Walk-in or Comp, nothing was paid online).
 		let depositPaid = 0;
+		let paymentRow: { id: string; stripePaymentIntentId: string; currency: string; amount: number; refundedAmount: number | null; status: string } | undefined;
 		if (party.paymentId) {
 			const [payment] = await tx
-				.select({ amount: payments.amount, refundedAmount: payments.refundedAmount })
+				.select({
+					id: payments.id,
+					stripePaymentIntentId: payments.stripePaymentIntentId,
+					currency: payments.currency,
+					amount: payments.amount,
+					refundedAmount: payments.refundedAmount,
+					status: payments.status,
+				})
 				.from(payments)
 				.where(eq(payments.id, party.paymentId));
-			if (payment) depositPaid = payment.amount - (payment.refundedAmount ?? 0);
+			if (payment) {
+				paymentRow = payment;
+				depositPaid = payment.amount - (payment.refundedAmount ?? 0);
+			}
 		}
 
 		const [{ arrived }] = await tx
@@ -103,10 +130,31 @@ export async function changeGuests(input: {
 				isComp: party.isComp,
 				checkedIn: arrived,
 				status: party.status,
+				refundPolicy: refundPolicyOf(party),
+				seatingStart: party.startTime,
+				now,
 			},
 			quantity
 		);
 		if (!quote.ok) return { ok: false as const, error: quote.error };
+
+		// The refund never exceeds what is over-paid by this change, nor
+		// what the Payment can still refund (issue 047).
+		refund.amount = paymentRow
+			? Math.max(
+					0,
+					Math.min(input.refundAmount ?? 0, quote.quote.overPaid, refundableAmount(paymentRow))
+			)
+			: 0;
+		if (refund.amount > 0) {
+			refund.payment = {
+				id: paymentRow.id,
+				stripePaymentIntentId: paymentRow.stripePaymentIntentId,
+				currency: paymentRow.currency,
+				refundedAmount: paymentRow.refundedAmount ?? 0,
+			};
+			refund.idempotencyKey = `party-size:${reservationId}:${party.quantity}->${quantity}:${now.getTime()}`;
+		}
 
 		const delta = quantity - party.quantity;
 		let overflow = 0;
@@ -157,6 +205,7 @@ export async function changeGuests(input: {
 				},
 				after: { quantity, total: quote.quote.total, balance: quote.quote.balance },
 				overflow,
+				...(refund.amount > 0 ? { refundAmount: refund.amount } : {}),
 			},
 		});
 
@@ -180,13 +229,31 @@ export async function changeGuests(input: {
 			reservationId,
 			accessToken: party.accessToken,
 			locale: party.locale as 'fr' | 'en' | null,
-			partyChange: { quantity, balanceDue: quote.quote.balance, currency: party.currency },
+			partyChange: {
+				quantity,
+				balanceDue: quote.quote.balance,
+				currency: party.currency,
+				...(refund.amount > 0 ? { refundedAmount: refund.amount } : {}),
+			},
 		};
 
-		return { ok: true as const, overflow, quantity, total: quote.quote.total, balance: quote.quote.balance, currency: party.currency };
+		return { ok: true as const, overflow, quantity, total: quote.quote.total, balance: quote.quote.balance, currency: party.currency, refunded: refund.amount };
 	});
 
 	if (!result.ok) return result;
+
+	// The refund goes through the cancellation path (issue 047), after the
+	// commit and never under the Seating row lock. The idempotency key is
+	// derived from the Reservation and the change, so a retried action
+	// (which finds the quantity already changed and refunds nothing) can
+	// never refund twice.
+	if (refund.amount > 0 && refund.payment) {
+		try {
+			await refundAfterCancellation(refund.payment, refund.amount, refund.idempotencyKey!);
+		} catch (err) {
+			logger.error({ err, reservationId }, 'Party-size refund failed after the change');
+		}
+	}
 
 	const email = out.email;
 	if (email?.guestEmail) {
