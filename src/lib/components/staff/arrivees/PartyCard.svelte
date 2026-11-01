@@ -13,6 +13,7 @@
 	import { motion, cubicOut } from '$lib/components/staff/motion';
 	import { ArrowRightLeft, Check, ChefHat, Footprints, Gift, LoaderCircle, Phone, UserCheck, UserX } from 'lucide-svelte';
 	import type { DayGuestParty, DayGuestSeating } from '$lib/server/services/day-guest-list';
+	import type { RefundPolicy } from '$lib/utils/refund-policy';
 	import PartyActionsMenu from './PartyActionsMenu.svelte';
 	import { balanceDue, capacityLabel, guests as guestsLabel, seatingTime, settleTimeLabel, type ArriveesFields } from './helpers';
 
@@ -26,6 +27,9 @@
 		canMove = false,
 		moveTargets = [],
 		canCancelRefund = false,
+		canChangeParty = false,
+		seating = null,
+		refundPolicy = null,
 		seatingLabel = ''
 	}: {
 		party: DayGuestParty;
@@ -39,6 +43,11 @@
 		moveTargets?: DayGuestSeating[];
 		/** Cancel or refund this Reservation (issue 041). */
 		canCancelRefund?: boolean;
+		/** Change the party's size (issue 048). */
+		canChangeParty?: boolean;
+		/** The party's Seating, for the party-size sheet (issue 048). */
+		seating?: DayGuestSeating | null;
+		refundPolicy?: RefundPolicy | null;
 		/** L'heure de la Seating, « 12 h 30 », pour la feuille Annuler/Rembourser. */
 		seatingLabel?: string;
 	} = $props();
@@ -135,8 +144,15 @@
 				<span class="text-xs text-muted-foreground">{party.quantity === 1 ? 'personne' : 'personnes'}</span>
 				</p>
 			{/if}
-			{#if canCancelRefund && party.id}
-				<PartyActionsMenu {party} seatingLabel={seatingLabel || ''} />
+			{#if (canCancelRefund || canChangeParty) && party.id}
+				<PartyActionsMenu
+					{party}
+					{seatingLabel}
+					{canChangeParty}
+					canRefund={canCancelRefund}
+					{seating}
+					{refundPolicy}
+				/>
 			{/if}
 		</div>
 	</header>

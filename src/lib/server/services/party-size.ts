@@ -25,6 +25,7 @@ import { lockAndDecrementSeatingAllowingOverflow } from './reservations';
 import { restoreCapacity } from './reservation-transitions';
 import { refundAfterCancellation } from './cancellation-effects';
 import { sendReservationModifiedEmail } from './email';
+import { currentDayReservation } from './party-cancel-refund';
 import { logger } from '$lib/server/logger';
 import { seatingTitle } from '$lib/utils/seating-title';
 import { quotePartySize } from '$lib/utils/party-size';
@@ -42,6 +43,9 @@ export async function changeGuests(input: {
 	/** The refund the Admin asked for, in cents (issue 047): clamped to
 	 * the over-paid amount and to what the Payment can still refund. */
 	refundAmount?: number;
+	/** Issue 048: a Staff member without cancel_refund cannot over-pay a
+	 * removal — the quote refuses it instead. */
+	allowOverPay?: boolean;
 	now?: Date;
 }): Promise<ChangeGuestsResult> {
 	const { reservationId, quantity, actorId } = input;
@@ -133,6 +137,7 @@ export async function changeGuests(input: {
 				refundPolicy: refundPolicyOf(party),
 				seatingStart: party.startTime,
 				now,
+				allowOverPay: input.allowOverPay,
 			},
 			quantity
 		);
@@ -270,4 +275,39 @@ export async function changeGuests(input: {
 		}
 	}
 	return result;
+}
+
+/**
+ * Change a party's size from the Staff portal (issue 048) — the Arrivées
+ * card's ⋮ menu, behind the `change_party` permission, only for a
+ * Reservation of this Event's current Day. A refund of the over-paid
+ * amount further requires `cancel_refund`; without it the removal is
+ * limited to the Balance. The audit entry and the Guest's email are
+ * recorded by changeGuests.
+ */
+export async function changeParty(input: {
+	access: import('$lib/staff/access').StaffAccess;
+	eventId: string;
+	reservationId: string;
+	quantity: number;
+	/** Minor units; ignored unless the access also holds cancel_refund. */
+	refundAmount?: number;
+	actorId: string;
+	now?: Date;
+}): Promise<ChangeGuestsResult> {
+	if (!input.access.can('change_party')) {
+		return { ok: false, error: "Vous n'avez pas la permission de modifier le nombre de personnes." };
+	}
+	if (!(await currentDayReservation(input.access, input.eventId, input.reservationId))) {
+		return { ok: false, error: "Cette réservation n'est pas pour le jour en cours." };
+	}
+	return changeGuests({
+		reservationId: input.reservationId,
+		quantity: input.quantity,
+		actorId: input.actorId,
+		// A refund needs cancel_refund as well (issue 048).
+		refundAmount: input.access.can('cancel_refund') ? input.refundAmount : undefined,
+		allowOverPay: input.access.can('cancel_refund'),
+		now: input.now,
+	});
 }

@@ -8,15 +8,30 @@
 	 * portallé hors du layout : la classe `back-office` y suit les styles.
 	 */
 	import { DropdownMenu } from 'bits-ui';
-	import { Ban, EllipsisVertical, Undo2 } from 'lucide-svelte';
+	import { Ban, EllipsisVertical, Undo2, Users } from 'lucide-svelte';
 	import { openCancelRefund } from './cancel-refund.svelte';
-	import type { DayGuestParty } from '$lib/server/services/day-guest-list';
+	import { openPartySize } from './party-size.svelte';
+	import type { DayGuestParty, DayGuestSeating } from '$lib/server/services/day-guest-list';
+	import type { RefundPolicy } from '$lib/utils/refund-policy';
 
 	let {
 		party,
-		seatingLabel
-	}: { party: DayGuestParty; /** L'heure de la Seating, « 12 h 30 ». */ seatingLabel: string } =
-		$props();
+		seatingLabel,
+		canChangeParty = false,
+		canRefund = false,
+		seating = null,
+		refundPolicy = null
+	}: {
+		party: DayGuestParty;
+		/** L'heure de la Seating, « 12 h 30 ». */
+		seatingLabel: string;
+		/** La permission « Modifier le nombre de personnes » (issue 048). */
+		canChangeParty?: boolean;
+		/** La permission « Annuler et rembourser ». */
+		canRefund?: boolean;
+		seating?: DayGuestSeating | null;
+		refundPolicy?: RefundPolicy | null;
+	} = $props();
 
 	const refundable = $derived(party.refundable ?? 0);
 
@@ -47,7 +62,34 @@
 				run();
 			}}
 		>
-			{#if refundable > 0 && party.id}
+			{#if canChangeParty && party.id && seating}
+				<DropdownMenu.Item
+					class={ITEM}
+					onSelect={() =>
+						(chosen = () =>
+							party.id &&
+							openPartySize({
+								reservationId: party.id,
+								guestName: party.guestName ?? null,
+								quantity: party.quantity ?? 0,
+								seatingLabel,
+								total: party.totalAmount ?? 0,
+								balance: party.balanceAmount ?? 0,
+								depositPaid: party.depositPaid ?? 0,
+								checkedIn: party.arrived ?? 0,
+								isComp: party.isComp ?? false,
+								currency: party.currency ?? 'EUR',
+								availableCapacity: seating.availableCapacity,
+								refundPolicy,
+								seatingStart: seating.startTime,
+								canRefund
+							}))}
+				>
+					<Users class="size-4" aria-hidden="true" />
+					Modifier le nombre
+				</DropdownMenu.Item>
+			{/if}
+			{#if canRefund && refundable > 0 && party.id}
 				<DropdownMenu.Item
 					class={ITEM}
 					onSelect={() =>
@@ -68,7 +110,7 @@
 					Rembourser
 				</DropdownMenu.Item>
 			{/if}
-			{#if party.id}
+			{#if canRefund && party.id}
 				<DropdownMenu.Item
 					class="{ITEM} text-red-600 data-highlighted:bg-red-600/10"
 					onSelect={() =>

@@ -42,6 +42,9 @@ export interface PartySizeInput {
 	seatingStart?: Date;
 	/** When the change happens, for the policy's tiers. */
 	now?: Date;
+	/** Issue 048: when false (a Staff member without cancel_refund), a
+	 * removal that goes past the Balance is refused instead of over-paying. */
+	allowOverPay?: boolean;
 }
 
 export interface PartySizeQuote {
@@ -109,6 +112,13 @@ export function quotePartySize(input: PartySizeInput, newQuantity: number): Part
 	// Beyond the Balance, the change eats into the Deposit already paid:
 	// over-paid, refundable under the Refund Policy (issue 047).
 	const overPaid = Math.max(input.depositPaid - (total - balance), 0);
+	if (overPaid > 0 && input.allowOverPay === false) {
+		return {
+			ok: false,
+			error:
+			'La suppression va au-delà du solde : la rembourser exige la permission « Annuler et rembourser ».',
+		};
+	}
 	let overPaidRefund: PartySizeQuote['overPaidRefund'] = null;
 	if (overPaid > 0 && input.refundPolicy && input.seatingStart && input.now) {
 		const times = { seatingStart: input.seatingStart, cancelledAt: input.now };

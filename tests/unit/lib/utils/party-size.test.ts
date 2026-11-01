@@ -146,3 +146,21 @@ describe('quotePartySize over-paid refund', () => {
 		expect(r.ok && r.quote.overPaidRefund).toBeNull();
 	});
 });
+
+describe('quotePartySize allowOverPay (048)', () => {
+	// Down to 2 Guests: total 5000, Balance 0, 0 over-paid — allowed.
+	// Down to 1 Guest: total 2500, 2500 over-paid.
+
+	it('refuses an over-paid removal when over-pay is not allowed', () => {
+		const r = quotePartySize({ ...base, allowOverPay: false }, 1);
+		expect(r).toEqual({
+			ok: false,
+			error: expect.stringContaining('« Annuler et rembourser »'),
+		});
+	});
+
+	it('still allows a removal within the Balance, and additions', () => {
+		expect(quotePartySize({ ...base, allowOverPay: false }, 2).ok).toBe(true);
+		expect(quotePartySize({ ...base, allowOverPay: false }, 6).ok).toBe(true);
+	});
+});

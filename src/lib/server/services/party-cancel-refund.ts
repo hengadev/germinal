@@ -34,7 +34,7 @@ function refusal(access: StaffAccess): string | null {
 }
 
 /** The Reservation's currency when it belongs to this Event's current Day (null: it doesn't). */
-async function currentDayReservation(
+export async function currentDayReservation(
 	access: StaffAccess,
 	eventId: string,
 	reservationId: string
