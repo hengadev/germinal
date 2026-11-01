@@ -1,9 +1,10 @@
 import { db } from '../db';
-import {
+	import {
 	auditLog,
 	contactSubmissions,
 	emailQueue,
 	eventSessions,
+	guestNotes,
 	reservations,
 	sessions,
 	users,
@@ -59,6 +60,8 @@ export interface PurgePersonalDataResult {
 	emailsDeleted: number;
 	teamAccountsAnonymised: number;
 	auditLogDeleted: number;
+	/** Guest notes and tags (issue 050) left without an identity. */
+	guestNotesDeleted: number;
 }
 
 function daysAgo(days: number, now: Date): Date {
@@ -186,6 +189,23 @@ export async function purgePersonalData(now: Date = new Date()): Promise<PurgePe
 		.where(lt(auditLog.createdAt, daysAgo(RETENTION.auditLogDays, now)))
 		.returning({ id: auditLog.id });
 
+	// Guest notes and tags (issue 050) are personal data: they go once no
+	// non-anonymised Reservation with that email remains. Runs last, after
+	// the anonymisation above, so a just-purged identity takes its notes
+	// with it in the same run.
+	const notes = await db
+		.delete(guestNotes)
+		.where(
+			sql`not exists (
+				select 1 from ${reservations} r
+				where lower(btrim(r.guest_email)) = ${guestNotes.email}
+					and r.guest_email is not null
+					and r.guest_email <> '' 
+					and r.guest_email <> ${ANONYMISED_EMAIL}
+			)`
+		)
+		.returning({ email: guestNotes.email });
+
 	const result = {
 		reservationsAnonymised: anonymised.length,
 		technicalDataCleared: technical.length,
@@ -195,6 +215,7 @@ export async function purgePersonalData(now: Date = new Date()): Promise<PurgePe
 		emailsDeleted: emails.length,
 		teamAccountsAnonymised: teamAccounts.length,
 		auditLogDeleted: audit.length,
+		guestNotesDeleted: notes.length,
 	};
 	jobLogger.info(result, '[Purge Job] Personal data retention applied');
 	return result;
