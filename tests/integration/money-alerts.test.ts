@@ -559,7 +559,7 @@ describe('dispute_open alerts', () => {
 			currency: 'EUR',
 			href: `https://dashboard.stripe.com/test/disputes/${(await testDb.query.disputes.findFirst({ where: eq(disputes.paymentId, first.payment.id) }))!.stripeDisputeId}`
 		});
-		expect(found[0].detail).toContain('product_unacceptable');
+		expect(found[0].detail).toContain('prestation contestée');
 		expect(found[0].detail).toContain('réponse attendue avant le');
 	});
 
