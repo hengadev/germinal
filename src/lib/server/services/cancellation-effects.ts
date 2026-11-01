@@ -58,6 +58,9 @@ export async function refundAfterCancellation(
 			.set({
 				refundedAmount: sql`${payments.refundedAmount} + ${refund.amount}`,
 				status: sql`CASE WHEN ${payments.refundedAmount} + ${refund.amount} >= ${payments.amount} THEN 'refunded'::payment_status ELSE 'partially_refunded'::payment_status END`,
+				// Issue 042: a success clears any recorded refund failure, so the
+				// « À traiter » alert disappears.
+				lastError: null,
 				updatedAt: new Date(),
 			})
 			.where(and(eq(payments.id, payment.id), eq(payments.refundedAmount, payment.refundedAmount)));
