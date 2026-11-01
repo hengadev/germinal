@@ -777,6 +777,11 @@ export async function getReservationById(id: string): Promise<ReservationWithDet
 							cityFr: true,
 							countryEn: true,
 							countryFr: true,
+							// Issue 047: the Admin party-size dialog's refund suggestion.
+							refundPolicyType: true,
+							refundPolicyTextEn: true,
+							refundPolicyTextFr: true,
+							refundPolicyTiers: true,
 						},
 					},
 				},
