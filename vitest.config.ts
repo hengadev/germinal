@@ -3,6 +3,7 @@ import { svelte } from '@sveltejs/vite-plugin-svelte';
 import path from 'path';
 
 export default defineConfig({
+
 	plugins: [svelte({ hot: !process.env.VITEST })],
 	test: {
 		// Never call DeepL from tests, whatever the developer's .env holds
@@ -39,8 +40,14 @@ export default defineConfig({
 		},
 	},
 	resolve: {
+		// Components render client-side in the jsdom tests; without this the
+		// Svelte plugin compiles them for the server (`mount` unavailable).
+		conditions: ['browser'],
 		alias: {
 			$lib: path.resolve('./src/lib'),
+			// SvelteKit virtual module: a no-op stub, so components using
+			// `enhance` can render in the jsdom component tests (issue 046).
+			'$app/forms': path.resolve('./tests/fixtures/app-forms.ts'),
 			$server: path.resolve('./src/lib/server'),
 		},
 	},
