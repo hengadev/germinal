@@ -60,7 +60,7 @@
 						</h2>
 						<p class="text-sm text-muted-foreground">{group.whatToDo}</p>
 					</div>
-					<div class="bg-background rounded-lg border border-border-card overflow-hidden">
+					<div class="bg-background rounded-lg border border-border-card overflow-x-auto">
 						<table class="w-full text-sm">
 							<thead>
 								<tr class="border-b border-border-card text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">

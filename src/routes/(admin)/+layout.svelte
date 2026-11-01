@@ -407,6 +407,31 @@
 
         <!-- Menu Items -->
         <a
+            href="/admin/a-traiter"
+            onclick={() => (mobileMenuOpen = false)}
+            class="flex items-center gap-3 px-4 py-3 text-foreground-alt hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+        >
+            <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+            >
+                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
+                <path d="M12 9v4" />
+                <path d="M12 17h.01" />
+            </svg>
+            <span class="text-sm font-medium">À traiter</span>
+            {#if data.moneyAlertsTotal > 0}
+                <span class="ml-auto rounded-full bg-red-600 text-white text-xs font-semibold px-2 py-0.5 min-w-5 text-center">{data.moneyAlertsTotal}</span>
+            {/if}
+        </a>
+        <a
             href="/admin/settings"
             onclick={() => (mobileMenuOpen = false)}
             class="flex items-center gap-3 px-4 py-3 text-foreground-alt hover:text-foreground hover:bg-muted rounded-lg transition-colors"
