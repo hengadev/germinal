@@ -195,36 +195,39 @@
 		</div>
 	</form>
 
-	<!-- Aperçu et test : mêmes champs, actions propres. -->
-	<form method="POST" action="?/previewThankYou" use:enhance={previewEnhance} class="pt-6">
-		<input type="hidden" name="thankYouEnabled" value={thankYouEnabled ? 'true' : 'false'} />
-		<input type="hidden" name="thankYouMessageFr" value={thankYouMessageFr} />
-		<input type="hidden" name="thankYouMessageEn" value={thankYouMessageEn} />
-		<input type="hidden" name="thankYouLinkUrl" value={thankYouLinkUrl} />
-		<input type="hidden" name="thankYouLinkLabelFr" value={thankYouLinkLabelFr} />
-		<input type="hidden" name="thankYouLinkLabelEn" value={thankYouLinkLabelEn} />
-		<button
-			type="submit"
-			class="px-4 py-2 border border-border-input rounded-lg hover:bg-muted focus:outline-none focus:ring-2 focus:ring-foreground transition-colors text-sm font-medium"
-		>
-			Aperçu de l'e-mail
-		</button>
-	</form>
-	<form method="POST" action="?/testThankYou" use:enhance={testEnhance} class="pt-3">
-		<input type="hidden" name="thankYouEnabled" value={thankYouEnabled ? 'true' : 'false'} />
-		<input type="hidden" name="thankYouMessageFr" value={thankYouMessageFr} />
-		<input type="hidden" name="thankYouMessageEn" value={thankYouMessageEn} />
-		<input type="hidden" name="thankYouLinkUrl" value={thankYouLinkUrl} />
-		<input type="hidden" name="thankYouLinkLabelFr" value={thankYouLinkLabelFr} />
-		<input type="hidden" name="thankYouLinkLabelEn" value={thankYouLinkLabelEn} />
-		<button
-			type="submit"
-			disabled={testing}
-			class="px-4 py-2 border border-border-input rounded-lg hover:bg-muted focus:outline-none focus:ring-2 focus:ring-foreground transition-colors text-sm font-medium disabled:opacity-60"
-		>
-			{testing ? 'Envoi…' : "M'envoyer un test"}
-		</button>
-	</form>
+	<!-- Aperçu et test : mêmes champs, actions propres. `data-editor-skip`:
+	     never an editor save unit, so « Enregistrer » never sends a test. -->
+	<div class="flex flex-wrap gap-3 pt-6">
+		<form method="POST" action="?/previewThankYou" use:enhance={previewEnhance} data-editor-skip>
+			<input type="hidden" name="thankYouEnabled" value={thankYouEnabled ? 'true' : 'false'} />
+			<input type="hidden" name="thankYouMessageFr" value={thankYouMessageFr} />
+			<input type="hidden" name="thankYouMessageEn" value={thankYouMessageEn} />
+			<input type="hidden" name="thankYouLinkUrl" value={thankYouLinkUrl} />
+			<input type="hidden" name="thankYouLinkLabelFr" value={thankYouLinkLabelFr} />
+			<input type="hidden" name="thankYouLinkLabelEn" value={thankYouLinkLabelEn} />
+			<button
+				type="submit"
+				class="px-4 py-2 border border-border-input rounded-lg hover:bg-muted focus:outline-none focus:ring-2 focus:ring-foreground transition-colors text-sm font-medium"
+			>
+				Aperçu de l'e-mail
+			</button>
+		</form>
+		<form method="POST" action="?/testThankYou" use:enhance={testEnhance} data-editor-skip>
+			<input type="hidden" name="thankYouEnabled" value={thankYouEnabled ? 'true' : 'false'} />
+			<input type="hidden" name="thankYouMessageFr" value={thankYouMessageFr} />
+			<input type="hidden" name="thankYouMessageEn" value={thankYouMessageEn} />
+			<input type="hidden" name="thankYouLinkUrl" value={thankYouLinkUrl} />
+			<input type="hidden" name="thankYouLinkLabelFr" value={thankYouLinkLabelFr} />
+			<input type="hidden" name="thankYouLinkLabelEn" value={thankYouLinkLabelEn} />
+			<button
+				type="submit"
+				disabled={testing}
+				class="px-4 py-2 border border-border-input rounded-lg hover:bg-muted focus:outline-none focus:ring-2 focus:ring-foreground transition-colors text-sm font-medium disabled:opacity-60"
+			>
+				{testing ? 'Envoi…' : "M'envoyer un test"}
+			</button>
+		</form>
+	</div>
 
 	{#if previewFr !== null || previewEn !== null}
 		<div class="mt-6 grid gap-4 lg:grid-cols-2">
