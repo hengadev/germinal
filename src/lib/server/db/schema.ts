@@ -212,6 +212,16 @@ export const events = pgTable('events', {
     // for its Portfolio project page, which leads with it.
     recapEn: text('recap_en'),
     recapFr: text('recap_fr'),
+    // Post-event Thank-you (issue 054): a message mailed the morning after
+    // each Day to the Guests who came (see send-thank-you-emails). Off by
+    // default; the message falls back to the other language when one is
+    // empty, and the optional link is an http(s) URL.
+    thankYouEnabled: boolean('thank_you_enabled').notNull().default(false),
+    thankYouMessageEn: text('thank_you_message_en'),
+    thankYouMessageFr: text('thank_you_message_fr'),
+    thankYouLinkUrl: varchar('thank_you_link_url', { length: 500 }),
+    thankYouLinkLabelEn: varchar('thank_you_link_label_en', { length: 200 }),
+    thankYouLinkLabelFr: varchar('thank_you_link_label_fr', { length: 200 }),
     // Staff Brief (issue 032): the general part every assigned Staff
     // member sees in the portal; each role's part lives in
     // event_role_briefs.
@@ -775,6 +785,9 @@ export const reservations = pgTable('reservations', {
     cancelledAt: timestamp('cancelled_at', { withTimezone: true }),
     reminderSent1Week: boolean('reminder_sent_1_week').default(false).notNull(),
     reminderSent1Day: boolean('reminder_sent_1_day').default(false).notNull(),
+    // Issue 054: when the post-event Thank-you was mailed, so each Guest
+    // is thanked at most once. Null: not yet thanked.
+    thankYouSentAt: timestamp('thank_you_sent_at', { withTimezone: true }),
     isComp: boolean('is_comp').default(false).notNull(),
     // Issue 020: where the Reservation came from, and which Staff member
     // made it when it didn't come from the site. 'walk_in' marks a party

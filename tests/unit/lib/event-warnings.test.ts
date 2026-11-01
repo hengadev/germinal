@@ -401,7 +401,7 @@ describe('savedEventWarnings (issue 013)', () => {
 });
 
 describe('eventCompleteness (issue 013)', () => {
-	it('groups the warnings per tab, the eight Event tabs in the editor’s order', () => {
+	it('groups the warnings per tab, the editor’s Event tabs in order', () => {
 		const completeness = eventCompleteness(eventWarnings({}));
 		expect(completeness.tabs.map((tab) => tab.tab)).toEqual([
 			'essentiel',
@@ -411,11 +411,12 @@ describe('eventCompleteness (issue 013)', () => {
 			'programme',
 			'visuels',
 			'pratique',
+			'apres-evenement',
 			'portfolio',
 		]);
 		// A tab no warning touches holds nothing.
 		expect(completeness.tabs.find((tab) => tab.tab === 'programme')?.warnings).toEqual([]);
-		expect(completeness.tabs.find((tab) => tab.tab === 'pratique')?.warnings).toEqual([]);
+		expect(completeness.tabs.find((tab) => tab.tab === 'apres-evenement')?.warnings).toEqual([]);
 	});
 
 	it('labels each tab as the editor does', () => {
@@ -427,6 +428,7 @@ describe('eventCompleteness (issue 013)', () => {
 			'Programme',
 			'Visuels',
 			'Infos pratiques',
+			'Après l’événement',
 			'Portfolio',
 		]);
 	});
