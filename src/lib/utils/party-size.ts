@@ -79,7 +79,9 @@ export function quotePartySize(input: PartySizeInput, newQuantity: number): Part
 	}
 
 	const pricePerGuest = Math.round(input.total / input.quantity);
-	const total = input.total + (newQuantity - input.quantity) * pricePerGuest;
+	// Scaled from the total rather than added per Guest, so going back to
+	// the original number gives back the original total, cent for cent.
+	const total = Math.round((input.total * newQuantity) / input.quantity);
 	// Removals come off the Balance first, never below 0.
 	const balance = Math.max(input.balance + (total - input.total), 0);
 	// Beyond the Balance, the change eats into the Deposit already paid:

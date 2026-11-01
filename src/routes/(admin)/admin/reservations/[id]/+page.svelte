@@ -3,7 +3,7 @@
 	import type { PageData, ActionData } from './$types';
 	import { formatCurrency } from '$lib/utils/currency';
 	import { reservationAmounts, balanceToCollect } from '$lib/utils/balance-due';
-import PartySizeChange from '$lib/components/admin/PartySizeChange.svelte';
+	import PartySizeChange from '$lib/components/admin/PartySizeChange.svelte';
 	import QRCode from 'qrcode';
 	import { enhance } from '$app/forms';
 	import { env } from '$env/dynamic/public';
@@ -720,16 +720,18 @@ END:VCALENDAR`;
 						{/if}
 					{/if}
 
-				<!-- Modifier le nombre (issue 046): a confirmed Reservation's
-				     number of Guests, with the live quote and capacity warning. -->
-				<PartySizeChange
-					reservation={data.reservation}
-					party={data.party}
-					onsuccess={(message) => { form = { success: message }; }}
-					onerror={(error) => { form = { error }; }}
-				/>
+					<!-- Modifier le nombre (issue 046): a confirmed Reservation's
+					     number of Guests, with the live quote and capacity warning. -->
+					{#if data.reservation.status === 'confirmed'}
+						<PartySizeChange
+							reservation={data.reservation}
+							party={data.party}
+							onsuccess={(message) => { form = { success: message }; }}
+							onerror={(error) => { form = { error }; }}
+						/>
+					{/if}
 
-				<!-- Goodwill refund on an already-cancelled Reservation with
+					<!-- Goodwill refund on an already-cancelled Reservation with
 					     something left to refund (the cancel screen refunds
 					     an active one). -->
 					{#if data.reservation.status === 'cancelled' && canRefund}

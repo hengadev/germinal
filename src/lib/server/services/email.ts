@@ -906,7 +906,7 @@ Réservation modifiée
 Bonjour ${data.guestName},
 
 ${data.partyChange
-		? `Le nombre de personnes de votre réservation pour ${data.eventTitle} a été modifié : vous êtes désormais ${data.partyChange.quantity} personnes.
+		? `Le nombre de personnes de votre réservation pour ${data.eventTitle} a été modifié : vous êtes désormais ${data.partyChange.quantity} personne${data.partyChange.quantity > 1 ? 's' : ''}.
 
 ${data.partyChange.balanceDue > 0
 			? `Reste à payer sur place : ${money(data.partyChange.balanceDue)}`
@@ -936,7 +936,7 @@ Reservation Modified
 Hi ${data.guestName},
 
 ${data.partyChange
-		? `The number of people on your reservation for ${data.eventTitle} has been changed: you are now ${data.partyChange.quantity} people.
+		? `The number of people on your reservation for ${data.eventTitle} has been changed: you are now ${data.partyChange.quantity} ${data.partyChange.quantity > 1 ? 'people' : 'person'}.
 
 ${data.partyChange.balanceDue > 0
 			? `Left to pay on site: ${money(data.partyChange.balanceDue)}`
@@ -983,13 +983,13 @@ function generateModifiedHtmlTemplate(data: ModifiedEmailData): string {
     <p style="margin: 0 0 16px 0; font-size: 16px;">${lang === 'fr' ? `Bonjour ${escapeHtml(data.guestName)},` : `Hi ${escapeHtml(data.guestName)},`}</p>
     <p style="margin: 0 0 16px 0; font-size: 16px;">
       ${lang === 'fr'
-		? `Le nombre de personnes de votre réservation pour <strong>${escapeHtml(data.eventTitle)}</strong> a été modifié : vous êtes désormais <strong>${data.partyChange.quantity}</strong> personnes.`
-		: `The number of people on your reservation for <strong>${escapeHtml(data.eventTitle)}</strong> has been changed: you are now <strong>${data.partyChange.quantity}</strong> people.`}
+		? `Le nombre de personnes de votre réservation pour <strong>${escapeHtml(data.eventTitle)}</strong> a été modifié : vous êtes désormais <strong>${data.partyChange.quantity}</strong> personne${data.partyChange.quantity > 1 ? 's' : ''}.`
+		: `The number of people on your reservation for <strong>${escapeHtml(data.eventTitle)}</strong> has been changed: you are now <strong>${data.partyChange.quantity}</strong> ${data.partyChange.quantity > 1 ? 'people' : 'person'}.`}
     </p>
 
     <div style="background-color: #f8f9fa; border-radius: 6px; padding: 16px; margin: 0 0 16px 0;">
       <p style="margin: 0; font-size: 15px;">
-        <strong>${lang === 'fr' ? 'Reste à payer sur place' : 'Left to pay on site'} :</strong> ${money(data.partyChange.balanceDue)}
+        <strong>${lang === 'fr' ? 'Reste à payer sur place :' : 'Left to pay on site:'}</strong> ${money(data.partyChange.balanceDue)}
       </p>
     </div>
 

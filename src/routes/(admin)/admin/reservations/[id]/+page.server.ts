@@ -410,9 +410,9 @@ export const actions: Actions = {
 			return {
 				success: true,
 				message:
-					`Nombre modifié : ${result.quantity} personnes, ` +
+					`Nombre modifié : ${result.quantity} personne${result.quantity > 1 ? 's' : ''}, ` +
 					`reste à payer sur place ${formatCurrency(result.balance, result.currency, 'fr-FR')}` +
-					(result.overflow > 0 ? ` — ${result.overflow} places au-delà de la capacité` : ''),
+					(result.overflow > 0 ? ` — ${result.overflow} place${result.overflow > 1 ? 's' : ''} au-delà de la capacité` : ''),
 			};
 		} catch (err) {
 			const { logger } = await import('$lib/server/logger');
