@@ -175,7 +175,9 @@ async function balanceUnsettledAlerts(now: Date): Promise<MoneyAlert[]> {
 				// The Day is over: it ended at 6 a.m. the next morning, Event time.
 				wallClockToInstant(row.day, DAY_END_MINUTES + 24 * 60, row.timeZone).getTime() <=
 					now.getTime() &&
-				(arrivedByReservation.get(row.reservationId) ?? 0) > 0
+				(arrivedByReservation.get(row.reservationId) ?? 0) > 0 &&
+				// Only the last 30 days (the SQL window is a day wider).
+				row.seatingStart.getTime() >= now.getTime() - 30 * 24 * 3_600_000
 		)
 		.map((row) => ({
 			kind: 'balance_unsettled' as const,
