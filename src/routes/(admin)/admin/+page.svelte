@@ -107,9 +107,10 @@
 					<p class="text-sm font-medium text-foreground">
 						{data.moneyAlerts.total}
 						{data.moneyAlerts.total > 1 ? 'réservations à traiter' : 'réservation à traiter'}
-						{#each Object.entries(data.moneyAlerts.byKind).filter(([k, n]) => (n ?? 0) > 0 && alertKindLabels[k]) as [k, n] (k)}
-							— dont {alertKindLabels[k](n ?? 0)}
-						{/each}
+						— dont {Object.entries(data.moneyAlerts.byKind)
+							.filter(([k, n]) => (n ?? 0) > 0 && alertKindLabels[k])
+							.map(([k, n]) => alertKindLabels[k](n ?? 0))
+							.join(', ')}
 					</p>
 				</div>
 				<a

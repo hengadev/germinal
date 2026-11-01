@@ -239,6 +239,18 @@ async function refundedButActiveAlerts(): Promise<MoneyAlert[]> {
 		.sort((a: MoneyAlert, b: MoneyAlert) => a.seatingStart.getTime() - b.seatingStart.getTime());
 }
 
+/** Stripe's dispute reasons, in French; unknown ones stay as Stripe says. */
+const DISPUTE_REASONS_FR: Record<string, string> = {
+	fraudulent: 'fraude',
+	duplicate: 'paiement en double',
+	product_not_received: 'prestation non reçue',
+	product_unacceptable: 'prestation contestée',
+	unrecognized: 'paiement non reconnu',
+	credit_not_processed: 'remboursement non reçu',
+	subscription_canceled: 'abonnement annulé',
+	general: 'motif général'
+};
+
 /** The dispute's Stripe dashboard URL (with /test in test mode). */
 function stripeDisputeUrl(stripeDisputeId: string): string {
 	const prefix = env.STRIPE_SECRET_KEY.startsWith('sk_test_') ? '/test' : '';
@@ -298,7 +310,7 @@ async function disputeOpenAlerts(): Promise<MoneyAlert[]> {
 			seatingStart: row.seatingStart,
 			amount: row.amount,
 			currency: row.currency,
-			detail: `${row.reason ?? 'dispute'}${deadline}`,
+			detail: `${row.reason ? (DISPUTE_REASONS_FR[row.reason] ?? row.reason) : 'litige'}${deadline}`,
 			href: stripeDisputeUrl(row.stripeDisputeId)
 		};
 	});
