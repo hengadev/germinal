@@ -142,16 +142,6 @@ const handleRequest: Handle = async ({ event, resolve }) => {
 				.replace(
 					/<meta name="apple-mobile-web-app-title" content="Germinal" \/>/,
 					`<meta name="apple-mobile-web-app-title" content="${appleTouchTitle}" />`
-				)
-				// The Staff portal draws to the screen's edges so that
-				// env(safe-area-inset-*) is set: its bottom bar and sheets
-				// sit above the iPhone's home indicator. The other sites
-				// keep the default viewport.
-				.replace(
-					/<meta name="viewport" content="width=device-width, initial-scale=1" \/>/,
-					event.locals.isStaffDomain
-						? '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />'
-						: '$&'
 				);
 		}
 	});

@@ -31,7 +31,7 @@
 		</button>
 	{/if}
 
-	<nav class="bg-foreground dark:bg-black dark:border-t dark:border-border-card pb-[max(0.25rem,env(safe-area-inset-bottom))]" aria-label="Navigation mobile">
+	<nav class="bg-foreground dark:bg-black dark:border-t dark:border-border-card pb-1 [@media(display-mode:standalone)]:pb-6" aria-label="Navigation mobile">
 		<div class="flex items-stretch">
 			<a
 				href="/staff?liste"
