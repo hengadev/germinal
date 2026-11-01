@@ -431,28 +431,21 @@ async function sendConfirmedTicket(reservationId: string) {
 export async function createCompReservation(input: CreateCompReservationInput) {
 	const created = await db.transaction(async (tx: typeof db) => {
 		// Issue 045: a Comp goes through on a full Seating, like a Walk-in.
-		// Publication and start time are still refused here — the overflow
-		// helper allows both, unlike the Guest checkout.
-		const [before] = await tx
-			.select({
-				published: eventSessions.published,
-				startTime: eventSessions.startTime,
-				availableCapacity: eventSessions.availableCapacity
-			})
-			.from(eventSessions)
-			.where(eq(eventSessions.id, input.sessionId));
-		if (!before || !before.published) {
+		// The helper locks the row and returns it as it was before the
+		// decrement; publication and start time are still refused here (a
+		// throw rolls the decrement back), unlike a Walk-in.
+		const session = await lockAndDecrementSeatingAllowingOverflow(tx, input.sessionId, input.quantity);
+		if (!session.published) {
 			throw new Error('Session not found or not published');
 		}
-		if (before.startTime <= new Date()) {
+		if (session.startTime <= new Date()) {
 			throw new Error('Cannot book tickets for a session that has already started');
 		}
 		// Seats beyond the available count, 0 when within or without a limit.
 		const overflowSeats =
-			before.availableCapacity !== null && before.availableCapacity < input.quantity
-				? input.quantity - before.availableCapacity
+			session.availableCapacity !== null && session.availableCapacity < input.quantity
+				? input.quantity - session.availableCapacity
 				: 0;
-		const session = await lockAndDecrementSeatingAllowingOverflow(tx, input.sessionId, input.quantity);
 		// Nothing is charged; the currency follows the Seating's price
 		// (EUR while its Service has none yet).
 		const price = await getSeatingPrice(tx, session.id);

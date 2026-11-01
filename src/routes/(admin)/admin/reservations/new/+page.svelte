@@ -26,7 +26,7 @@
 			hour: '2-digit',
 			minute: '2-digit'
 		});
-		const seats = session.availableCapacity === null ? 'sans limite' : `${session.availableCapacity} place(s) restante(s)`;
+		const seats = session.availableCapacity === null ? 'sans limite' : session.availableCapacity === 0 ? 'complet' : `${session.availableCapacity} place(s) restante(s)`;
 		return `${session.eventTitle} — ${session.titleEn} (${date}) · ${seats}`;
 	}
 
