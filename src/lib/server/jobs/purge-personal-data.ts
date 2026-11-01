@@ -7,6 +7,7 @@ import {
 	guestNotes,
 	reservations,
 	sessions,
+	subscribers,
 	users,
 	waitlist,
 } from '../db/schema';
@@ -43,6 +44,8 @@ export const RETENTION = {
 	deactivatedTeamAccountDays: 365,
 	/** Admin action log (who did what), from the action. */
 	auditLogDays: 3 * 365,
+	/** An unsubscribed newsletter address (issue 052), from the unsubscribe. */
+	unsubscribedSubscriberDays: 30,
 } as const;
 
 /** Replaces the guest's email; the column is NOT NULL. */
@@ -62,6 +65,8 @@ export interface PurgePersonalDataResult {
 	auditLogDeleted: number;
 	/** Guest notes and tags (issue 050) left without an identity. */
 	guestNotesDeleted: number;
+	/** Unsubscribed newsletter addresses (issue 052). */
+	subscribersDeleted: number;
 }
 
 function daysAgo(days: number, now: Date): Date {
@@ -189,6 +194,18 @@ export async function purgePersonalData(now: Date = new Date()): Promise<PurgePe
 		.where(lt(auditLog.createdAt, daysAgo(RETENTION.auditLogDays, now)))
 		.returning({ id: auditLog.id });
 
+	// Newsletter (issue 052): an unsubscribed address goes 30 days after
+	// the unsubscribe — the privacy page says so.
+	const unsubscribed = await db
+		.delete(subscribers)
+		.where(
+			and(
+				isNotNull(subscribers.unsubscribedAt),
+				lt(subscribers.unsubscribedAt, daysAgo(RETENTION.unsubscribedSubscriberDays, now))
+			)
+		)
+		.returning({ id: subscribers.id });
+
 	// Guest notes and tags (issue 050) are personal data: they go once no
 	// non-anonymised Reservation with that email remains. Runs last, after
 	// the anonymisation above, so a just-purged identity takes its notes
@@ -216,6 +233,7 @@ export async function purgePersonalData(now: Date = new Date()): Promise<PurgePe
 		teamAccountsAnonymised: teamAccounts.length,
 		auditLogDeleted: audit.length,
 		guestNotesDeleted: notes.length,
+		subscribersDeleted: unsubscribed.length,
 	};
 	jobLogger.info(result, '[Purge Job] Personal data retention applied');
 	return result;
