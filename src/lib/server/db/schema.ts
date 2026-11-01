@@ -1089,10 +1089,6 @@ export const checkIns = pgTable('check_ins', {
 // AUDIT LOG TABLE
 // ============================================
 
-// Records who performed a destructive/sensitive admin action, what the
-// action was, which entity it affected, and when. Kept intentionally
-// lightweight (single table, single insert helper) for v1 - no
-// filtering/search UI is required yet.
 export const guestNotes = pgTable('guest_notes', {
     // The Guest's normalised email (issue 050): one row per Guest,
     // created on the first note or tag.
@@ -1106,6 +1102,10 @@ export const guestNotes = pgTable('guest_notes', {
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
+// Records who performed a destructive/sensitive admin action, what the
+// action was, which entity it affected, and when. Kept intentionally
+// lightweight (single table, single insert helper) for v1 - no
+// filtering/search UI is required yet.
 export const auditLog = pgTable('audit_log', {
     id: uuid('id').defaultRandom().primaryKey(),
     // Nullable + set-null on delete so the audit trail survives the

@@ -31,7 +31,18 @@
 		});
 	}
 
-	const tagsValue = $derived((form?.tags ?? data.guest.tags ?? []).join(', '));
+	// Editable, so a suggestion can be added to what is typed.
+	let tagsValue = $state('');
+	$effect.pre(() => {
+		tagsValue = (form?.tags ?? data.guest.tags ?? []).join(', ');
+	});
+	const typedTags = $derived(tagsValue.split(',').map((t) => t.trim().toLowerCase()).filter(Boolean));
+	const unusedSuggestions = $derived(data.tagSuggestions.filter((t) => !typedTags.includes(t.toLowerCase())));
+
+	function addTag(tag: string) {
+		const current = tagsValue.split(',').map((t) => t.trim()).filter(Boolean);
+		tagsValue = [...current, tag].join(', ');
+	}
 	const noteValue = $derived(form?.note ?? data.guest.notes?.note ?? '');
 
 	const statusLabels: Record<string, string> = {
@@ -127,27 +138,26 @@
 			</div>
 			<div>
 				<label for="{uid}-tags" class="block text-sm font-medium text-foreground-alt mb-1">Tags (séparés par des virgules, 5 max)</label>
-				<datalist id="{uid}-tag-options">
-					{#each data.tagSuggestions as tag (tag)}
-						<option value={tag}></option>
-					{/each}
-				</datalist>
 				<div class="relative">
 					<Tag size={18} class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
 					<input
 						id="{uid}-tags"
 						type="text"
 						name="tags"
-						value={tagsValue}
-						list="{uid}-tag-options"
+						bind:value={tagsValue}
 						placeholder="Habitué, VIP…"
 						class="w-full pl-10 pr-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
 					/>
 				</div>
-				{#if data.guest.tags.length > 0}
-					<div class="mt-2 flex flex-wrap gap-1">
-						{#each data.guest.tags as tag (tag)}
-							<span class="inline-block px-2 py-0.5 rounded-full bg-muted text-xs text-foreground-alt">{tag}</span>
+				{#if unusedSuggestions.length > 0}
+					<div class="mt-2 flex flex-wrap items-center gap-1">
+						<span class="text-xs text-muted-foreground mr-1">Ajouter :</span>
+						{#each unusedSuggestions as tag (tag)}
+							<button
+								type="button"
+								onclick={() => addTag(tag)}
+								class="px-2 py-0.5 rounded-full border border-border-input text-xs text-foreground-alt hover:bg-muted"
+							>+ {tag}</button>
 						{/each}
 					</div>
 				{/if}

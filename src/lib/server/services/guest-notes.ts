@@ -5,9 +5,19 @@
  * text); the personal-data purge job deletes a row once no
  * non-anonymised Reservation with that email remains.
  */
+import { createHash } from 'node:crypto';
 import { eq, inArray, sql } from 'drizzle-orm';
 import { db } from '../db';
 import { guestNotes, users } from '../db/schema';
+
+/**
+ * The audit log's id for a Guest: a short SHA-256 of the normalised email.
+ * Never the email nor the URL key (base64, reversible), so the log keeps
+ * no personal data and outlives an erasure (issue 055).
+ */
+export function guestAuditId(email: string): string {
+	return 'sha256:' + createHash('sha256').update(email).digest('hex').slice(0, 16);
+}
 
 /** At most 5 tags per Guest, each up to 30 characters. */
 export const MAX_GUEST_TAGS = 5;

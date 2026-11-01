@@ -134,7 +134,6 @@
 					<thead class="bg-muted border-b border-border-card">
 						<tr>
 							<th class="px-6 py-4 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">Client</th>
-							<th class="px-6 py-4 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">Tags</th>
 							<th class="px-6 py-4 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">Visites</th>
 							<th class="px-6 py-4 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">Invités arrivés</th>
 							<th class="px-6 py-4 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">No-shows</th>
@@ -149,6 +148,13 @@
 								<td class="px-6 py-4">
 									<a href="/admin/clients/{guestKeyFromEmail(guest.email)}" class="font-medium text-foreground hover:underline">{guest.name}</a>
 									<p class="text-sm text-muted-foreground">{guest.email}</p>
+									{#if guest.tags.length > 0}
+										<div class="mt-1 flex flex-wrap gap-1">
+											{#each guest.tags as tag (tag)}
+												<span class="inline-block px-2 py-0.5 rounded-full bg-muted text-xs text-foreground-alt">{tag}</span>
+											{/each}
+										</div>
+									{/if}
 								</td>
 								<td class="px-6 py-4 text-foreground">{guest.visits}</td>
 								<td class="px-6 py-4 text-foreground">{guest.guestsArrived}</td>

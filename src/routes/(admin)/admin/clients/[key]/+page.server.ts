@@ -3,6 +3,7 @@ import type { Actions, PageServerLoad } from './$types';
 import { requireAdmin } from '$lib/server/auth-guards';
 import { getGuest } from '$lib/server/services/guest-summary';
 import {
+	guestAuditId,
 	parseTags,
 	saveGuestNotes,
 	tagSuggestions
@@ -36,8 +37,8 @@ export const actions: Actions = {
 			adminId,
 			action: 'guest.notes.update',
 			entityType: 'guest',
-			// The URL-safe Guest key, not the raw email.
-			entityId: params.key,
+			// A hash: the URL key decodes back to the email.
+			entityId: guestAuditId(guest.email),
 			metadata: { tagCount: tags.length, noteCleared: note.trim().length === 0 }
 		});
 		return { success: true, note: undefined, tags: undefined };
