@@ -112,7 +112,7 @@ _Avoid_: Artist, creator, performer
 ### Booking Flow
 
 **Reservation**:
-The record created when a guest books one or more seats for a Seating. Holds guest identity, quantity, payment status, and an access token. One Reservation may cover several seats, up to the Seating's remaining capacity. On an Event without a Deposit it is also capped per Event (10 seats by default, set by the Admin); on an Event with a Deposit there is no cap. Comps an Admin issues ignore the cap.
+The record created when a guest books one or more seats for a Seating. Holds guest identity, quantity, payment status, and an access token. One Reservation may cover several seats, up to the Seating's remaining capacity. On an Event without a Deposit it is also capped per Event (10 seats by default, set by the Admin); on an Event with a Deposit there is no cap. Comps an Admin issues ignore the cap. The number of Guests can be changed by an Admin (or Staff with the permission), with Guests added paying on site.
 _Avoid_: Booking (use as a verb only), order, purchase
 
 **Move**:
