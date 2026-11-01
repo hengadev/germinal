@@ -146,7 +146,7 @@ export async function changeGuests(input: {
 					Math.min(input.refundAmount ?? 0, quote.quote.overPaid, refundableAmount(paymentRow))
 			)
 			: 0;
-		if (refund.amount > 0) {
+		if (refund.amount > 0 && paymentRow) {
 			refund.payment = {
 				id: paymentRow.id,
 				stripePaymentIntentId: paymentRow.stripePaymentIntentId,
@@ -186,6 +186,10 @@ export async function changeGuests(input: {
 				quantity,
 				totalAmount: quote.quote.total,
 				balanceAmount: quote.quote.balance,
+				// The Deposit shrinks with an over-paid change (issue 047): the
+				// constraint wants deposit + balance = total, and what is over-
+				// paid is refunded, so everything left is Deposit.
+				depositAmount: quote.quote.total - quote.quote.balance,
 				updatedAt: now,
 				...settled,
 			})
