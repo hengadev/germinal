@@ -63,7 +63,7 @@
 						—
 					{:else}
 						{#each guest.amounts as amount (amount.currency)}
-							<div>{formatCurrency(amount.net, amount.currency)}</div>
+							<div>{formatCurrency(amount.net, amount.currency, 'fr-FR')}</div>
 						{/each}
 					{/if}
 				</dd>
@@ -106,7 +106,7 @@
 							<td class="px-6 py-4 text-foreground">{reservation.quantity}</td>
 							<td class="px-6 py-4 text-foreground">{statusLabels[reservation.status] ?? reservation.status}</td>
 							<td class="px-6 py-4 text-foreground">{reservation.guestsArrived}</td>
-							<td class="px-6 py-4 text-foreground">{formatCurrency(reservation.net, reservation.currency)}</td>
+							<td class="px-6 py-4 text-foreground">{formatCurrency(reservation.net, reservation.currency, 'fr-FR')}</td>
 						</tr>
 					{/each}
 				</tbody>
@@ -129,7 +129,7 @@
 					<span>Convives : {reservation.quantity}</span>
 					<span>{statusLabels[reservation.status] ?? reservation.status}</span>
 					<span>Arrivés : {reservation.guestsArrived}</span>
-					<span>{formatCurrency(reservation.net, reservation.currency)}</span>
+					<span>{formatCurrency(reservation.net, reservation.currency, 'fr-FR')}</span>
 				</div>
 			</a>
 		{/each}

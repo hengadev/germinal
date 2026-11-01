@@ -134,7 +134,7 @@
 										—
 									{:else}
 										{#each guest.amounts as amount (amount.currency)}
-											<div>{formatCurrency(amount.net, amount.currency)}</div>
+											<div>{formatCurrency(amount.net, amount.currency, 'fr-FR')}</div>
 										{/each}
 									{/if}
 								</td>
@@ -170,7 +170,7 @@
 					{#if guest.amounts.length > 0}
 						<p class="mt-1 text-sm text-foreground">
 							{#each guest.amounts as amount (amount.currency)}
-								<span class="mr-3">{formatCurrency(amount.net, amount.currency)}</span>
+								<span class="mr-3">{formatCurrency(amount.net, amount.currency, 'fr-FR')}</span>
 							{/each}
 						</p>
 					{/if}
