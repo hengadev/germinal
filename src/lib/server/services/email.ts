@@ -887,21 +887,45 @@ export interface ModifiedEmailData {
 	/** Issue 025: the Reservation's language. Null (unknown, Walk-ins,
 	 * older Reservations) falls back to English, as before. */
 	locale: 'fr' | 'en' | null;
+	/** Issue 046: set when the change is a party-size change (not a Move):
+	 * the new number of Guests and what is left to pay on site. */
+	partyChange?: {
+		quantity: number;
+		balanceDue: number;
+		currency: string;
+		/** Issue 047: refunded when the removal went past the Balance into
+		 * the Deposit already paid. */
+		refundedAmount?: number;
+	};
 }
 
 export function generateModifiedTextTemplate(data: ModifiedEmailData): string {
 	const lang = data.locale ?? 'en';
+	const money = (n: number) => formatCurrency(n, data.partyChange?.currency ?? 'EUR', currencyLocaleOf(lang));
 	if (lang === 'fr') {
 		return `
 Réservation modifiée
 
 Bonjour ${data.guestName},
 
-Votre réservation pour ${data.eventTitle} a été déplacée vers une autre séance.
+${data.partyChange
+		? `Le nombre de personnes de votre réservation pour ${data.eventTitle} a été modifié : vous êtes désormais ${data.partyChange.quantity} personne${data.partyChange.quantity > 1 ? 's' : ''}.
+
+${data.partyChange.balanceDue > 0
+			? `Reste à payer sur place : ${money(data.partyChange.balanceDue)}`
+			: 'Il ne reste rien à payer sur place.'}
+${data.partyChange.refundedAmount
+			? `Montant remboursé : ${money(data.partyChange.refundedAmount)}`
+			: ''}
+
+SÉANCE :
+${data.sessionTitle}
+${formatSeatingDateTime(data.sessionStartTime, data.timeZone, 'fr')}`
+		: `Votre réservation pour ${data.eventTitle} a été déplacée vers une autre séance.
 
 NOUVELLE SÉANCE :
 ${data.sessionTitle}
-${formatSeatingDateTime(data.sessionStartTime, data.timeZone, 'fr')}
+${formatSeatingDateTime(data.sessionStartTime, data.timeZone, 'fr')}`}
 
 Vos billets restent valables, inutile de réserver à nouveau :
 ${env.PUBLIC_URL}/tickets/${data.accessToken}
@@ -917,11 +941,24 @@ Reservation Modified
 
 Hi ${data.guestName},
 
-Your reservation for ${data.eventTitle} has been moved to another seating.
+${data.partyChange
+		? `The number of people on your reservation for ${data.eventTitle} has been changed: you are now ${data.partyChange.quantity} ${data.partyChange.quantity > 1 ? 'people' : 'person'}.
+
+${data.partyChange.balanceDue > 0
+			? `Left to pay on site: ${money(data.partyChange.balanceDue)}`
+			: 'There is nothing left to pay on site.'}
+${data.partyChange.refundedAmount
+			? `Amount refunded: ${money(data.partyChange.refundedAmount)}`
+			: ''}
+
+SEATING:
+${data.sessionTitle}
+${formatSeatingDateTime(data.sessionStartTime, data.timeZone, 'en')}`
+		: `Your reservation for ${data.eventTitle} has been moved to another seating.
 
 NEW SEATING:
 ${data.sessionTitle}
-${formatSeatingDateTime(data.sessionStartTime, data.timeZone, 'en')}
+${formatSeatingDateTime(data.sessionStartTime, data.timeZone, 'en')}`}
 
 Your tickets remain valid — no need to book again:
 ${env.PUBLIC_URL}/tickets/${data.accessToken}
@@ -935,6 +972,71 @@ This is an automated notification from Germinal.
 
 function generateModifiedHtmlTemplate(data: ModifiedEmailData): string {
 	const lang = data.locale ?? 'en';
+	const money = (n: number) => formatCurrency(n, data.partyChange?.currency ?? 'EUR', currencyLocaleOf(lang));
+	if (data.partyChange) {
+		return `
+<!DOCTYPE html>
+<html lang="${lang}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${lang === 'fr' ? 'Réservation modifiée' : 'Reservation Modified'}</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background-color: #f8f9fa; border-radius: 8px; padding: 24px; margin-bottom: 24px;">
+    <h2 style="margin: 0 0 8px 0; color: #1a1a1a; font-size: 24px;">${lang === 'fr' ? 'Réservation modifiée' : 'Reservation Modified'}</h2>
+    <p style="margin: 0; color: #6c757d; font-size: 14px;">${lang === 'fr' ? 'Réservation n°' : 'Reservation #'}${escapeHtml(data.reservationId.substring(0, 8))}</p>
+  </div>
+
+  <div style="background-color: #ffffff; border: 1px solid #e9ecef; border-radius: 8px; padding: 24px; margin-bottom: 16px;">
+    <p style="margin: 0 0 16px 0; font-size: 16px;">${lang === 'fr' ? `Bonjour ${escapeHtml(data.guestName)},` : `Hi ${escapeHtml(data.guestName)},`}</p>
+    <p style="margin: 0 0 16px 0; font-size: 16px;">
+      ${lang === 'fr'
+		? `Le nombre de personnes de votre réservation pour <strong>${escapeHtml(data.eventTitle)}</strong> a été modifié : vous êtes désormais <strong>${data.partyChange.quantity}</strong> personne${data.partyChange.quantity > 1 ? 's' : ''}.`
+		: `The number of people on your reservation for <strong>${escapeHtml(data.eventTitle)}</strong> has been changed: you are now <strong>${data.partyChange.quantity}</strong> ${data.partyChange.quantity > 1 ? 'people' : 'person'}.`}
+    </p>
+
+    <div style="background-color: #f8f9fa; border-radius: 6px; padding: 16px; margin: 0 0 16px 0;">
+      <p style="margin: 0; font-size: 15px;">
+        <strong>${lang === 'fr' ? 'Reste à payer sur place :' : 'Left to pay on site:'}</strong> ${money(data.partyChange.balanceDue)}
+      </p>
+      ${data.partyChange.refundedAmount
+		? `<p style="margin: 12px 0 0 0; font-size: 15px;">
+        <strong>${lang === 'fr' ? 'Montant remboursé :' : 'Amount refunded:'}</strong> ${money(data.partyChange.refundedAmount)}
+      </p>`
+		: ''}
+    </div>
+
+    <h3 style="margin: 24px 0 12px 0; color: #495057; font-size: 16px; font-weight: 600;">${lang === 'fr' ? 'Séance' : 'Seating'}</h3>
+    <table style="width: 100%; border-collapse: collapse;">
+      <tr>
+        <td style="padding: 8px 0; color: #212529;"><strong>${escapeHtml(data.sessionTitle)}</strong></td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0; color: #6c757d;">
+          ${formatSeatingDateTime(data.sessionStartTime, data.timeZone, lang)}
+        </td>
+      </tr>
+    </table>
+
+    <p style="margin: 24px 0 0 0;">
+      <a href="${env.PUBLIC_URL}/tickets/${data.accessToken}" style="display: inline-block; background-color: #1a1a1a; color: #ffffff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 600;">${lang === 'fr' ? 'Voir vos billets' : 'View your tickets'}</a>
+    </p>
+
+    <p style="margin: 24px 0 0 0; font-size: 14px; color: #6c757d;">
+      ${lang === 'fr' ? 'Vos billets restent valables — inutile de réserver à nouveau. Si vous avez des questions, n’hésitez pas à nous contacter.' : 'Your tickets remain valid — no need to book again. If you have any questions, please contact us.'}
+    </p>
+  </div>
+
+  <div style="border-top: 1px solid #e9ecef; padding-top: 16px;">
+    <p style="margin: 0; color: #6c757d; font-size: 12px; text-align: center;">
+      ${lang === 'fr' ? 'Ceci est une notification automatique de Germinal.' : 'This is an automated notification from Germinal.'}
+    </p>
+  </div>
+</body>
+</html>
+  `.trim();
+	}
 	if (lang === 'fr') {
 		return `
 <!DOCTYPE html>

@@ -7,7 +7,8 @@
 		ArrowRight,
 		Users,
 		BarChart3,
-		Plus
+		Plus,
+		AlertTriangle
 	} from 'lucide-svelte';
 	import type { PageData } from './$types';
 
@@ -41,6 +42,13 @@
 		if (total === 0) return 0;
 		return Math.round((reserved / total) * 100);
 	}
+	const alertKindLabels: Record<string, (n: number) => string> = {
+	refund_failed: (n) => `${n} remboursement${n > 1 ? 's' : ''} refusé${n > 1 ? 's' : ''}`,
+	paid_without_seat: (n) => `${n} paiement${n > 1 ? 's' : ''} sans place`,
+	refunded_but_active: (n) => `${n} réservation${n > 1 ? 's' : ''} remboursée${n > 1 ? 's' : ''} mais active${n > 1 ? 's' : ''}`,
+	dispute_open: (n) => `${n} litige${n > 1 ? 's' : ''} à répondre`,
+	balance_unsettled: (n) => `${n} solde${n > 1 ? 's' : ''} non réglé${n > 1 ? 's' : ''}`
+};
 </script>
 
 <svelte:head>
@@ -89,6 +97,32 @@
 			</a>
 		</div>
 	</div>
+
+	{#if data.moneyAlerts.total > 0}
+		<!-- Issue 042 : argent à traiter -->
+		<div class="mb-8 rounded-lg border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/20 p-5">
+			<div class="flex flex-wrap items-center justify-between gap-3">
+				<div class="flex items-center gap-3">
+					<AlertTriangle size={18} class="text-red-600 dark:text-red-400" />
+					<p class="text-sm font-medium text-foreground">
+						{data.moneyAlerts.total}
+						{data.moneyAlerts.total > 1 ? 'réservations à traiter' : 'réservation à traiter'}
+						— dont {Object.entries(data.moneyAlerts.byKind)
+							.filter(([k, n]) => (n ?? 0) > 0 && alertKindLabels[k])
+							.map(([k, n]) => alertKindLabels[k](n ?? 0))
+							.join(', ')}
+					</p>
+				</div>
+				<a
+					href="/admin/a-traiter"
+					class="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
+				>
+					<ArrowRight size={15} />
+					<span class="whitespace-nowrap">À traiter</span>
+				</a>
+			</div>
+		</div>
+	{/if}
 
 	<!-- Stats -->
 	<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">

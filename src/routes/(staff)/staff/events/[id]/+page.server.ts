@@ -20,6 +20,8 @@ import { getEventBrief } from '$lib/server/services/staff-brief';
 import { recordAuditLog } from '$lib/server/services/audit-log';
 import { moveReservation } from '$lib/server/services/moves';
 import { cancelParty, refundParty, withRefundInfo } from '$lib/server/services/party-cancel-refund';
+import { changeParty } from '$lib/server/services/party-size';
+import { withPartySizeInfo } from '$lib/server/services/day-guest-list';
 import { formatCurrency, parseAmountInput } from '$lib/utils/currency';
 
 // The scan result party, shaped once for the wire: only what the Scanner
@@ -101,6 +103,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			canWalkIn: access.can('walk_in'),
 			canComp: access.can('comp'),
 			canCancelRefund: access.can('cancel_refund'),
+			canChangeParty: access.can('change_party'),
 			canCloseBookings,
 			canInvite,
 		},
@@ -119,10 +122,11 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	};
 };
 
-/** The Day guest list, with each party's refund figures when the viewer can cancel/refund. */
+/** The Day guest list, with each party's refund figures when the viewer can cancel/refund, and its party-size figures when they can change the party's size. */
 async function loadArrivees(access: Awaited<ReturnType<typeof getStaffEventAccess>>, eventId: string) {
 	const list = await getDayGuestList(access, eventId);
-	if (list && access.can('cancel_refund')) return withRefundInfo(access, eventId, list);
+	if (list && access.can('cancel_refund')) await withRefundInfo(access, eventId, list);
+	if (list && access.can('change_party')) await withPartySizeInfo(access, eventId, list);
 	return list;
 }
 
@@ -479,6 +483,67 @@ export const actions: Actions = {
 		return { refundReservation: true, reservationId, message: result.message };
 	},
 
+	// « Modifier le nombre » (issue 048) : change le nombre de personnes
+	// d'une partie confirmée du Jour en cours. La permission et le Jour
+	// sont revérifiés sur le serveur, jamais depuis le client ; un
+	// remboursement du trop-perçu exige en plus cancel_refund.
+	changeParty: async ({ request, locals, params }) => {
+		if (!locals.user) return fail(401, { error: 'Non authentifié' });
+
+		const access = await getStaffEventAccess(locals.user, params.id);
+
+		const formData = await request.formData();
+		const reservationId = formData.get('reservationId');
+		if (!access.can('change_party')) {
+			return fail(403, {
+				error: "Vous n'avez pas la permission de modifier le nombre de personnes.",
+				reservationId
+			});
+		}
+		if (typeof reservationId !== 'string') {
+			return fail(400, { error: 'Requête invalide.' });
+		}
+
+		const quantity = Number(formData.get('quantity'));
+		if (!Number.isInteger(quantity) || quantity < 1) {
+			return fail(400, { error: 'Nombre de personnes invalide.', reservationId });
+		}
+
+		// Le remboursement du trop-perçu, en euros dans la feuille, en
+		// centimes ici — uniquement pour qui peut aussi annuler/rembourser.
+		let refundAmount: number | undefined;
+		if (access.can('cancel_refund')) {
+			const parsed = parseAmountInput(formData.get('refundAmount'));
+			if ('error' in parsed && parsed.error === 'invalid') {
+				return fail(400, { error: 'Montant de remboursement invalide.', reservationId });
+			}
+			if (!('error' in parsed)) refundAmount = parsed.cents;
+		}
+
+		const result = await changeParty({
+			access,
+			eventId: params.id,
+			reservationId,
+			quantity,
+			refundAmount,
+			actorId: locals.user.id,
+		});
+		if (!result.ok) return fail(422, { error: result.error, reservationId });
+		return {
+			changeParty: true,
+			reservationId,
+			message:
+				`Nombre modifié : ${result.quantity} personne${result.quantity > 1 ? 's' : ''}, ` +
+				`reste à payer sur place ${formatCurrency(result.balance, result.currency, 'fr-FR')}` +
+				(result.refunded > 0
+					? `, ${formatCurrency(result.refunded, result.currency, 'fr-FR')} remboursés`
+					: '') +
+				(result.overflow > 0
+					? ` — ${result.overflow} place${result.overflow > 1 ? 's' : ''} au-delà de la capacité`
+					: '')
+		};
+	},
+
 	// « Nouvelle réservation » (issue 040) : crée une invitation (un Comp)
 	// sur une séance à venir de cet événement et envoie le billet par
 	// email. La permission est revérifiée sur le serveur, jamais depuis le
@@ -552,9 +617,21 @@ export const actions: Actions = {
 				action: 'reservation.invite',
 				entityType: 'reservation',
 				entityId: result.reservation.id,
-				metadata: { seatingId, quantity, name }
+				metadata: {
+					seatingId,
+					quantity,
+					name,
+					// Issue 045 : l'invitation a pu dépasser la capacité.
+					overflowSeats: result.overflowSeats
+				}
 			});
-			return { invited: true, message: `Invitation envoyée à ${name}` };
+			// Issue 045 : la séance complète n'empêche plus l'invitation ; le
+			// dépassement est signalé.
+			const overflowSuffix =
+				result.overflowSeats > 0
+					? `, ${result.overflowSeats} place${result.overflowSeats > 1 ? 's' : ''} au-delà de la capacité`
+					: '';
+			return { invited: true, message: `Invitation créée pour ${name}${overflowSuffix}` };
 		} catch (err) {
 			return fail(422, {
 				error: err instanceof Error ? err.message : 'Échec de la création de l\u2019invitation.',

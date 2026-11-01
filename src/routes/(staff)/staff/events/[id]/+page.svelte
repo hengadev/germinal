@@ -10,6 +10,7 @@ import CloseBookings from '$lib/components/staff/event-menu/CloseBookings.svelte
 import Invite from '$lib/components/staff/event-menu/Invite.svelte';
 import SpotForm from '$lib/components/staff/event-menu/SpotForm.svelte';
 import CancelRefundSheet from '$lib/components/staff/arrivees/CancelRefundSheet.svelte';
+import PartySizeSheet from '$lib/components/staff/arrivees/PartySizeSheet.svelte';
 import { afterNavigate, replaceState } from '$app/navigation';
 import { fly } from 'svelte/transition';
 import { motion, cubicOut } from '$lib/components/staff/motion';
@@ -246,6 +247,7 @@ import {
 						canSettle={data.access.canSettle}
 						canMove={data.access.canMove}
 						canCancelRefund={data.access.canCancelRefund}
+					canChangeParty={data.access.canChangeParty}
 					/>
 				{:else}
 					<div class="bg-background border border-border-card rounded-lg p-8 text-center">
@@ -318,6 +320,11 @@ import {
 	<!-- La feuille Annuler / Rembourser du menu ⋮ d'une carte, par-dessus tout -->
 	{#if data.arrivees && data.access.canCancelRefund}
 		<CancelRefundSheet />
+	{/if}
+
+	<!-- La feuille « Modifier le nombre » du menu ⋮ d'une carte, par-dessus tout -->
+	{#if data.arrivees && data.access.canChangeParty}
+		<PartySizeSheet />
 	{/if}
 
 	<!-- La feuille « Fermer aux réservations » du menu ⋮, par-dessus tout -->

@@ -101,3 +101,18 @@ describe('invite (040)', () => {
 		}
 	});
 });
+
+describe('change_party (048)', () => {
+	it('exists with its French label and acts on parties', () => {
+		expect(STAFF_PERMISSIONS).toContain('change_party');
+		expect(STAFF_PERMISSION_LABELS_FR.change_party).toBe('Modifier le nombre de personnes');
+		expect(ACTS_ON_PARTIES_PERMISSIONS.has('change_party')).toBe(true);
+		expect(withImpliedPermissions(['change_party'])).toEqual(['guest_list', 'change_party']);
+	});
+
+	it('is in no starting Staff Role', () => {
+		for (const role of STARTING_STAFF_ROLES) {
+			expect(role.permissions).not.toContain('change_party');
+		}
+	});
+});

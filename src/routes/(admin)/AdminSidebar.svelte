@@ -1,7 +1,7 @@
 <script lang="ts">
     import { page } from "$app/state";
 
-    import { LayoutDashboard, Calendar, Users, Ticket, BarChart3, ExternalLink, Settings2, ScrollText } from "lucide-svelte";
+    import { LayoutDashboard, Calendar, Users, Ticket, BarChart3, ExternalLink, Settings2, ScrollText, AlertTriangle } from "lucide-svelte";
     import ThemeToggle from "$lib/components/admin/ThemeToggle.svelte";
 
     interface SidebarProps {
@@ -13,6 +13,7 @@
                 createdAt: Date;
             };
             staffPortalUrl: string;
+            moneyAlertsTotal: number;
         };
     }
 
@@ -40,6 +41,7 @@
         href: string;
         label: string;
         icon: typeof import("lucide-svelte").Icon;
+        badge?: number;
     }
 
     const desktopNavigation: NavItem[] = [
@@ -62,6 +64,12 @@
             href: "/admin/reservations",
             label: "Réservations",
             icon: Ticket,
+        },
+        {
+            href: "/admin/a-traiter",
+            label: "À traiter",
+            icon: AlertTriangle,
+            badge: data.moneyAlertsTotal,
         },
         {
             href: "/admin/analytics",
@@ -176,6 +184,11 @@
                         <item.icon size={20} strokeWidth={active ? 2 : 1.5} />
                         {#if !isCollapsed}
                             <span class="tracking-tight">{item.label}</span>
+                            {#if item.badge && item.badge > 0}
+                                <span
+                                    class="ml-auto rounded-full bg-red-600 text-white text-xs font-semibold px-2 py-0.5 min-w-5 text-center"
+                                >{item.badge}</span>
+                            {/if}
                         {/if}
                     </a>
                 </li>

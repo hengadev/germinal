@@ -6,7 +6,7 @@ import type { PageServerLoad, Actions } from './$types';
 import { seatingTitlesWithFallback } from '$lib/utils/seating-title';
 import { sql } from 'drizzle-orm';
 import { cancellationPreFill, refundableAmount, type CancellationPreFill } from '$lib/utils/cancellation-refund';
-import { EMPTY_MANUAL_REFUND_POLICY } from '$lib/utils/refund-policy';
+import { EMPTY_MANUAL_REFUND_POLICY, refundPolicyOf } from '$lib/utils/refund-policy';
 
 /** Only an active Reservation gets the cancel screen's pre-fill. */
 function isCancellable(status: string): boolean {
@@ -55,6 +55,16 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 		return {
 			cancellation,
+			party: {
+				depositPaid: 0,
+				checkedIn: 0,
+				availableCapacity: null as number | null,
+				totalCapacity: null as number | null,
+				// Issue 047: the over-paid refund suggestion needs the policy and
+				// the Seating's start. Mock Events carry no policy.
+				refundPolicy: EMPTY_MANUAL_REFUND_POLICY,
+				seatingStart: session.startTime.toISOString()
+			},
 			reservation: {
 				id: reservation.id,
 				guestName: reservation.guestName,
@@ -137,6 +147,23 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		const balanceSettledByName = await nameOf(reservation.balanceSettledBy);
 		const lastMovedByName = await nameOf(reservation.lastMovedBy);
 
+		// Issue 046: what « Modifier le nombre » quotes against — the seats
+		// really free on the Seating and the Guests already arrived.
+		const { eventSessions } = await import('$lib/server/db/schema');
+		const [seating] = await db
+			.select({
+				availableCapacity: eventSessions.availableCapacity,
+				totalCapacity: eventSessions.totalCapacity
+			})
+			.from(eventSessions)
+			.where(eq(eventSessions.id, reservation.eventSessionId));
+		const checkedIn = checkInsHistory
+			.filter((c) => c.undoneAt === null)
+			.reduce((sum, c) => sum + c.guests, 0);
+		const depositPaid = reservation.payment
+			? reservation.payment.amount - (reservation.payment.refundedAmount ?? 0)
+			: 0;
+
 		// The cancel screen's pre-fill from the Event's Refund Policy (issue 028).
 		let cancellation: CancellationPreFill | null = null;
 		if (isCancellable(reservation.status)) {
@@ -155,6 +182,15 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 		return {
 			cancellation,
+			party: {
+				depositPaid,
+				checkedIn,
+				availableCapacity: seating?.availableCapacity ?? null,
+				totalCapacity: seating?.totalCapacity ?? null,
+				// Issue 047: for the over-paid refund suggestion.
+				refundPolicy: refundPolicyOf(reservation.eventSession.event),
+				seatingStart: reservation.eventSession.startTime.toISOString()
+			},
 			reservation: {
 				id: reservation.id,
 				guestName: reservation.guestName,
@@ -344,6 +380,97 @@ export const actions: Actions = {
 			return { success: true, message: 'Reminder sent successfully' };
 		} catch (err) {
 			return fail(400, { error: err instanceof Error ? err.message : 'Failed to send reminder' });
+		}
+	},
+
+	/**
+	 * Change the number of Guests (issue 046): the quote (lib/utils/
+	 * party-size) is applied by the party-size service in one transaction;
+	 * the amount sent is the new number of Guests, an integer ≥ 1.
+	 */
+	changeGuests: async ({ params, request, locals }) => {
+		requireAdmin(locals);
+
+		const formData = await request.formData();
+		const quantity = Number(formData.get('quantity'));
+		if (!Number.isInteger(quantity) || quantity < 1) {
+			return fail(400, { error: 'Nombre de personnes invalide.' });
+		}
+
+		// The refund of the over-paid amount (issue 047), in euros in the
+		// dialog, cents on the server — blank or 0 means no refund.
+		const refundRaw = formData.get('refundAmount');
+		let refundAmount: number | undefined;
+		{
+			const { parseAmountInput } = await import('$lib/utils/currency');
+			const parsed = parseAmountInput(refundRaw);
+			if ('error' in parsed) {
+				if (parsed.error !== 'blank') {
+					return fail(400, { error: 'Montant de remboursement invalide.' });
+				}
+			} else {
+				refundAmount = parsed.cents;
+			}
+		}
+
+		if (env.USE_MOCK_DATA) {
+			return { success: true, message: `Nombre modifié : ${quantity} personnes (données fictives)` };
+		}
+
+		try {
+			const { changeGuests } = await import('$lib/server/services/party-size');
+			const result = await changeGuests({
+				reservationId: params.id,
+				quantity,
+				refundAmount,
+				actorId: locals.user!.id,
+			});
+			if (!result.ok) {
+				return fail(400, { error: result.error });
+			}
+			const { formatCurrency } = await import('$lib/utils/currency');
+			return {
+				success: true,
+				message:
+					`Nombre modifié : ${result.quantity} personne${result.quantity > 1 ? 's' : ''}, ` +
+					`reste à payer sur place ${formatCurrency(result.balance, result.currency, 'fr-FR')}` +
+					(result.refunded > 0
+						? `, ${formatCurrency(result.refunded, result.currency, 'fr-FR')} remboursés`
+						: '') +
+					(result.overflow > 0 ? ` — ${result.overflow} place${result.overflow > 1 ? 's' : ''} au-delà de la capacité` : ''),
+			};
+		} catch (err) {
+			const { logger } = await import('$lib/server/logger');
+			logger.error({ err, reservationId: params.id }, 'Admin party-size change failed');
+			return fail(400, { error: 'Échec de la modification du nombre de personnes' });
+		}
+	},
+
+	/**
+	 * Mark the Balance as settled (issue 044): records who and when, like
+	 * the Staff portal's action, so the balance_unsettled alert clears.
+	 */
+	settleBalance: async ({ params, locals }) => {
+		requireAdmin(locals);
+
+		if (env.USE_MOCK_DATA) {
+			return { success: true, message: 'Solde réglé (données fictives)' };
+		}
+
+		try {
+			const { settleBalanceAsAdmin } = await import('$lib/server/services/balance');
+			const result = await settleBalanceAsAdmin({
+				reservationId: params.id,
+				actorId: locals.user!.id
+			});
+			if (!result.ok) {
+				return fail(400, { error: result.error });
+			}
+			return { success: true, message: 'Solde marqué réglé' };
+		} catch (err) {
+			const { logger } = await import('$lib/server/logger');
+			logger.error({ err, reservationId: params.id }, 'Admin balance settlement failed');
+			return fail(400, { error: 'Échec du règlement du solde' });
 		}
 	},
 };
