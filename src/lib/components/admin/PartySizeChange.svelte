@@ -113,7 +113,7 @@
 			<button
 				type="button"
 				onclick={() => step(-1)}
-				class="w-10 h-10 border border-border-input rounded-lg text-lg font-semibold text-foreground hover:bg-muted"
+				class="w-10 h-10 shrink-0 border border-border-input rounded-lg text-lg font-semibold text-foreground hover:bg-muted"
 				>−</button
 			>
 			<input
@@ -123,12 +123,12 @@
 				step="1"
 				bind:value={qty}
 				oninput={() => { error = ''; }}
-				class="flex-1 text-center px-3 py-2 border border-border-input rounded-lg text-sm bg-background text-foreground"
+				class="min-w-0 flex-1 text-center px-3 py-2 border border-border-input rounded-lg text-sm bg-background text-foreground"
 			/>
 			<button
 				type="button"
 				onclick={() => step(1)}
-				class="w-10 h-10 border border-border-input rounded-lg text-lg font-semibold text-foreground hover:bg-muted"
+				class="w-10 h-10 shrink-0 border border-border-input rounded-lg text-lg font-semibold text-foreground hover:bg-muted"
 				>+</button
 			>
 		</div>
