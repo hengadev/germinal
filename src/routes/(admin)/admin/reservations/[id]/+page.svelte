@@ -1,8 +1,9 @@
 <script lang="ts">
-	import { ArrowLeft, User, Mail, Phone, Ticket, Calendar, Clock, MapPin, CreditCard, CheckCircle2, ExternalLink, Download, Printer, XCircle, MailCheck, RotateCcw, AlertCircle, Gift, Utensils, BadgeCheck } from 'lucide-svelte';
+	import { ArrowLeft, User, Mail, Phone, Ticket, Calendar, Clock, MapPin, CreditCard, CheckCircle2, ExternalLink, Download, Printer, XCircle, MailCheck, RotateCcw, AlertCircle, Gift, Utensils, BadgeCheck, Users } from 'lucide-svelte';
 	import type { PageData, ActionData } from './$types';
 	import { formatCurrency } from '$lib/utils/currency';
 	import { reservationAmounts, balanceToCollect } from '$lib/utils/balance-due';
+import { quotePartySize } from '$lib/utils/party-size';
 	import QRCode from 'qrcode';
 	import { enhance } from '$app/forms';
 	import { env } from '$env/dynamic/public';
@@ -184,6 +185,52 @@
 		}
 		return true;
 	}
+
+	// --- Party size screen (issue 046) ---
+	// « − », « + » and a typed field, with the quote (new total, what is
+	// left to pay on site, capacity warning) recomputed as it changes.
+	let showPartyPanel = $state(false);
+	let partyQty = $state<number | null>(0);
+	let partyError = $state('');
+
+	function openPartyPanel() {
+		partyQty = data.reservation.quantity;
+		partyError = '';
+		showPartyPanel = true;
+	}
+
+	function stepParty(delta: number) {
+		partyQty = Math.max(1, (partyQty ?? data.reservation.quantity) + delta);
+		partyError = '';
+	}
+
+	let partyQuote = $derived(
+		quotePartySize(
+			{
+				quantity: data.reservation.quantity,
+				total: data.reservation.totalAmount,
+				depositPaid: data.party.depositPaid,
+				balance: data.reservation.balanceAmount ?? 0,
+				isComp: data.reservation.isComp,
+				checkedIn: data.party.checkedIn,
+				status: data.reservation.status
+			},
+			partyQty ?? 0
+		)
+	);
+
+	// Seats beyond capacity the change would take (never a refusal): as in
+	// issue 045, « N places au-delà de la capacité ».
+	let partyOverflow = $derived(
+		data.party.availableCapacity === null
+			? 0
+			: Math.max(
+					0,
+					(partyQty ?? 0) - data.reservation.quantity - data.party.availableCapacity
+			)
+	);
+
+	let partyChanged = $derived((partyQty ?? 0) !== data.reservation.quantity);
 
 	// Format date and time
 	function formatDateTime(dateString: string): string {
@@ -718,6 +765,106 @@ END:VCALENDAR`;
 							</form>
 						{/if}
 					{/if}
+
+				<!-- Modifier le nombre (issue 046) -->
+				{#if !showPartyPanel}
+					<button
+						type="button"
+						onclick={openPartyPanel}
+						disabled={isSubmitting}
+						class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 border border-border-input text-foreground-alt rounded-lg hover:bg-muted transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+					>
+						<Users size={18} />
+						Modifier le nombre
+					</button>
+				{:else}
+					<form
+						method="POST"
+						action="?/changeGuests"
+						class="border border-border-card rounded-lg p-4 space-y-3"
+						use:enhance={() => {
+							isSubmitting = true;
+							return async ({ result, update }) => {
+								isSubmitting = false;
+								if (result.type === 'success' && result.data) {
+									showPartyPanel = false;
+									form = { success: (result.data as { message: string }).message };
+									await update();
+								} else if (result.type === 'failure' && result.data) {
+									form = { error: (result.data as { error?: string }).error || 'Action échouée' };
+								}
+							};
+						}}
+					>
+						<h3 class="text-sm font-semibold text-foreground">Modifier le nombre de personnes</h3>
+
+						<div class="flex items-center gap-2">
+							<button
+								type="button"
+								onclick={() => stepParty(-1)}
+								class="w-10 h-10 border border-border-input rounded-lg text-lg font-semibold text-foreground hover:bg-muted"
+								>−</button
+							>
+							<input
+								type="number"
+								name="quantity"
+								min="1"
+								step="1"
+								bind:value={partyQty}
+								oninput={() => { partyError = ''; }}
+								class="flex-1 text-center px-3 py-2 border border-border-input rounded-lg text-sm bg-background text-foreground"
+							/>
+							<button
+								type="button"
+								onclick={() => stepParty(1)}
+								class="w-10 h-10 border border-border-input rounded-lg text-lg font-semibold text-foreground hover:bg-muted"
+								>+</button
+							>
+						</div>
+
+						{#if partyQuote.ok && partyChanged}
+							<div class="space-y-1 text-sm">
+								<div class="flex items-center justify-between">
+									<span class="text-foreground-alt">Nouveau total</span>
+									<span class="font-semibold text-foreground">{formatCurrency(partyQuote.quote.total, data.reservation.currency, 'fr-FR')}</span>
+								</div>
+								<div class="flex items-center justify-between">
+									<span class="text-foreground-alt">Reste à payer sur place</span>
+									<span class="font-semibold text-foreground">{formatCurrency(partyQuote.quote.balance, data.reservation.currency, 'fr-FR')}</span>
+								</div>
+							</div>
+							{#if partyOverflow > 0}
+								<div class="flex items-center gap-1.5 text-xs text-amber-700">
+									<AlertCircle size={14} />
+									<span>{partyOverflow} {partyOverflow > 1 ? 'places' : 'place'} au-delà de la capacité</span>
+								</div>
+							{/if}
+						{:else if !partyQuote.ok && partyChanged}
+							<div class="flex items-center gap-1.5 text-xs text-red-600">
+								<AlertCircle size={14} />
+								<span>{partyQuote.error}</span>
+							</div>
+						{/if}
+
+						<div class="flex gap-2">
+							<button
+								type="button"
+								onclick={() => { showPartyPanel = false; }}
+								disabled={isSubmitting}
+								class="flex-1 px-3 py-2 border border-border-input text-foreground-alt rounded-lg hover:bg-muted transition-colors font-medium text-sm disabled:opacity-50"
+							>
+								Retour
+							</button>
+							<button
+								type="submit"
+								disabled={isSubmitting || !partyChanged || !partyQuote.ok}
+								class="flex-1 px-3 py-2 bg-foreground text-background rounded-lg hover:opacity-90 transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+							>
+								Confirmer
+							</button>
+						</div>
+					</form>
+				{/if}
 
 					<!-- Goodwill refund on an already-cancelled Reservation with
 					     something left to refund (the cancel screen refunds
