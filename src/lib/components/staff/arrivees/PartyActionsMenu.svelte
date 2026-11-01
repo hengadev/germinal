@@ -89,7 +89,7 @@
 					Modifier le nombre
 				</DropdownMenu.Item>
 			{/if}
-			{#if refundable > 0 && party.id}
+			{#if canRefund && refundable > 0 && party.id}
 				<DropdownMenu.Item
 					class={ITEM}
 					onSelect={() =>
@@ -110,7 +110,7 @@
 					Rembourser
 				</DropdownMenu.Item>
 			{/if}
-			{#if party.id}
+			{#if canRefund && party.id}
 				<DropdownMenu.Item
 					class="{ITEM} text-red-600 data-highlighted:bg-red-600/10"
 					onSelect={() =>
