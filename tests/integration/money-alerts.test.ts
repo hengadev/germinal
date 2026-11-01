@@ -281,3 +281,179 @@ describe('a successful refund clears the recorded failure', () => {
 		expect(await alerts()).toHaveLength(0);
 	});
 });
+
+// ---------------------------------------------------------------------------
+// balance_unsettled (issue 044)
+// ---------------------------------------------------------------------------
+
+import { checkIns, users } from '../../src/lib/server/db/schema';
+import { dayOf, wallClockToInstant } from '../../src/lib/utils/event-time';
+
+/** A Day ends at 6 a.m. the next morning (see staff access). */
+const DAY_END_MINUTES = 6 * 60;
+
+/**
+ * A confirmed, non-Comp Reservation with a Balance, on a Seating whose
+ * Day (in the Event's Time Zone) is `hoursAgo` old relative to NOW.
+ */
+async function seedParty(options: {
+	timeZone?: string;
+	hoursAgo?: number;
+	checkInsGuests?: number[];
+	status?: string;
+	isComp?: boolean;
+	balanceAmount?: number;
+	settled?: boolean;
+} = {}) {
+	const timeZone = options.timeZone ?? 'America/New_York';
+	const hoursAgo = options.hoursAgo ?? 48;
+	const startTime = new Date(NOW.getTime() - hoursAgo * HOUR);
+	const endTime = new Date(startTime.getTime() + 3 * HOUR);
+	const [event] = await testDb
+		.insert(events)
+		.values({
+			titleEn: 'Arrived Event',
+			titleFr: 'Événement arrivé',
+			descriptionEn: 'Test',
+			descriptionFr: 'Test',
+			startDate: startTime,
+			endDate: endTime,
+			locationEn: 'Paris',
+			locationFr: 'Paris',
+			timeZone,
+			visibility: 'public',
+		})
+		.returning();
+
+	const [session] = await testDb
+		.insert(eventSessions)
+		.values({
+			eventId: event.id,
+			serviceId: await seedServiceForSession(testDb, event.id, startTime, endTime),
+			startTime,
+			endTime,
+			totalCapacity: 20,
+			availableCapacity: 20,
+			published: true,
+		})
+		.returning();
+
+	const balance = options.balanceAmount ?? 3000;
+	const [reservation] = await testDb
+		.insert(reservations)
+		.values({
+			eventSessionId: session.id,
+			guestEmail: 'arrived@example.com',
+			guestName: 'Arrived Guest',
+			quantity: 4,
+			totalAmount: 5000 + balance,
+			depositAmount: 5000,
+			balanceAmount: balance,
+			currency: 'EUR',
+			status: options.status ?? 'confirmed',
+			isComp: options.isComp ?? false,
+			accessToken: `atk-${Math.random().toString(36).slice(2)}`,
+			expiresAt: new Date(NOW.getTime() + 15 * 60_000),
+			confirmedAt: NOW,
+			balanceSettledAt: options.settled ? NOW : null,
+		})
+		.returning();
+
+	for (const guests of options.checkInsGuests ?? [2]) {
+		await testDb.insert(checkIns).values({
+			reservationId: reservation.id,
+			guests,
+			method: 'manual',
+			checkedInAt: startTime
+		});
+	}
+	return { reservation, event, session, startTime };
+}
+
+describe('balance_unsettled alerts', () => {
+	it('lists an arrived party with an unsettled Balance once its Day is over', async () => {
+		const { reservation } = await seedParty();
+		const found = await alerts();
+		expect(found).toHaveLength(1);
+		expect(found[0]).toMatchObject({
+			kind: 'balance_unsettled',
+			reservationId: reservation.id,
+			guestName: 'Arrived Guest',
+			eventTitle: 'Événement arrivé',
+			amount: 3000,
+			currency: 'EUR',
+			detail: '2 / 4 arrivés',
+			href: `/admin/reservations/${reservation.id}`
+		});
+	});
+
+	it('appears exactly at 6 a.m. the next morning in the Event’s Time Zone, not a minute before', async () => {
+		const { startTime } = await seedParty();
+		const day = dayOf(startTime, 'America/New_York');
+		const dayEnd = wallClockToInstant(day, DAY_END_MINUTES + 24 * 60, 'America/New_York');
+		expect(await moneyAlertsService.moneyAlerts(new Date(dayEnd.getTime() - 60_000))).toHaveLength(0);
+		expect(await moneyAlertsService.moneyAlerts(dayEnd)).toHaveLength(1);
+	});
+
+	it('says nothing for a Day still under way (far Time Zone)', async () => {
+		// 12 hours ago in Auckland: the Seating’s Day ends after NOW.
+		await seedParty({ timeZone: 'Pacific/Auckland', hoursAgo: 12 });
+		expect(await alerts()).toHaveLength(0);
+	});
+
+	it('says nothing with no Check-in, for a Comp, a zero Balance, a settled Balance, or a Seating over 30 days old', async () => {
+		await seedParty({ checkInsGuests: [] });
+		await seedParty({ isComp: true });
+		await seedParty({ balanceAmount: 0 });
+		await seedParty({ settled: true });
+		await seedParty({ hoursAgo: 40 * 24 });
+		expect(await alerts()).toHaveLength(0);
+	});
+
+	it('an undone Check-in alone does not count as arrived', async () => {
+		const { reservation } = await seedParty();
+		await testDb
+			.update(checkIns)
+			.set({ undoneAt: NOW })
+			.where(eq(checkIns.reservationId, reservation.id));
+		expect(await alerts()).toHaveLength(0);
+	});
+
+	it('marking the Balance settled, from Admin or the Staff portal, removes the alert', async () => {
+		const { reservation, event } = await seedParty();
+	const [staffUser] = await testDb
+		.insert(users)
+		.values({
+			email: `staff-${Math.random().toString(36).slice(2)}@example.com`,
+			firstName: 'Staff',
+			lastName: 'Test',
+			passwordHash: 'x'
+		})
+		.returning();
+
+		const balance = await import('../../src/lib/server/services/balance');
+		// The Staff portal’s action: every permission, the Day of the Seating.
+		const staffDay = dayOf(new Date(NOW.getTime() - 48 * HOUR), 'America/New_York');
+		const staffResult = await balance.settleBalance({
+			access: { can: () => true, day: staffDay } as any,
+			eventId: event.id,
+			reservationId: reservation.id,
+			actorId: staffUser.id
+		});
+		expect(staffResult.ok).toBe(true);
+		expect(await alerts()).toHaveLength(0);
+
+		// Undo, then settle from Admin (issue 044).
+		await testDb
+			.update(reservations)
+			.set({ balanceSettledAt: null, balanceSettledBy: null })
+			.where(eq(reservations.id, reservation.id));
+		expect(await alerts()).toHaveLength(1);
+		const adminResult = await balance.settleBalanceAsAdmin({
+			reservationId: reservation.id,
+			actorId: staffUser.id
+		});
+		expect(adminResult.ok).toBe(true);
+		expect(await alerts()).toHaveLength(0);
+	});
+});

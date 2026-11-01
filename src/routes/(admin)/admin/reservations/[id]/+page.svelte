@@ -502,6 +502,33 @@ END:VCALENDAR`;
 						<div class="text-muted-foreground">Rien à régler sur place</div>
 					{:else}
 						<div class="text-muted-foreground">Solde non réglé</div>
+						{#if data.reservation.status === 'confirmed'}
+							<form
+								method="POST"
+								action="?/settleBalance"
+								use:enhance={() => {
+									isSubmitting = true;
+									return async ({ result, update }) => {
+										isSubmitting = false;
+										if (result.type === 'success' && result.data) {
+											form = { success: (result.data as { message: string }).message };
+										} else if (result.type === 'failure' && result.data) {
+											form = { error: (result.data as { error?: string }).error || 'Action failed' };
+										}
+										await update();
+									};
+								}}
+							>
+								<button
+									type="submit"
+									disabled={isSubmitting}
+									class="mt-2 inline-flex items-center gap-2 px-3 py-1.5 bg-foreground text-background rounded-lg hover:opacity-90 transition-opacity text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+								>
+									<BadgeCheck size={16} />
+									Marquer le solde réglé
+								</button>
+							</form>
+						{/if}
 					{/if}
 				</div>
 			</div>

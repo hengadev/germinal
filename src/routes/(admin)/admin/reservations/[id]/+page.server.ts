@@ -445,4 +445,32 @@ export const actions: Actions = {
 			return fail(400, { error: 'Échec de la modification du nombre de personnes' });
 		}
 	},
+
+	/**
+	 * Mark the Balance as settled (issue 044): records who and when, like
+	 * the Staff portal's action, so the balance_unsettled alert clears.
+	 */
+	settleBalance: async ({ params, locals }) => {
+		requireAdmin(locals);
+
+		if (env.USE_MOCK_DATA) {
+			return { success: true, message: 'Solde réglé (données fictives)' };
+		}
+
+		try {
+			const { settleBalanceAsAdmin } = await import('$lib/server/services/balance');
+			const result = await settleBalanceAsAdmin({
+				reservationId: params.id,
+				actorId: locals.user!.id
+			});
+			if (!result.ok) {
+				return fail(400, { error: result.error });
+			}
+			return { success: true, message: 'Solde marqué réglé' };
+		} catch (err) {
+			const { logger } = await import('$lib/server/logger');
+			logger.error({ err, reservationId: params.id }, 'Admin balance settlement failed');
+			return fail(400, { error: 'Échec du règlement du solde' });
+		}
+	},
 };

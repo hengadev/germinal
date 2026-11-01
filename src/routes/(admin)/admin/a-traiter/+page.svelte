@@ -24,6 +24,12 @@
 			title: 'Remboursements refusés',
 			whatToDo:
 				"Stripe a refusé le remboursement (annulation ou personnes en moins). Ouvrez la réservation et remboursez le montant dû à la main, ici ou dans Stripe."
+		},
+		{
+			kind: 'balance_unsettled',
+			title: 'Soldes non réglés',
+			whatToDo:
+				"Le service est passé et le solde n'est pas marqué réglé. Vérifiez le rapport du terminal, puis marquez le solde réglé ou contactez le client."
 		}
 	];
 
