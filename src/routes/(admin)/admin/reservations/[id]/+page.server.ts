@@ -55,6 +55,14 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 		return {
 			cancellation,
+			// Issue 046: what « Modifier le nombre » needs. Mock rows carry no
+			// Seating capacity: no warning.
+			party: {
+				depositPaid: 0,
+				checkedIn: 0,
+				availableCapacity: null as number | null,
+				totalCapacity: null as number | null
+			},
 			reservation: {
 				id: reservation.id,
 				guestName: reservation.guestName,
@@ -137,6 +145,23 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		const balanceSettledByName = await nameOf(reservation.balanceSettledBy);
 		const lastMovedByName = await nameOf(reservation.lastMovedBy);
 
+		// Issue 046: what « Modifier le nombre » quotes against — the seats
+		// really free on the Seating and the Guests already arrived.
+		const { eventSessions } = await import('$lib/server/db/schema');
+		const [seating] = await db
+			.select({
+				availableCapacity: eventSessions.availableCapacity,
+				totalCapacity: eventSessions.totalCapacity
+			})
+			.from(eventSessions)
+			.where(eq(eventSessions.id, reservation.eventSessionId));
+		const checkedIn = checkInsHistory
+			.filter((c) => c.undoneAt === null)
+			.reduce((sum, c) => sum + c.guests, 0);
+		const depositPaid = reservation.payment
+			? reservation.payment.amount - (reservation.payment.refundedAmount ?? 0)
+			: 0;
+
 		// The cancel screen's pre-fill from the Event's Refund Policy (issue 028).
 		let cancellation: CancellationPreFill | null = null;
 		if (isCancellable(reservation.status)) {
@@ -155,6 +180,12 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 		return {
 			cancellation,
+			party: {
+				depositPaid,
+				checkedIn,
+				availableCapacity: seating?.availableCapacity ?? null,
+				totalCapacity: seating?.totalCapacity ?? null
+			},
 			reservation: {
 				id: reservation.id,
 				guestName: reservation.guestName,
@@ -344,6 +375,49 @@ export const actions: Actions = {
 			return { success: true, message: 'Reminder sent successfully' };
 		} catch (err) {
 			return fail(400, { error: err instanceof Error ? err.message : 'Failed to send reminder' });
+		}
+	},
+
+	/**
+	 * Change the number of Guests (issue 046): the quote (lib/utils/
+	 * party-size) is applied by the party-size service in one transaction;
+	 * the amount sent is the new number of Guests, an integer ≥ 1.
+	 */
+	changeGuests: async ({ params, request, locals }) => {
+		requireAdmin(locals);
+
+		const formData = await request.formData();
+		const quantity = Number(formData.get('quantity'));
+		if (!Number.isInteger(quantity) || quantity < 1) {
+			return fail(400, { error: 'Nombre de personnes invalide.' });
+		}
+
+		if (env.USE_MOCK_DATA) {
+			return { success: true, message: `Nombre modifié : ${quantity} personnes (données fictives)` };
+		}
+
+		try {
+			const { changeGuests } = await import('$lib/server/services/party-size');
+			const result = await changeGuests({
+				reservationId: params.id,
+				quantity,
+				actorId: locals.user!.id,
+			});
+			if (!result.ok) {
+				return fail(400, { error: result.error });
+			}
+			const { formatCurrency } = await import('$lib/utils/currency');
+			return {
+				success: true,
+				message:
+					`Nombre modifié : ${result.quantity} personne${result.quantity > 1 ? 's' : ''}, ` +
+					`reste à payer sur place ${formatCurrency(result.balance, result.currency, 'fr-FR')}` +
+					(result.overflow > 0 ? ` — ${result.overflow} place${result.overflow > 1 ? 's' : ''} au-delà de la capacité` : ''),
+			};
+		} catch (err) {
+			const { logger } = await import('$lib/server/logger');
+			logger.error({ err, reservationId: params.id }, 'Admin party-size change failed');
+			return fail(400, { error: 'Échec de la modification du nombre de personnes' });
 		}
 	},
 };
