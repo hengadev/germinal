@@ -171,7 +171,7 @@
 						<p class="text-xs text-foreground-alt">{quote.quote.overPaidRefund.reasonFr}</p>
 					{/if}
 					<label class="block space-y-1">
-						<span class="text-foreground-alt">Remboursement (€)</span>
+						<span class="text-foreground-alt">Remboursement ({reservation.currency})</span>
 						<input
 							type="number"
 							name="refundAmount"
