@@ -15,6 +15,7 @@
 	import type { DayGuestParty, DayGuestSeating } from '$lib/server/services/day-guest-list';
 	import type { RefundPolicy } from '$lib/utils/refund-policy';
 	import PartyActionsMenu from './PartyActionsMenu.svelte';
+	import { visitOrdinalFr } from '$lib/utils/visit-ordinal';
 	import { balanceDue, capacityLabel, guests as guestsLabel, seatingTime, settleTimeLabel, type ArriveesFields } from './helpers';
 
 	let {
@@ -104,6 +105,27 @@
 			<h3 class="pt-0.5 text-lg leading-snug font-semibold break-words text-foreground">
 				{party.guestName}
 			</h3>
+			{#if (party.tags ?? []).length > 0 || (party.visitNumber ?? 1) > 1}
+				<!-- Issue 051: the Guest's Admin tags and, from the second visit on,
+				     « 2e visite » — small muted labels, wrapping below the name so the
+				     action row stays on screen on a 390 px phone. -->
+				<div class="mt-1.5 flex flex-wrap gap-1.5">
+					{#if (party.visitNumber ?? 1) > 1}
+						<span
+							class="inline-flex min-h-6 items-center rounded-md border border-foreground px-2 text-xs font-semibold text-foreground"
+						>
+							{visitOrdinalFr(party.visitNumber!)} visite
+						</span>
+					{/if}
+					{#each party.tags ?? [] as tag (tag)}
+						<span
+							class="inline-flex min-h-6 items-center rounded-md border border-border-card px-2 text-xs font-medium text-muted-foreground"
+						>
+							{tag}
+						</span>
+					{/each}
+				</div>
+			{/if}
 			{#if party.isComp || party.origin === 'walk_in' || balance || (party.quantity !== undefined && arrived > 0)}
 				<div class="mt-1.5 flex flex-wrap gap-1.5">
 					{#if party.isComp}

@@ -6,7 +6,7 @@
  * another Day or Event, and the Ticket lookup follows the same rules.
  */
 import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest';
-import { events, eventDays, eventServices, eventSessions, reservations } from '../../src/lib/server/db/schema';
+import { events, eventDays, eventServices, eventSessions, guestNotes, reservations } from '../../src/lib/server/db/schema';
 import { dayOf } from '../../src/lib/utils/event-time';
 import { staffAccess, type StaffWho } from '../../src/lib/staff/access';
 import {
@@ -41,6 +41,7 @@ afterAll(async () => {
 
 const ZONE = 'Europe/Paris';
 const NOTES = 'Notes internes : ne jamais fuiter 06 12 34 56 78';
+const NOTE_SECRETE = 'Note admin secrète : ne jamais fuiter au portail Staff';
 
 function accessFor(who: StaffWho, dates: string[], now: Date) {
 	return staffAccess(who, dates, ZONE, now);
@@ -113,6 +114,7 @@ async function seed(now: Date) {
 			phone?: string | null;
 			dietary?: string | null;
 			comp?: boolean;
+			email?: string | null;
 		} = {}
 	) {
 		const total = 2500 * (opts.quantity ?? 2);
@@ -120,7 +122,10 @@ async function seed(now: Date) {
 			.insert(reservations)
 			.values({
 				eventSessionId: seatingId,
-				guestEmail: `${name.toLowerCase().replace(/\s+/g, '.')}@example.com`,
+				guestEmail:
+					opts.email === undefined
+						? `${name.toLowerCase().replace(/\s+/g, '.')}@example.com`
+						: opts.email,
 				guestName: name,
 				guestPhone: opts.phone === undefined ? '06 11 22 33 44' : opts.phone,
 				quantity: opts.quantity ?? 2,
@@ -221,7 +226,7 @@ describe('day guest list', () => {
 		const party = list!.seatings[0].parties[0];
 		expect(party.guestPhone).toBe('06 99 88 77 66');
 		expect(Object.keys(party).sort()).toEqual(
-			['arrived', 'balanceAmount', 'balanceSettledAt', 'balanceSettledByName', 'currency', 'lastMovedAt', 'lastMovedByName', 'guestEmail', 'guestName', 'guestPhone', 'id', 'isComp', 'lastCheckInAt', 'origin', 'quantity'].sort()
+			['arrived', 'balanceAmount', 'balanceSettledAt', 'balanceSettledByName', 'currency', 'lastMovedAt', 'lastMovedByName', 'guestEmail', 'guestName', 'guestPhone', 'id', 'isComp', 'lastCheckInAt', 'origin', 'quantity', 'tags', 'visitNumber'].sort()
 		);
 
 		const withoutContact = accessFor(
@@ -280,7 +285,7 @@ describe('day guest list', () => {
 		expect(party).not.toBeNull();
 		expect(party!.guestName).toBe('Alice Martin');
 		expect(Object.keys(party!).sort()).toEqual(
-			['arrived', 'balanceAmount', 'balanceSettledAt', 'balanceSettledByName', 'currency', 'lastMovedAt', 'lastMovedByName', 'guestEmail', 'guestName', 'guestPhone', 'id', 'isComp', 'lastCheckInAt', 'origin', 'quantity'].sort()
+			['arrived', 'balanceAmount', 'balanceSettledAt', 'balanceSettledByName', 'currency', 'lastMovedAt', 'lastMovedByName', 'guestEmail', 'guestName', 'guestPhone', 'id', 'isComp', 'lastCheckInAt', 'origin', 'quantity', 'tags', 'visitNumber'].sort()
 		);
 
 		// Another Day, another Event, a cancelled Ticket: all refused.
@@ -289,5 +294,70 @@ describe('day guest list', () => {
 		expect(await svc.lookupTicket(access, s.event.id, cancelled.accessToken)).toBeNull();
 		expect(await svc.lookupTicket(access, s.event.id, 'no-such-token')).toBeNull();
 		expect(leaks(party)).toBe(false);
+	});
+
+	it('adds each Guest’s tags and visit number, and never the note (issue 051)', async () => {
+		const now = new Date();
+		const s = await seed(now);
+		// A Seating the day before, for the same Event.
+		const yesterday = dayOf(new Date(now.getTime() - 24 * 3600 * 1000), ZONE);
+		const [earlierDay] = await testDb
+			.insert(eventDays)
+			.values({ eventId: s.event.id, date: yesterday })
+			.returning();
+		const [earlierService] = await testDb
+			.insert(eventServices)
+			.values({ dayId: earlierDay.id, kind: 'dinner', defaultSeatingDurationMinutes: 120 })
+			.returning();
+		const [earlierSeating] = await testDb
+			.insert(eventSessions)
+			.values({
+				eventId: s.event.id,
+				serviceId: earlierService.id,
+				titleFr: 'Service veille',
+				startTime: new Date(`${yesterday}T19:00:00Z`),
+				endTime: new Date(`${yesterday}T21:00:00Z`)
+			})
+			.returning();
+
+		// Alice: a confirmed visit yesterday, plus a pending and a cancelled one
+		// that must not count.
+		await s.reservation(earlierSeating.id, 'Alice Martin');
+		await s.reservation(earlierSeating.id, 'Alice Martin', { status: 'pending' });
+		await s.reservation(earlierSeating.id, 'Alice Martin', { status: 'cancelled' });
+		// Another Event’s visit: not counted either.
+		await s.reservation(s.otherSeating.seating.id, 'Alice Martin');
+		// Today: Alice’s second visit, Bob’s first, Carol without an email.
+		await s.reservation(s.todaySeating.seating.id, 'Alice Martin');
+		await s.reservation(s.todaySeating.seating.id, 'Bob Durand');
+		await s.reservation(s.todaySeating.seating.id, 'Carol Sansmail', { email: null });
+
+		await testDb.insert(guestNotes).values({
+			email: 'alice.martin@example.com',
+			note: NOTE_SECRETE,
+			tags: ['VIP', 'Panneau rouge']
+		});
+
+		const access = accessFor(
+			{ kind: 'assignment', rolePermissions: ['guest_list', 'contact'] },
+			[s.today, s.tomorrow],
+			now
+		);
+		const svc = await import('../../src/lib/server/services/day-guest-list');
+		const list = await svc.getDayGuestList(access, s.event.id);
+
+		const byName = new Map(list!.seatings[0].parties.map((p) => [p.guestName, p]));
+		expect(byName.get('Alice Martin')!.tags).toEqual(['VIP', 'Panneau rouge']);
+		expect(byName.get('Alice Martin')!.visitNumber).toBe(2);
+		expect(byName.get('Bob Durand')!.tags).toEqual([]);
+		expect(byName.get('Bob Durand')!.visitNumber).toBe(1);
+		// No email: no tags, no visit number.
+		const carol = byName.get('Carol Sansmail')!;
+		expect(carol.tags).toBeUndefined();
+		expect(carol.visitNumber).toBeUndefined();
+
+		// The Admin note never leaves the service.
+		expect(leaks(list)).toBe(false);
+		expect(JSON.stringify(list)).not.to.include(NOTE_SECRETE);
 	});
 });

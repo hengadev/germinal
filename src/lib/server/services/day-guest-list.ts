@@ -8,6 +8,8 @@ import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import { db } from '../db';
 import { eventDays, eventServices, eventSessions, events, payments, reservations, users } from '../db/schema';
 import type { StaffAccess } from '$lib/staff/access';
+import { normaliseEmail } from '$lib/utils/guest-email';
+import { tagsByEmail } from './guest-notes';
 import { refundPolicyOf } from '$lib/utils/refund-policy';
 
 /** One party (a confirmed Reservation), with only the allowed fields. */
@@ -51,6 +53,10 @@ export interface DayGuestParty {
 	/** The Deposit actually paid online, minus refunds, in cents — only
 	 * with change_party (issue 048). */
 	depositPaid?: number;
+	/** Issue 051: the Guest's Admin tags — never the note itself. */
+	tags?: string[];
+	/** Issue 051: which visit of the Event this Reservation is (1 = first). */
+	visitNumber?: number;
 }
 
 /** One Seating of the Day with its parties. */
@@ -239,7 +245,59 @@ export async function getDayGuestList(
 		seating.parties.push(party);
 		seating.booked += party.quantity ?? 0;
 	}
+	await withGuestIdentity(eventId, seatings.flatMap((s) => s.parties.map((party) => ({ party, startTime: new Date(s.startTime) }))));
 	return { day, seatings };
+}
+
+/**
+ * Issue 051 — decorate every party that has an email with the Guest's
+ * Admin tags and its visit number: this Reservation plus the Event's
+ * earlier confirmed ones whose Seating had already started, matched by
+ * normalised email. One batched query each; the Admin note is never
+ * selected.
+ */
+async function withGuestIdentity(
+	eventId: string,
+	parties: { party: DayGuestParty; startTime: Date }[]
+): Promise<void> {
+	const withEmail = parties.flatMap(({ party, startTime }) => {
+		const email = normaliseEmail(party.guestEmail);
+		return email === null ? [] : [{ party, email, startTime }];
+	});
+	if (withEmail.length === 0) return;
+	const emails = [...new Set(withEmail.map((p) => p.email))];
+
+	const tags = await tagsByEmail(emails);
+
+	// Every confirmed Reservation of this Event for these emails, Seating
+	// start included, so each party's rank is computed in one pass.
+	const visits = await db
+		.select({
+			email: reservations.guestEmail,
+			startTime: eventSessions.startTime
+		})
+		.from(reservations)
+		.innerJoin(eventSessions, eq(reservations.eventSessionId, eventSessions.id))
+		.where(
+			and(
+				inArray(sql`lower(${reservations.guestEmail})`, emails),
+				eq(reservations.status, 'confirmed'),
+				eq(eventSessions.eventId, eventId)
+			)
+		);
+	const startsByEmail = new Map<string, Date[]>();
+	for (const visit of visits) {
+		const email = normaliseEmail(visit.email);
+		if (email === null) continue;
+		const list = startsByEmail.get(email) ?? [];
+		list.push(visit.startTime);
+		startsByEmail.set(email, list);
+	}
+	for (const { party, email, startTime } of withEmail) {
+		party.tags = tags.get(email) ?? [];
+		const earlier = (startsByEmail.get(email) ?? []).filter((start) => start < startTime).length;
+		party.visitNumber = earlier + 1;
+	}
 }
 
 /** Why a Ticket that lookupTicket returned null did not match. */
@@ -299,7 +357,7 @@ export async function lookupTicket(
 	if (day === null || !hasAnyGuestField(access) || !token) return null;
 
 	const [row] = (await db
-		.select(partyColumns(access))
+		.select({ ...partyColumns(access), startTime: eventSessions.startTime })
 		.from(reservations)
 		.innerJoin(eventSessions, eq(reservations.eventSessionId, eventSessions.id))
 		.innerJoin(eventServices, eq(eventSessions.serviceId, eventServices.id))
@@ -312,8 +370,11 @@ export async function lookupTicket(
 				eq(reservations.status, 'confirmed')
 			)
 		)
-		.limit(1)) as unknown as PartyRow[];
-	return row ? toParty(row) : null;
+		.limit(1)) as unknown as (PartyRow & { startTime: Date })[];
+	if (!row) return null;
+	const { seatingId: _seatingId, startTime: _startTime, ...party } = row;
+	await withGuestIdentity(eventId, [{ party, startTime: row.startTime }]);
+	return party;
 }
 
 /**
