@@ -24,6 +24,12 @@
 			title: 'Remboursements refusés',
 			whatToDo:
 				"Le remboursement automatique a été refusé par Stripe. Ouvrez la réservation et remboursez l'acompte à la main."
+		},
+		{
+			kind: 'balance_unsettled',
+			title: 'Soldes non réglés',
+			whatToDo:
+				"Le service est passé et le solde n'est pas marqué réglé. Vérifiez le rapport du terminal, puis marquez le solde réglé ou contactez le client."
 		}
 	];
 

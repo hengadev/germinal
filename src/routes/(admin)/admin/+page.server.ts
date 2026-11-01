@@ -3,7 +3,7 @@ import { env } from '$lib/server/env';
 import { MOCK_EVENTS, MOCK_SESSIONS, MOCK_RESERVATIONS, MOCK_PAYMENTS } from '$lib/mock-data';
 import type { PageServerLoad } from './$types';
 import { seatingTitle } from '$lib/utils/seating-title';
-import { moneyAlertCounts } from '$lib/server/services/money-alerts';
+import { moneyAlertCounts, type MoneyAlertKind } from '$lib/server/services/money-alerts';
 
 interface RecentBooking {
 	id: string;
@@ -210,7 +210,7 @@ export const load: PageServerLoad = async () => {
 		: await getDbDashboardData();
 
 	// Issue 042: the alerts block shows only when there is at least one.
-	const moneyAlerts = await moneyAlertCounts().catch(() => ({ total: 0, byKind: {} as Partial<Record<'refund_failed', number>> }));
+	const moneyAlerts = await moneyAlertCounts().catch(() => ({ total: 0, byKind: {} as Partial<Record<MoneyAlertKind, number>> }));
 
 	return { ...dashboard, moneyAlerts };
 };

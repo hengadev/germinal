@@ -103,6 +103,9 @@
 						{#if data.moneyAlerts.byKind.refund_failed}
 							— dont {data.moneyAlerts.byKind.refund_failed} remboursement{data.moneyAlerts.byKind.refund_failed > 1 ? 's' : ''} refusé{data.moneyAlerts.byKind.refund_failed > 1 ? 's' : ''}
 						{/if}
+						{#if data.moneyAlerts.byKind.balance_unsettled}
+							— dont {data.moneyAlerts.byKind.balance_unsettled} solde{data.moneyAlerts.byKind.balance_unsettled > 1 ? 's' : ''} non réglé{data.moneyAlerts.byKind.balance_unsettled > 1 ? 's' : ''}
+						{/if}
 					</p>
 				</div>
 				<a

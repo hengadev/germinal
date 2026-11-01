@@ -92,6 +92,60 @@ export async function settleBalance(input: {
 }
 
 /**
+ * Mark a Reservation's Balance as settled from the Admin back office
+ * (issue 044). Same rules and same audit entry as the Staff portal's
+ * settleBalance, minus the Staff permission and current-Day checks, which
+ * only make sense on the Staff portal.
+ */
+export async function settleBalanceAsAdmin(input: {
+	reservationId: string;
+	actorId: string;
+}): Promise<BalanceResult> {
+	const { reservationId, actorId } = input;
+
+	return db.transaction(async (tx: typeof db) => {
+		const [party] = await tx
+			.select({
+				status: reservations.status,
+				isComp: reservations.isComp,
+				balanceAmount: reservations.balanceAmount,
+				balanceSettledAt: reservations.balanceSettledAt
+			})
+			.from(reservations)
+			.where(eq(reservations.id, reservationId))
+			.for('update', { of: reservations });
+
+		if (!party) {
+			return { ok: false as const, error: 'Réservation introuvable.' };
+		}
+		if (party.status !== 'confirmed') {
+			return { ok: false as const, error: 'Cette réservation n’est pas confirmée.' };
+		}
+		if (party.isComp || party.balanceAmount <= 0) {
+			return { ok: false as const, error: 'Cette réservation n’a pas de solde à régler.' };
+		}
+		if (party.balanceSettledAt !== null) {
+			return { ok: false as const, error: 'Le solde de cette réservation est déjà réglé.' };
+		}
+
+		await tx
+			.update(reservations)
+			.set({ balanceSettledAt: new Date(), balanceSettledBy: actorId, updatedAt: new Date() })
+			.where(eq(reservations.id, reservationId));
+
+		await recordAuditLog({
+			adminId: actorId,
+			action: 'reservation.balance_settled',
+			entityType: 'reservation',
+			entityId: reservationId,
+			metadata: { reservationId },
+		});
+
+		return { ok: true as const };
+	});
+}
+
+/**
  * Undo a settlement: both fields are cleared. Requires the "correct a
  * mistake" permission (Admins hold every permission).
  */
