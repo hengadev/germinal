@@ -119,52 +119,6 @@ async function lockAndDecrementBookableSeating(tx: typeof db, sessionId: string,
 }
 
 /**
- * Lock a Session row and atomically decrement its available capacity, for
- * an Admin's comp Reservation.
- *
- * Shares the capacity accounting with the Guest checkout
- * ({@link lockAndDecrementBookableSeating}): both lock the Seating row and
- * decrement through {@link decrementSessionCapacity}, so capacity can never
- * be oversold by paid and comp bookings racing against the same Session.
- *
- * Must be called from within a `db.transaction`.
- */
-async function lockAndDecrementSessionCapacity(
-	tx: typeof db,
-	sessionId: string,
-	quantity: number
-) {
-	// Step 1: Lock session row and check availability
-	const [session] = await tx
-		.select()
-		.from(eventSessions)
-		.where(and(
-			eq(eventSessions.id, sessionId),
-			eq(eventSessions.published, true)
-		))
-		.for('update'); // CRITICAL: Row-level lock prevents concurrent modifications
-
-	if (!session) {
-		throw new Error('Session not found or not published');
-	}
-
-	// Check if session has already started
-	if (session.startTime <= new Date()) {
-		throw new Error('Cannot book tickets for a session that has already started');
-	}
-
-	// Step 2: Check availability
-	if (session.availableCapacity !== null && session.availableCapacity < quantity) {
-		throw new Error('Not enough tickets available');
-	}
-
-	// Step 3: Decrement capacity atomically
-	await decrementSessionCapacity(tx, sessionId, quantity);
-
-	return session;
-}
-
-/**
  * Lock a Session row and decrement its available capacity without ever
  * refusing a full or started Seating: a party that turns up without
  * booking (issue 020) is seated anyway. The counter is floored at 0
@@ -458,9 +412,15 @@ async function sendConfirmedTicket(reservationId: string) {
  * Create a comp (complimentary) Reservation directly from the admin UI.
  *
  * Locks the Seating row and decrements its capacity the same way as a
- * paying Guest's checkout (`lockAndDecrementSessionCapacity`) so a comp
- * booking and a paid booking can never race each other into overselling a
- * Session.
+ * paying Guest's checkout, so a comp booking and a paid booking can never
+ * race each other into an inconsistent counter.
+ *
+ * Unlike a paying Guest, a Comp may overflow the Seating (issue 045): the
+ * available counter is decremented but floored at 0, the way a Walk-in's
+ * is. The Seating must still be published and not yet started — those
+ * two checks stay, unlike a Walk-in — and the function reports how many
+ * seats beyond capacity it took (`overflowSeats`, 0 when the Seating had
+ * room or has no limit).
  *
  * Unlike a paid booking, no Stripe Checkout Session and no Payment record
  * are created — the Reservation is created directly with status
@@ -470,8 +430,22 @@ async function sendConfirmedTicket(reservationId: string) {
  */
 export async function createCompReservation(input: CreateCompReservationInput) {
 	const created = await db.transaction(async (tx: typeof db) => {
-		// Same capacity lock + decrement as a paid Guest booking.
-		const session = await lockAndDecrementSessionCapacity(tx, input.sessionId, input.quantity);
+		// Issue 045: a Comp goes through on a full Seating, like a Walk-in.
+		// The helper locks the row and returns it as it was before the
+		// decrement; publication and start time are still refused here (a
+		// throw rolls the decrement back), unlike a Walk-in.
+		const session = await lockAndDecrementSeatingAllowingOverflow(tx, input.sessionId, input.quantity);
+		if (!session.published) {
+			throw new Error('Session not found or not published');
+		}
+		if (session.startTime <= new Date()) {
+			throw new Error('Cannot book tickets for a session that has already started');
+		}
+		// Seats beyond the available count, 0 when within or without a limit.
+		const overflowSeats =
+			session.availableCapacity !== null && session.availableCapacity < input.quantity
+				? input.quantity - session.availableCapacity
+				: 0;
 		// Nothing is charged; the currency follows the Seating's price
 		// (EUR while its Service has none yet).
 		const price = await getSeatingPrice(tx, session.id);
@@ -526,7 +500,7 @@ export async function createCompReservation(input: CreateCompReservationInput) {
 			.from(events)
 			.where(eq(events.id, session.eventId));
 
-		return { reservation, session, event };
+		return { reservation, session, event, overflowSeats };
 	});
 
 	// Issue the Ticket the same way a paying Guest's checkout success webhook
@@ -569,7 +543,7 @@ export async function createCompReservation(input: CreateCompReservationInput) {
 		// is still reachable via its access token even if the email failed.
 	}
 
-	return { reservation: created.reservation };
+	return { reservation: created.reservation, overflowSeats: created.overflowSeats };
 }
 
 export type CreateStaffReservationInput = {

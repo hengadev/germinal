@@ -80,6 +80,16 @@
 		}
 	});
 
+	// Séance sélectionnée (les séances complètes restent choisissables,
+	// issue 045) et places au-delà de sa capacité (0 quand elle a de la
+	// place ou pas de limite).
+	const selectedSeating = $derived(seatings.find((s) => s.id === seatingId));
+	const overflowSeats = $derived(
+		selectedSeating && selectedSeating.remaining !== null
+			? Math.max(quantity - selectedSeating.remaining, 0)
+			: 0
+	);
+
 	function close() {
 		closeInviteForm();
 		error = null;
@@ -206,6 +216,12 @@
 						</div>
 					{/each}
 				</fieldset>
+
+				{#if overflowSeats > 0}
+					<p role="alert" class="text-sm font-medium text-amber-600">
+						Cette séance est complète : {overflowSeats} place{overflowSeats > 1 ? 's' : ''} au-delà de la capacité
+					</p>
+				{/if}
 
 				<div>
 					<label class={LABEL} for="{uid}-name">Nom</label>

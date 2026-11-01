@@ -12,6 +12,7 @@
 
 	let isSubmitting = $state(false);
 	let selectedSessionId = $state('');
+	let quantity = $state(1);
 
 	let selectedSession = $derived(
 		data.sessions.find((s: (typeof data.sessions)[number]) => s.id === selectedSessionId)
@@ -25,9 +26,17 @@
 			hour: '2-digit',
 			minute: '2-digit'
 		});
-		const seats = session.availableCapacity === null ? 'sans limite' : `${session.availableCapacity} place(s) restante(s)`;
+		const seats = session.availableCapacity === null ? 'sans limite' : session.availableCapacity === 0 ? 'complet' : `${session.availableCapacity} place(s) restante(s)`;
 		return `${session.eventTitle} — ${session.titleEn} (${date}) · ${seats}`;
 	}
+
+	// Issue 045 : places au-delà de la capacité (0 quand la séance a de la
+	// place ou n'a pas de limite) — une invitation passe quand même.
+	let overflowSeats = $derived(
+		selectedSession && selectedSession.availableCapacity !== null
+			? Math.max(quantity - selectedSession.availableCapacity, 0)
+			: 0
+	);
 </script>
 
 <svelte:head>
@@ -101,7 +110,12 @@
 			</select>
 			{#if data.sessions.length === 0}
 				<p class="text-sm text-muted-foreground mt-2">
-					Aucune session publiée à venir avec de la capacité disponible.
+					Aucune session publiée à venir.
+				</p>
+			{/if}
+			{#if selectedSession && overflowSeats > 0}
+				<p class="text-sm font-medium text-amber-600 mt-2" role="alert">
+					Cette séance est complète : {overflowSeats} place{overflowSeats > 1 ? 's' : ''} au-delà de la capacité
 				</p>
 			{/if}
 			{#if selectedSession}
@@ -166,7 +180,7 @@
 					name="quantity"
 					type="number"
 					min="1"
-					value="1"
+					bind:value={quantity}
 					required
 					class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
 				/>

@@ -429,8 +429,8 @@ export interface StaffInviteSeating {
 	startTime: string;
 	/**
 	 * Remaining capacity, or null when the Seating has no limit (ADR 0009).
-	 * `createCompReservation` refuses a full Seating, so the sheet marks
-	 * those « Complet ».
+	 * A full Seating (0) is still offered — issue 045 : a Comp may overflow
+	 * it — and the sheet keeps marking it « Complet ».
 	 */
 	remaining: number | null;
 }
