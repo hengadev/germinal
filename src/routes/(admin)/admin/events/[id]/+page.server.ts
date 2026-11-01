@@ -30,6 +30,8 @@ import {
 	EVENT_TEXT_FIELDS,
 	readAskDietaryRequirements,
 	readEventTextFields,
+	readThankYouFields,
+	thankYouRefusals,
 	type EventTextFields,
 } from '$lib/server/services/event-draft';
 import { fillEnglish } from '$lib/server/services/event-translation';
@@ -511,7 +513,22 @@ const editorActions: Actions = {
 		const translationWarning = english.translationFailed ? { translationFailed: true as const } : {};
 		// The Dietary Requirements switch, from « Infos pratiques » (issue 041).
 		const askDietaryRequirements = readAskDietaryRequirements(formData);
-		const fields = askDietaryRequirements === undefined ? textFields : { ...textFields, askDietaryRequirements };
+		let fields = askDietaryRequirements === undefined ? textFields : { ...textFields, askDietaryRequirements };
+
+		// « Après l’événement » (054): the Thank-you fields, validated before
+		// anything is saved — a message in one language at least when it is on,
+		// and the link an http(s) URL.
+		const thankYou = readThankYouFields(formData);
+		if (thankYou) {
+			const refused = thankYouRefusals(thankYou);
+			if (refused.length > 0) {
+				return fail(400, {
+					error: 'Le remerciement exige un message dans au moins une langue, et un lien http(s).',
+					fields: refused,
+				});
+			}
+			fields = { ...fields, ...thankYou };
+		}
 
 		// Visibility, Spotlight and Portfolio are no longer posted here: they
 		// belong to the « Publication » control and its own action below
@@ -557,6 +574,82 @@ const editorActions: Actions = {
 			logger.error({ err: error }, 'Error updating event');
 			return fail(500, { error: 'Échec de l’enregistrement de l’événement.' });
 		}
+	},
+
+	// « Après l’événement » (054): preview the Thank-you as a Guest would
+	// get it, in both languages, from what the form holds (saved or not).
+	previewThankYou: async ({ request, params, locals }) => {
+		requireAdmin(locals);
+		const formData = await request.formData();
+		const thankYou = readThankYouFields(formData);
+		if (!thankYou) return fail(400, { error: 'Champs du remerciement manquants.' });
+		const refused = thankYouRefusals(thankYou);
+		if (refused.length > 0) {
+			return fail(400, {
+				error: 'Le remerciement exige un message dans au moins une langue, et un lien http(s).',
+				fields: refused,
+			});
+		}
+		const event = env.USE_MOCK_DATA
+			? MOCK_EVENTS.find((e) => e.id === params.id)
+			: await (await import('$lib/server/services/events')).getEventById(params.id).catch(() => undefined);
+		const { generateThankYouTextTemplate } = await import('$lib/server/services/email');
+		const base = {
+			guestEmail: 'invite@example.com',
+			guestName: 'Camille',
+			eventTitle: (event?.titleFr || event?.titleEn) ?? '',
+			reservationId: 'preview',
+		};
+		return {
+			success: 'Aperçu généré.',
+			previewFr: generateThankYouTextTemplate({
+				...base,
+				locale: 'fr',
+				message: thankYou.thankYouMessageFr || thankYou.thankYouMessageEn || '',
+				linkUrl: thankYou.thankYouLinkUrl,
+				linkLabel: thankYou.thankYouLinkLabelFr || thankYou.thankYouLinkLabelEn,
+			}),
+			previewEn: generateThankYouTextTemplate({
+				...base,
+				locale: 'en',
+				message: thankYou.thankYouMessageEn || thankYou.thankYouMessageFr || '',
+				linkUrl: thankYou.thankYouLinkUrl,
+				linkLabel: thankYou.thankYouLinkLabelEn || thankYou.thankYouLinkLabelFr,
+			}),
+		};
+	},
+
+	// « M’envoyer un test » (054): queue the Thank-you, as the form holds
+	// it, to the logged-in Admin’s address.
+	testThankYou: async ({ request, params, locals }) => {
+		requireAdmin(locals);
+		const admin = locals.user!;
+		if (!admin.email) return fail(400, { error: 'Votre compte n’a pas d’adresse e-mail.' });
+		const formData = await request.formData();
+		const thankYou = readThankYouFields(formData);
+		if (!thankYou) return fail(400, { error: 'Champs du remerciement manquants.' });
+		const refused = thankYouRefusals(thankYou);
+		if (refused.length > 0) {
+				return fail(400, {
+					error: 'Le remerciement exige un message dans au moins une langue, et un lien http(s).',
+					fields: refused,
+				});
+		}
+		const event = env.USE_MOCK_DATA
+			? MOCK_EVENTS.find((e) => e.id === params.id)
+			: await (await import('$lib/server/services/events')).getEventById(params.id).catch(() => undefined);
+		const { sendThankYouEmail } = await import('$lib/server/services/email');
+		await sendThankYouEmail({
+			guestEmail: admin.email,
+			guestName: admin.email,
+			eventTitle: (event?.titleFr || event?.titleEn) ?? '',
+			message: thankYou.thankYouMessageFr || thankYou.thankYouMessageEn || '',
+			linkUrl: thankYou.thankYouLinkUrl,
+			linkLabel: thankYou.thankYouLinkLabelFr || thankYou.thankYouLinkLabelEn,
+			reservationId: 'test',
+			locale: 'fr',
+		});
+		return { success: 'E-mail de test mis en file d’attente pour votre adresse.' };
 	},
 
 	// Publication (ADR 0010): Visibility, Spotlight and Portfolio are saved

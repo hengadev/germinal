@@ -172,6 +172,13 @@ export interface EditorEvent {
 	practicalInfoFr: string | null;
 	/** Whether the booking form asks for Dietary Requirements (issue 041). */
 	askDietaryRequirements?: boolean;
+	/** The post-event Thank-you (issue 054). */
+	thankYouEnabled?: boolean;
+	thankYouMessageFr?: string | null;
+	thankYouMessageEn?: string | null;
+	thankYouLinkUrl?: string | null;
+	thankYouLinkLabelFr?: string | null;
+	thankYouLinkLabelEn?: string | null;
 	/** The Recap (issue 045), for the Portfolio project page. */
 	recapEn?: string | null;
 	recapFr?: string | null;

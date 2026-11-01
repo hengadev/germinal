@@ -344,6 +344,13 @@
       "when": 1793482537616,
       "tag": "0048_close-seating-bookings",
       "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1793564987070,
+      "tag": "0049_post_event_thank_you",
+      "breakpoints": true
     }
   ]
 }

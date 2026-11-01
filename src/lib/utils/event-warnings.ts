@@ -36,10 +36,11 @@ export type EditorTabId =
 	| 'programme'
 	| 'visuels'
 	| 'pratique'
+	| 'apres-evenement'
 	| 'portfolio';
 
 /**
- * The eight Event tabs, in the editor's order — EventEditor's own list and
+ * The Event editor tabs, in the editor's order — EventEditor's own list and
  * the tabs Draft completeness is counted over (issue 013, ADR 0010).
  */
 export const EVENT_EDITOR_TABS: readonly { id: EditorTabId; title: string }[] = [
@@ -50,6 +51,7 @@ export const EVENT_EDITOR_TABS: readonly { id: EditorTabId; title: string }[] = 
 	{ id: 'programme', title: 'Programme' },
 	{ id: 'visuels', title: 'Visuels' },
 	{ id: 'pratique', title: 'Infos pratiques' },
+	{ id: 'apres-evenement', title: 'Après l’événement' },
 	{ id: 'portfolio', title: 'Portfolio' },
 ];
 
@@ -435,7 +437,7 @@ export function editorPortfolioWarnings(
 
 /** What is missing in one Event tab. */
 export interface EventTabCompleteness {
-	/** The tab, one of the eight Event tabs. */
+	/** The tab, one of the editor's Event tabs. */
 	tab: EditorTabId;
 	/** The tab's French title, as the editor labels it. */
 	title: string;
@@ -446,7 +448,7 @@ export interface EventTabCompleteness {
 /** An Event's completeness: what is missing per tab, and how many of the
  * checked tabs have nothing missing. */
 export interface EventCompleteness {
-	/** The eight Event tabs, in the editor's order. */
+	/** The Event editor tabs, in the editor's order. */
 	tabs: EventTabCompleteness[];
 	/** How many checked tabs have nothing missing. */
 	complete: number;
@@ -460,7 +462,7 @@ const CHECKED_TABS: readonly EditorTabId[] = ['essentiel', 'lieu', 'dates-seance
 
 /**
  * Draft completeness (issue 013, ADR 0010): the editor's warnings grouped
- * by tab — what is missing in each of the eight Event tabs — and how many
+ * by tab — what is missing in each of the editor's Event tabs — and how many
  * of the checked tabs have nothing missing (the « n/5 » the Events list
  * shows on a Draft row). Portfolio is checked only for a Portfolio Event,
  * whose warnings join the list as in the editor. The same warnings

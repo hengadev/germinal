@@ -80,6 +80,60 @@ export function readAskDietaryRequirements(formData: FormData): boolean | undefi
 	return formData.getAll('askDietaryRequirements').includes('true');
 }
 
+/** The post-event Thank-you fields (issue 054), as posted by the
+ * « Après l’événement » tab. Like the switch above, the tab posts a hidden
+ * `false` before the checkbox’s `true`; a tab that does not post them
+ * leaves the Thank-you alone (undefined). Blank texts and the link are
+ * null. */
+export interface ThankYouFields {
+	thankYouEnabled: boolean;
+	thankYouMessageFr: string | null;
+	thankYouMessageEn: string | null;
+	thankYouLinkUrl: string | null;
+	thankYouLinkLabelFr: string | null;
+	thankYouLinkLabelEn: string | null;
+}
+
+export function readThankYouFields(formData: FormData): ThankYouFields | undefined {
+	if (!formData.has('thankYouEnabled')) return undefined;
+	const text = (name: string) => {
+		const value = formData.get(name);
+		return typeof value === 'string' && value.trim() !== '' ? value : null;
+	};
+	return {
+		thankYouEnabled: formData.getAll('thankYouEnabled').includes('true'),
+		thankYouMessageFr: text('thankYouMessageFr'),
+		thankYouMessageEn: text('thankYouMessageEn'),
+		thankYouLinkUrl: text('thankYouLinkUrl'),
+		thankYouLinkLabelFr: text('thankYouLinkLabelFr'),
+		thankYouLinkLabelEn: text('thankYouLinkLabelEn'),
+	};
+}
+
+/** Whether the Thank-you may be turned on: a message in at least one
+ * language, and the link (when set) an http(s) URL (issue 054). Returns
+ * the fields at fault. */
+export function thankYouRefusals(fields: ThankYouFields): string[] {
+	if (!fields.thankYouEnabled) {
+		return fields.thankYouLinkUrl && !isHttpUrl(fields.thankYouLinkUrl)
+			? ['thankYouLinkUrl']
+			: [];
+	}
+	if (!fields.thankYouMessageFr && !fields.thankYouMessageEn) {
+		return ['thankYouMessageFr', 'thankYouMessageEn'];
+	}
+	return fields.thankYouLinkUrl && !isHttpUrl(fields.thankYouLinkUrl) ? ['thankYouLinkUrl'] : [];
+}
+
+function isHttpUrl(value: string): boolean {
+	try {
+		const url = new URL(value);
+		return url.protocol === 'http:' || url.protocol === 'https:';
+	} catch {
+		return false;
+	}
+}
+
 /** Whether any of the fields holds a value. */
 export function hasEventText(fields: EventTextFields): boolean {
 	return Object.values(fields).some((value) => value !== null && value !== undefined);
