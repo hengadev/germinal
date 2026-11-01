@@ -87,6 +87,14 @@ export async function sendThankYouEmails(now: Date = new Date()): Promise<ThankY
 					? day.titleFr || day.titleEn
 					: day.titleEn || day.titleFr) ?? '';
 
+				// Claim the send first: only a row still unstamped is stamped,
+				// so a concurrent run cannot thank the same Guest twice.
+				const claimed = await db.update(reservations)
+					.set({ thankYouSentAt: now, updatedAt: new Date() })
+					.where(and(eq(reservations.id, guest.id), isNull(reservations.thankYouSentAt)))
+					.returning({ id: reservations.id });
+				if (claimed.length === 0) continue;
+
 				const { sendThankYouEmail } = await import('../services/email');
 				await sendThankYouEmail({
 					guestEmail: guest.guestEmail,
@@ -98,15 +106,13 @@ export async function sendThankYouEmails(now: Date = new Date()): Promise<ThankY
 					reservationId: guest.id,
 					locale: lang,
 				});
-
-				// Claim the send: only a row still unstamped is stamped, so
-				// a concurrent run cannot thank the same Guest twice.
-				const claimed = await db.update(reservations)
-					.set({ thankYouSentAt: now, updatedAt: new Date() })
-					.where(and(eq(reservations.id, guest.id), isNull(reservations.thankYouSentAt)))
-					.returning({ id: reservations.id });
-				if (claimed.length > 0) sent++;
+				sent++;
 			} catch (error) {
+				// Release the claim, so the next hourly run tries again.
+				await db.update(reservations)
+					.set({ thankYouSentAt: null })
+					.where(eq(reservations.id, guest.id))
+					.catch(() => {});
 				logger.error({ err: error, reservationId: guest.id }, '[Thank You] Failed to send thank-you email');
 				failed++;
 			}
