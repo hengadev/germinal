@@ -6,8 +6,9 @@
  */
 import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import { db } from '../db';
-import { eventDays, eventServices, eventSessions, reservations, users } from '../db/schema';
+import { eventDays, eventServices, eventSessions, events, payments, reservations, users } from '../db/schema';
 import type { StaffAccess } from '$lib/staff/access';
+import { refundPolicyOf } from '$lib/utils/refund-policy';
 
 /** One party (a confirmed Reservation), with only the allowed fields. */
 export interface DayGuestParty {
@@ -45,6 +46,11 @@ export interface DayGuestParty {
 	/** The Refund Policy's suggestion for a guest cancellation, in cents,
 	 * null when the policy suggests nothing (a manual policy). */
 	suggestedRefund?: number | null;
+	/** total_amount, in cents — only with change_party (issue 048). */
+	totalAmount?: number;
+	/** The Deposit actually paid online, minus refunds, in cents — only
+	 * with change_party (issue 048). */
+	depositPaid?: number;
 }
 
 /** One Seating of the Day with its parties. */
@@ -60,6 +66,8 @@ export interface DayGuestSeating {
 	booked: number;
 	/** The Seating's capacity, or null when it has none. */
 	totalCapacity: number | null;
+	/** Seats still free, or null when the Seating has no limit (issue 048). */
+	availableCapacity: number | null;
 	/** « Fermé aux réservations » (039): the heading shows a mark. */
 	bookingsClosed: boolean;
 	parties: DayGuestParty[];
@@ -69,6 +77,9 @@ export interface DayGuestList {
 	/** The Day being shown, 'YYYY-MM-DD'. */
 	day: string;
 	seatings: DayGuestSeating[];
+	/** The Event's Refund Policy, for the party-size sheet's refund
+	 * suggestion — only with change_party (issue 048). */
+	refundPolicy?: import('$lib/utils/refund-policy').RefundPolicy;
 }
 
 /** Which party fields this access allows (and therefore selects). */
@@ -150,6 +161,7 @@ async function daySeatings(eventId: string, day: string): Promise<DayGuestSeatin
 			titleEn: eventSessions.titleEn,
 			startTime: eventSessions.startTime,
 			totalCapacity: eventSessions.totalCapacity,
+			availableCapacity: eventSessions.availableCapacity,
 			bookingsClosedAt: eventSessions.bookingsClosedAt,
 		})
 		.from(eventSessions)
@@ -165,6 +177,7 @@ async function daySeatings(eventId: string, day: string): Promise<DayGuestSeatin
 		titleEn: string | null;
 		startTime: Date;
 		totalCapacity: number | null;
+		availableCapacity: number | null;
 		bookingsClosedAt: Date | null;
 	}) => ({
 		id: r.id,
@@ -174,6 +187,7 @@ async function daySeatings(eventId: string, day: string): Promise<DayGuestSeatin
 		titleEn: r.titleEn,
 		startTime: r.startTime.toISOString(),
 		totalCapacity: r.totalCapacity,
+		availableCapacity: r.availableCapacity,
 		bookingsClosed: r.bookingsClosedAt !== null,
 		booked: 0,
 		parties: [],
@@ -300,4 +314,64 @@ export async function lookupTicket(
 		)
 		.limit(1)) as unknown as PartyRow[];
 	return row ? toParty(row) : null;
+}
+
+/**
+ * Add what the party-size sheet's live quote needs (issue 048): each
+ * party's total and Deposit actually paid online, and the Event's Refund
+ * Policy — only for a viewer who holds change_party.
+ */
+export async function withPartySizeInfo(
+	access: StaffAccess,
+	eventId: string,
+	list: DayGuestList
+): Promise<DayGuestList> {
+	if (!access.can('change_party')) return list;
+
+	const ids = list.seatings
+		.flatMap((s) => s.parties)
+		.map((p) => p.id)
+		.filter((id): id is string => Boolean(id));
+	const totals = new Map<string, number>();
+	if (ids.length > 0) {
+		const rows = await db
+			.select({ id: reservations.id, totalAmount: reservations.totalAmount })
+			.from(reservations)
+			.where(inArray(reservations.id, ids));
+		for (const row of rows) totals.set(row.id, row.totalAmount);
+	}
+	const depositPaid = new Map<string, number>();
+	if (ids.length > 0) {
+		const rows = await db
+			.select({
+				reservationId: payments.reservationId,
+				amount: payments.amount,
+				refundedAmount: payments.refundedAmount,
+			})
+			.from(payments)
+			.where(inArray(payments.reservationId, ids));
+		for (const row of rows) {
+			depositPaid.set(row.reservationId, row.amount - (row.refundedAmount ?? 0));
+		}
+	}
+	const [event] = await db
+		.select({
+			refundPolicyType: events.refundPolicyType,
+			refundPolicyTextEn: events.refundPolicyTextEn,
+			refundPolicyTextFr: events.refundPolicyTextFr,
+			refundPolicyTiers: events.refundPolicyTiers,
+		})
+		.from(events)
+		.where(eq(events.id, eventId))
+		.limit(1);
+	list.refundPolicy = refundPolicyOf(event ?? {});
+
+	for (const seating of list.seatings) {
+		for (const party of seating.parties) {
+			if (!party.id) continue;
+			party.totalAmount = totals.get(party.id) ?? 0;
+			party.depositPaid = depositPaid.get(party.id) ?? 0;
+		}
+	}
+	return list;
 }

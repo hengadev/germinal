@@ -202,10 +202,11 @@ One thing a **Staff** member may do or see at an **Event** (e.g. see the guest l
 - create an invitation: a **Comp** on any upcoming **Seating** of the Event, Ticket emailed (never in a starting Staff Role)
 - close Seatings to bookings, and reopen them (**Closed to bookings**; never in a starting Staff Role)
 - cancel a Reservation and refund it, or refund part of it (never in a starting Staff Role)
+- change the number of Guests of a party (never in a starting Staff Role)
 
 Every permission but the Tasks and the create-an-invitation ones concerns Guests or the Day's Seatings, and works only during a **Day** of the Event, on that Day's Reservations alone: before it, after it, or for another Day, a Staff member sees no Guest at all, whatever their Staff Role. Guests' data is needed on the day, never before.
 
-Acting on parties (scanning, checking in by hand, settling a Balance, a Move, a Walk-in, a Comp, a cancellation or refund) requires seeing the guest list, so granting one grants that too. Seeing Dietary Requirements shows each party's name and size with them, not the whole guest list.
+Acting on parties (scanning, checking in by hand, settling a Balance, a Move, a Walk-in, a Comp, a cancellation or refund, changing a party's size) requires seeing the guest list, so granting one grants that too. Seeing Dietary Requirements shows each party's name and size with them, not the whole guest list.
 
 Never a Staff Permission, whatever the trust: cancelling or refunding a Reservation, and seeing **Internal Notes**. Those stay with Admins.
 _Avoid_: Right, access, capability
