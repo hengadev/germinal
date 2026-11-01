@@ -7,7 +7,8 @@
 		ArrowRight,
 		Users,
 		BarChart3,
-		Plus
+		Plus,
+		AlertTriangle
 	} from 'lucide-svelte';
 	import type { PageData } from './$types';
 
@@ -89,6 +90,31 @@
 			</a>
 		</div>
 	</div>
+
+	{#if data.moneyAlerts.total > 0}
+		<!-- Issue 042 : argent à traiter -->
+		<div class="mb-8 rounded-lg border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/20 p-5">
+			<div class="flex flex-wrap items-center justify-between gap-3">
+				<div class="flex items-center gap-3">
+					<AlertTriangle size={18} class="text-red-600 dark:text-red-400" />
+					<p class="text-sm font-medium text-foreground">
+						{data.moneyAlerts.total}
+						{data.moneyAlerts.total > 1 ? 'réservations à traiter' : 'réservation à traiter'}
+						{#if data.moneyAlerts.byKind.refund_failed}
+							— dont {data.moneyAlerts.byKind.refund_failed} remboursement{data.moneyAlerts.byKind.refund_failed > 1 ? 's' : ''} refusé{data.moneyAlerts.byKind.refund_failed > 1 ? 's' : ''}
+						{/if}
+					</p>
+				</div>
+				<a
+					href="/admin/a-traiter"
+					class="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
+				>
+					<ArrowRight size={15} />
+					<span class="whitespace-nowrap">À traiter</span>
+				</a>
+			</div>
+		</div>
+	{/if}
 
 	<!-- Stats -->
 	<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">

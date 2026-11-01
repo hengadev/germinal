@@ -321,6 +321,9 @@ export async function handleRefund(charge: Stripe.Charge) {
 		.set({
 			status: isFullyRefunded ? 'refunded' : 'partially_refunded',
 			refundedAmount,
+			// Issue 042: a refund that reached Stripe clears any recorded
+			// refund failure, so the « À traiter » alert disappears.
+			lastError: null,
 			updatedAt: new Date(),
 		})
 		.where(eq(payments.id, payment.id));
