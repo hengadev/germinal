@@ -32,14 +32,14 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 	const { db } = await import('$lib/server/db');
 	const { eventSessions } = await import('$lib/server/db/schema');
-	const { and, eq, gt, asc, isNull, or } = await import('drizzle-orm');
+	const { and, eq, gt, asc } = await import('drizzle-orm');
 
 	const upcomingSessions = await db.query.eventSessions.findMany({
 		where: and(
 			eq(eventSessions.published, true),
-			gt(eventSessions.startTime, new Date()),
-			// Seatings without a limit (ADR 0009) never run out.
-			or(isNull(eventSessions.availableCapacity), gt(eventSessions.availableCapacity, 0))
+			gt(eventSessions.startTime, new Date())
+			// Issue 045: a Comp may overflow a full Seating, so full Seatings
+			// stay selectable (with a warning) — capacity limits online booking.
 		),
 		orderBy: [asc(eventSessions.startTime)],
 		with: {
@@ -115,9 +115,13 @@ export const actions: Actions = {
 				notificationPreference,
 			});
 
+			const overflowSuffix =
+				result.overflowSeats > 0
+					? `, ${result.overflowSeats} place${result.overflowSeats > 1 ? 's' : ''} au-delà de la capacité`
+					: '';
 			return {
 				success: true,
-				message: `Invitation créée pour ${name}`,
+				message: `Invitation créée pour ${name}${overflowSuffix}`,
 				reservationId: result.reservation.id,
 			};
 		} catch (err) {

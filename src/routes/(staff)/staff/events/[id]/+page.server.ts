@@ -552,9 +552,21 @@ export const actions: Actions = {
 				action: 'reservation.invite',
 				entityType: 'reservation',
 				entityId: result.reservation.id,
-				metadata: { seatingId, quantity, name }
+				metadata: {
+					seatingId,
+					quantity,
+					name,
+					// Issue 045 : l'invitation a pu dépasser la capacité.
+					overflowSeats: result.overflowSeats
+				}
 			});
-			return { invited: true, message: `Invitation envoyée à ${name}` };
+			// Issue 045 : la séance complète n'empêche plus l'invitation ; le
+			// dépassement est signalé.
+			const overflowSuffix =
+				result.overflowSeats > 0
+					? `, ${result.overflowSeats} place${result.overflowSeats > 1 ? 's' : ''} au-delà de la capacité`
+					: '';
+			return { invited: true, message: `Invitation créée pour ${name}${overflowSuffix}` };
 		} catch (err) {
 			return fail(422, {
 				error: err instanceof Error ? err.message : 'Échec de la création de l\u2019invitation.',

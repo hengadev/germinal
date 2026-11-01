@@ -173,7 +173,7 @@ describe('the invite action (issue 040)', () => {
 		const seating = await seedSeating(event.id);
 
 		const result = await inviteViaAction(event.id, seating.id);
-		expect(result).toMatchObject({ invited: true, message: 'Invitation envoyée à Invité' });
+		expect(result).toMatchObject({ invited: true, message: 'Invitation créée pour Invité' });
 
 		const [reservation] = await testDb.select().from(reservations).where(eq(reservations.eventSessionId, seating.id));
 		expect(reservation).toMatchObject({
@@ -235,13 +235,19 @@ describe('the invite action (issue 040)', () => {
 		expect(rows).toHaveLength(0);
 	});
 
-	it('refuses a full Seating (createCompReservation enforces capacity)', async () => {
+	it('creates the invitation on a full Seating and reports the overflow (issue 045)', async () => {
 		const event = await seedEvent();
 		const full = await seedSeating(event.id, { availableCapacity: 0 });
 		const result = await inviteViaAction(event.id, full.id);
-		expect(result).toMatchObject({ status: 422 });
-		const rows = await testDb.select().from(reservations);
-		expect(rows).toHaveLength(0);
+		expect(result).toMatchObject({
+			invited: true,
+			message: 'Invitation créée pour Invité, 2 places au-delà de la capacité'
+		});
+		const [reservation] = await testDb.select().from(reservations).where(eq(reservations.eventSessionId, full.id));
+		expect(reservation).toMatchObject({ status: 'confirmed', isComp: true, quantity: 2 });
+		// The counter is floored at 0.
+		const [after] = await testDb.select().from(eventSessions).where(eq(eventSessions.id, full.id));
+		expect(after.availableCapacity).toBe(0);
 	});
 
 	it('requires a name and a valid email', async () => {

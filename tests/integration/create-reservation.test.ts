@@ -547,6 +547,41 @@ describe('createReservation — Deposit', () => {
 			.toMatchObject({ isComp: true, totalAmount: 0, depositAmount: 0, balanceAmount: 0 });
 	});
 
+	it('a comp Reservation overflows a full Seating and reports it (issue 045)', async () => {
+		const { event, session } = await seedPublishedSession(
+			{ totalCapacity: 5, availableCapacity: 0 },
+			{ priceAmount: 6500 }
+		);
+		await setDepositRule(event.id, 'percent', 30);
+		const { createCompReservation } = await import('../../src/lib/server/services/reservations');
+
+		const result = await createCompReservation({
+			sessionId: session.id,
+			email: 'vip@example.com',
+			name: 'VIP Guest',
+			quantity: 2
+		});
+
+		expect(result.overflowSeats).toBe(2);
+		expect((await storedRows(result.reservation.id)).reservation)
+			.toMatchObject({ isComp: true, status: 'confirmed' });
+		// The counter is floored at 0, and stays 0.
+		const [after] = await testDb.select().from(eventSessions).where(eq(eventSessions.id, session.id));
+		expect(after.availableCapacity).toBe(0);
+
+		// Within capacity: no overflow; a Seating without a limit never warns.
+		const { session: roomy } = await seedPublishedSession({ availableCapacity: 4 });
+		const within = await createCompReservation({
+			sessionId: roomy.id, email: 'a@example.com', name: 'A', quantity: 2
+		});
+		expect(within.overflowSeats).toBe(0);
+		const { session: open } = await seedPublishedSession({ availableCapacity: null });
+		const unlimited = await createCompReservation({
+			sessionId: open.id, email: 'b@example.com', name: 'B', quantity: 2
+		});
+		expect(unlimited.overflowSeats).toBe(0);
+	});
+
 	it('stores the language the Guest booked in; anything else is null (issue 025)', async () => {
 		const { session } = await seedPublishedSession();
 		const { createReservation } = await import('../../src/lib/server/services/reservations');
