@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import Arrivees from '$lib/components/staff/arrivees/Arrivees.svelte';
+import Aujourdhui from '$lib/components/staff/aujourdhui/Aujourdhui.svelte';
 import NotesCuisine from '$lib/components/staff/arrivees/NotesCuisine.svelte';
 import { noteCount as countNotes } from '$lib/components/staff/arrivees/helpers';
 import { page } from '$app/state';
@@ -31,8 +32,10 @@ import {
 	// any more, issue 034 — the floating button scans).
 	const fromUrl = page.url.searchParams.get('onglet');
 	const tabFromUrl =
-		fromUrl === 'arrivees' || fromUrl === 'cuisine' || fromUrl === 'brief' ? fromUrl : null;
-	let activeTab = $state<'arrivees' | 'cuisine' | 'brief'>(
+		fromUrl === 'arrivees' || fromUrl === 'aujourdhui' || fromUrl === 'cuisine' || fromUrl === 'brief'
+			? fromUrl
+			: null;
+	let activeTab = $state<'arrivees' | 'aujourdhui' | 'cuisine' | 'brief'>(
 		tabFromUrl ??
 			(!data.access.day
 				? 'brief'
@@ -189,6 +192,18 @@ import {
 						Arrivées
 					</button>
 				{/if}
+				{#if data.access.canAujourdhui}
+					<button
+						type="button"
+						onclick={() => goToTab('aujourdhui')}
+						aria-current={activeTab === 'aujourdhui' ? 'page' : undefined}
+						class="px-1 py-3 text-sm font-medium border-b-2 {activeTab === 'aujourdhui'
+							? 'border-foreground text-foreground'
+							: 'border-transparent text-muted-foreground hover:text-foreground'}"
+					>
+						Aujourd'hui
+					</button>
+				{/if}
 				{#if data.access.canCuisine}
 					<button
 						type="button"
@@ -254,6 +269,13 @@ import {
 						<p class="text-muted-foreground">Aucun jour en cours : les invités ne sont visibles que le jour J.</p>
 					</div>
 				{/if}
+			</section>
+		{/if}
+
+		<!-- Onglet Aujourd'hui -->
+		{#if activeTab === 'aujourdhui' && data.access.canAujourdhui && data.aujourdhui}
+			<section aria-label="Aujourd'hui">
+				<Aujourdhui attendance={data.aujourdhui} timeZone={data.event.timeZone} />
 			</section>
 		{/if}
 

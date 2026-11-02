@@ -185,3 +185,114 @@ describe('attendance', () => {
 		expect(isEventOver(null, new Date())).toBe(false);
 	});
 });
+
+describe('getDayAttendance (issue 056)', () => {
+	beforeEach(async () => {
+		await setupTestDatabase();
+	});
+
+	it('shows live counts, No-shows only for ended Seatings, seats left', async () => {
+		const { event, lunch, dinner } = await seedEventWithTwoSeatings();
+		// Now: after lunch (12h–13h15) has ended, before dinner (19h).
+		const now = new Date('2099-06-10T15:00:00Z');
+
+		// Lunch: a party of 4 with 3 in — 3 arrived, 1 No-show (ended).
+		const four = await seedReservation(lunch.id, { guestName: 'Party of four', quantity: 4 });
+		await seedCheckIn(four.id, 3);
+		// An undone Check-in never counts: 2 still to come in the ended lunch.
+		const undone = await seedReservation(lunch.id, { guestName: 'Undone', quantity: 2 });
+		await seedCheckIn(undone.id, 2, true);
+		// A Walk-in and a Comp count in their own columns.
+		await seedReservation(lunch.id, { guestName: 'Walk-in', quantity: 3, origin: 'walk_in' });
+		await seedReservation(lunch.id, { guestName: 'Comp', quantity: 2, isComp: true });
+
+		// Dinner (not ended): no No-shows yet, a party of 2 fully in.
+		const two = await seedReservation(dinner.id, { guestName: 'Two', quantity: 2 });
+		await seedCheckIn(two.id, 2);
+
+		const { getDayAttendance } = await import('../../src/lib/server/services/attendance');
+		const day = await getDayAttendance(event.id, '2099-06-10', now);
+
+		expect(day.date).toBe('2099-06-10');
+		expect(day.services.map((s) => s.kind)).toEqual(['lunch', 'dinner']);
+
+		const lunchSeating = day.services[0].seatings[0];
+		expect(lunchSeating.ended).toBe(true);
+		expect(lunchSeating.booked).toBe(6); // party of four + the undone party
+		expect(lunchSeating.arrived).toBe(3);
+		expect(lunchSeating.stillToCome).toBe(3);
+		expect(lunchSeating.noShows).toBe(3); // 1 + the 2 undone
+		expect(lunchSeating.walkIns).toEqual({ parties: 1, guests: 3 });
+		expect(lunchSeating.comps).toEqual({ parties: 1, guests: 2 });
+		// 40 − 6 booked − 3 walk-in − 2 comp guests.
+		expect(lunchSeating.seatsLeft).toBe(29);
+
+		const dinnerSeating = day.services[1].seatings[0];
+		expect(dinnerSeating.ended).toBe(false);
+		expect(dinnerSeating.noShows).toBe(0);
+		expect(dinnerSeating.stillToCome).toBe(0);
+		expect(dinnerSeating.seatsLeft).toBe(38);
+
+		expect(day.totals).toEqual({
+			booked: 8,
+			arrived: 5,
+			stillToCome: 3,
+			noShows: 3,
+			walkIns: { parties: 1, guests: 3 },
+			comps: { parties: 1, guests: 2 }
+		});
+		expect(day.services[0].totals.noShows).toBe(3);
+		expect(day.services[1].totals.noShows).toBe(0);
+	});
+
+	it('gives null seats left without capacity, and none before the Seating has ended', async () => {
+		const [event] = await testDb
+			.insert(events)
+			.values({
+				titleEn: 'No capacity',
+				titleFr: 'Sans capacité',
+				descriptionEn: 'd',
+				descriptionFr: 'd',
+				startDate: new Date('2099-07-01'),
+				endDate: new Date('2099-07-01'),
+				locationEn: 'Paris',
+				locationFr: 'Paris',
+				visibility: 'public',
+				depositType: 'fixed',
+				depositValue: 2000,
+			})
+			.returning();
+		const startTime = new Date('2099-07-01T12:00:00Z');
+		const endTime = new Date('2099-07-01T13:00:00Z');
+		const [seating] = await testDb
+			.insert(eventSessions)
+			.values({
+				eventId: event.id,
+				serviceId: await seedServiceForSession(testDb, event.id, startTime, endTime, { priceAmount: 6500 }),
+				startTime,
+				endTime,
+				totalCapacity: null,
+				availableCapacity: null,
+				published: true,
+			})
+			.returning();
+		await seedReservation(seating.id, { guestName: 'Nobody in', quantity: 5 });
+
+		const { getDayAttendance } = await import('../../src/lib/server/services/attendance');
+		// Before the end: no No-shows yet.
+		const before = await getDayAttendance(event.id, '2099-07-01', new Date('2099-07-01T12:30:00Z'));
+		expect(before.services[0].seatings[0]).toMatchObject({
+			booked: 5,
+			arrived: 0,
+			stillToCome: 5,
+			noShows: 0,
+			ended: false,
+			totalCapacity: null,
+			seatsLeft: null
+		});
+		// After the end: the absent guests become No-shows.
+		const after = await getDayAttendance(event.id, '2099-07-01', new Date('2099-07-01T13:00:00Z'));
+		expect(after.services[0].seatings[0].noShows).toBe(5);
+		expect(after.services[0].seatings[0].ended).toBe(true);
+	});
+});
