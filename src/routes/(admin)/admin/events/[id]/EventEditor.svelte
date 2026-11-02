@@ -44,6 +44,7 @@
 	import Photos from './Photos.svelte';
 	import PracticalInfo from './PracticalInfo.svelte';
 	import AfterEvent from './AfterEvent.svelte';
+	import Bilan from './Bilan.svelte';
 	import Portfolio from './Portfolio.svelte';
 	import Team from './Team.svelte';
 	import Brief from './Brief.svelte';
@@ -83,6 +84,7 @@
 		{ id: 'brief', title: 'Brief' },
 		{ id: 'tasks', title: 'Tasks' },
 		{ id: 'reservations', title: 'Réservations' },
+		{ id: 'bilan', title: 'Bilan' },
 		{ id: 'promotions', title: 'Promotions' },
 	];
 	// « Portfolio » comes last: it is filled in after the Event.
@@ -797,11 +799,13 @@
 	{#snippet brief()}<Brief {data} {form} active={activeTab === panelIndex('brief')} />{/snippet}
 	{#snippet tasks()}<Tasks {data} {form} />{/snippet}
 	{#snippet reservations()}<Reservations {data} />{/snippet}
+	{#snippet bilan()}<Bilan {data} />{/snippet}
 	{#snippet promotions()}<PromoCodes {data} {form} />{/snippet}
 	{@render panel('team', team, false)}
 	{@render panel('brief', brief, false)}
 	{@render panel('tasks', tasks, false)}
 	{@render panel('reservations', reservations, false)}
+	{@render panel('bilan', bilan, false)}
 	{@render panel('promotions', promotions, false)}
 
 	{#if held && heldTabs.length > 0}
