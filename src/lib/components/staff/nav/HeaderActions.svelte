@@ -20,6 +20,7 @@
 	import { openInviteForm } from '$lib/components/staff/event-menu/invite-form.svelte';
 	import { pickEvent, type PickableEvent } from './event-picker.svelte';
 	import { clearSnapshots } from '$lib/staff/offline/snapshot-store';
+	import { clearArrivalData } from '$lib/staff/offline/arrival-queue.svelte';
 	import type { HeaderActionTargets } from '$lib/server/services/staff-portal';
 
 	let { targets }: { targets: HeaderActionTargets } = $props();
@@ -139,8 +140,11 @@
 				<DropdownMenu.Item
 					class={ITEM}
 					onSelect={() => {
-						// Issue 060 : la copie du Jour ne survit pas à la déconnexion.
-						clearSnapshots().finally(() => logoutForm?.requestSubmit());
+						// Issues 060/061 : la copie du Jour, la file d'arrivées et
+						// leurs refus ne survivent pas à la déconnexion.
+						Promise.all([clearSnapshots(), clearArrivalData()]).finally(
+							() => logoutForm?.requestSubmit()
+						);
 					}}
 				>
 					<LogOut class="size-4" aria-hidden="true" />

@@ -17,6 +17,10 @@
 	import PartyActionsMenu from './PartyActionsMenu.svelte';
 	import { visitOrdinalFr } from '$lib/utils/visit-ordinal';
 	import { balanceDue, capacityLabel, guests as guestsLabel, seatingTime, settleTimeLabel, type ArriveesFields } from './helpers';
+	import { onlineState } from '$lib/staff/offline/online-state.svelte';
+	import { enqueueArrival } from '$lib/staff/offline/arrival-queue.svelte';
+	import { applyArrivalToSnapshot } from '$lib/staff/offline/snapshot-store';
+	import { addPendingArrival, pendingArrivalsFor } from '$lib/staff/offline/pending-arrivals.svelte';
 
 	let {
 		party,
@@ -54,7 +58,8 @@
 	} = $props();
 
 	const balance = $derived(balanceDue(party));
-	const arrived = $derived(party.arrived ?? 0);
+	// Issue 061 : les arrivées en file hors ligne comptent tout de suite.
+	const arrived = $derived((party.arrived ?? 0) + (party.id ? pendingArrivalsFor(party.id) : 0));
 	const expected = $derived((party.quantity ?? 0) - arrived);
 	const allIn = $derived(party.quantity !== undefined && arrived >= party.quantity);
 

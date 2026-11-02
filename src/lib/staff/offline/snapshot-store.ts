@@ -26,15 +26,23 @@ export interface StoredSnapshot {
 }
 
 const DB_NAME = 'germinal-staff';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE = 'day-snapshots';
+export const QUEUE_STORE = 'arrival-queue';
+export const CONFLICTS_STORE = 'arrival-conflicts';
 
-function openDb(): Promise<IDBDatabase> {
+export function openDb(): Promise<IDBDatabase> {
 	return new Promise((resolve, reject) => {
 		const request = indexedDB.open(DB_NAME, DB_VERSION);
 		request.onupgradeneeded = () => {
 			if (!request.result.objectStoreNames.contains(STORE)) {
 				request.result.createObjectStore(STORE, { keyPath: 'eventId' });
+			}
+			// Issue 061 : les arrivées en attente et leurs refus.
+			for (const store of [QUEUE_STORE, CONFLICTS_STORE]) {
+				if (!request.result.objectStoreNames.contains(store)) {
+					request.result.createObjectStore(store, { keyPath: 'clientId' });
+				}
 			}
 		};
 		request.onsuccess = () => resolve(request.result);
@@ -42,14 +50,15 @@ function openDb(): Promise<IDBDatabase> {
 	});
 }
 
-async function withStore<T>(
+export async function withStore<T>(
+	storeName: string,
 	mode: IDBTransactionMode,
 	run: (store: IDBObjectStore) => IDBRequest<T>
 ): Promise<T> {
 	const db = await openDb();
 	try {
 		return await new Promise<T>((resolve, reject) => {
-			const request = run(db.transaction(STORE, mode).objectStore(STORE));
+			const request = run(db.transaction(storeName, mode).objectStore(storeName));
 			request.onsuccess = () => resolve(request.result);
 			request.onerror = () => reject(request.error);
 		});
@@ -68,7 +77,7 @@ export async function refreshSnapshot(eventId: string): Promise<StoredSnapshot |
 		if (!res.ok) return null;
 		const snapshot = (await res.json()) as StoredSnapshot;
 		await clearSnapshots();
-		await withStore('readwrite', (store) => store.put({ ...snapshot, eventId }));
+		await withStore(STORE, 'readwrite', (store) => store.put({ ...snapshot, eventId }));
 		return snapshot;
 	} catch (error) {
 		if (error instanceof TypeError) markOffline();
@@ -79,7 +88,7 @@ export async function refreshSnapshot(eventId: string): Promise<StoredSnapshot |
 /** The stored snapshot of an Event, or null. */
 export async function getSnapshot(eventId: string): Promise<StoredSnapshot | null> {
 	try {
-		return await withStore('readonly', (store) => store.get(eventId));
+		return await withStore(STORE, 'readonly', (store) => store.get(eventId));
 	} catch {
 		return null;
 	}
@@ -88,9 +97,36 @@ export async function getSnapshot(eventId: string): Promise<StoredSnapshot | nul
 /** Drops every stored snapshot (other Events, other Days, everything). */
 export async function clearSnapshots(): Promise<void> {
 	try {
-		await withStore('readwrite', (store) => store.clear());
+		await withStore(STORE, 'readwrite', (store) => store.clear());
 	} catch {
 		// The store may not exist yet — nothing to clear.
+	}
+}
+
+/** Issue 061 : an arrival queued offline counts straight away in the
+ *  Event's stored snapshot, so a scan just after it sees the new count. */
+export async function applyArrivalToSnapshot(
+	eventId: string,
+	reservationId: string,
+	guests: number
+): Promise<void> {
+	try {
+		const snapshot = await withStore(STORE, 'readonly', (store) => store.get(eventId));
+		if (!snapshot) return;
+		let found = false;
+		for (const seating of snapshot.seatings) {
+			const party = seating.parties.find((party: SnapshotParty) => party.id === reservationId);
+			if (party) {
+				party.arrived += guests;
+				found = true;
+				break;
+			}
+		}
+		if (found) {
+			await withStore(STORE, 'readwrite', (store) => store.put(snapshot));
+		}
+	} catch {
+		// Without a copy there is nothing to update.
 	}
 }
 

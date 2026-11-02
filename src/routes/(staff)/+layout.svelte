@@ -11,6 +11,7 @@
     import ScanOverlay from "$lib/components/staff/scanner/ScanOverlay.svelte";
     import { openScanOverlay } from "$lib/components/staff/scanner/scan-overlay.svelte";
     import { clearSnapshots } from "$lib/staff/offline/snapshot-store";
+    import { clearArrivalData } from "$lib/staff/offline/arrival-queue.svelte";
     import type { LayoutData } from "./$types";
 
     let {
@@ -143,10 +144,11 @@
                     method="POST"
                     action="/logout"
                     onsubmit={(event) => {
-                        // The Day's copy is erased before the session ends.
+                        // The Day's copy, the arrival queue and its
+                        // conflicts are erased before the session ends.
                         event.preventDefault();
                         const form = event.currentTarget;
-                        clearSnapshots().finally(() => form.submit());
+                        Promise.all([clearSnapshots(), clearArrivalData()]).finally(() => form.submit());
                     }}
                 >
                     <button
