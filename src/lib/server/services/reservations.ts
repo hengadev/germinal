@@ -16,6 +16,7 @@ import { getSeatingPrice } from './service-pricing';
 import { loadSeatingAccess } from './event-access';
 import { ANONYMOUS, seatingBooking, type BookingRefusal } from '$lib/utils/event-access';
 import { dietaryAnswerOf, needsDietaryConsent } from '$lib/utils/dietary-requirements';
+import { subscribeFromReservation } from './subscribers';
 import { cancelReservationTransition, expireReservationOnHoldTimeout } from './reservation-transitions';
 import { notifyGuestOfCancellation, notifyWaitlistOfFreedSeats, refundAfterCancellation } from './cancellation-effects';
 
@@ -280,8 +281,13 @@ export async function createReservation(input: CreateReservationInput): Promise<
 				userAgent: input.userAgent ?? null,
 				promotionCodeId,
 				discountAmount: pricing.discount,
+				marketingConsent: input.marketingConsent === true,
 				...dietary,
 			}).returning();
+
+			// Newsletter (issue 052): confirmed without payment, so subscribed
+			// and confirmed at once — in the booking's own transaction.
+			await subscribeFromReservation(tx, reservation);
 
 			return { reservation, checkoutUrl: null, expiresAt: null };
 		}
@@ -310,6 +316,7 @@ export async function createReservation(input: CreateReservationInput): Promise<
 			userAgent: input.userAgent ?? null,
 			promotionCodeId,
 			discountAmount: pricing.discount,
+			marketingConsent: input.marketingConsent === true,
 			...dietary,
 		}).returning();
 

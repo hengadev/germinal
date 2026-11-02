@@ -827,6 +827,10 @@ export const reservations = pgTable('reservations', {
     // (jobs/purge-personal-data).
     dietaryRequirements: text('dietary_requirements'),
     dietaryConsentAt: timestamp('dietary_consent_at', { withTimezone: true }),
+    // Issue 052: whether the Guest ticked « Hear about Germinal's next
+    // events » when booking. Comps, Walk-ins and Staff reservations never
+    // tick it. Read once, when the Reservation is confirmed.
+    marketingConsent: boolean('marketing_consent').default(false).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => ({
@@ -1088,6 +1092,35 @@ export const checkIns = pgTable('check_ins', {
 // ============================================
 // AUDIT LOG TABLE
 // ============================================
+
+// Where a newsletter subscription came from (issue 052).
+export const subscriberSourceEnum = pgEnum('subscriber_source', ['booking', 'form']);
+
+// Newsletter subscribers (issue 052). A row is « on the list » only when
+// confirmed and not unsubscribed. Emails are normalised (lower-cased,
+// trimmed — utils/guest-email) and unique.
+export const subscribers = pgTable('subscribers', {
+    id: uuid('id').defaultRandom().primaryKey(),
+    email: varchar('email', { length: 320 }).notNull().unique(),
+    name: varchar('name', { length: 255 }),
+    // The language the Guest booked in, for future newsletters.
+    locale: varchar('locale', { length: 2 }),
+    source: subscriberSourceEnum('source').notNull(),
+    // When consent was given, and when the address was confirmed: at once
+    // for a booking (the confirmed Reservation proves it, issue 052), on
+    // the confirmation link for the form (double opt-in, issue 053). Null
+    // until then: an unconfirmed row is never on the list.
+    consentAt: timestamp('consent_at', { withTimezone: true }).notNull(),
+    confirmedAt: timestamp('confirmed_at', { withTimezone: true }),
+    unsubscribedAt: timestamp('unsubscribed_at', { withTimezone: true }),
+    // Both unguessable (32 random bytes in hex), used by public links.
+    confirmationToken: varchar('confirmation_token', { length: 64 }).notNull().unique(),
+    unsubscribeToken: varchar('unsubscribe_token', { length: 64 }).notNull().unique(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+    unsubscribeTokenIdx: index('subscribers_unsubscribe_token_idx').on(table.unsubscribeToken),
+}));
 
 export const guestNotes = pgTable('guest_notes', {
     // The Guest's normalised email (issue 050): one row per Guest,

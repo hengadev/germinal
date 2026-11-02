@@ -9,9 +9,9 @@
  * over; upcoming Reservations are counted apart. Amounts are net of
  * refunds and kept per currency, never summed across currencies.
  */
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, sql, inArray } from 'drizzle-orm';
 import { db } from '../db';
-import { eventSessions, events, payments, reservations } from '../db/schema';
+import { eventSessions, events, payments, reservations, subscribers } from '../db/schema';
 import { ANONYMISED_EMAIL } from '../jobs/purge-personal-data';
 import { emailFromGuestKey, guestKeyFromEmail } from '$lib/utils/guest-email';
 import { getGuestNotes, tagsByEmail, type GuestNotesRecord } from './guest-notes';
@@ -61,6 +61,9 @@ export interface GuestRow {
 	upcoming: number;
 	/** Tags from the Guest's notes-and-tags row (issue 050). */
 	tags: string[];
+	/** Newsletter (issue 052): whether the Guest receives news, and since
+	 * when (the confirmation date). Null when never subscribed. */
+	newsletter: { subscribed: boolean; since: string | null } | null;
 }
 
 export interface GuestListResult {
@@ -138,6 +141,29 @@ async function amountsByEmail(): Promise<Map<string, GuestAmount[]>> {
 	return map;
 }
 
+/** Newsletter subscription by email (issue 052). */
+async function newsletterByEmail(
+	emails: string[]
+): Promise<Map<string, { subscribed: boolean; since: string | null }>> {
+	const map = new Map<string, { subscribed: boolean; since: string | null }>();
+	if (emails.length === 0) return map;
+	const rows = await db
+		.select({
+			email: subscribers.email,
+			confirmedAt: subscribers.confirmedAt,
+			unsubscribedAt: subscribers.unsubscribedAt,
+		})
+		.from(subscribers)
+		.where(inArray(subscribers.email, emails));
+	for (const row of rows) {
+		map.set(row.email, {
+			subscribed: row.confirmedAt !== null && row.unsubscribedAt === null,
+			since: row.confirmedAt ? new Date(row.confirmedAt).toISOString() : null,
+		});
+	}
+	return map;
+}
+
 /** Sort key for ordering by amount: the sum across currencies, ordering only. */
 function amountTotal(amounts: GuestAmount[]): number {
 	return amounts.reduce((sum, a) => sum + a.net, 0);
@@ -177,6 +203,7 @@ export async function listGuests(params: {
 	const amounts = await amountsByEmail();
 	const tag = params.tag?.trim() ?? '';
 	const tags = await tagsByEmail(rows.map((row) => row.email));
+	const newsletter = await newsletterByEmail(rows.map((row) => row.email));
 
 	let guests: GuestRow[] = rows.map((row) => ({
 		email: row.email,
@@ -187,7 +214,8 @@ export async function listGuests(params: {
 		amounts: amounts.get(row.email) ?? [],
 		lastVisit: row.lastVisit ? new Date(row.lastVisit).toISOString() : null,
 		upcoming: row.upcoming,
-		tags: tags.get(row.email) ?? []
+		tags: tags.get(row.email) ?? [],
+		newsletter: newsletter.get(row.email) ?? null
 	}));
 
 	guests = guests.filter((guest) => tag === '' || guest.tags.some((t) => t.toLowerCase() === tag.toLowerCase()));
@@ -260,6 +288,7 @@ export async function getGuest(key: string): Promise<GuestDetail | null> {
 
 	const amounts = await amountsByEmail();
 	const notes = await getGuestNotes(email);
+	const newsletter = (await newsletterByEmail([email])).get(email) ?? null;
 
 	return {
 		email: aggregate.email,
@@ -271,6 +300,7 @@ export async function getGuest(key: string): Promise<GuestDetail | null> {
 		lastVisit: aggregate.lastVisit ? new Date(aggregate.lastVisit).toISOString() : null,
 		upcoming: aggregate.upcoming,
 		tags: notes?.tags ?? [],
+		newsletter,
 		notes,
 		reservations: history.map((row: GuestReservationHistoryRow) => ({
 			...row,

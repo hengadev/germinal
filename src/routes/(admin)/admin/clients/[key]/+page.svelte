@@ -102,6 +102,18 @@
 				<dt class="text-muted-foreground">À venir</dt>
 				<dd class="font-semibold text-foreground">{guest.upcoming}</dd>
 			</div>
+			<div>
+				<dt class="text-muted-foreground">Infolettre</dt>
+				<dd class="font-semibold text-foreground">
+					{#if guest.newsletter === null}
+						—
+					{:else if guest.newsletter.subscribed}
+						Reçoit les événements{#if guest.newsletter.since}<span class="block text-xs font-normal text-muted-foreground">depuis le {formatDate(guest.newsletter.since)}</span>{/if}
+					{:else}
+						Désabonné
+					{/if}
+				</dd>
+			</div>
 		</dl>
 		<p class="mt-3 text-xs text-muted-foreground">
 			L'identité d'un client est effacée un an après sa séance : l'historique ne remonte qu'à environ un an.

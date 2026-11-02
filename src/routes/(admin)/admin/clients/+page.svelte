@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Search, ChevronLeft, ChevronRight, Users } from 'lucide-svelte';
+	import { Search, ChevronLeft, ChevronRight, Users, Download } from 'lucide-svelte';
 	import type { PageData } from './$types';
 	import { guestKeyFromEmail } from '$lib/utils/guest-email';
 	import { formatCurrency } from '$lib/utils/currency';
@@ -49,6 +49,12 @@
 			Un client est identifié par son email. L'identité d'un client est effacée un an après sa
 			séance : l'historique ne remonte qu'à environ un an.
 		</p>
+		<a
+			href="/admin/export/subscribers"
+			class="mt-3 inline-flex items-center gap-1 text-sm text-foreground-alt hover:text-foreground"
+		>
+			<Download size={14} /> Exporter les abonnés à l'infolettre (CSV)
+		</a>
 	</div>
 
 	<!-- Search and sort -->
@@ -140,6 +146,7 @@
 							<th class="px-6 py-4 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">Montant payé</th>
 							<th class="px-6 py-4 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">Dernière visite</th>
 							<th class="px-6 py-4 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">À venir</th>
+								<th class="px-6 py-4 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">Infolettre</th>
 						</tr>
 					</thead>
 					<tbody class="divide-y divide-border-card">
@@ -170,6 +177,15 @@
 								</td>
 								<td class="px-6 py-4 text-foreground">{guest.lastVisit ? formatDate(guest.lastVisit) : '—'}</td>
 								<td class="px-6 py-4 text-foreground">{guest.upcoming}</td>
+								<td class="px-6 py-4 text-foreground">
+									{#if guest.newsletter === null}
+										—
+									{:else if guest.newsletter.subscribed}
+										Abonné{#if guest.newsletter.since}<span class="block text-xs text-muted-foreground">depuis le {formatDate(guest.newsletter.since)}</span>{/if}
+									{:else}
+										Désabonné
+									{/if}
+								</td>
 							</tr>
 						{/each}
 					</tbody>
@@ -202,6 +218,7 @@
 						<span>Visites : {guest.visits}</span>
 						<span>À venir : {guest.upcoming}</span>
 						<span>Arrivés : {guest.guestsArrived}</span>
+						<span>Infolettre : {guest.newsletter === null ? '—' : guest.newsletter.subscribed ? 'abonné' : 'désabonné'}</span>
 						<span>No-shows : {guest.noShows}</span>
 					</div>
 					{#if guest.amounts.length > 0}

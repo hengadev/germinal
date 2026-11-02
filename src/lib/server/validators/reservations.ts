@@ -31,6 +31,9 @@ export const createReservationSchema = z.object({
 		.max(DIETARY_REQUIREMENTS_MAX_LENGTH, 'Dietary requirements are too long')
 		.optional(),
 	dietaryConsent: z.boolean().optional(),
+	// Newsletter (issue 052): « Hear about Germinal's next events ». Always
+	// optional, and unchecked by default in the UI.
+	marketingConsent: z.boolean().optional(),
 	// Honeypot for spam protection
 	honeypot: z.string().optional(),
 	// Issue 025: the language the site was shown in ('fr' | 'en'). Kept

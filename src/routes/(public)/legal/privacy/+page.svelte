@@ -34,6 +34,7 @@
                 <li>{$t("legal.privacy.dataTechnical")}</li>
                 <li>{$t("legal.privacy.dataDietary")}</li>
                 <li>{$t("legal.privacy.dataContact")}</li>
+                <li>{$t("legal.privacy.dataNewsletter")}</li>
             </ul>
         </section>
 
@@ -44,6 +45,7 @@
                 <li>{$t("legal.privacy.basisContractual")}</li>
                 <li>{$t("legal.privacy.basisLegitimate")}</li>
                 <li>{$t("legal.privacy.basisContact")}</li>
+                <li>{$t("legal.privacy.basisNewsletter")}</li>
                 <li>{$t("legal.privacy.basisDietary")}</li>
             </ul>
         </section>
@@ -56,6 +58,7 @@
                 <li>{$t("legal.privacy.retentionReservation")}</li>
                 <li>{$t("legal.privacy.retentionUnpaid")}</li>
                 <li>{$t("legal.privacy.retentionDietary")}</li>
+                <li>{$t("legal.privacy.retentionNewsletter")}</li>
                 <li>{$t("legal.privacy.retentionWaitlist")}</li>
                 <li>{$t("legal.privacy.retentionContact")}</li>
                 <li>{$t("legal.privacy.retentionTechnical")}</li>

@@ -1,7 +1,8 @@
 import { db } from '../db';
-import { reservations, payments, eventSessions, events, waitlist, users } from '../db/schema';
-import { eq, and, desc, sql, inArray } from 'drizzle-orm';
+import { reservations, payments, eventSessions, events, waitlist, users, subscribers } from '../db/schema';
+import { eq, and, desc, sql, inArray, isNull, isNotNull } from 'drizzle-orm';
 import { arrivedByReservation } from './check-ins';
+import { env } from '../env';
 import { seatingTitle } from '$lib/utils/seating-title';
 import { reservationAmounts, balanceToCollect } from '$lib/utils/balance-due';
 
@@ -414,4 +415,36 @@ export async function exportAnalyticsToCSV(options: {
 
 function formatCurrency(cents: number): string {
 	return `€${(cents / 100).toFixed(2)}`;
+}
+
+/**
+ * Export newsletter subscribers to CSV (issue 052): confirmed, subscribed
+ * rows only — never unsubscribed ones. UTF-8 with BOM, like the other
+ * exports the Admin downloads.
+ */
+export async function exportSubscribersToCSV(options: { limit?: number } = {}) {
+	const { limit = 5000 } = options;
+
+	const rows = await db
+		.select()
+		.from(subscribers)
+		.where(and(isNotNull(subscribers.confirmedAt), isNull(subscribers.unsubscribedAt)))
+		.orderBy(desc(subscribers.createdAt))
+		.limit(limit);
+
+	const csvData = rows.map((s: typeof rows[number]) => ({
+		'Email': s.email,
+		'Name': s.name ?? '',
+		'Language': s.locale ?? '',
+		'Source': s.source,
+		'Consent Date': s.consentAt,
+		'Confirmation Date': s.confirmedAt,
+		// For the sending tool: every news email links to it (one click).
+		'Unsubscribe URL': `${env.PUBLIC_URL}/unsubscribe?token=${s.unsubscribeToken}`,
+	}));
+
+	const headers = ['Email', 'Name', 'Language', 'Source', 'Consent Date', 'Confirmation Date', 'Unsubscribe URL'];
+
+	// The BOM so Excel opens the file as UTF-8.
+	return '\ufeff' + arrayToCSV(csvData, headers);
 }

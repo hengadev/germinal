@@ -43,6 +43,8 @@
 	let asksDietaryRequirements = $derived(data.asksDietaryRequirements === true);
 	let dietaryRequirements = $state('');
 	let dietaryConsent = $state(false);
+	// Newsletter (issue 052): unchecked by default, optional.
+	let marketingConsent = $state(false);
 	let dietaryConsentMissing = $derived(
 		asksDietaryRequirements && needsDietaryConsent(dietaryRequirements, dietaryConsent)
 	);
@@ -157,6 +159,7 @@
 					notificationPreference,
 					// Issue 025: remember the language the Guest booked in.
 					locale: siteLocale($locale),
+					marketingConsent,
 					promoCode: appliedPromoCode?.code ?? undefined,
 					...(asksDietaryRequirements && dietaryRequirements.trim()
 						? { dietaryRequirements: dietaryRequirements.trim(), dietaryConsent }
@@ -398,6 +401,17 @@
 					{/if}
 				</div>
 			{/if}
+
+			<!-- Newsletter (issue 052) -->
+			<label class="flex items-start gap-2 text-sm text-foreground-alt cursor-pointer">
+				<input
+					type="checkbox"
+					bind:checked={marketingConsent}
+					disabled={isSubmitting}
+					class="mt-0.5 w-4 h-4 border-border-input"
+				/>
+				<span>{$t('booking.newsletter.consent')}</span>
+			</label>
 
 			<!-- Promo code -->
 			<div>

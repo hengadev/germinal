@@ -18,6 +18,7 @@ import { and, eq, inArray, sql } from 'drizzle-orm';
 import { db } from '../db';
 import { incrementCheckoutCounter, incrementReservationCounter } from '../metrics';
 import { eventSessions, payments, reservationStatusEnum, reservations } from '../db/schema';
+import { subscribeFromReservation } from './subscribers';
 
 export type ReservationStatus = (typeof reservationStatusEnum.enumValues)[number];
 
@@ -85,6 +86,22 @@ export async function confirmReservationForPayment(input: {
 				updatedAt: now,
 			})
 			.where(eq(payments.id, input.paymentId));
+
+		// Newsletter (issue 052): the winner subscribes, in the same
+		// transaction, only when the Guest ticked the box at booking.
+		const [booked] = await tx
+			.select({
+				guestEmail: reservations.guestEmail,
+				guestName: reservations.guestName,
+				locale: reservations.locale,
+				marketingConsent: reservations.marketingConsent,
+				isComp: reservations.isComp,
+			})
+			.from(reservations)
+			.where(eq(reservations.id, input.reservationId));
+		if (booked) {
+			await subscribeFromReservation(tx, booked);
+		}
 
 		return { won: true, status: 'confirmed' };
 	});
