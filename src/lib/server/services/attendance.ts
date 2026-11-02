@@ -6,7 +6,7 @@
  */
 import { and, eq, sql } from 'drizzle-orm';
 import { db } from '../db';
-import { eventDays, eventServices, eventSessions, reservations } from '../db/schema';
+import { eventDays, eventServices, eventSessions, payments, reservations } from '../db/schema';
 
 /** Party and guest counts for Walk-ins and Comps. */
 export interface AttendanceCategory {
@@ -65,6 +65,72 @@ const arrivedExpr = sql<number>`coalesce((
 
 /** A booked Reservation: confirmed, not a Comp, not a Walk-in. */
 const bookedExpr = sql`${reservations.id} is not null and not ${reservations.isComp} and ${reservations.origin} <> 'walk_in'`;
+
+/**
+ * The Event's money, grouped by currency (issue 057): deposits kept
+ * (succeeded Payment amounts minus refunded amounts), refunds, and
+ * Balances of confirmed Reservations marked settled. Cancelled
+ * Reservations never contribute, even a settled Balance.
+ */
+export interface CurrencyMoney {
+	currency: string;
+	depositsKept: number;
+	refunds: number;
+	balancesCollected: number;
+}
+
+export async function getEventMoney(eventId: string): Promise<CurrencyMoney[]> {
+	const [paymentRows, balanceRows] = await Promise.all([
+		db
+			.select({
+				currency: payments.currency,
+				kept: sql<number>`coalesce(sum(${payments.amount} - ${payments.refundedAmount}), 0)::int`,
+				refunded: sql<number>`coalesce(sum(${payments.refundedAmount}), 0)::int`
+			})
+			.from(payments)
+			.innerJoin(reservations, eq(reservations.id, payments.reservationId))
+			.innerJoin(eventSessions, eq(eventSessions.id, reservations.eventSessionId))
+			.where(
+				and(
+					eq(eventSessions.eventId, eventId),
+				sql`${payments.status} in ('succeeded', 'partially_refunded', 'refunded')`
+				)
+			)
+			.groupBy(payments.currency),
+		db
+			.select({
+				currency: reservations.currency,
+				collected: sql<number>`coalesce(sum(${reservations.balanceAmount}), 0)::int`
+			})
+			.from(reservations)
+			.innerJoin(eventSessions, eq(eventSessions.id, reservations.eventSessionId))
+			.where(
+				and(
+					eq(eventSessions.eventId, eventId),
+				eq(reservations.status, 'confirmed'),
+				sql`${reservations.balanceSettledAt} is not null`
+			)
+			)
+			.groupBy(reservations.currency)
+	]);
+
+	const byCurrency = new Map<string, CurrencyMoney>();
+	const row = (currency: string) => {
+		let entry = byCurrency.get(currency);
+		if (!entry) {
+			entry = { currency, depositsKept: 0, refunds: 0, balancesCollected: 0 };
+			byCurrency.set(currency, entry);
+		}
+		return entry;
+	};
+	for (const p of paymentRows) {
+		const entry = row(p.currency);
+		entry.depositsKept += p.kept;
+		entry.refunds += p.refunded;
+	}
+	for (const b of balanceRows) row(b.currency).balancesCollected += b.collected;
+	return [...byCurrency.values()].sort((a, b) => a.currency.localeCompare(b.currency));
+}
 
 /**
  * The Event's attendance, one row per Seating in one grouped query,

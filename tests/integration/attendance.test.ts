@@ -7,7 +7,7 @@
  * Check-ins never count, cancelled Reservations are ignored.
  */
 import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest';
-import { events, eventSessions, reservations, checkIns } from '../../src/lib/server/db/schema';
+import { events, eventSessions, reservations, checkIns, payments } from '../../src/lib/server/db/schema';
 import {
 	getTestDatabase,
 	setupTestDatabase,
@@ -82,10 +82,13 @@ async function seedReservation(
 	sessionId: string,
 	values: {
 		guestName: string;
-		quantity: number;
+		quantity?: number;
 		status?: 'pending' | 'confirmed' | 'cancelled' | 'expired';
 		isComp?: boolean;
 		origin?: 'online' | 'staff' | 'walk_in';
+		currency?: string;
+		balanceAmount?: number;
+		balanceSettledAt?: Date;
 	}
 ) {
 	seq += 1;
@@ -93,11 +96,12 @@ async function seedReservation(
 		eventSessionId: sessionId,
 		guestEmail: values.origin === 'walk_in' ? null : `guest${seq}@example.com`,
 		guestName: values.guestName,
-		quantity: values.quantity,
-		totalAmount: 0,
+		quantity: values.quantity ?? 2,
+		totalAmount: values.balanceAmount ?? 0,
 		depositAmount: 0,
-		balanceAmount: 0,
-		currency: 'EUR',
+		balanceAmount: values.balanceAmount ?? 0,
+		currency: values.currency ?? 'EUR',
+		balanceSettledAt: values.balanceSettledAt ?? null,
 		status: values.status ?? 'confirmed',
 		isComp: values.isComp ?? false,
 		origin: values.origin ?? 'online',
@@ -174,6 +178,84 @@ describe('attendance', () => {
 			walkIns: { parties: 1, guests: 3 },
 			comps: { parties: 1, guests: 2 },
 		});
+	});
+
+	let paySeq = 0;
+	async function seedPayment(
+		reservationId: string,
+		values: { amount: number; currency?: string; status?: 'succeeded' | 'partially_refunded' | 'refunded'; refundedAmount?: number }
+	) {
+		paySeq += 1;
+		await testDb.insert(payments).values({
+			reservationId,
+			stripePaymentIntentId: `pi-attendance-${Date.now()}-${paySeq}`,
+			amount: values.amount,
+			currency: values.currency ?? 'EUR',
+			status: values.status ?? 'succeeded',
+			refundedAmount: values.refundedAmount ?? 0,
+			idempotencyKey: `idk-attendance-${Date.now()}-${paySeq}`,
+		});
+	}
+
+	it('getEventMoney (issue 057): deposits kept, refunds, settled Balances, per currency', async () => {
+		const { event, lunch } = await seedEventWithTwoSeatings();
+		const { getEventMoney } = await import('../../src/lib/server/services/attendance');
+
+		// A fully paid Deposit, kept entirely.
+		const kept = await seedReservation(lunch.id, { guestName: 'Kept' });
+		await seedPayment(kept.id, { amount: 5000 });
+
+		// A partially refunded Deposit: 5000 - 2000 kept, 2000 refunded.
+		const partial = await seedReservation(lunch.id, { guestName: 'Partial' });
+		await seedPayment(partial.id, { amount: 5000, status: 'partially_refunded', refundedAmount: 2000 });
+
+		// A fully refunded Deposit: kept 0, refunded 3000.
+		const refunded = await seedReservation(lunch.id, { guestName: 'Refunded' });
+		await seedPayment(refunded.id, { amount: 3000, status: 'refunded', refundedAmount: 3000 });
+
+		// A pending Payment never counts.
+		const pending = await seedReservation(lunch.id, { guestName: 'Pending pay' });
+		await seedPayment(pending.id, { amount: 9000, status: 'succeeded' });
+		await testDb.update(payments).set({ status: 'pending' }).where(
+			(await import('drizzle-orm')).eq(payments.reservationId, pending.id)
+		);
+
+		// Balances: settled ones count, unsettled don't.
+		await seedReservation(lunch.id, { guestName: 'Settled', balanceAmount: 4000, balanceSettledAt: new Date() });
+		await seedReservation(lunch.id, { guestName: 'Unsettled', balanceAmount: 7000 });
+
+		// A cancelled Reservation's settled Balance is ignored.
+		await seedReservation(lunch.id, { guestName: 'Cancelled settled', status: 'cancelled', balanceAmount: 6000, balanceSettledAt: new Date() });
+
+		// Another Event's money stays out.
+		const other = await seedEventWithTwoSeatings();
+		const otherReservation = await seedReservation(other.lunch.id, { guestName: 'Other event' });
+		await seedPayment(otherReservation.id, { amount: 1000 });
+
+		const eur = (await getEventMoney(event.id)).find((m) => m.currency === 'EUR');
+		expect(eur).toBeDefined();
+		expect(eur!.depositsKept).toBe(8000); // 5000 + 3000 + 0
+		expect(eur!.refunds).toBe(5000); // 2000 + 3000
+		expect(eur!.balancesCollected).toBe(4000);
+	});
+
+	it('getEventMoney splits two currencies and returns none for an Event without money', async () => {
+		const { event, lunch } = await seedEventWithTwoSeatings();
+		const { getEventMoney } = await import('../../src/lib/server/services/attendance');
+
+		const eur = await seedReservation(lunch.id, { guestName: 'EUR' });
+		await seedPayment(eur.id, { amount: 2500 });
+		const usd = await seedReservation(lunch.id, { guestName: 'USD', currency: 'USD' });
+		await seedPayment(usd.id, { amount: 4000, currency: 'USD', status: 'partially_refunded', refundedAmount: 1000 });
+		await seedReservation(lunch.id, { guestName: 'USD settled', currency: 'USD', balanceAmount: 8000, balanceSettledAt: new Date() });
+
+		const money = await getEventMoney(event.id);
+		expect(money.map((m) => m.currency)).toEqual(['EUR', 'USD']);
+		expect(money[0]).toEqual({ currency: 'EUR', depositsKept: 2500, refunds: 0, balancesCollected: 0 });
+		expect(money[1]).toEqual({ currency: 'USD', depositsKept: 3000, refunds: 1000, balancesCollected: 8000 });
+
+		const other = await seedEventWithTwoSeatings();
+		expect(await getEventMoney(other.event.id)).toEqual([]);
 	});
 
 	it('isEventOver flips at the last Seating end time, and never without Seatings', async () => {
