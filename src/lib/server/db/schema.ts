@@ -1082,10 +1082,14 @@ export const checkIns = pgTable('check_ins', {
     // Kept when the account is deleted: the record of the evening stays.
     checkedInBy: uuid('checked_in_by').references(() => users.id, { onDelete: 'set null' }),
     checkedInAt: timestamp('checked_in_at', { withTimezone: true }).defaultNow().notNull(),
+    // Issue 059: an id the Staff portal made for one arrival attempt. Two
+    // requests with the same id (a double tap, a retry) count once.
+    clientId: varchar('client_id', { length: 64 }),
     undoneAt: timestamp('undone_at', { withTimezone: true }),
     undoneBy: uuid('undone_by').references(() => users.id, { onDelete: 'set null' }),
 }, (table) => ({
     reservationIdIdx: index('check_ins_reservation_id_idx').on(table.reservationId),
+    clientIdIdx: uniqueIndex('check_ins_client_id_idx').on(table.clientId),
     guestsCheck: check('check_ins_guests_check', sql`guests > 0`),
 }));
 
