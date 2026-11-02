@@ -158,6 +158,25 @@ describe('newsletter signup (issue 053)', () => {
 		expect(await exportSubscribersToCSV()).not.toContain('bye@example.com');
 	});
 
+	it('after an unsubscribe, signing up again needs a new confirmation, which works', async () => {
+		await subscribeFromForm('again@example.com', 'fr');
+		const first = (await subscriberByEmail('again@example.com'))!;
+		await confirmByToken(first.confirmationToken);
+		await unsubscribeByToken(first.unsubscribeToken);
+		// A day later, the same address signs up again.
+		await testDb
+			.update(subscribers)
+			.set({ updatedAt: new Date(Date.now() - 2 * DAY) })
+			.where(eq(subscribers.email, 'again@example.com'));
+		const result = await subscribeFromForm('again@example.com', 'fr');
+		expect(result.ok && result.sendEmail).toBe(true);
+		const pending = (await subscriberByEmail('again@example.com'))!;
+		expect(pending.confirmedAt).toBeNull();
+		expect(await exportSubscribersToCSV()).not.toContain('again@example.com');
+		expect(await confirmByToken(pending.confirmationToken)).toBe(true);
+		expect(await exportSubscribersToCSV()).toContain('again@example.com');
+	});
+
 	it('the purge removes unconfirmed form rows older than 30 days, and nothing else', async () => {
 		await subscribeFromForm('stale@example.com', 'en');
 		await testDb

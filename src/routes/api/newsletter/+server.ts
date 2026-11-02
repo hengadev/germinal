@@ -48,8 +48,8 @@ export const POST: RequestHandler = async ({ request, getClientAddress, locals }
 
 		const result = await subscribeFromForm(validated.data.email, validated.data.locale);
 		if (!result.ok) {
-			// Not a valid address: same neutral answer, no email.
-			return json({ success: true });
+			// Not a valid address: the form shows its error (no fake success).
+			return json({ error: 'Invalid email' }, { status: 400 });
 		}
 		if (result.sendEmail) {
 			await sendNewsletterConfirmationEmail({

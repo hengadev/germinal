@@ -143,6 +143,11 @@ export async function subscribeFromForm(
 			locale: locale ?? existing.locale,
 			source: 'form',
 			consentAt: now,
+			// Back to unconfirmed: an earlier confirmation (before an
+			// unsubscribe) must not let the new link fail, nor put the
+			// address back on the list before it is clicked.
+			confirmedAt: null,
+			unsubscribedAt: null,
 			confirmationToken,
 			unsubscribeToken: generateAccessToken(),
 			updatedAt: now,
