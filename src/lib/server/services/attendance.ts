@@ -398,15 +398,14 @@ export async function getPastEventsBilan(
 		})
 		.from(eventSessions)
 		.groupBy(eventSessions.eventId);
-	const toDate = (v: unknown): Date => (v instanceof Date ? v : new Date(v as string));
-	const pastIds = new Map(
-		lastEnds
-			.map((r) => [r.eventId, toDate(r.lastEnd)] as const)
-			.filter(
-				([, end]) =>
-					end.getTime() <= now.getTime() && (since === null || end.getTime() >= since.getTime())
-			)
-	);
+	const toDate = (v: Date | string): Date => (v instanceof Date ? v : new Date(v));
+	const pastIds = new Map<string, Date>();
+	for (const r of lastEnds) {
+		const end = toDate(r.lastEnd);
+		if (end.getTime() <= now.getTime() && (since === null || end.getTime() >= since.getTime())) {
+			pastIds.set(r.eventId, end);
+		}
+	}
 
 	const rows = await db
 		.select({
@@ -439,13 +438,15 @@ export async function getPastEventsBilan(
 
 	const byEvent = new Map<string, PastEventBilan>();
 	for (const row of rows) {
-		let event = byEvent.get(row.eventId);
+		let event: PastEventBilan | undefined = byEvent.get(row.eventId);
 		if (!event) {
+			const lastSeatingEnd = pastIds.get(row.eventId);
+			if (!lastSeatingEnd) continue;
 			event = {
 				id: row.eventId,
 				titleFr: row.titleFr,
 				titleEn: row.titleEn,
-				lastSeatingEnd: pastIds.get(row.eventId)!,
+				lastSeatingEnd: lastSeatingEnd,
 				seatings: [],
 				money: []
 			};
