@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { ChevronLeft, Tag } from 'lucide-svelte';
+	import { ChevronLeft, Tag, Trash2 } from 'lucide-svelte';
+	import Modal from '$lib/components/ui/Modal.svelte';
 	import type { ActionData, PageData } from './$types';
 	import { formatCurrency } from '$lib/utils/currency';
 
@@ -51,6 +52,10 @@
 		cancelled: 'Annulée',
 		expired: 'Expirée'
 	};
+
+	// RGPD erasure request (issue 055), behind a confirmation dialog.
+	let eraseModalOpen = $state(false);
+	let erasing = $state(false);
 </script>
 
 <svelte:head>
@@ -245,4 +250,58 @@
 			</a>
 		{/each}
 	</div>
+
+	<!-- RGPD erasure (issue 055) -->
+	<div class="bg-background rounded-lg border border-red-600/30 p-4 mt-6">
+		<h2 class="text-sm font-semibold text-red-600 uppercase tracking-wider mb-1">Données personnelles</h2>
+		<p class="text-sm text-muted-foreground mb-4">
+			En réponse à une demande d'effacement (RGPD) : anonymise toutes les réservations de ce client, efface ses exigences alimentaires, sa note et ses tags, sa lettre d'information et ses inscriptions en liste d'attente. Les montants, dates, statuts et identifiants Stripe sont conservés pour la comptabilité. Irréversible.
+		</p>
+		{#if form?.eraseError}
+			<p class="text-sm text-red-600 mb-4">{form.eraseError}</p>
+		{/if}
+		<button
+			type="button"
+			onclick={() => (eraseModalOpen = true)}
+			class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-700 transition-colors"
+		>
+			<Trash2 size={16} /> Supprimer les données du client
+		</button>
+	</div>
 </div>
+
+<Modal
+	bind:isOpen={eraseModalOpen}
+	title="Supprimer les données du client"
+	description="Anonymiser toutes les réservations de {guest.email} et supprimer sa note, ses tags, sa lettre d'information et ses listes d'attente ? Cette action est irréversible."
+>
+	<form
+		method="POST"
+		action="?/erase"
+		use:enhance={() => {
+			erasing = true;
+			return async ({ update }) => {
+				erasing = false;
+				await update();
+				eraseModalOpen = false;
+			};
+		}}
+	>
+		<div class="flex justify-end gap-3 mt-6">
+			<button
+				type="button"
+				onclick={() => (eraseModalOpen = false)}
+				class="px-6 py-2.5 border border-border-input text-foreground-alt rounded-lg hover:bg-muted transition-colors font-medium"
+			>
+				Annuler
+			</button>
+			<button
+				type="submit"
+				disabled={erasing}
+				class="px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium disabled:opacity-50"
+			>
+				{erasing ? 'Suppression…' : 'Supprimer définitivement'}
+			</button>
+		</div>
+	</form>
+</Modal>

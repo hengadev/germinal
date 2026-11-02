@@ -45,6 +45,12 @@
 <div class="px-4 sm:px-6 lg:px-8 py-8">
 	<div class="mb-6">
 		<h1 class="text-2xl font-semibold text-foreground">Clients</h1>
+		{#if data.erased}
+			<p class="mt-3 rounded-lg border border-border-card bg-muted/50 px-4 py-3 text-sm text-foreground">
+				Les données du client ont été supprimées : ses réservations ont été anonymisées et sa note,
+				sa lettre d'information et ses listes d'attente supprimées.
+			</p>
+		{/if}
 		<p class="text-sm text-muted-foreground mt-1">
 			Un client est identifié par son email. L'identité d'un client est effacée un an après sa
 			séance : l'historique ne remonte qu'à environ un an.
