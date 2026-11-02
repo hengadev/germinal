@@ -87,7 +87,7 @@
 {/if}
 
 <!-- Fréquentation (issue 024), désormais dans le Bilan -->
-{#if data.attendance}
+{#if data.attendance && data.attendance.days.length > 0}
 	<div class="bg-background rounded-lg border border-border-card overflow-hidden mb-6">
 		<div class="px-6 py-4 border-b border-border-card">
 			<h3 class="text-base font-semibold text-foreground">Fréquentation</h3>
@@ -151,7 +151,7 @@
 <div class="bg-background rounded-lg border border-border-card overflow-hidden">
 	<div class="px-6 py-4 border-b border-border-card">
 		<h3 class="text-base font-semibold text-foreground">Argent</h3>
-		<p class="text-sm text-muted-foreground">Acomptes conservés, remboursements et Solde encaissés, par devise.</p>
+		<p class="text-sm text-muted-foreground">Acomptes conservés, remboursements et Soldes encaissés, par devise.</p>
 	</div>
 	{#if data.money && data.money.length > 0}
 		<div class="divide-y divide-border-card">
@@ -168,7 +168,7 @@
 							<dd class="text-base font-semibold text-foreground tabular-nums">{money(m.refunds, m.currency)}</dd>
 						</div>
 						<div class="rounded-lg border border-border-card p-3">
-							<dt class="flex items-center gap-1.5 text-xs text-muted-foreground mb-1"><BadgeCheck size={13} class="shrink-0" /> Solde encaissés</dt>
+							<dt class="flex items-center gap-1.5 text-xs text-muted-foreground mb-1"><BadgeCheck size={13} class="shrink-0" /> Soldes encaissés</dt>
 							<dd class="text-base font-semibold text-foreground tabular-nums">{money(m.balancesCollected, m.currency)}</dd>
 						</div>
 					</dl>
