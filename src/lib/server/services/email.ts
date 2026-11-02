@@ -1355,6 +1355,92 @@ export async function sendThankYouEmail(data: ThankYouEmailData): Promise<void> 
 	logger.info({ to: data.guestEmail }, '📋 Thank-you email queued');
 }
 
+export interface NewsletterConfirmationEmailData {
+	email: string;
+	locale: string;
+	confirmationToken: string;
+}
+
+/**
+ * The newsletter double opt-in email (issue 053): sent only on a form
+ * signup, with the confirmation link. In the visitor's language.
+ */
+export async function sendNewsletterConfirmationEmail(
+	data: NewsletterConfirmationEmailData
+): Promise<void> {
+	const lang = data.locale === 'fr' ? 'fr' : 'en';
+	const fr = lang === 'fr';
+	const link = `${env.PUBLIC_URL}/newsletter/confirm?token=${data.confirmationToken}`;
+
+	const L = fr ? {
+		subject: 'Confirmez votre inscription à la lettre de Germinal',
+		heading: 'Un dernier clic',
+		intro: 'Vous avez demandé à recevoir les prochains événements de Germinal. Confirmez votre adresse pour terminer l’inscription :',
+		linkLabel: 'Confirmer mon inscription',
+		ignore: 'Si vous n’êtes pas à l’origine de cette demande, ignorez simplement ce message : rien ne sera enregistré sans confirmation.',
+		footer: 'Ceci est un message de service de Germinal.',
+	} : {
+		subject: 'Confirm your subscription to Germinal\u2019s newsletter',
+		heading: 'One last click',
+		intro: 'You asked to hear about Germinal\u2019s next events. Confirm your address to finish signing up:',
+		linkLabel: 'Confirm my subscription',
+		ignore: 'If you did not ask for this, simply ignore this message: nothing is recorded without confirmation.',
+		footer: 'This is a service message from Germinal.',
+	};
+
+	const textBody = `
+${L.heading}
+
+${L.intro}
+
+${L.linkLabel}
+${link}
+
+${L.ignore}
+
+---
+${L.footer}
+`.trim();
+
+	const htmlBody = `
+<!DOCTYPE html>
+<html lang="${lang}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${escapeHtml(L.subject)}</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f8f9fa; font-family: Arial, Helvetica, sans-serif;">
+  <div style="max-width: 600px; margin: 0 auto; padding: 32px 24px; background-color: #ffffff;">
+    <h1 style="margin: 0 0 24px 0; font-size: 22px; color: #212529;">${escapeHtml(L.heading)}</h1>
+    <p style="margin: 0 0 16px 0; color: #212529;">${escapeHtml(L.intro)}</p>
+    <p style="margin: 24px 0;"><a href="${escapeHtmlAttr(link)}" style="color: #1a1a1a; font-weight: 600;">${escapeHtml(L.linkLabel)}</a></p>
+    <p style="margin: 0 0 16px 0; color: #6c757d; font-size: 14px;">${escapeHtml(L.ignore)}</p>
+  </div>
+
+  <div style="border-top: 1px solid #e9ecef; padding-top: 16px;">
+    <p style="margin: 0; color: #6c757d; font-size: 12px; text-align: center;">${escapeHtml(L.footer)}</p>
+  </div>
+</body>
+</html>
+`.trim();
+
+	if (!isBrevoConfigured()) {
+		logger.info({ to: data.email }, '📧 Brevo not configured - newsletter confirmation email would be sent');
+		return;
+	}
+
+	const { queueEmail } = await import('../jobs/process-email-queue');
+	await queueEmail({
+		type: 'newsletter_confirmation',
+		recipient: data.email,
+		subject: L.subject,
+		textBody,
+		htmlBody,
+	});
+	logger.info({ to: data.email }, '📋 Newsletter confirmation email queued');
+}
+
 function generateRefundTextTemplate(data: RefundEmailData): string {
 	const lang = data.locale ?? 'en';
 	const fr = lang === 'fr';
