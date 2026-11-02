@@ -182,7 +182,7 @@ describe('day guest list', () => {
 
 		// Exactly the guest-list fields, nothing more.
 		expect(Object.keys(seating.parties[0]).sort()).toEqual(
-			['arrived', 'balanceAmount', 'balanceSettledAt', 'balanceSettledByName', 'currency', 'lastMovedAt', 'lastMovedByName', 'guestName', 'id', 'isComp', 'lastCheckInAt', 'origin', 'quantity'].sort()
+			['arrived', 'balanceAmount', 'balanceSettledAt', 'balanceSettledByName', 'currency', 'lastMovedAt', 'lastMovedByName', 'guestName', 'id', 'isComp', 'lastCheckInAt', 'origin', 'quantity', 'tags', 'visitNumber'].sort()
 		);
 		expect(leaks(list)).toBe(false);
 	});
@@ -325,9 +325,29 @@ describe('day guest list', () => {
 		await s.reservation(earlierSeating.id, 'Alice Martin');
 		await s.reservation(earlierSeating.id, 'Alice Martin', { status: 'pending' });
 		await s.reservation(earlierSeating.id, 'Alice Martin', { status: 'cancelled' });
-		// Another Event’s visit: not counted either.
+		// Another Event’s visit at the same time: not earlier, not counted.
 		await s.reservation(s.otherSeating.seating.id, 'Alice Martin');
-		// Today: Alice’s second visit, Bob’s first, Carol without an email.
+		// Another Event’s visit the day before: visits count across Events.
+		const [otherEarlierDay] = await testDb
+			.insert(eventDays)
+			.values({ eventId: s.otherEvent.id, date: yesterday })
+			.returning();
+		const [otherEarlierService] = await testDb
+			.insert(eventServices)
+			.values({ dayId: otherEarlierDay.id, kind: 'lunch', defaultSeatingDurationMinutes: 120 })
+			.returning();
+		const [otherEarlierSeating] = await testDb
+			.insert(eventSessions)
+			.values({
+				eventId: s.otherEvent.id,
+				serviceId: otherEarlierService.id,
+				titleFr: 'Autre veille',
+				startTime: new Date(`${yesterday}T12:00:00Z`),
+				endTime: new Date(`${yesterday}T14:00:00Z`)
+			})
+			.returning();
+		await s.reservation(otherEarlierSeating.id, 'Alice Martin');
+		// Today: Alice’s third visit, Bob’s first, Carol without an email.
 		await s.reservation(s.todaySeating.seating.id, 'Alice Martin');
 		await s.reservation(s.todaySeating.seating.id, 'Bob Durand');
 		await s.reservation(s.todaySeating.seating.id, 'Carol Sansmail', { email: null });
@@ -348,7 +368,7 @@ describe('day guest list', () => {
 
 		const byName = new Map(list!.seatings[0].parties.map((p) => [p.guestName, p]));
 		expect(byName.get('Alice Martin')!.tags).toEqual(['VIP', 'Panneau rouge']);
-		expect(byName.get('Alice Martin')!.visitNumber).toBe(2);
+		expect(byName.get('Alice Martin')!.visitNumber).toBe(3);
 		expect(byName.get('Bob Durand')!.tags).toEqual([]);
 		expect(byName.get('Bob Durand')!.visitNumber).toBe(1);
 		// No email: no tags, no visit number.
@@ -359,5 +379,13 @@ describe('day guest list', () => {
 		// The Admin note never leaves the service.
 		expect(leaks(list)).toBe(false);
 		expect(JSON.stringify(list)).not.to.include(NOTE_SECRETE);
+
+		// Without the contact details, tags and visits still show, and no email does.
+		const door = accessFor({ kind: 'assignment', rolePermissions: ['guest_list'] }, [s.today, s.tomorrow], now);
+		const doorList = await svc.getDayGuestList(door, s.event.id);
+		const alice = doorList!.seatings[0].parties.find((p) => p.guestName === 'Alice Martin')!;
+		expect(alice.tags).toEqual(['VIP', 'Panneau rouge']);
+		expect(alice.visitNumber).toBe(3);
+		expect(alice.guestEmail).toBeUndefined();
 	});
 });

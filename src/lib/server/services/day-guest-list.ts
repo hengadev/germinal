@@ -10,6 +10,7 @@ import { eventDays, eventServices, eventSessions, events, payments, reservations
 import type { StaffAccess } from '$lib/staff/access';
 import { normaliseEmail } from '$lib/utils/guest-email';
 import { tagsByEmail } from './guest-notes';
+import { ANONYMISED_EMAIL } from '../jobs/purge-personal-data';
 import { refundPolicyOf } from '$lib/utils/refund-policy';
 
 /** One party (a confirmed Reservation), with only the allowed fields. */
@@ -245,58 +246,55 @@ export async function getDayGuestList(
 		seating.parties.push(party);
 		seating.booked += party.quantity ?? 0;
 	}
-	await withGuestIdentity(eventId, seatings.flatMap((s) => s.parties.map((party) => ({ party, startTime: new Date(s.startTime) }))));
+	await withGuestIdentity(seatings.flatMap((s) => s.parties));
 	return { day, seatings };
 }
 
 /**
- * Issue 051 — decorate every party that has an email with the Guest's
- * Admin tags and its visit number: this Reservation plus the Event's
- * earlier confirmed ones whose Seating had already started, matched by
- * normalised email. One batched query each; the Admin note is never
- * selected.
+ * Issue 051 — decorate every party with the Guest's Admin tags and its
+ * visit number: this Reservation plus the Guest's earlier confirmed ones
+ * (any Event) whose Seating had already started, matched by normalised
+ * email. The email is read here by Reservation id, never sent to the
+ * portal: tags show to whoever sees the guest list, contact details or
+ * not. Batched queries; the Admin note is never selected.
  */
-async function withGuestIdentity(
-	eventId: string,
-	parties: { party: DayGuestParty; startTime: Date }[]
-): Promise<void> {
-	const withEmail = parties.flatMap(({ party, startTime }) => {
-		const email = normaliseEmail(party.guestEmail);
-		return email === null ? [] : [{ party, email, startTime }];
-	});
-	if (withEmail.length === 0) return;
-	const emails = [...new Set(withEmail.map((p) => p.email))];
+async function withGuestIdentity(parties: DayGuestParty[]): Promise<void> {
+	const ids = parties.flatMap((party) => (party.id ? [party.id] : []));
+	if (ids.length === 0) return;
+	const emailExpr = sql<string | null>`lower(btrim(${reservations.guestEmail}))`;
 
-	const tags = await tagsByEmail(emails);
-
-	// Every confirmed Reservation of this Event for these emails, Seating
-	// start included, so each party's rank is computed in one pass.
-	const visits = await db
-		.select({
-			email: reservations.guestEmail,
-			startTime: eventSessions.startTime
-		})
+	const own = await db
+		.select({ id: reservations.id, email: emailExpr, startTime: eventSessions.startTime })
 		.from(reservations)
 		.innerJoin(eventSessions, eq(reservations.eventSessionId, eventSessions.id))
-		.where(
-			and(
-				inArray(sql`lower(${reservations.guestEmail})`, emails),
-				eq(reservations.status, 'confirmed'),
-				eq(eventSessions.eventId, eventId)
-			)
-		);
-	const startsByEmail = new Map<string, Date[]>();
-	for (const visit of visits) {
-		const email = normaliseEmail(visit.email);
-		if (email === null) continue;
-		const list = startsByEmail.get(email) ?? [];
-		list.push(visit.startTime);
-		startsByEmail.set(email, list);
+		.where(inArray(reservations.id, ids));
+	const byId = new Map<string, { email: string; startTime: Date }>();
+	for (const row of own) {
+		const email = normaliseEmail(row.email);
+		if (email !== null && email !== ANONYMISED_EMAIL) byId.set(row.id, { email, startTime: new Date(row.startTime) });
 	}
-	for (const { party, email, startTime } of withEmail) {
-		party.tags = tags.get(email) ?? [];
-		const earlier = (startsByEmail.get(email) ?? []).filter((start) => start < startTime).length;
-		party.visitNumber = earlier + 1;
+	const emails = [...new Set([...byId.values()].map((r) => r.email))];
+	if (emails.length === 0) return;
+
+	const tags = await tagsByEmail(emails);
+	const visits = await db
+		.select({ email: emailExpr, startTime: eventSessions.startTime })
+		.from(reservations)
+		.innerJoin(eventSessions, eq(reservations.eventSessionId, eventSessions.id))
+		.where(and(inArray(emailExpr, emails), eq(reservations.status, 'confirmed')));
+	const startsByEmail = new Map<string, number[]>();
+	for (const visit of visits) {
+		if (visit.email === null) continue;
+		const list = startsByEmail.get(visit.email) ?? [];
+		list.push(new Date(visit.startTime).getTime());
+		startsByEmail.set(visit.email, list);
+	}
+	for (const party of parties) {
+		const own = party.id ? byId.get(party.id) : undefined;
+		if (!own) continue;
+		party.tags = tags.get(own.email) ?? [];
+		const start = own.startTime.getTime();
+		party.visitNumber = (startsByEmail.get(own.email) ?? []).filter((t) => t < start).length + 1;
 	}
 }
 
@@ -357,7 +355,7 @@ export async function lookupTicket(
 	if (day === null || !hasAnyGuestField(access) || !token) return null;
 
 	const [row] = (await db
-		.select({ ...partyColumns(access), startTime: eventSessions.startTime })
+		.select(partyColumns(access))
 		.from(reservations)
 		.innerJoin(eventSessions, eq(reservations.eventSessionId, eventSessions.id))
 		.innerJoin(eventServices, eq(eventSessions.serviceId, eventServices.id))
@@ -370,10 +368,10 @@ export async function lookupTicket(
 				eq(reservations.status, 'confirmed')
 			)
 		)
-		.limit(1)) as unknown as (PartyRow & { startTime: Date })[];
+		.limit(1)) as unknown as PartyRow[];
 	if (!row) return null;
-	const { seatingId: _seatingId, startTime: _startTime, ...party } = row;
-	await withGuestIdentity(eventId, [{ party, startTime: row.startTime }]);
+	const party = toParty(row);
+	await withGuestIdentity([party]);
 	return party;
 }
 
