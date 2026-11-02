@@ -1,4 +1,4 @@
-import { error, fail } from '@sveltejs/kit';
+import { error, fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { requireAdmin } from '$lib/server/auth-guards';
 import { getGuest } from '$lib/server/services/guest-summary';
@@ -9,6 +9,7 @@ import {
 	tagSuggestions
 } from '$lib/server/services/guest-notes';
 import { recordAuditLog } from '$lib/server/services/audit-log';
+import { eraseGuest } from '$lib/server/services/guest-erasure';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
 	requireAdmin(locals);
@@ -42,5 +43,29 @@ export const actions: Actions = {
 			metadata: { tagCount: tags.length, noteCleared: note.trim().length === 0 }
 		});
 		return { success: true, note: undefined, tags: undefined };
+	},
+
+	// RGPD erasure request (issue 055): anonymise every Reservation with
+	// that email, clear the Dietary Requirements, delete the note-and-tags
+	// row, the subscriber row and the waitlist entries — all in one
+	// transaction. The audit entry holds counts only, never the email.
+	erase: async ({ locals, params }) => {
+		requireAdmin(locals);
+		const adminId = locals.user!.id;
+		const guest = await getGuest(params.key);
+		if (!guest) return fail(404, { error: 'Client introuvable' });
+
+		const result = await eraseGuest(guest.email);
+		if (!result.ok) return fail(409, { eraseError: result.error });
+
+		await recordAuditLog({
+			adminId,
+			action: 'guest.erase',
+			entityType: 'guest',
+			// A hash: the log must outlive the erasure it records.
+			entityId: guestAuditId(guest.email),
+			metadata: result.counts
+		});
+		redirect(303, '/admin/clients?erased=1');
 	}
 };

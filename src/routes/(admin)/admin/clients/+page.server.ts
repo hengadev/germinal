@@ -17,5 +17,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const page = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
 
 	const result = await listGuests({ search, sort, page, tag });
-	return { ...result, search, sort, tag, tagSuggestions: await tagSuggestions() };
+	// The Guest erasure (issue 055) redirects here with ?erased=1.
+	const erased = url.searchParams.get('erased') === '1';
+	return { ...result, search, sort, tag, erased, tagSuggestions: await tagSuggestions() };
 };
