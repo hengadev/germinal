@@ -68,6 +68,25 @@ function refusalMessage(explanation: Awaited<ReturnType<typeof explainTicket>>):
 	}
 }
 
+// « Aujourd'hui » : les chiffres du Jour en cours, sans aucune donnée
+// nominative — des compteurs par séance seulement. Rechargé par
+// invalidate('staff:aujourdhui').
+async function loadAujourdhui(eventId: string, day: string, depends: (dep: `${string}:${string}`) => void) {
+	depends('staff:aujourdhui');
+	const t = await getDayAttendance(eventId, day, new Date());
+	return {
+		...t,
+		services: t.services.map((service) => ({
+			...service,
+			seatings: service.seatings.map((s: TodaySeatingAttendance) => ({
+				...s,
+				startTime: s.startTime.toISOString(),
+				endTime: s.endTime.toISOString()
+			}))
+		}))
+	};
+}
+
 export const load: PageServerLoad = async ({ locals, params, depends }) => {
 	if (!locals.user) throw error(401, 'Non authentifié');
 
@@ -88,7 +107,8 @@ export const load: PageServerLoad = async ({ locals, params, depends }) => {
 	const canCuisine = access.can('dietary');
 	// « Aujourd'hui » (056) : pendant un Jour, dès qu'un champ d'invités est visible.
 	const guestFields = dayGuestFields(access);
-	const canAujourdhui = guestFields.guestList || guestFields.dietary || guestFields.contact;
+	const canAujourdhui =
+		access.day !== null && (guestFields.guestList || guestFields.dietary || guestFields.contact);
 	const canSeeArrivees = canArrivees || canCuisine;
 	const isAdmin = locals.user.role === 'admin';
 	const canCloseBookings = access.can('close_bookings');
@@ -127,24 +147,7 @@ export const load: PageServerLoad = async ({ locals, params, depends }) => {
 		arrivees: canSeeArrivees ? await loadArrivees(access, params.id) : null,
 		// « Aujourd'hui » : les chiffres du Jour en cours, sans aucune donnée
 		// nominative — des compteurs par séance seulement.
-		aujourdhui: canAujourdhui
-			? (depends('staff:aujourdhui'),
-				await (async () => {
-					const t = await getDayAttendance(params.id, access.day!, new Date());
-					const seating = (s: TodaySeatingAttendance) => ({
-							...s,
-							startTime: s.startTime.toISOString(),
-							endTime: s.endTime.toISOString()
-						});
-					return {
-						...t,
-						services: t.services.map((svc) => ({
-								...svc,
-							seatings: svc.seatings.map(seating)
-						}))
-					};
-				})())
-			: null,
+		aujourdhui: canAujourdhui && access.day !== null ? await loadAujourdhui(params.id, access.day, depends) : null,
 	};
 };
 

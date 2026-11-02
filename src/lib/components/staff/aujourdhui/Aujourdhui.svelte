@@ -62,21 +62,26 @@
 	}
 
 	const serviceLabel = (kind: 'lunch' | 'dinner') => (kind === 'lunch' ? 'Déjeuner' : 'Dîner');
-	const partiesGuests = (c: { parties: number; guests: number }) =>
-		`${c.parties} ${c.parties === 1 ? 'groupe' : 'groupes'} · ${c.guests} ${c.guests === 1 ? 'personne' : 'personnes'}`;
 </script>
+
+<!-- Walk-ins and Invitations: the guests, then how many groups, small. -->
+{#snippet category(c: { parties: number; guests: number })}
+	{c.guests}{#if c.parties > 0}<span class="ml-1 text-xs font-normal text-muted-foreground"
+			>({c.parties} {c.parties === 1 ? 'groupe' : 'groupes'})</span
+		>{/if}
+{/snippet}
 
 <div class="space-y-4">
 	<!-- Totaux du Jour -->
 	<section aria-label="Totaux du jour" class="rounded-lg border border-border-card bg-background p-4">
 		<h2 class="text-sm font-semibold text-foreground">Totaux du jour</h2>
 		<dl class="mt-2 grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm tabular-nums sm:grid-cols-3">
-			<div class="flex justify-between gap-2"><dt class="text-muted-foreground">Attendus</dt><dd class="font-semibold text-foreground">{attendance.totals.booked}</dd></div>
-			<div class="flex justify-between gap-2"><dt class="text-muted-foreground">Arrivés</dt><dd class="font-semibold text-foreground">{attendance.totals.arrived}</dd></div>
-			<div class="flex justify-between gap-2"><dt class="text-muted-foreground">À venir</dt><dd class="font-semibold text-foreground">{attendance.totals.stillToCome}</dd></div>
-			<div class="flex justify-between gap-2"><dt class="text-muted-foreground">No-shows</dt><dd class="font-semibold text-foreground">{attendance.totals.noShows}</dd></div>
-			<div class="flex justify-between gap-2"><dt class="text-muted-foreground">Walk-ins</dt><dd class="font-semibold text-foreground">{partiesGuests(attendance.totals.walkIns)}</dd></div>
-			<div class="flex justify-between gap-2"><dt class="text-muted-foreground">Invitations</dt><dd class="font-semibold text-foreground">{partiesGuests(attendance.totals.comps)}</dd></div>
+			<div class="flex justify-between gap-2"><dt class="whitespace-nowrap text-muted-foreground">Attendus</dt><dd class="whitespace-nowrap font-semibold text-foreground">{attendance.totals.booked}</dd></div>
+			<div class="flex justify-between gap-2"><dt class="whitespace-nowrap text-muted-foreground">Arrivés</dt><dd class="whitespace-nowrap font-semibold text-foreground">{attendance.totals.arrived}</dd></div>
+			<div class="flex justify-between gap-2"><dt class="whitespace-nowrap text-muted-foreground">À venir</dt><dd class="whitespace-nowrap font-semibold text-foreground">{attendance.totals.stillToCome}</dd></div>
+			<div class="flex justify-between gap-2"><dt class="whitespace-nowrap text-muted-foreground">No-shows</dt><dd class="whitespace-nowrap font-semibold text-foreground">{attendance.totals.noShows}</dd></div>
+			<div class="flex justify-between gap-2"><dt class="whitespace-nowrap text-muted-foreground">Walk-ins</dt><dd class="whitespace-nowrap font-semibold text-foreground">{@render category(attendance.totals.walkIns)}</dd></div>
+			<div class="flex justify-between gap-2"><dt class="whitespace-nowrap text-muted-foreground">Invitations</dt><dd class="whitespace-nowrap font-semibold text-foreground">{@render category(attendance.totals.comps)}</dd></div>
 		</dl>
 	</section>
 
@@ -113,14 +118,14 @@
 							{/if}
 						</div>
 						<dl class="mt-1.5 grid grid-cols-2 gap-x-4 gap-y-1 text-sm tabular-nums">
-							<div class="flex justify-between gap-2"><dt class="text-muted-foreground">Attendus</dt><dd class="font-medium text-foreground">{seating.booked}</dd></div>
-							<div class="flex justify-between gap-2"><dt class="text-muted-foreground">Arrivés</dt><dd class="font-medium text-foreground">{seating.arrived}</dd></div>
-							<div class="flex justify-between gap-2"><dt class="text-muted-foreground">À venir</dt><dd class="font-medium text-foreground">{seating.stillToCome}</dd></div>
+							<div class="flex justify-between gap-2"><dt class="whitespace-nowrap text-muted-foreground">Attendus</dt><dd class="whitespace-nowrap font-medium text-foreground">{seating.booked}</dd></div>
+							<div class="flex justify-between gap-2"><dt class="whitespace-nowrap text-muted-foreground">Arrivés</dt><dd class="whitespace-nowrap font-medium text-foreground">{seating.arrived}</dd></div>
+							<div class="flex justify-between gap-2"><dt class="whitespace-nowrap text-muted-foreground">À venir</dt><dd class="whitespace-nowrap font-medium text-foreground">{seating.stillToCome}</dd></div>
 							{#if seating.ended}
-								<div class="flex justify-between gap-2"><dt class="text-muted-foreground">No-shows</dt><dd class="font-medium text-foreground">{seating.noShows}</dd></div>
+								<div class="flex justify-between gap-2"><dt class="whitespace-nowrap text-muted-foreground">No-shows</dt><dd class="whitespace-nowrap font-medium text-foreground">{seating.noShows}</dd></div>
 							{/if}
-							<div class="flex justify-between gap-2"><dt class="text-muted-foreground">Walk-ins</dt><dd class="font-medium text-foreground">{partiesGuests(seating.walkIns)}</dd></div>
-							<div class="flex justify-between gap-2"><dt class="text-muted-foreground">Invitations</dt><dd class="font-medium text-foreground">{partiesGuests(seating.comps)}</dd></div>
+							<div class="flex justify-between gap-2"><dt class="whitespace-nowrap text-muted-foreground">Walk-ins</dt><dd class="whitespace-nowrap font-medium text-foreground">{@render category(seating.walkIns)}</dd></div>
+							<div class="flex justify-between gap-2"><dt class="whitespace-nowrap text-muted-foreground">Invitations</dt><dd class="whitespace-nowrap font-medium text-foreground">{@render category(seating.comps)}</dd></div>
 						</dl>
 					</li>
 				{/each}

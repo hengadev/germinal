@@ -146,7 +146,7 @@ export async function getEventAttendance(eventId: string): Promise<EventAttendan
 export interface TodayTotals {
 	booked: number;
 	arrived: number;
-	/** Booked guests not in yet (booked minus arrived, never negative). */
+	/** Booked guests not in yet, in Seatings that haven't ended. */
 	stillToCome: number;
 	/** No-shows of the Seatings that have ended only. */
 	noShows: number;
@@ -204,6 +204,9 @@ export async function getDayAttendance(
 			totalCapacity: eventSessions.totalCapacity,
 			booked: sql<number>`coalesce(sum(case when ${bookedExpr} then ${reservations.quantity} else 0 end), 0)::int`,
 			arrived: sql<number>`coalesce(sum(${arrivedExpr}), 0)::int`,
+			// Booked guests not in yet, party by party: Walk-ins and Comps
+			// coming in never lower it (same rule as the recap's No-shows).
+			missing: sql<number>`coalesce(sum(case when ${bookedExpr} then greatest(${reservations.quantity} - ${arrivedExpr}, 0) else 0 end), 0)::int`,
 			walkInParties: sql<number>`count(*) filter (where ${reservations.origin} = 'walk_in')::int`,
 			walkInGuests: sql<number>`coalesce(sum(${reservations.quantity}) filter (where ${reservations.origin} = 'walk_in'), 0)::int`,
 			compParties: sql<number>`count(*) filter (where ${reservations.isComp} and ${reservations.origin} <> 'walk_in')::int`,
@@ -252,7 +255,8 @@ export async function getDayAttendance(
 	const totals = emptyTotals();
 	for (const row of rows) {
 		const ended = now.getTime() >= row.endTime.getTime();
-		const stillToCome = Math.max(row.booked - row.arrived, 0);
+		// Once the Seating has ended, who hasn't come is a No-show, not still to come.
+		const stillToCome = ended ? 0 : row.missing;
 		const seating: TodaySeatingAttendance = {
 			id: row.seatingId,
 			startTime: row.startTime,
@@ -261,7 +265,7 @@ export async function getDayAttendance(
 			arrived: row.arrived,
 			stillToCome,
 			// Before the end nobody is a No-show: the door is still open.
-			noShows: ended ? stillToCome : 0,
+			noShows: ended ? row.missing : 0,
 			ended,
 			walkIns: { parties: row.walkInParties, guests: row.walkInGuests },
 			comps: { parties: row.compParties, guests: row.compGuests },

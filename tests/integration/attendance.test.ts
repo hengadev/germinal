@@ -220,7 +220,8 @@ describe('getDayAttendance (issue 056)', () => {
 		expect(lunchSeating.ended).toBe(true);
 		expect(lunchSeating.booked).toBe(6); // party of four + the undone party
 		expect(lunchSeating.arrived).toBe(3);
-		expect(lunchSeating.stillToCome).toBe(3);
+		// Ended: who hasn't come is a No-show, no longer still to come.
+		expect(lunchSeating.stillToCome).toBe(0);
 		expect(lunchSeating.noShows).toBe(3); // 1 + the 2 undone
 		expect(lunchSeating.walkIns).toEqual({ parties: 1, guests: 3 });
 		expect(lunchSeating.comps).toEqual({ parties: 1, guests: 2 });
@@ -236,7 +237,7 @@ describe('getDayAttendance (issue 056)', () => {
 		expect(day.totals).toEqual({
 			booked: 8,
 			arrived: 5,
-			stillToCome: 3,
+			stillToCome: 0,
 			noShows: 3,
 			walkIns: { parties: 1, guests: 3 },
 			comps: { parties: 1, guests: 2 }
@@ -277,13 +278,16 @@ describe('getDayAttendance (issue 056)', () => {
 			})
 			.returning();
 		await seedReservation(seating.id, { guestName: 'Nobody in', quantity: 5 });
+		// A Walk-in coming in never lowers the booked guests still to come.
+		const walkIn = await seedReservation(seating.id, { guestName: 'Walk-in', quantity: 3, origin: 'walk_in' });
+		await seedCheckIn(walkIn.id, 3);
 
 		const { getDayAttendance } = await import('../../src/lib/server/services/attendance');
 		// Before the end: no No-shows yet.
 		const before = await getDayAttendance(event.id, '2099-07-01', new Date('2099-07-01T12:30:00Z'));
 		expect(before.services[0].seatings[0]).toMatchObject({
 			booked: 5,
-			arrived: 0,
+			arrived: 3,
 			stillToCome: 5,
 			noShows: 0,
 			ended: false,
