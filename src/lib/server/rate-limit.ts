@@ -126,6 +126,12 @@ const POLICIES = {
 		maxAttempts: config.rateLimit.contactFormMaxAttempts,
 		windowMs: config.rateLimit.contactFormWindowMs,
 	},
+	// Newsletter signup (issue 053): 5 signups per hour per client IP.
+	'newsletter-signup': {
+		namespace: 'newsletter-signup',
+		maxAttempts: 5,
+		windowMs: 60 * 60 * 1000,
+	},
 	// Waitlist join: 3 joins per hour per client IP.
 	'waitlist-join': {
 		namespace: 'waitlist-join',
