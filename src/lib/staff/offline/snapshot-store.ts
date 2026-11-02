@@ -4,7 +4,7 @@
  * the Staff Event page while online, read by the Scanner while offline,
  * and cleared at sign-out. Plain indexedDB API, no dependency.
  */
-import { onlineState, markOffline } from './online-state.svelte';
+import { markOffline, markOnline } from './online-state.svelte';
 
 export interface SnapshotParty {
 	id: string | null;
@@ -64,6 +64,7 @@ export async function refreshSnapshot(eventId: string): Promise<StoredSnapshot |
 		const res = await fetch(`/staff/events/${eventId}/snapshot`, {
 			headers: { accept: 'application/json' }
 		});
+		markOnline();
 		if (!res.ok) return null;
 		const snapshot = (await res.json()) as StoredSnapshot;
 		await clearSnapshots();

@@ -140,8 +140,7 @@
 					class={ITEM}
 					onSelect={() => {
 						// Issue 060 : la copie du Jour ne survit pas à la déconnexion.
-						clearSnapshots();
-						logoutForm?.requestSubmit();
+						clearSnapshots().finally(() => logoutForm?.requestSubmit());
 					}}
 				>
 					<LogOut class="size-4" aria-hidden="true" />

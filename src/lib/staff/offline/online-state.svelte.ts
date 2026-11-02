@@ -13,6 +13,12 @@ export function markOffline() {
 	onlineState.online = false;
 }
 
+/** A request just reached the server: the phone is online again, even if
+ * the browser never fired the offline event (a weak network). */
+export function markOnline() {
+	onlineState.online = true;
+}
+
 if (browser) {
 	addEventListener('online', () => (onlineState.online = true));
 	addEventListener('offline', () => (onlineState.online = false));

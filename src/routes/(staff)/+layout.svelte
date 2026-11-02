@@ -139,7 +139,16 @@
                     </div>
                 </div>
 
-                <form method="POST" action="/logout" onsubmit={() => clearSnapshots()}>
+                <form
+                    method="POST"
+                    action="/logout"
+                    onsubmit={(event) => {
+                        // The Day's copy is erased before the session ends.
+                        event.preventDefault();
+                        const form = event.currentTarget;
+                        clearSnapshots().finally(() => form.submit());
+                    }}
+                >
                     <button
                         type="submit"
                         class="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg transition-colors"

@@ -13,7 +13,7 @@
 	import ScanResult from './ScanResult.svelte';
 	import { closeScanOverlay } from './scan-overlay.svelte';
 	import { findPartyByHash, sha256Hex } from '$lib/staff/offline/snapshot-store';
-	import { onlineState, markOffline } from '$lib/staff/offline/online-state.svelte';
+	import { onlineState, markOffline, markOnline } from '$lib/staff/offline/online-state.svelte';
 	import type { ScanParty } from './types';
 
 	let { eventId }: { eventId: string } = $props();
@@ -76,6 +76,7 @@
 				headers: { accept: 'application/json', 'x-sveltekit-action': 'true' },
 				body: new URLSearchParams({ token }),
 			});
+			markOnline();
 			const action = deserialize(await res.text()) as {
 				type: string;
 				data?: { scan?: { party: ScanParty }; scanRefusal?: string };

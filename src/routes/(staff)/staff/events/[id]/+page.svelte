@@ -15,7 +15,7 @@ import PartySizeSheet from '$lib/components/staff/arrivees/PartySizeSheet.svelte
 import { afterNavigate, replaceState } from '$app/navigation';
 import { fly } from 'svelte/transition';
 import OfflineBanner from '$lib/components/staff/offline/OfflineBanner.svelte';
-import { getSnapshot, refreshSnapshot, type StoredSnapshot } from '$lib/staff/offline/snapshot-store';
+import { clearSnapshots, getSnapshot, refreshSnapshot, type StoredSnapshot } from '$lib/staff/offline/snapshot-store';
 import { onlineState } from '$lib/staff/offline/online-state.svelte';
 import { motion, cubicOut } from '$lib/components/staff/motion';
 import { untrack } from 'svelte';
@@ -134,13 +134,26 @@ import {
 		if (!canSnapshot || !day) return;
 		getSnapshot(id).then((stored) => {
 			if (stored && stored.day === day) snapshot = stored;
+			// Another Day's copy must never answer a scan.
+			else if (stored) clearSnapshots();
 		});
+		// Every 3 minutes online; offline, a try every 30 seconds, which is
+		// also how a weak network that never fired « offline » comes back.
+		let last = 0;
 		const refresh = () => {
-			if (onlineState.online) refreshSnapshot(id).then((fresh) => (snapshot = fresh ?? snapshot));
+			last = Date.now();
+			refreshSnapshot(id).then((fresh) => (snapshot = fresh ?? snapshot));
 		};
 		refresh();
-		const timer = setInterval(refresh, 3 * 60 * 1000);
-		return () => clearInterval(timer);
+		const timer = setInterval(() => {
+			if (Date.now() - last >= (onlineState.online ? 3 * 60_000 : 30_000)) refresh();
+		}, 30_000);
+		const onOnline = () => refresh();
+		addEventListener('online', onOnline);
+		return () => {
+			clearInterval(timer);
+			removeEventListener('online', onOnline);
+		};
 	});
 
 	const title = $derived(data.event.titleFr || data.event.titleEn || 'Événement sans titre');

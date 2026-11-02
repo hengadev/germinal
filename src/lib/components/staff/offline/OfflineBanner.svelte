@@ -28,6 +28,6 @@
 		role="status"
 	>
 		<WifiOff size={16} aria-hidden="true" />
-		Hors ligne{#if copyLabel}&nbsp;· copie de {copyLabel} h{/if}
+		Hors ligne{#if copyLabel}&nbsp;· copie de {copyLabel}{/if}
 	</div>
 {/if}
