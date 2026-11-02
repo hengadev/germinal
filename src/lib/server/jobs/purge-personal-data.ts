@@ -4,8 +4,10 @@ import {
 	contactSubmissions,
 	emailQueue,
 	eventSessions,
+	guestNotes,
 	reservations,
 	sessions,
+	subscribers,
 	users,
 	waitlist,
 } from '../db/schema';
@@ -42,6 +44,11 @@ export const RETENTION = {
 	deactivatedTeamAccountDays: 365,
 	/** Admin action log (who did what), from the action. */
 	auditLogDays: 3 * 365,
+	/** An unsubscribed newsletter address (issue 052), from the unsubscribe. */
+	unsubscribedSubscriberDays: 30,
+	/** A form signup that was never confirmed (double opt-in, issue 053),
+	 * from the last confirmation email sent. */
+	unconfirmedFormSubscriberDays: 30,
 } as const;
 
 /** Replaces the guest's email; the column is NOT NULL. */
@@ -59,6 +66,10 @@ export interface PurgePersonalDataResult {
 	emailsDeleted: number;
 	teamAccountsAnonymised: number;
 	auditLogDeleted: number;
+	/** Guest notes and tags (issue 050) left without an identity. */
+	guestNotesDeleted: number;
+	/** Unsubscribed newsletter addresses (issue 052). */
+	subscribersDeleted: number;
 }
 
 function daysAgo(days: number, now: Date): Date {
@@ -186,6 +197,48 @@ export async function purgePersonalData(now: Date = new Date()): Promise<PurgePe
 		.where(lt(auditLog.createdAt, daysAgo(RETENTION.auditLogDays, now)))
 		.returning({ id: auditLog.id });
 
+	// Newsletter (issue 052): an unsubscribed address goes 30 days after
+	// the unsubscribe — the privacy page says so.
+	const unsubscribed = await db
+		.delete(subscribers)
+		.where(
+			and(
+				isNotNull(subscribers.unsubscribedAt),
+				lt(subscribers.unsubscribedAt, daysAgo(RETENTION.unsubscribedSubscriberDays, now))
+			)
+		)
+		.returning({ id: subscribers.id });
+
+	// Newsletter (issue 053): a form signup never confirmed by its link —
+	// double opt-in — goes 30 days after the last confirmation email.
+	const unconfirmed = await db
+		.delete(subscribers)
+		.where(
+			and(
+				isNull(subscribers.confirmedAt),
+				eq(subscribers.source, 'form'),
+				lt(subscribers.updatedAt, daysAgo(RETENTION.unconfirmedFormSubscriberDays, now))
+			)
+		)
+		.returning({ id: subscribers.id });
+
+	// Guest notes and tags (issue 050) are personal data: they go once no
+	// non-anonymised Reservation with that email remains. Runs last, after
+	// the anonymisation above, so a just-purged identity takes its notes
+	// with it in the same run.
+	const notes = await db
+		.delete(guestNotes)
+		.where(
+			sql`not exists (
+				select 1 from ${reservations} r
+				where lower(btrim(r.guest_email)) = ${guestNotes.email}
+					and r.guest_email is not null
+					and r.guest_email <> '' 
+					and r.guest_email <> ${ANONYMISED_EMAIL}
+			)`
+		)
+		.returning({ email: guestNotes.email });
+
 	const result = {
 		reservationsAnonymised: anonymised.length,
 		technicalDataCleared: technical.length,
@@ -195,6 +248,8 @@ export async function purgePersonalData(now: Date = new Date()): Promise<PurgePe
 		emailsDeleted: emails.length,
 		teamAccountsAnonymised: teamAccounts.length,
 		auditLogDeleted: audit.length,
+		guestNotesDeleted: notes.length,
+		subscribersDeleted: unsubscribed.length + unconfirmed.length,
 	};
 	jobLogger.info(result, '[Purge Job] Personal data retention applied');
 	return result;

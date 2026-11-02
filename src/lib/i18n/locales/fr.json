@@ -253,6 +253,9 @@
       "consent": "J'accepte que Germinal conserve ces informations de santé pour adapter le repas. Elles ne sont vues que par l'équipe Germinal et sont effacées 30 jours après la séance.",
       "consentRequired": "Cochez la case de consentement pour transmettre vos allergies ou votre régime, ou videz le champ."
     },
+    "newsletter": {
+      "consent": "Recevoir les prochains événements de Germinal"
+    },
     "notificationsLabel": "Comment souhaitez-vous recevoir les notifications ?",
     "notifEmail": "Email",
     "notifSms": "SMS",
@@ -375,6 +378,32 @@
     "depositPaid": "Acompte payé",
     "balanceDue": "Reste à régler sur place"
   },
+  "newsletterSignup": {
+    "previewTitle": "Lettre d'information — aperçu",
+    "emailLabel": "Adresse e-mail",
+    "emailPlaceholder": "vous@exemple.com",
+    "submit": "S'inscrire",
+    "sending": "Envoi en cours…",
+    "consent": "J'accepte de recevoir des e-mails sur les prochains événements de Germinal.",
+    "success": "Merci — un e-mail de confirmation vient de vous être envoyé. Cliquez sur son lien pour terminer votre inscription.",
+    "error": "Inscription impossible. Vérifiez l'adresse et cochez la case de consentement, puis réessayez.",
+    "confirmPageTitle": "Confirmer l'inscription",
+    "confirmTitle": "Confirmer votre inscription",
+    "confirmDescription": "Confirmez que vous souhaitez recevoir des e-mails sur les prochains événements de Germinal.",
+    "confirmButton": "Confirmer mon inscription",
+    "confirmed": "C'est fait : votre adresse est sur la liste. Vous recevrez les prochains événements de Germinal.",
+    "confirmNeutral": "Si cette inscription est en attente de confirmation, elle vient d'être confirmée. Sinon, rien n'a changé."
+  },
+  "unsubscribe": {
+    "pageTitle": "Se désinscrire",
+    "title": "Ne plus recevoir les événements de Germinal",
+    "description": "Confirmez que vous ne souhaitez plus recevoir d'e-mails sur les prochains événements de Germinal.",
+    "confirm": "Me désinscrire",
+    "successTitle": "C'est fait",
+    "success": "Vous ne recevrez plus d'e-mails sur les prochains événements de Germinal.",
+    "neutral": "Si l'adresse figure sur notre liste, elle en a été retirée. Vous ne recevrez plus d'e-mails sur les prochains événements de Germinal.",
+    "error": "Un problème est survenu. Réessayez dans un instant."
+  },
   "findTicket": {
     "pageTitle": "Retrouver mon billet | Germinal",
     "title": "Billet perdu ?",
@@ -410,16 +439,19 @@
       "dataTechnical": "Données techniques : adresse IP, user-agent du navigateur — collectées automatiquement pour la prévention de la fraude et la sécurité du site.",
       "dataDietary": "Allergies et régime alimentaire : seulement si vous les indiquez lors de la réservation d'un événement qui les demande, avec votre consentement explicite — utilisés uniquement pour adapter le repas.",
       "dataContact": "Données de contact et de liste d'attente : nom, adresse e-mail, numéro de téléphone (liste d'attente), société et message (formulaire de contact) — collectées lorsque vous rejoignez une liste d'attente ou nous écrivez.",
+      "dataNewsletter": "Infolettre : votre adresse e-mail, votre nom et la langue du site — collectées uniquement si vous cochez « Recevoir les prochains événements de Germinal » lors de la réservation, ou si vous vous inscrivez via le formulaire et confirmez le lien reçu par e-mail — utilisées uniquement pour vous informer de nos prochains événements.",
       "basisTitle": "3. Base légale",
       "basisContractual": "Obligation contractuelle : le traitement de vos données est nécessaire à l'exécution du contrat de réservation (création de votre Réservation, envoi de votre Ticket, traitement du paiement).",
       "basisLegitimate": "Intérêt légitime : nous utilisons les données techniques pour prévenir la fraude et assurer la sécurité de notre plateforme.",
       "basisContact": "Intérêt légitime et mesures précontractuelles : répondre à vos messages et vous prévenir lorsqu'une place se libère sur une liste d'attente.",
+      "basisNewsletter": "Consentement (article 6.1.a du RGPD) : l'infolettre n'est envoyée que si vous avez coché la case lors de la réservation ou confirmé votre inscription par le lien reçu après le formulaire (double opt-in). Vous pouvez retirer votre consentement à tout moment via le lien de désinscription présent dans chaque e-mail d'information.",
       "basisDietary": "Consentement explicite (article 9.2.a du RGPD) : vos allergies et votre régime alimentaire sont des données de santé, traitées uniquement si vous cochez la case de consentement. Vous pouvez retirer votre consentement à tout moment en nous écrivant.",
       "retentionTitle": "4. Durées de conservation",
       "retentionIntro": "Nous conservons vos données uniquement le temps nécessaire, puis nous les supprimons ou les anonymisons automatiquement :",
       "retentionReservation": "Réservations : vos nom, adresse e-mail et numéro de téléphone sont conservés jusqu'à 1 an après la Session, puis anonymisés. Seuls subsistent les montants, les dates et les références de paiement, sans aucun nom.",
       "retentionUnpaid": "Réservations non payées : anonymisées 30 jours après leur expiration.",
       "retentionDietary": "Allergies et régime alimentaire : effacés, avec la date de votre consentement, 30 jours après le début de la séance.",
+      "retentionNewsletter": "Infolettre : conservée jusqu'à votre désinscription. L'adresse elle-même est supprimée 30 jours après la désinscription.",
       "retentionWaitlist": "Listes d'attente : supprimées 30 jours après la Session.",
       "retentionContact": "Messages du formulaire de contact : supprimés 1 an après leur réception.",
       "retentionTechnical": "Données techniques (adresse IP, user-agent) et journaux du serveur : effacés au plus tard après 12 mois.",

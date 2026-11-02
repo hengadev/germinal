@@ -43,6 +43,7 @@
 	import Programme from './Programme.svelte';
 	import Photos from './Photos.svelte';
 	import PracticalInfo from './PracticalInfo.svelte';
+	import AfterEvent from './AfterEvent.svelte';
 	import Portfolio from './Portfolio.svelte';
 	import Team from './Team.svelte';
 	import Brief from './Brief.svelte';
@@ -74,7 +75,7 @@
 
 	const event = $derived(data.event as EditorEvent);
 
-	// The eight Event tabs, shared with Draft completeness (issue 013).
+	// The Event tabs, shared with Draft completeness (issue 013).
 	const EDITOR_TABS = EVENT_EDITOR_TABS;
 	// Its team, tasks, Reservations and Promo Codes.
 	const OPERATIONAL_TABS = [
@@ -179,6 +180,7 @@
 	let portfolioTab: ReturnType<typeof Portfolio> | undefined = $state();
 	let programmeTab: ReturnType<typeof Programme> | undefined = $state();
 	let practicalTab: ReturnType<typeof PracticalInfo> | undefined = $state();
+	let afterEventTab: ReturnType<typeof AfterEvent> | undefined = $state();
 	const unsavedValues: UnsavedEditorValues = $derived({
 		essentiel: essentielTab?.warningValues(),
 		lieu: lieuTab?.warningValues(),
@@ -249,6 +251,7 @@
 		programme: () => programmeTab?.restore(),
 		visuels: () => visualsTab?.restore(),
 		pratique: () => practicalTab?.restore(),
+		'apres-evenement': () => afterEventTab?.restore(),
 		'portfolio:recap': () => portfolioTab?.restoreRecap(),
 		'portfolio:event-photos': () => portfolioTab?.restorePhotos(),
 	};
@@ -773,6 +776,9 @@
 	{#snippet pratique()}
 		<PracticalInfo bind:this={practicalTab} {event} />
 	{/snippet}
+	{#snippet apresEvenement()}
+		<AfterEvent bind:this={afterEventTab} {event} />
+	{/snippet}
 	{#snippet portfolio()}
 		<Portfolio bind:this={portfolioTab} {event} lastSeatingStart={data.lastSeatingStart ?? null} warnings={portfolioWarnings} onAltChange={handleAltChange} />
 	{/snippet}
@@ -784,6 +790,7 @@
 	{@render panel('programme', programme)}
 	{@render panel('visuels', visuels)}
 	{@render panel('pratique', pratique)}
+	{@render panel('apres-evenement', apresEvenement)}
 	{@render panel('portfolio', portfolio)}
 
 	{#snippet team()}<Team {data} {form} />{/snippet}

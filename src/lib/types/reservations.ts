@@ -22,6 +22,9 @@ export type CreateReservationInput = {
 	/** Issue 025: the language the site was shown in. Only 'fr' and 'en'
 	 * are kept; anything else (including absent) is stored as null. */
 	locale?: string | null;
+	/** Issue 052: « Hear about Germinal's next events ». The subscription
+	 * is created only when the Reservation is confirmed. */
+	marketingConsent?: boolean;
 };
 
 /**

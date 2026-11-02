@@ -9,6 +9,7 @@ import { cleanupOrphanedMedia } from './cleanup-orphaned-media';
 import { purgePersonalData } from './purge-personal-data';
 import { expireClosedWaitlists } from './expire-closed-waitlists';
 import { cleanupEmptyDrafts } from './cleanup-empty-drafts';
+import { sendThankYouEmails } from './send-thank-you-emails';
 
 let boss: PgBoss | null = null;
 
@@ -54,6 +55,7 @@ export async function initJobScheduler() {
 		'purge-personal-data',
 		'expire-closed-waitlists',
 		'cleanup-empty-drafts',
+		'send-thank-you-emails',
 	];
 	for (const queue of queues) {
 		await boss.createQueue(queue);
@@ -106,6 +108,12 @@ export async function initJobScheduler() {
 		return { deleted: result.deleted };
 	});
 
+	await boss.work('send-thank-you-emails', async () => {
+		logger.info('[Job] Running send-thank-you-emails');
+		const result = await sendThankYouEmails();
+		return { sent: result.sent, failed: result.failed };
+	});
+
 	// Schedule recurring jobs using cron syntax
 	// Every 5 minutes
 	await boss.schedule('cleanup-expired-reservations', '*/5 * * * *');
@@ -123,6 +131,8 @@ export async function initJobScheduler() {
 	await boss.schedule('expire-closed-waitlists', '*/5 * * * *');
 	// Hourly: empty Drafts left alone for a day disappear (015, ADR 0010)
 	await boss.schedule('cleanup-empty-drafts', '0 * * * *');
+	// Hourly: the morning after a Day, the Thank-you email goes out (054)
+	await boss.schedule('send-thank-you-emails', '0 * * * *');
 
 	logger.info('✅ Jobs scheduled');
 

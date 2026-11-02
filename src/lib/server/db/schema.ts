@@ -212,6 +212,16 @@ export const events = pgTable('events', {
     // for its Portfolio project page, which leads with it.
     recapEn: text('recap_en'),
     recapFr: text('recap_fr'),
+    // Post-event Thank-you (issue 054): a message mailed the morning after
+    // each Day to the Guests who came (see send-thank-you-emails). Off by
+    // default; the message falls back to the other language when one is
+    // empty, and the optional link is an http(s) URL.
+    thankYouEnabled: boolean('thank_you_enabled').notNull().default(false),
+    thankYouMessageEn: text('thank_you_message_en'),
+    thankYouMessageFr: text('thank_you_message_fr'),
+    thankYouLinkUrl: varchar('thank_you_link_url', { length: 500 }),
+    thankYouLinkLabelEn: varchar('thank_you_link_label_en', { length: 200 }),
+    thankYouLinkLabelFr: varchar('thank_you_link_label_fr', { length: 200 }),
     // Staff Brief (issue 032): the general part every assigned Staff
     // member sees in the portal; each role's part lives in
     // event_role_briefs.
@@ -775,6 +785,9 @@ export const reservations = pgTable('reservations', {
     cancelledAt: timestamp('cancelled_at', { withTimezone: true }),
     reminderSent1Week: boolean('reminder_sent_1_week').default(false).notNull(),
     reminderSent1Day: boolean('reminder_sent_1_day').default(false).notNull(),
+    // Issue 054: when the post-event Thank-you was mailed, so each Guest
+    // is thanked at most once. Null: not yet thanked.
+    thankYouSentAt: timestamp('thank_you_sent_at', { withTimezone: true }),
     isComp: boolean('is_comp').default(false).notNull(),
     // Issue 020: where the Reservation came from, and which Staff member
     // made it when it didn't come from the site. 'walk_in' marks a party
@@ -814,6 +827,10 @@ export const reservations = pgTable('reservations', {
     // (jobs/purge-personal-data).
     dietaryRequirements: text('dietary_requirements'),
     dietaryConsentAt: timestamp('dietary_consent_at', { withTimezone: true }),
+    // Issue 052: whether the Guest ticked « Hear about Germinal's next
+    // events » when booking. Comps, Walk-ins and Staff reservations never
+    // tick it. Read once, when the Reservation is confirmed.
+    marketingConsent: boolean('marketing_consent').default(false).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => ({
@@ -1075,6 +1092,48 @@ export const checkIns = pgTable('check_ins', {
 // ============================================
 // AUDIT LOG TABLE
 // ============================================
+
+// Where a newsletter subscription came from (issue 052).
+export const subscriberSourceEnum = pgEnum('subscriber_source', ['booking', 'form']);
+
+// Newsletter subscribers (issue 052). A row is « on the list » only when
+// confirmed and not unsubscribed. Emails are normalised (lower-cased,
+// trimmed — utils/guest-email) and unique.
+export const subscribers = pgTable('subscribers', {
+    id: uuid('id').defaultRandom().primaryKey(),
+    email: varchar('email', { length: 320 }).notNull().unique(),
+    name: varchar('name', { length: 255 }),
+    // The language the Guest booked in, for future newsletters.
+    locale: varchar('locale', { length: 2 }),
+    source: subscriberSourceEnum('source').notNull(),
+    // When consent was given, and when the address was confirmed: at once
+    // for a booking (the confirmed Reservation proves it, issue 052), on
+    // the confirmation link for the form (double opt-in, issue 053). Null
+    // until then: an unconfirmed row is never on the list.
+    consentAt: timestamp('consent_at', { withTimezone: true }).notNull(),
+    confirmedAt: timestamp('confirmed_at', { withTimezone: true }),
+    unsubscribedAt: timestamp('unsubscribed_at', { withTimezone: true }),
+    // Both unguessable (32 random bytes in hex), used by public links.
+    confirmationToken: varchar('confirmation_token', { length: 64 }).notNull().unique(),
+    unsubscribeToken: varchar('unsubscribe_token', { length: 64 }).notNull().unique(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+    unsubscribeTokenIdx: index('subscribers_unsubscribe_token_idx').on(table.unsubscribeToken),
+}));
+
+export const guestNotes = pgTable('guest_notes', {
+    // The Guest's normalised email (issue 050): one row per Guest,
+    // created on the first note or tag.
+    email: varchar('email', { length: 320 }).primaryKey(),
+    // Private Admin note, plain text.
+    note: text('note'),
+    // Free-text tags, at most MAX_GUEST_TAGS, each up to MAX_GUEST_TAG_LENGTH.
+    tags: text('tags').array().notNull().default(sql`'{}'::text[]`),
+    // Who last saved the note and tags.
+    updatedBy: uuid('updated_by').references(() => users.id, { onDelete: 'set null' }),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
 
 // Records who performed a destructive/sensitive admin action, what the
 // action was, which entity it affected, and when. Kept intentionally

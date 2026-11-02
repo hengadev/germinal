@@ -253,6 +253,9 @@
       "consent": "I agree that Germinal keeps this health information to adapt the meal. Only the Germinal team sees it, and it is erased 30 days after the session.",
       "consentRequired": "Tick the consent box to share your allergies or dietary requirements, or clear the field."
     },
+    "newsletter": {
+      "consent": "Hear about Germinal's next events"
+    },
     "notificationsLabel": "How would you like to receive notifications?",
     "notifEmail": "Email",
     "notifSms": "SMS",
@@ -375,6 +378,32 @@
     "depositPaid": "Deposit paid",
     "balanceDue": "Balance due at the venue"
   },
+  "newsletterSignup": {
+    "previewTitle": "Newsletter — preview",
+    "emailLabel": "Email address",
+    "emailPlaceholder": "you@example.com",
+    "submit": "Sign up",
+    "sending": "Sending…",
+    "consent": "I agree to receive emails about Germinal's next events.",
+    "success": "Thank you — a confirmation email is on its way. Click its link to finish signing up.",
+    "error": "Could not sign up. Check the address, tick the consent box, and try again.",
+    "confirmPageTitle": "Confirm subscription",
+    "confirmTitle": "Confirm your subscription",
+    "confirmDescription": "Confirm that you wish to receive emails about Germinal's next events.",
+    "confirmButton": "Confirm my subscription",
+    "confirmed": "Done: your address is on the list. You will hear about Germinal's next events.",
+    "confirmNeutral": "If this subscription was awaiting confirmation, it has just been confirmed. Otherwise, nothing changed."
+  },
+  "unsubscribe": {
+    "pageTitle": "Unsubscribe",
+    "title": "Stop hearing about Germinal's events",
+    "description": "Confirm that you no longer wish to receive emails about Germinal's next events.",
+    "confirm": "Unsubscribe me",
+    "successTitle": "Done",
+    "success": "You will no longer receive emails about Germinal's next events.",
+    "neutral": "If the address is on our list, it has been removed. You will no longer receive emails about Germinal's next events.",
+    "error": "Something went wrong. Please try again in a moment."
+  },
   "findTicket": {
     "pageTitle": "Find My Ticket | Germinal",
     "title": "Lost your ticket?",
@@ -410,16 +439,19 @@
       "dataTechnical": "Technical data: IP address, browser user-agent — collected automatically for fraud prevention and site security.",
       "dataDietary": "Allergies and dietary requirements: only if you give them when booking an event that asks for them, with your explicit consent — used solely to adapt the meal.",
       "dataContact": "Contact and waitlist data: name, email address, phone number (waitlist), company and message (contact form) — collected when you join a waitlist or write to us.",
+      "dataNewsletter": "Newsletter: your email address, name and site language — collected only if you tick “Hear about Germinal's next events” when booking, or sign up via the form and confirm the link sent by email — used solely to let you know about our next events.",
       "basisTitle": "3. Legal Basis",
       "basisContractual": "Contractual necessity: processing your data is required to fulfil the booking contract (creating your Reservation, sending your Ticket, processing payment).",
       "basisLegitimate": "Legitimate interest: we use technical data to prevent fraud and ensure the security of our platform.",
       "basisContact": "Legitimate interest and pre-contractual steps: answering your messages and letting you know when a place frees up on a waitlist.",
+      "basisNewsletter": "Consent (GDPR Article 6(1)(a)): the newsletter is sent only if you ticked the box when booking, or confirmed your subscription via the link sent after the form (double opt-in). You can withdraw your consent at any time via the unsubscribe link in every email.",
       "basisDietary": "Explicit consent (GDPR Article 9(2)(a)): your allergies and dietary requirements are health data, processed only if you tick the consent box. You can withdraw your consent at any time by writing to us.",
       "retentionTitle": "4. Retention Periods",
       "retentionIntro": "We keep your data only as long as needed, then delete or anonymise it automatically:",
       "retentionReservation": "Reservations: your name, email and phone number are kept until 1 year after the Session, then anonymised. Only the amounts, dates and payment references remain, with no name attached.",
       "retentionUnpaid": "Unpaid reservations: anonymised 30 days after they expire.",
       "retentionDietary": "Allergies and dietary requirements: erased, together with the date of your consent, 30 days after the session starts.",
+      "retentionNewsletter": "Newsletter: kept until you unsubscribe. The address itself is deleted 30 days after unsubscribing.",
       "retentionWaitlist": "Waitlists: deleted 30 days after the Session.",
       "retentionContact": "Contact form messages: deleted 1 year after we receive them.",
       "retentionTechnical": "Technical data (IP address, user-agent) and server logs: erased after 12 months at most.",

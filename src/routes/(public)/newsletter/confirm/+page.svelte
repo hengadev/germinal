@@ -1,0 +1,51 @@
+<script lang="ts">
+    import { MailCheck } from "lucide-svelte";
+    import { t } from "svelte-i18n";
+    import { reveal } from "$lib/actions/reveal";
+    import type { ActionData, PageData } from "./$types";
+
+    let { data, form }: { data: PageData; form: ActionData } = $props();
+</script>
+
+<svelte:head>
+    <title>{$t("newsletterSignup.confirmPageTitle")}</title>
+</svelte:head>
+
+<div class="container mx-auto px-4 py-32 max-w-2xl">
+    <div class="mb-12 lg:mb-16 grid gap-4" use:reveal={{ preset: "fade-down" }}>
+        <div class="flex items-center justify-center w-12 h-12 border border-border-input mb-2">
+            <MailCheck class="w-5 h-5 text-foreground-alt" />
+        </div>
+        <h1 class="text-3xl lg:text-4xl font-serif">
+            {$t("newsletterSignup.confirmTitle")}
+        </h1>
+    </div>
+
+    <section use:reveal={{ preset: "fade-up", delay: 100 }}>
+        {#if form}
+            {#if form.confirmed}
+                <p class="text-foreground-alt text-base lg:text-lg leading-relaxed">
+                    {$t("newsletterSignup.confirmed")}
+                </p>
+            {:else}
+                <!-- An unknown (or already used) token: nothing is revealed. -->
+                <p class="text-foreground-alt text-base lg:text-lg leading-relaxed">
+                    {$t("newsletterSignup.confirmNeutral")}
+                </p>
+            {/if}
+        {:else}
+            <form method="POST" class="space-y-6">
+                <p class="text-muted-foreground text-base lg:text-lg leading-relaxed">
+                    {$t("newsletterSignup.confirmDescription")}
+                </p>
+                <input type="hidden" name="token" value={data.token} />
+                <button
+                    type="submit"
+                    class="px-6 py-3 bg-foreground text-background text-sm font-medium hover:opacity-90 transition-opacity"
+                >
+                    {$t("newsletterSignup.confirmButton")}
+                </button>
+            </form>
+        {/if}
+    </section>
+</div>

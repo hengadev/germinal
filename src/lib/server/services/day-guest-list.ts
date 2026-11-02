@@ -8,6 +8,9 @@ import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import { db } from '../db';
 import { eventDays, eventServices, eventSessions, events, payments, reservations, users } from '../db/schema';
 import type { StaffAccess } from '$lib/staff/access';
+import { normaliseEmail } from '$lib/utils/guest-email';
+import { tagsByEmail } from './guest-notes';
+import { ANONYMISED_EMAIL } from '../jobs/purge-personal-data';
 import { refundPolicyOf } from '$lib/utils/refund-policy';
 
 /** One party (a confirmed Reservation), with only the allowed fields. */
@@ -51,6 +54,10 @@ export interface DayGuestParty {
 	/** The Deposit actually paid online, minus refunds, in cents — only
 	 * with change_party (issue 048). */
 	depositPaid?: number;
+	/** Issue 051: the Guest's Admin tags — never the note itself. */
+	tags?: string[];
+	/** Issue 051: which visit of the Event this Reservation is (1 = first). */
+	visitNumber?: number;
 }
 
 /** One Seating of the Day with its parties. */
@@ -239,7 +246,56 @@ export async function getDayGuestList(
 		seating.parties.push(party);
 		seating.booked += party.quantity ?? 0;
 	}
+	await withGuestIdentity(seatings.flatMap((s) => s.parties));
 	return { day, seatings };
+}
+
+/**
+ * Issue 051 — decorate every party with the Guest's Admin tags and its
+ * visit number: this Reservation plus the Guest's earlier confirmed ones
+ * (any Event) whose Seating had already started, matched by normalised
+ * email. The email is read here by Reservation id, never sent to the
+ * portal: tags show to whoever sees the guest list, contact details or
+ * not. Batched queries; the Admin note is never selected.
+ */
+async function withGuestIdentity(parties: DayGuestParty[]): Promise<void> {
+	const ids = parties.flatMap((party) => (party.id ? [party.id] : []));
+	if (ids.length === 0) return;
+	const emailExpr = sql<string | null>`lower(btrim(${reservations.guestEmail}))`;
+
+	const own = await db
+		.select({ id: reservations.id, email: emailExpr, startTime: eventSessions.startTime })
+		.from(reservations)
+		.innerJoin(eventSessions, eq(reservations.eventSessionId, eventSessions.id))
+		.where(inArray(reservations.id, ids));
+	const byId = new Map<string, { email: string; startTime: Date }>();
+	for (const row of own) {
+		const email = normaliseEmail(row.email);
+		if (email !== null && email !== ANONYMISED_EMAIL) byId.set(row.id, { email, startTime: new Date(row.startTime) });
+	}
+	const emails = [...new Set([...byId.values()].map((r) => r.email))];
+	if (emails.length === 0) return;
+
+	const tags = await tagsByEmail(emails);
+	const visits = await db
+		.select({ email: emailExpr, startTime: eventSessions.startTime })
+		.from(reservations)
+		.innerJoin(eventSessions, eq(reservations.eventSessionId, eventSessions.id))
+		.where(and(inArray(emailExpr, emails), eq(reservations.status, 'confirmed')));
+	const startsByEmail = new Map<string, number[]>();
+	for (const visit of visits) {
+		if (visit.email === null) continue;
+		const list = startsByEmail.get(visit.email) ?? [];
+		list.push(new Date(visit.startTime).getTime());
+		startsByEmail.set(visit.email, list);
+	}
+	for (const party of parties) {
+		const own = party.id ? byId.get(party.id) : undefined;
+		if (!own) continue;
+		party.tags = tags.get(own.email) ?? [];
+		const start = own.startTime.getTime();
+		party.visitNumber = (startsByEmail.get(own.email) ?? []).filter((t) => t < start).length + 1;
+	}
 }
 
 /** Why a Ticket that lookupTicket returned null did not match. */
@@ -313,7 +369,10 @@ export async function lookupTicket(
 			)
 		)
 		.limit(1)) as unknown as PartyRow[];
-	return row ? toParty(row) : null;
+	if (!row) return null;
+	const party = toParty(row);
+	await withGuestIdentity([party]);
+	return party;
 }
 
 /**

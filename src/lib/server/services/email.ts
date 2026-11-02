@@ -1209,6 +1209,238 @@ export async function sendCancellationEmail(data: CancellationEmailData): Promis
 	logger.info({ to: data.guestEmail }, '📋 Cancellation email queued');
 }
 
+export interface ThankYouEmailData {
+	guestEmail: string | null;
+	guestName: string;
+	eventTitle: string;
+	/** The Event's message, in the email's language, with empty falling
+	 * back to the other one (issue 054). Paragraphs, plain text. */
+	message: string;
+	/** Optional link: its label (same fallback as the message) and URL. */
+	linkUrl: string | null;
+	linkLabel: string | null;
+	reservationId: string;
+	/** Issue 026: the Reservation's language. Null falls back to English. */
+	locale: 'fr' | 'en' | null;
+}
+
+export function generateThankYouTextTemplate(data: ThankYouEmailData): string {
+	const fr = (data.locale ?? 'en') === 'fr';
+	const paragraphs = data.message.split(/\n\s*\n/).filter((p) => p.trim() !== '');
+	const link = data.linkUrl
+		? `${data.linkLabel ?? data.linkUrl}\n${data.linkUrl}`
+		: '';
+
+	const heading = fr ? 'Merci d’avoir été des nôtres' : 'Thank you for joining us';
+	const greeting = fr ? `Bonjour ${data.guestName},` : `Hi ${data.guestName},`;
+	const intro = fr
+		? `Merci d’avoir assisté à ${data.eventTitle}. Nous avons été ravis de vous accueillir.`
+		: `Thank you for attending ${data.eventTitle}. It was a pleasure to have you with us.`;
+	const linkLabel = fr ? 'POUR ALLER PLUS LOIN :' : 'FURTHER READING:';
+	const closing = fr ? 'À très bientôt,' : 'See you soon,';
+	const signature = fr ? 'L’équipe Germinal' : 'The Germinal team';
+	const footer = fr
+		? 'Ceci est un message de service de Germinal.'
+		: 'This is a service message from Germinal.';
+
+	return `
+${heading}
+
+${greeting}
+
+${intro}
+
+${paragraphs.join('\n\n')}
+${link ? `\n\n${linkLabel}\n${link}` : ''}
+
+${closing}
+${signature}
+
+---
+${footer}
+  `.trim();
+}
+
+function generateThankYouHtmlTemplate(data: ThankYouEmailData): string {
+	const lang = data.locale ?? 'en';
+	const fr = lang === 'fr';
+	const paragraphs = data.message.split(/\n\s*\n/).filter((p) => p.trim() !== '');
+	const link = data.linkUrl
+		? `<p style="margin: 24px 0;"><a href="${escapeHtmlAttr(data.linkUrl)}" style="color: #1a1a1a; font-weight: 600;">${escapeHtml(data.linkLabel ?? data.linkUrl)}</a></p>`
+		: '';
+
+	const L = fr ? {
+		title: 'Merci d’avoir été des nôtres',
+		heading: 'Merci d’avoir été des nôtres',
+		greeting: `Bonjour ${escapeHtml(data.guestName)},`,
+		intro: `Merci d’avoir assisté à <strong>${escapeHtml(data.eventTitle)}</strong>. Nous avons été ravis de vous accueillir.`,
+		closing: 'À très bientôt,',
+		signature: 'L’équipe Germinal',
+		footer: 'Ceci est un message de service de Germinal.',
+	} : {
+		title: 'Thank you for joining us',
+		heading: 'Thank you for joining us',
+		greeting: `Hi ${escapeHtml(data.guestName)},`,
+		intro: `Thank you for attending <strong>${escapeHtml(data.eventTitle)}</strong>. It was a pleasure to have you with us.`,
+		closing: 'See you soon,',
+		signature: 'The Germinal team',
+		footer: 'This is a service message from Germinal.',
+	};
+
+	return `
+<!DOCTYPE html>
+<html lang="${lang}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${L.title}</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f8f9fa; font-family: Arial, Helvetica, sans-serif;">
+  <div style="max-width: 600px; margin: 0 auto; padding: 32px 24px; background-color: #ffffff;">
+    <h1 style="margin: 0 0 24px 0; font-size: 22px; color: #212529;">${L.heading}</h1>
+    <p style="margin: 0 0 16px 0; color: #212529;">${L.greeting}</p>
+    <p style="margin: 0 0 16px 0; color: #212529;">${L.intro}</p>
+    ${paragraphs.map((p) => `<p style="margin: 0 0 16px 0; color: #212529; white-space: pre-wrap;">${escapeHtml(p)}</p>`).join('\n')}
+    ${link}
+    <p style="margin: 24px 0 0 0; color: #212529;">
+      ${L.closing}<br>
+      <strong>${L.signature}</strong>
+    </p>
+  </div>
+
+  <div style="border-top: 1px solid #e9ecef; padding-top: 16px;">
+    <p style="margin: 0; color: #6c757d; font-size: 12px; text-align: center;">
+      ${L.footer}
+    </p>
+  </div>
+</body>
+</html>
+  `.trim();
+}
+
+/**
+ * The post-event Thank-you (issue 054): a service message — no
+ * unsubscribe from news — queued the morning after a Day to Guests who
+ * came.
+ */
+export async function sendThankYouEmail(data: ThankYouEmailData): Promise<void> {
+	// A Walk-in (issue 020) may have no email: nobody to thank by mail.
+	if (!data.guestEmail) return;
+	const textBody = generateThankYouTextTemplate(data);
+	const htmlBody = generateThankYouHtmlTemplate(data);
+
+	if (!isBrevoConfigured()) {
+		logger.info({
+			to: data.guestEmail,
+			reservationId: data.reservationId,
+		}, '📧 Brevo not configured - thank-you email would be sent');
+		return;
+	}
+
+	const { queueEmail } = await import('../jobs/process-email-queue');
+	const lang = data.locale ?? 'en';
+	await queueEmail({
+		type: 'thank_you',
+		recipient: data.guestEmail,
+		subject: lang === 'fr'
+			? `Merci — ${data.eventTitle}`
+			: `Thank you — ${data.eventTitle}`,
+		textBody,
+		htmlBody,
+		metadata: {
+			reservationId: data.reservationId,
+			guestName: data.guestName,
+		},
+	});
+	logger.info({ to: data.guestEmail }, '📋 Thank-you email queued');
+}
+
+export interface NewsletterConfirmationEmailData {
+	email: string;
+	locale: string;
+	confirmationToken: string;
+}
+
+/**
+ * The newsletter double opt-in email (issue 053): sent only on a form
+ * signup, with the confirmation link. In the visitor's language.
+ */
+export async function sendNewsletterConfirmationEmail(
+	data: NewsletterConfirmationEmailData
+): Promise<void> {
+	const lang = data.locale === 'fr' ? 'fr' : 'en';
+	const fr = lang === 'fr';
+	const link = `${env.PUBLIC_URL}/newsletter/confirm?token=${data.confirmationToken}`;
+
+	const L = fr ? {
+		subject: 'Confirmez votre inscription à la lettre de Germinal',
+		heading: 'Un dernier clic',
+		intro: 'Vous avez demandé à recevoir les prochains événements de Germinal. Confirmez votre adresse pour terminer l’inscription :',
+		linkLabel: 'Confirmer mon inscription',
+		ignore: 'Si vous n’êtes pas à l’origine de cette demande, ignorez simplement ce message : rien ne sera enregistré sans confirmation.',
+		footer: 'Ceci est un message de service de Germinal.',
+	} : {
+		subject: 'Confirm your subscription to Germinal\u2019s newsletter',
+		heading: 'One last click',
+		intro: 'You asked to hear about Germinal\u2019s next events. Confirm your address to finish signing up:',
+		linkLabel: 'Confirm my subscription',
+		ignore: 'If you did not ask for this, simply ignore this message: nothing is recorded without confirmation.',
+		footer: 'This is a service message from Germinal.',
+	};
+
+	const textBody = `
+${L.heading}
+
+${L.intro}
+
+${L.linkLabel}
+${link}
+
+${L.ignore}
+
+---
+${L.footer}
+`.trim();
+
+	const htmlBody = `
+<!DOCTYPE html>
+<html lang="${lang}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${escapeHtml(L.subject)}</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f8f9fa; font-family: Arial, Helvetica, sans-serif;">
+  <div style="max-width: 600px; margin: 0 auto; padding: 32px 24px; background-color: #ffffff;">
+    <h1 style="margin: 0 0 24px 0; font-size: 22px; color: #212529;">${escapeHtml(L.heading)}</h1>
+    <p style="margin: 0 0 16px 0; color: #212529;">${escapeHtml(L.intro)}</p>
+    <p style="margin: 24px 0;"><a href="${escapeHtmlAttr(link)}" style="color: #1a1a1a; font-weight: 600;">${escapeHtml(L.linkLabel)}</a></p>
+    <p style="margin: 0 0 16px 0; color: #6c757d; font-size: 14px;">${escapeHtml(L.ignore)}</p>
+  </div>
+
+  <div style="border-top: 1px solid #e9ecef; padding-top: 16px;">
+    <p style="margin: 0; color: #6c757d; font-size: 12px; text-align: center;">${escapeHtml(L.footer)}</p>
+  </div>
+</body>
+</html>
+`.trim();
+
+	if (!isBrevoConfigured()) {
+		logger.info({ to: data.email }, '📧 Brevo not configured - newsletter confirmation email would be sent');
+		return;
+	}
+
+	const { queueEmail } = await import('../jobs/process-email-queue');
+	await queueEmail({
+		type: 'newsletter_confirmation',
+		recipient: data.email,
+		subject: L.subject,
+		textBody,
+		htmlBody,
+	});
+	logger.info({ to: data.email }, '📋 Newsletter confirmation email queued');
+}
+
 function generateRefundTextTemplate(data: RefundEmailData): string {
 	const lang = data.locale ?? 'en';
 	const fr = lang === 'fr';
