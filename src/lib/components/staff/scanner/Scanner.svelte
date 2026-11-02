@@ -12,12 +12,16 @@
 	import { parseTicketToken } from '$lib/staff/ticket-qr';
 	import ScanResult from './ScanResult.svelte';
 	import { closeScanOverlay } from './scan-overlay.svelte';
+	import { findPartyByHash, sha256Hex } from '$lib/staff/offline/snapshot-store';
+	import { onlineState, markOffline } from '$lib/staff/offline/online-state.svelte';
 	import type { ScanParty } from './types';
 
 	let { eventId }: { eventId: string } = $props();
 
 
-	type ScanOutcome = { kind: 'party'; party: ScanParty } | { kind: 'refusal'; message: string };
+	type ScanOutcome =
+		| { kind: 'party'; party: ScanParty; offline?: boolean }
+		| { kind: 'refusal'; message: string };
 
 	let result = $state<ScanOutcome | null>(null);
 	let scanning = $state(false);
@@ -31,6 +35,21 @@
 	let lastToken = '';
 	let lastAt = 0;
 
+	// Issue 060 : hors ligne, le scan cherche le groupe dans la copie du
+	// Jour stockée sur le téléphone (hachage Web Crypto, jamais le jeton).
+	async function handleOfflineScan(token: string) {
+		try {
+			const party = await findPartyByHash(eventId, await sha256Hex(token));
+			if (party) {
+				result = { kind: 'party', party, offline: true };
+			} else {
+				result = { kind: 'refusal', message: 'Billet inconnu.' };
+			}
+		} catch {
+			result = { kind: 'refusal', message: 'Billet inconnu.' };
+		}
+	}
+
 	async function handleScan(rawToken: string) {
 		const token = parseTicketToken(rawToken) ?? rawToken.trim();
 		// A party on screen waits for its answer; a refusal gives way to the next Ticket.
@@ -38,6 +57,16 @@
 		if (token === lastToken && Date.now() - lastAt < 4000) return;
 		lastToken = token;
 		lastAt = Date.now();
+		if (!onlineState.online) {
+			scanning = true;
+			try {
+				await handleOfflineScan(token);
+			} finally {
+				scanning = false;
+				simulate = '';
+			}
+			return;
+		}
 		scanning = true;
 		try {
 			// A form action called by hand: SvelteKit answers JSON only when asked,
@@ -56,8 +85,9 @@
 			} else {
 				result = { kind: 'refusal', message: action.data?.scanRefusal ?? 'Billet inconnu.' };
 			}
-		} catch {
-			result = { kind: 'refusal', message: 'Billet inconnu.' };
+		} catch (error) {
+			if (error instanceof TypeError) markOffline();
+			await handleOfflineScan(token);
 		} finally {
 			scanning = false;
 			simulate = '';
@@ -107,7 +137,7 @@
 
 	<!-- The party slides up over the camera, within thumb's reach. -->
 	{#if result?.kind === 'party'}
-		<ScanResult eventId={eventId} party={result.party} onDone={checkedIn} onDismiss={() => (result = null)} />
+		<ScanResult eventId={eventId} party={result.party} offline={result.offline ?? false} onDone={checkedIn} onDismiss={() => (result = null)} />
 	{/if}
 
 	<div class="mt-4 flex flex-col gap-3">

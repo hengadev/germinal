@@ -14,6 +14,9 @@ import CancelRefundSheet from '$lib/components/staff/arrivees/CancelRefundSheet.
 import PartySizeSheet from '$lib/components/staff/arrivees/PartySizeSheet.svelte';
 import { afterNavigate, replaceState } from '$app/navigation';
 import { fly } from 'svelte/transition';
+import OfflineBanner from '$lib/components/staff/offline/OfflineBanner.svelte';
+import { getSnapshot, refreshSnapshot, type StoredSnapshot } from '$lib/staff/offline/snapshot-store';
+import { onlineState } from '$lib/staff/offline/online-state.svelte';
 import { motion, cubicOut } from '$lib/components/staff/motion';
 import { untrack } from 'svelte';
 import {
@@ -118,6 +121,28 @@ import {
 		if (next) goToTab(next);
 	}
 
+	// Issue 060 : la copie du Jour sur le téléphone — actualisée au
+	// chargement puis toutes les 3 minutes tant qu'il y a du réseau ;
+	// le bandeau « Hors ligne » en montre l'âge.
+	let snapshot = $state<StoredSnapshot | null>(null);
+	const canSnapshot = $derived(
+			Boolean(data.access.day && (data.access.canScan || data.access.canManualCheckIn))
+		);
+	$effect(() => {
+		const id = data.event.id;
+		const day = data.access.day;
+		if (!canSnapshot || !day) return;
+		getSnapshot(id).then((stored) => {
+			if (stored && stored.day === day) snapshot = stored;
+		});
+		const refresh = () => {
+			if (onlineState.online) refreshSnapshot(id).then((fresh) => (snapshot = fresh ?? snapshot));
+		};
+		refresh();
+		const timer = setInterval(refresh, 3 * 60 * 1000);
+		return () => clearInterval(timer);
+	});
+
 	const title = $derived(data.event.titleFr || data.event.titleEn || 'Événement sans titre');
 
 	// The Cuisine tab's badge: the parties with Dietary Requirements.
@@ -141,6 +166,9 @@ import {
 </svelte:head>
 
 <div class="container mx-auto px-4 py-8 lg:py-12">
+	{#if canSnapshot}
+		<OfflineBanner takenAt={snapshot?.takenAt ?? null} />
+	{/if}
 	<!-- En-tête : l'événement et le jour en cours -->
 	<div class="mb-6">
 		<div class="flex items-center gap-2">
