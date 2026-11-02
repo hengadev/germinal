@@ -282,6 +282,7 @@ describe('purgePersonalData', () => {
 			teamAccountsAnonymised: 0,
 			auditLogDeleted: 0,
 			guestNotesDeleted: 0,
+			subscribersDeleted: 0,
 		});
 	});
 
