@@ -150,6 +150,7 @@ export const actions: Actions = {
 		if (typeof reservationId !== 'string' || !Number.isInteger(guests)) {
 			return fail(400, { error: 'Requête invalide.' });
 		}
+		const clientId = formData.get('clientId');
 
 		const result = await recordCheckIn({
 			access,
@@ -158,6 +159,7 @@ export const actions: Actions = {
 			guests,
 			method: 'manual',
 			actorId: locals.user.id,
+			clientId: typeof clientId === 'string' && clientId !== '' ? clientId : undefined,
 		});
 		if (!result.ok) return fail(422, { error: result.error, reservationId });
 	},
@@ -275,6 +277,7 @@ export const actions: Actions = {
 		if (typeof reservationId !== 'string' || !Number.isInteger(guests)) {
 			return fail(400, { error: 'Requête invalide.', reservationId });
 		}
+		const clientId = formData.get('clientId');
 
 		const result = await recordCheckIn({
 			access,
@@ -283,6 +286,7 @@ export const actions: Actions = {
 			guests,
 			method: 'scan',
 			actorId: locals.user.id,
+			clientId: typeof clientId === 'string' && clientId !== '' ? clientId : undefined,
 		});
 		if (!result.ok) return fail(422, { error: result.error, reservationId });
 		return { scanCheckedIn: { guests, arrived: result.arrived, quantity: result.quantity } };

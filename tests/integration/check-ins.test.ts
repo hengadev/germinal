@@ -6,6 +6,7 @@
  * party size, and undoing keeps the row with who and when.
  */
 import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest';
+import { eq } from 'drizzle-orm';
 import {
 	events,
 	eventDays,
@@ -290,5 +291,79 @@ describe('check-ins', () => {
 			access: admin, eventId: s.event.id, reservationId: party.id, actorId: s.actor.id,
 		});
 		expect(none.ok).toBe(false);
+	});
+});
+
+describe('check-in client ids (issue 059)', () => {
+	it('answers a repeated client id as a duplicate without a new row', async () => {
+		const now = new Date();
+		const s = await seed(now);
+		const party = await s.reservation('Ida Dupont', { quantity: 4 });
+		const access = accessFor({ kind: 'admin' }, [s.today], now);
+		const clientId = crypto.randomUUID();
+
+		const first = await (await svc()).recordCheckIn({
+			access, eventId: s.event.id, reservationId: party.id, guests: 2, method: 'manual', actorId: s.actor.id, clientId,
+		});
+		expect(first).toEqual({ ok: true, arrived: 2, quantity: 4 });
+
+		const repeat = await (await svc()).recordCheckIn({
+			access, eventId: s.event.id, reservationId: party.id, guests: 2, method: 'manual', actorId: s.actor.id, clientId,
+		});
+		expect(repeat).toEqual({ ok: true, duplicate: true, arrived: 2, quantity: 4 });
+
+		expect((await testDb.select().from(checkIns)).length).toBe(1);
+	});
+
+	it('two racing requests with the same client id: one row, the other a duplicate', async () => {
+		const now = new Date();
+		const s = await seed(now);
+		const party = await s.reservation('Rapid Dupont', { quantity: 4 });
+		const access = accessFor({ kind: 'admin' }, [s.today], now);
+		const clientId = crypto.randomUUID();
+
+		const results = await Promise.all(
+			[1, 2].map(async () =>
+				(await svc()).recordCheckIn({
+					access, eventId: s.event.id, reservationId: party.id, guests: 2, method: 'manual', actorId: s.actor.id, clientId,
+				})
+			)
+		);
+		expect(results.filter((r) => r.ok && !r.duplicate)).toHaveLength(1);
+		expect(results.filter((r) => r.ok && r.duplicate)).toHaveLength(1);
+		expect((await testDb.select().from(checkIns)).length).toBe(1);
+	});
+
+	it('a replay is still a duplicate after the party was cancelled', async () => {
+		const now = new Date();
+		const s = await seed(now);
+		const party = await s.reservation('Late Dupont', { quantity: 2 });
+		const access = accessFor({ kind: 'admin' }, [s.today], now);
+		const clientId = crypto.randomUUID();
+		const input = { access, eventId: s.event.id, reservationId: party.id, guests: 2, method: 'scan' as const, actorId: s.actor.id, clientId };
+
+		expect((await (await svc()).recordCheckIn(input)).ok).toBe(true);
+		await testDb.update(reservations).set({ status: 'cancelled' }).where(eq(reservations.id, party.id));
+
+		expect(await (await svc()).recordCheckIn(input)).toEqual({ ok: true, duplicate: true, arrived: 2, quantity: 2 });
+	});
+
+	it('still refuses more Guests than expected even with a client id', async () => {
+		const now = new Date();
+		const s = await seed(now);
+		const party = await s.reservation('Full Dupont', { quantity: 2 });
+		const access = accessFor({ kind: 'admin' }, [s.today], now);
+
+		const first = await (await svc()).recordCheckIn({
+			access, eventId: s.event.id, reservationId: party.id, guests: 2, method: 'manual', actorId: s.actor.id, clientId: crypto.randomUUID(),
+		});
+		expect(first.ok).toBe(true);
+
+		const refused = await (await svc()).recordCheckIn({
+			access, eventId: s.event.id, reservationId: party.id, guests: 1, method: 'manual', actorId: s.actor.id, clientId: crypto.randomUUID(),
+		});
+		expect(refused.ok).toBe(false);
+		if (!refused.ok) expect(refused.error).toContain('personne');
+		expect((await testDb.select().from(checkIns)).length).toBe(1);
 	});
 });

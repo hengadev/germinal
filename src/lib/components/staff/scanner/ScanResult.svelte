@@ -22,6 +22,9 @@
 	let stepper = $state(Math.max(1, expected));
 	let submitting = $state(false);
 	let failure = $state<string | null>(null);
+	// Id of the arrival attempt in progress (issue 059): a double tap or a
+	// retried request with the same id counts once.
+	let clientId = $state(crypto.randomUUID());
 </script>
 
 <!-- Motion (issue 033): the sheet slides up over a fading backdrop and
@@ -93,6 +96,8 @@
 						const guests = Number(formData.get('guests'));
 						await update({ reset: false });
 						onDone(guests);
+						// A fresh attempt gets a fresh id.
+						clientId = crypto.randomUUID();
 					} else {
 						failure =
 							result.type === 'failure'
@@ -103,6 +108,7 @@
 			}}
 		>
 			<input type="hidden" name="reservationId" value={party.id ?? ''} />
+			<input type="hidden" name="clientId" value={clientId} />
 			<span class="inline-flex items-center rounded-lg border border-border-card">
 				<button
 					type="button"

@@ -75,6 +75,9 @@
 
 	// Motion (issue 033): the card flashes briefly when a check-in succeeds.
 	let flash = $state(false);
+	// Id of the arrival attempt in progress (issue 059): a double tap or a
+	// retried request with the same id counts once.
+	let checkInClientId = $state(crypto.randomUUID());
 	let flashTimer: ReturnType<typeof setTimeout> | null = null;
 	function flashOnSuccess() {
 		if (result) return;
@@ -365,15 +368,20 @@
 						class="flex min-w-60 flex-1 flex-wrap items-center justify-end gap-2"
 						use:enhance={() => {
 							submitting = true;
-							return async ({ update }) => {
+							return async ({ result, update }) => {
 								await update();
 								submitting = false;
 								admitting = false;
-								flashOnSuccess();
+								if (result.type === 'success') {
+									flashOnSuccess();
+									// A fresh attempt gets a fresh id.
+									checkInClientId = crypto.randomUUID();
+								}
 							};
 						}}
 					>
 						<input type="hidden" name="reservationId" value={party.id} />
+						<input type="hidden" name="clientId" value={checkInClientId} />
 						<label for="guests-{party.id}" class="text-sm font-medium text-foreground">Entrées</label>
 						<span class="inline-flex items-center rounded-lg border border-border-card">
 							<button
