@@ -69,15 +69,6 @@ export async function recordCheckIn(input: {
 		if (!party || party.eventId !== eventId) {
 			return { ok: false as const, error: 'Réservation introuvable.' };
 		}
-		if (party.status !== 'confirmed') {
-			return { ok: false as const, error: 'Cette réservation n’est pas confirmée.' };
-		}
-		if (access.day === null || String(party.day) !== access.day) {
-			return {
-				ok: false as const,
-				error: "Cette réservation n'est pas pour le jour en cours.",
-			};
-		}
 
 		const [{ arrived }] = await tx
 			.select({ arrived: sql<number>`coalesce(sum(${checkIns.guests}), 0)::int` })
@@ -86,7 +77,9 @@ export async function recordCheckIn(input: {
 
 		if (clientId !== undefined) {
 			// A client id we already recorded: this is the same arrival
-			// attempt again (a double tap, a retried request). Answer as a
+			// attempt again (a double tap, a retried request, an offline replay).
+			// Checked before the status and Day refusals: an arrival already
+			// recorded stays recorded even if the party was cancelled since. Answer as a
 			// duplicate so the caller treats it as a success, and insert
 			// nothing. The row lock above serialises racing requests with the
 			// same id, so one of them always sees the other's row here.
@@ -97,6 +90,16 @@ export async function recordCheckIn(input: {
 			if (existing) {
 				return { ok: true as const, duplicate: true, arrived, quantity: party.quantity };
 			}
+		}
+
+		if (party.status !== 'confirmed') {
+			return { ok: false as const, error: 'Cette réservation n’est pas confirmée.' };
+		}
+		if (access.day === null || String(party.day) !== access.day) {
+			return {
+				ok: false as const,
+				error: "Cette réservation n'est pas pour le jour en cours.",
+			};
 		}
 
 		if (arrived + guests > party.quantity) {

@@ -6,6 +6,7 @@
  * party size, and undoing keeps the row with who and when.
  */
 import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest';
+import { eq } from 'drizzle-orm';
 import {
 	events,
 	eventDays,
@@ -331,6 +332,20 @@ describe('check-in client ids (issue 059)', () => {
 		expect(results.filter((r) => r.ok && !r.duplicate)).toHaveLength(1);
 		expect(results.filter((r) => r.ok && r.duplicate)).toHaveLength(1);
 		expect((await testDb.select().from(checkIns)).length).toBe(1);
+	});
+
+	it('a replay is still a duplicate after the party was cancelled', async () => {
+		const now = new Date();
+		const s = await seed(now);
+		const party = await s.reservation('Late Dupont', { quantity: 2 });
+		const access = accessFor({ kind: 'admin' }, [s.today], now);
+		const clientId = crypto.randomUUID();
+		const input = { access, eventId: s.event.id, reservationId: party.id, guests: 2, method: 'scan' as const, actorId: s.actor.id, clientId };
+
+		expect((await (await svc()).recordCheckIn(input)).ok).toBe(true);
+		await testDb.update(reservations).set({ status: 'cancelled' }).where(eq(reservations.id, party.id));
+
+		expect(await (await svc()).recordCheckIn(input)).toEqual({ ok: true, duplicate: true, arrived: 2, quantity: 2 });
 	});
 
 	it('still refuses more Guests than expected even with a client id', async () => {
