@@ -20,6 +20,21 @@ export const staffInstall = $state({
 	showIOSSheet: false
 });
 
+// The browser fires beforeinstallprompt once, early, possibly before any
+// component mounts: listen from the module's import.
+if (browser) {
+	window.addEventListener('beforeinstallprompt', (event) => {
+		event.preventDefault();
+		staffInstall.deferredPrompt = event as typeof staffInstall.deferredPrompt;
+		if (staffInstall.platform !== 'standalone') staffInstall.platform = 'android';
+	});
+	window.addEventListener('appinstalled', () => {
+		staffInstall.deferredPrompt = null;
+		staffInstall.platform = 'standalone';
+		staffInstall.showIOSSheet = false;
+	});
+}
+
 export function initStaffInstall(): void {
 	if (!browser) return;
 	const standalone =
@@ -31,16 +46,6 @@ export function initStaffInstall(): void {
 		standalone,
 		staffInstall.deferredPrompt !== null
 	);
-	window.addEventListener('beforeinstallprompt', (event) => {
-		event.preventDefault();
-		staffInstall.deferredPrompt = event as typeof staffInstall.deferredPrompt;
-		if (staffInstall.platform !== 'standalone') staffInstall.platform = 'android';
-	});
-	window.addEventListener('appinstalled', () => {
-		staffInstall.deferredPrompt = null;
-		staffInstall.platform = 'standalone';
-		staffInstall.showIOSSheet = false;
-	});
 }
 
 /** L'offre est-elle écartée depuis moins de 14 jours ? */
@@ -82,7 +87,11 @@ export function openStaffInstall(): void {
 	}
 }
 
-/** L'entrée « Installer l'app » du menu ⋮ est-elle pertinente ? */
+/** L'offre est-elle possible ? Sur Android, seulement une fois que le
+ * navigateur a fourni son invite (sinon le bouton ne ferait rien). */
 export function canOfferStaffInstall(): boolean {
-	return staffInstall.platform === 'android' || staffInstall.platform === 'ios';
+	return (
+		(staffInstall.platform === 'android' && staffInstall.deferredPrompt !== null) ||
+		staffInstall.platform === 'ios'
+	);
 }

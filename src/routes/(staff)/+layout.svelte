@@ -54,6 +54,9 @@
             </div>
         </header>
 
+        <!-- L'offre d'installation (issue 062), sous l'en-tête. -->
+        {#if data.user}<StaffInstallBanner />{/if}
+
         <!-- Contenu, défilable -->
         <main class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
             {@render children()}
@@ -154,6 +157,7 @@
 
         <!-- Contenu -->
         <main class="flex-1 bg-background min-w-0">
+            {#if data.user}<StaffInstallBanner />{/if}
             {@render children()}
         </main>
 
@@ -168,6 +172,7 @@
 <!-- « Pour quel événement ? », des raccourcis de l'en-tête, rendu une seule fois. -->
 <EventPicker />
 
-<!-- L'offre d'installation Staff (issue 062), rendue une seule fois. -->
-<StaffInstallBanner />
-<IOSInstallSheet />
+<!-- La feuille iOS de l'offre d'installation (issue 062), rendue une seule fois. -->
+{#if data.user}
+    <IOSInstallSheet />
+{/if}
