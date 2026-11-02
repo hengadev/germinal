@@ -7,13 +7,8 @@ import {
 	setSeatingBookingsClosed,
 	upcomingSeatingsForInvitation,
 } from '$lib/server/services/staff-portal';
-import {
-	getDayGuestList,
-	dayGuestFields,
-	lookupTicket,
-	explainTicket,
-	type DayGuestParty,
-} from '$lib/server/services/day-guest-list';
+import { getDayGuestList, dayGuestFields, lookupTicket, explainTicket } from '$lib/server/services/day-guest-list';
+import { scanParty } from '$lib/server/services/scan-party';
 import { recordCheckIn, undoLastCheckIn } from '$lib/server/services/check-ins';
 import { createWalkIn } from '$lib/server/services/walk-ins';
 import { createCompOnTheSpot } from '$lib/server/services/comps';
@@ -25,24 +20,6 @@ import { cancelParty, refundParty, withRefundInfo } from '$lib/server/services/p
 import { changeParty } from '$lib/server/services/party-size';
 import { withPartySizeInfo } from '$lib/server/services/day-guest-list';
 import { formatCurrency, parseAmountInput } from '$lib/utils/currency';
-
-// The scan result party, shaped once for the wire: only what the Scanner
-// shows — no Date, no contact details.
-function scanParty(party: DayGuestParty) {
-	const balance =
-		party.isComp || !party.balanceAmount || !party.currency || party.balanceSettledAt
-			? null
-			: formatCurrency(party.balanceAmount, party.currency, 'fr-FR');
-	return {
-		id: party.id ?? null,
-		guestName: party.guestName ?? null,
-		quantity: party.quantity ?? null,
-		arrived: party.arrived ?? 0,
-		balance,
-		isComp: party.isComp ?? false,
-		dietaryRequirements: party.dietaryRequirements ?? null,
-	};
-}
 
 // The French refusal shown in place of a check-in button.
 function refusalMessage(explanation: Awaited<ReturnType<typeof explainTicket>>): string {

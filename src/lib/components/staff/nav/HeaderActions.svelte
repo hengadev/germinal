@@ -19,6 +19,7 @@
 	import { openCloseBookingsForm } from '$lib/components/staff/event-menu/close-bookings-form.svelte';
 	import { openInviteForm } from '$lib/components/staff/event-menu/invite-form.svelte';
 	import { pickEvent, type PickableEvent } from './event-picker.svelte';
+	import { clearSnapshots } from '$lib/staff/offline/snapshot-store';
 	import type { HeaderActionTargets } from '$lib/server/services/staff-portal';
 
 	let { targets }: { targets: HeaderActionTargets } = $props();
@@ -135,7 +136,13 @@
 					{/if}
 				</DropdownMenu.Item>
 				<DropdownMenu.Separator class="-mx-1 my-1 h-px bg-border" />
-				<DropdownMenu.Item class={ITEM} onSelect={() => logoutForm?.requestSubmit()}>
+				<DropdownMenu.Item
+					class={ITEM}
+					onSelect={() => {
+						// Issue 060 : la copie du Jour ne survit pas à la déconnexion.
+						clearSnapshots().finally(() => logoutForm?.requestSubmit());
+					}}
+				>
 					<LogOut class="size-4" aria-hidden="true" />
 					Se déconnecter
 				</DropdownMenu.Item>

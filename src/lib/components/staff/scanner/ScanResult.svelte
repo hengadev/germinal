@@ -5,16 +5,24 @@
 	 */
 	import { enhance } from '$app/forms';
 	import { fade, fly } from 'svelte/transition';
-	import { ChefHat, Gift, LoaderCircle, UserCheck, X } from 'lucide-svelte';
+	import { ChefHat, Gift, LoaderCircle, Smartphone, UserCheck, X } from 'lucide-svelte';
 	import { motion, cubicOut } from '$lib/components/staff/motion';
 	import type { ScanParty } from './types';
 
 	let {
 		eventId,
 		party,
+		offline,
 		onDone,
 		onDismiss
-	}: { eventId: string; party: ScanParty; onDone: (guests: number) => void; onDismiss: () => void } = $props();
+	}: {
+		eventId: string;
+		party: ScanParty;
+		/** Issue 060 : la fiche vient de la copie du téléphone, sans réseau. */
+		offline?: boolean;
+		onDone: (guests: number) => void;
+		onDismiss: () => void;
+	} = $props();
 
 	const arrived = $derived(party.arrived);
 	const expected = $derived((party.quantity ?? 1) - arrived);
@@ -83,6 +91,19 @@
 			</div>
 		{/if}
 
+		{#if offline}
+			<!-- Issue 060 : hors ligne, la fiche vient du téléphone ; l'entrée
+			     (061) demandera le réseau. -->
+			<p class="mt-3 flex items-center gap-2 text-sm font-medium text-muted-foreground">
+				<Smartphone size={16} aria-hidden="true" />
+				Données du téléphone
+			</p>
+			<p
+				class="mt-3 flex min-h-12 items-center justify-center rounded-lg border-2 border-foreground/40 px-4 text-base font-semibold text-muted-foreground"
+			>
+				L'entrée demande le réseau
+			</p>
+		{:else}
 		<form
 			method="POST"
 			action={`/staff/events/${eventId}?/scanCheckIn`}
@@ -144,6 +165,7 @@
 				Faire entrer
 			</button>
 		</form>
-		{#if failure}<p class="mt-2 text-center text-sm font-semibold text-red-600" role="alert">{failure}</p>{/if}
+			{#if failure}<p class="mt-2 text-center text-sm font-semibold text-red-600" role="alert">{failure}</p>{/if}
+		{/if}
 	</div>
 </div>
