@@ -5,16 +5,17 @@
  * the target check that tells a swipe from a scroll or a form interaction.
  */
 
-export type StaffEventTab = 'arrivees' | 'cuisine' | 'brief';
+export type StaffEventTab = 'arrivees' | 'aujourdhui' | 'cuisine' | 'brief';
 
 export type SwipeDirection = 'left' | 'right';
 
 /** Order on the tab bar, regardless of what the viewer can see. No
  * Scanner tab any more (issue 034): the floating button scans. */
-const TAB_ORDER: StaffEventTab[] = ['arrivees', 'cuisine', 'brief'];
+const TAB_ORDER: StaffEventTab[] = ['arrivees', 'aujourdhui', 'cuisine', 'brief'];
 
 export type TabAccess = {
 	canArrivees: boolean;
+	canAujourdhui: boolean;
 	canCuisine: boolean;
 	canScan: boolean;
 };
@@ -23,7 +24,13 @@ export type TabAccess = {
  * needs no permission: every assigned Staff member sees it. */
 export function visibleTabs(access: TabAccess): StaffEventTab[] {
 	return TAB_ORDER.filter((tab) =>
-		tab === 'brief' ? true : tab === 'arrivees' ? access.canArrivees : access.canCuisine
+		tab === 'brief'
+			? true
+			: tab === 'arrivees'
+				? access.canArrivees
+				: tab === 'aujourdhui'
+				? access.canAujourdhui
+				: access.canCuisine
 	);
 }
 

@@ -26,23 +26,25 @@ describe('swipeDirection', () => {
 	});
 });
 
-const all = { canArrivees: true, canCuisine: true, canScan: true };
+const all = { canArrivees: true, canAujourdhui: true, canCuisine: true, canScan: true };
 
 describe('visibleTabs', () => {
 	it('lists the tabs in order, filtered by access', () => {
-		expect(visibleTabs(all)).toEqual(['arrivees', 'cuisine', 'brief']);
-		expect(visibleTabs({ canArrivees: false, canCuisine: true, canScan: true })).toEqual([
+		expect(visibleTabs(all)).toEqual(['arrivees', 'aujourdhui', 'cuisine', 'brief']);
+		expect(visibleTabs({ canArrivees: false, canAujourdhui: true, canCuisine: true, canScan: true })).toEqual([
+			'aujourdhui',
 			'cuisine',
 			'brief'
 		]);
-		expect(visibleTabs({ canArrivees: true, canCuisine: false, canScan: false })).toEqual([
+		expect(visibleTabs({ canArrivees: true, canAujourdhui: true, canCuisine: false, canScan: false })).toEqual([
 			'arrivees',
+			'aujourdhui',
 			'brief'
 		]);
 	});
 
 	it('always shows Brief, with no permission at all (issue 032)', () => {
-		expect(visibleTabs({ canArrivees: false, canCuisine: false, canScan: false })).toEqual([
+		expect(visibleTabs({ canArrivees: false, canAujourdhui: false, canCuisine: false, canScan: false })).toEqual([
 			'brief'
 		]);
 	});
@@ -50,8 +52,8 @@ describe('visibleTabs', () => {
 
 describe('tabAfterSwipe', () => {
 	it('moves to the next tab on a left swipe and the previous on a right one', () => {
-		expect(tabAfterSwipe('left', 'arrivees', all)).toBe('cuisine');
-		expect(tabAfterSwipe('right', 'cuisine', all)).toBe('arrivees');
+		expect(tabAfterSwipe('left', 'arrivees', all)).toBe('aujourdhui');
+		expect(tabAfterSwipe('right', 'cuisine', all)).toBe('aujourdhui');
 	});
 
 	it('does not wrap around at either end', () => {
@@ -60,7 +62,7 @@ describe('tabAfterSwipe', () => {
 	});
 
 	it('skips tabs the viewer cannot see', () => {
-		const access = { canArrivees: true, canCuisine: false, canScan: true };
+		const access = { canArrivees: true, canAujourdhui: false, canCuisine: false, canScan: true };
 		expect(tabAfterSwipe('left', 'arrivees', access)).toBe('brief');
 		expect(tabAfterSwipe('right', 'brief', access)).toBe('arrivees');
 	});

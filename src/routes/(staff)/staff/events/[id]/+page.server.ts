@@ -1,4 +1,5 @@
 import { error, fail } from '@sveltejs/kit';
+import { getDayAttendance, type TodaySeatingAttendance } from '$lib/server/services/attendance';
 import type { Actions, PageServerLoad } from './$types';
 import {
 	getStaffEventAccess,
@@ -8,6 +9,7 @@ import {
 } from '$lib/server/services/staff-portal';
 import {
 	getDayGuestList,
+	dayGuestFields,
 	lookupTicket,
 	explainTicket,
 	type DayGuestParty,
@@ -66,7 +68,26 @@ function refusalMessage(explanation: Awaited<ReturnType<typeof explainTicket>>):
 	}
 }
 
-export const load: PageServerLoad = async ({ locals, params }) => {
+// « Aujourd'hui » : les chiffres du Jour en cours, sans aucune donnée
+// nominative — des compteurs par séance seulement. Rechargé par
+// invalidate('staff:aujourdhui').
+async function loadAujourdhui(eventId: string, day: string, depends: (dep: `${string}:${string}`) => void) {
+	depends('staff:aujourdhui');
+	const t = await getDayAttendance(eventId, day, new Date());
+	return {
+		...t,
+		services: t.services.map((service) => ({
+			...service,
+			seatings: service.seatings.map((s: TodaySeatingAttendance) => ({
+				...s,
+				startTime: s.startTime.toISOString(),
+				endTime: s.endTime.toISOString()
+			}))
+		}))
+	};
+}
+
+export const load: PageServerLoad = async ({ locals, params, depends }) => {
 	if (!locals.user) throw error(401, 'Non authentifié');
 
 	const access = await getStaffEventAccess(locals.user, params.id);
@@ -84,6 +105,10 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	// Arrivées needs a visible Day and the guest list; Cuisine, Dietary Requirements.
 	const canArrivees = access.can('guest_list');
 	const canCuisine = access.can('dietary');
+	// « Aujourd'hui » (056) : pendant un Jour, dès qu'un champ d'invités est visible.
+	const guestFields = dayGuestFields(access);
+	const canAujourdhui =
+		access.day !== null && (guestFields.guestList || guestFields.dietary || guestFields.contact);
 	const canSeeArrivees = canArrivees || canCuisine;
 	const isAdmin = locals.user.role === 'admin';
 	const canCloseBookings = access.can('close_bookings');
@@ -94,6 +119,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			day: access.day,
 			canSeeGuests: access.canSeeGuests,
 			canArrivees,
+			canAujourdhui,
 			canCuisine,
 			canManualCheckIn: access.can('manual_check_in'),
 			canCorrect: access.can('correct_mistake'),
@@ -119,6 +145,9 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		staffRoleName: access.staffRoleName,
 		brief,
 		arrivees: canSeeArrivees ? await loadArrivees(access, params.id) : null,
+		// « Aujourd'hui » : les chiffres du Jour en cours, sans aucune donnée
+		// nominative — des compteurs par séance seulement.
+		aujourdhui: canAujourdhui && access.day !== null ? await loadAujourdhui(params.id, access.day, depends) : null,
 	};
 };
 
