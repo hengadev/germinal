@@ -102,7 +102,9 @@ export async function subscribeFromForm(
 	locale: string | null
 ): Promise<SubscribeFromFormResult> {
 	const email = normaliseEmail(emailInput);
-	if (email === null) return { ok: false };
+	// A cheap format check (the endpoint's schema only bounds the length):
+	// something on both sides of a single @, dot in the domain.
+	if (email === null || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { ok: false };
 
 	const [existing] = await db.select().from(subscribers).where(eq(subscribers.email, email));
 	const now = new Date();
@@ -162,7 +164,7 @@ export async function confirmByToken(token: string): Promise<boolean> {
 		.where(and(eq(subscribers.confirmationToken, token), isNull(subscribers.confirmedAt)))
 		.returning({ id: subscribers.id });
 	return row !== undefined;
-}\n
+}
 /**
  * Unsubscribe by token (public page, no login): one conditional update, so
  * a link followed twice unsubscribes once. Returns whether the token matched
