@@ -252,8 +252,8 @@
 	</div>
 
 	<!-- RGPD erasure (issue 055) -->
-	<div class="bg-background rounded-lg border border-red-200 p-4 mt-6">
-		<h2 class="text-sm font-semibold text-red-700 uppercase tracking-wider mb-1">Données personnelles</h2>
+	<div class="bg-background rounded-lg border border-red-600/30 p-4 mt-6">
+		<h2 class="text-sm font-semibold text-red-600 uppercase tracking-wider mb-1">Données personnelles</h2>
 		<p class="text-sm text-muted-foreground mb-4">
 			En réponse à une demande d'effacement (RGPD) : anonymise toutes les réservations de ce client, efface ses exigences alimentaires, sa note et ses tags, sa lettre d'information et ses inscriptions en liste d'attente. Les montants, dates, statuts et identifiants Stripe sont conservés pour la comptabilité. Irréversible.
 		</p>
@@ -290,7 +290,7 @@
 		<div class="flex justify-end gap-3 mt-6">
 			<button
 				type="button"
-			onclick={() => (eraseModalOpen = false)}
+				onclick={() => (eraseModalOpen = false)}
 				class="px-6 py-2.5 border border-border-input text-foreground-alt rounded-lg hover:bg-muted transition-colors font-medium"
 			>
 				Annuler
