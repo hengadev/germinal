@@ -6,6 +6,7 @@
     import { onMount } from 'svelte';
     import PWAInstallPrompt from '$lib/components/PWAInstallPrompt.svelte';
     import IOSInstallPrompt from '$lib/components/IOSInstallPrompt.svelte';
+    import { page } from '$app/state';
 
     let { children } = $props();
 
@@ -56,7 +57,7 @@
 
 <!-- Only once the messages are loaded: the prompts format them, and doing so
      earlier throws, which aborts hydration of the whole page. -->
-{#if browser && !$isLoading}
+{#if browser && !$isLoading && !(page.route.id?.startsWith('/(admin)') || page.route.id?.startsWith('/(staff)'))}
     <PWAInstallPrompt />
     <IOSInstallPrompt />
 {/if}

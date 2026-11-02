@@ -9,6 +9,8 @@
     import HeaderActions from "$lib/components/staff/nav/HeaderActions.svelte";
     import EventPicker from "$lib/components/staff/nav/EventPicker.svelte";
     import ScanOverlay from "$lib/components/staff/scanner/ScanOverlay.svelte";
+    import StaffInstallBanner from "$lib/components/staff/install/StaffInstallBanner.svelte";
+    import IOSInstallSheet from "$lib/components/staff/install/IOSInstallSheet.svelte";
     import { openScanOverlay } from "$lib/components/staff/scanner/scan-overlay.svelte";
     import type { LayoutData } from "./$types";
 
@@ -165,3 +167,7 @@
 
 <!-- « Pour quel événement ? », des raccourcis de l'en-tête, rendu une seule fois. -->
 <EventPicker />
+
+<!-- L'offre d'installation Staff (issue 062), rendue une seule fois. -->
+<StaffInstallBanner />
+<IOSInstallSheet />
