@@ -428,7 +428,7 @@
       "basisContractual": "Contractual necessity: processing your data is required to fulfil the booking contract (creating your Reservation, sending your Ticket, processing payment).",
       "basisLegitimate": "Legitimate interest: we use technical data to prevent fraud and ensure the security of our platform.",
       "basisContact": "Legitimate interest and pre-contractual steps: answering your messages and letting you know when a place frees up on a waitlist.",
-      "basisNewsletter": "Consent (GDPR Article 6(1)(a)): the newsletter is sent only if you ticked the box when booking. You can withdraw your consent at any time via the unsubscribe link in every email, or the one given with your ticket.",
+      "basisNewsletter": "Consent (GDPR Article 6(1)(a)): the newsletter is sent only if you ticked the box when booking. You can withdraw your consent at any time via the unsubscribe link in every email.",
       "basisDietary": "Explicit consent (GDPR Article 9(2)(a)): your allergies and dietary requirements are health data, processed only if you tick the consent box. You can withdraw your consent at any time by writing to us.",
       "retentionTitle": "4. Retention Periods",
       "retentionIntro": "We keep your data only as long as needed, then delete or anonymise it automatically:",

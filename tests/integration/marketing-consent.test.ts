@@ -253,7 +253,7 @@ describe('marketing consent at booking (issue 052)', () => {
 
 		const again = (await subscriberByEmail('guest@example.com'))!;
 		expect(again.unsubscribedAt).toBeNull();
-		expect(again.confirmedAt > subscribed.confirmedAt).toBe(true);
+		expect(again.confirmedAt!.getTime()).toBeGreaterThan(subscribed.confirmedAt!.getTime());
 		expect(again.unsubscribeToken).not.toBe(subscribed.unsubscribeToken);
 	});
 
@@ -328,7 +328,20 @@ describe('marketing consent at booking (issue 052)', () => {
 		expect(csv.charCodeAt(0)).toBe(0xfeff); // UTF-8 BOM
 		expect(csv).toContain('on-list@example.com');
 		expect(csv).not.toContain('off-list@example.com');
-		expect(csv).toContain('Email,Name,Language,Source,Consent Date,Confirmation Date');
+		expect(csv).toContain('Email,Name,Language,Source,Consent Date,Confirmation Date,Unsubscribe URL');
+		const token = (await subscriberByEmail('on-list@example.com'))!.unsubscribeToken;
+		expect(csv).toContain(`/unsubscribe?token=${token}`);
+	});
+
+	it('an unconfirmed row is never on the list nor exported', async () => {
+		await testDb.insert(subscribers).values({
+			email: 'pending@example.com',
+			source: 'form',
+			consentAt: new Date(),
+			confirmationToken: 'p'.repeat(64),
+			unsubscribeToken: 'q'.repeat(64),
+		});
+		expect(await exportSubscribersToCSV()).not.toContain('pending@example.com');
 	});
 
 	it('the purge deletes unsubscribed rows 30 days after the unsubscribe, and only those', async () => {

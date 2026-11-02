@@ -375,7 +375,7 @@
     <AdminSidebar {data} />
 
     <!-- Main Content Area -->
-    <main class="flex-1 bg-background">
+    <main class="flex-1 min-w-0 bg-background">
         {@render children()}
     </main>
 

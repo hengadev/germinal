@@ -1,5 +1,5 @@
 {
-  "id": "cfb3f1c9-d882-4b9c-ba92-8f480c2ff545",
+  "id": "24730c8b-95b3-4619-998b-a0522866b00d",
   "prevId": "33ddaf21-6eae-40a5-964d-5f994c972fea",
   "version": "7",
   "dialect": "postgresql",
@@ -3613,7 +3613,7 @@
           "name": "confirmed_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "unsubscribed_at": {
           "name": "unsubscribed_at",
@@ -3673,6 +3673,13 @@
           "nullsNotDistinct": false,
           "columns": [
             "email"
+          ]
+        },
+        "subscribers_confirmation_token_unique": {
+          "name": "subscribers_confirmation_token_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "confirmation_token"
           ]
         },
         "subscribers_unsubscribe_token_unique": {

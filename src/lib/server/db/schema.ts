@@ -1106,13 +1106,15 @@ export const subscribers = pgTable('subscribers', {
     // The language the Guest booked in, for future newsletters.
     locale: varchar('locale', { length: 2 }),
     source: subscriberSourceEnum('source').notNull(),
-    // When the Guest ticked the box, and when the subscription was
-    // confirmed (at once, when the Reservation is confirmed — issue 052).
+    // When consent was given, and when the address was confirmed: at once
+    // for a booking (the confirmed Reservation proves it, issue 052), on
+    // the confirmation link for the form (double opt-in, issue 053). Null
+    // until then: an unconfirmed row is never on the list.
     consentAt: timestamp('consent_at', { withTimezone: true }).notNull(),
-    confirmedAt: timestamp('confirmed_at', { withTimezone: true }).notNull(),
+    confirmedAt: timestamp('confirmed_at', { withTimezone: true }),
     unsubscribedAt: timestamp('unsubscribed_at', { withTimezone: true }),
     // Both unguessable (32 random bytes in hex), used by public links.
-    confirmationToken: varchar('confirmation_token', { length: 64 }).notNull(),
+    confirmationToken: varchar('confirmation_token', { length: 64 }).notNull().unique(),
     unsubscribeToken: varchar('unsubscribe_token', { length: 64 }).notNull().unique(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),

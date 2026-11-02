@@ -157,7 +157,7 @@ async function newsletterByEmail(
 		.where(inArray(subscribers.email, emails));
 	for (const row of rows) {
 		map.set(row.email, {
-			subscribed: row.unsubscribedAt === null,
+			subscribed: row.confirmedAt !== null && row.unsubscribedAt === null,
 			since: row.confirmedAt ? new Date(row.confirmedAt).toISOString() : null,
 		});
 	}

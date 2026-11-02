@@ -428,7 +428,7 @@
       "basisContractual": "Obligation contractuelle : le traitement de vos données est nécessaire à l'exécution du contrat de réservation (création de votre Réservation, envoi de votre Ticket, traitement du paiement).",
       "basisLegitimate": "Intérêt légitime : nous utilisons les données techniques pour prévenir la fraude et assurer la sécurité de notre plateforme.",
       "basisContact": "Intérêt légitime et mesures précontractuelles : répondre à vos messages et vous prévenir lorsqu'une place se libère sur une liste d'attente.",
-      "basisNewsletter": "Consentement (article 6.1.a du RGPD) : l'infolettre n'est envoyée que si vous avez coché la case lors de la réservation. Vous pouvez retirer votre consentement à tout moment via le lien de désinscription présent dans chaque e-mail, ou celui remis avec votre billet.",
+      "basisNewsletter": "Consentement (article 6.1.a du RGPD) : l'infolettre n'est envoyée que si vous avez coché la case lors de la réservation. Vous pouvez retirer votre consentement à tout moment via le lien de désinscription présent dans chaque e-mail d'information.",
       "basisDietary": "Consentement explicite (article 9.2.a du RGPD) : vos allergies et votre régime alimentaire sont des données de santé, traitées uniquement si vous cochez la case de consentement. Vous pouvez retirer votre consentement à tout moment en nous écrivant.",
       "retentionTitle": "4. Durées de conservation",
       "retentionIntro": "Nous conservons vos données uniquement le temps nécessaire, puis nous les supprimons ou les anonymisons automatiquement :",

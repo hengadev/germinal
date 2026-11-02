@@ -2,6 +2,7 @@ import { db } from '../db';
 import { reservations, payments, eventSessions, events, waitlist, users, subscribers } from '../db/schema';
 import { eq, and, desc, sql, inArray, isNull, isNotNull } from 'drizzle-orm';
 import { arrivedByReservation } from './check-ins';
+import { env } from '../env';
 import { seatingTitle } from '$lib/utils/seating-title';
 import { reservationAmounts, balanceToCollect } from '$lib/utils/balance-due';
 
@@ -438,9 +439,11 @@ export async function exportSubscribersToCSV(options: { limit?: number } = {}) {
 		'Source': s.source,
 		'Consent Date': s.consentAt,
 		'Confirmation Date': s.confirmedAt,
+		// For the sending tool: every news email links to it (one click).
+		'Unsubscribe URL': `${env.PUBLIC_URL}/unsubscribe?token=${s.unsubscribeToken}`,
 	}));
 
-	const headers = ['Email', 'Name', 'Language', 'Source', 'Consent Date', 'Confirmation Date'];
+	const headers = ['Email', 'Name', 'Language', 'Source', 'Consent Date', 'Confirmation Date', 'Unsubscribe URL'];
 
 	// The BOM so Excel opens the file as UTF-8.
 	return '\ufeff' + arrayToCSV(csvData, headers);
