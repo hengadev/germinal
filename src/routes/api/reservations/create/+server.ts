@@ -39,6 +39,9 @@ export const POST: RequestHandler = async ({ request, getClientAddress, locals }
 		);
 	}
 
+	// The Guest's language (issue 068), for the sold-out Extra's message.
+	let locale: string | null = null;
+
 	try {
 		const data = await request.json();
 		const userAgent = request.headers.get('user-agent');
@@ -56,8 +59,9 @@ export const POST: RequestHandler = async ({ request, getClientAddress, locals }
 			);
 		}
 
+		locale = typeof validated.data.locale === 'string' ? validated.data.locale : null;
+
 		// Create reservation with capacity lock
-		const locale = typeof data.locale === 'string' ? data.locale : null;
 		const result = await createReservation({
 			...validated.data,
 			phone: validated.data.phone ?? undefined,

@@ -1,765 +1,775 @@
 {
-  "pwa": {
-    "offlineReady": "App ready for offline use",
-    "newVersion": "A new version is available",
-    "reload": "Reload",
-    "close": "Close",
-    "installTitle": "Install the app",
-    "installDescription": "Add Germinal to your home screen for quick access.",
-    "installButton": "Install",
-    "installDismiss": "Later",
-    "iosTitle": "Install {appName}",
-    "iosSubtitle": "Add to home screen for the best experience",
-    "iosStep1": "Tap the <strong>Share</strong> button",
-    "iosStep2": "Scroll and tap <strong>Add to Home Screen</strong>"
-  },
-  "cookieConsent": {
-    "title": "We use cookies",
-    "description": "We use cookies that are strictly necessary to keep Germinal secure and working (your login session, fraud prevention). With your consent, we may also use additional cookies to improve your experience. Read our",
-    "privacyLink": "Privacy Policy",
-    "essentialOnly": "Essential only",
-    "acceptAll": "Accept all"
-  },
-  "nav": {
-    "upcomingEvent": "Upcoming event",
-    "events": "Work",
-    "talents": "Talents",
-    "manifesto": "Manifesto",
-    "contact": "Contact",
-    "findTicket": "Find my ticket",
-    "giftCard": "Gift card"
-  },
-  "footer": {
-    "allRightsReserved": "All rights reserved.",
-    "tagline": "Architecture of sensory experiences.",
-    "contactLabel": "Contact",
-    "explore": "Explore",
-    "legal": "Legal",
-    "privacyPolicy": "Privacy Policy",
-    "termsOfSale": "Terms of Sale",
-    "mentionsLegales": "Legal Notice",
-    "faq": "FAQ"
-  },
-  "home": {
-    "metaTitle": "Germinal, a cultural studio in Paris",
-    "metaDescription": "Germinal makes dinners, exhibitions and workshops in Paris, with chefs, craftspeople and artists, and imagines them for others, shaped to each project.",
-    "next": "Coming up",
-    "reserve": "Book",
-    "allProjects": "All projects",
-    "readManifesto": "Read the manifesto",
-    "studioTitle": "Evenings made to measure.",
-    "studioBody": "Germinal is a cultural studio in Paris. We make dinners, exhibitions and workshops with chefs, craftspeople and artists, and we imagine them for others, shaped to each project.",
-    "projectsTitle": "What we have made",
-    "talentsTitle": "At our table",
-    "talentsBody": "The chefs, craftspeople and artists we make our evenings with.",
-    "allTalents": "All talents",
-    "disciplinesTitle": "What we do"
-  },
-  "events": {
-    "pageTitle": "Projects | Germinal",
-    "title": "Projects",
-    "description": "The events we have imagined and brought to life, told in pictures. Open a project to discover it.",
-    "noEvents": "No projects yet.",
-    "lunch": "Lunch",
-    "dinner": "Dinner",
-    "perGuest": "per guest",
-    "free": "Free",
-    "priceToBeAnnounced": "Price to be announced",
-    "depositPerGuest": "Deposit {amount} per guest, balance at the venue",
-    "noDepositNote": "Paid in full at the venue",
-    "project": {
-      "backToProjects": "All projects",
-      "photographs": "Photographs",
-      "credits": "Credits",
-      "venue": "Venue",
-      "curator": "Curated by"
-    },
-    "page": {
-      "book": "Book",
-      "joinWaitlist": "Join the waitlist",
-      "onTheMenu": "On the menu",
-      "curator": "Curated by",
-      "venue": "Venue",
-      "previewDraft": "Preview — draft",
-      "nextProject": "Next project",
-      "dietaryNote": "You will be asked about allergies and diets when booking.",
-      "seating": {
-        "ended": "Ended",
-        "unavailable": "Unavailable",
-        "opensSoon": "Booking opens soon",
-        "waitlist": "Full — waitlist open",
-        "full": "Full",
-        "lastSeat": "Last seat",
-        "seatsLeft": "{count} seats left",
-        "seats": "{count} seats",
-        "open": "Seats available"
-      },
-      "summary": {
-        "waitlist": "Full — join the waitlist",
-        "past": "Took place"
-      },
-      "price": {
-        "each": "{amount} per guest",
-        "from": "From {amount} per guest",
-        "freeBooking": "Free, booking required"
-      },
-      "viewer": {
-        "close": "Close",
-        "previous": "Previous photo",
-        "next": "Next photo",
-        "open": "Enlarge photo {index}"
-      },
-      "comingUp": "Coming up"
-    }
-  },
-  "talents": {
-    "pageTitle": "Talents | Germinal",
-    "title": "Talents",
-    "description": "A roster of multidisciplinary artists, architects and thinkers shaping contemporary culture. Select a profile to view their portfolio.",
-    "view": "View:",
-    "loadMore": "Load more talents",
-    "filters": {
-      "visualArts": "Visual Arts",
-      "design": "Design",
-      "culinary": "Culinary"
-    },
-    "noTalents": "No talents available at the moment.",
-    "basedIn": "Based in",
-    "specialization": "Specialization",
-    "category": "Category",
-    "gallery": "Gallery",
-    "filterAll": "All",
-    "viewDetails": "View Details",
-    "noTalentsInCategory": "No talents found in this category."
-  },
-  "spotlight": {
-    "noEventTitle": "No Spotlight Event",
-    "noEventDescription": "There is currently no spotlight event. Check back soon for featured events.",
-    "viewAllEvents": "View All Events"
-  },
-  "giftCard": {
-    "pageTitle": "Gift card | Germinal",
-    "title": "Gift card",
-    "description": "Give Germinal's dinners, exhibitions and workshops: an amount of your choice, sent within minutes, valid for a year.",
-    "form": {
-      "amount": "Amount",
-      "customAmount": "Other amount",
-      "customAmountLabel": "Free amount (between €20 and €1,000)",
-      "buyerName": "Your name",
-      "buyerEmail": "Your email",
-      "recipientName": "Recipient's name",
-      "recipientEmail": "Recipient's email",
-      "message": "Message (optional)",
-      "delivery": "Delivery",
-      "deliveryBuyer": "To myself",
-      "deliveryRecipient": "Straight to the recipient",
-      "submit": "Give",
-      "redirecting": "Redirecting…"
-    },
-    "thanks": {
-      "pageTitle": "Thank you | Germinal",
-      "title": "Thank you!",
-      "sentToRecipient": "The gift card has been sent to",
-      "sentToBuyer": "The gift card has been sent to your address",
-      "pending": "Your payment is confirmed; the card is being issued. You will receive an email shortly.",
-      "receiptNote": "A receipt has also been emailed to you.",
-      "back": "Buy another card"
-    }
-  },
-  "contact": {
-    "pageTitle": "Contact | Germinal",
-    "title": "Get in touch.",
-    "description": "We are always looking for new talents, collaborators, and architectural projects. Reach out to start a conversation.",
-    "regarding": "What is this regarding?",
-    "filters": {
-      "collaboration": "Collaboration",
-      "newProject": "New Project",
-      "joinRoster": "Join Roster",
-      "other": "Other",
-      "privateEvent": "Private event"
-    },
-    "form": {
-      "name": "Name",
-      "email": "Email",
-      "company": "Company/Organization (optional)",
-      "message": "Tell us about your project...",
-      "send": "Send Message",
-      "sending": "Sending...",
-      "occasion": "Occasion (optional)",
-      "preferredDates": "Preferred dates (optional)",
-      "guestCount": "Number of guests (optional)",
-      "budget": "Budget (optional)"
-    },
-    "sidebar": {
-      "generalInquiries": "general inquiries",
-      "pressMedia": "press & media",
-      "followUs": "Follow us"
-    }
-  },
-  "manifesto": {
-    "pageTitle": "Manifesto | Germinal",
-    "metaDescription": "Germinal is a cultural studio in Paris. Dinners, exhibitions and workshops with chefs, craftspeople and artists. This is what we hold to.",
-    "title": "One table, one place, one night.",
-    "intro": "Germinal is a cultural studio, in Paris since 2026. We make dinners, exhibitions and workshops with chefs, craftspeople and artists. This is what we hold to.",
-    "signature": "Germinal, Paris, since 2026",
-    "theses": {
-      "table": {
-        "statement": "We set a table, not a room.",
-        "body": "The places are laid so that people talk from one end to the other."
-      },
-      "authors": {
-        "statement": "Every evening has its authors.",
-        "body": "A chef, a ceramicist, a musician. We invite them to do what they do, their way, and their name is on the project."
-      },
-      "place": {
-        "statement": "The place comes before the set.",
-        "body": "A workshop, a garden, a cellar. We start from what is there, the walls, the light, the noise of the street, and add as little as we can."
-      },
-      "backstage": {
-        "statement": "The work should not show.",
-        "body": "The light, the plates, the time between two courses: everything is settled beforehand, so that nobody gives it a thought once seated."
-      },
-      "guests": {
-        "statement": "You are not an audience.",
-        "body": "Nobody comes to watch: you sit down, eat, talk to the person next to you. The evening happens at the table, with whoever is there."
-      },
-      "once": {
-        "statement": "What happened stays here.",
-        "photoAfter": 2,
-        "body": "The photographs of every evening are kept here, among our projects. Then we move on to the next."
-      }
-    },
-    "servicesTitle": "What we do",
-    "servicesIntro": "We produce our own evenings, and we make them for others too. Three crafts, from the first sketch to the last candle.",
-    "artDirection": {
-      "title": "Art direction",
-      "tagline": "One idea, carried all the way.",
-      "body": "Every project starts from an idea that fits in one sentence. We hold on to it from the first sketch to the last course: light, materials, sound, tableware, invitations.",
-      "point1": "Concept and identity of the project",
-      "point2": "Light, material, colour, sound",
-      "point3": "Direction of the invited talents",
-      "point4": "Mood boards and references"
-    },
-    "scenography": {
-      "title": "Scenography",
-      "tagline": "Working with the place.",
-      "body": "We read a space before we touch it: where people come in, where they sit, where the light comes from. Then we place a few things, in the right spot.",
-      "point1": "Room and table plans",
-      "point2": "Furniture, materials, tableware",
-      "point3": "Ambient and stage lighting",
-      "point4": "Plants and installations"
-    },
-    "production": {
-      "title": "Production",
-      "tagline": "What nobody sees.",
-      "body": "The teams, the suppliers, the budget, the surprise at 7:30 pm. We carry it, so the talents can do their work and the guests never think about it.",
-      "point1": "Team coordination",
-      "point2": "Venues, suppliers and contractors",
-      "point3": "Budget and schedule",
-      "point4": "Set-up and running the day itself"
-    },
-    "photoOf": "{title}, {year}",
-    "newProjectCta": "Tell us about your project",
-    "closingLetter": {
-      "title": "Write to us.",
-      "body": "Three things are enough to begin, and none of them needs to be certain:",
-      "place": "A place, if you have one.",
-      "date": "A date, if you know it.",
-      "idea": "An idea, however vague.",
-      "orWrite": "or write directly to"
-    }
-  },
-  "upcoming": {
-    "title": "The next event"
-  },
-  "booking": {
-    "title": "Book Tickets",
-    "description": "Complete your booking details",
-    "errorTitle": "Booking Failed",
-    "fullName": "Full Name",
-    "email": "Email",
-    "emailHint": "Ticket confirmation will be sent here",
-    "phone": "Phone Number",
-    "optional": "(optional)",
-    "dietary": {
-      "label": "Allergies or dietary requirements",
-      "placeholder": "E.g. nut allergy, vegetarian, gluten-free…",
-      "hint": "For the whole reservation. Optional: you can book without answering.",
-      "consent": "I agree that Germinal keeps this health information to adapt the meal. Only the Germinal team sees it, and it is erased 30 days after the session.",
-      "consentRequired": "Tick the consent box to share your allergies or dietary requirements, or clear the field."
-    },
-    "newsletter": {
-      "consent": "Hear about Germinal's next events"
-    },
-    "notificationsLabel": "How would you like to receive notifications?",
-    "notifEmail": "Email",
-    "notifSms": "SMS",
-    "notifBoth": "Both",
-    "notifHint": "Receive booking confirmations and event reminders",
-    "numberOfTickets": "Number of Tickets",
-    "maxTickets": "Maximum {max} tickets per order",
-    "tickets": "Tickets ({qty}×)",
-    "total": "Total",
-    "cancel": "Cancel",
-    "continueToPay": "Continue to Payment",
-    "processing": "Processing...",
-    "bookingOpensOn": "Bookings open on {date}",
-    "bookingClosed": "Bookings closed",
-    "joinWaitlist": "Join Waitlist",
-    "backToEvent": "Back to event",
-    "demoNotice": "Demo mode — fill in the form to preview the booking experience. No real reservation will be created.",
-    "demoSuccessMessage": "Demo mode: your booking would be confirmed here. A confirmation email would be sent to {email}",
-    "bookDemo": "Book (Demo)",
-    "createError": "Failed to create reservation",
-    "promoCode": {
-      "label": "Promotion code",
-      "placeholder": "e.g. SUMMER20",
-      "apply": "Apply",
-      "invalidCode": "Invalid promotion code",
-      "validationError": "Unable to validate code. Please try again.",
-      "removeAria": "Remove promo code",
-      "discountOff": "{value}% off",
-      "appliedLabel": "Code"
-    },
-    "giftCard": {
-      "label": "Gift card",
-      "placeholder": "e.g. GERM-7ZK9-M3XT",
-      "apply": "Use",
-      "balance": "{amount} left",
-      "paysDeposit": "paid by gift card",
-      "removeAria": "Remove gift card",
-      "validationError": "Unable to check the card. Please try again.",
-      "reasons": {
-        "unknown": "Unknown gift card",
-        "currency": "Gift cards can only pay for events priced in euros",
-        "expired": "This gift card has expired",
-        "cancelled": "This gift card was cancelled",
-        "empty": "This gift card has no balance left",
-        "rate_limited": "Too many attempts. Please wait a moment and try again.",
-        "unavailable": "Service temporarily unavailable. Please try again."
-      }
-    },
-    "errors": {
-      "soldOut": "This session is sold out.",
-      "sessionStarted": "This session has already started.",
-      "sessionNotFound": "This session is no longer available.",
-      "rateLimit": "Too many attempts. Please wait a few minutes and try again.",
-      "generic": "Something went wrong. Please try again or contact us if the problem persists."
-    },
-    "deposit": {
-      "total": "Total",
-      "payNow": "Deposit to pay now",
-      "balanceAtVenue": "Balance due at the venue",
-      "noDeposit": "Nothing to pay online: the full amount is settled at the venue.",
-      "paidByCard": "Your gift card pays the deposit: the rest is paid at the venue.",
-      "note": "Only the deposit is charged online; the balance is settled at the venue."
-    },
-    "refundPolicy": {
-      "title": "Cancellation and refunds"
-    },
-    "continueToPayDeposit": "Continue to pay the deposit",
-    "confirmBooking": "Confirm booking"
-  },
-  "waitlist": {
-    "description": "Get notified when tickets become available",
-    "successTitle": "You're on the Waitlist!",
-    "successMessage": "We'll notify you at {email} when tickets become available.",
-    "done": "Done",
-    "currentlySoldOut": "Currently Sold Out",
-    "infoTitle": "Join the Waitlist",
-    "infoMessage": "We'll email you if tickets become available. You'll have 24 hours to complete your purchase.",
-    "errorTitle": "Failed to Join Waitlist",
-    "genericError": "Failed to join waitlist",
-    "emailHint": "We'll notify you here when tickets are available",
-    "joining": "Joining..."
-  },
-  "tickets": {
-    "pageTitle": "Your Tickets - {eventTitle}",
-    "ogDescription": "Ticket for {eventTitle} on {date}. {quantity, plural, one {# seat} other {# seats}} reserved.",
-    "status": {
-      "confirmed": "Confirmed",
-      "pendingPayment": "Pending Payment",
-      "cancelled": "Cancelled",
-      "expired": "Expired"
-    },
-    "success": {
-      "title": "Payment Successful!",
-      "description": "Your tickets have been confirmed. A confirmation email has been sent to {email}.",
-      "browseMore": "Browse More Events"
-    },
-    "paymentFailed": {
-      "title": "Payment Failed",
-      "defaultError": "Your payment could not be processed. Please try again.",
-      "browseOther": "Browse Other Events",
-      "dismiss": "Dismiss"
-    },
-    "ticketLabel": "Ticket",
-    "qrCodeHint": "Present this QR code at the entrance",
-    "guestInfo": "Guest Information",
-    "guestName": "Name",
-    "guestEmail": "Email",
-    "quantity": "Tickets",
-    "paymentDetails": "Payment Details",
-    "totalPaid": "Total Paid",
-    "viewReceipt": "View Receipt",
-    "eventLocation": "Event Location",
-    "practicalInfo": "Practical Information",
-    "addToCalendar": "Add to Calendar",
-    "appleOutlook": "Apple / Outlook",
-    "printTicket": "Print Ticket",
-    "confirmationId": "Confirmation ID",
-    "ticketCount": "{count, plural, one {# Ticket} other {# Tickets}}",
-    "cancellation": {
-      "sectionTitle": "Need to Cancel?",
-      "checking": "Checking cancellation eligibility...",
-      "cta": "Cancel My Reservation",
-      "windowClosed": "Cancellation is only available up to 24 hours before the event. If you have an urgent issue, please contact us directly.",
-      "genericNotEligible": "This reservation is no longer eligible for self-service cancellation. Please contact us if you need help.",
-      "checkError": "We couldn't check your cancellation eligibility right now. Please try refreshing the page.",
-      "modalTitle": "Cancel this reservation?",
-      "modalDescription": "This will cancel your reservation for {eventTitle} and cannot be undone.",
-      "keep": "Keep My Reservation",
-      "confirmCta": "Yes, Cancel Reservation",
-      "cancelling": "Cancelling...",
-      "errorTitle": "Cancellation Failed",
-      "errorGeneric": "Something went wrong while cancelling your reservation. Please try again or contact us.",
-      "successTitle": "Reservation Cancelled",
-      "successWithRefund": "Your reservation has been cancelled and a refund of {amount} has been issued to your original payment method. It may take 5–10 business days to appear.",
-      "successNoRefund": "Your reservation has been cancelled.",
-      "refundPreview": "If you cancel now, {amount} will be refunded to your original payment method, under this event's refund policy.",
-      "noRefundPreview": "Under this event's refund policy, cancelling now gives no refund. Your seats will be released."
-    },
-    "depositPaid": "Deposit paid",
-    "giftCardPaid": "of which paid by gift card",
-    "balanceDue": "Balance due at the venue"
-  },
-  "newsletterSignup": {
-    "previewTitle": "Newsletter — preview",
-    "emailLabel": "Email address",
-    "emailPlaceholder": "you@example.com",
-    "submit": "Sign up",
-    "sending": "Sending…",
-    "consent": "I agree to receive emails about Germinal's next events.",
-    "success": "Thank you — a confirmation email is on its way. Click its link to finish signing up.",
-    "error": "Could not sign up. Check the address, tick the consent box, and try again.",
-    "confirmPageTitle": "Confirm subscription",
-    "confirmTitle": "Confirm your subscription",
-    "confirmDescription": "Confirm that you wish to receive emails about Germinal's next events.",
-    "confirmButton": "Confirm my subscription",
-    "confirmed": "Done: your address is on the list. You will hear about Germinal's next events.",
-    "confirmNeutral": "If this subscription was awaiting confirmation, it has just been confirmed. Otherwise, nothing changed."
-  },
-  "unsubscribe": {
-    "pageTitle": "Unsubscribe",
-    "title": "Stop hearing about Germinal's events",
-    "description": "Confirm that you no longer wish to receive emails about Germinal's next events.",
-    "confirm": "Unsubscribe me",
-    "successTitle": "Done",
-    "success": "You will no longer receive emails about Germinal's next events.",
-    "neutral": "If the address is on our list, it has been removed. You will no longer receive emails about Germinal's next events.",
-    "error": "Something went wrong. Please try again in a moment."
-  },
-  "findTicket": {
-    "pageTitle": "Find My Ticket | Germinal",
-    "title": "Lost your ticket?",
-    "description": "Enter the email address you booked with, and we'll send your ticket link(s) again.",
-    "form": {
-      "email": "Email",
-      "emailPlaceholder": "you@example.com",
-      "emailRequired": "Please enter your email address.",
-      "send": "Send my ticket link",
-      "sending": "Sending...",
-      "error": "Something went wrong. Please try again.",
-      "rateLimited": "Too many attempts. Please try again later."
-    },
-    "success": {
-      "message": "If that email has any confirmed reservations, we've sent the ticket link(s) to it. Please check your inbox (and spam folder).",
-      "tryAnother": "Try a different email"
-    }
-  },
-  "legal": {
-    "lastUpdated": "Last updated: {date}",
-    "privacy": {
-      "pageTitle": "Privacy Policy | Germinal",
-      "title": "Privacy Policy",
-      "intro": "Germinal (\"we\", \"us\", \"our\") is committed to protecting your personal data. This policy explains how we collect, use, and protect your information in accordance with the General Data Protection Regulation (RGPD/GDPR).",
-      "controllerTitle": "1. Data Controller",
-      "controllerBody": "The data controller is:",
-      "controllerName": "Germinal",
-      "controllerAddress": "[ADRESSE — À COMPLÉTER]",
-      "controllerEmail": "Email: privacy@germinalstudio.co",
-      "dataTitle": "2. Personal Data We Collect",
-      "dataIntro": "We collect the following categories of personal data:",
-      "dataReservation": "Reservation data: first name, last name, email address, phone number — collected when you book a Session or create a Reservation.",
-      "dataTechnical": "Technical data: IP address, browser user-agent — collected automatically for fraud prevention and site security.",
-      "dataDietary": "Allergies and dietary requirements: only if you give them when booking an event that asks for them, with your explicit consent — used solely to adapt the meal.",
-      "dataContact": "Contact and waitlist data: name, email address, phone number (waitlist), company and message (contact form) — collected when you join a waitlist or write to us.",
-      "dataNewsletter": "Newsletter: your email address, name and site language — collected only if you tick “Hear about Germinal's next events” when booking, or sign up via the form and confirm the link sent by email — used solely to let you know about our next events.",
-      "basisTitle": "3. Legal Basis",
-      "basisContractual": "Contractual necessity: processing your data is required to fulfil the booking contract (creating your Reservation, sending your Ticket, processing payment).",
-      "basisLegitimate": "Legitimate interest: we use technical data to prevent fraud and ensure the security of our platform.",
-      "basisContact": "Legitimate interest and pre-contractual steps: answering your messages and letting you know when a place frees up on a waitlist.",
-      "basisNewsletter": "Consent (GDPR Article 6(1)(a)): the newsletter is sent only if you ticked the box when booking, or confirmed your subscription via the link sent after the form (double opt-in). You can withdraw your consent at any time via the unsubscribe link in every email.",
-      "basisDietary": "Explicit consent (GDPR Article 9(2)(a)): your allergies and dietary requirements are health data, processed only if you tick the consent box. You can withdraw your consent at any time by writing to us.",
-      "retentionTitle": "4. Retention Periods",
-      "retentionIntro": "We keep your data only as long as needed, then delete or anonymise it automatically:",
-      "retentionReservation": "Reservations: your name, email and phone number are kept until 1 year after the Session, then anonymised. Only the amounts, dates and payment references remain, with no name attached.",
-      "retentionUnpaid": "Unpaid reservations: anonymised 30 days after they expire.",
-      "retentionDietary": "Allergies and dietary requirements: erased, together with the date of your consent, 30 days after the session starts.",
-      "retentionNewsletter": "Newsletter: kept until you unsubscribe. The address itself is deleted 30 days after unsubscribing.",
-      "retentionWaitlist": "Waitlists: deleted 30 days after the Session.",
-      "retentionContact": "Contact form messages: deleted 1 year after we receive them.",
-      "retentionTechnical": "Technical data (IP address, user-agent) and server logs: erased after 12 months at most.",
-      "retentionEmails": "Copies of the emails we send you: deleted after 30 days.",
-      "retentionBackups": "Backups: encrypted copies stored in the European Union, deleted after 1 year at most. Data deleted from the site disappears from backups within that time.",
-      "retentionAccounting": "Accounting records are kept for 10 years, as required by French law.",
-      "recipientsTitle": "5. Recipients and Processors",
-      "recipientsIntro": "Your data is only accessible to the Germinal team and to the following service providers, which process it on our behalf:",
-      "recipientStripe": "Stripe (payments) — Stripe Payments Europe, Ireland.",
-      "recipientAws": "Amazon Web Services (file storage and delivery) — Paris region, France.",
-      "recipientBrevo": "Brevo (email sending) — France.",
-      "recipientTwilio": "Twilio (SMS) — processed in the Ireland region.",
-      "recipientHetzner": "Hetzner (website and database hosting) — Germany.",
-      "recipientCloudflare": "Cloudflare (domain names and network protection).",
-      "recipientsTransfers": "Some of these providers belong to groups based in the United States. Any transfer of data outside the European Union is covered by the EU–US Data Privacy Framework or by the European Commission's standard contractual clauses.",
-      "rightsTitle": "6. Your Rights Under RGPD",
-      "rightsBody": "As a data subject, you have the right to:",
-      "rightAccess": "Access your personal data",
-      "rightRectification": "Rectify inaccurate data",
-      "rightErasure": "Request erasure of your data",
-      "rightPortability": "Receive your data in a portable format",
-      "rightObject": "Object to processing based on legitimate interest",
-      "rightWithdraw": "Withdraw your consent at any time",
-      "rightsExercice": "To exercise any of these rights, contact us at privacy@germinalstudio.co.",
-      "rightsComplaint": "If you believe your rights are not respected, you can lodge a complaint with the CNIL (www.cnil.fr).",
-      "cookiesTitle": "7. Cookies",
-      "cookiesIntro": "We use the following categories of cookies:",
-      "cookiesEssential": "Strictly necessary cookies: used to keep you logged in and to protect the site against fraudulent requests (session cookie, CSRF security token). These are required for the site to function and are not subject to consent.",
-      "cookiesNonEssential": "Non-essential cookies (e.g. analytics, audience measurement): only set with your prior consent, given via the cookie banner shown on your first visit. Germinal does not currently use any such cookies.",
-      "cookiesChoice": "You can accept or decline non-essential cookies at any time from the cookie banner, or by clearing your browser's local storage for this site to be prompted again."
-    },
-    "mentions": {
-      "pageTitle": "Legal Notice | Germinal",
-      "title": "Legal Notice",
-      "publisherTitle": "1. Publisher",
-      "publisherBody": "This website is published by:",
-      "publisherName": "Germinal",
-      "publisherAddress": "[ADDRESS — TO BE COMPLETED]",
-      "publisherEmail": "Email: contact@germinalstudio.co",
-      "publisherDirector": "Publication Director: [NAME — TO BE COMPLETED]",
-      "hostingTitle": "2. Hosting",
-      "hostingBody": "This website is hosted by:",
-      "hostingName": "[HOSTING PROVIDER — TO BE COMPLETED]",
-      "hostingAddress": "[HOSTING PROVIDER ADDRESS — TO BE COMPLETED]",
-      "ipTitle": "3. Intellectual Property",
-      "ipBody": "All content on this website (texts, images, graphics, logos) is the exclusive property of Germinal and is protected under French and international intellectual property law. Any reproduction, representation, modification, or adaptation, in whole or in part, without prior written authorisation from Germinal, is strictly prohibited.",
-      "dataTitle": "4. Personal Data",
-      "dataBody": "Information regarding the collection and processing of personal data is set out in our Privacy Policy."
-    },
-    "terms": {
-      "pageTitle": "Terms of Sale | Germinal",
-      "title": "General Terms of Sale",
-      "intro": "These General Terms of Sale (\"CGV\") govern all transactions made through the Germinal platform. By placing an order, you accept these terms in full.",
-      "offerTitle": "1. Offer and Acceptance",
-      "offerBody": "Our Events and Sessions are presented on the site with their description, date, time, and price in euros (EUR). An order is accepted only upon confirmation by Germinal, sent by email. This confirmation constitutes the formation of the contract.",
-      "pricingTitle": "2. Pricing",
-      "pricingBody": "All prices are displayed in euros (EUR) inclusive of all taxes (TTC). Germinal reserves the right to modify prices at any time; however, the applicable price is the one in effect at the time of order confirmation.",
-      "paymentTitle": "3. Payment",
-      "paymentBody": "Payment is processed securely via Stripe. We accept major credit and debit cards. Payment is required in full at the time of order to confirm your Reservation.",
-      "cancellationTitle": "4. Cancellation and Refund Policy",
-      "cancellationBody": "Confirmed Reservations may be cancelled for a full refund. Refunds are processed to the original payment method within 14 business days. If Germinal cancels an Event or Session, all affected Reservations will be refunded in full.",
-      "liabilityTitle": "5. Liability",
-      "liabilityBody": "Germinal's liability is limited to the amount paid by the Guest for the relevant Reservation. Germinal shall not be held liable for indirect damages, including loss of profit or opportunity.",
-      "governingTitle": "6. Governing Law",
-      "governingBody": "These terms are governed by French law. Any dispute shall be submitted to the exclusive jurisdiction of the courts of Paris, France."
-    }
-  },
-  "faq": {
-    "pageTitle": "FAQ | Germinal",
-    "title": "Frequently Asked Questions",
-    "q1": {
-      "question": "How do I retrieve my ticket?",
-      "answer": "After completing your reservation, you will receive a confirmation email containing a unique link to your ticket. You can also access your ticket at any time by using the token link provided. Your ticket includes a QR code — present it at the entrance on the day of the event."
-    },
-    "q2": {
-      "question": "What happens if a session is sold out?",
-      "answer": "When a session is sold out, you can join the waitlist. If a spot becomes available (e.g. due to a cancellation), you will be notified automatically and given the opportunity to book."
-    },
-    "q3": {
-      "question": "How do I cancel my reservation?",
-      "answer": "You can cancel your reservation by using the cancellation link in your confirmation email, or by contacting us directly. Confirmed reservations are eligible for a full refund, processed to your original payment method within 14 business days."
-    },
-    "q4": {
-      "question": "What is the QR code for?",
-      "answer": "The QR code on your ticket is your digital proof of purchase. Present it at the entrance of the event for scanning. It contains all the information needed to validate your reservation."
-    },
-    "q5": {
-      "question": "How can I contact Germinal?",
-      "answer": "You can reach us through our contact page, by email at privacy@germinalstudio.co, or via our Instagram @Germinal.studio. We typically respond within 48 hours."
-    }
-  },
-  "admin": {
-    "login": {
-      "pageTitle": "Login | Germinal",
-      "title": "Sign In",
-      "description": "Enter your credentials to access your dashboard",
-      "email": "Email address",
-      "password": "Password",
-      "signIn": "Sign In",
-      "rateLimited": "Rate Limited",
-      "invalidCredentials": "Invalid email or password",
-      "errors": {
-        "rateLimit": "Too many login attempts. Try again in {seconds} seconds.",
-        "emailRequired": "Email is required",
-        "passwordRequired": "Password is required"
-      },
-      "showPassword": "Show password",
-      "hidePassword": "Hide password",
-      "mockCredentials": "For development, use:",
-      "mockPasswordHint": "(your password)",
-      "metaDescription": "Sign in to your Germinal account"
-    },
-    "dashboard": {
-      "title": "Dashboard",
-      "welcome": "Welcome back! Here's an overview of your Germinal content.",
-      "newEvent": {
-        "title": "New Event",
-        "description": "Create a new event or exhibition",
-        "button": "Create Event"
-      },
-      "newTalent": {
-        "title": "New Talent",
-        "description": "Add a new talent to the collection",
-        "button": "Add Talent"
-      },
-      "settings": {
-        "title": "Settings",
-        "description": "Manage your account settings",
-        "button": "Change Password"
-      },
-      "accountInfo": {
-        "title": "Account Information",
-        "email": "Email",
-        "role": "Role",
-        "memberSince": "Member since"
-      }
-    },
-    "sidebar": {
-      "title": "Admin Panel",
-      "dashboard": "Dashboard",
-      "events": "Events",
-      "talents": "Talents",
-      "password": "Password",
-      "logout": "Logout"
-    },
-    "layout": {
-      "admin": "Admin",
-      "mobileNav": {
-        "dashboard": "Dashboard",
-        "events": "Events",
-        "talents": "Talents",
-        "settings": "Settings"
-      }
-    },
-    "events": {
-      "title": "Events",
-      "description": "Manage your events and exhibitions",
-      "newEvent": "New Event",
-      "noEvents": "No events yet",
-      "noEventsDescription": "Create your first event to get started",
-      "createEvent": "Create Event",
-      "table": {
-        "event": "Event",
-        "date": "Date",
-        "location": "Location",
-        "status": "Status",
-        "actions": "Actions"
-      },
-      "status": {
-        "published": "Published",
-        "draft": "Draft"
-      },
-      "dialog": {
-        "create": {
-          "title": "Create New Event",
-          "description": "Fill in the details to create a new event"
-        },
-        "edit": {
-          "title": "Edit Event"
-        },
-        "delete": {
-          "title": "Delete Event",
-          "confirmation": "Are you sure you want to delete this event?"
-        },
-        "fields": {
-          "title": "Title",
-          "description": "Description",
-          "startDate": "Start Date",
-          "endDate": "End Date",
-          "location": "Location",
-          "publishImmediately": "Publish immediately",
-          "publishHelp": "Uncheck to save as draft"
-        },
-        "actions": {
-          "cancel": "Cancel",
-          "create": "Create Event",
-          "save": "Save Changes",
-          "delete": "Delete"
-        }
-      }
-    },
-    "talents": {
-      "title": "Talents",
-      "description": "Manage your talent collection",
-      "newTalent": "New Talent",
-      "noTalents": "No talents yet",
-      "noTalentsDescription": "Add your first talent to get started",
-      "addTalent": "Add Talent",
-      "table": {
-        "talent": "Talent",
-        "role": "Role",
-        "bio": "Bio",
-        "status": "Status",
-        "actions": "Actions"
-      },
-      "dialog": {
-        "create": {
-          "title": "Add New Talent"
-        },
-        "edit": {
-          "title": "Edit Talent"
-        },
-        "delete": {
-          "title": "Delete Talent",
-          "confirmation": "Are you sure you want to delete this talent?"
-        },
-        "fields": {
-          "firstName": "First Name",
-          "lastName": "Last Name",
-          "role": "Role",
-          "bio": "Bio",
-          "socialLinks": "Social Links (Optional)",
-          "instagram": "Instagram",
-          "linkedin": "LinkedIn",
-          "twitter": "Twitter",
-          "website": "Website"
-        },
-        "actions": {
-          "cancel": "Cancel",
-          "add": "Add Talent",
-          "save": "Save Changes",
-          "delete": "Delete"
-        }
-      }
-    },
-    "changePassword": {
-      "title": "Change Password",
-      "backToDashboard": "Back to Dashboard",
-      "currentPassword": "Current Password",
-      "newPassword": "New Password",
-      "confirmPassword": "Confirm New Password",
-      "passwordHelp": "Must be at least 8 characters long",
-      "updatePassword": "Update Password"
-    }
-  }
+	"pwa": {
+		"offlineReady": "App ready for offline use",
+		"newVersion": "A new version is available",
+		"reload": "Reload",
+		"close": "Close",
+		"installTitle": "Install the app",
+		"installDescription": "Add Germinal to your home screen for quick access.",
+		"installButton": "Install",
+		"installDismiss": "Later",
+		"iosTitle": "Install {appName}",
+		"iosSubtitle": "Add to home screen for the best experience",
+		"iosStep1": "Tap the <strong>Share</strong> button",
+		"iosStep2": "Scroll and tap <strong>Add to Home Screen</strong>"
+	},
+	"cookieConsent": {
+		"title": "We use cookies",
+		"description": "We use cookies that are strictly necessary to keep Germinal secure and working (your login session, fraud prevention). With your consent, we may also use additional cookies to improve your experience. Read our",
+		"privacyLink": "Privacy Policy",
+		"essentialOnly": "Essential only",
+		"acceptAll": "Accept all"
+	},
+	"nav": {
+		"upcomingEvent": "Upcoming event",
+		"events": "Work",
+		"talents": "Talents",
+		"manifesto": "Manifesto",
+		"contact": "Contact",
+		"findTicket": "Find my ticket",
+		"giftCard": "Gift card"
+	},
+	"footer": {
+		"allRightsReserved": "All rights reserved.",
+		"tagline": "Architecture of sensory experiences.",
+		"contactLabel": "Contact",
+		"explore": "Explore",
+		"legal": "Legal",
+		"privacyPolicy": "Privacy Policy",
+		"termsOfSale": "Terms of Sale",
+		"mentionsLegales": "Legal Notice",
+		"faq": "FAQ"
+	},
+	"home": {
+		"metaTitle": "Germinal, a cultural studio in Paris",
+		"metaDescription": "Germinal makes dinners, exhibitions and workshops in Paris, with chefs, craftspeople and artists, and imagines them for others, shaped to each project.",
+		"next": "Coming up",
+		"reserve": "Book",
+		"allProjects": "All projects",
+		"readManifesto": "Read the manifesto",
+		"studioTitle": "Evenings made to measure.",
+		"studioBody": "Germinal is a cultural studio in Paris. We make dinners, exhibitions and workshops with chefs, craftspeople and artists, and we imagine them for others, shaped to each project.",
+		"projectsTitle": "What we have made",
+		"talentsTitle": "At our table",
+		"talentsBody": "The chefs, craftspeople and artists we make our evenings with.",
+		"allTalents": "All talents",
+		"disciplinesTitle": "What we do"
+	},
+	"events": {
+		"pageTitle": "Projects | Germinal",
+		"title": "Projects",
+		"description": "The events we have imagined and brought to life, told in pictures. Open a project to discover it.",
+		"noEvents": "No projects yet.",
+		"lunch": "Lunch",
+		"dinner": "Dinner",
+		"perGuest": "per guest",
+		"free": "Free",
+		"priceToBeAnnounced": "Price to be announced",
+		"depositPerGuest": "Deposit {amount} per guest, balance at the venue",
+		"noDepositNote": "Paid in full at the venue",
+		"project": {
+			"backToProjects": "All projects",
+			"photographs": "Photographs",
+			"credits": "Credits",
+			"venue": "Venue",
+			"curator": "Curated by"
+		},
+		"page": {
+			"book": "Book",
+			"joinWaitlist": "Join the waitlist",
+			"onTheMenu": "On the menu",
+			"curator": "Curated by",
+			"venue": "Venue",
+			"previewDraft": "Preview — draft",
+			"nextProject": "Next project",
+			"dietaryNote": "You will be asked about allergies and diets when booking.",
+			"seating": {
+				"ended": "Ended",
+				"unavailable": "Unavailable",
+				"opensSoon": "Booking opens soon",
+				"waitlist": "Full — waitlist open",
+				"full": "Full",
+				"lastSeat": "Last seat",
+				"seatsLeft": "{count} seats left",
+				"seats": "{count} seats",
+				"open": "Seats available"
+			},
+			"summary": {
+				"waitlist": "Full — join the waitlist",
+				"past": "Took place"
+			},
+			"price": {
+				"each": "{amount} per guest",
+				"from": "From {amount} per guest",
+				"freeBooking": "Free, booking required"
+			},
+			"viewer": {
+				"close": "Close",
+				"previous": "Previous photo",
+				"next": "Next photo",
+				"open": "Enlarge photo {index}"
+			},
+			"comingUp": "Coming up"
+		}
+	},
+	"talents": {
+		"pageTitle": "Talents | Germinal",
+		"title": "Talents",
+		"description": "A roster of multidisciplinary artists, architects and thinkers shaping contemporary culture. Select a profile to view their portfolio.",
+		"view": "View:",
+		"loadMore": "Load more talents",
+		"filters": {
+			"visualArts": "Visual Arts",
+			"design": "Design",
+			"culinary": "Culinary"
+		},
+		"noTalents": "No talents available at the moment.",
+		"basedIn": "Based in",
+		"specialization": "Specialization",
+		"category": "Category",
+		"gallery": "Gallery",
+		"filterAll": "All",
+		"viewDetails": "View Details",
+		"noTalentsInCategory": "No talents found in this category."
+	},
+	"spotlight": {
+		"noEventTitle": "No Spotlight Event",
+		"noEventDescription": "There is currently no spotlight event. Check back soon for featured events.",
+		"viewAllEvents": "View All Events"
+	},
+	"giftCard": {
+		"pageTitle": "Gift card | Germinal",
+		"title": "Gift card",
+		"description": "Give Germinal's dinners, exhibitions and workshops: an amount of your choice, sent within minutes, valid for a year.",
+		"form": {
+			"amount": "Amount",
+			"customAmount": "Other amount",
+			"customAmountLabel": "Free amount (between €20 and €1,000)",
+			"buyerName": "Your name",
+			"buyerEmail": "Your email",
+			"recipientName": "Recipient's name",
+			"recipientEmail": "Recipient's email",
+			"message": "Message (optional)",
+			"delivery": "Delivery",
+			"deliveryBuyer": "To myself",
+			"deliveryRecipient": "Straight to the recipient",
+			"submit": "Give",
+			"redirecting": "Redirecting…"
+		},
+		"thanks": {
+			"pageTitle": "Thank you | Germinal",
+			"title": "Thank you!",
+			"sentToRecipient": "The gift card has been sent to",
+			"sentToBuyer": "The gift card has been sent to your address",
+			"pending": "Your payment is confirmed; the card is being issued. You will receive an email shortly.",
+			"receiptNote": "A receipt has also been emailed to you.",
+			"back": "Buy another card"
+		}
+	},
+	"contact": {
+		"pageTitle": "Contact | Germinal",
+		"title": "Get in touch.",
+		"description": "We are always looking for new talents, collaborators, and architectural projects. Reach out to start a conversation.",
+		"regarding": "What is this regarding?",
+		"filters": {
+			"collaboration": "Collaboration",
+			"newProject": "New Project",
+			"joinRoster": "Join Roster",
+			"other": "Other",
+			"privateEvent": "Private event"
+		},
+		"form": {
+			"name": "Name",
+			"email": "Email",
+			"company": "Company/Organization (optional)",
+			"message": "Tell us about your project...",
+			"send": "Send Message",
+			"sending": "Sending...",
+			"occasion": "Occasion (optional)",
+			"preferredDates": "Preferred dates (optional)",
+			"guestCount": "Number of guests (optional)",
+			"budget": "Budget (optional)"
+		},
+		"sidebar": {
+			"generalInquiries": "general inquiries",
+			"pressMedia": "press & media",
+			"followUs": "Follow us"
+		}
+	},
+	"manifesto": {
+		"pageTitle": "Manifesto | Germinal",
+		"metaDescription": "Germinal is a cultural studio in Paris. Dinners, exhibitions and workshops with chefs, craftspeople and artists. This is what we hold to.",
+		"title": "One table, one place, one night.",
+		"intro": "Germinal is a cultural studio, in Paris since 2026. We make dinners, exhibitions and workshops with chefs, craftspeople and artists. This is what we hold to.",
+		"signature": "Germinal, Paris, since 2026",
+		"theses": {
+			"table": {
+				"statement": "We set a table, not a room.",
+				"body": "The places are laid so that people talk from one end to the other."
+			},
+			"authors": {
+				"statement": "Every evening has its authors.",
+				"body": "A chef, a ceramicist, a musician. We invite them to do what they do, their way, and their name is on the project."
+			},
+			"place": {
+				"statement": "The place comes before the set.",
+				"body": "A workshop, a garden, a cellar. We start from what is there, the walls, the light, the noise of the street, and add as little as we can."
+			},
+			"backstage": {
+				"statement": "The work should not show.",
+				"body": "The light, the plates, the time between two courses: everything is settled beforehand, so that nobody gives it a thought once seated."
+			},
+			"guests": {
+				"statement": "You are not an audience.",
+				"body": "Nobody comes to watch: you sit down, eat, talk to the person next to you. The evening happens at the table, with whoever is there."
+			},
+			"once": {
+				"statement": "What happened stays here.",
+				"photoAfter": 2,
+				"body": "The photographs of every evening are kept here, among our projects. Then we move on to the next."
+			}
+		},
+		"servicesTitle": "What we do",
+		"servicesIntro": "We produce our own evenings, and we make them for others too. Three crafts, from the first sketch to the last candle.",
+		"artDirection": {
+			"title": "Art direction",
+			"tagline": "One idea, carried all the way.",
+			"body": "Every project starts from an idea that fits in one sentence. We hold on to it from the first sketch to the last course: light, materials, sound, tableware, invitations.",
+			"point1": "Concept and identity of the project",
+			"point2": "Light, material, colour, sound",
+			"point3": "Direction of the invited talents",
+			"point4": "Mood boards and references"
+		},
+		"scenography": {
+			"title": "Scenography",
+			"tagline": "Working with the place.",
+			"body": "We read a space before we touch it: where people come in, where they sit, where the light comes from. Then we place a few things, in the right spot.",
+			"point1": "Room and table plans",
+			"point2": "Furniture, materials, tableware",
+			"point3": "Ambient and stage lighting",
+			"point4": "Plants and installations"
+		},
+		"production": {
+			"title": "Production",
+			"tagline": "What nobody sees.",
+			"body": "The teams, the suppliers, the budget, the surprise at 7:30 pm. We carry it, so the talents can do their work and the guests never think about it.",
+			"point1": "Team coordination",
+			"point2": "Venues, suppliers and contractors",
+			"point3": "Budget and schedule",
+			"point4": "Set-up and running the day itself"
+		},
+		"photoOf": "{title}, {year}",
+		"newProjectCta": "Tell us about your project",
+		"closingLetter": {
+			"title": "Write to us.",
+			"body": "Three things are enough to begin, and none of them needs to be certain:",
+			"place": "A place, if you have one.",
+			"date": "A date, if you know it.",
+			"idea": "An idea, however vague.",
+			"orWrite": "or write directly to"
+		}
+	},
+	"upcoming": {
+		"title": "The next event"
+	},
+	"booking": {
+		"title": "Book Tickets",
+		"description": "Complete your booking details",
+		"errorTitle": "Booking Failed",
+		"fullName": "Full Name",
+		"email": "Email",
+		"emailHint": "Ticket confirmation will be sent here",
+		"phone": "Phone Number",
+		"optional": "(optional)",
+		"dietary": {
+			"label": "Allergies or dietary requirements",
+			"placeholder": "E.g. nut allergy, vegetarian, gluten-free…",
+			"hint": "For the whole reservation. Optional: you can book without answering.",
+			"consent": "I agree that Germinal keeps this health information to adapt the meal. Only the Germinal team sees it, and it is erased 30 days after the session.",
+			"consentRequired": "Tick the consent box to share your allergies or dietary requirements, or clear the field."
+		},
+		"newsletter": {
+			"consent": "Hear about Germinal's next events"
+		},
+		"notificationsLabel": "How would you like to receive notifications?",
+		"notifEmail": "Email",
+		"notifSms": "SMS",
+		"notifBoth": "Both",
+		"notifHint": "Receive booking confirmations and event reminders",
+		"numberOfTickets": "Number of Tickets",
+		"maxTickets": "Maximum {max} tickets per order",
+		"tickets": "Tickets ({qty}×)",
+		"total": "Total",
+		"cancel": "Cancel",
+		"continueToPay": "Continue to Payment",
+		"processing": "Processing...",
+		"bookingOpensOn": "Bookings open on {date}",
+		"bookingClosed": "Bookings closed",
+		"joinWaitlist": "Join Waitlist",
+		"backToEvent": "Back to event",
+		"demoNotice": "Demo mode — fill in the form to preview the booking experience. No real reservation will be created.",
+		"demoSuccessMessage": "Demo mode: your booking would be confirmed here. A confirmation email would be sent to {email}",
+		"bookDemo": "Book (Demo)",
+		"createError": "Failed to create reservation",
+		"promoCode": {
+			"label": "Promotion code",
+			"placeholder": "e.g. SUMMER20",
+			"apply": "Apply",
+			"invalidCode": "Invalid promotion code",
+			"validationError": "Unable to validate code. Please try again.",
+			"removeAria": "Remove promo code",
+			"discountOff": "{value}% off",
+			"appliedLabel": "Code"
+		},
+		"giftCard": {
+			"label": "Gift card",
+			"placeholder": "e.g. GERM-7ZK9-M3XT",
+			"apply": "Use",
+			"balance": "{amount} left",
+			"paysDeposit": "paid by gift card",
+			"removeAria": "Remove gift card",
+			"validationError": "Unable to check the card. Please try again.",
+			"reasons": {
+				"unknown": "Unknown gift card",
+				"currency": "Gift cards can only pay for events priced in euros",
+				"expired": "This gift card has expired",
+				"cancelled": "This gift card was cancelled",
+				"empty": "This gift card has no balance left",
+				"rate_limited": "Too many attempts. Please wait a moment and try again.",
+				"unavailable": "Service temporarily unavailable. Please try again."
+			}
+		},
+		"errors": {
+			"soldOut": "This session is sold out.",
+			"sessionStarted": "This session has already started.",
+			"sessionNotFound": "This session is no longer available.",
+			"rateLimit": "Too many attempts. Please wait a few minutes and try again.",
+			"generic": "Something went wrong. Please try again or contact us if the problem persists."
+		},
+		"deposit": {
+			"total": "Total",
+			"payNow": "Deposit to pay now",
+			"balanceAtVenue": "Balance due at the venue",
+			"noDeposit": "Nothing to pay online: the full amount is settled at the venue.",
+			"paidByCard": "Your gift card pays the deposit: the rest is paid at the venue.",
+			"note": "Only the deposit is charged online; the balance is settled at the venue."
+		},
+		"refundPolicy": {
+			"title": "Cancellation and refunds"
+		},
+		"continueToPayDeposit": "Continue to pay the deposit",
+		"confirmBooking": "Confirm booking",
+		"extras": {
+			"label": "Extras",
+			"optional": "optional",
+			"perPerson": "per person",
+			"perUnit": "per unit",
+			"soldOut": "Sold out",
+			"quantity": "Quantity",
+			"included": "Included for {qty} guest(s)",
+			"lineTotal": "Extras"
+		}
+	},
+	"waitlist": {
+		"description": "Get notified when tickets become available",
+		"successTitle": "You're on the Waitlist!",
+		"successMessage": "We'll notify you at {email} when tickets become available.",
+		"done": "Done",
+		"currentlySoldOut": "Currently Sold Out",
+		"infoTitle": "Join the Waitlist",
+		"infoMessage": "We'll email you if tickets become available. You'll have 24 hours to complete your purchase.",
+		"errorTitle": "Failed to Join Waitlist",
+		"genericError": "Failed to join waitlist",
+		"emailHint": "We'll notify you here when tickets are available",
+		"joining": "Joining..."
+	},
+	"tickets": {
+		"pageTitle": "Your Tickets - {eventTitle}",
+		"ogDescription": "Ticket for {eventTitle} on {date}. {quantity, plural, one {# seat} other {# seats}} reserved.",
+		"status": {
+			"confirmed": "Confirmed",
+			"pendingPayment": "Pending Payment",
+			"cancelled": "Cancelled",
+			"expired": "Expired"
+		},
+		"success": {
+			"title": "Payment Successful!",
+			"description": "Your tickets have been confirmed. A confirmation email has been sent to {email}.",
+			"browseMore": "Browse More Events"
+		},
+		"paymentFailed": {
+			"title": "Payment Failed",
+			"defaultError": "Your payment could not be processed. Please try again.",
+			"browseOther": "Browse Other Events",
+			"dismiss": "Dismiss"
+		},
+		"ticketLabel": "Ticket",
+		"qrCodeHint": "Present this QR code at the entrance",
+		"guestInfo": "Guest Information",
+		"guestName": "Name",
+		"guestEmail": "Email",
+		"quantity": "Tickets",
+		"paymentDetails": "Payment Details",
+		"totalPaid": "Total Paid",
+		"viewReceipt": "View Receipt",
+		"eventLocation": "Event Location",
+		"practicalInfo": "Practical Information",
+		"addToCalendar": "Add to Calendar",
+		"appleOutlook": "Apple / Outlook",
+		"printTicket": "Print Ticket",
+		"confirmationId": "Confirmation ID",
+		"ticketCount": "{count, plural, one {# Ticket} other {# Tickets}}",
+		"cancellation": {
+			"sectionTitle": "Need to Cancel?",
+			"checking": "Checking cancellation eligibility...",
+			"cta": "Cancel My Reservation",
+			"windowClosed": "Cancellation is only available up to 24 hours before the event. If you have an urgent issue, please contact us directly.",
+			"genericNotEligible": "This reservation is no longer eligible for self-service cancellation. Please contact us if you need help.",
+			"checkError": "We couldn't check your cancellation eligibility right now. Please try refreshing the page.",
+			"modalTitle": "Cancel this reservation?",
+			"modalDescription": "This will cancel your reservation for {eventTitle} and cannot be undone.",
+			"keep": "Keep My Reservation",
+			"confirmCta": "Yes, Cancel Reservation",
+			"cancelling": "Cancelling...",
+			"errorTitle": "Cancellation Failed",
+			"errorGeneric": "Something went wrong while cancelling your reservation. Please try again or contact us.",
+			"successTitle": "Reservation Cancelled",
+			"successWithRefund": "Your reservation has been cancelled and a refund of {amount} has been issued to your original payment method. It may take 5–10 business days to appear.",
+			"successNoRefund": "Your reservation has been cancelled.",
+			"refundPreview": "If you cancel now, {amount} will be refunded to your original payment method, under this event's refund policy.",
+			"noRefundPreview": "Under this event's refund policy, cancelling now gives no refund. Your seats will be released."
+		},
+		"depositPaid": "Deposit paid",
+		"giftCardPaid": "of which paid by gift card",
+		"balanceDue": "Balance due at the venue"
+	},
+	"newsletterSignup": {
+		"previewTitle": "Newsletter — preview",
+		"emailLabel": "Email address",
+		"emailPlaceholder": "you@example.com",
+		"submit": "Sign up",
+		"sending": "Sending…",
+		"consent": "I agree to receive emails about Germinal's next events.",
+		"success": "Thank you — a confirmation email is on its way. Click its link to finish signing up.",
+		"error": "Could not sign up. Check the address, tick the consent box, and try again.",
+		"confirmPageTitle": "Confirm subscription",
+		"confirmTitle": "Confirm your subscription",
+		"confirmDescription": "Confirm that you wish to receive emails about Germinal's next events.",
+		"confirmButton": "Confirm my subscription",
+		"confirmed": "Done: your address is on the list. You will hear about Germinal's next events.",
+		"confirmNeutral": "If this subscription was awaiting confirmation, it has just been confirmed. Otherwise, nothing changed."
+	},
+	"unsubscribe": {
+		"pageTitle": "Unsubscribe",
+		"title": "Stop hearing about Germinal's events",
+		"description": "Confirm that you no longer wish to receive emails about Germinal's next events.",
+		"confirm": "Unsubscribe me",
+		"successTitle": "Done",
+		"success": "You will no longer receive emails about Germinal's next events.",
+		"neutral": "If the address is on our list, it has been removed. You will no longer receive emails about Germinal's next events.",
+		"error": "Something went wrong. Please try again in a moment."
+	},
+	"findTicket": {
+		"pageTitle": "Find My Ticket | Germinal",
+		"title": "Lost your ticket?",
+		"description": "Enter the email address you booked with, and we'll send your ticket link(s) again.",
+		"form": {
+			"email": "Email",
+			"emailPlaceholder": "you@example.com",
+			"emailRequired": "Please enter your email address.",
+			"send": "Send my ticket link",
+			"sending": "Sending...",
+			"error": "Something went wrong. Please try again.",
+			"rateLimited": "Too many attempts. Please try again later."
+		},
+		"success": {
+			"message": "If that email has any confirmed reservations, we've sent the ticket link(s) to it. Please check your inbox (and spam folder).",
+			"tryAnother": "Try a different email"
+		}
+	},
+	"legal": {
+		"lastUpdated": "Last updated: {date}",
+		"privacy": {
+			"pageTitle": "Privacy Policy | Germinal",
+			"title": "Privacy Policy",
+			"intro": "Germinal (\"we\", \"us\", \"our\") is committed to protecting your personal data. This policy explains how we collect, use, and protect your information in accordance with the General Data Protection Regulation (RGPD/GDPR).",
+			"controllerTitle": "1. Data Controller",
+			"controllerBody": "The data controller is:",
+			"controllerName": "Germinal",
+			"controllerAddress": "[ADRESSE — À COMPLÉTER]",
+			"controllerEmail": "Email: privacy@germinalstudio.co",
+			"dataTitle": "2. Personal Data We Collect",
+			"dataIntro": "We collect the following categories of personal data:",
+			"dataReservation": "Reservation data: first name, last name, email address, phone number — collected when you book a Session or create a Reservation.",
+			"dataTechnical": "Technical data: IP address, browser user-agent — collected automatically for fraud prevention and site security.",
+			"dataDietary": "Allergies and dietary requirements: only if you give them when booking an event that asks for them, with your explicit consent — used solely to adapt the meal.",
+			"dataContact": "Contact and waitlist data: name, email address, phone number (waitlist), company and message (contact form) — collected when you join a waitlist or write to us.",
+			"dataNewsletter": "Newsletter: your email address, name and site language — collected only if you tick “Hear about Germinal's next events” when booking, or sign up via the form and confirm the link sent by email — used solely to let you know about our next events.",
+			"basisTitle": "3. Legal Basis",
+			"basisContractual": "Contractual necessity: processing your data is required to fulfil the booking contract (creating your Reservation, sending your Ticket, processing payment).",
+			"basisLegitimate": "Legitimate interest: we use technical data to prevent fraud and ensure the security of our platform.",
+			"basisContact": "Legitimate interest and pre-contractual steps: answering your messages and letting you know when a place frees up on a waitlist.",
+			"basisNewsletter": "Consent (GDPR Article 6(1)(a)): the newsletter is sent only if you ticked the box when booking, or confirmed your subscription via the link sent after the form (double opt-in). You can withdraw your consent at any time via the unsubscribe link in every email.",
+			"basisDietary": "Explicit consent (GDPR Article 9(2)(a)): your allergies and dietary requirements are health data, processed only if you tick the consent box. You can withdraw your consent at any time by writing to us.",
+			"retentionTitle": "4. Retention Periods",
+			"retentionIntro": "We keep your data only as long as needed, then delete or anonymise it automatically:",
+			"retentionReservation": "Reservations: your name, email and phone number are kept until 1 year after the Session, then anonymised. Only the amounts, dates and payment references remain, with no name attached.",
+			"retentionUnpaid": "Unpaid reservations: anonymised 30 days after they expire.",
+			"retentionDietary": "Allergies and dietary requirements: erased, together with the date of your consent, 30 days after the session starts.",
+			"retentionNewsletter": "Newsletter: kept until you unsubscribe. The address itself is deleted 30 days after unsubscribing.",
+			"retentionWaitlist": "Waitlists: deleted 30 days after the Session.",
+			"retentionContact": "Contact form messages: deleted 1 year after we receive them.",
+			"retentionTechnical": "Technical data (IP address, user-agent) and server logs: erased after 12 months at most.",
+			"retentionEmails": "Copies of the emails we send you: deleted after 30 days.",
+			"retentionBackups": "Backups: encrypted copies stored in the European Union, deleted after 1 year at most. Data deleted from the site disappears from backups within that time.",
+			"retentionAccounting": "Accounting records are kept for 10 years, as required by French law.",
+			"recipientsTitle": "5. Recipients and Processors",
+			"recipientsIntro": "Your data is only accessible to the Germinal team and to the following service providers, which process it on our behalf:",
+			"recipientStripe": "Stripe (payments) — Stripe Payments Europe, Ireland.",
+			"recipientAws": "Amazon Web Services (file storage and delivery) — Paris region, France.",
+			"recipientBrevo": "Brevo (email sending) — France.",
+			"recipientTwilio": "Twilio (SMS) — processed in the Ireland region.",
+			"recipientHetzner": "Hetzner (website and database hosting) — Germany.",
+			"recipientCloudflare": "Cloudflare (domain names and network protection).",
+			"recipientsTransfers": "Some of these providers belong to groups based in the United States. Any transfer of data outside the European Union is covered by the EU–US Data Privacy Framework or by the European Commission's standard contractual clauses.",
+			"rightsTitle": "6. Your Rights Under RGPD",
+			"rightsBody": "As a data subject, you have the right to:",
+			"rightAccess": "Access your personal data",
+			"rightRectification": "Rectify inaccurate data",
+			"rightErasure": "Request erasure of your data",
+			"rightPortability": "Receive your data in a portable format",
+			"rightObject": "Object to processing based on legitimate interest",
+			"rightWithdraw": "Withdraw your consent at any time",
+			"rightsExercice": "To exercise any of these rights, contact us at privacy@germinalstudio.co.",
+			"rightsComplaint": "If you believe your rights are not respected, you can lodge a complaint with the CNIL (www.cnil.fr).",
+			"cookiesTitle": "7. Cookies",
+			"cookiesIntro": "We use the following categories of cookies:",
+			"cookiesEssential": "Strictly necessary cookies: used to keep you logged in and to protect the site against fraudulent requests (session cookie, CSRF security token). These are required for the site to function and are not subject to consent.",
+			"cookiesNonEssential": "Non-essential cookies (e.g. analytics, audience measurement): only set with your prior consent, given via the cookie banner shown on your first visit. Germinal does not currently use any such cookies.",
+			"cookiesChoice": "You can accept or decline non-essential cookies at any time from the cookie banner, or by clearing your browser's local storage for this site to be prompted again."
+		},
+		"mentions": {
+			"pageTitle": "Legal Notice | Germinal",
+			"title": "Legal Notice",
+			"publisherTitle": "1. Publisher",
+			"publisherBody": "This website is published by:",
+			"publisherName": "Germinal",
+			"publisherAddress": "[ADDRESS — TO BE COMPLETED]",
+			"publisherEmail": "Email: contact@germinalstudio.co",
+			"publisherDirector": "Publication Director: [NAME — TO BE COMPLETED]",
+			"hostingTitle": "2. Hosting",
+			"hostingBody": "This website is hosted by:",
+			"hostingName": "[HOSTING PROVIDER — TO BE COMPLETED]",
+			"hostingAddress": "[HOSTING PROVIDER ADDRESS — TO BE COMPLETED]",
+			"ipTitle": "3. Intellectual Property",
+			"ipBody": "All content on this website (texts, images, graphics, logos) is the exclusive property of Germinal and is protected under French and international intellectual property law. Any reproduction, representation, modification, or adaptation, in whole or in part, without prior written authorisation from Germinal, is strictly prohibited.",
+			"dataTitle": "4. Personal Data",
+			"dataBody": "Information regarding the collection and processing of personal data is set out in our Privacy Policy."
+		},
+		"terms": {
+			"pageTitle": "Terms of Sale | Germinal",
+			"title": "General Terms of Sale",
+			"intro": "These General Terms of Sale (\"CGV\") govern all transactions made through the Germinal platform. By placing an order, you accept these terms in full.",
+			"offerTitle": "1. Offer and Acceptance",
+			"offerBody": "Our Events and Sessions are presented on the site with their description, date, time, and price in euros (EUR). An order is accepted only upon confirmation by Germinal, sent by email. This confirmation constitutes the formation of the contract.",
+			"pricingTitle": "2. Pricing",
+			"pricingBody": "All prices are displayed in euros (EUR) inclusive of all taxes (TTC). Germinal reserves the right to modify prices at any time; however, the applicable price is the one in effect at the time of order confirmation.",
+			"paymentTitle": "3. Payment",
+			"paymentBody": "Payment is processed securely via Stripe. We accept major credit and debit cards. Payment is required in full at the time of order to confirm your Reservation.",
+			"cancellationTitle": "4. Cancellation and Refund Policy",
+			"cancellationBody": "Confirmed Reservations may be cancelled for a full refund. Refunds are processed to the original payment method within 14 business days. If Germinal cancels an Event or Session, all affected Reservations will be refunded in full.",
+			"liabilityTitle": "5. Liability",
+			"liabilityBody": "Germinal's liability is limited to the amount paid by the Guest for the relevant Reservation. Germinal shall not be held liable for indirect damages, including loss of profit or opportunity.",
+			"governingTitle": "6. Governing Law",
+			"governingBody": "These terms are governed by French law. Any dispute shall be submitted to the exclusive jurisdiction of the courts of Paris, France."
+		}
+	},
+	"faq": {
+		"pageTitle": "FAQ | Germinal",
+		"title": "Frequently Asked Questions",
+		"q1": {
+			"question": "How do I retrieve my ticket?",
+			"answer": "After completing your reservation, you will receive a confirmation email containing a unique link to your ticket. You can also access your ticket at any time by using the token link provided. Your ticket includes a QR code — present it at the entrance on the day of the event."
+		},
+		"q2": {
+			"question": "What happens if a session is sold out?",
+			"answer": "When a session is sold out, you can join the waitlist. If a spot becomes available (e.g. due to a cancellation), you will be notified automatically and given the opportunity to book."
+		},
+		"q3": {
+			"question": "How do I cancel my reservation?",
+			"answer": "You can cancel your reservation by using the cancellation link in your confirmation email, or by contacting us directly. Confirmed reservations are eligible for a full refund, processed to your original payment method within 14 business days."
+		},
+		"q4": {
+			"question": "What is the QR code for?",
+			"answer": "The QR code on your ticket is your digital proof of purchase. Present it at the entrance of the event for scanning. It contains all the information needed to validate your reservation."
+		},
+		"q5": {
+			"question": "How can I contact Germinal?",
+			"answer": "You can reach us through our contact page, by email at privacy@germinalstudio.co, or via our Instagram @Germinal.studio. We typically respond within 48 hours."
+		}
+	},
+	"admin": {
+		"login": {
+			"pageTitle": "Login | Germinal",
+			"title": "Sign In",
+			"description": "Enter your credentials to access your dashboard",
+			"email": "Email address",
+			"password": "Password",
+			"signIn": "Sign In",
+			"rateLimited": "Rate Limited",
+			"invalidCredentials": "Invalid email or password",
+			"errors": {
+				"rateLimit": "Too many login attempts. Try again in {seconds} seconds.",
+				"emailRequired": "Email is required",
+				"passwordRequired": "Password is required"
+			},
+			"showPassword": "Show password",
+			"hidePassword": "Hide password",
+			"mockCredentials": "For development, use:",
+			"mockPasswordHint": "(your password)",
+			"metaDescription": "Sign in to your Germinal account"
+		},
+		"dashboard": {
+			"title": "Dashboard",
+			"welcome": "Welcome back! Here's an overview of your Germinal content.",
+			"newEvent": {
+				"title": "New Event",
+				"description": "Create a new event or exhibition",
+				"button": "Create Event"
+			},
+			"newTalent": {
+				"title": "New Talent",
+				"description": "Add a new talent to the collection",
+				"button": "Add Talent"
+			},
+			"settings": {
+				"title": "Settings",
+				"description": "Manage your account settings",
+				"button": "Change Password"
+			},
+			"accountInfo": {
+				"title": "Account Information",
+				"email": "Email",
+				"role": "Role",
+				"memberSince": "Member since"
+			}
+		},
+		"sidebar": {
+			"title": "Admin Panel",
+			"dashboard": "Dashboard",
+			"events": "Events",
+			"talents": "Talents",
+			"password": "Password",
+			"logout": "Logout"
+		},
+		"layout": {
+			"admin": "Admin",
+			"mobileNav": {
+				"dashboard": "Dashboard",
+				"events": "Events",
+				"talents": "Talents",
+				"settings": "Settings"
+			}
+		},
+		"events": {
+			"title": "Events",
+			"description": "Manage your events and exhibitions",
+			"newEvent": "New Event",
+			"noEvents": "No events yet",
+			"noEventsDescription": "Create your first event to get started",
+			"createEvent": "Create Event",
+			"table": {
+				"event": "Event",
+				"date": "Date",
+				"location": "Location",
+				"status": "Status",
+				"actions": "Actions"
+			},
+			"status": {
+				"published": "Published",
+				"draft": "Draft"
+			},
+			"dialog": {
+				"create": {
+					"title": "Create New Event",
+					"description": "Fill in the details to create a new event"
+				},
+				"edit": {
+					"title": "Edit Event"
+				},
+				"delete": {
+					"title": "Delete Event",
+					"confirmation": "Are you sure you want to delete this event?"
+				},
+				"fields": {
+					"title": "Title",
+					"description": "Description",
+					"startDate": "Start Date",
+					"endDate": "End Date",
+					"location": "Location",
+					"publishImmediately": "Publish immediately",
+					"publishHelp": "Uncheck to save as draft"
+				},
+				"actions": {
+					"cancel": "Cancel",
+					"create": "Create Event",
+					"save": "Save Changes",
+					"delete": "Delete"
+				}
+			}
+		},
+		"talents": {
+			"title": "Talents",
+			"description": "Manage your talent collection",
+			"newTalent": "New Talent",
+			"noTalents": "No talents yet",
+			"noTalentsDescription": "Add your first talent to get started",
+			"addTalent": "Add Talent",
+			"table": {
+				"talent": "Talent",
+				"role": "Role",
+				"bio": "Bio",
+				"status": "Status",
+				"actions": "Actions"
+			},
+			"dialog": {
+				"create": {
+					"title": "Add New Talent"
+				},
+				"edit": {
+					"title": "Edit Talent"
+				},
+				"delete": {
+					"title": "Delete Talent",
+					"confirmation": "Are you sure you want to delete this talent?"
+				},
+				"fields": {
+					"firstName": "First Name",
+					"lastName": "Last Name",
+					"role": "Role",
+					"bio": "Bio",
+					"socialLinks": "Social Links (Optional)",
+					"instagram": "Instagram",
+					"linkedin": "LinkedIn",
+					"twitter": "Twitter",
+					"website": "Website"
+				},
+				"actions": {
+					"cancel": "Cancel",
+					"add": "Add Talent",
+					"save": "Save Changes",
+					"delete": "Delete"
+				}
+			}
+		},
+		"changePassword": {
+			"title": "Change Password",
+			"backToDashboard": "Back to Dashboard",
+			"currentPassword": "Current Password",
+			"newPassword": "New Password",
+			"confirmPassword": "Confirm New Password",
+			"passwordHelp": "Must be at least 8 characters long",
+			"updatePassword": "Update Password"
+		}
+	}
 }

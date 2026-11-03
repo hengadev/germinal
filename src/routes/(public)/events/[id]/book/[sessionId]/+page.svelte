@@ -63,6 +63,21 @@
 		discountValue: number;
 	} | null>(null);
 
+	// Extras (issue 068): per-person Extras are a checkbox taking the
+	// party size, per-unit ones a stepper; sold-out Extras are shown as such.
+	let extraQuantities = $state<Record<string, number>>({});
+	let extrasTotal = $derived(
+		data.extras.reduce(
+			(sum, extra) => sum + extra.priceAmount * (extraQuantities[extra.id] ?? 0),
+			0
+		)
+	);
+	let chosenExtras = $derived(
+		Object.entries(extraQuantities)
+			.filter(([, qty]) => qty > 0)
+			.map(([extraId, quantity]) => ({ extraId, quantity }))
+	);
+
 	// Same Pricing as the checkout (issue 023): the Promo Code discounts
 	// the meal, the Event's Deposit rule splits the total into the Deposit
 	// paid now and the Balance due at the venue.
@@ -70,6 +85,7 @@
 		priceReservation({
 			unitPrice: data.session.priceAmount,
 			seats: quantity,
+			extrasTotal,
 			discount: appliedPromoCode,
 			deposit: data.deposit,
 		})
@@ -205,6 +221,7 @@
 					marketingConsent,
 					promoCode: appliedPromoCode?.code ?? undefined,
 					giftCardCode: appliedGiftCard?.code ?? undefined,
+				extras: chosenExtras.length > 0 ? chosenExtras : undefined,
 					...(asksDietaryRequirements && dietaryRequirements.trim()
 						? { dietaryRequirements: dietaryRequirements.trim(), dietaryConsent }
 						: {}),
@@ -407,6 +424,77 @@
 				</p>
 			</div>
 
+			<!-- Extras (issue 068): flat, serif, no rounded corners -->
+			{#if data.extras.length > 0}
+				<fieldset class="border border-border-input p-4 rounded-none">
+					<legend class="px-2 text-sm font-medium text-foreground-alt font-serif">
+						{$t('booking.extras.label')}
+						<span class="text-muted-foreground text-xs font-sans">{$t('booking.optional')}</span>
+					</legend>
+					<div class="grid gap-4">
+						{#each data.extras as extra (extra.id)}
+							{@const soldOut = extra.remaining !== null && extra.remaining === 0}
+							{@const max = extra.unit === 'per_person'
+								? Math.min(data.session.availableCapacity ?? 10, 10)
+								: Math.min(20, extra.remaining ?? 20)}
+							<div class="grid gap-1 {soldOut ? 'opacity-50' : ''}">
+								<div class="flex items-baseline justify-between gap-3">
+									<span class="text-sm font-medium text-foreground font-serif">
+										{$locale === 'en' ? extra.nameEn : extra.nameFr}
+									</span>
+									<span class="text-sm text-foreground-alt tabular-nums">
+										{formatCurrency(extra.priceAmount, data.session.currency, $locale ?? undefined)}
+										/{extra.unit === 'per_person' ? $t('booking.extras.perPerson') : $t('booking.extras.perUnit')}
+									</span>
+								</div>
+								{#if ($locale === 'fr' ? extra.descriptionFr : extra.descriptionEn)}
+									<p class="text-xs text-muted-foreground">
+										{$locale === 'fr' ? extra.descriptionFr : extra.descriptionEn}
+									</p>
+								{/if}
+								{#if soldOut}
+									<p class="text-xs text-muted-foreground italic">{$t('booking.extras.soldOut')}</p>
+								{:else if extra.unit === 'per_person'}
+									<label class="flex items-center gap-2 text-sm text-foreground-alt">
+										<input
+											type="checkbox"
+											disabled={isSubmitting}
+											onchange={(e) => {
+												extraQuantities[extra.id] = (e.target as HTMLInputElement).checked ? quantity : 0;
+											}}
+											class="w-4 h-4 border-border-input"
+										/>
+										<span>{$t('booking.extras.included', { values: { qty: quantity } })}</span>
+									</label>
+								{:else}
+									<div class="flex items-center gap-3">
+										<button
+											type="button"
+											onclick={() => {
+												extraQuantities[extra.id] = Math.max(0, (extraQuantities[extra.id] ?? 0) - 1);
+											}}
+											disabled={isSubmitting || !(extraQuantities[extra.id] ?? 0)}
+											class="w-8 h-8 border border-border-input rounded-none text-foreground hover:bg-surface disabled:opacity-40"
+											aria-label={$t('booking.extras.quantity')}
+										>−</button>
+										<span class="text-sm text-foreground tabular-nums w-6 text-center">{extraQuantities[extra.id] ?? 0}</span>
+										<button
+											type="button"
+											onclick={() => {
+												extraQuantities[extra.id] = Math.min(max, (extraQuantities[extra.id] ?? 0) + 1);
+											}}
+											disabled={isSubmitting || (extraQuantities[extra.id] ?? 0) >= max}
+											class="w-8 h-8 border border-border-input rounded-none text-foreground hover:bg-surface disabled:opacity-40"
+											aria-label={$t('booking.extras.quantity')}
+										>+</button>
+									</div>
+								{/if}
+							</div>
+						{/each}
+					</div>
+				</fieldset>
+			{/if}
+
 			<!-- Dietary Requirements (issue 041) -->
 			{#if asksDietaryRequirements}
 				<div>
@@ -584,6 +672,12 @@
 					>
 					<span class="text-foreground">{formatCurrency(baseAmount, data.session.currency, $locale ?? undefined)}</span>
 				</div>
+				{#if extrasTotal > 0}
+					<div class="flex items-center justify-between mb-2">
+						<span class="text-muted-foreground">{$t('booking.extras.lineTotal')}</span>
+						<span class="text-foreground">{formatCurrency(extrasTotal, data.session.currency, $locale ?? undefined)}</span>
+					</div>
+				{/if}
 				{#if discountAmount > 0}
 					<div class="flex items-center justify-between mb-2 text-green-600 text-sm">
 						<span class="flex items-center gap-1">

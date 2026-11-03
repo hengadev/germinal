@@ -7,6 +7,7 @@ import { seatingTitlesWithFallback } from '$lib/utils/seating-title';
 import { depositRuleOf } from '$lib/utils/pricing';
 import { refundPolicyOf } from '$lib/utils/refund-policy';
 import { loadSeatingAccess, toAccessEvent, toAccessSeating } from '$lib/server/services/event-access';
+import { loadBookableExtras } from '$lib/server/services/event-extras';
 import { db } from '$lib/server/db';
 import { eventAccess, seatingBooking, viewerOf } from '$lib/utils/event-access';
 import { withoutPracticalInfo } from '$lib/utils/practical-info';
@@ -56,7 +57,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 			throw error(404, 'Session not found');
 		}
 
-		return { event: withoutPracticalInfo(event), session: mapSession(session, event.timeZone), deposit: depositRuleOf(event), refundPolicy: refundPolicyOf(event), asksDietaryRequirements: (event as { askDietaryRequirements?: boolean }).askDietaryRequirements ?? false, isMockMode: true };
+		return { event: withoutPracticalInfo(event), session: mapSession(session, event.timeZone), deposit: depositRuleOf(event), refundPolicy: refundPolicyOf(event), asksDietaryRequirements: (event as { askDietaryRequirements?: boolean }).askDietaryRequirements ?? false, extras: [], isMockMode: true };
 	}
 
 	try {
@@ -93,6 +94,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 				soldOut: dbSession.availableCapacity === 0,
 				isPast: dbSession.startTime < new Date()
 			},
+			// The Event's active Extras (issue 068), with their remaining stock.
+			extras: await loadBookableExtras(event.id),
 			// The Event's Deposit rule (issue 023): the Guest sees the total,
 			// Deposit and Balance before paying.
 			deposit: depositRuleOf(event),

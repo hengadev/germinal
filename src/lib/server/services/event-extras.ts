@@ -445,12 +445,12 @@ export async function loadBookableExtras(eventId: string): Promise<BookableExtra
 		.from(reservationExtras)
 		.innerJoin(reservations, eq(reservationExtras.reservationId, reservations.id))
 		.where(and(
-			inArray(reservationExtras.eventExtraId, rows.map((row) => row.id)),
+			inArray(reservationExtras.eventExtraId, rows.map((row: { id: string }) => row.id)),
 			inArray(reservations.status, [...STOCK_HOLDING_STATUSES])
 		))
 		.groupBy(reservationExtras.eventExtraId);
-	const bookedById = new Map(booked.map((row) => [row.eventExtraId, row.booked]));
-	return rows.map((row) => ({
+	const bookedById = new Map(booked.map((row: { eventExtraId: string; booked: number }) => [row.eventExtraId, row.booked]));
+	return rows.map((row: typeof rows[number]) => ({
 		id: row.id,
 		nameEn: row.nameEn,
 		nameFr: row.nameFr,
