@@ -36,6 +36,7 @@
 		type DraftPricingService,
 		type DraftRefund,
 	} from '$lib/components/admin/PricingEditor.svelte';
+	import ExtrasEditor, { toDraftExtras, type DraftExtra } from '$lib/components/admin/ExtrasEditor.svelte';
 	import type { PricingEditorData } from '$lib/types/pricing-editor';
 	import type { PricingValues } from '$lib/utils/event-warnings-live';
 
@@ -48,8 +49,10 @@
 	let deposit: DraftDeposit = $state(toDraftDeposit(data.pricing));
 	let services: DraftPricingService[] = $state(toDraftPricingServices(data.pricing));
 	let currency: string = $state(toDraftCurrency(data.pricing));
+	let extras: DraftExtra[] = $state(toDraftExtras(data.pricing));
 	let saving = $state(false);
 	let editor: ReturnType<typeof PricingEditor> | undefined = $state();
+	let extrasEditor: ReturnType<typeof ExtrasEditor> | undefined = $state();
 
 	const findService = (date: string, kind: string) => services.find((service) => service.date === date && service.kind === kind);
 
@@ -125,10 +128,10 @@
 	// the cursor while the Admin types. An explicit save says it with a
 	// toast and goes to the field.
 	let refused = $state(false);
-	const shownBlocking = $derived(refused ? (editor?.firstBlockingField() ?? null) : null);
+	const shownBlocking = $derived(refused ? (editor?.firstBlockingField() ?? extrasEditor?.firstBlockingField() ?? null) : null);
 
 	function savePricingEnhance({ cancel, formElement }: { cancel: () => void; formElement: HTMLFormElement }) {
-		const blocking = editor?.firstBlockingField() ?? null;
+		const blocking = editor?.firstBlockingField() ?? extrasEditor?.firstBlockingField() ?? null;
 		if (blocking) {
 			cancel();
 			reportSave(formElement, { ok: false, reason: 'invalid', message: blocking.message });
@@ -151,7 +154,8 @@
 			saving = false;
 			await handleTabResult(result, toast, 'Menus et tarifs enregistrés', formElement, () => {
 				const menuIds = (result as { data?: { menuIds?: Record<string, string> } }).data?.menuIds;
-				adoptSaved(sent, menuIds);
+				const extraIds = (result as { data?: { extraIds?: Record<string, string> } }).data?.extraIds;
+				adoptSaved(sent, menuIds, extraIds);
 			});
 		};
 	}
@@ -163,9 +167,18 @@
 	 */
 	function adoptSaved(
 		sent: { menus: DraftMenu[]; refundTextEn: string; clearing: Set<string> },
-		menuIds: Record<string, string> | undefined
+		menuIds: Record<string, string> | undefined,
+		extraIds: Record<string, string> | undefined
 	) {
 		adoptSavedMenus(menus, sent.menus, toDraftMenus(data.pricing), menuIds);
+		// The new extras take their ids, keeping what was typed since the
+		// save started (issue 019).
+		if (extraIds) {
+			for (const extra of extras) {
+				const id = extraIds[extra.key];
+				if (id) extra.id = id;
+			}
+		}
 		({ textEn: refund.textEn } = keepEdits(
 			{ textEn: sent.refundTextEn },
 			{ textEn: refund.textEn },
@@ -186,6 +199,7 @@
 		deposit = toDraftDeposit(data.pricing);
 		refund = toDraftRefund(data.pricing);
 		currency = toDraftCurrency(data.pricing);
+		extras = toDraftExtras(data.pricing);
 		programme.reinfer();
 	}
 
@@ -237,6 +251,8 @@
 			/>
 		{/if}
 	</PricingEditor>
+
+	<ExtrasEditor bind:this={extrasEditor} bind:extras {currency} />
 
 	<!-- Hidden on a Draft, which saves itself (issue 019), and on a published
 	     Event, which saves through its bar (issue 020). -->

@@ -50,6 +50,7 @@ export const userRoleEnum = pgEnum('user_role', ['user', 'admin', 'staff']);
 export const taskStatusEnum = pgEnum('task_status', ['pending', 'in_progress', 'done']);
 
 export const taskPriorityEnum = pgEnum('task_priority', ['low', 'medium', 'high']);
+export const eventExtraUnitEnum = pgEnum('event_extra_unit', ['per_person', 'per_unit']);
 
 export const reservationOriginEnum = pgEnum('reservation_origin', [
     'online',
@@ -341,6 +342,35 @@ export const eventServices = pgTable('event_services', {
     priceCheck: check('event_services_price_check',
         sql`price_amount IS NULL OR price_amount >= 0`
     ),
+}));
+
+// An Event extra (issue 067): something offered alongside the meals — a
+// wine pairing, a workshop seat… — priced once per Event in its currency,
+// either per person or per unit, with an optional total stock and a display
+// order. Deactivated rather than deleted once booked (the snapshots on
+// Reservations must keep making sense).
+export const eventExtras = pgTable('event_extras', {
+    id: uuid('id').defaultRandom().primaryKey(),
+    eventId: uuid('event_id')
+        .notNull()
+        .references(() => events.id, { onDelete: 'cascade' }),
+    nameEn: varchar('name_en', { length: 255 }).notNull(),
+    nameFr: varchar('name_fr', { length: 255 }).notNull(),
+    descriptionEn: text('description_en'),
+    descriptionFr: text('description_fr'),
+    // Minor units (cents), zero allowed.
+    priceAmount: integer('price_amount').notNull(),
+    unit: eventExtraUnitEnum('unit').notNull(),
+    // Total stock across the Event; null for an unlimited extra.
+    stock: integer('stock'),
+    position: integer('position').notNull().default(0),
+    active: boolean('active').notNull().default(true),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+    eventIdIdx: index('event_extras_event_id_idx').on(table.eventId),
+    priceCheck: check('event_extras_price_check', sql`price_amount >= 0`),
+    stockCheck: check('event_extras_stock_check', sql`stock IS NULL OR stock >= 0`),
 }));
 
 export const talents = pgTable('talents', {
@@ -939,6 +969,32 @@ export const reservations = pgTable('reservations', {
     depositBalanceCheck: check('reservations_deposit_balance_check',
         sql`deposit_amount >= 0 AND balance_amount >= 0 AND deposit_amount + balance_amount = total_amount`
     ),
+}));
+
+// A chosen Event extra on a Reservation (issue 067): one row per extra,
+// snapshotting its name, unit price and unit at the time of the booking
+// (used by 068 for pricing). `restrict` keeps a booked extra from being
+// deleted — it is deactivated instead.
+export const reservationExtras = pgTable('reservation_extras', {
+    id: uuid('id').defaultRandom().primaryKey(),
+    reservationId: uuid('reservation_id')
+        .notNull()
+        .references(() => reservations.id, { onDelete: 'cascade' }),
+    eventExtraId: uuid('event_extra_id')
+        .notNull()
+        .references(() => eventExtras.id, { onDelete: 'restrict' }),
+    nameEn: varchar('name_en', { length: 255 }).notNull(),
+    nameFr: varchar('name_fr', { length: 255 }).notNull(),
+    // Minor units (cents), in the Event's currency at booking time.
+    unitPrice: integer('unit_price').notNull(),
+    unit: eventExtraUnitEnum('unit').notNull(),
+    quantity: integer('quantity').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+    reservationIdIdx: index('reservation_extras_reservation_id_idx').on(table.reservationId),
+    eventExtraIdIdx: index('reservation_extras_event_extra_id_idx').on(table.eventExtraId),
+    unitPriceCheck: check('reservation_extras_unit_price_check', sql`unit_price >= 0`),
+    quantityCheck: check('reservation_extras_quantity_check', sql`quantity > 0`),
 }));
 
 export const payments = pgTable('payments', {

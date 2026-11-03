@@ -48,6 +48,8 @@ export async function setupTestDatabase() {
 	await db.execute(sql`TRUNCATE TABLE contact_submissions CASCADE`);
 	await db.execute(sql`TRUNCATE TABLE media CASCADE`);
 	await db.execute(sql`TRUNCATE TABLE talents CASCADE`);
+	await db.execute(sql`TRUNCATE TABLE reservation_extras CASCADE`);
+	await db.execute(sql`TRUNCATE TABLE event_extras CASCADE`);
 	await db.execute(sql`TRUNCATE TABLE events CASCADE`);
 	return db;
 }

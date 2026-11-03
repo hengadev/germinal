@@ -386,6 +386,13 @@
       "when": 1793676519902,
       "tag": "0054_private_event_demandes",
       "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "7",
+      "when": 1793690693268,
+      "tag": "0055_event_extras",
+      "breakpoints": true
     }
   ]
 }
