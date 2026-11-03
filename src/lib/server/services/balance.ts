@@ -198,7 +198,7 @@ export async function settleBalanceWithGiftCard(input: {
 	reservationId: string;
 	actorId: string;
 	code: string;
-}): Promise<BalanceResult | GiftCardSettlementResult> {
+}): Promise<GiftCardSettlementResult> {
 	const { access, eventId, reservationId, actorId, code } = input;
 
 	if (!access.can('settle_balance')) {

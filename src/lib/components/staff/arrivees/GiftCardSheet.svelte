@@ -104,7 +104,7 @@
 		if (result.type === 'success' && result.data.giftCardSettlement) {
 			outcome = result.data.giftCardSettlement as NonNullable<typeof outcome>;
 			balance = outcome!.cardBalanceLeft;
-			toast.success('Carte cadeau encaissée');
+			toast.success('Carte cadeau', 'Encaissement enregistré');
 			await invalidateAll();
 		} else {
 			error = result.type === 'failure' ? result.error : 'Une erreur est survenue.';
@@ -190,7 +190,7 @@
 						id="gift-card-code-{uid}"
 						name="code"
 						bind:value={code}
-						inputmode="latin"
+						inputmode="text"
 						autocomplete="off"
 						spellcheck="false"
 						placeholder="GERM-XXXX-XXXX"
@@ -234,4 +234,3 @@
 		{/if}
 	</div>
 {/if}
-</script>

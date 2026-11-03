@@ -859,6 +859,21 @@ END:VCALENDAR`;
 							<span class="font-semibold">{formatCurrency(data.reservation.giftCardAmount, data.reservation.currency)}</span>
 						</div>
 					{/if}
+					{#if data.reservation.giftCardDoorRedemptions.length > 0}
+						<div>
+							<p class="text-muted-foreground mb-1">Cartes cadeau utilisées à la porte</p>
+							<ul class="space-y-1">
+								{#each data.reservation.giftCardDoorRedemptions as redemption}
+									<li class="flex items-center justify-between text-sm">
+										<span class="text-muted-foreground">
+											{new Date(redemption.createdAt).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })} · {redemption.maskedCode}
+										</span>
+										<span class="font-semibold">-{formatCurrency(Math.abs(redemption.amount), 'EUR')}</span>
+										</li>
+								{/each}
+							</ul>
+						</div>
+					{/if}
 					<div class="flex items-center justify-between">
 						<span class="text-muted-foreground">{depositSettled ? 'Acompte payé' : 'Acompte (non encore payé)'}</span>
 						<span class="font-semibold">{formatCurrency(amounts.deposit, data.reservation.currency)}</span>
