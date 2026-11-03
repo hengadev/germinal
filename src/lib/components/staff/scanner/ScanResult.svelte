@@ -10,6 +10,7 @@
 	import type { ScanParty } from './types';
 	import { applyArrivalToSnapshot } from '$lib/staff/offline/snapshot-store';
 	import { enqueueArrival } from '$lib/staff/offline/arrival-queue.svelte';
+	import { markOffline } from '$lib/staff/offline/online-state.svelte';
 	import { addPendingArrival } from '$lib/staff/offline/pending-arrivals.svelte';
 
 	let {
@@ -36,6 +37,26 @@
 	// Id of the arrival attempt in progress (issue 059): a double tap or a
 	// retried request with the same id counts once.
 	let clientId = $state(crypto.randomUUID());
+
+	// Issue 061: an arrival without network waits in the phone's queue and
+	// counts straight away in the Day's copy and on the party cards.
+	function queueOffline() {
+		if (!party.id) return;
+		const guests = stepper;
+		enqueueArrival({
+			clientId,
+			eventId,
+			reservationId: party.id,
+			guestName: party.guestName,
+			guests,
+			method: 'scan',
+			queuedAt: new Date().toISOString()
+		});
+		applyArrivalToSnapshot(eventId, party.id, guests);
+		addPendingArrival(party.id, guests);
+		clientId = crypto.randomUUID();
+		onDone(guests);
+	}
 </script>
 
 <!-- Motion (issue 033): the sheet slides up over a fading backdrop and
@@ -107,19 +128,7 @@
 					class="mt-4 flex items-center gap-2"
 					onsubmit={(event) => {
 						event.preventDefault();
-						const entry = {
-							clientId,
-							eventId,
-							reservationId: party.id!,
-							guestName: party.guestName,
-							guests: stepper,
-							method: 'scan' as const,
-							queuedAt: new Date().toISOString()
-						};
-						enqueueArrival(entry);
-						applyArrivalToSnapshot(eventId, party.id!, stepper);
-						addPendingArrival(party.id!, stepper);
-						onDone(stepper);
+						queueOffline();
 					}}
 				>
 					<input type="hidden" name="reservationId" value={party.id} />
@@ -179,6 +188,11 @@
 						onDone(guests);
 						// A fresh attempt gets a fresh id.
 						clientId = crypto.randomUUID();
+					} else if (result.type === 'error' && party.id) {
+						// No answer from the server: queue it with the same id — if it
+						// was recorded after all, the replay is a duplicate (059).
+						markOffline();
+						queueOffline();
 					} else {
 						failure =
 							result.type === 'failure'

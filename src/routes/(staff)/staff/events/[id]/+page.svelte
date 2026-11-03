@@ -21,7 +21,7 @@ import { clearSnapshots, getSnapshot, refreshSnapshot, type StoredSnapshot } fro
 import { onlineState, markOffline } from '$lib/staff/offline/online-state.svelte';
 import { replayQueue, type ArrivalEntry, type ArrivalSendResult } from '$lib/staff/offline/replay';
 import { commitReplay, getArrivalQueue, queueState } from '$lib/staff/offline/arrival-queue.svelte';
-import { clearPendingArrivals } from '$lib/staff/offline/pending-arrivals.svelte';
+import { settlePendingArrivals } from '$lib/staff/offline/pending-arrivals.svelte';
 import { motion, cubicOut } from '$lib/components/staff/motion';
 import { untrack } from 'svelte';
 import {
@@ -210,9 +210,10 @@ import {
 			);
 			await commitReplay(done, conflicts);
 			if (done.length > 0) {
-				// La page dit maintenant la vérité ; les compteurs locaux s'effacent.
-				clearPendingArrivals([...new Set(done.map((entry) => entry.reservationId))]);
+				// La page dit maintenant la vérité : on la recharge, puis les
+				// compteurs locaux des entrées envoyées s'effacent.
 				await invalidateAll();
+				settlePendingArrivals(done);
 			}
 		} finally {
 			queueState.sending = false;

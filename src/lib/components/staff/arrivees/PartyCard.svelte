@@ -17,7 +17,7 @@
 	import PartyActionsMenu from './PartyActionsMenu.svelte';
 	import { visitOrdinalFr } from '$lib/utils/visit-ordinal';
 	import { balanceDue, capacityLabel, guests as guestsLabel, seatingTime, settleTimeLabel, type ArriveesFields } from './helpers';
-	import { onlineState } from '$lib/staff/offline/online-state.svelte';
+	import { onlineState, markOffline } from '$lib/staff/offline/online-state.svelte';
 	import { enqueueArrival } from '$lib/staff/offline/arrival-queue.svelte';
 	import { applyArrivalToSnapshot } from '$lib/staff/offline/snapshot-store';
 	import { addPendingArrival, pendingArrivalsFor } from '$lib/staff/offline/pending-arrivals.svelte';
@@ -84,6 +84,27 @@
 	// retried request with the same id counts once.
 	let checkInClientId = $state(crypto.randomUUID());
 	let flashTimer: ReturnType<typeof setTimeout> | null = null;
+	// Issue 061: an arrival made without network goes to the phone's queue
+	// and counts on screen (and in the Day's copy) straight away.
+	function queueOffline() {
+		if (!party.id) return;
+		const guests = stepper;
+		enqueueArrival({
+			clientId: checkInClientId,
+			eventId: page.params.id ?? '',
+			reservationId: party.id,
+			guestName: party.guestName ?? null,
+			guests,
+			method: 'manual',
+			queuedAt: new Date().toISOString()
+		});
+		applyArrivalToSnapshot(page.params.id ?? '', party.id, guests);
+		addPendingArrival(party.id, guests);
+		admitting = false;
+		flashOnSuccess();
+		checkInClientId = crypto.randomUUID();
+	}
+
 	function flashOnSuccess() {
 		if (result) return;
 		flash = true;
@@ -371,11 +392,24 @@
 						method="POST"
 						action="?/checkIn"
 						class="flex min-w-60 flex-1 flex-wrap items-center justify-end gap-2"
-						use:enhance={() => {
+						use:enhance={({ cancel }) => {
+							// Issue 061: offline, the arrival waits in the phone's queue.
+							if (!onlineState.online) {
+								cancel();
+								queueOffline();
+								return;
+							}
 							submitting = true;
 							return async ({ result, update }) => {
-								await update();
 								submitting = false;
+								if (result.type === 'error') {
+									// The request never got an answer: queue it with the same
+									// id — if the server did record it, the replay is a duplicate.
+									markOffline();
+									queueOffline();
+									return;
+								}
+								await update();
 								admitting = false;
 								if (result.type === 'success') {
 									flashOnSuccess();

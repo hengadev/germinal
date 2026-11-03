@@ -11,10 +11,14 @@ export function addPendingArrival(reservationId: string, guests: number): void {
 		(pendingArrivals.byReservation[reservationId] ?? 0) + guests;
 }
 
-/** The replay answered (recorded, duplicate or refused): the page data
- *  now tells the truth, the local crutch goes. */
-export function clearPendingArrivals(reservationIds: string[]): void {
-	for (const id of reservationIds) delete pendingArrivals.byReservation[id];
+/** The replay answered these entries (recorded, duplicate or refused):
+ *  the page data now tells their truth. Entries still queued keep counting. */
+export function settlePendingArrivals(entries: { reservationId: string; guests: number }[]): void {
+	for (const { reservationId, guests } of entries) {
+		const left = (pendingArrivals.byReservation[reservationId] ?? 0) - guests;
+		if (left > 0) pendingArrivals.byReservation[reservationId] = left;
+		else delete pendingArrivals.byReservation[reservationId];
+	}
 }
 
 /** How many of this Reservation's guests wait for the network. */

@@ -103,6 +103,9 @@ export async function recordCheckIn(input: {
 		}
 
 		if (arrived + guests > party.quantity) {
+			if (arrived >= party.quantity) {
+				return { ok: false as const, error: 'Toutes les personnes attendues sont déjà entrées.' };
+			}
 			return {
 				ok: false as const,
 				error: `Il ne reste que ${party.quantity - arrived} personne${party.quantity - arrived === 1 ? '' : 's'} attendue${party.quantity - arrived === 1 ? '' : 's'}.`,
