@@ -13,10 +13,7 @@
 	import { AlertCircle, Check, CreditCard, LoaderCircle, X } from 'lucide-svelte';
 	import { motion, cubicOut } from '$lib/components/staff/motion';
 	import { formatCurrency } from '$lib/utils/currency';
-	import { getToastContext } from '$lib/components/toast/state.svelte';
 	import { giftCardForm, closeGiftCard } from './gift-card-form.svelte';
-
-	const toast = getToastContext();
 
 	// The page renders twice (mobile and desktop): ids unique per copy.
 	const uid = $props.id();
@@ -104,7 +101,6 @@
 		if (result.type === 'success' && result.data.giftCardSettlement) {
 			outcome = result.data.giftCardSettlement as NonNullable<typeof outcome>;
 			balance = outcome!.cardBalanceLeft;
-			toast.success('Carte cadeau', 'Encaissement enregistré');
 			await invalidateAll();
 		} else {
 			error = result.type === 'failure' ? result.error : 'Une erreur est survenue.';
@@ -150,7 +146,7 @@
 		</header>
 
 		<p class="mb-3 text-sm text-muted-foreground">
-			{target.guestName ?? '—'} · {target.seatingLabel} · reste sur place {eur(target.balance)}
+			{target.guestName ?? '—'} · {target.seatingLabel}{#if !outcome} · reste sur place {eur(target.balance)}{/if}
 		</p>
 
 		{#if outcome}
