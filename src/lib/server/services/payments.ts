@@ -83,6 +83,14 @@ export async function handlePaymentSuccess(paymentIntent: Stripe.PaymentIntent) 
  * and the Seating's capacity stay untouched.
  */
 export async function handleCheckoutSuccess(session: Stripe.Checkout.Session) {
+	// A gift card session has no Reservation and no payment row: route it
+	// to the gift card service before any payment lookup (issue 064).
+	const { isGiftCardCheckoutSession, handleGiftCardCheckoutSession } = await import('./gift-cards');
+	if (isGiftCardCheckoutSession(session)) {
+		await handleGiftCardCheckoutSession(session);
+		return;
+	}
+
 	const paymentIntentId = typeof session.payment_intent === 'string' ? session.payment_intent : null;
 
 	// The payment is stored under the Checkout Session id as a placeholder
@@ -269,6 +277,17 @@ export async function handlePaymentFailure(paymentIntent: Stripe.PaymentIntent) 
  * expires and the Seating's capacity is restored.
  */
 export async function handleAsyncPaymentFailed(session: Stripe.Checkout.Session) {
+	// A gift card session that failed asynchronously issues nothing and has
+	// no Reservation to expire (issue 064).
+	const { isGiftCardCheckoutSession } = await import('./gift-cards');
+	if (isGiftCardCheckoutSession(session)) {
+		logger.info(
+			{ checkoutSessionId: session.id },
+			'Gift card Checkout Session failed; nothing to do',
+		);
+		return;
+	}
+
 	const paymentIntentId = typeof session.payment_intent === 'string' ? session.payment_intent : null;
 	const payment = await findPaymentByStripeId(session.id, paymentIntentId);
 
