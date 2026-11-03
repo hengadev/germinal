@@ -1355,6 +1355,109 @@ export async function sendThankYouEmail(data: ThankYouEmailData): Promise<void> 
 	logger.info({ to: data.guestEmail }, '📋 Thank-you email queued');
 }
 
+export interface GiftCardEmailData {
+	recipientEmail: string | null;
+	recipientName: string | null;
+	/** Formatted code, e.g. GERM-7ZK9-M3XT. */
+	code: string;
+	/** Minor units (cents). */
+	amount: number;
+	expiry: Date;
+	message: string | null;
+}
+
+export function generateGiftCardTextTemplate(data: GiftCardEmailData): string {
+	const intro = data.recipientName
+		? `Bonjour ${data.recipientName},`
+		: 'Bonjour,';
+	const message = data.message?.trim()
+		? `Un mot vous accompagne :
+
+${data.message.trim()}`
+		: '';
+	return `
+Votre carte cadeau Germinal
+
+${intro}
+
+Voici votre carte cadeau d'une valeur de ${formatCurrency(data.amount, 'EUR', 'fr-FR')}.
+
+Code : ${data.code}
+Valable jusqu'au ${data.expiry.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}.
+${message ? `\n${message}\n` : ''}
+Présentez ce code lors de vos réservations pour l'utiliser.
+
+À très bientôt,
+L'équipe Germinal
+
+---
+Ceci est un message de service de Germinal.
+  `.trim();
+}
+
+function generateGiftCardHtmlTemplate(data: GiftCardEmailData): string {
+	const message = data.message?.trim()
+		? `<p style="margin: 0 0 16px 0; color: #212529; white-space: pre-wrap;">${escapeHtml(data.message.trim())}</p>`
+		: '';
+	return `
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Votre carte cadeau Germinal</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f8f9fa; font-family: Arial, Helvetica, sans-serif;">
+  <div style="max-width: 600px; margin: 0 auto; padding: 32px 24px; background-color: #ffffff;">
+    <h1 style="margin: 0 0 24px 0; font-size: 22px; color: #212529;">Votre carte cadeau Germinal</h1>
+    <p style="margin: 0 0 16px 0; color: #212529;">${data.recipientName ? escapeHtml(`Bonjour ${data.recipientName},`) : 'Bonjour,'}</p>
+    <p style="margin: 0 0 16px 0; color: #212529;">Voici votre carte cadeau d'une valeur de <strong>${formatCurrency(data.amount, 'EUR', 'fr-FR')}</strong>.</p>
+    <p style="margin: 24px 0; padding: 16px; background-color: #f8f9fa; border-radius: 8px; text-align: center; font-size: 20px; letter-spacing: 2px; color: #212529;"><strong>${escapeHtml(data.code)}</strong></p>
+    <p style="margin: 0 0 16px 0; color: #212529;">Valable jusqu'au ${data.expiry.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}.</p>
+    ${message}
+    <p style="margin: 0 0 16px 0; color: #212529;">Présentez ce code lors de vos réservations pour l'utiliser.</p>
+    <p style="margin: 24px 0 0 0; color: #212529;">
+      À très bientôt,<br>
+      <strong>L'équipe Germinal</strong>
+    </p>
+  </div>
+
+  <div style="border-top: 1px solid #e9ecef; padding-top: 16px;">
+    <p style="margin: 0; color: #6c757d; font-size: 12px; text-align: center;">
+      Ceci est un message de service de Germinal.
+    </p>
+  </div>
+</body>
+</html>
+  `.trim();
+}
+
+/**
+ * The gift card email (issue 063): code, amount, expiry and message.
+ * A service message, FR only, queued when an Admin issues a card.
+ */
+export async function sendGiftCardEmail(data: GiftCardEmailData): Promise<void> {
+	if (!data.recipientEmail) return;
+	const textBody = generateGiftCardTextTemplate(data);
+	const htmlBody = generateGiftCardHtmlTemplate(data);
+
+	if (!isBrevoConfigured()) {
+		logger.info({ to: data.recipientEmail }, '📧 Brevo not configured - gift card email would be sent');
+		return;
+	}
+
+	const { queueEmail } = await import('../jobs/process-email-queue');
+	await queueEmail({
+		type: 'gift_card',
+		recipient: data.recipientEmail,
+		subject: 'Votre carte cadeau Germinal',
+		textBody,
+		htmlBody,
+		metadata: { code: data.code, amount: data.amount }
+	});
+	logger.info({ to: data.recipientEmail }, '📋 Gift card email queued');
+}
+
 export interface NewsletterConfirmationEmailData {
 	email: string;
 	locale: string;
