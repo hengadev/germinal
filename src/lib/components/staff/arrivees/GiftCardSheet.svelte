@@ -146,7 +146,7 @@
 		</header>
 
 		<p class="mb-3 text-sm text-muted-foreground">
-			{target.guestName ?? '—'} · {target.seatingLabel}{#if !outcome} · reste sur place {eur(target.balance)}{/if}
+			{target.guestName ?? '—'} · {target.seatingLabel}{#if !outcome}{` · reste sur place ${eur(target.balance)}`}{/if}
 		</p>
 
 		{#if outcome}
