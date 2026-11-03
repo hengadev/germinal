@@ -59,6 +59,7 @@
 		/** The Event's currency (issue 042): every extra's price is in it. */
 		currency: string;
 	} = $props();
+	const uid = $props.id();
 
 	const INPUT_CLASS =
 		'w-full px-3 py-2 border border-border-input rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm';
@@ -128,22 +129,22 @@
 		for (const [index, extra] of extras.entries()) {
 			const label = extra.nameFr.trim() || `l’extra ${index + 1}`;
 			if (!extra.nameFr.trim() || !extra.nameEn.trim()) {
-				return { id: `extra-${extra.key}-${!extra.nameFr.trim() ? 'nameFr' : 'nameEn'}`, message: `« ${label} » doit avoir un nom en français et en anglais.` };
+				return { id: `${uid}-extra-${extra.key}-${!extra.nameFr.trim() ? 'nameFr' : 'nameEn'}`, message: `« ${label} » doit avoir un nom en français et en anglais.` };
 			}
 			if (!isValidPrice(extra.price)) {
-				return { id: `extra-${extra.key}-price`, message: `Prix invalide pour « ${label} » : saisissez un montant positif ou nul, au centime près.` };
+				return { id: `${uid}-extra-${extra.key}-price`, message: `Prix invalide pour « ${label} » : saisissez un montant positif ou nul, au centime près.` };
 			}
 			if (!isBlank(extra.stock) && !isValidStock(extra.stock)) {
-				return { id: `extra-${extra.key}-stock`, message: `Stock invalide pour « ${label} » : un nombre entier positif ou nul, ou vide pour un stock illimité.` };
+				return { id: `${uid}-extra-${extra.key}-stock`, message: `Stock invalide pour « ${label} » : un nombre entier positif ou nul, ou vide pour un stock illimité.` };
 			}
 		}
 		return null;
 	}
 </script>
 
-<section class="bg-background rounded-lg border border-border-card" aria-labelledby="event-extras-title">
+<section class="bg-background rounded-lg border border-border-card" aria-labelledby="{uid}-title">
 	<header class="p-4 lg:p-6 border-b border-border-card">
-		<h3 id="event-extras-title" class="text-lg font-semibold text-foreground">Extras</h3>
+		<h3 id="{uid}-title" class="text-lg font-semibold text-foreground">Extras</h3>
 		<p class="text-sm text-muted-foreground">
 			Ce que l’événement propose en plus des repas — accords mets-vins, ateliers… Le prix est dans la
 			devise de l’événement ({currency}), par convive ou à l’unité. Un extra déjà réservé ne peut plus
@@ -206,35 +207,35 @@
 
 					<div class="grid gap-3 sm:grid-cols-2">
 						<div>
-							<label for="extra-{extra.key}-nameFr" class={LABEL_CLASS}>Nom (français)</label>
-							<input id="extra-{extra.key}-nameFr" type="text" maxlength="255" bind:value={extra.nameFr} class={INPUT_CLASS} />
+							<label for="{uid}-extra-{extra.key}-nameFr" class={LABEL_CLASS}>Nom (français)</label>
+							<input id="{uid}-extra-{extra.key}-nameFr" type="text" maxlength="255" bind:value={extra.nameFr} class={INPUT_CLASS} />
 						</div>
 						<EnglishVersion>
 							<div>
-								<label for="extra-{extra.key}-nameEn" class={LABEL_CLASS}>Nom (anglais)</label>
-								<input id="extra-{extra.key}-nameEn" type="text" maxlength="255" bind:value={extra.nameEn} class={INPUT_CLASS} />
+								<label for="{uid}-extra-{extra.key}-nameEn" class={LABEL_CLASS}>Nom (anglais)</label>
+								<input id="{uid}-extra-{extra.key}-nameEn" type="text" maxlength="255" bind:value={extra.nameEn} class={INPUT_CLASS} />
 							</div>
 						</EnglishVersion>
 					</div>
 
 					<div class="grid gap-3 sm:grid-cols-2">
 						<div>
-							<label for="extra-{extra.key}-descriptionFr" class={LABEL_CLASS}>Description (français, facultative)</label>
-							<textarea id="extra-{extra.key}-descriptionFr" rows="2" bind:value={extra.descriptionFr} class="{INPUT_CLASS} resize-y"></textarea>
+							<label for="{uid}-extra-{extra.key}-descriptionFr" class={LABEL_CLASS}>Description (français, facultative)</label>
+							<textarea id="{uid}-extra-{extra.key}-descriptionFr" rows="2" bind:value={extra.descriptionFr} class="{INPUT_CLASS} resize-y"></textarea>
 						</div>
 						<EnglishVersion>
 							<div>
-								<label for="extra-{extra.key}-descriptionEn" class={LABEL_CLASS}>Description (anglais, facultative)</label>
-								<textarea id="extra-{extra.key}-descriptionEn" rows="2" bind:value={extra.descriptionEn} class="{INPUT_CLASS} resize-y"></textarea>
+								<label for="{uid}-extra-{extra.key}-descriptionEn" class={LABEL_CLASS}>Description (anglais, facultative)</label>
+								<textarea id="{uid}-extra-{extra.key}-descriptionEn" rows="2" bind:value={extra.descriptionEn} class="{INPUT_CLASS} resize-y"></textarea>
 							</div>
 						</EnglishVersion>
 					</div>
 
 					<div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 lg:items-end">
 						<div>
-							<label for="extra-{extra.key}-price" class={LABEL_CLASS}>Prix, {currency}</label>
+							<label for="{uid}-extra-{extra.key}-price" class={LABEL_CLASS}>Prix, {currency}</label>
 							<input
-								id="extra-{extra.key}-price"
+								id="{uid}-extra-{extra.key}-price"
 								type="number"
 								inputmode="decimal"
 								min="0"
@@ -245,16 +246,16 @@
 							/>
 						</div>
 						<div>
-							<label for="extra-{extra.key}-unit" class={LABEL_CLASS}>Unité</label>
-							<select id="extra-{extra.key}-unit" bind:value={extra.unit} class={INPUT_CLASS}>
+							<label for="{uid}-extra-{extra.key}-unit" class={LABEL_CLASS}>Unité</label>
+							<select id="{uid}-extra-{extra.key}-unit" bind:value={extra.unit} class={INPUT_CLASS}>
 								<option value="per_person">Par convive</option>
 								<option value="per_unit">À l’unité</option>
 							</select>
 						</div>
 						<div>
-							<label for="extra-{extra.key}-stock" class={LABEL_CLASS}>Stock total (facultatif)</label>
+							<label for="{uid}-extra-{extra.key}-stock" class={LABEL_CLASS}>Stock total (facultatif)</label>
 							<input
-								id="extra-{extra.key}-stock"
+								id="{uid}-extra-{extra.key}-stock"
 								type="number"
 								inputmode="numeric"
 								min="0"
