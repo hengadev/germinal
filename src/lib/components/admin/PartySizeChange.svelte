@@ -21,6 +21,8 @@
 		reservation: {
 			quantity: number;
 			totalAmount: number;
+			/** The Extras' share of the total (issue 068). */
+			extrasAmount?: number;
 			balanceAmount: number | null;
 			currency: string;
 			status: string;
@@ -62,6 +64,7 @@
 			{
 				quantity: reservation.quantity,
 				total: reservation.totalAmount,
+				extrasTotal: reservation.extrasAmount ?? 0,
 				depositPaid: party.depositPaid,
 				balance: reservation.balanceAmount ?? 0,
 				isComp: reservation.isComp,

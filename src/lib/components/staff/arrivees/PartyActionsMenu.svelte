@@ -74,6 +74,7 @@
 								quantity: party.quantity ?? 0,
 								seatingLabel,
 								total: party.totalAmount ?? 0,
+								extrasTotal: party.extrasTotal ?? 0,
 								balance: party.balanceAmount ?? 0,
 								depositPaid: party.depositPaid ?? 0,
 								checkedIn: party.arrived ?? 0,

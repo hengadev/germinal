@@ -6,7 +6,7 @@
  */
 import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import { db } from '../db';
-import { eventDays, eventServices, eventSessions, events, payments, reservations, users } from '../db/schema';
+import { eventDays, eventServices, eventSessions, events, payments, reservationExtras, reservations, users } from '../db/schema';
 import type { StaffAccess } from '$lib/staff/access';
 import { normaliseEmail } from '$lib/utils/guest-email';
 import { tagsByEmail } from './guest-notes';
@@ -58,6 +58,17 @@ export interface DayGuestParty {
 	tags?: string[];
 	/** Issue 051: which visit of the Event this Reservation is (1 = first). */
 	visitNumber?: number;
+	/** The Extras chosen at booking (issue 068) — guest list only. */
+	extras?: ReservationExtraLine[];
+}
+
+/** An Extra snapshot on a party (issue 068), for the card and the sheet. */
+export interface ReservationExtraLine {
+	nameFr: string;
+	nameEn: string;
+	unitPrice: number;
+	unit: 'per_person' | 'per_unit';
+	quantity: number;
 }
 
 /** One Seating of the Day with its parties. */
@@ -77,6 +88,8 @@ export interface DayGuestSeating {
 	availableCapacity: number | null;
 	/** « Fermé aux réservations » (039): the heading shows a mark. */
 	bookingsClosed: boolean;
+	/** The Extras booked for this Seating, summed per Extra (issue 068). */
+	extras: ReservationExtraLine[];
 	parties: DayGuestParty[];
 }
 
@@ -197,6 +210,7 @@ async function daySeatings(eventId: string, day: string): Promise<DayGuestSeatin
 		availableCapacity: r.availableCapacity,
 		bookingsClosed: r.bookingsClosedAt !== null,
 		booked: 0,
+		extras: [],
 		parties: [],
 	}));
 }
@@ -247,7 +261,61 @@ export async function getDayGuestList(
 		seating.booked += party.quantity ?? 0;
 	}
 	await withGuestIdentity(seatings.flatMap((s) => s.parties));
+	// The Extras of every party (issue 068), and per Seating the sums the
+	// Cuisine tab counts.
+	await withExtras(seatings, dayGuestFields(access).guestList);
 	return { day, seatings };
+}
+
+/**
+ * Issue 068 — each party's Extras snapshots (guest list only), and each
+ * Seating's per-Extra sums (every Extra of its confirmed parties).
+ */
+async function withExtras(seatings: DayGuestSeating[], guestList: boolean): Promise<void> {
+	const ids = seatings.flatMap((s) => s.parties.map((p) => p.id).filter((id): id is string => Boolean(id)));
+	if (ids.length === 0) return;
+	const rows: {
+		reservationId: string;
+		seatingId: string;
+		nameFr: string;
+		nameEn: string;
+		unitPrice: number;
+		unit: 'per_person' | 'per_unit';
+		quantity: number;
+	}[] = await db
+		.select({
+			reservationId: reservationExtras.reservationId,
+			seatingId: reservations.eventSessionId,
+			nameFr: reservationExtras.nameFr,
+			nameEn: reservationExtras.nameEn,
+			unitPrice: reservationExtras.unitPrice,
+			unit: reservationExtras.unit,
+			quantity: reservationExtras.quantity,
+		})
+		.from(reservationExtras)
+		.innerJoin(reservations, eq(reservationExtras.reservationId, reservations.id))
+		.where(inArray(reservationExtras.reservationId, ids));
+	const byReservation = new Map<string, ReservationExtraLine[]>();
+	const bySeating = new Map<string, Map<string, ReservationExtraLine>>();
+	for (const row of rows) {
+		if (guestList) {
+			const lines = byReservation.get(row.reservationId) ?? [];
+			lines.push({ nameFr: row.nameFr, nameEn: row.nameEn, unitPrice: row.unitPrice, unit: row.unit, quantity: row.quantity });
+			byReservation.set(row.reservationId, lines);
+		}
+		const sums = bySeating.get(row.seatingId) ?? new Map<string, ReservationExtraLine>();
+		const sum = sums.get(row.nameFr) ?? { nameFr: row.nameFr, nameEn: row.nameEn, unitPrice: row.unitPrice, unit: row.unit, quantity: 0 };
+		sum.quantity += row.quantity;
+		sums.set(row.nameFr, sum);
+		bySeating.set(row.seatingId, sums);
+	}
+	for (const seating of seatings) {
+		seating.extras = [...(bySeating.get(seating.id)?.values() ?? [])];
+		if (!guestList) continue;
+		for (const party of seating.parties) {
+			if (party.id) party.extras = byReservation.get(party.id) ?? [];
+		}
+	}
 }
 
 /**
@@ -372,6 +440,8 @@ export async function lookupTicket(
 	if (!row) return null;
 	const party = toParty(row);
 	await withGuestIdentity([party]);
+	const fields = dayGuestFields(access);
+	await withExtras([{ id: row.seatingId, parties: [party], extras: [] } as unknown as DayGuestSeating], fields.guestList);
 	return party;
 }
 
@@ -430,6 +500,11 @@ export async function withPartySizeInfo(
 			if (!party.id) continue;
 			party.totalAmount = totals.get(party.id) ?? 0;
 			party.depositPaid = depositPaid.get(party.id) ?? 0;
+			// The Extras' share of the total (issue 068), so the sheet's
+			// live quote scales only the meal.
+			party.extrasTotal = (party.extras ?? []).reduce(
+				(sum, extra) => sum + extra.unitPrice * extra.quantity, 0
+			);
 		}
 	}
 	return list;
