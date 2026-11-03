@@ -2,6 +2,7 @@ import { db } from '../db';
 import { logger } from '$lib/server/logger';
 import { contactSubmissions } from '../db/schema';
 import { eq, desc, and, isNull, or, count } from 'drizzle-orm';
+import { events } from '../db/schema';
 import { z } from 'zod';
 import type { CreateContactSubmissionInput, ContactSubmission } from '$lib/types/contact';
 import { sendContactEmail } from './email';
@@ -168,6 +169,84 @@ export async function updateDemande(
   }
 
   return updated;
+}
+
+// ============================================
+// « Créer l'événement » from a privatisation Demande (issue 070)
+// ============================================
+
+export class CreateEventFromDemandeError extends Error {
+	constructor(
+		message: string,
+		public readonly status: number = 400
+	) {
+		super(message);
+		this.name = 'CreateEventFromDemandeError';
+	}
+}
+
+/**
+ * Turns a privatisation Demande into a Draft Event (issue 070): the
+ * request's details go into the Event's Internal Notes, and the Demande is
+ * linked to it and moved to « en discussion ». Once-only: the contact row is
+ * locked, and a Demande that already has an Event just returns it.
+ */
+export async function createEventFromDemande(id: string): Promise<{
+	event: typeof events.$inferSelect;
+	created: boolean;
+}> {
+	return await db.transaction(async (tx: typeof db) => {
+		const [demande] = await tx.select()
+			.from(contactSubmissions)
+			.where(eq(contactSubmissions.id, id))
+			.for('update');
+
+		if (!demande) {
+			throw new CreateEventFromDemandeError('Demande introuvable', 404);
+		}
+		if (demande.honeypot && demande.honeypot.trim() !== '') {
+			throw new CreateEventFromDemandeError('Demande introuvable', 404);
+		}
+		if (demande.inquiryType !== 'private_event') {
+			throw new CreateEventFromDemandeError(
+				'Seules les demandes de privatisation peuvent devenir un événement'
+			);
+		}
+
+		// Once-only: a Demande already linked returns its Event unchanged.
+		if (demande.eventId) {
+			const [existing] = await tx.select().from(events).where(eq(events.id, demande.eventId));
+			if (existing) return { event: existing, created: false };
+		}
+
+		const title = demande.occasion?.trim() || `Privatisation — ${demande.name}`;
+		const notes = [
+			`Demande de privatisation (issue 069).`,
+			`Contact : ${demande.name} <${demande.email}>${demande.company ? ` — ${demande.company}` : ''}`,
+			`Occasion : ${demande.occasion ?? '—'}`,
+			`Dates souhaitées : ${demande.preferredDates ?? '—'}`,
+			`Invités : ${demande.guestCount ?? '—'}`,
+			`Budget : ${demande.budget ?? '—'}`,
+			`Message :`,
+			demande.message,
+			`Demande : /admin/demandes/${demande.id}`,
+			`Publier l'événement en Privé une fois prêt.`
+		].join('\n');
+
+		// Draft until the Admin publishes it as Private (CONTEXT.md « Visibility »).
+		const [event] = await tx.insert(events).values({
+			titleFr: title.slice(0, 255),
+			titleEn: title.slice(0, 255),
+			internalNotes: notes,
+			visibility: 'draft',
+		}).returning();
+
+		await tx.update(contactSubmissions)
+			.set({ eventId: event.id, status: 'discussing' })
+			.where(eq(contactSubmissions.id, id));
+
+		return { event, created: true };
+	});
 }
 
 export async function getFailedEmailSubmissions(): Promise<ContactSubmission[]> {

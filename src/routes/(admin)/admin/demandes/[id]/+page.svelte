@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { ArrowLeft, CheckCircle } from 'lucide-svelte';
+	import { ArrowLeft, CheckCircle, CalendarPlus } from 'lucide-svelte';
 	import { enhance } from '$app/forms';
 	import type { ActionData, PageData } from './$types';
 
@@ -91,6 +91,27 @@
 							<dd class="text-foreground">{demande.budget ?? '—'}</dd>
 						</div>
 					</dl>
+					{#if data.linkedEvent}
+						<a
+							href="/admin/events/{data.linkedEvent.id}"
+							class="inline-flex items-center gap-1 text-sm text-foreground-alt hover:text-foreground mt-1"
+						>
+							<CalendarPlus size={14} /> Événement : {data.linkedEvent.titleFr ?? data.linkedEvent.titleEn ?? data.linkedEvent.id}
+						</a>
+					{:else}
+						<form
+							method="POST"
+							action="?/createEvent"
+							use:enhance={() => async ({ update }) => update({ reset: false })}
+						>
+							<button
+								type="submit"
+								class="mt-1 inline-flex items-center gap-1 px-4 py-2 bg-foreground text-background rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
+							>
+								<CalendarPlus size={14} /> Créer l’événement
+							</button>
+						</form>
+					{/if}
 				</div>
 			{/if}
 		</div>
@@ -98,6 +119,7 @@
 		<div class="grid gap-6 content-start">
 			<form
 				method="POST"
+				action="?/save"
 				class="bg-background rounded-lg border border-border-card p-4 sm:p-6 grid gap-4"
 				use:enhance={() => async ({ update }) => update({ reset: false })}
 			>
