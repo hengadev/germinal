@@ -8,6 +8,10 @@
 	import { ChefHat, Gift, LoaderCircle, Smartphone, UserCheck, X } from 'lucide-svelte';
 	import { motion, cubicOut } from '$lib/components/staff/motion';
 	import type { ScanParty } from './types';
+	import { applyArrivalToSnapshot } from '$lib/staff/offline/snapshot-store';
+	import { enqueueArrival } from '$lib/staff/offline/arrival-queue.svelte';
+	import { markOffline } from '$lib/staff/offline/online-state.svelte';
+	import { addPendingArrival } from '$lib/staff/offline/pending-arrivals.svelte';
 
 	let {
 		eventId,
@@ -33,6 +37,26 @@
 	// Id of the arrival attempt in progress (issue 059): a double tap or a
 	// retried request with the same id counts once.
 	let clientId = $state(crypto.randomUUID());
+
+	// Issue 061: an arrival without network waits in the phone's queue and
+	// counts straight away in the Day's copy and on the party cards.
+	function queueOffline() {
+		if (!party.id) return;
+		const guests = stepper;
+		enqueueArrival({
+			clientId,
+			eventId,
+			reservationId: party.id,
+			guestName: party.guestName,
+			guests,
+			method: 'scan',
+			queuedAt: new Date().toISOString()
+		});
+		applyArrivalToSnapshot(eventId, party.id, guests);
+		addPendingArrival(party.id, guests);
+		clientId = crypto.randomUUID();
+		onDone(guests);
+	}
 </script>
 
 <!-- Motion (issue 033): the sheet slides up over a fading backdrop and
@@ -92,17 +116,62 @@
 		{/if}
 
 		{#if offline}
-			<!-- Issue 060 : hors ligne, la fiche vient du téléphone ; l'entrée
-			     (061) demandera le réseau. -->
+			<!-- Issue 061 : hors ligne, l'arrivée attend le réseau dans la file
+			     du téléphone, et compte tout de suite dans la copie du Jour. -->
 			<p class="mt-3 flex items-center gap-2 text-sm font-medium text-muted-foreground">
 				<Smartphone size={16} aria-hidden="true" />
-				Données du téléphone
+				Données du téléphone · entrée en attente du réseau
 			</p>
-			<p
-				class="mt-3 flex min-h-12 items-center justify-center rounded-lg border-2 border-foreground/40 px-4 text-base font-semibold text-muted-foreground"
-			>
-				L'entrée demande le réseau
-			</p>
+			{#if party.id}
+				<form
+					method="POST"
+					class="mt-4 flex items-center gap-2"
+					onsubmit={(event) => {
+						event.preventDefault();
+						queueOffline();
+					}}
+				>
+					<input type="hidden" name="reservationId" value={party.id} />
+					<input type="hidden" name="clientId" value={clientId} />
+					<span class="inline-flex items-center rounded-lg border border-border-card">
+						<button
+							type="button"
+							onclick={() => (stepper = Math.max(1, stepper - 1))}
+							aria-label="Une personne de moins"
+							class="min-h-12 px-4 text-lg font-semibold text-foreground hover:bg-muted">−</button
+						>
+						<input
+							name="guests"
+							type="number"
+							inputmode="numeric"
+							min="1"
+							max={Math.max(1, expected)}
+							bind:value={stepper}
+							required
+							class="w-14 border-x border-border-card bg-background py-2.5 text-center text-lg font-semibold tabular-nums text-foreground focus:ring-2 focus:ring-foreground focus:outline-none"
+						/>
+						<button
+							type="button"
+							onclick={() => (stepper = Math.min(Math.max(1, expected), stepper + 1))}
+							aria-label="Une personne de plus"
+							class="min-h-12 px-4 text-lg font-semibold text-foreground hover:bg-muted">+</button
+						>
+					</span>
+					<button
+						type="submit"
+						class="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-lg bg-foreground px-4 text-base font-semibold text-background transition-colors hover:bg-foreground/85 focus-visible:ring-2 focus-visible:ring-foreground focus-visible:outline-none disabled:opacity-60"
+					>
+						<UserCheck size={16} aria-hidden="true" />
+						Faire entrer
+					</button>
+				</form>
+			{:else}
+				<p
+						class="mt-3 flex min-h-12 items-center justify-center rounded-lg border-2 border-foreground/40 px-4 text-base font-semibold text-muted-foreground"
+					>
+					L'entrée demande le réseau
+					</p>
+			{/if}
 		{:else}
 		<form
 			method="POST"
@@ -119,6 +188,11 @@
 						onDone(guests);
 						// A fresh attempt gets a fresh id.
 						clientId = crypto.randomUUID();
+					} else if (result.type === 'error' && party.id) {
+						// No answer from the server: queue it with the same id — if it
+						// was recorded after all, the replay is a duplicate (059).
+						markOffline();
+						queueOffline();
 					} else {
 						failure =
 							result.type === 'failure'

@@ -13,10 +13,15 @@ import SpotForm from '$lib/components/staff/event-menu/SpotForm.svelte';
 import CancelRefundSheet from '$lib/components/staff/arrivees/CancelRefundSheet.svelte';
 import PartySizeSheet from '$lib/components/staff/arrivees/PartySizeSheet.svelte';
 import { afterNavigate, replaceState } from '$app/navigation';
+import { invalidateAll } from '$app/navigation';
+import { deserialize } from '$app/forms';
 import { fly } from 'svelte/transition';
 import OfflineBanner from '$lib/components/staff/offline/OfflineBanner.svelte';
 import { clearSnapshots, getSnapshot, refreshSnapshot, type StoredSnapshot } from '$lib/staff/offline/snapshot-store';
-import { onlineState } from '$lib/staff/offline/online-state.svelte';
+import { onlineState, markOffline } from '$lib/staff/offline/online-state.svelte';
+import { replayQueue, type ArrivalEntry, type ArrivalSendResult } from '$lib/staff/offline/replay';
+import { commitReplay, getArrivalQueue, queueState } from '$lib/staff/offline/arrival-queue.svelte';
+import { settlePendingArrivals } from '$lib/staff/offline/pending-arrivals.svelte';
 import { motion, cubicOut } from '$lib/components/staff/motion';
 import { untrack } from 'svelte';
 import {
@@ -154,6 +159,69 @@ import {
 			clearInterval(timer);
 			removeEventListener('online', onOnline);
 		};
+	});
+
+	// Issue 061 : le renvoi des arrivées enregistrées hors ligne, une par
+	// une, la plus ancienne d'abord — au chargement, au retour du réseau
+	// (l'événement « online » ou markOnline l'un et l'autre, via l'état
+	// réactif). Chaque entrée porte son id de tentative (059) : rien ne
+	// compte deux fois.
+	let replaying = false;
+	async function sendArrival(entry: ArrivalEntry): Promise<ArrivalSendResult> {
+		try {
+			// A form action called by hand: SvelteKit answers JSON only when
+			// asked, in its own serialisation.
+			const res = await fetch(
+				`/staff/events/${entry.eventId}?/${entry.method === 'scan' ? 'scanCheckIn' : 'checkIn'}`,
+				{
+					method: 'POST',
+					headers: { accept: 'application/json', 'x-sveltekit-action': 'true' },
+					body: new URLSearchParams({
+						reservationId: entry.reservationId,
+						guests: String(entry.guests),
+						clientId: entry.clientId
+					})
+				}
+			);
+			const action = deserialize(await res.text()) as {
+				type: string;
+				data?: { error?: string };
+			};
+			if (action.type === 'success') return 'ok';
+			if (action.type === 'failure') {
+				return { conflict: action.data?.error ?? 'Une erreur est survenue.' };
+			}
+			return { conflict: 'Une erreur est survenue.' };
+		} catch (error) {
+			if (error instanceof TypeError) markOffline();
+			throw error;
+		}
+	}
+	async function replayArrivals() {
+		if (replaying || !onlineState.online) return;
+		const entries = (await getArrivalQueue()).filter((entry) => entry.eventId === data.event.id);
+		if (entries.length === 0) return;
+		replaying = true;
+		queueState.sending = true;
+		try {
+			const { remaining, conflicts } = await replayQueue(entries, sendArrival);
+			const done = entries.filter(
+				(entry) => !remaining.some((kept) => kept.clientId === entry.clientId)
+			);
+			await commitReplay(done, conflicts);
+			if (done.length > 0) {
+				// La page dit maintenant la vérité : on la recharge, puis les
+				// compteurs locaux des entrées envoyées s'effacent.
+				await invalidateAll();
+				settlePendingArrivals(done);
+			}
+		} finally {
+			queueState.sending = false;
+			replaying = false;
+		}
+	}
+	$effect(() => {
+		if (onlineState.online) replayArrivals();
 	});
 
 	const title = $derived(data.event.titleFr || data.event.titleEn || 'Événement sans titre');
