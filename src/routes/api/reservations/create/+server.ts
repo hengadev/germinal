@@ -1,7 +1,8 @@
 import { json } from '@sveltejs/kit';
 import { logger } from '$lib/server/logger';
 import { createReservationSchema } from '$lib/server/validators/reservations';
-import { createReservation, DietaryConsentRequiredError, SeatingNotBookableError } from '$lib/server/services/reservations';
+import { createReservation, DietaryConsentRequiredError, GiftCardUnusableError, SeatingNotBookableError } from '$lib/server/services/reservations';
+import { ExtraSoldOutError } from '$lib/server/services/event-extras';
 import { checkRateLimit } from '$lib/server/rate-limit';
 import { validateCsrfToken } from '$lib/server/csrf';
 import type { RequestHandler } from './$types';
@@ -38,6 +39,9 @@ export const POST: RequestHandler = async ({ request, getClientAddress, locals }
 		);
 	}
 
+	// The Guest's language (issue 068), for the sold-out Extra's message.
+	let locale: string | null = null;
+
 	try {
 		const data = await request.json();
 		const userAgent = request.headers.get('user-agent');
@@ -55,12 +59,15 @@ export const POST: RequestHandler = async ({ request, getClientAddress, locals }
 			);
 		}
 
+		locale = typeof validated.data.locale === 'string' ? validated.data.locale : null;
+
 		// Create reservation with capacity lock
 		const result = await createReservation({
 			...validated.data,
 			phone: validated.data.phone ?? undefined,
 			ipAddress: ip,
 			userAgent: userAgent ?? undefined,
+			locale,
 		});
 
 		return json(
@@ -104,8 +111,36 @@ export const POST: RequestHandler = async ({ request, getClientAddress, locals }
 			}
 		}
 
+		if (error instanceof ExtraSoldOutError) {
+			// The Extra's name is in the message, in the Guest's language
+			// (issue 068); both are given so the client can pick.
+			return json(
+				{
+					error: locale === 'fr' ? error.messageFr : error.messageEn,
+					messages: { fr: error.messageFr, en: error.messageEn },
+					code: 'EXTRA_SOLD_OUT',
+				},
+			{ status: 409 }
+		);
+		}
+
 		if (error instanceof DietaryConsentRequiredError) {
 			return json({ error: error.message, code: 'DIETARY_CONSENT_REQUIRED' }, { status: 400 });
+		}
+
+		// A gift card that cannot pay (issue 065): its reason, in words.
+		if (error instanceof GiftCardUnusableError) {
+			const messages: Record<string, string> = {
+				unknown: 'Unknown gift card',
+				expired: 'This gift card has expired',
+				cancelled: 'This gift card was cancelled',
+				empty: 'This gift card has no balance left',
+				currency: 'Gift cards can only pay for Events priced in euros',
+			};
+			return json(
+				{ error: messages[error.reason] ?? 'This gift card cannot be used', code: 'GIFT_CARD_UNUSABLE', reason: error.reason },
+			{ status: 400 }
+			);
 		}
 
 		if (error instanceof Error && error.message === 'Invalid submission') {

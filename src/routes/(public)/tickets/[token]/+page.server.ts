@@ -1,12 +1,11 @@
 import { getReservationByToken } from '$lib/server/services/reservations';
 import { error } from '@sveltejs/kit';
-import type { PageServerLoad } from './$types';
 import QRCode from 'qrcode';
 import { seatingTitlesWithFallback } from '$lib/utils/seating-title';
 import { refundPolicyOf } from '$lib/utils/refund-policy';
+import { loadReservationExtras } from '$lib/server/services/event-extras';
 
-export const load: PageServerLoad = async ({ params }) => {
-	const reservation = await getReservationByToken(params.token);
+export const load = async ({ params }) => {	const reservation = await getReservationByToken(params.token);
 
 	if (!reservation) {
 		throw error(404, 'Ticket not found');
@@ -28,12 +27,22 @@ export const load: PageServerLoad = async ({ params }) => {
 	return {
 		reservation: {
 			id: reservation.id,
+			// The Extras chosen at booking (issue 068).
+			extras: (await loadReservationExtras(reservation.id)).map((extra) => ({
+				nameFr: extra.nameFr,
+				nameEn: extra.nameEn,
+				unitPrice: extra.unitPrice,
+				unit: extra.unit,
+				quantity: extra.quantity
+			})),
 			guestName: reservation.guestName,
 			guestEmail: reservation.guestEmail,
 			quantity: reservation.quantity,
 			totalAmount: reservation.totalAmount,
 			// Issue 023: the Deposit paid online and the Balance due at the venue.
 			depositAmount: reservation.depositAmount,
+			// Issue 065: the share of the Deposit a gift card paid.
+			giftCardAmount: reservation.giftCardAmount,
 			balanceAmount: reservation.balanceAmount,
 			currency: reservation.currency,
 			status: reservation.status,

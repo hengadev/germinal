@@ -55,6 +55,7 @@
 			{
 				quantity: t.quantity,
 				total: t.total,
+				extrasTotal: t.extrasTotal ?? 0,
 				depositPaid: t.depositPaid,
 				balance: t.balance,
 				isComp: t.isComp,

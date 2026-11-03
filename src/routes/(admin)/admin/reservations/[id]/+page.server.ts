@@ -7,6 +7,7 @@ import { seatingTitlesWithFallback } from '$lib/utils/seating-title';
 import { sql } from 'drizzle-orm';
 import { cancellationPreFill, refundableAmount, type CancellationPreFill } from '$lib/utils/cancellation-refund';
 import { EMPTY_MANUAL_REFUND_POLICY, refundPolicyOf } from '$lib/utils/refund-policy';
+import { extrasTotalOf, loadReservationExtras } from '$lib/server/services/event-extras';
 
 /** Only an active Reservation gets the cancel screen's pre-fill. */
 function isCancellable(status: string): boolean {
@@ -77,6 +78,10 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 				depositAmount: (reservation as { depositAmount?: number }).depositAmount ?? null,
 				balanceAmount: (reservation as { balanceAmount?: number }).balanceAmount ?? null,
 				discountAmount: (reservation as { discountAmount?: number }).discountAmount ?? 0,
+				giftCardAmount: 0,
+				giftCardDoorRedemptions: [],
+				extrasAmount: 0,
+				extras: [] as { extraId: string; nameFr: string; unit: 'per_person' | 'per_unit'; unitPrice: number; quantity: number }[],
 				currency: reservation.currency,
 				status: reservation.status,
 				isComp: (reservation as { isComp?: boolean }).isComp ?? false,
@@ -128,13 +133,16 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	try {
 		const reservation = await getReservationById(params.id);
 
+		// The Extras chosen at booking (issue 068), with their total.
+		const extras = await loadReservationExtras(params.id);
+
 		// Arrivals (issue 023): the Check-in history and who settled the Balance.
 		const { checkInHistory } = await import('$lib/server/services/check-ins');
 		const checkInsHistory = await checkInHistory(params.id);
 		// Who settled the Balance and who last Moved it (issue 022), by name.
 		const { users } = await import('$lib/server/db/schema');
 		const { db } = await import('$lib/server/db');
-		const { eq } = await import('drizzle-orm');
+		const { and, desc, eq } = await import('drizzle-orm');
 		const nameOf = async (userId: string | null): Promise<string | null> => {
 			if (!userId) return null;
 			const [user] = await db
@@ -146,6 +154,33 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		};
 		const balanceSettledByName = await nameOf(reservation.balanceSettledBy);
 		const lastMovedByName = await nameOf(reservation.lastMovedBy);
+
+		// Issue 066 : les cartes cadeau utilisées à la porte pour ce solde —
+		// date, montant, code masqué.
+		const { giftCardLedger, giftCards: giftCardsTable } = await import('$lib/server/db/schema');
+		const { maskGiftCardCode } = await import('$lib/utils/gift-card');
+		const doorRedemptions = await db
+			.select({
+				amount: giftCardLedger.amount,
+				createdAt: giftCardLedger.createdAt,
+				maskedCode: giftCardsTable.code
+			})
+			.from(giftCardLedger)
+			.innerJoin(giftCardsTable, eq(giftCardLedger.giftCardId, giftCardsTable.id))
+			.where(
+				and(
+					eq(giftCardLedger.reservationId, params.id),
+				eq(giftCardLedger.reason, 'door')
+				)
+			)
+			.orderBy(desc(giftCardLedger.createdAt));
+		const giftCardDoorRedemptions = doorRedemptions.map(
+			(row: { amount: number; createdAt: Date; maskedCode: string }) => ({
+				amount: row.amount,
+				createdAt: row.createdAt.toISOString(),
+				maskedCode: maskGiftCardCode(row.maskedCode)
+			})
+		);
 
 		// Issue 046: what « Modifier le nombre » quotes against — the seats
 		// really free on the Seating and the Guests already arrived.
@@ -201,6 +236,20 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 				depositAmount: reservation.depositAmount,
 				balanceAmount: reservation.balanceAmount,
 				discountAmount: reservation.discountAmount,
+				// Issue 065: the share of the Deposit a gift card paid.
+				giftCardAmount: reservation.giftCardAmount,
+				// Issue 066: gift cards redeemed at the door for the Balance.
+				giftCardDoorRedemptions,
+				// The Extras chosen at booking (issue 068), and their share of
+				// the total — the party-size quote scales only the meal.
+				extrasAmount: extrasTotalOf(extras),
+				extras: extras.map((extra) => ({
+					extraId: extra.eventExtraId,
+					nameFr: extra.nameFr,
+					unit: extra.unit,
+					unitPrice: extra.unitPrice,
+					quantity: extra.quantity
+				})),
 				currency: reservation.currency,
 				status: reservation.status,
 				isComp: reservation.isComp,
@@ -443,6 +492,49 @@ export const actions: Actions = {
 			const { logger } = await import('$lib/server/logger');
 			logger.error({ err, reservationId: params.id }, 'Admin party-size change failed');
 			return fail(400, { error: 'Échec de la modification du nombre de personnes' });
+		}
+	},
+
+	/**
+	 * Change the quantities of the booked Extras (issue 068): re-prices the
+	 * Balance only (the Deposit paid online never changes), with the stock
+	 * re-checked. Each field is `extra_<eventExtraId>` = the new quantity.
+	 */
+	changeExtras: async ({ params, request, locals }) => {
+		requireAdmin(locals);
+
+		const formData = await request.formData();
+		const quantities: { extraId: string; quantity: number }[] = [];
+		for (const [key, value] of formData.entries()) {
+			if (!key.startsWith('extra_') || typeof value !== 'string') continue;
+			const quantity = Number(value);
+			if (!Number.isInteger(quantity) || quantity < 0 || quantity > 20) {
+				return fail(400, { error: 'Quantité de supplément invalide (0 à 20).' });
+			}
+			quantities.push({ extraId: key.slice('extra_'.length), quantity });
+		}
+
+		if (env.USE_MOCK_DATA) {
+			return { success: true, message: 'Suppléments modifiés (données fictives)' };
+		}
+
+		try {
+			const { changeReservationExtras } = await import('$lib/server/services/event-extras');
+			const result = await changeReservationExtras({
+				reservationId: params.id,
+				quantities,
+				actorId: locals.user!.id,
+			});
+			if (!result.ok) return fail(400, { error: result.error });
+			const { formatCurrency } = await import('$lib/utils/currency');
+			return {
+				success: true,
+				message: `Suppléments modifiés — reste à payer sur place ${formatCurrency(result.balance, result.currency, 'fr-FR')}`,
+			};
+		} catch (err) {
+			const { logger } = await import('$lib/server/logger');
+			logger.error({ err, reservationId: params.id }, 'Admin extras change failed');
+			return fail(400, { error: 'Échec de la modification des suppléments' });
 		}
 	},
 

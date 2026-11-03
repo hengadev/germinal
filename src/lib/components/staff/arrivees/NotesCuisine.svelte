@@ -85,6 +85,19 @@
 				{:else}
 					<p class="text-sm font-medium text-foreground tabular-nums">{covers(seatingGuestTotal(seating))}</p>
 				{/if}
+				{#if (seating.extras ?? []).length > 0}
+					<!-- The Extras booked for this Seating (issue 068), summed per Extra. -->
+					<ul class="space-y-1">
+						{#each seating.extras ?? [] as extra, i (extra.nameFr + i)}
+							<li class="flex items-baseline justify-between gap-3 text-sm">
+								<span class="text-foreground">{extra.nameFr}
+									<span class="text-muted-foreground">· {extra.unit === 'per_person' ? 'par personne' : "à l'unité"}</span>
+								</span>
+								<span class="font-medium text-foreground tabular-nums">× {extra.quantity}</span>
+							</li>
+						{/each}
+					</ul>
+				{/if}
 				{#if seating.parties.length > 0 && notes.length === 0}
 					<p class="text-sm text-muted-foreground">Aucune restriction alimentaire.</p>
 				{:else if notes.length > 0}

@@ -2,7 +2,7 @@ import { DEFAULT_EVENT_TIME_ZONE } from '$lib/utils/event-time';
 import { db } from '../db';
 import { logger } from '$lib/server/logger';
 import { incrementReservationCounter } from '../metrics';
-import { eventSessions, reservations, payments } from '../db/schema';
+import { eventSessions, reservations, payments, reservationExtras } from '../db/schema';
 import { eq, and, sql, lt } from 'drizzle-orm';
 import { generateAccessToken } from '$lib/utils/tokens';
 import { createCheckoutSession } from './stripe';
@@ -18,7 +18,10 @@ import { ANONYMOUS, seatingBooking, type BookingRefusal } from '$lib/utils/event
 import { dietaryAnswerOf, needsDietaryConsent } from '$lib/utils/dietary-requirements';
 import { subscribeFromReservation } from './subscribers';
 import { cancelReservationTransition, expireReservationOnHoldTimeout } from './reservation-transitions';
-import { notifyGuestOfCancellation, notifyWaitlistOfFreedSeats, refundAfterCancellation } from './cancellation-effects';
+import { notifyGuestOfCancellation, notifyWaitlistOfFreedSeats, applyRefundWithGiftCard } from './cancellation-effects';
+import { creditableGiftCardShare, findUsableGiftCard, redeemGiftCard, type GiftCardUnusableReason } from './gift-cards';
+import { resolveBookingExtras, type ReservationExtraSnapshot } from './event-extras';
+import { splitDeposit } from '$lib/utils/gift-card';
 
 const BOOKING_REFUSAL_MESSAGES: Record<BookingRefusal, string> = {
 	'event-not-published': 'Session not found or not published',
@@ -48,6 +51,17 @@ export class DietaryConsentRequiredError extends Error {
 	constructor() {
 		super('Consent is required to share dietary requirements');
 		this.name = 'DietaryConsentRequiredError';
+	}
+}
+
+/**
+ * Thrown when a booking's gift card cannot pay (issue 065); `reason` says
+ * why, and the API endpoint turns it into a message the Guest reads.
+ */
+export class GiftCardUnusableError extends Error {
+	constructor(public readonly reason: GiftCardUnusableReason | 'currency') {
+		super(`Gift card unusable: ${reason}`);
+		this.name = 'GiftCardUnusableError';
 	}
 }
 
@@ -170,6 +184,21 @@ export type CreateReservationResult = {
 };
 
 /**
+ * Store a booking's Extras snapshots (issue 068) on the just-created
+ * Reservation. Must run inside the booking transaction.
+ */
+async function insertReservationExtras(
+	tx: typeof db,
+	reservationId: string,
+	snapshots: ReservationExtraSnapshot[]
+) {
+	if (snapshots.length === 0) return;
+	await tx.insert(reservationExtras).values(
+		snapshots.map((snapshot) => ({ reservationId, ...snapshot }))
+	);
+}
+
+/**
  * Create a reservation with atomic capacity locking
  * This prevents race conditions when multiple users book simultaneously
  */
@@ -243,21 +272,66 @@ export async function createReservation(input: CreateReservationInput): Promise<
 			? { dietaryRequirements: null, dietaryConsentAt: null }
 			: dietaryAnswer;
 
+		// Extras (issue 068): the Event's active ones, resolved under their
+		// rows' lock — stock checked against every Reservation still holding
+		// seats — and snapshotted onto the Reservation.
+		const { snapshots: extraSnapshots, total: extrasTotal } = await resolveBookingExtras(
+			tx,
+			session.eventId,
+			input.quantity,
+			input.extras ?? []
+		);
+
 		const pricing = priceReservation({
 			unitPrice: price.amount,
 			seats: input.quantity,
+			extrasTotal,
 			discount,
 			deposit: event ? depositRuleOf(event) : FULL_PAYMENT_DEPOSIT,
 		});
 
+		// Gift card (issue 065): the Promo Code discounts first, then the card
+		// pays toward the Deposit. Read here, inside the booking transaction,
+		// and redeemed below under the card's row lock, so concurrent bookings
+		// on one card can never overspend it (a depleted card throws and rolls
+		// the whole booking back).
+		let cardAmount = 0;
+		let cardCode: string | null = null;
+		if (input.giftCardCode) {
+			// Gift cards hold EUR only: they cannot pay a Deposit in another
+			// currency.
+			if (price.currency !== 'EUR') throw new GiftCardUnusableError('currency');
+			const found = await findUsableGiftCard(input.giftCardCode, tx);
+			if (!found.ok) throw new GiftCardUnusableError(found.reason);
+			cardCode = found.card.code;
+			cardAmount = splitDeposit(pricing.deposit, found.card.balance).card;
+		}
+		// What Stripe must charge: the Deposit minus the card's share (0 when
+		// the card covers it all).
+		const payableNow = pricing.deposit - cardAmount;
+
+		// Redeem inside the transaction, once the Reservation exists to link
+		// the ledger row to. Shared by both paths below.
+		const redeemCardShare = async (reservationId: string) => {
+			if (cardAmount <= 0 || !cardCode) return;
+			const redeemed = await redeemGiftCard(cardCode, {
+				amount: cardAmount,
+				reason: 'booking',
+				reservationId,
+				tx
+			});
+			if (!redeemed.ok) throw new GiftCardUnusableError('empty');
+		};
+
 		// Step 5: Generate secure access token
 		const accessToken = generateAccessToken();
 
-		// No Deposit to collect (rule 'none', a zero price, or a 100 % Promo
-		// Code): nothing goes through Stripe (issue 025). The Reservation is
-		// confirmed right away — a regular paid-path booking, NOT comp — with
-		// no Payment row; the Ticket is sent once the transaction commits.
-		if (pricing.deposit === 0) {
+		// Nothing for Stripe to charge (rule 'none', a zero price, a 100 %
+		// Promo Code, or a gift card covering the whole Deposit — issue 065):
+		// the Reservation is confirmed right away — a regular paid-path
+		// booking, NOT comp — with no Payment row; the card's share is
+		// redeemed and the Ticket sent once the transaction commits.
+		if (payableNow === 0) {
 			const now = new Date();
 			const [reservation] = await tx.insert(reservations).values({
 				eventSessionId: input.sessionId,
@@ -282,8 +356,17 @@ export async function createReservation(input: CreateReservationInput): Promise<
 				promotionCodeId,
 				discountAmount: pricing.discount,
 				marketingConsent: input.marketingConsent === true,
+				// The card's share of the Deposit (issue 065).
+				giftCardAmount: cardAmount,
 				...dietary,
 			}).returning();
+
+			// The redemption joins the booking's transaction, under the card's
+			// row lock (issue 065).
+			await redeemCardShare(reservation.id);
+
+			// The Extras' snapshots (issue 068).
+			await insertReservationExtras(tx, reservation.id, extraSnapshots);
 
 			// Newsletter (issue 052): confirmed without payment, so subscribed
 			// and confirmed at once — in the booking's own transaction.
@@ -317,18 +400,28 @@ export async function createReservation(input: CreateReservationInput): Promise<
 			promotionCodeId,
 			discountAmount: pricing.discount,
 			marketingConsent: input.marketingConsent === true,
+			// The card's share of the Deposit (issue 065).
+			giftCardAmount: cardAmount,
 			...dietary,
 		}).returning();
 
+		// Redeemed before the Checkout Session exists, so a card that lost a
+		// race rolls the booking back before anything reaches Stripe.
+		await redeemCardShare(reservation.id);
+
+		// The Extras' snapshots (issue 068).
+		await insertReservationExtras(tx, reservation.id, extraSnapshots);
+
 		// Step 8: Create Stripe Checkout Session (hosted payment page) for
-		// the Deposit only — one line item whose amount is the Deposit, so
-		// Stripe charges exactly that (the Promo Code is already in it). A
-		// Deposit below the whole total is named as such.
+		// what is left of the Deposit after the gift card's share (issue 065)
+		// — one line item of that amount, so Stripe charges exactly that (the
+		// Promo Code and the card are already in it). A Deposit below the
+		// whole total is named as such.
 		const seatingLabel = `${seatingTitle(session, 'en', { timeZone: event?.timeZone ?? DEFAULT_EVENT_TIME_ZONE })}${event && (event.titleEn || event.titleFr) ? ` — ${event.titleEn || event.titleFr}` : ''}`;
 		const checkoutSession = await createCheckoutSession({
 			reservationId: reservation.id,
 			accessToken,
-			amount: pricing.deposit,
+			amount: payableNow,
 			currency: price.currency,
 			quantity: input.quantity,
 			productName: pricing.balance > 0
@@ -357,7 +450,7 @@ export async function createReservation(input: CreateReservationInput): Promise<
 			reservationId: reservation.id,
 			stripePaymentIntentId: checkoutSession.id, // placeholder; updated by webhook
 			stripeClientSecret: null,
-			amount: pricing.deposit,
+			amount: payableNow,
 			currency: price.currency,
 			status: 'pending',
 			idempotencyKey: `reservation-${reservation.id}`,
@@ -816,7 +909,9 @@ export async function cancelReservationWithRefund(reservationId: string) {
 	if (reservation.status !== 'confirmed') {
 		throw new Error('Only confirmed reservations can be cancelled');
 	}
-	if (!reservation.payment) {
+	// A Reservation fully paid by gift card has no Payment row (issue 065);
+	// its refund goes back to the card, not through Stripe.
+	if (!reservation.payment && reservation.giftCardAmount <= 0) {
 		throw new Error('Payment not found for this reservation');
 	}
 
@@ -826,9 +921,17 @@ export async function cancelReservationWithRefund(reservationId: string) {
 	}
 	await notifyWaitlistOfFreedSeats(outcome);
 
-	const remaining = reservation.payment.amount - reservation.payment.refundedAmount;
+	// The refund covers both shares of the Deposit (issue 065): the card's
+	// share is credited back to the card first, Stripe refunds the rest.
+	// A Reservation fully paid by card has no Payment row — its whole
+	// Deposit is refunded to the card.
+	const cardShare = await creditableGiftCardShare(db, reservationId);
+	const stripeRemaining = reservation.payment
+		? reservation.payment.amount - reservation.payment.refundedAmount
+		: 0;
+	const remaining = cardShare + stripeRemaining;
 	const refund = remaining > 0
-		? await refundAfterCancellation(reservation.payment, remaining, `admin-cancel-refund-${reservationId}`)
+		? await applyRefundWithGiftCard(reservation, reservation.payment ?? null, remaining, `admin-cancel-refund-${reservationId}`)
 		: null;
 
 	// The combined cancellation + refund notification (or a plain
@@ -966,17 +1069,34 @@ export async function processRefund(
 		throw new Error('Reservation is already cancelled');
 	}
 
+	// A Reservation fully paid by gift card has no Payment row (issue 065);
+	// its refundable amount is its card share, credited back to the card.
+	const cardShare = await creditableGiftCardShare(db, reservationId);
 	if (!reservation.payment) {
-		throw new Error('Payment not found for this reservation');
+		if (cardShare <= 0) {
+			throw new Error('Payment not found for this reservation');
+		}
+		if (reservation.status !== 'cancelled') {
+			const outcome = await cancelReservationTransition(reservationId, { from: ['confirmed', 'pending'] });
+			if (outcome.won) await notifyWaitlistOfFreedSeats(outcome);
+			else if (options.cancelling) throw new Error('Reservation is already cancelled');
+		}
+		const refund = await applyRefundWithGiftCard(reservation, null, cardShare, `refund-${reservationId}-card-${cardShare}`);
+		if (!refund) {
+			throw new Error('The refund failed; the Reservation is cancelled, retry the refund');
+		}
+		await notifyGuestOfCancellation(reservation, refund);
+		return { success: true, refund };
 	}
 
 	if (reservation.payment.status !== 'succeeded' && reservation.payment.status !== 'partially_refunded') {
 		throw new Error('Can only refund successful payments');
 	}
 
-	// Check if already fully refunded
+	// Check if already fully refunded — including the gift card's share
+	// (issue 065), which refunds to the card before Stripe's remainder.
 	const alreadyRefunded = reservation.payment.refundedAmount || 0;
-	const remainingBalance = reservation.payment.amount - alreadyRefunded;
+	const remainingBalance = reservation.payment.amount - alreadyRefunded + cardShare;
 	if (remainingBalance <= 0) {
 		throw new Error('Payment has already been fully refunded');
 	}
@@ -1004,7 +1124,8 @@ export async function processRefund(
 		}
 	}
 
-	const refund = await refundAfterCancellation(
+	const refund = await applyRefundWithGiftCard(
+		reservation,
 		reservation.payment,
 		refundAmount,
 		`refund-${reservation.payment.id}-${alreadyRefunded}-${refundAmount}`
@@ -1014,7 +1135,7 @@ export async function processRefund(
 	}
 
 	await notifyGuestOfCancellation(reservation, refund, {
-		isPartialRefund: alreadyRefunded + refund.amount < reservation.payment.amount,
+		isPartialRefund: alreadyRefunded + (refund?.amount ?? 0) < reservation.payment.amount + reservation.giftCardAmount,
 	});
 
 	return { success: true, refund };

@@ -12,6 +12,11 @@ export type CreateReservationInput = {
 	quantity: number;
 	notificationPreference?: 'email' | 'sms' | 'both';
 	promoCode?: string;
+	/** Gift card code paying toward the Deposit (issue 065). */
+	giftCardCode?: string;
+	/** Extras chosen at booking (issue 068): one entry per Extra. A
+	 * per-person Extra ignores the quantity sent and takes the party size. */
+	extras?: { extraId: string; quantity: number }[];
 	/** Dietary Requirements (issue 041): stored only on an Event that asks,
 	 * and only with `dietaryConsent`. */
 	dietaryRequirements?: string;
@@ -97,6 +102,14 @@ export type TicketEmailData = {
 		practicalInfoEn?: string | null;
 		practicalInfoFr?: string | null;
 	};
+	/** The Extras chosen at booking (issue 068), snapshotted at that time. */
+	extras?: {
+		nameFr: string;
+		nameEn: string;
+		unitPrice: number;
+		unit: 'per_person' | 'per_unit';
+		quantity: number;
+	}[];
 	qrCode?: string;
 	googleCalendarUrl?: string;
 	icsUrl?: string;

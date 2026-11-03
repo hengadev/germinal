@@ -6,9 +6,9 @@
  * current Day. Also carries the refund figures each party card shows
  * (what was paid online, what remains refundable, the policy's suggestion).
  */
-import { eq, inArray } from 'drizzle-orm';
+import { eq, inArray, and } from 'drizzle-orm';
 import { db } from '../db';
-import { eventDays, eventServices, eventSessions, events, payments, reservations } from '../db/schema';
+import { eventDays, eventServices, eventSessions, events, giftCardLedger, payments, reservations } from '../db/schema';
 import type { StaffAccess } from '$lib/staff/access';
 import type { DayGuestList } from './day-guest-list';
 import { CancellationError, cancelWithRefund } from './cancellation';
@@ -171,6 +171,31 @@ export async function withRefundInfo(
 
 	const ids = list.seatings.flatMap((s) => s.parties).map((p) => p.id).filter((id): id is string => Boolean(id));
 	const paymentByReservation = new Map<string, { amount: number; refundedAmount: number; status: string }>();
+	// The gift card's share of each Deposit (issue 065): what the card paid
+	// (its `booking` row, negative) and what was already credited back
+	// (`refund`, positive) — both count toward what was paid online.
+	const cardShareByReservation = new Map<string, { paid: number; creditable: number }>();
+	if (ids.length > 0) {
+		const cardRows = await db
+			.select({
+				reservationId: giftCardLedger.reservationId,
+				amount: giftCardLedger.amount,
+				reason: giftCardLedger.reason,
+			})
+			.from(giftCardLedger)
+			.where(and(inArray(giftCardLedger.reservationId, ids), inArray(giftCardLedger.reason, ['booking', 'refund'])));
+		for (const row of cardRows) {
+			if (!row.reservationId) continue;
+			const entry = cardShareByReservation.get(row.reservationId) ?? { paid: 0, creditable: 0 };
+			if (row.reason === 'booking') {
+				entry.paid -= row.amount;
+				entry.creditable -= row.amount;
+			} else {
+				entry.creditable += row.amount;
+			}
+			cardShareByReservation.set(row.reservationId, entry);
+		}
+	}
 	if (ids.length > 0) {
 		const rows = await db
 			.select({
@@ -199,8 +224,10 @@ export async function withRefundInfo(
 		for (const party of seating.parties) {
 			if (!party.id) continue;
 			const payment = paymentByReservation.get(party.id);
-			party.paidOnline = payment ? refundableAmount(payment) + (payment.refundedAmount ?? 0) : 0;
-			party.refundable = refundableAmount(payment);
+			const cardShare = cardShareByReservation.get(party.id);
+			party.paidOnline =
+				(payment ? refundableAmount(payment) + (payment.refundedAmount ?? 0) : 0) + (cardShare?.paid ?? 0);
+			party.refundable = refundableAmount(payment) + Math.max(0, cardShare?.creditable ?? 0);
 			party.suggestedRefund =
 				party.refundable > 0
 					? cancellationPreFill({

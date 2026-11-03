@@ -26,6 +26,8 @@ export async function closeTestDatabase() {
 export async function setupTestDatabase() {
 	const db = getTestDatabase();
 	await db.execute(sql`TRUNCATE TABLE audit_log CASCADE`);
+	await db.execute(sql`TRUNCATE TABLE gift_card_ledger CASCADE`);
+	await db.execute(sql`TRUNCATE TABLE gift_cards CASCADE`);
 	await db.execute(sql`TRUNCATE TABLE guest_notes CASCADE`);
 	await db.execute(sql`TRUNCATE TABLE subscribers CASCADE`);
 	await db.execute(sql`TRUNCATE TABLE reservations CASCADE`);
@@ -46,6 +48,8 @@ export async function setupTestDatabase() {
 	await db.execute(sql`TRUNCATE TABLE contact_submissions CASCADE`);
 	await db.execute(sql`TRUNCATE TABLE media CASCADE`);
 	await db.execute(sql`TRUNCATE TABLE talents CASCADE`);
+	await db.execute(sql`TRUNCATE TABLE reservation_extras CASCADE`);
+	await db.execute(sql`TRUNCATE TABLE event_extras CASCADE`);
 	await db.execute(sql`TRUNCATE TABLE events CASCADE`);
 	return db;
 }

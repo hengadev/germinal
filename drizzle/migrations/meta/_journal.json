@@ -372,6 +372,27 @@
       "when": 1793604089704,
       "tag": "0052_check_in_client_id",
       "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "7",
+      "when": 1793669781744,
+      "tag": "0053_gift_cards",
+      "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1793676519902,
+      "tag": "0054_private_event_demandes",
+      "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "7",
+      "when": 1793690693268,
+      "tag": "0055_event_extras",
+      "breakpoints": true
     }
   ]
 }

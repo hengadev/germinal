@@ -182,7 +182,7 @@ describe('day guest list', () => {
 
 		// Exactly the guest-list fields, nothing more.
 		expect(Object.keys(seating.parties[0]).sort()).toEqual(
-			['arrived', 'balanceAmount', 'balanceSettledAt', 'balanceSettledByName', 'currency', 'lastMovedAt', 'lastMovedByName', 'guestName', 'id', 'isComp', 'lastCheckInAt', 'origin', 'quantity', 'tags', 'visitNumber'].sort()
+			['arrived', 'balanceAmount', 'balanceSettledAt', 'balanceSettledByName', 'currency', 'giftCardPaidAtDoor', 'lastMovedAt', 'lastMovedByName', 'guestName', 'id', 'isComp', 'lastCheckInAt', 'origin', 'quantity', 'tags', 'visitNumber', 'extras'].sort()
 		);
 		expect(leaks(list)).toBe(false);
 	});
@@ -226,7 +226,7 @@ describe('day guest list', () => {
 		const party = list!.seatings[0].parties[0];
 		expect(party.guestPhone).toBe('06 99 88 77 66');
 		expect(Object.keys(party).sort()).toEqual(
-			['arrived', 'balanceAmount', 'balanceSettledAt', 'balanceSettledByName', 'currency', 'lastMovedAt', 'lastMovedByName', 'guestEmail', 'guestName', 'guestPhone', 'id', 'isComp', 'lastCheckInAt', 'origin', 'quantity', 'tags', 'visitNumber'].sort()
+			['arrived', 'balanceAmount', 'balanceSettledAt', 'balanceSettledByName', 'currency', 'giftCardPaidAtDoor', 'lastMovedAt', 'lastMovedByName', 'guestEmail', 'guestName', 'guestPhone', 'id', 'isComp', 'lastCheckInAt', 'origin', 'quantity', 'tags', 'visitNumber', 'extras'].sort()
 		);
 
 		const withoutContact = accessFor(
@@ -285,7 +285,7 @@ describe('day guest list', () => {
 		expect(party).not.toBeNull();
 		expect(party!.guestName).toBe('Alice Martin');
 		expect(Object.keys(party!).sort()).toEqual(
-			['arrived', 'balanceAmount', 'balanceSettledAt', 'balanceSettledByName', 'currency', 'lastMovedAt', 'lastMovedByName', 'guestEmail', 'guestName', 'guestPhone', 'id', 'isComp', 'lastCheckInAt', 'origin', 'quantity', 'tags', 'visitNumber'].sort()
+			['arrived', 'balanceAmount', 'balanceSettledAt', 'balanceSettledByName', 'currency', 'giftCardPaidAtDoor', 'lastMovedAt', 'lastMovedByName', 'guestEmail', 'guestName', 'guestPhone', 'id', 'isComp', 'lastCheckInAt', 'origin', 'quantity', 'tags', 'visitNumber', 'extras'].sort()
 		);
 
 		// Another Day, another Event, a cancelled Ticket: all refused.

@@ -62,9 +62,31 @@ export interface EditorServicePricing {
 	legacySeatings: EditorLegacySeatingPrice[];
 }
 
+/** An Event extra (issue 067) as loaded for the edit page, in display
+ * order. */
+export interface EditorEventExtra {
+	id: string;
+	nameEn: string;
+	nameFr: string;
+	descriptionEn: string | null;
+	descriptionFr: string | null;
+	/** Minor units, in the Event's currency. */
+	priceAmount: number;
+	unit: 'per_person' | 'per_unit';
+	/** Total stock across the Event; null for an unlimited extra. */
+	stock: number | null;
+	position: number;
+	active: boolean;
+	/** True once a Reservation has chosen it: it can no longer be
+	 * deleted, only deactivated. */
+	booked: boolean;
+}
+
 export interface PricingEditorData {
 	menus: EditorMenu[];
 	services: EditorServicePricing[];
+	/** The Event's extras (issue 067), in display order. */
+	extras?: EditorEventExtra[];
 	/** The Event's currency (issue 042): every price of the tab is in it. */
 	currency: string;
 	/** True once the Event has a Reservation: the currency can no longer
@@ -98,6 +120,27 @@ export interface ServicePricingPayload {
 	/** Drop the legacy per-Seating prices so every Seating of the Service
 	 * is booked at the Service's price. */
 	clearLegacyPrices: boolean;
+}
+
+/** An Event extra as posted: `id` null creates it; `key` is how the save
+ * answer names it back. Extras of the Event left out of the payload are
+ * deleted — unless already booked, which the save refuses. */
+export interface EventExtraPayload {
+	key: string;
+	id: string | null;
+	nameEn: string;
+	nameFr: string;
+	descriptionEn: string | null;
+	descriptionFr: string | null;
+	/** Minor units, zero allowed. */
+	priceAmount: number;
+	unit: 'per_person' | 'per_unit';
+	stock: number | null;
+	active: boolean;
+}
+
+export interface ExtrasPayload {
+	extras: EventExtraPayload[];
 }
 
 export interface PricingPayload {

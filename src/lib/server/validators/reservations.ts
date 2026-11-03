@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { config } from '../env';
+import { MAX_EXTRA_QUANTITY } from '../services/event-extras';
 import { DIETARY_REQUIREMENTS_MAX_LENGTH, needsDietaryConsent } from '$lib/utils/dietary-requirements';
 
 export const createReservationSchema = z.object({
@@ -25,6 +26,14 @@ export const createReservationSchema = z.object({
 	notificationPreference: z.enum(['email', 'sms', 'both']).default('both'),
 	// Optional promotion code
 	promoCode: z.string().max(50).optional().transform(v => v?.trim().toUpperCase() || undefined),
+	// Optional gift card, paying toward the Deposit (issue 065)
+	giftCardCode: z.string().max(50).optional().transform(v => v?.trim().toUpperCase() || undefined),
+	// Extras chosen at booking (issue 068). A per-person Extra's quantity
+	// is the party size server-side, whatever the client sends.
+	extras: z.array(z.object({
+		extraId: z.string().uuid('Invalid extra'),
+		quantity: z.number().int('Quantity must be a whole number').min(1).max(MAX_EXTRA_QUANTITY),
+	})).max(20).optional(),
 	// Dietary Requirements (issue 041): optional, and only with the Guest's
 	// explicit consent (health data). Ignored on an Event that does not ask.
 	dietaryRequirements: z.string()

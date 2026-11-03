@@ -2,6 +2,7 @@ import { redirect, error } from '@sveltejs/kit';
 import type { LayoutServerLoad } from './$types';
 import { getStaffUrl } from '$lib/server/hostname';
 import { moneyAlertCounts } from '$lib/server/services/money-alerts';
+import { countNewDemandes } from '$lib/server/services/contact';
 
 export const load: LayoutServerLoad = async ({ locals, url }) => {
 	// SECURITY: Admin routes only accessible from admin subdomain
@@ -28,6 +29,8 @@ export const load: LayoutServerLoad = async ({ locals, url }) => {
 		// a failure must not take the whole back office down.
 		moneyAlertsTotal: await moneyAlertCounts()
 			.then((counts) => counts.total)
-			.catch(() => 0)
+			.catch(() => 0),
+		// Issue 069: « nouvelle » demandes, for the Demandes badge. Best-effort.
+		newDemandesCount: await countNewDemandes().catch(() => 0)
 	};
 };

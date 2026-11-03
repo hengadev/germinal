@@ -26,7 +26,8 @@
     "talents": "Talents",
     "manifesto": "Manifesto",
     "contact": "Contact",
-    "findTicket": "Find my ticket"
+    "findTicket": "Find my ticket",
+    "giftCard": "Gift card"
   },
   "footer": {
     "allRightsReserved": "All rights reserved.",
@@ -136,6 +137,35 @@
     "noEventDescription": "There is currently no spotlight event. Check back soon for featured events.",
     "viewAllEvents": "View All Events"
   },
+  "giftCard": {
+    "pageTitle": "Gift card | Germinal",
+    "title": "Gift card",
+    "description": "Give Germinal's dinners, exhibitions and workshops: an amount of your choice, sent within minutes, valid for a year.",
+    "form": {
+      "amount": "Amount",
+      "customAmount": "Other amount",
+      "customAmountLabel": "Free amount (between €20 and €1,000)",
+      "buyerName": "Your name",
+      "buyerEmail": "Your email",
+      "recipientName": "Recipient's name",
+      "recipientEmail": "Recipient's email",
+      "message": "Message (optional)",
+      "delivery": "Delivery",
+      "deliveryBuyer": "To myself",
+      "deliveryRecipient": "Straight to the recipient",
+      "submit": "Give",
+      "redirecting": "Redirecting…"
+    },
+    "thanks": {
+      "pageTitle": "Thank you | Germinal",
+      "title": "Thank you!",
+      "sentToRecipient": "The gift card has been sent to",
+      "sentToBuyer": "The gift card has been sent to your address",
+      "pending": "Your payment is confirmed; the card is being issued. You will receive an email shortly.",
+      "receiptNote": "A receipt has also been emailed to you.",
+      "back": "Buy another card"
+    }
+  },
   "contact": {
     "pageTitle": "Contact | Germinal",
     "title": "Get in touch.",
@@ -145,7 +175,8 @@
       "collaboration": "Collaboration",
       "newProject": "New Project",
       "joinRoster": "Join Roster",
-      "other": "Other"
+      "other": "Other",
+      "privateEvent": "Private event"
     },
     "form": {
       "name": "Name",
@@ -153,7 +184,11 @@
       "company": "Company/Organization (optional)",
       "message": "Tell us about your project...",
       "send": "Send Message",
-      "sending": "Sending..."
+      "sending": "Sending...",
+      "occasion": "Occasion (optional)",
+      "preferredDates": "Preferred dates (optional)",
+      "guestCount": "Number of guests (optional)",
+      "budget": "Budget (optional)"
     },
     "sidebar": {
       "generalInquiries": "general inquiries",
@@ -286,6 +321,24 @@
       "discountOff": "{value}% off",
       "appliedLabel": "Code"
     },
+    "giftCard": {
+      "label": "Gift card",
+      "placeholder": "e.g. GERM-7ZK9-M3XT",
+      "apply": "Use",
+      "balance": "{amount} left",
+      "paysDeposit": "paid by gift card",
+      "removeAria": "Remove gift card",
+      "validationError": "Unable to check the card. Please try again.",
+      "reasons": {
+        "unknown": "Unknown gift card",
+        "currency": "Gift cards can only pay for events priced in euros",
+        "expired": "This gift card has expired",
+        "cancelled": "This gift card was cancelled",
+        "empty": "This gift card has no balance left",
+        "rate_limited": "Too many attempts. Please wait a moment and try again.",
+        "unavailable": "Service temporarily unavailable. Please try again."
+      }
+    },
     "errors": {
       "soldOut": "This session is sold out.",
       "sessionStarted": "This session has already started.",
@@ -298,13 +351,24 @@
       "payNow": "Deposit to pay now",
       "balanceAtVenue": "Balance due at the venue",
       "noDeposit": "Nothing to pay online: the full amount is settled at the venue.",
+      "paidByCard": "Your gift card pays the deposit: the rest is paid at the venue.",
       "note": "Only the deposit is charged online; the balance is settled at the venue."
     },
     "refundPolicy": {
       "title": "Cancellation and refunds"
     },
     "continueToPayDeposit": "Continue to pay the deposit",
-    "confirmBooking": "Confirm booking"
+    "confirmBooking": "Confirm booking",
+    "extras": {
+      "label": "Extras",
+      "optional": "optional",
+      "perPerson": "per person",
+      "perUnit": "per unit",
+      "soldOut": "Sold out",
+      "quantity": "Quantity",
+      "included": "Included for {qty} guest(s)",
+      "lineTotal": "Extras"
+    }
   },
   "waitlist": {
     "description": "Get notified when tickets become available",
@@ -376,7 +440,9 @@
       "noRefundPreview": "Under this event's refund policy, cancelling now gives no refund. Your seats will be released."
     },
     "depositPaid": "Deposit paid",
-    "balanceDue": "Balance due at the venue"
+    "giftCardPaid": "of which paid by gift card",
+    "balanceDue": "Balance due at the venue",
+    "extras": "Extras"
   },
   "newsletterSignup": {
     "previewTitle": "Newsletter — preview",

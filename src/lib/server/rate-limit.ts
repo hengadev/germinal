@@ -150,6 +150,12 @@ const POLICIES = {
 		maxAttempts: 30,
 		windowMs: 60 * 1000,
 	},
+	// Gift-card validation (issue 065): 30 attempts per minute per client IP.
+	'gift-card-validation': {
+		namespace: 'gift-card-validation',
+		maxAttempts: 30,
+		windowMs: 60 * 1000,
+	},
 } as const satisfies Record<string, RateLimitPolicy>;
 
 /** Every action with a rate-limit policy. */

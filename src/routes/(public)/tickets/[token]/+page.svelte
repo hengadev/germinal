@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { localizedText } from '$lib/utils/event-text';
 	import { localizedPracticalInfo } from '$lib/utils/practical-info';
-	import { Download, Printer, CheckCircle2, Clock, MapPin, Calendar, User, Mail, Ticket, CreditCard, AlertCircle, X, XCircle, Loader2 } from 'lucide-svelte';
+	import { Download, Printer, CheckCircle2, Clock, MapPin, Calendar, User, Mail, Ticket, CreditCard, AlertCircle, X, XCircle, Loader2, Gift } from 'lucide-svelte';
 	import { locale, t } from 'svelte-i18n';
 	import type { PageData } from './$types';
 	import { formatCurrency } from '$lib/utils/currency';
@@ -449,6 +449,20 @@ END:VCALENDAR`;
 								{$t('tickets.ticketCount', { values: { count: data.reservation.quantity } })}
 							</dd>
 						</div>
+						{#if data.reservation.extras.length > 0}
+							<!-- The Extras chosen at booking (issue 068). -->
+							{#each data.reservation.extras as extra, i (i)}
+								<div class="flex items-center justify-between py-2.5 gap-4">
+									<dt class="text-sm text-muted-foreground">
+										{$t('tickets.extras')} — {$locale === 'fr' ? extra.nameFr : extra.nameEn}
+										<span class="text-xs">× {extra.quantity}</span>
+									</dt>
+									<dd class="text-sm text-foreground">
+										{formatCurrency(extra.unitPrice * extra.quantity, data.reservation.currency, $locale ?? undefined)}
+									</dd>
+								</div>
+							{/each}
+						{/if}
 					</dl>
 				</div>
 
@@ -473,8 +487,19 @@ END:VCALENDAR`;
 								</dt>
 								<dd class="text-sm font-semibold text-foreground">
 									{formatCurrency(data.reservation.depositAmount, data.reservation.currency, $locale ?? undefined)}
-								</dd>
+							</dd>
 							</div>
+							{#if data.reservation.giftCardAmount > 0}
+								<div class="flex items-center justify-between py-2.5 gap-4">
+									<dt class="flex items-center gap-2 text-sm text-muted-foreground">
+										<Gift size={15} class="text-muted-foreground" />
+										{$t('tickets.giftCardPaid')}
+									</dt>
+									<dd class="text-sm font-semibold text-foreground">
+										{formatCurrency(data.reservation.giftCardAmount, data.reservation.currency, $locale ?? undefined)}
+									</dd>
+								</div>
+							{/if}
 							<div class="flex items-center justify-between py-2.5 gap-4">
 								<dt class="font-serif text-base text-foreground">{$t('tickets.balanceDue')}</dt>
 								<dd class="font-mono text-base font-semibold text-foreground">

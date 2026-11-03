@@ -25,6 +25,9 @@ export interface PartySizeInput {
 	quantity: number;
 	/** total_amount, in cents. */
 	total: number;
+	/** The Extras' share of `total` (issue 068): kept as it is when the
+	 * party changes size — only the meal scales. Defaults to 0. */
+	extrasTotal?: number;
 	/** The Deposit actually paid online, minus refunds, in cents. */
 	depositPaid: number;
 	/** balance_amount, in cents. */
@@ -89,7 +92,7 @@ export function quotePartySize(input: PartySizeInput, newQuantity: number): Part
 				total: input.total,
 				balance: input.balance,
 				overPaid: 0,
-				pricePerGuest: input.isComp ? 0 : Math.round(input.total / input.quantity),
+				pricePerGuest: input.isComp ? 0 : Math.round((input.total - (input.extrasTotal ?? 0)) / input.quantity),
 				overPaidRefund: null,
 			},
 		};
@@ -103,10 +106,14 @@ export function quotePartySize(input: PartySizeInput, newQuantity: number): Part
 		};
 	}
 
-	const pricePerGuest = Math.round(input.total / input.quantity);
-	// Scaled from the total rather than added per Guest, so going back to
-	// the original number gives back the original total, cent for cent.
-	const total = Math.round((input.total * newQuantity) / input.quantity);
+	const extrasTotal = input.extrasTotal ?? 0;
+	const mealTotal = input.total - extrasTotal;
+	const pricePerGuest = Math.round(mealTotal / input.quantity);
+	// The meal scales with the party, the Extras keep their total (issue
+	// 068 — per-person Extras keep their booked quantity); scaled from the
+	// meal total rather than added per Guest, so going back to the original
+	// number gives back the original total, cent for cent.
+	const total = extrasTotal + Math.round((mealTotal * newQuantity) / input.quantity);
 	// Removals come off the Balance first, never below 0.
 	const balance = Math.max(input.balance + (total - input.total), 0);
 	// Beyond the Balance, the change eats into the Deposit already paid:

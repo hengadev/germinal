@@ -21,6 +21,7 @@ const EXPECTED_BUDGETS: Record<RateLimitAction, { maxAttempts: number; windowSec
 	'waitlist-join': { maxAttempts: 3, windowSeconds: 60 * 60 },
 	'find-ticket': { maxAttempts: 3, windowSeconds: 60 * 60 },
 	'promo-code-validation': { maxAttempts: 30, windowSeconds: 60 },
+	'gift-card-validation': { maxAttempts: 30, windowSeconds: 60 },
 };
 
 function redis(): FakeRedis {
@@ -74,6 +75,7 @@ describe('rate-limit policy table', () => {
 		const keys = [...redis().store.keys()].sort();
 		expect(keys).toEqual([
 			'ratelimit:find-ticket:203.0.113.7',
+			'ratelimit:gift-card-validation:203.0.113.7',
 			'ratelimit:inquiry:203.0.113.7',
 			'ratelimit:login:203.0.113.7',
 			'ratelimit:newsletter-signup:203.0.113.7',

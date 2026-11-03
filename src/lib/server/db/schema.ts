@@ -15,7 +15,17 @@ export const inquiryTypeEnum = pgEnum('inquiry_type', [
     'collaboration',
     'new_project',
     'join_roster',
+    'private_event',
     'other'
+]);
+
+// Lifecycle of a Demande (issue 069), managed from the Admin inbox.
+export const requestStatusEnum = pgEnum('request_status', [
+    'new',
+    'discussing',
+    'quote_sent',
+    'confirmed',
+    'lost'
 ]);
 
 export const reservationStatusEnum = pgEnum('reservation_status', [
@@ -40,6 +50,7 @@ export const userRoleEnum = pgEnum('user_role', ['user', 'admin', 'staff']);
 export const taskStatusEnum = pgEnum('task_status', ['pending', 'in_progress', 'done']);
 
 export const taskPriorityEnum = pgEnum('task_priority', ['low', 'medium', 'high']);
+export const eventExtraUnitEnum = pgEnum('event_extra_unit', ['per_person', 'per_unit']);
 
 export const reservationOriginEnum = pgEnum('reservation_origin', [
     'online',
@@ -333,6 +344,35 @@ export const eventServices = pgTable('event_services', {
     ),
 }));
 
+// An Event extra (issue 067): something offered alongside the meals — a
+// wine pairing, a workshop seat… — priced once per Event in its currency,
+// either per person or per unit, with an optional total stock and a display
+// order. Deactivated rather than deleted once booked (the snapshots on
+// Reservations must keep making sense).
+export const eventExtras = pgTable('event_extras', {
+    id: uuid('id').defaultRandom().primaryKey(),
+    eventId: uuid('event_id')
+        .notNull()
+        .references(() => events.id, { onDelete: 'cascade' }),
+    nameEn: varchar('name_en', { length: 255 }).notNull(),
+    nameFr: varchar('name_fr', { length: 255 }).notNull(),
+    descriptionEn: text('description_en'),
+    descriptionFr: text('description_fr'),
+    // Minor units (cents), zero allowed.
+    priceAmount: integer('price_amount').notNull(),
+    unit: eventExtraUnitEnum('unit').notNull(),
+    // Total stock across the Event; null for an unlimited extra.
+    stock: integer('stock'),
+    position: integer('position').notNull().default(0),
+    active: boolean('active').notNull().default(true),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+    eventIdIdx: index('event_extras_event_id_idx').on(table.eventId),
+    priceCheck: check('event_extras_price_check', sql`price_amount >= 0`),
+    stockCheck: check('event_extras_stock_check', sql`stock IS NULL OR stock >= 0`),
+}));
+
 export const talents = pgTable('talents', {
     id: uuid('id').defaultRandom().primaryKey(),
     firstName: varchar('first_name', { length: 100 }).notNull(),
@@ -574,6 +614,16 @@ export const contactSubmissions = pgTable('contact_submissions', {
     company: varchar('company', { length: 255 }),
     inquiryType: inquiryTypeEnum('inquiry_type').notNull(),
     message: text('message').notNull(),
+    // Privatisation fields (issue 069), only filled when inquiryType is 'private_event'.
+    occasion: varchar('occasion', { length: 255 }),
+    preferredDates: text('preferred_dates'),
+    guestCount: integer('guest_count'),
+    budget: varchar('budget', { length: 255 }),
+    // Demande lifecycle (issue 069).
+    status: requestStatusEnum('status').default('new').notNull(),
+    adminNote: text('admin_note'),
+    // Set when the Demande becomes an Event (issue 070).
+    eventId: uuid('event_id').references(() => events.id, { onDelete: 'set null' }),
     honeypot: varchar('honeypot', { length: 100 }),
     ipAddress: varchar('ip_address', { length: 45 }),
     userAgent: varchar('user_agent', { length: 500 }),
@@ -586,6 +636,7 @@ export const contactSubmissions = pgTable('contact_submissions', {
     createdAtIdx: index('contact_submissions_created_at_idx').on(table.createdAt),
     inquiryTypeIdx: index('contact_submissions_inquiry_type_idx').on(table.inquiryType),
     emailSentIdx: index('contact_submissions_email_sent_idx').on(table.emailSent),
+    statusIdx: index('contact_submissions_status_idx').on(table.status),
 }));
 
 // ============================================
@@ -693,6 +744,64 @@ export const promotionCodes = pgTable('promotion_codes', {
 }));
 
 // ============================================
+// GIFT CARDS (issue 063)
+// ============================================
+
+export const giftCardStatusEnum = pgEnum('gift_card_status', ['active', 'cancelled'] as const);
+export const giftCardOriginEnum = pgEnum('gift_card_origin', ['online', 'admin'] as const);
+// Why a ledger row moves the balance: a booking (online, issue 065), a
+// payment at the door, a refund, or an Admin adjustment.
+export const giftCardLedgerReasonEnum = pgEnum('gift_card_ledger_reason', [
+    'booking',
+    'door',
+    'refund',
+    'admin_adjustment',
+] as const);
+
+export const giftCards = pgTable('gift_cards', {
+    id: uuid('id').defaultRandom().primaryKey(),
+    // Unguessable, case-insensitive, stored normalised (GERM-XXXX-XXXX).
+    code: varchar('code', { length: 50 }).notNull(),
+    initialAmount: integer('initial_amount').notNull(),
+    balance: integer('balance').notNull(),
+    status: giftCardStatusEnum('status').notNull().default('active'),
+    // One year after issue by default (set by the service).
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    recipientName: varchar('recipient_name', { length: 255 }),
+    recipientEmail: varchar('recipient_email', { length: 255 }),
+    message: text('message'),
+    buyerName: varchar('buyer_name', { length: 255 }),
+    buyerEmail: varchar('buyer_email', { length: 255 }),
+    origin: giftCardOriginEnum('origin').notNull().default('online'),
+    stripeReference: varchar('stripe_reference', { length: 255 }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+    codeUniqueIdx: unique('gift_cards_code_unique').on(table.code),
+    statusIdx: index('gift_cards_status_idx').on(table.status),
+    expiresAtIdx: index('gift_cards_expires_at_idx').on(table.expiresAt),
+    initialAmountCheck: check('gift_cards_initial_amount_check', sql`initial_amount > 0`),
+    balanceCheck: check('gift_cards_balance_check', sql`balance >= 0 AND balance <= initial_amount`),
+}));
+
+export const giftCardLedger = pgTable('gift_card_ledger', {
+    id: uuid('id').defaultRandom().primaryKey(),
+    giftCardId: uuid('gift_card_id')
+        .notNull()
+        .references(() => giftCards.id, { onDelete: 'cascade' }),
+    // Negative: used. Positive: credited.
+    amount: integer('amount').notNull(),
+    reason: giftCardLedgerReasonEnum('reason').notNull(),
+    reservationId: uuid('reservation_id')
+        .references(() => reservations.id, { onDelete: 'set null' }),
+    actorId: uuid('actor_id').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+    giftCardIdIdx: index('gift_card_ledger_gift_card_id_idx').on(table.giftCardId),
+    reservationIdIdx: index('gift_card_ledger_reservation_id_idx').on(table.reservationId),
+}));
+
+// ============================================
 // RESERVATION AND TICKETING TABLES
 // ============================================
 
@@ -797,6 +906,8 @@ export const reservations = pgTable('reservations', {
     paymentId: uuid('payment_id').references(() => payments.id, { onDelete: 'set null' }),
     promotionCodeId: uuid('promotion_code_id').references(() => promotionCodes.id, { onDelete: 'set null' }),
     discountAmount: integer('discount_amount').default(0).notNull(),
+    // Issue 065: how much of the total was paid with a gift card.
+    giftCardAmount: integer('gift_card_amount').default(0).notNull(),
     // Issue 023: how total_amount (after discount) splits between the
     // Deposit paid online (what Stripe charges) and the Balance due at the
     // venue. deposit_amount + balance_amount = total_amount.
@@ -854,9 +965,36 @@ export const reservations = pgTable('reservations', {
     quantityCheck: check('reservations_quantity_check', sql`quantity > 0`),
     amountCheck: check('reservations_amount_check', sql`total_amount >= 0`),
     discountCheck: check('reservations_discount_check', sql`discount_amount >= 0`),
+    giftCardAmountCheck: check('reservations_gift_card_amount_check', sql`gift_card_amount >= 0`),
     depositBalanceCheck: check('reservations_deposit_balance_check',
         sql`deposit_amount >= 0 AND balance_amount >= 0 AND deposit_amount + balance_amount = total_amount`
     ),
+}));
+
+// A chosen Event extra on a Reservation (issue 067): one row per extra,
+// snapshotting its name, unit price and unit at the time of the booking
+// (used by 068 for pricing). `restrict` keeps a booked extra from being
+// deleted — it is deactivated instead.
+export const reservationExtras = pgTable('reservation_extras', {
+    id: uuid('id').defaultRandom().primaryKey(),
+    reservationId: uuid('reservation_id')
+        .notNull()
+        .references(() => reservations.id, { onDelete: 'cascade' }),
+    eventExtraId: uuid('event_extra_id')
+        .notNull()
+        .references(() => eventExtras.id, { onDelete: 'restrict' }),
+    nameEn: varchar('name_en', { length: 255 }).notNull(),
+    nameFr: varchar('name_fr', { length: 255 }).notNull(),
+    // Minor units (cents), in the Event's currency at booking time.
+    unitPrice: integer('unit_price').notNull(),
+    unit: eventExtraUnitEnum('unit').notNull(),
+    quantity: integer('quantity').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+    reservationIdIdx: index('reservation_extras_reservation_id_idx').on(table.reservationId),
+    eventExtraIdIdx: index('reservation_extras_event_extra_id_idx').on(table.eventExtraId),
+    unitPriceCheck: check('reservation_extras_unit_price_check', sql`unit_price >= 0`),
+    quantityCheck: check('reservation_extras_quantity_check', sql`quantity > 0`),
 }));
 
 export const payments = pgTable('payments', {
@@ -974,6 +1112,21 @@ export const waitlistRelations = relations(waitlist, ({ one }) => ({
     eventSession: one(eventSessions, {
         fields: [waitlist.eventSessionId],
         references: [eventSessions.id],
+    }),
+}));
+
+export const giftCardsRelations = relations(giftCards, ({ many }) => ({
+    ledger: many(giftCardLedger),
+}));
+
+export const giftCardLedgerRelations = relations(giftCardLedger, ({ one }) => ({
+    giftCard: one(giftCards, {
+        fields: [giftCardLedger.giftCardId],
+        references: [giftCards.id],
+    }),
+    reservation: one(reservations, {
+        fields: [giftCardLedger.reservationId],
+        references: [reservations.id],
     }),
 }));
 
