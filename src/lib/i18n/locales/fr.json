@@ -1,776 +1,776 @@
 {
-	"pwa": {
-		"offlineReady": "Application prête pour une utilisation hors ligne",
-		"newVersion": "Une nouvelle version est disponible",
-		"reload": "Recharger",
-		"close": "Fermer",
-		"installTitle": "Installer l'application",
-		"installDescription": "Accédez rapidement à Germinal depuis votre écran d'accueil.",
-		"installButton": "Installer",
-		"installDismiss": "Plus tard",
-		"iosTitle": "Installer {appName}",
-		"iosSubtitle": "Ajoutez à l'écran d'accueil pour la meilleure expérience",
-		"iosStep1": "Appuyez sur le bouton <strong>Partager</strong>",
-		"iosStep2": "Faites défiler et appuyez sur <strong>Ajouter à l'écran d'accueil</strong>"
-	},
-	"cookieConsent": {
-		"title": "Nous utilisons des cookies",
-		"description": "Nous utilisons des cookies strictement nécessaires au bon fonctionnement et à la sécurité de Germinal (votre session de connexion, la prévention de la fraude). Avec votre consentement, nous pouvons également utiliser des cookies supplémentaires pour améliorer votre expérience. Consultez notre",
-		"privacyLink": "Politique de confidentialité",
-		"essentialOnly": "Essentiels uniquement",
-		"acceptAll": "Tout accepter"
-	},
-	"nav": {
-		"upcomingEvent": "Prochain événement",
-		"events": "Projets",
-		"talents": "Talents",
-		"manifesto": "Manifeste",
-		"contact": "Contact",
-		"findTicket": "Retrouver mon billet",
-		"giftCard": "Carte cadeau"
-	},
-	"footer": {
-		"allRightsReserved": "Tous droits réservés.",
-		"tagline": "L'architecture des expériences sensorielles.",
-		"contactLabel": "Contact",
-		"explore": "Explorer",
-		"legal": "Légal",
-		"privacyPolicy": "Politique de confidentialité",
-		"termsOfSale": "Conditions générales de vente",
-		"mentionsLegales": "Mentions légales",
-		"faq": "FAQ"
-	},
-	"home": {
-		"metaTitle": "Germinal, studio culturel à Paris",
-		"metaDescription": "Germinal fait des dîners, des expositions et des ateliers à Paris, avec des chefs, des artisans et des artistes, et en imagine pour d’autres, à la mesure de chaque projet.",
-		"next": "Prochainement",
-		"reserve": "Réserver",
-		"allProjects": "Tous les projets",
-		"readManifesto": "Lire le manifeste",
-		"studioTitle": "Des soirées sur mesure.",
-		"studioBody": "Germinal est un studio culturel à Paris. Nous faisons des dîners, des expositions et des ateliers avec des chefs, des artisans et des artistes, et nous en imaginons pour d’autres, à la mesure de chaque projet.",
-		"projectsTitle": "Ce que nous avons fait",
-		"talentsTitle": "À notre table",
-		"talentsBody": "Les chefs, les artisans et les artistes avec qui nous faisons nos soirées.",
-		"allTalents": "Tous les talents",
-		"disciplinesTitle": "Ce que nous faisons"
-	},
-	"events": {
-		"pageTitle": "Projets | Germinal",
-		"title": "Projets",
-		"description": "Les événements que nous avons imaginés et réalisés, racontés en images. Ouvrez un projet pour le découvrir.",
-		"noEvents": "Aucun projet pour le moment.",
-		"lunch": "Déjeuner",
-		"dinner": "Dîner",
-		"perGuest": "par convive",
-		"free": "Gratuit",
-		"priceToBeAnnounced": "Tarif à venir",
-		"depositPerGuest": "Acompte de {amount} par convive, le reste sur place",
-		"noDepositNote": "Réglé en totalité sur place",
-		"project": {
-			"backToProjects": "Tous les projets",
-			"photographs": "Photographies",
-			"credits": "Générique",
-			"venue": "Lieu",
-			"curator": "Commissariat"
-		},
-		"page": {
-			"book": "Réserver",
-			"joinWaitlist": "Liste d’attente",
-			"onTheMenu": "Au menu",
-			"curator": "Commissariat",
-			"venue": "Lieu",
-			"previewDraft": "Aperçu — brouillon",
-			"nextProject": "Projet suivant",
-			"dietaryNote": "Allergies et régimes vous seront demandés à la réservation.",
-			"seating": {
-				"ended": "Terminée",
-				"unavailable": "Indisponible",
-				"opensSoon": "Réservations bientôt ouvertes",
-				"waitlist": "Complet — liste d’attente ouverte",
-				"full": "Complet",
-				"lastSeat": "Dernière place",
-				"seatsLeft": "Il reste {count} places",
-				"seats": "{count} places",
-				"open": "Places disponibles"
-			},
-			"summary": {
-				"waitlist": "Complet — liste d’attente",
-				"past": "A eu lieu"
-			},
-			"price": {
-				"each": "{amount} par convive",
-				"from": "À partir de {amount} par convive",
-				"freeBooking": "Gratuit, sur réservation"
-			},
-			"viewer": {
-				"close": "Fermer",
-				"previous": "Photo précédente",
-				"next": "Photo suivante",
-				"open": "Agrandir la photo {index}"
-			},
-			"comingUp": "À venir"
-		}
-	},
-	"talents": {
-		"pageTitle": "Talents | Germinal",
-		"title": "Talents",
-		"description": "Une liste d'artistes, architectes et penseurs multidisciplinaires qui façonnent la culture contemporaine. Sélectionnez un profil pour voir leur portfolio.",
-		"view": "Vue :",
-		"loadMore": "Charger plus de talents",
-		"filters": {
-			"visualArts": "Arts visuels",
-			"design": "Design",
-			"culinary": "Culinaire"
-		},
-		"noTalents": "Aucun talent disponible pour le moment.",
-		"basedIn": "Basé à",
-		"specialization": "Spécialisation",
-		"category": "Catégorie",
-		"gallery": "Galerie",
-		"filterAll": "Tout",
-		"viewDetails": "Voir les détails",
-		"noTalentsInCategory": "Aucun talent trouvé dans cette catégorie."
-	},
-	"spotlight": {
-		"noEventTitle": "Aucun événement en vedette",
-		"noEventDescription": "Il n'y a actuellement aucun événement en vedette. Revenez bientôt pour découvrir les prochains événements.",
-		"viewAllEvents": "Voir tous les événements"
-	},
-	"giftCard": {
-		"pageTitle": "Carte cadeau | Germinal",
-		"title": "Carte cadeau",
-		"description": "Offrez les dîners, expositions et ateliers de Germinal : un montant au choix, envoyé en quelques minutes, valable un an.",
-		"form": {
-			"amount": "Montant",
-			"customAmount": "Autre montant",
-			"customAmountLabel": "Montant libre (entre 20 et 1 000 €)",
-			"buyerName": "Votre nom",
-			"buyerEmail": "Votre e-mail",
-			"recipientName": "Nom du destinataire",
-			"recipientEmail": "E-mail du destinataire",
-			"message": "Message (facultatif)",
-			"delivery": "Envoi",
-			"deliveryBuyer": "À moi-même",
-			"deliveryRecipient": "Directement au destinataire",
-			"submit": "Offrir",
-			"redirecting": "Redirection…"
-		},
-		"thanks": {
-			"pageTitle": "Merci | Germinal",
-			"title": "Merci !",
-			"sentToRecipient": "La carte cadeau a été envoyée à",
-			"sentToBuyer": "La carte cadeau a été envoyée à votre adresse",
-			"pending": "Votre paiement est confirmé ; la carte est en cours d'émission. Vous recevrez un e-mail dans quelques instants.",
-			"receiptNote": "Un reçu vous a également été envoyé par e-mail.",
-			"back": "Acheter une autre carte"
-		}
-	},
-	"contact": {
-		"pageTitle": "Contact | Germinal",
-		"title": "Prenons contact.",
-		"description": "Nous sommes toujours à la recherche de nouveaux talents, collaborateurs et projets architecturaux. Contactez-nous pour entamer une conversation.",
-		"regarding": "De quoi s'agit-il ?",
-		"filters": {
-			"collaboration": "Collaboration",
-			"newProject": "Nouveau projet",
-			"joinRoster": "Rejoindre la liste",
-			"other": "Autre",
-			"privateEvent": "Privatisation"
-		},
-		"form": {
-			"name": "Nom",
-			"email": "Email",
-			"company": "Entreprise/Organisation (optionnel)",
-			"message": "Parlez-nous de votre projet...",
-			"send": "Envoyer le message",
-			"sending": "Envoi en cours...",
-			"occasion": "Occasion (optionnel)",
-			"preferredDates": "Dates souhaitées (optionnel)",
-			"guestCount": "Nombre d’invités (optionnel)",
-			"budget": "Budget (optionnel)"
-		},
-		"sidebar": {
-			"generalInquiries": "demandes générales",
-			"pressMedia": "presse & médias",
-			"followUs": "Suivez-nous"
-		}
-	},
-	"manifesto": {
-		"pageTitle": "Manifeste | Germinal",
-		"metaDescription": "Germinal est un studio culturel à Paris. Dîners, expositions et ateliers avec des chefs, des artisans et des artistes. Voici ce à quoi nous tenons.",
-		"title": "Une table, un lieu, un soir.",
-		"intro": "Germinal est un studio culturel installé à Paris depuis 2026. Nous faisons des dîners, des expositions et des ateliers avec des chefs, des artisans et des artistes. Voici ce à quoi nous tenons.",
-		"signature": "Germinal, Paris, depuis 2026",
-		"theses": {
-			"table": {
-				"statement": "Nous mettons une table, pas une salle.",
-				"body": "Les couverts sont posés pour qu’on se parle d’un bout à l’autre."
-			},
-			"authors": {
-				"statement": "Chaque soirée a ses auteurs.",
-				"body": "Une cheffe, un céramiste, une musicienne. Nous les invitons à faire ce qu’ils font, à leur façon, et leur nom est sur le projet."
-			},
-			"place": {
-				"statement": "Le lieu passe avant le décor.",
-				"body": "Un atelier, un jardin, une cave. Nous partons de ce qui est là, les murs, la lumière, le bruit de la rue, et nous ajoutons le moins possible."
-			},
-			"backstage": {
-				"statement": "Le travail ne doit pas se voir.",
-				"body": "La lumière, la vaisselle, le temps entre deux plats : tout est réglé à l’avance, pour que personne n’y pense une fois à table."
-			},
-			"guests": {
-				"statement": "Vous n’êtes pas un public.",
-				"body": "On ne vient pas regarder : on s’assoit, on mange, on parle à son voisin. La soirée se fait à table, avec ceux qui sont là."
-			},
-			"once": {
-				"statement": "Ce qui a eu lieu reste ici.",
-				"photoAfter": 5,
-				"body": "Les photos de chaque soirée sont gardées ici, dans nos projets. Puis nous passons à la suivante."
-			}
-		},
-		"servicesTitle": "Ce que nous faisons",
-		"servicesIntro": "Nous produisons nos propres soirées, et nous en imaginons pour d’autres. Trois métiers, du premier croquis à la dernière bougie.",
-		"artDirection": {
-			"title": "Direction artistique",
-			"tagline": "Une idée, tenue jusqu’au bout.",
-			"body": "Chaque projet part d’une idée qui tient en une phrase. Nous la gardons du premier croquis au dernier service : la lumière, les matières, le son, la vaisselle, les invitations.",
-			"point1": "Concept et identité du projet",
-			"point2": "Lumière, matière, couleur, son",
-			"point3": "Direction des talents invités",
-			"point4": "Planches et références"
-		},
-		"scenography": {
-			"title": "Scénographie",
-			"tagline": "Faire avec le lieu.",
-			"body": "Nous lisons un espace avant d’y toucher : par où l’on entre, où l’on s’assoit, d’où vient la lumière. Puis nous posons peu de choses, au bon endroit.",
-			"point1": "Plan de salle et de tables",
-			"point2": "Mobilier, matières, vaisselle",
-			"point3": "Lumière d’ambiance et de scène",
-			"point4": "Végétal et installations"
-		},
-		"production": {
-			"title": "Production",
-			"tagline": "Ce qu’on ne voit pas.",
-			"body": "Les équipes, les fournisseurs, le budget, l’imprévu de 19 h 30. Nous le portons, pour que les talents fassent leur travail et que les invités n’y pensent pas.",
-			"point1": "Coordination des équipes",
-			"point2": "Lieux, fournisseurs et prestataires",
-			"point3": "Budget et calendrier",
-			"point4": "Installation et régie le jour J"
-		},
-		"photoOf": "{title}, {year}",
-		"newProjectCta": "Nous parler de votre projet",
-		"closingLetter": {
-			"title": "Écrivez-nous.",
-			"body": "Pour commencer, trois choses suffisent, et aucune n’a besoin d’être sûre :",
-			"place": "Un lieu, si vous l’avez.",
-			"date": "Une date, si vous la connaissez.",
-			"idea": "Une idée, même vague.",
-			"orWrite": "ou directement à"
-		}
-	},
-	"upcoming": {
-		"title": "Le prochain événement"
-	},
-	"booking": {
-		"title": "Réserver des billets",
-		"description": "Complétez vos informations de réservation",
-		"errorTitle": "Réservation échouée",
-		"fullName": "Nom complet",
-		"email": "Email",
-		"emailHint": "La confirmation du billet sera envoyée ici",
-		"phone": "Numéro de téléphone",
-		"optional": "(optionnel)",
-		"dietary": {
-			"label": "Allergies ou régime alimentaire",
-			"placeholder": "Ex. : allergie aux fruits à coque, végétarien, sans gluten…",
-			"hint": "Pour toute la réservation. Facultatif : vous pouvez réserver sans répondre.",
-			"consent": "J'accepte que Germinal conserve ces informations de santé pour adapter le repas. Elles ne sont vues que par l'équipe Germinal et sont effacées 30 jours après la séance.",
-			"consentRequired": "Cochez la case de consentement pour transmettre vos allergies ou votre régime, ou videz le champ."
-		},
-		"newsletter": {
-			"consent": "Recevoir les prochains événements de Germinal"
-		},
-		"notificationsLabel": "Comment souhaitez-vous recevoir les notifications ?",
-		"notifEmail": "Email",
-		"notifSms": "SMS",
-		"notifBoth": "Les deux",
-		"notifHint": "Recevez les confirmations de réservation et les rappels d'événements",
-		"numberOfTickets": "Nombre de billets",
-		"maxTickets": "Maximum {max} billets par commande",
-		"tickets": "Billets ({qty}×)",
-		"total": "Total",
-		"cancel": "Annuler",
-		"continueToPay": "Continuer vers le paiement",
-		"processing": "Traitement en cours...",
-		"bookingOpensOn": "Réservations à partir du {date}",
-		"bookingClosed": "Réservations closes",
-		"joinWaitlist": "Rejoindre la liste d'attente",
-		"backToEvent": "Retour à l'événement",
-		"demoNotice": "Mode démo — remplissez le formulaire pour prévisualiser le parcours de réservation. Aucune réservation réelle ne sera créée.",
-		"demoSuccessMessage": "Mode démo : votre réservation serait confirmée ici. Un email de confirmation serait envoyé à {email}",
-		"bookDemo": "Réserver (Démo)",
-		"createError": "Échec de la création de la réservation",
-		"promoCode": {
-			"label": "Code promotionnel",
-			"placeholder": "Ex. SUMMER20",
-			"apply": "Appliquer",
-			"invalidCode": "Code promotionnel invalide",
-			"validationError": "Impossible de valider le code. Veuillez réessayer.",
-			"removeAria": "Retirer le code promotionnel",
-			"discountOff": "{value}% de réduction",
-			"appliedLabel": "Code"
-		},
-		"giftCard": {
-			"label": "Carte cadeau",
-			"placeholder": "Ex. GERM-7ZK9-M3XT",
-			"apply": "Utiliser",
-			"balance": "solde {amount}",
-			"paysDeposit": "payé par carte cadeau",
-			"removeAria": "Retirer la carte cadeau",
-			"validationError": "Impossible de vérifier la carte. Veuillez réessayer.",
-			"reasons": {
-				"unknown": "Carte cadeau inconnue",
-				"currency": "Les cartes cadeaux ne règlent que les événements en euros",
-				"expired": "Cette carte cadeau a expiré",
-				"cancelled": "Cette carte cadeau a été annulée",
-				"empty": "Cette carte cadeau n'a plus de solde",
-				"rate_limited": "Trop de tentatives. Veuillez patienter avant de réessayer.",
-				"unavailable": "Service momentanément indisponible. Veuillez réessayer."
-			}
-		},
-		"errors": {
-			"soldOut": "Cette session est complète.",
-			"sessionStarted": "Cette session a déjà commencé.",
-			"sessionNotFound": "Cette session n'est plus disponible.",
-			"rateLimit": "Trop de tentatives. Veuillez patienter quelques minutes avant de réessayer.",
-			"generic": "Une erreur est survenue. Veuillez réessayer ou nous contacter si le problème persiste."
-		},
-		"deposit": {
-			"total": "Total",
-			"payNow": "Acompte à régler maintenant",
-			"balanceAtVenue": "Reste à régler sur place",
-			"noDeposit": "Rien à régler en ligne : la totalité se règle sur place.",
-			"paidByCard": "L'acompte est réglé par votre carte cadeau : le reste se règle sur place.",
-			"note": "Seul l’acompte est débité en ligne ; le reste se règle sur place."
-		},
-		"refundPolicy": {
-			"title": "Annulation et remboursement"
-		},
-		"continueToPayDeposit": "Continuer vers le paiement de l’acompte",
-		"confirmBooking": "Confirmer la réservation",
-		"extras": {
-			"label": "Suppléments",
-			"optional": "facultatif",
-			"perPerson": "par personne",
-			"perUnit": "l'unité",
-			"soldOut": "Épuisé",
-			"quantity": "Quantité",
-			"included": "Inclus pour {qty} personne(s)",
-			"lineTotal": "Suppléments"
-		}
-	},
-	"waitlist": {
-		"description": "Soyez averti dès que des billets sont disponibles",
-		"successTitle": "Vous êtes sur liste d'attente !",
-		"successMessage": "Nous vous préviendrons à {email} dès que des billets seront disponibles.",
-		"done": "Terminé",
-		"currentlySoldOut": "Actuellement complet",
-		"infoTitle": "Rejoignez la liste d'attente",
-		"infoMessage": "Nous vous enverrons un email si des billets se libèrent. Vous aurez 24 heures pour finaliser votre achat.",
-		"errorTitle": "Échec de l'inscription à la liste d'attente",
-		"genericError": "Échec de l'inscription à la liste d'attente",
-		"emailHint": "Nous vous informerons ici dès que des billets seront disponibles",
-		"joining": "Inscription en cours..."
-	},
-	"tickets": {
-		"pageTitle": "Vos billets - {eventTitle}",
-		"ogDescription": "Billet pour {eventTitle} le {date}. {quantity, plural, one {# place réservée} other {# places réservées}}.",
-		"status": {
-			"confirmed": "Confirmé",
-			"pendingPayment": "Paiement en attente",
-			"cancelled": "Annulé",
-			"expired": "Expiré"
-		},
-		"success": {
-			"title": "Paiement réussi !",
-			"description": "Vos billets ont été confirmés. Un email de confirmation a été envoyé à {email}.",
-			"browseMore": "Voir d'autres événements"
-		},
-		"paymentFailed": {
-			"title": "Paiement échoué",
-			"defaultError": "Votre paiement n'a pas pu être traité. Veuillez réessayer.",
-			"browseOther": "Voir d'autres événements",
-			"dismiss": "Ignorer"
-		},
-		"ticketLabel": "Billet",
-		"qrCodeHint": "Présentez ce QR code à l'entrée",
-		"guestInfo": "Informations du participant",
-		"guestName": "Nom",
-		"guestEmail": "Email",
-		"quantity": "Billets",
-		"paymentDetails": "Détails du paiement",
-		"totalPaid": "Total payé",
-		"viewReceipt": "Voir le reçu",
-		"eventLocation": "Lieu de l'événement",
-		"practicalInfo": "Infos pratiques",
-		"addToCalendar": "Ajouter au calendrier",
-		"appleOutlook": "Apple / Outlook",
-		"printTicket": "Imprimer le billet",
-		"confirmationId": "Numéro de confirmation",
-		"ticketCount": "{count, plural, one {# Billet} other {# Billets}}",
-		"cancellation": {
-			"sectionTitle": "Besoin d'annuler ?",
-			"checking": "Vérification de l'éligibilité à l'annulation...",
-			"cta": "Annuler ma réservation",
-			"windowClosed": "L'annulation n'est possible que jusqu'à 24 heures avant l'événement. Pour toute urgence, veuillez nous contacter directement.",
-			"genericNotEligible": "Cette réservation n'est plus éligible à l'annulation en libre-service. Veuillez nous contacter si vous avez besoin d'aide.",
-			"checkError": "Nous n'avons pas pu vérifier votre éligibilité à l'annulation. Veuillez rafraîchir la page.",
-			"modalTitle": "Annuler cette réservation ?",
-			"modalDescription": "Cette action annulera votre réservation pour {eventTitle} et est irréversible.",
-			"keep": "Conserver ma réservation",
-			"confirmCta": "Oui, annuler la réservation",
-			"cancelling": "Annulation en cours...",
-			"errorTitle": "Échec de l'annulation",
-			"errorGeneric": "Une erreur est survenue lors de l'annulation de votre réservation. Veuillez réessayer ou nous contacter.",
-			"successTitle": "Réservation annulée",
-			"successWithRefund": "Votre réservation a été annulée et un remboursement de {amount} a été émis vers votre moyen de paiement d'origine. Le délai peut être de 5 à 10 jours ouvrés.",
-			"successNoRefund": "Votre réservation a été annulée.",
-			"refundPreview": "Si vous annulez maintenant, {amount} vous seront remboursés sur votre moyen de paiement, selon la politique de remboursement de l’événement.",
-			"noRefundPreview": "Selon la politique de remboursement de l’événement, une annulation maintenant ne donne lieu à aucun remboursement. Vos places seront libérées."
-		},
-		"depositPaid": "Acompte payé",
-		"giftCardPaid": "dont payé par carte cadeau",
-		"balanceDue": "Reste à régler sur place",
-		"extras": "Suppléments"
-	},
-	"newsletterSignup": {
-		"previewTitle": "Lettre d'information — aperçu",
-		"emailLabel": "Adresse e-mail",
-		"emailPlaceholder": "vous@exemple.com",
-		"submit": "S'inscrire",
-		"sending": "Envoi en cours…",
-		"consent": "J'accepte de recevoir des e-mails sur les prochains événements de Germinal.",
-		"success": "Merci — un e-mail de confirmation vient de vous être envoyé. Cliquez sur son lien pour terminer votre inscription.",
-		"error": "Inscription impossible. Vérifiez l'adresse et cochez la case de consentement, puis réessayez.",
-		"confirmPageTitle": "Confirmer l'inscription",
-		"confirmTitle": "Confirmer votre inscription",
-		"confirmDescription": "Confirmez que vous souhaitez recevoir des e-mails sur les prochains événements de Germinal.",
-		"confirmButton": "Confirmer mon inscription",
-		"confirmed": "C'est fait : votre adresse est sur la liste. Vous recevrez les prochains événements de Germinal.",
-		"confirmNeutral": "Si cette inscription est en attente de confirmation, elle vient d'être confirmée. Sinon, rien n'a changé."
-	},
-	"unsubscribe": {
-		"pageTitle": "Se désinscrire",
-		"title": "Ne plus recevoir les événements de Germinal",
-		"description": "Confirmez que vous ne souhaitez plus recevoir d'e-mails sur les prochains événements de Germinal.",
-		"confirm": "Me désinscrire",
-		"successTitle": "C'est fait",
-		"success": "Vous ne recevrez plus d'e-mails sur les prochains événements de Germinal.",
-		"neutral": "Si l'adresse figure sur notre liste, elle en a été retirée. Vous ne recevrez plus d'e-mails sur les prochains événements de Germinal.",
-		"error": "Un problème est survenu. Réessayez dans un instant."
-	},
-	"findTicket": {
-		"pageTitle": "Retrouver mon billet | Germinal",
-		"title": "Billet perdu ?",
-		"description": "Indiquez l'adresse email utilisée lors de votre réservation, et nous vous renverrons vos billets.",
-		"form": {
-			"email": "Email",
-			"emailPlaceholder": "vous@exemple.com",
-			"emailRequired": "Veuillez indiquer votre adresse email.",
-			"send": "Envoyer mon billet",
-			"sending": "Envoi en cours...",
-			"error": "Une erreur est survenue. Veuillez réessayer.",
-			"rateLimited": "Trop de tentatives. Veuillez réessayer plus tard."
-		},
-		"success": {
-			"message": "Si cette adresse email correspond à des réservations confirmées, nous lui avons envoyé les billets. Vérifiez votre boîte de réception (et vos courriers indésirables).",
-			"tryAnother": "Essayer une autre adresse"
-		}
-	},
-	"legal": {
-		"lastUpdated": "Dernière mise à jour : {date}",
-		"privacy": {
-			"pageTitle": "Politique de confidentialité | Germinal",
-			"title": "Politique de confidentialité",
-			"intro": "Germinal (\"nous\", \"notre\") s'engage à protéger vos données personnelles. Cette politique explique comment nous collectons, utilisons et protégeons vos informations conformément au Règlement Général sur la Protection des Données (RGPD).",
-			"controllerTitle": "1. Responsable du traitement",
-			"controllerBody": "Le responsable du traitement est :",
-			"controllerName": "Germinal",
-			"controllerAddress": "[ADRESSE — À COMPLÉTER]",
-			"controllerEmail": "Email : privacy@germinalstudio.co",
-			"dataTitle": "2. Données personnelles collectées",
-			"dataIntro": "Nous collectons les catégories suivantes de données personnelles :",
-			"dataReservation": "Données de réservation : prénom, nom, adresse e-mail, numéro de téléphone — collectées lors de la réservation d'une Session ou de la création d'une Réservation.",
-			"dataTechnical": "Données techniques : adresse IP, user-agent du navigateur — collectées automatiquement pour la prévention de la fraude et la sécurité du site.",
-			"dataDietary": "Allergies et régime alimentaire : seulement si vous les indiquez lors de la réservation d'un événement qui les demande, avec votre consentement explicite — utilisés uniquement pour adapter le repas.",
-			"dataContact": "Données de contact et de liste d'attente : nom, adresse e-mail, numéro de téléphone (liste d'attente), société et message (formulaire de contact) — collectées lorsque vous rejoignez une liste d'attente ou nous écrivez.",
-			"dataNewsletter": "Infolettre : votre adresse e-mail, votre nom et la langue du site — collectées uniquement si vous cochez « Recevoir les prochains événements de Germinal » lors de la réservation, ou si vous vous inscrivez via le formulaire et confirmez le lien reçu par e-mail — utilisées uniquement pour vous informer de nos prochains événements.",
-			"basisTitle": "3. Base légale",
-			"basisContractual": "Obligation contractuelle : le traitement de vos données est nécessaire à l'exécution du contrat de réservation (création de votre Réservation, envoi de votre Ticket, traitement du paiement).",
-			"basisLegitimate": "Intérêt légitime : nous utilisons les données techniques pour prévenir la fraude et assurer la sécurité de notre plateforme.",
-			"basisContact": "Intérêt légitime et mesures précontractuelles : répondre à vos messages et vous prévenir lorsqu'une place se libère sur une liste d'attente.",
-			"basisNewsletter": "Consentement (article 6.1.a du RGPD) : l'infolettre n'est envoyée que si vous avez coché la case lors de la réservation ou confirmé votre inscription par le lien reçu après le formulaire (double opt-in). Vous pouvez retirer votre consentement à tout moment via le lien de désinscription présent dans chaque e-mail d'information.",
-			"basisDietary": "Consentement explicite (article 9.2.a du RGPD) : vos allergies et votre régime alimentaire sont des données de santé, traitées uniquement si vous cochez la case de consentement. Vous pouvez retirer votre consentement à tout moment en nous écrivant.",
-			"retentionTitle": "4. Durées de conservation",
-			"retentionIntro": "Nous conservons vos données uniquement le temps nécessaire, puis nous les supprimons ou les anonymisons automatiquement :",
-			"retentionReservation": "Réservations : vos nom, adresse e-mail et numéro de téléphone sont conservés jusqu'à 1 an après la Session, puis anonymisés. Seuls subsistent les montants, les dates et les références de paiement, sans aucun nom.",
-			"retentionUnpaid": "Réservations non payées : anonymisées 30 jours après leur expiration.",
-			"retentionDietary": "Allergies et régime alimentaire : effacés, avec la date de votre consentement, 30 jours après le début de la séance.",
-			"retentionNewsletter": "Infolettre : conservée jusqu'à votre désinscription. L'adresse elle-même est supprimée 30 jours après la désinscription.",
-			"retentionWaitlist": "Listes d'attente : supprimées 30 jours après la Session.",
-			"retentionContact": "Messages du formulaire de contact : supprimés 1 an après leur réception.",
-			"retentionTechnical": "Données techniques (adresse IP, user-agent) et journaux du serveur : effacés au plus tard après 12 mois.",
-			"retentionEmails": "Copies des e-mails que nous vous envoyons : supprimées après 30 jours.",
-			"retentionBackups": "Sauvegardes : copies chiffrées stockées dans l'Union européenne, supprimées au plus tard après 1 an. Les données supprimées du site disparaissent des sauvegardes dans ce délai.",
-			"retentionAccounting": "Les pièces comptables sont conservées 10 ans, comme l'exige la loi française.",
-			"recipientsTitle": "5. Destinataires et sous-traitants",
-			"recipientsIntro": "Vos données ne sont accessibles qu'à l'équipe Germinal et aux prestataires suivants, qui les traitent pour notre compte :",
-			"recipientStripe": "Stripe (paiements) — Stripe Payments Europe, Irlande.",
-			"recipientAws": "Amazon Web Services (stockage et diffusion des fichiers) — région de Paris, France.",
-			"recipientBrevo": "Brevo (envoi d'e-mails) — France.",
-			"recipientTwilio": "Twilio (SMS) — traitement dans la région Irlande.",
-			"recipientHetzner": "Hetzner (hébergement du site et de la base de données) — Allemagne.",
-			"recipientCloudflare": "Cloudflare (noms de domaine et protection du réseau).",
-			"recipientsTransfers": "Certains de ces prestataires appartiennent à des groupes établis aux États-Unis. Tout transfert de données hors de l'Union européenne est encadré par le Data Privacy Framework UE–États-Unis ou par les clauses contractuelles types de la Commission européenne.",
-			"rightsTitle": "6. Vos droits en vertu du RGPD",
-			"rightsBody": "En tant que personne concernée, vous disposez des droits suivants :",
-			"rightAccess": "Accéder à vos données personnelles",
-			"rightRectification": "Rectifier les données inexactes",
-			"rightErasure": "Demander la suppression de vos données",
-			"rightPortability": "Recevoir vos données dans un format portable",
-			"rightObject": "Vous opposer au traitement fondé sur l'intérêt légitime",
-			"rightWithdraw": "Retirer votre consentement à tout moment",
-			"rightsExercice": "Pour exercer l'un de ces droits, contactez-nous à privacy@germinalstudio.co.",
-			"rightsComplaint": "Si vous estimez que vos droits ne sont pas respectés, vous pouvez introduire une réclamation auprès de la CNIL (www.cnil.fr).",
-			"cookiesTitle": "7. Cookies",
-			"cookiesIntro": "Nous utilisons les catégories de cookies suivantes :",
-			"cookiesEssential": "Cookies strictement nécessaires : utilisés pour vous maintenir connecté(e) et protéger le site contre les requêtes frauduleuses (cookie de session, jeton de sécurité CSRF). Ces cookies sont indispensables au fonctionnement du site et ne sont pas soumis au consentement.",
-			"cookiesNonEssential": "Cookies non essentiels (ex. : mesure d'audience, analyse) : déposés uniquement avec votre consentement préalable, recueilli via la bannière de cookies affichée lors de votre première visite. Germinal n'utilise actuellement aucun cookie de ce type.",
-			"cookiesChoice": "Vous pouvez accepter ou refuser les cookies non essentiels à tout moment depuis la bannière de cookies, ou en effaçant le stockage local de votre navigateur pour ce site afin que la bannière s'affiche à nouveau."
-		},
-		"mentions": {
-			"pageTitle": "Mentions légales | Germinal",
-			"title": "Mentions légales",
-			"publisherTitle": "1. Éditeur du site",
-			"publisherBody": "Le présent site est édité par :",
-			"publisherName": "Germinal",
-			"publisherAddress": "[ADRESSE — À COMPLÉTER]",
-			"publisherEmail": "Email : contact@germinalstudio.co",
-			"publisherDirector": "Directeur de la publication : [NOM — À COMPLÉTER]",
-			"hostingTitle": "2. Hébergement",
-			"hostingBody": "Le présent site est hébergé par :",
-			"hostingName": "[HÉBERGEUR — À COMPLÉTER]",
-			"hostingAddress": "[ADRESSE DE L'HÉBERGEUR — À COMPLÉTER]",
-			"ipTitle": "3. Propriété intellectuelle",
-			"ipBody": "L'ensemble des contenus du présent site (textes, images, graphismes, logos) est la propriété exclusive de Germinal et est protégé par le droit d'auteur français et international. Toute reproduction, représentation, modification ou adaptation, totale ou partielle, sans autorisation écrite préalable de Germinal, est strictement interdite.",
-			"dataTitle": "4. Données personnelles",
-			"dataBody": "Les informations relatives à la collecte et au traitement des données personnelles sont détaillées dans notre Politique de confidentialité."
-		},
-		"terms": {
-			"pageTitle": "Conditions générales de vente | Germinal",
-			"title": "Conditions Générales de Vente",
-			"intro": "Les présentes Conditions Générales de Vente (\"CGV\") régissent l'ensemble des transactions effectuées via la plateforme Germinal. En passant commande, vous acceptez intégralement ces conditions.",
-			"offerTitle": "1. Offre et acceptation",
-			"offerBody": "Nos Événements et Sessions sont présentés sur le site avec leur description, date, heure et prix en euros (EUR). Une commande n'est acceptée qu'après confirmation par Germinal, envoyée par email. Cette confirmation constitue la formation du contrat.",
-			"pricingTitle": "2. Tarification",
-			"pricingBody": "Tous les prix sont affichés en euros (EUR) toutes taxes comprises (TTC). Germinal se réserve le droit de modifier les prix à tout moment ; toutefois, le prix applicable est celui en vigueur au moment de la confirmation de commande.",
-			"paymentTitle": "3. Paiement",
-			"paymentBody": "Le paiement est traité de manière sécurisée via Stripe. Nous acceptons les principales cartes de crédit et de débit. Le paiement intégral est requis au moment de la commande pour confirmer votre Réservation.",
-			"cancellationTitle": "4. Politique d'annulation et de remboursement",
-			"cancellationBody": "Les Réservations confirmées peuvent être annulées pour un remboursement intégral. Les remboursements sont traités vers le moyen de paiement d'origine sous 14 jours ouvrés. Si Germinal annule un Événement ou une Session, toutes les Réservations concernées seront remboursées intégralement.",
-			"liabilityTitle": "5. Responsabilité",
-			"liabilityBody": "La responsabilité de Germinal est limitée au montant payé par l'Invité pour la Réservation concernée. Germinal ne saurait être tenue responsable des dommages indirects, y compris la perte de profit ou d'opportunité.",
-			"governingTitle": "6. Droit applicable",
-			"governingBody": "Les présentes conditions sont régies par le droit français. Tout litige sera soumis à la compétence exclusive des tribunaux de Paris, France."
-		}
-	},
-	"faq": {
-		"pageTitle": "FAQ | Germinal",
-		"title": "Questions fréquentes",
-		"q1": {
-			"question": "Comment récupérer mon billet ?",
-			"answer": "Après avoir complété votre réservation, vous recevrez un email de confirmation contenant un lien unique vers votre billet. Vous pouvez également accéder à votre billet à tout moment en utilisant le lien token fourni. Votre billet inclut un QR code — présentez-le à l'entrée le jour de l'événement."
-		},
-		"q2": {
-			"question": "Que se passe-t-il si une session est complète ?",
-			"answer": "Lorsqu'une session est complète, vous pouvez rejoindre la liste d'attente. Si une place se libère (par exemple suite à une annulation), vous serez notifié automatiquement et aurez la possibilité de réserver."
-		},
-		"q3": {
-			"question": "Comment annuler ma réservation ?",
-			"answer": "Vous pouvez annuler votre réservation en utilisant le lien d'annulation dans votre email de confirmation, ou en nous contactant directement. Les réservations confirmées sont éligibles à un remboursement intégral, traité vers votre moyen de paiement d'origine sous 14 jours ouvrés."
-		},
-		"q4": {
-			"question": "À quoi sert le QR code ?",
-			"answer": "Le QR code sur votre billet est votre preuve d'achat numérique. Présentez-le à l'entrée de l'événement pour scan. Il contient toutes les informations nécessaires pour valider votre réservation."
-		},
-		"q5": {
-			"question": "Comment contacter Germinal ?",
-			"answer": "Vous pouvez nous joindre via notre page contact, par email à privacy@germinalstudio.co, ou via notre Instagram @Germinal.studio. Nous répondons généralement sous 48 heures."
-		}
-	},
-	"admin": {
-		"login": {
-			"pageTitle": "Connexion | Germinal",
-			"title": "Se connecter",
-			"description": "Entrez vos identifiants pour accéder à votre tableau de bord",
-			"email": "Adresse email",
-			"password": "Mot de passe",
-			"signIn": "Se connecter",
-			"rateLimited": "Limite de débit atteinte",
-			"invalidCredentials": "Email ou mot de passe invalide",
-			"errors": {
-				"rateLimit": "Trop de tentatives de connexion. Réessayez dans {seconds} secondes.",
-				"emailRequired": "L'email est requis",
-				"passwordRequired": "Le mot de passe est requis"
-			},
-			"showPassword": "Afficher le mot de passe",
-			"hidePassword": "Masquer le mot de passe",
-			"mockCredentials": "Pour le développement, utilisez :",
-			"mockPasswordHint": "(votre mot de passe)",
-			"metaDescription": "Connectez-vous à votre compte Germinal"
-		},
-		"dashboard": {
-			"title": "Tableau de bord",
-			"welcome": "Bienvenue ! Voici un aperçu de votre contenu Germinal.",
-			"newEvent": {
-				"title": "Nouvel événement",
-				"description": "Créer un nouvel événement ou exposition",
-				"button": "Créer un événement"
-			},
-			"newTalent": {
-				"title": "Nouveau talent",
-				"description": "Ajouter un nouveau talent à la collection",
-				"button": "Ajouter un talent"
-			},
-			"settings": {
-				"title": "Paramètres",
-				"description": "Gérer les paramètres de votre compte",
-				"button": "Changer le mot de passe"
-			},
-			"accountInfo": {
-				"title": "Informations du compte",
-				"email": "Email",
-				"role": "Rôle",
-				"memberSince": "Membre depuis"
-			}
-		},
-		"sidebar": {
-			"title": "Panneau d'administration",
-			"dashboard": "Tableau de bord",
-			"events": "Événements",
-			"talents": "Talents",
-			"password": "Mot de passe",
-			"logout": "Déconnexion"
-		},
-		"layout": {
-			"admin": "Admin",
-			"mobileNav": {
-				"dashboard": "Tableau de bord",
-				"events": "Événements",
-				"talents": "Talents",
-				"settings": "Paramètres"
-			}
-		},
-		"events": {
-			"title": "Événements",
-			"description": "Gérer vos événements et expositions",
-			"newEvent": "Nouvel événement",
-			"noEvents": "Aucun événement pour le moment",
-			"noEventsDescription": "Créez votre premier événement pour commencer",
-			"createEvent": "Créer un événement",
-			"table": {
-				"event": "Événement",
-				"date": "Date",
-				"location": "Lieu",
-				"status": "Statut",
-				"actions": "Actions"
-			},
-			"status": {
-				"published": "Publié",
-				"draft": "Brouillon"
-			},
-			"dialog": {
-				"create": {
-					"title": "Créer un nouvel événement",
-					"description": "Remplissez les détails pour créer un nouvel événement"
-				},
-				"edit": {
-					"title": "Modifier l'événement"
-				},
-				"delete": {
-					"title": "Supprimer l'événement",
-					"confirmation": "Êtes-vous sûr de vouloir supprimer cet événement ?"
-				},
-				"fields": {
-					"title": "Titre",
-					"description": "Description",
-					"startDate": "Date de début",
-					"endDate": "Date de fin",
-					"location": "Lieu",
-					"publishImmediately": "Publier immédiatement",
-					"publishHelp": "Décochez pour enregistrer comme brouillon"
-				},
-				"actions": {
-					"cancel": "Annuler",
-					"create": "Créer l'événement",
-					"save": "Enregistrer les modifications",
-					"delete": "Supprimer"
-				}
-			}
-		},
-		"talents": {
-			"title": "Talents",
-			"description": "Gérer votre collection de talents",
-			"newTalent": "Nouveau talent",
-			"noTalents": "Aucun talent pour le moment",
-			"noTalentsDescription": "Ajoutez votre premier talent pour commencer",
-			"addTalent": "Ajouter un talent",
-			"table": {
-				"talent": "Talent",
-				"role": "Rôle",
-				"bio": "Biographie",
-				"status": "Statut",
-				"actions": "Actions"
-			},
-			"dialog": {
-				"create": {
-					"title": "Ajouter un nouveau talent"
-				},
-				"edit": {
-					"title": "Modifier le talent"
-				},
-				"delete": {
-					"title": "Supprimer le talent",
-					"confirmation": "Êtes-vous sûr de vouloir supprimer ce talent ?"
-				},
-				"fields": {
-					"firstName": "Prénom",
-					"lastName": "Nom",
-					"role": "Rôle",
-					"bio": "Biographie",
-					"socialLinks": "Liens sociaux (optionnel)",
-					"instagram": "Instagram",
-					"linkedin": "LinkedIn",
-					"twitter": "Twitter",
-					"website": "Site web"
-				},
-				"actions": {
-					"cancel": "Annuler",
-					"add": "Ajouter le talent",
-					"save": "Enregistrer les modifications",
-					"delete": "Supprimer"
-				}
-			}
-		},
-		"changePassword": {
-			"title": "Changer le mot de passe",
-			"backToDashboard": "Retour au tableau de bord",
-			"currentPassword": "Mot de passe actuel",
-			"newPassword": "Nouveau mot de passe",
-			"confirmPassword": "Confirmer le nouveau mot de passe",
-			"passwordHelp": "Doit contenir au moins 8 caractères",
-			"updatePassword": "Mettre à jour le mot de passe"
-		}
-	}
+  "pwa": {
+    "offlineReady": "Application prête pour une utilisation hors ligne",
+    "newVersion": "Une nouvelle version est disponible",
+    "reload": "Recharger",
+    "close": "Fermer",
+    "installTitle": "Installer l'application",
+    "installDescription": "Accédez rapidement à Germinal depuis votre écran d'accueil.",
+    "installButton": "Installer",
+    "installDismiss": "Plus tard",
+    "iosTitle": "Installer {appName}",
+    "iosSubtitle": "Ajoutez à l'écran d'accueil pour la meilleure expérience",
+    "iosStep1": "Appuyez sur le bouton <strong>Partager</strong>",
+    "iosStep2": "Faites défiler et appuyez sur <strong>Ajouter à l'écran d'accueil</strong>"
+  },
+  "cookieConsent": {
+    "title": "Nous utilisons des cookies",
+    "description": "Nous utilisons des cookies strictement nécessaires au bon fonctionnement et à la sécurité de Germinal (votre session de connexion, la prévention de la fraude). Avec votre consentement, nous pouvons également utiliser des cookies supplémentaires pour améliorer votre expérience. Consultez notre",
+    "privacyLink": "Politique de confidentialité",
+    "essentialOnly": "Essentiels uniquement",
+    "acceptAll": "Tout accepter"
+  },
+  "nav": {
+    "upcomingEvent": "Prochain événement",
+    "events": "Projets",
+    "talents": "Talents",
+    "manifesto": "Manifeste",
+    "contact": "Contact",
+    "findTicket": "Retrouver mon billet",
+    "giftCard": "Carte cadeau"
+  },
+  "footer": {
+    "allRightsReserved": "Tous droits réservés.",
+    "tagline": "L'architecture des expériences sensorielles.",
+    "contactLabel": "Contact",
+    "explore": "Explorer",
+    "legal": "Légal",
+    "privacyPolicy": "Politique de confidentialité",
+    "termsOfSale": "Conditions générales de vente",
+    "mentionsLegales": "Mentions légales",
+    "faq": "FAQ"
+  },
+  "home": {
+    "metaTitle": "Germinal, studio culturel à Paris",
+    "metaDescription": "Germinal fait des dîners, des expositions et des ateliers à Paris, avec des chefs, des artisans et des artistes, et en imagine pour d’autres, à la mesure de chaque projet.",
+    "next": "Prochainement",
+    "reserve": "Réserver",
+    "allProjects": "Tous les projets",
+    "readManifesto": "Lire le manifeste",
+    "studioTitle": "Des soirées sur mesure.",
+    "studioBody": "Germinal est un studio culturel à Paris. Nous faisons des dîners, des expositions et des ateliers avec des chefs, des artisans et des artistes, et nous en imaginons pour d’autres, à la mesure de chaque projet.",
+    "projectsTitle": "Ce que nous avons fait",
+    "talentsTitle": "À notre table",
+    "talentsBody": "Les chefs, les artisans et les artistes avec qui nous faisons nos soirées.",
+    "allTalents": "Tous les talents",
+    "disciplinesTitle": "Ce que nous faisons"
+  },
+  "events": {
+    "pageTitle": "Projets | Germinal",
+    "title": "Projets",
+    "description": "Les événements que nous avons imaginés et réalisés, racontés en images. Ouvrez un projet pour le découvrir.",
+    "noEvents": "Aucun projet pour le moment.",
+    "lunch": "Déjeuner",
+    "dinner": "Dîner",
+    "perGuest": "par convive",
+    "free": "Gratuit",
+    "priceToBeAnnounced": "Tarif à venir",
+    "depositPerGuest": "Acompte de {amount} par convive, le reste sur place",
+    "noDepositNote": "Réglé en totalité sur place",
+    "project": {
+      "backToProjects": "Tous les projets",
+      "photographs": "Photographies",
+      "credits": "Générique",
+      "venue": "Lieu",
+      "curator": "Commissariat"
+    },
+    "page": {
+      "book": "Réserver",
+      "joinWaitlist": "Liste d’attente",
+      "onTheMenu": "Au menu",
+      "curator": "Commissariat",
+      "venue": "Lieu",
+      "previewDraft": "Aperçu — brouillon",
+      "nextProject": "Projet suivant",
+      "dietaryNote": "Allergies et régimes vous seront demandés à la réservation.",
+      "seating": {
+        "ended": "Terminée",
+        "unavailable": "Indisponible",
+        "opensSoon": "Réservations bientôt ouvertes",
+        "waitlist": "Complet — liste d’attente ouverte",
+        "full": "Complet",
+        "lastSeat": "Dernière place",
+        "seatsLeft": "Il reste {count} places",
+        "seats": "{count} places",
+        "open": "Places disponibles"
+      },
+      "summary": {
+        "waitlist": "Complet — liste d’attente",
+        "past": "A eu lieu"
+      },
+      "price": {
+        "each": "{amount} par convive",
+        "from": "À partir de {amount} par convive",
+        "freeBooking": "Gratuit, sur réservation"
+      },
+      "viewer": {
+        "close": "Fermer",
+        "previous": "Photo précédente",
+        "next": "Photo suivante",
+        "open": "Agrandir la photo {index}"
+      },
+      "comingUp": "À venir"
+    }
+  },
+  "talents": {
+    "pageTitle": "Talents | Germinal",
+    "title": "Talents",
+    "description": "Une liste d'artistes, architectes et penseurs multidisciplinaires qui façonnent la culture contemporaine. Sélectionnez un profil pour voir leur portfolio.",
+    "view": "Vue :",
+    "loadMore": "Charger plus de talents",
+    "filters": {
+      "visualArts": "Arts visuels",
+      "design": "Design",
+      "culinary": "Culinaire"
+    },
+    "noTalents": "Aucun talent disponible pour le moment.",
+    "basedIn": "Basé à",
+    "specialization": "Spécialisation",
+    "category": "Catégorie",
+    "gallery": "Galerie",
+    "filterAll": "Tout",
+    "viewDetails": "Voir les détails",
+    "noTalentsInCategory": "Aucun talent trouvé dans cette catégorie."
+  },
+  "spotlight": {
+    "noEventTitle": "Aucun événement en vedette",
+    "noEventDescription": "Il n'y a actuellement aucun événement en vedette. Revenez bientôt pour découvrir les prochains événements.",
+    "viewAllEvents": "Voir tous les événements"
+  },
+  "giftCard": {
+    "pageTitle": "Carte cadeau | Germinal",
+    "title": "Carte cadeau",
+    "description": "Offrez les dîners, expositions et ateliers de Germinal : un montant au choix, envoyé en quelques minutes, valable un an.",
+    "form": {
+      "amount": "Montant",
+      "customAmount": "Autre montant",
+      "customAmountLabel": "Montant libre (entre 20 et 1 000 €)",
+      "buyerName": "Votre nom",
+      "buyerEmail": "Votre e-mail",
+      "recipientName": "Nom du destinataire",
+      "recipientEmail": "E-mail du destinataire",
+      "message": "Message (facultatif)",
+      "delivery": "Envoi",
+      "deliveryBuyer": "À moi-même",
+      "deliveryRecipient": "Directement au destinataire",
+      "submit": "Offrir",
+      "redirecting": "Redirection…"
+    },
+    "thanks": {
+      "pageTitle": "Merci | Germinal",
+      "title": "Merci !",
+      "sentToRecipient": "La carte cadeau a été envoyée à",
+      "sentToBuyer": "La carte cadeau a été envoyée à votre adresse",
+      "pending": "Votre paiement est confirmé ; la carte est en cours d'émission. Vous recevrez un e-mail dans quelques instants.",
+      "receiptNote": "Un reçu vous a également été envoyé par e-mail.",
+      "back": "Acheter une autre carte"
+    }
+  },
+  "contact": {
+    "pageTitle": "Contact | Germinal",
+    "title": "Prenons contact.",
+    "description": "Nous sommes toujours à la recherche de nouveaux talents, collaborateurs et projets architecturaux. Contactez-nous pour entamer une conversation.",
+    "regarding": "De quoi s'agit-il ?",
+    "filters": {
+      "collaboration": "Collaboration",
+      "newProject": "Nouveau projet",
+      "joinRoster": "Rejoindre la liste",
+      "other": "Autre",
+      "privateEvent": "Privatisation"
+    },
+    "form": {
+      "name": "Nom",
+      "email": "Email",
+      "company": "Entreprise/Organisation (optionnel)",
+      "message": "Parlez-nous de votre projet...",
+      "send": "Envoyer le message",
+      "sending": "Envoi en cours...",
+      "occasion": "Occasion (optionnel)",
+      "preferredDates": "Dates souhaitées (optionnel)",
+      "guestCount": "Nombre d’invités (optionnel)",
+      "budget": "Budget (optionnel)"
+    },
+    "sidebar": {
+      "generalInquiries": "demandes générales",
+      "pressMedia": "presse & médias",
+      "followUs": "Suivez-nous"
+    }
+  },
+  "manifesto": {
+    "pageTitle": "Manifeste | Germinal",
+    "metaDescription": "Germinal est un studio culturel à Paris. Dîners, expositions et ateliers avec des chefs, des artisans et des artistes. Voici ce à quoi nous tenons.",
+    "title": "Une table, un lieu, un soir.",
+    "intro": "Germinal est un studio culturel installé à Paris depuis 2026. Nous faisons des dîners, des expositions et des ateliers avec des chefs, des artisans et des artistes. Voici ce à quoi nous tenons.",
+    "signature": "Germinal, Paris, depuis 2026",
+    "theses": {
+      "table": {
+        "statement": "Nous mettons une table, pas une salle.",
+        "body": "Les couverts sont posés pour qu’on se parle d’un bout à l’autre."
+      },
+      "authors": {
+        "statement": "Chaque soirée a ses auteurs.",
+        "body": "Une cheffe, un céramiste, une musicienne. Nous les invitons à faire ce qu’ils font, à leur façon, et leur nom est sur le projet."
+      },
+      "place": {
+        "statement": "Le lieu passe avant le décor.",
+        "body": "Un atelier, un jardin, une cave. Nous partons de ce qui est là, les murs, la lumière, le bruit de la rue, et nous ajoutons le moins possible."
+      },
+      "backstage": {
+        "statement": "Le travail ne doit pas se voir.",
+        "body": "La lumière, la vaisselle, le temps entre deux plats : tout est réglé à l’avance, pour que personne n’y pense une fois à table."
+      },
+      "guests": {
+        "statement": "Vous n’êtes pas un public.",
+        "body": "On ne vient pas regarder : on s’assoit, on mange, on parle à son voisin. La soirée se fait à table, avec ceux qui sont là."
+      },
+      "once": {
+        "statement": "Ce qui a eu lieu reste ici.",
+        "photoAfter": 5,
+        "body": "Les photos de chaque soirée sont gardées ici, dans nos projets. Puis nous passons à la suivante."
+      }
+    },
+    "servicesTitle": "Ce que nous faisons",
+    "servicesIntro": "Nous produisons nos propres soirées, et nous en imaginons pour d’autres. Trois métiers, du premier croquis à la dernière bougie.",
+    "artDirection": {
+      "title": "Direction artistique",
+      "tagline": "Une idée, tenue jusqu’au bout.",
+      "body": "Chaque projet part d’une idée qui tient en une phrase. Nous la gardons du premier croquis au dernier service : la lumière, les matières, le son, la vaisselle, les invitations.",
+      "point1": "Concept et identité du projet",
+      "point2": "Lumière, matière, couleur, son",
+      "point3": "Direction des talents invités",
+      "point4": "Planches et références"
+    },
+    "scenography": {
+      "title": "Scénographie",
+      "tagline": "Faire avec le lieu.",
+      "body": "Nous lisons un espace avant d’y toucher : par où l’on entre, où l’on s’assoit, d’où vient la lumière. Puis nous posons peu de choses, au bon endroit.",
+      "point1": "Plan de salle et de tables",
+      "point2": "Mobilier, matières, vaisselle",
+      "point3": "Lumière d’ambiance et de scène",
+      "point4": "Végétal et installations"
+    },
+    "production": {
+      "title": "Production",
+      "tagline": "Ce qu’on ne voit pas.",
+      "body": "Les équipes, les fournisseurs, le budget, l’imprévu de 19 h 30. Nous le portons, pour que les talents fassent leur travail et que les invités n’y pensent pas.",
+      "point1": "Coordination des équipes",
+      "point2": "Lieux, fournisseurs et prestataires",
+      "point3": "Budget et calendrier",
+      "point4": "Installation et régie le jour J"
+    },
+    "photoOf": "{title}, {year}",
+    "newProjectCta": "Nous parler de votre projet",
+    "closingLetter": {
+      "title": "Écrivez-nous.",
+      "body": "Pour commencer, trois choses suffisent, et aucune n’a besoin d’être sûre :",
+      "place": "Un lieu, si vous l’avez.",
+      "date": "Une date, si vous la connaissez.",
+      "idea": "Une idée, même vague.",
+      "orWrite": "ou directement à"
+    }
+  },
+  "upcoming": {
+    "title": "Le prochain événement"
+  },
+  "booking": {
+    "title": "Réserver des billets",
+    "description": "Complétez vos informations de réservation",
+    "errorTitle": "Réservation échouée",
+    "fullName": "Nom complet",
+    "email": "Email",
+    "emailHint": "La confirmation du billet sera envoyée ici",
+    "phone": "Numéro de téléphone",
+    "optional": "(optionnel)",
+    "dietary": {
+      "label": "Allergies ou régime alimentaire",
+      "placeholder": "Ex. : allergie aux fruits à coque, végétarien, sans gluten…",
+      "hint": "Pour toute la réservation. Facultatif : vous pouvez réserver sans répondre.",
+      "consent": "J'accepte que Germinal conserve ces informations de santé pour adapter le repas. Elles ne sont vues que par l'équipe Germinal et sont effacées 30 jours après la séance.",
+      "consentRequired": "Cochez la case de consentement pour transmettre vos allergies ou votre régime, ou videz le champ."
+    },
+    "newsletter": {
+      "consent": "Recevoir les prochains événements de Germinal"
+    },
+    "notificationsLabel": "Comment souhaitez-vous recevoir les notifications ?",
+    "notifEmail": "Email",
+    "notifSms": "SMS",
+    "notifBoth": "Les deux",
+    "notifHint": "Recevez les confirmations de réservation et les rappels d'événements",
+    "numberOfTickets": "Nombre de billets",
+    "maxTickets": "Maximum {max} billets par commande",
+    "tickets": "Billets ({qty}×)",
+    "total": "Total",
+    "cancel": "Annuler",
+    "continueToPay": "Continuer vers le paiement",
+    "processing": "Traitement en cours...",
+    "bookingOpensOn": "Réservations à partir du {date}",
+    "bookingClosed": "Réservations closes",
+    "joinWaitlist": "Rejoindre la liste d'attente",
+    "backToEvent": "Retour à l'événement",
+    "demoNotice": "Mode démo — remplissez le formulaire pour prévisualiser le parcours de réservation. Aucune réservation réelle ne sera créée.",
+    "demoSuccessMessage": "Mode démo : votre réservation serait confirmée ici. Un email de confirmation serait envoyé à {email}",
+    "bookDemo": "Réserver (Démo)",
+    "createError": "Échec de la création de la réservation",
+    "promoCode": {
+      "label": "Code promotionnel",
+      "placeholder": "Ex. SUMMER20",
+      "apply": "Appliquer",
+      "invalidCode": "Code promotionnel invalide",
+      "validationError": "Impossible de valider le code. Veuillez réessayer.",
+      "removeAria": "Retirer le code promotionnel",
+      "discountOff": "{value}% de réduction",
+      "appliedLabel": "Code"
+    },
+    "giftCard": {
+      "label": "Carte cadeau",
+      "placeholder": "Ex. GERM-7ZK9-M3XT",
+      "apply": "Utiliser",
+      "balance": "solde {amount}",
+      "paysDeposit": "payé par carte cadeau",
+      "removeAria": "Retirer la carte cadeau",
+      "validationError": "Impossible de vérifier la carte. Veuillez réessayer.",
+      "reasons": {
+        "unknown": "Carte cadeau inconnue",
+        "currency": "Les cartes cadeaux ne règlent que les événements en euros",
+        "expired": "Cette carte cadeau a expiré",
+        "cancelled": "Cette carte cadeau a été annulée",
+        "empty": "Cette carte cadeau n'a plus de solde",
+        "rate_limited": "Trop de tentatives. Veuillez patienter avant de réessayer.",
+        "unavailable": "Service momentanément indisponible. Veuillez réessayer."
+      }
+    },
+    "errors": {
+      "soldOut": "Cette session est complète.",
+      "sessionStarted": "Cette session a déjà commencé.",
+      "sessionNotFound": "Cette session n'est plus disponible.",
+      "rateLimit": "Trop de tentatives. Veuillez patienter quelques minutes avant de réessayer.",
+      "generic": "Une erreur est survenue. Veuillez réessayer ou nous contacter si le problème persiste."
+    },
+    "deposit": {
+      "total": "Total",
+      "payNow": "Acompte à régler maintenant",
+      "balanceAtVenue": "Reste à régler sur place",
+      "noDeposit": "Rien à régler en ligne : la totalité se règle sur place.",
+      "paidByCard": "L'acompte est réglé par votre carte cadeau : le reste se règle sur place.",
+      "note": "Seul l’acompte est débité en ligne ; le reste se règle sur place."
+    },
+    "refundPolicy": {
+      "title": "Annulation et remboursement"
+    },
+    "continueToPayDeposit": "Continuer vers le paiement de l’acompte",
+    "confirmBooking": "Confirmer la réservation",
+    "extras": {
+      "label": "Suppléments",
+      "optional": "facultatif",
+      "perPerson": "par personne",
+      "perUnit": "l'unité",
+      "soldOut": "Épuisé",
+      "quantity": "Quantité",
+      "included": "Inclus pour {qty} personne(s)",
+      "lineTotal": "Suppléments"
+    }
+  },
+  "waitlist": {
+    "description": "Soyez averti dès que des billets sont disponibles",
+    "successTitle": "Vous êtes sur liste d'attente !",
+    "successMessage": "Nous vous préviendrons à {email} dès que des billets seront disponibles.",
+    "done": "Terminé",
+    "currentlySoldOut": "Actuellement complet",
+    "infoTitle": "Rejoignez la liste d'attente",
+    "infoMessage": "Nous vous enverrons un email si des billets se libèrent. Vous aurez 24 heures pour finaliser votre achat.",
+    "errorTitle": "Échec de l'inscription à la liste d'attente",
+    "genericError": "Échec de l'inscription à la liste d'attente",
+    "emailHint": "Nous vous informerons ici dès que des billets seront disponibles",
+    "joining": "Inscription en cours..."
+  },
+  "tickets": {
+    "pageTitle": "Vos billets - {eventTitle}",
+    "ogDescription": "Billet pour {eventTitle} le {date}. {quantity, plural, one {# place réservée} other {# places réservées}}.",
+    "status": {
+      "confirmed": "Confirmé",
+      "pendingPayment": "Paiement en attente",
+      "cancelled": "Annulé",
+      "expired": "Expiré"
+    },
+    "success": {
+      "title": "Paiement réussi !",
+      "description": "Vos billets ont été confirmés. Un email de confirmation a été envoyé à {email}.",
+      "browseMore": "Voir d'autres événements"
+    },
+    "paymentFailed": {
+      "title": "Paiement échoué",
+      "defaultError": "Votre paiement n'a pas pu être traité. Veuillez réessayer.",
+      "browseOther": "Voir d'autres événements",
+      "dismiss": "Ignorer"
+    },
+    "ticketLabel": "Billet",
+    "qrCodeHint": "Présentez ce QR code à l'entrée",
+    "guestInfo": "Informations du participant",
+    "guestName": "Nom",
+    "guestEmail": "Email",
+    "quantity": "Billets",
+    "paymentDetails": "Détails du paiement",
+    "totalPaid": "Total payé",
+    "viewReceipt": "Voir le reçu",
+    "eventLocation": "Lieu de l'événement",
+    "practicalInfo": "Infos pratiques",
+    "addToCalendar": "Ajouter au calendrier",
+    "appleOutlook": "Apple / Outlook",
+    "printTicket": "Imprimer le billet",
+    "confirmationId": "Numéro de confirmation",
+    "ticketCount": "{count, plural, one {# Billet} other {# Billets}}",
+    "cancellation": {
+      "sectionTitle": "Besoin d'annuler ?",
+      "checking": "Vérification de l'éligibilité à l'annulation...",
+      "cta": "Annuler ma réservation",
+      "windowClosed": "L'annulation n'est possible que jusqu'à 24 heures avant l'événement. Pour toute urgence, veuillez nous contacter directement.",
+      "genericNotEligible": "Cette réservation n'est plus éligible à l'annulation en libre-service. Veuillez nous contacter si vous avez besoin d'aide.",
+      "checkError": "Nous n'avons pas pu vérifier votre éligibilité à l'annulation. Veuillez rafraîchir la page.",
+      "modalTitle": "Annuler cette réservation ?",
+      "modalDescription": "Cette action annulera votre réservation pour {eventTitle} et est irréversible.",
+      "keep": "Conserver ma réservation",
+      "confirmCta": "Oui, annuler la réservation",
+      "cancelling": "Annulation en cours...",
+      "errorTitle": "Échec de l'annulation",
+      "errorGeneric": "Une erreur est survenue lors de l'annulation de votre réservation. Veuillez réessayer ou nous contacter.",
+      "successTitle": "Réservation annulée",
+      "successWithRefund": "Votre réservation a été annulée et un remboursement de {amount} a été émis vers votre moyen de paiement d'origine. Le délai peut être de 5 à 10 jours ouvrés.",
+      "successNoRefund": "Votre réservation a été annulée.",
+      "refundPreview": "Si vous annulez maintenant, {amount} vous seront remboursés sur votre moyen de paiement, selon la politique de remboursement de l’événement.",
+      "noRefundPreview": "Selon la politique de remboursement de l’événement, une annulation maintenant ne donne lieu à aucun remboursement. Vos places seront libérées."
+    },
+    "depositPaid": "Acompte payé",
+    "giftCardPaid": "dont payé par carte cadeau",
+    "balanceDue": "Reste à régler sur place",
+    "extras": "Suppléments"
+  },
+  "newsletterSignup": {
+    "previewTitle": "Lettre d'information — aperçu",
+    "emailLabel": "Adresse e-mail",
+    "emailPlaceholder": "vous@exemple.com",
+    "submit": "S'inscrire",
+    "sending": "Envoi en cours…",
+    "consent": "J'accepte de recevoir des e-mails sur les prochains événements de Germinal.",
+    "success": "Merci — un e-mail de confirmation vient de vous être envoyé. Cliquez sur son lien pour terminer votre inscription.",
+    "error": "Inscription impossible. Vérifiez l'adresse et cochez la case de consentement, puis réessayez.",
+    "confirmPageTitle": "Confirmer l'inscription",
+    "confirmTitle": "Confirmer votre inscription",
+    "confirmDescription": "Confirmez que vous souhaitez recevoir des e-mails sur les prochains événements de Germinal.",
+    "confirmButton": "Confirmer mon inscription",
+    "confirmed": "C'est fait : votre adresse est sur la liste. Vous recevrez les prochains événements de Germinal.",
+    "confirmNeutral": "Si cette inscription est en attente de confirmation, elle vient d'être confirmée. Sinon, rien n'a changé."
+  },
+  "unsubscribe": {
+    "pageTitle": "Se désinscrire",
+    "title": "Ne plus recevoir les événements de Germinal",
+    "description": "Confirmez que vous ne souhaitez plus recevoir d'e-mails sur les prochains événements de Germinal.",
+    "confirm": "Me désinscrire",
+    "successTitle": "C'est fait",
+    "success": "Vous ne recevrez plus d'e-mails sur les prochains événements de Germinal.",
+    "neutral": "Si l'adresse figure sur notre liste, elle en a été retirée. Vous ne recevrez plus d'e-mails sur les prochains événements de Germinal.",
+    "error": "Un problème est survenu. Réessayez dans un instant."
+  },
+  "findTicket": {
+    "pageTitle": "Retrouver mon billet | Germinal",
+    "title": "Billet perdu ?",
+    "description": "Indiquez l'adresse email utilisée lors de votre réservation, et nous vous renverrons vos billets.",
+    "form": {
+      "email": "Email",
+      "emailPlaceholder": "vous@exemple.com",
+      "emailRequired": "Veuillez indiquer votre adresse email.",
+      "send": "Envoyer mon billet",
+      "sending": "Envoi en cours...",
+      "error": "Une erreur est survenue. Veuillez réessayer.",
+      "rateLimited": "Trop de tentatives. Veuillez réessayer plus tard."
+    },
+    "success": {
+      "message": "Si cette adresse email correspond à des réservations confirmées, nous lui avons envoyé les billets. Vérifiez votre boîte de réception (et vos courriers indésirables).",
+      "tryAnother": "Essayer une autre adresse"
+    }
+  },
+  "legal": {
+    "lastUpdated": "Dernière mise à jour : {date}",
+    "privacy": {
+      "pageTitle": "Politique de confidentialité | Germinal",
+      "title": "Politique de confidentialité",
+      "intro": "Germinal (\"nous\", \"notre\") s'engage à protéger vos données personnelles. Cette politique explique comment nous collectons, utilisons et protégeons vos informations conformément au Règlement Général sur la Protection des Données (RGPD).",
+      "controllerTitle": "1. Responsable du traitement",
+      "controllerBody": "Le responsable du traitement est :",
+      "controllerName": "Germinal",
+      "controllerAddress": "[ADRESSE — À COMPLÉTER]",
+      "controllerEmail": "Email : privacy@germinalstudio.co",
+      "dataTitle": "2. Données personnelles collectées",
+      "dataIntro": "Nous collectons les catégories suivantes de données personnelles :",
+      "dataReservation": "Données de réservation : prénom, nom, adresse e-mail, numéro de téléphone — collectées lors de la réservation d'une Session ou de la création d'une Réservation.",
+      "dataTechnical": "Données techniques : adresse IP, user-agent du navigateur — collectées automatiquement pour la prévention de la fraude et la sécurité du site.",
+      "dataDietary": "Allergies et régime alimentaire : seulement si vous les indiquez lors de la réservation d'un événement qui les demande, avec votre consentement explicite — utilisés uniquement pour adapter le repas.",
+      "dataContact": "Données de contact et de liste d'attente : nom, adresse e-mail, numéro de téléphone (liste d'attente), société et message (formulaire de contact) — collectées lorsque vous rejoignez une liste d'attente ou nous écrivez.",
+      "dataNewsletter": "Infolettre : votre adresse e-mail, votre nom et la langue du site — collectées uniquement si vous cochez « Recevoir les prochains événements de Germinal » lors de la réservation, ou si vous vous inscrivez via le formulaire et confirmez le lien reçu par e-mail — utilisées uniquement pour vous informer de nos prochains événements.",
+      "basisTitle": "3. Base légale",
+      "basisContractual": "Obligation contractuelle : le traitement de vos données est nécessaire à l'exécution du contrat de réservation (création de votre Réservation, envoi de votre Ticket, traitement du paiement).",
+      "basisLegitimate": "Intérêt légitime : nous utilisons les données techniques pour prévenir la fraude et assurer la sécurité de notre plateforme.",
+      "basisContact": "Intérêt légitime et mesures précontractuelles : répondre à vos messages et vous prévenir lorsqu'une place se libère sur une liste d'attente.",
+      "basisNewsletter": "Consentement (article 6.1.a du RGPD) : l'infolettre n'est envoyée que si vous avez coché la case lors de la réservation ou confirmé votre inscription par le lien reçu après le formulaire (double opt-in). Vous pouvez retirer votre consentement à tout moment via le lien de désinscription présent dans chaque e-mail d'information.",
+      "basisDietary": "Consentement explicite (article 9.2.a du RGPD) : vos allergies et votre régime alimentaire sont des données de santé, traitées uniquement si vous cochez la case de consentement. Vous pouvez retirer votre consentement à tout moment en nous écrivant.",
+      "retentionTitle": "4. Durées de conservation",
+      "retentionIntro": "Nous conservons vos données uniquement le temps nécessaire, puis nous les supprimons ou les anonymisons automatiquement :",
+      "retentionReservation": "Réservations : vos nom, adresse e-mail et numéro de téléphone sont conservés jusqu'à 1 an après la Session, puis anonymisés. Seuls subsistent les montants, les dates et les références de paiement, sans aucun nom.",
+      "retentionUnpaid": "Réservations non payées : anonymisées 30 jours après leur expiration.",
+      "retentionDietary": "Allergies et régime alimentaire : effacés, avec la date de votre consentement, 30 jours après le début de la séance.",
+      "retentionNewsletter": "Infolettre : conservée jusqu'à votre désinscription. L'adresse elle-même est supprimée 30 jours après la désinscription.",
+      "retentionWaitlist": "Listes d'attente : supprimées 30 jours après la Session.",
+      "retentionContact": "Messages du formulaire de contact : supprimés 1 an après leur réception.",
+      "retentionTechnical": "Données techniques (adresse IP, user-agent) et journaux du serveur : effacés au plus tard après 12 mois.",
+      "retentionEmails": "Copies des e-mails que nous vous envoyons : supprimées après 30 jours.",
+      "retentionBackups": "Sauvegardes : copies chiffrées stockées dans l'Union européenne, supprimées au plus tard après 1 an. Les données supprimées du site disparaissent des sauvegardes dans ce délai.",
+      "retentionAccounting": "Les pièces comptables sont conservées 10 ans, comme l'exige la loi française.",
+      "recipientsTitle": "5. Destinataires et sous-traitants",
+      "recipientsIntro": "Vos données ne sont accessibles qu'à l'équipe Germinal et aux prestataires suivants, qui les traitent pour notre compte :",
+      "recipientStripe": "Stripe (paiements) — Stripe Payments Europe, Irlande.",
+      "recipientAws": "Amazon Web Services (stockage et diffusion des fichiers) — région de Paris, France.",
+      "recipientBrevo": "Brevo (envoi d'e-mails) — France.",
+      "recipientTwilio": "Twilio (SMS) — traitement dans la région Irlande.",
+      "recipientHetzner": "Hetzner (hébergement du site et de la base de données) — Allemagne.",
+      "recipientCloudflare": "Cloudflare (noms de domaine et protection du réseau).",
+      "recipientsTransfers": "Certains de ces prestataires appartiennent à des groupes établis aux États-Unis. Tout transfert de données hors de l'Union européenne est encadré par le Data Privacy Framework UE–États-Unis ou par les clauses contractuelles types de la Commission européenne.",
+      "rightsTitle": "6. Vos droits en vertu du RGPD",
+      "rightsBody": "En tant que personne concernée, vous disposez des droits suivants :",
+      "rightAccess": "Accéder à vos données personnelles",
+      "rightRectification": "Rectifier les données inexactes",
+      "rightErasure": "Demander la suppression de vos données",
+      "rightPortability": "Recevoir vos données dans un format portable",
+      "rightObject": "Vous opposer au traitement fondé sur l'intérêt légitime",
+      "rightWithdraw": "Retirer votre consentement à tout moment",
+      "rightsExercice": "Pour exercer l'un de ces droits, contactez-nous à privacy@germinalstudio.co.",
+      "rightsComplaint": "Si vous estimez que vos droits ne sont pas respectés, vous pouvez introduire une réclamation auprès de la CNIL (www.cnil.fr).",
+      "cookiesTitle": "7. Cookies",
+      "cookiesIntro": "Nous utilisons les catégories de cookies suivantes :",
+      "cookiesEssential": "Cookies strictement nécessaires : utilisés pour vous maintenir connecté(e) et protéger le site contre les requêtes frauduleuses (cookie de session, jeton de sécurité CSRF). Ces cookies sont indispensables au fonctionnement du site et ne sont pas soumis au consentement.",
+      "cookiesNonEssential": "Cookies non essentiels (ex. : mesure d'audience, analyse) : déposés uniquement avec votre consentement préalable, recueilli via la bannière de cookies affichée lors de votre première visite. Germinal n'utilise actuellement aucun cookie de ce type.",
+      "cookiesChoice": "Vous pouvez accepter ou refuser les cookies non essentiels à tout moment depuis la bannière de cookies, ou en effaçant le stockage local de votre navigateur pour ce site afin que la bannière s'affiche à nouveau."
+    },
+    "mentions": {
+      "pageTitle": "Mentions légales | Germinal",
+      "title": "Mentions légales",
+      "publisherTitle": "1. Éditeur du site",
+      "publisherBody": "Le présent site est édité par :",
+      "publisherName": "Germinal",
+      "publisherAddress": "[ADRESSE — À COMPLÉTER]",
+      "publisherEmail": "Email : contact@germinalstudio.co",
+      "publisherDirector": "Directeur de la publication : [NOM — À COMPLÉTER]",
+      "hostingTitle": "2. Hébergement",
+      "hostingBody": "Le présent site est hébergé par :",
+      "hostingName": "[HÉBERGEUR — À COMPLÉTER]",
+      "hostingAddress": "[ADRESSE DE L'HÉBERGEUR — À COMPLÉTER]",
+      "ipTitle": "3. Propriété intellectuelle",
+      "ipBody": "L'ensemble des contenus du présent site (textes, images, graphismes, logos) est la propriété exclusive de Germinal et est protégé par le droit d'auteur français et international. Toute reproduction, représentation, modification ou adaptation, totale ou partielle, sans autorisation écrite préalable de Germinal, est strictement interdite.",
+      "dataTitle": "4. Données personnelles",
+      "dataBody": "Les informations relatives à la collecte et au traitement des données personnelles sont détaillées dans notre Politique de confidentialité."
+    },
+    "terms": {
+      "pageTitle": "Conditions générales de vente | Germinal",
+      "title": "Conditions Générales de Vente",
+      "intro": "Les présentes Conditions Générales de Vente (\"CGV\") régissent l'ensemble des transactions effectuées via la plateforme Germinal. En passant commande, vous acceptez intégralement ces conditions.",
+      "offerTitle": "1. Offre et acceptation",
+      "offerBody": "Nos Événements et Sessions sont présentés sur le site avec leur description, date, heure et prix en euros (EUR). Une commande n'est acceptée qu'après confirmation par Germinal, envoyée par email. Cette confirmation constitue la formation du contrat.",
+      "pricingTitle": "2. Tarification",
+      "pricingBody": "Tous les prix sont affichés en euros (EUR) toutes taxes comprises (TTC). Germinal se réserve le droit de modifier les prix à tout moment ; toutefois, le prix applicable est celui en vigueur au moment de la confirmation de commande.",
+      "paymentTitle": "3. Paiement",
+      "paymentBody": "Le paiement est traité de manière sécurisée via Stripe. Nous acceptons les principales cartes de crédit et de débit. Le paiement intégral est requis au moment de la commande pour confirmer votre Réservation.",
+      "cancellationTitle": "4. Politique d'annulation et de remboursement",
+      "cancellationBody": "Les Réservations confirmées peuvent être annulées pour un remboursement intégral. Les remboursements sont traités vers le moyen de paiement d'origine sous 14 jours ouvrés. Si Germinal annule un Événement ou une Session, toutes les Réservations concernées seront remboursées intégralement.",
+      "liabilityTitle": "5. Responsabilité",
+      "liabilityBody": "La responsabilité de Germinal est limitée au montant payé par l'Invité pour la Réservation concernée. Germinal ne saurait être tenue responsable des dommages indirects, y compris la perte de profit ou d'opportunité.",
+      "governingTitle": "6. Droit applicable",
+      "governingBody": "Les présentes conditions sont régies par le droit français. Tout litige sera soumis à la compétence exclusive des tribunaux de Paris, France."
+    }
+  },
+  "faq": {
+    "pageTitle": "FAQ | Germinal",
+    "title": "Questions fréquentes",
+    "q1": {
+      "question": "Comment récupérer mon billet ?",
+      "answer": "Après avoir complété votre réservation, vous recevrez un email de confirmation contenant un lien unique vers votre billet. Vous pouvez également accéder à votre billet à tout moment en utilisant le lien token fourni. Votre billet inclut un QR code — présentez-le à l'entrée le jour de l'événement."
+    },
+    "q2": {
+      "question": "Que se passe-t-il si une session est complète ?",
+      "answer": "Lorsqu'une session est complète, vous pouvez rejoindre la liste d'attente. Si une place se libère (par exemple suite à une annulation), vous serez notifié automatiquement et aurez la possibilité de réserver."
+    },
+    "q3": {
+      "question": "Comment annuler ma réservation ?",
+      "answer": "Vous pouvez annuler votre réservation en utilisant le lien d'annulation dans votre email de confirmation, ou en nous contactant directement. Les réservations confirmées sont éligibles à un remboursement intégral, traité vers votre moyen de paiement d'origine sous 14 jours ouvrés."
+    },
+    "q4": {
+      "question": "À quoi sert le QR code ?",
+      "answer": "Le QR code sur votre billet est votre preuve d'achat numérique. Présentez-le à l'entrée de l'événement pour scan. Il contient toutes les informations nécessaires pour valider votre réservation."
+    },
+    "q5": {
+      "question": "Comment contacter Germinal ?",
+      "answer": "Vous pouvez nous joindre via notre page contact, par email à privacy@germinalstudio.co, ou via notre Instagram @Germinal.studio. Nous répondons généralement sous 48 heures."
+    }
+  },
+  "admin": {
+    "login": {
+      "pageTitle": "Connexion | Germinal",
+      "title": "Se connecter",
+      "description": "Entrez vos identifiants pour accéder à votre tableau de bord",
+      "email": "Adresse email",
+      "password": "Mot de passe",
+      "signIn": "Se connecter",
+      "rateLimited": "Limite de débit atteinte",
+      "invalidCredentials": "Email ou mot de passe invalide",
+      "errors": {
+        "rateLimit": "Trop de tentatives de connexion. Réessayez dans {seconds} secondes.",
+        "emailRequired": "L'email est requis",
+        "passwordRequired": "Le mot de passe est requis"
+      },
+      "showPassword": "Afficher le mot de passe",
+      "hidePassword": "Masquer le mot de passe",
+      "mockCredentials": "Pour le développement, utilisez :",
+      "mockPasswordHint": "(votre mot de passe)",
+      "metaDescription": "Connectez-vous à votre compte Germinal"
+    },
+    "dashboard": {
+      "title": "Tableau de bord",
+      "welcome": "Bienvenue ! Voici un aperçu de votre contenu Germinal.",
+      "newEvent": {
+        "title": "Nouvel événement",
+        "description": "Créer un nouvel événement ou exposition",
+        "button": "Créer un événement"
+      },
+      "newTalent": {
+        "title": "Nouveau talent",
+        "description": "Ajouter un nouveau talent à la collection",
+        "button": "Ajouter un talent"
+      },
+      "settings": {
+        "title": "Paramètres",
+        "description": "Gérer les paramètres de votre compte",
+        "button": "Changer le mot de passe"
+      },
+      "accountInfo": {
+        "title": "Informations du compte",
+        "email": "Email",
+        "role": "Rôle",
+        "memberSince": "Membre depuis"
+      }
+    },
+    "sidebar": {
+      "title": "Panneau d'administration",
+      "dashboard": "Tableau de bord",
+      "events": "Événements",
+      "talents": "Talents",
+      "password": "Mot de passe",
+      "logout": "Déconnexion"
+    },
+    "layout": {
+      "admin": "Admin",
+      "mobileNav": {
+        "dashboard": "Tableau de bord",
+        "events": "Événements",
+        "talents": "Talents",
+        "settings": "Paramètres"
+      }
+    },
+    "events": {
+      "title": "Événements",
+      "description": "Gérer vos événements et expositions",
+      "newEvent": "Nouvel événement",
+      "noEvents": "Aucun événement pour le moment",
+      "noEventsDescription": "Créez votre premier événement pour commencer",
+      "createEvent": "Créer un événement",
+      "table": {
+        "event": "Événement",
+        "date": "Date",
+        "location": "Lieu",
+        "status": "Statut",
+        "actions": "Actions"
+      },
+      "status": {
+        "published": "Publié",
+        "draft": "Brouillon"
+      },
+      "dialog": {
+        "create": {
+          "title": "Créer un nouvel événement",
+          "description": "Remplissez les détails pour créer un nouvel événement"
+        },
+        "edit": {
+          "title": "Modifier l'événement"
+        },
+        "delete": {
+          "title": "Supprimer l'événement",
+          "confirmation": "Êtes-vous sûr de vouloir supprimer cet événement ?"
+        },
+        "fields": {
+          "title": "Titre",
+          "description": "Description",
+          "startDate": "Date de début",
+          "endDate": "Date de fin",
+          "location": "Lieu",
+          "publishImmediately": "Publier immédiatement",
+          "publishHelp": "Décochez pour enregistrer comme brouillon"
+        },
+        "actions": {
+          "cancel": "Annuler",
+          "create": "Créer l'événement",
+          "save": "Enregistrer les modifications",
+          "delete": "Supprimer"
+        }
+      }
+    },
+    "talents": {
+      "title": "Talents",
+      "description": "Gérer votre collection de talents",
+      "newTalent": "Nouveau talent",
+      "noTalents": "Aucun talent pour le moment",
+      "noTalentsDescription": "Ajoutez votre premier talent pour commencer",
+      "addTalent": "Ajouter un talent",
+      "table": {
+        "talent": "Talent",
+        "role": "Rôle",
+        "bio": "Biographie",
+        "status": "Statut",
+        "actions": "Actions"
+      },
+      "dialog": {
+        "create": {
+          "title": "Ajouter un nouveau talent"
+        },
+        "edit": {
+          "title": "Modifier le talent"
+        },
+        "delete": {
+          "title": "Supprimer le talent",
+          "confirmation": "Êtes-vous sûr de vouloir supprimer ce talent ?"
+        },
+        "fields": {
+          "firstName": "Prénom",
+          "lastName": "Nom",
+          "role": "Rôle",
+          "bio": "Biographie",
+          "socialLinks": "Liens sociaux (optionnel)",
+          "instagram": "Instagram",
+          "linkedin": "LinkedIn",
+          "twitter": "Twitter",
+          "website": "Site web"
+        },
+        "actions": {
+          "cancel": "Annuler",
+          "add": "Ajouter le talent",
+          "save": "Enregistrer les modifications",
+          "delete": "Supprimer"
+        }
+      }
+    },
+    "changePassword": {
+      "title": "Changer le mot de passe",
+      "backToDashboard": "Retour au tableau de bord",
+      "currentPassword": "Mot de passe actuel",
+      "newPassword": "Nouveau mot de passe",
+      "confirmPassword": "Confirmer le nouveau mot de passe",
+      "passwordHelp": "Doit contenir au moins 8 caractères",
+      "updatePassword": "Mettre à jour le mot de passe"
+    }
+  }
 }
