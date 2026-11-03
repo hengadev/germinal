@@ -8,7 +8,7 @@
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 	const uid = $props.id();
 
-	function formatDate(dateString: string): string {
+	function formatDate(dateString: string | Date): string {
 		return new Date(dateString).toLocaleDateString('fr-FR', {
 			day: 'numeric',
 			month: 'short',

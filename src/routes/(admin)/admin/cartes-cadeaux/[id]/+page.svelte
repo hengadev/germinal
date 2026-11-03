@@ -60,7 +60,7 @@
 
 <svelte:head>
 	<title>Carte {formatGiftCardCode(card.code)} — Admin</title>
-</svelte>
+</svelte:head>
 
 <div class="px-4 sm:px-6 lg:px-8 py-8">
 	<a href="/admin/cartes-cadeaux" class="inline-flex items-center gap-1 text-sm text-foreground-alt hover:text-foreground mb-4">
@@ -152,7 +152,7 @@
 						<p class="text-sm text-foreground">{form.cancelError}</p>
 					{/if}
 
-					<Modal isOpen={cancelModalOpen} title="Annuler la carte" onclose={() => (cancelModalOpen = false)}>
+					<Modal bind:isOpen={cancelModalOpen} title="Annuler la carte">
 						<p class="text-sm text-foreground mb-4">
 							La carte ne pourra plus être utilisée ; son relevé est conservé. Le code n'apparaît
 							jamais en entier dans le journal d'audit (quatre derniers caractères seulement).

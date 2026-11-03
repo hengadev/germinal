@@ -143,7 +143,7 @@ async function moveBalance(
 ): Promise<MovementResult> {
 	const code = normaliseGiftCardCode(typedCode);
 	try {
-		return await db.transaction(async (tx) => {
+		return await db.transaction(async (tx: typeof db) => {
 			const [card] = await tx
 				.select()
 				.from(giftCards)
@@ -317,7 +317,7 @@ export async function getGiftCard(
 			reason: giftCardLedger.reason,
 			createdAt: giftCardLedger.createdAt,
 			reservationId: giftCardLedger.reservationId,
-			actorName: users.name
+			actorName: users.firstName
 		})
 		.from(giftCardLedger)
 		.leftJoin(users, eq(users.id, giftCardLedger.actorId))
