@@ -2,6 +2,7 @@ import { json } from '@sveltejs/kit';
 import { logger } from '$lib/server/logger';
 import { createReservationSchema } from '$lib/server/validators/reservations';
 import { createReservation, DietaryConsentRequiredError, GiftCardUnusableError, SeatingNotBookableError } from '$lib/server/services/reservations';
+import { ExtraSoldOutError } from '$lib/server/services/event-extras';
 import { checkRateLimit } from '$lib/server/rate-limit';
 import { validateCsrfToken } from '$lib/server/csrf';
 import type { RequestHandler } from './$types';
@@ -56,11 +57,13 @@ export const POST: RequestHandler = async ({ request, getClientAddress, locals }
 		}
 
 		// Create reservation with capacity lock
+		const locale = typeof data.locale === 'string' ? data.locale : null;
 		const result = await createReservation({
 			...validated.data,
 			phone: validated.data.phone ?? undefined,
 			ipAddress: ip,
 			userAgent: userAgent ?? undefined,
+			locale,
 		});
 
 		return json(
@@ -102,6 +105,19 @@ export const POST: RequestHandler = async ({ request, getClientAddress, locals }
 				case 'full':
 					return json({ error: 'Session is sold out', code: 'SOLD_OUT' }, { status: 409 });
 			}
+		}
+
+		if (error instanceof ExtraSoldOutError) {
+			// The Extra's name is in the message, in the Guest's language
+			// (issue 068); both are given so the client can pick.
+			return json(
+				{
+					error: locale === 'fr' ? error.messageFr : error.messageEn,
+					messages: { fr: error.messageFr, en: error.messageEn },
+					code: 'EXTRA_SOLD_OUT',
+				},
+			{ status: 409 }
+		);
 		}
 
 		if (error instanceof DietaryConsentRequiredError) {

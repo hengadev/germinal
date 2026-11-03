@@ -404,3 +404,60 @@ export async function loadReservationExtras(
 /** The Extras' total of a Reservation's snapshots, in minor units. */
 export const extrasTotalOf = (snapshots: { unitPrice: number; quantity: number }[]): number =>
 	snapshots.reduce((sum, snapshot) => sum + snapshot.unitPrice * snapshot.quantity, 0);
+
+/** A bookable Extra as the booking page shows it (issue 068). */
+export interface BookableExtra {
+	id: string;
+	nameEn: string;
+	nameFr: string;
+	descriptionEn: string | null;
+	descriptionFr: string | null;
+	priceAmount: number;
+	unit: 'per_person' | 'per_unit';
+	/** Units still bookable, or null when the Extra is unlimited. */
+	remaining: number | null;
+}
+
+/** The Event's active Extras for the booking form, with what stock each
+ * has left (stock minus every booked quantity on Reservations that still
+ * hold seats). */
+export async function loadBookableExtras(eventId: string): Promise<BookableExtra[]> {
+	const rows = await db
+		.select({
+			id: eventExtras.id,
+			nameEn: eventExtras.nameEn,
+			nameFr: eventExtras.nameFr,
+			descriptionEn: eventExtras.descriptionEn,
+			descriptionFr: eventExtras.descriptionFr,
+			priceAmount: eventExtras.priceAmount,
+			unit: eventExtras.unit,
+			stock: eventExtras.stock,
+		})
+		.from(eventExtras)
+		.where(and(eq(eventExtras.eventId, eventId), eq(eventExtras.active, true)))
+		.orderBy(eventExtras.position, eventExtras.createdAt, eventExtras.id);
+	if (rows.length === 0) return [];
+	const booked: { eventExtraId: string; booked: number }[] = await db
+		.select({
+			eventExtraId: reservationExtras.eventExtraId,
+			booked: sql<number>`coalesce(sum(${reservationExtras.quantity}), 0)::int`,
+		})
+		.from(reservationExtras)
+		.innerJoin(reservations, eq(reservationExtras.reservationId, reservations.id))
+		.where(and(
+			inArray(reservationExtras.eventExtraId, rows.map((row) => row.id)),
+			inArray(reservations.status, [...STOCK_HOLDING_STATUSES])
+		))
+		.groupBy(reservationExtras.eventExtraId);
+	const bookedById = new Map(booked.map((row) => [row.eventExtraId, row.booked]));
+	return rows.map((row) => ({
+		id: row.id,
+		nameEn: row.nameEn,
+		nameFr: row.nameFr,
+		descriptionEn: row.descriptionEn,
+		descriptionFr: row.descriptionFr,
+		priceAmount: row.priceAmount,
+		unit: row.unit,
+		remaining: row.stock === null ? null : Math.max(0, row.stock - (bookedById.get(row.id) ?? 0)),
+	}));
+}
