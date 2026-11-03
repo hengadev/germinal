@@ -1,7 +1,7 @@
 <script lang="ts">
     import { page } from "$app/state";
 
-    import { LayoutDashboard, Calendar, Users, Ticket, BarChart3, ClipboardList, ExternalLink, Settings2, ScrollText, AlertTriangle, Contact } from "lucide-svelte";
+    import { LayoutDashboard, Calendar, Users, Ticket, BarChart3, ClipboardList, ExternalLink, Settings2, ScrollText, AlertTriangle, Contact, Inbox } from "lucide-svelte";
     import ThemeToggle from "$lib/components/admin/ThemeToggle.svelte";
 
     interface SidebarProps {
@@ -14,6 +14,7 @@
             };
             staffPortalUrl: string;
             moneyAlertsTotal: number;
+            newDemandesCount: number;
         };
     }
 
@@ -69,6 +70,12 @@
             href: "/admin/clients",
             label: "Clients",
             icon: Contact,
+        },
+        {
+            href: "/admin/demandes",
+            label: "Demandes",
+            icon: Inbox,
+            badge: data.newDemandesCount,
         },
         {
             href: "/admin/a-traiter",

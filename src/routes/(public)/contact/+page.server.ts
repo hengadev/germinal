@@ -47,10 +47,10 @@ export const actions: Actions = {
       inquiryType: formData.get('inquiryType'),
       message: formData.get('message'),
       honeypot: formData.get('website'),
-      occasion: formData.get('occasion'),
-      preferredDates: formData.get('preferredDates'),
-      guestCount: formData.get('guestCount') ? formData.get('guestCount') : null,
-      budget: formData.get('budget'),
+      occasion: formData.get('occasion') ?? undefined,
+      preferredDates: formData.get('preferredDates') ?? undefined,
+      guestCount: formData.get('guestCount') ?? null,
+      budget: formData.get('budget') ?? undefined,
     };
 
     const validated = contactSubmissionSchema.safeParse(data);
