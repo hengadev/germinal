@@ -367,29 +367,42 @@ export const load: PageServerLoad = async ({ params }) => {
 		const { arrivedByReservation } = await import('$lib/server/services/check-ins');
 		const arrived = await arrivedByReservation(reservationsData.map((r: typeof reservationsData[number]) => r.id));
 
-		// Attendance (issue 024): each Seating's final counts, only once the
-		// Event is over — the last Seating's end time has passed.
+		// Attendance (issue 024, now the « Bilan » tab of issue 057): each
+		// Seating's counts, loaded for every Event — provisional before the
+		// last Seating's end time has passed, final after.
 		const seatingEnds = sessionsData.map((s: typeof sessionsData[number]) => s.endTime.getTime());
 		const lastSeatingEnd = seatingEnds.length > 0 ? new Date(Math.max(...seatingEnds)) : null;
-		const { getEventAttendance, isEventOver } = await import('$lib/server/services/attendance');
-		let attendance = null;
-		if (isEventOver(lastSeatingEnd, new Date())) {
-			const eventAttendance = await getEventAttendance(id);
-			attendance = {
-				days: eventAttendance.days.map((d) => ({
-					date: d.date,
-					services: d.services.map((s) => ({
-						kind: s.kind,
-						seatings: s.seatings.map((se) => ({ ...se, startTime: se.startTime.toISOString() }))
-					}))
-				})),
-				totals: eventAttendance.totals
-			};
-		}
+		const { getEventAttendance, getEventMoney, isEventOver } = await import('$lib/server/services/attendance');
+		const over = isEventOver(lastSeatingEnd, new Date());
+		// Before the Event is over, a Seating still to come has no No-shows yet.
+		const now = new Date();
+		const endById = new Map(sessionsData.map((s: typeof sessionsData[number]) => [s.id, s.endTime.getTime()]));
+		const eventAttendance = await getEventAttendance(id);
+		let noShows = 0;
+		const attendance = {
+			days: eventAttendance.days.map((d) => ({
+				date: d.date,
+				services: d.services.map((s) => ({
+					kind: s.kind,
+					seatings: s.seatings.map((se) => {
+						const ended = (endById.get(se.id) ?? 0) <= now.getTime();
+						const seatingNoShows = ended ? se.noShows : 0;
+						noShows += seatingNoShows;
+						return { ...se, noShows: seatingNoShows, startTime: se.startTime.toISOString() };
+					})
+				}))
+			})),
+			totals: { ...eventAttendance.totals, noShows }
+		};
+
+		// The Event's money, per currency (issue 057).
+		const money = await getEventMoney(id);
 
 		return {
 			event,
 			attendance,
+			over,
+			money,
 			promoCodes,
 			talents,
 			days,

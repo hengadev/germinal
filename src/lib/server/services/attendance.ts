@@ -4,9 +4,10 @@
  * and Service, with Event totals. It's for the Admin's Recap and for
  * deciding how far to overbook the next Event.
  */
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import { db } from '../db';
-import { eventDays, eventServices, eventSessions, reservations } from '../db/schema';
+import { eventDays, eventServices, eventSessions, events, payments, reservations } from '../db/schema';
+import type { BilanSeatingRow } from '$lib/utils/bilan';
 
 /** Party and guest counts for Walk-ins and Comps. */
 export interface AttendanceCategory {
@@ -65,6 +66,72 @@ const arrivedExpr = sql<number>`coalesce((
 
 /** A booked Reservation: confirmed, not a Comp, not a Walk-in. */
 const bookedExpr = sql`${reservations.id} is not null and not ${reservations.isComp} and ${reservations.origin} <> 'walk_in'`;
+
+/**
+ * The Event's money, grouped by currency (issue 057): deposits kept
+ * (succeeded Payment amounts minus refunded amounts), refunds, and
+ * Balances of confirmed Reservations marked settled. Cancelled
+ * Reservations never contribute, even a settled Balance.
+ */
+export interface CurrencyMoney {
+	currency: string;
+	depositsKept: number;
+	refunds: number;
+	balancesCollected: number;
+}
+
+export async function getEventMoney(eventId: string): Promise<CurrencyMoney[]> {
+	const [paymentRows, balanceRows] = await Promise.all([
+		db
+			.select({
+				currency: payments.currency,
+				kept: sql<number>`coalesce(sum(${payments.amount} - ${payments.refundedAmount}), 0)::int`,
+				refunded: sql<number>`coalesce(sum(${payments.refundedAmount}), 0)::int`
+			})
+			.from(payments)
+			.innerJoin(reservations, eq(reservations.id, payments.reservationId))
+			.innerJoin(eventSessions, eq(eventSessions.id, reservations.eventSessionId))
+			.where(
+				and(
+					eq(eventSessions.eventId, eventId),
+				sql`${payments.status} in ('succeeded', 'partially_refunded', 'refunded')`
+				)
+			)
+			.groupBy(payments.currency),
+		db
+			.select({
+				currency: reservations.currency,
+				collected: sql<number>`coalesce(sum(${reservations.balanceAmount}), 0)::int`
+			})
+			.from(reservations)
+			.innerJoin(eventSessions, eq(eventSessions.id, reservations.eventSessionId))
+			.where(
+				and(
+					eq(eventSessions.eventId, eventId),
+				eq(reservations.status, 'confirmed'),
+				sql`${reservations.balanceSettledAt} is not null`
+			)
+			)
+			.groupBy(reservations.currency)
+	]);
+
+	const byCurrency = new Map<string, CurrencyMoney>();
+	const row = (currency: string) => {
+		let entry = byCurrency.get(currency);
+		if (!entry) {
+			entry = { currency, depositsKept: 0, refunds: 0, balancesCollected: 0 };
+			byCurrency.set(currency, entry);
+		}
+		return entry;
+	};
+	for (const p of paymentRows) {
+		const entry = row(p.currency);
+		entry.depositsKept += p.kept;
+		entry.refunds += p.refunded;
+	}
+	for (const b of balanceRows) row(b.currency).balancesCollected += b.collected;
+	return [...byCurrency.values()].sort((a, b) => a.currency.localeCompare(b.currency));
+}
 
 /**
  * The Event's attendance, one row per Seating in one grouped query,
@@ -140,4 +207,270 @@ export async function getEventAttendance(eventId: string): Promise<EventAttendan
 		totals.comps.guests += row.compGuests;
 	}
 	return { days, totals };
+}
+
+/** Totals of the Day's live attendance (issue 056). */
+export interface TodayTotals {
+	booked: number;
+	arrived: number;
+	/** Booked guests not in yet, in Seatings that haven't ended. */
+	stillToCome: number;
+	/** No-shows of the Seatings that have ended only. */
+	noShows: number;
+	walkIns: AttendanceCategory;
+	comps: AttendanceCategory;
+}
+
+/** One Seating's live attendance during its Day. */
+export interface TodaySeatingAttendance {
+	id: string;
+	startTime: Date;
+	endTime: Date;
+	booked: number;
+	arrived: number;
+	stillToCome: number;
+	/** Counted only once the Seating's end time has passed; 0 before. */
+	noShows: number;
+	ended: boolean;
+	walkIns: AttendanceCategory;
+	comps: AttendanceCategory;
+	totalCapacity: number | null;
+	/** Capacity minus booked, Walk-in and Comp guests; null without capacity. */
+	seatsLeft: number | null;
+}
+
+export interface TodayServiceAttendance {
+	kind: 'lunch' | 'dinner';
+	seatings: TodaySeatingAttendance[];
+	totals: TodayTotals;
+}
+
+export interface TodayAttendance {
+	date: string;
+	services: TodayServiceAttendance[];
+	totals: TodayTotals;
+}
+
+/**
+ * The current Day's live attendance (issue 056): per-Seating rows grouped
+ * by Service, with Service and Day totals. Reuses the Event recap's
+ * definitions of booked, arrived, Walk-in and Comp, so both always agree.
+ * No-shows appear only once a Seating has ended.
+ */
+export async function getDayAttendance(
+	eventId: string,
+	day: string,
+	now: Date
+): Promise<TodayAttendance> {
+	const rows = await db
+		.select({
+			seatingId: eventSessions.id,
+			startTime: eventSessions.startTime,
+			endTime: eventSessions.endTime,
+			serviceKind: eventServices.kind,
+			totalCapacity: eventSessions.totalCapacity,
+			booked: sql<number>`coalesce(sum(case when ${bookedExpr} then ${reservations.quantity} else 0 end), 0)::int`,
+			arrived: sql<number>`coalesce(sum(${arrivedExpr}), 0)::int`,
+			// Booked guests not in yet, party by party: Walk-ins and Comps
+			// coming in never lower it (same rule as the recap's No-shows).
+			missing: sql<number>`coalesce(sum(case when ${bookedExpr} then greatest(${reservations.quantity} - ${arrivedExpr}, 0) else 0 end), 0)::int`,
+			walkInParties: sql<number>`count(*) filter (where ${reservations.origin} = 'walk_in')::int`,
+			walkInGuests: sql<number>`coalesce(sum(${reservations.quantity}) filter (where ${reservations.origin} = 'walk_in'), 0)::int`,
+			compParties: sql<number>`count(*) filter (where ${reservations.isComp} and ${reservations.origin} <> 'walk_in')::int`,
+			compGuests: sql<number>`coalesce(sum(${reservations.quantity}) filter (where ${reservations.isComp} and ${reservations.origin} <> 'walk_in'), 0)::int`
+		})
+		.from(eventSessions)
+		.innerJoin(eventServices, eq(eventServices.id, eventSessions.serviceId))
+		.innerJoin(eventDays, eq(eventDays.id, eventServices.dayId))
+		.leftJoin(
+			reservations,
+			and(
+				eq(reservations.eventSessionId, eventSessions.id),
+				eq(reservations.status, 'confirmed')
+			)
+		)
+		.where(and(eq(eventSessions.eventId, eventId), eq(eventDays.date, day)))
+		.groupBy(
+			eventSessions.id,
+			eventSessions.startTime,
+			eventSessions.endTime,
+			eventServices.kind,
+			eventSessions.totalCapacity
+		)
+		.orderBy(eventSessions.startTime);
+
+	const emptyTotals = (): TodayTotals => ({
+		booked: 0,
+		arrived: 0,
+		stillToCome: 0,
+		noShows: 0,
+		walkIns: { parties: 0, guests: 0 },
+		comps: { parties: 0, guests: 0 }
+	});
+	const add = (t: TodayTotals, s: TodaySeatingAttendance) => {
+		t.booked += s.booked;
+		t.arrived += s.arrived;
+		t.stillToCome += s.stillToCome;
+		t.noShows += s.noShows;
+		t.walkIns.parties += s.walkIns.parties;
+		t.walkIns.guests += s.walkIns.guests;
+		t.comps.parties += s.comps.parties;
+		t.comps.guests += s.comps.guests;
+	};
+
+	const services: TodayServiceAttendance[] = [];
+	const totals = emptyTotals();
+	for (const row of rows) {
+		const ended = now.getTime() >= row.endTime.getTime();
+		// Once the Seating has ended, who hasn't come is a No-show, not still to come.
+		const stillToCome = ended ? 0 : row.missing;
+		const seating: TodaySeatingAttendance = {
+			id: row.seatingId,
+			startTime: row.startTime,
+			endTime: row.endTime,
+			booked: row.booked,
+			arrived: row.arrived,
+			stillToCome,
+			// Before the end nobody is a No-show: the door is still open.
+			noShows: ended ? row.missing : 0,
+			ended,
+			walkIns: { parties: row.walkInParties, guests: row.walkInGuests },
+			comps: { parties: row.compParties, guests: row.compGuests },
+			totalCapacity: row.totalCapacity,
+			seatsLeft:
+				row.totalCapacity === null
+					? null
+					: row.totalCapacity - row.booked - row.walkInGuests - row.compGuests
+		};
+		let service = services.find((s) => s.kind === row.serviceKind);
+		if (!service) {
+			service = { kind: row.serviceKind, seatings: [], totals: emptyTotals() };
+			services.push(service);
+		}
+		service.seatings.push(seating);
+		add(service.totals, seating);
+		add(totals, seating);
+	}
+	// Lunch before dinner, like the Event recap.
+	services.sort((a, b) => (a.kind === 'lunch' ? 0 : 1) - (b.kind === 'lunch' ? 0 : 1));
+	return { date: day, services, totals };
+}
+
+/** The periods the Admin Bilan page offers (issue 058). */
+export type BilanPeriod = '3m' | '12m' | 'tout';
+
+/** A past Event with its per-Seating rows and its money per currency. */
+export interface PastEventBilan {
+	id: string;
+	titleFr: string;
+	titleEn: string;
+	/** The Event's last Seating end: when it became « over ». */
+	lastSeatingEnd: Date;
+	seatings: BilanSeatingRow[];
+	money: CurrencyMoney[];
+}
+
+/** The months each period covers; 'tout' has no lower bound. */
+const PERIOD_MONTHS: Record<Exclude<BilanPeriod, 'tout'>, number> = { '3m': 3, '12m': 12 };
+
+/**
+ * Every past Event of the period (issue 058): over = the last Seating
+ * ended, and that end falls within the period. One grouped query for the
+ * per-Seating rows of all those Events (same definitions of booked,
+ * arrived, No-shows, Walk-ins and Comps as the Event recap), plus one
+ * query for the money per Event × currency, newest Event first.
+ */
+export async function getPastEventsBilan(
+	period: BilanPeriod,
+	now: Date = new Date()
+): Promise<PastEventBilan[]> {
+	const months = period === 'tout' ? null : PERIOD_MONTHS[period];
+	let since: Date | null = null;
+	if (months !== null) {
+		since = new Date(now);
+		since.setMonth(since.getMonth() - months);
+	}
+
+	// Past = the Event's last Seating has ended, within the period.
+	const lastEnds = await db
+		.select({
+			eventId: eventSessions.eventId,
+			lastEnd: sql<Date>`max(${eventSessions.endTime})`
+		})
+		.from(eventSessions)
+		.groupBy(eventSessions.eventId);
+	const toDate = (v: Date | string): Date => (v instanceof Date ? v : new Date(v));
+	const pastIds = new Map<string, Date>();
+	for (const r of lastEnds) {
+		const end = toDate(r.lastEnd);
+		if (end.getTime() <= now.getTime() && (since === null || end.getTime() >= since.getTime())) {
+			pastIds.set(r.eventId, end);
+		}
+	}
+
+	if (pastIds.size === 0) return [];
+
+	const rows = await db
+		.select({
+			eventId: events.id,
+			titleFr: events.titleFr,
+			titleEn: events.titleEn,
+			date: eventDays.date,
+			kind: eventServices.kind,
+			totalCapacity: eventSessions.totalCapacity,
+			booked: sql<number>`coalesce(sum(case when ${bookedExpr} then ${reservations.quantity} else 0 end), 0)::int`,
+			arrived: sql<number>`coalesce(sum(${arrivedExpr}), 0)::int`,
+			noShows: sql<number>`coalesce(sum(case when ${bookedExpr} then greatest(${reservations.quantity} - ${arrivedExpr}, 0) else 0 end), 0)::int`,
+			walkInGuests: sql<number>`coalesce(sum(${reservations.quantity}) filter (where ${reservations.origin} = 'walk_in'), 0)::int`,
+			compGuests: sql<number>`coalesce(sum(${reservations.quantity}) filter (where ${reservations.isComp} and ${reservations.origin} <> 'walk_in'), 0)::int`
+		})
+		.from(eventSessions)
+		.innerJoin(eventServices, eq(eventServices.id, eventSessions.serviceId))
+		.innerJoin(eventDays, eq(eventDays.id, eventServices.dayId))
+		.innerJoin(events, eq(events.id, eventSessions.eventId))
+		.leftJoin(
+			reservations,
+			and(
+				eq(reservations.eventSessionId, eventSessions.id),
+				eq(reservations.status, 'confirmed')
+			)
+		)
+		.where(inArray(events.id, [...pastIds.keys()]))
+		.groupBy(events.id, events.titleFr, events.titleEn, eventSessions.id, eventDays.date, eventServices.kind, eventSessions.totalCapacity)
+		.orderBy(eventDays.date, eventSessions.startTime);
+
+	const byEvent = new Map<string, PastEventBilan>();
+	for (const row of rows) {
+		let event: PastEventBilan | undefined = byEvent.get(row.eventId);
+		if (!event) {
+			const lastSeatingEnd = pastIds.get(row.eventId);
+			if (!lastSeatingEnd) continue;
+			event = {
+				id: row.eventId,
+				titleFr: row.titleFr,
+				titleEn: row.titleEn,
+				lastSeatingEnd: lastSeatingEnd,
+				seatings: [],
+				money: []
+			};
+			byEvent.set(row.eventId, event);
+		}
+		event.seatings.push({
+			eventId: row.eventId,
+			date: row.date,
+			kind: row.kind,
+			booked: row.booked,
+			arrived: row.arrived,
+			noShows: row.noShows,
+			walkInGuests: row.walkInGuests,
+			compGuests: row.compGuests,
+			totalCapacity: row.totalCapacity
+		});
+	}
+
+	const result = [...byEvent.values()].sort(
+		(a, b) => b.lastSeatingEnd.getTime() - a.lastSeatingEnd.getTime()
+	);
+	for (const event of result) event.money = await getEventMoney(event.id);
+	return result;
 }

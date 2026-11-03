@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import Arrivees from '$lib/components/staff/arrivees/Arrivees.svelte';
+import Aujourdhui from '$lib/components/staff/aujourdhui/Aujourdhui.svelte';
 import NotesCuisine from '$lib/components/staff/arrivees/NotesCuisine.svelte';
 import { noteCount as countNotes } from '$lib/components/staff/arrivees/helpers';
 import { page } from '$app/state';
@@ -12,7 +13,15 @@ import SpotForm from '$lib/components/staff/event-menu/SpotForm.svelte';
 import CancelRefundSheet from '$lib/components/staff/arrivees/CancelRefundSheet.svelte';
 import PartySizeSheet from '$lib/components/staff/arrivees/PartySizeSheet.svelte';
 import { afterNavigate, replaceState } from '$app/navigation';
+import { invalidateAll } from '$app/navigation';
+import { deserialize } from '$app/forms';
 import { fly } from 'svelte/transition';
+import OfflineBanner from '$lib/components/staff/offline/OfflineBanner.svelte';
+import { clearSnapshots, getSnapshot, refreshSnapshot, type StoredSnapshot } from '$lib/staff/offline/snapshot-store';
+import { onlineState, markOffline } from '$lib/staff/offline/online-state.svelte';
+import { replayQueue, type ArrivalEntry, type ArrivalSendResult } from '$lib/staff/offline/replay';
+import { commitReplay, getArrivalQueue, queueState } from '$lib/staff/offline/arrival-queue.svelte';
+import { settlePendingArrivals } from '$lib/staff/offline/pending-arrivals.svelte';
 import { motion, cubicOut } from '$lib/components/staff/motion';
 import { untrack } from 'svelte';
 import {
@@ -31,8 +40,10 @@ import {
 	// any more, issue 034 — the floating button scans).
 	const fromUrl = page.url.searchParams.get('onglet');
 	const tabFromUrl =
-		fromUrl === 'arrivees' || fromUrl === 'cuisine' || fromUrl === 'brief' ? fromUrl : null;
-	let activeTab = $state<'arrivees' | 'cuisine' | 'brief'>(
+		fromUrl === 'arrivees' || fromUrl === 'aujourdhui' || fromUrl === 'cuisine' || fromUrl === 'brief'
+			? fromUrl
+			: null;
+	let activeTab = $state<'arrivees' | 'aujourdhui' | 'cuisine' | 'brief'>(
 		tabFromUrl ??
 			(!data.access.day
 				? 'brief'
@@ -115,6 +126,104 @@ import {
 		if (next) goToTab(next);
 	}
 
+	// Issue 060 : la copie du Jour sur le téléphone — actualisée au
+	// chargement puis toutes les 3 minutes tant qu'il y a du réseau ;
+	// le bandeau « Hors ligne » en montre l'âge.
+	let snapshot = $state<StoredSnapshot | null>(null);
+	const canSnapshot = $derived(
+			Boolean(data.access.day && (data.access.canScan || data.access.canManualCheckIn))
+		);
+	$effect(() => {
+		const id = data.event.id;
+		const day = data.access.day;
+		if (!canSnapshot || !day) return;
+		getSnapshot(id).then((stored) => {
+			if (stored && stored.day === day) snapshot = stored;
+			// Another Day's copy must never answer a scan.
+			else if (stored) clearSnapshots();
+		});
+		// Every 3 minutes online; offline, a try every 30 seconds, which is
+		// also how a weak network that never fired « offline » comes back.
+		let last = 0;
+		const refresh = () => {
+			last = Date.now();
+			refreshSnapshot(id).then((fresh) => (snapshot = fresh ?? snapshot));
+		};
+		refresh();
+		const timer = setInterval(() => {
+			if (Date.now() - last >= (onlineState.online ? 3 * 60_000 : 30_000)) refresh();
+		}, 30_000);
+		const onOnline = () => refresh();
+		addEventListener('online', onOnline);
+		return () => {
+			clearInterval(timer);
+			removeEventListener('online', onOnline);
+		};
+	});
+
+	// Issue 061 : le renvoi des arrivées enregistrées hors ligne, une par
+	// une, la plus ancienne d'abord — au chargement, au retour du réseau
+	// (l'événement « online » ou markOnline l'un et l'autre, via l'état
+	// réactif). Chaque entrée porte son id de tentative (059) : rien ne
+	// compte deux fois.
+	let replaying = false;
+	async function sendArrival(entry: ArrivalEntry): Promise<ArrivalSendResult> {
+		try {
+			// A form action called by hand: SvelteKit answers JSON only when
+			// asked, in its own serialisation.
+			const res = await fetch(
+				`/staff/events/${entry.eventId}?/${entry.method === 'scan' ? 'scanCheckIn' : 'checkIn'}`,
+				{
+					method: 'POST',
+					headers: { accept: 'application/json', 'x-sveltekit-action': 'true' },
+					body: new URLSearchParams({
+						reservationId: entry.reservationId,
+						guests: String(entry.guests),
+						clientId: entry.clientId
+					})
+				}
+			);
+			const action = deserialize(await res.text()) as {
+				type: string;
+				data?: { error?: string };
+			};
+			if (action.type === 'success') return 'ok';
+			if (action.type === 'failure') {
+				return { conflict: action.data?.error ?? 'Une erreur est survenue.' };
+			}
+			return { conflict: 'Une erreur est survenue.' };
+		} catch (error) {
+			if (error instanceof TypeError) markOffline();
+			throw error;
+		}
+	}
+	async function replayArrivals() {
+		if (replaying || !onlineState.online) return;
+		const entries = (await getArrivalQueue()).filter((entry) => entry.eventId === data.event.id);
+		if (entries.length === 0) return;
+		replaying = true;
+		queueState.sending = true;
+		try {
+			const { remaining, conflicts } = await replayQueue(entries, sendArrival);
+			const done = entries.filter(
+				(entry) => !remaining.some((kept) => kept.clientId === entry.clientId)
+			);
+			await commitReplay(done, conflicts);
+			if (done.length > 0) {
+				// La page dit maintenant la vérité : on la recharge, puis les
+				// compteurs locaux des entrées envoyées s'effacent.
+				await invalidateAll();
+				settlePendingArrivals(done);
+			}
+		} finally {
+			queueState.sending = false;
+			replaying = false;
+		}
+	}
+	$effect(() => {
+		if (onlineState.online) replayArrivals();
+	});
+
 	const title = $derived(data.event.titleFr || data.event.titleEn || 'Événement sans titre');
 
 	// The Cuisine tab's badge: the parties with Dietary Requirements.
@@ -138,6 +247,9 @@ import {
 </svelte:head>
 
 <div class="container mx-auto px-4 py-8 lg:py-12">
+	{#if canSnapshot}
+		<OfflineBanner takenAt={snapshot?.takenAt ?? null} />
+	{/if}
 	<!-- En-tête : l'événement et le jour en cours -->
 	<div class="mb-6">
 		<div class="flex items-center gap-2">
@@ -187,6 +299,18 @@ import {
 							: 'border-transparent text-muted-foreground hover:text-foreground'}"
 					>
 						Arrivées
+					</button>
+				{/if}
+				{#if data.access.canAujourdhui}
+					<button
+						type="button"
+						onclick={() => goToTab('aujourdhui')}
+						aria-current={activeTab === 'aujourdhui' ? 'page' : undefined}
+						class="px-1 py-3 text-sm font-medium border-b-2 {activeTab === 'aujourdhui'
+							? 'border-foreground text-foreground'
+							: 'border-transparent text-muted-foreground hover:text-foreground'}"
+					>
+						Aujourd'hui
 					</button>
 				{/if}
 				{#if data.access.canCuisine}
@@ -254,6 +378,13 @@ import {
 						<p class="text-muted-foreground">Aucun jour en cours : les invités ne sont visibles que le jour J.</p>
 					</div>
 				{/if}
+			</section>
+		{/if}
+
+		<!-- Onglet Aujourd'hui -->
+		{#if activeTab === 'aujourdhui' && data.access.canAujourdhui && data.aujourdhui}
+			<section aria-label="Aujourd'hui">
+				<Aujourdhui attendance={data.aujourdhui} timeZone={data.event.timeZone} />
 			</section>
 		{/if}
 

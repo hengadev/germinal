@@ -1,4 +1,5 @@
 import { error, fail } from '@sveltejs/kit';
+import { getDayAttendance, type TodaySeatingAttendance } from '$lib/server/services/attendance';
 import type { Actions, PageServerLoad } from './$types';
 import {
 	getStaffEventAccess,
@@ -6,12 +7,8 @@ import {
 	setSeatingBookingsClosed,
 	upcomingSeatingsForInvitation,
 } from '$lib/server/services/staff-portal';
-import {
-	getDayGuestList,
-	lookupTicket,
-	explainTicket,
-	type DayGuestParty,
-} from '$lib/server/services/day-guest-list';
+import { getDayGuestList, dayGuestFields, lookupTicket, explainTicket } from '$lib/server/services/day-guest-list';
+import { scanParty } from '$lib/server/services/scan-party';
 import { recordCheckIn, undoLastCheckIn } from '$lib/server/services/check-ins';
 import { createWalkIn } from '$lib/server/services/walk-ins';
 import { createCompOnTheSpot } from '$lib/server/services/comps';
@@ -23,24 +20,6 @@ import { cancelParty, refundParty, withRefundInfo } from '$lib/server/services/p
 import { changeParty } from '$lib/server/services/party-size';
 import { withPartySizeInfo } from '$lib/server/services/day-guest-list';
 import { formatCurrency, parseAmountInput } from '$lib/utils/currency';
-
-// The scan result party, shaped once for the wire: only what the Scanner
-// shows — no Date, no contact details.
-function scanParty(party: DayGuestParty) {
-	const balance =
-		party.isComp || !party.balanceAmount || !party.currency || party.balanceSettledAt
-			? null
-			: formatCurrency(party.balanceAmount, party.currency, 'fr-FR');
-	return {
-		id: party.id ?? null,
-		guestName: party.guestName ?? null,
-		quantity: party.quantity ?? null,
-		arrived: party.arrived ?? 0,
-		balance,
-		isComp: party.isComp ?? false,
-		dietaryRequirements: party.dietaryRequirements ?? null,
-	};
-}
 
 // The French refusal shown in place of a check-in button.
 function refusalMessage(explanation: Awaited<ReturnType<typeof explainTicket>>): string {
@@ -66,7 +45,26 @@ function refusalMessage(explanation: Awaited<ReturnType<typeof explainTicket>>):
 	}
 }
 
-export const load: PageServerLoad = async ({ locals, params }) => {
+// « Aujourd'hui » : les chiffres du Jour en cours, sans aucune donnée
+// nominative — des compteurs par séance seulement. Rechargé par
+// invalidate('staff:aujourdhui').
+async function loadAujourdhui(eventId: string, day: string, depends: (dep: `${string}:${string}`) => void) {
+	depends('staff:aujourdhui');
+	const t = await getDayAttendance(eventId, day, new Date());
+	return {
+		...t,
+		services: t.services.map((service) => ({
+			...service,
+			seatings: service.seatings.map((s: TodaySeatingAttendance) => ({
+				...s,
+				startTime: s.startTime.toISOString(),
+				endTime: s.endTime.toISOString()
+			}))
+		}))
+	};
+}
+
+export const load: PageServerLoad = async ({ locals, params, depends }) => {
 	if (!locals.user) throw error(401, 'Non authentifié');
 
 	const access = await getStaffEventAccess(locals.user, params.id);
@@ -84,6 +82,10 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	// Arrivées needs a visible Day and the guest list; Cuisine, Dietary Requirements.
 	const canArrivees = access.can('guest_list');
 	const canCuisine = access.can('dietary');
+	// « Aujourd'hui » (056) : pendant un Jour, dès qu'un champ d'invités est visible.
+	const guestFields = dayGuestFields(access);
+	const canAujourdhui =
+		access.day !== null && (guestFields.guestList || guestFields.dietary || guestFields.contact);
 	const canSeeArrivees = canArrivees || canCuisine;
 	const isAdmin = locals.user.role === 'admin';
 	const canCloseBookings = access.can('close_bookings');
@@ -94,6 +96,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			day: access.day,
 			canSeeGuests: access.canSeeGuests,
 			canArrivees,
+			canAujourdhui,
 			canCuisine,
 			canManualCheckIn: access.can('manual_check_in'),
 			canCorrect: access.can('correct_mistake'),
@@ -119,6 +122,9 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		staffRoleName: access.staffRoleName,
 		brief,
 		arrivees: canSeeArrivees ? await loadArrivees(access, params.id) : null,
+		// « Aujourd'hui » : les chiffres du Jour en cours, sans aucune donnée
+		// nominative — des compteurs par séance seulement.
+		aujourdhui: canAujourdhui && access.day !== null ? await loadAujourdhui(params.id, access.day, depends) : null,
 	};
 };
 
@@ -150,6 +156,7 @@ export const actions: Actions = {
 		if (typeof reservationId !== 'string' || !Number.isInteger(guests)) {
 			return fail(400, { error: 'Requête invalide.' });
 		}
+		const clientId = formData.get('clientId');
 
 		const result = await recordCheckIn({
 			access,
@@ -158,6 +165,7 @@ export const actions: Actions = {
 			guests,
 			method: 'manual',
 			actorId: locals.user.id,
+			clientId: typeof clientId === 'string' && clientId !== '' ? clientId : undefined,
 		});
 		if (!result.ok) return fail(422, { error: result.error, reservationId });
 	},
@@ -275,6 +283,7 @@ export const actions: Actions = {
 		if (typeof reservationId !== 'string' || !Number.isInteger(guests)) {
 			return fail(400, { error: 'Requête invalide.', reservationId });
 		}
+		const clientId = formData.get('clientId');
 
 		const result = await recordCheckIn({
 			access,
@@ -283,6 +292,7 @@ export const actions: Actions = {
 			guests,
 			method: 'scan',
 			actorId: locals.user.id,
+			clientId: typeof clientId === 'string' && clientId !== '' ? clientId : undefined,
 		});
 		if (!result.ok) return fail(422, { error: result.error, reservationId });
 		return { scanCheckedIn: { guests, arrived: result.arrived, quantity: result.quantity } };

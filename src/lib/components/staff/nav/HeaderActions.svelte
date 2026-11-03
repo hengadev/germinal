@@ -11,19 +11,23 @@
 	 * l'événement, issues 038–040).
 	 */
 	import { DropdownMenu } from 'bits-ui';
-	import { EllipsisVertical, LoaderCircle, Lock, LogOut, Moon, Plus, RefreshCw, Sun, UserPlus } from 'lucide-svelte';
+	import { EllipsisVertical, Download, LoaderCircle, Lock, LogOut, Moon, Plus, RefreshCw, Sun, UserPlus } from 'lucide-svelte';
 	import { goto, invalidateAll } from '$app/navigation';
 	import { page } from '$app/state';
 	import { adminDarkMode } from '$lib/stores/adminDarkMode.svelte';
 	import { openSpotForm } from '$lib/components/staff/event-menu/spot-form.svelte';
+	import { canOfferStaffInstall, openStaffInstall } from '$lib/components/staff/install/install-prompt.svelte';
 	import { openCloseBookingsForm } from '$lib/components/staff/event-menu/close-bookings-form.svelte';
 	import { openInviteForm } from '$lib/components/staff/event-menu/invite-form.svelte';
 	import { pickEvent, type PickableEvent } from './event-picker.svelte';
+	import { clearSnapshots } from '$lib/staff/offline/snapshot-store';
+	import { clearArrivalData } from '$lib/staff/offline/arrival-queue.svelte';
 	import type { HeaderActionTargets } from '$lib/server/services/staff-portal';
 
 	let { targets }: { targets: HeaderActionTargets } = $props();
 
 	const isDark = $derived(adminDarkMode.get());
+	const canInstall = $derived(canOfferStaffInstall());
 
 	/** Lance un raccourci sur l'événement ouvert, le seul possible, ou celui choisi. */
 	function start(action: string, events: PickableEvent[], open: () => void) {
@@ -125,6 +129,12 @@
 					<RefreshCw class="size-4" aria-hidden="true" />
 					Actualiser
 				</DropdownMenu.Item>
+				{#if canInstall}
+					<DropdownMenu.Item class={ITEM} onSelect={() => (chosen = openStaffInstall)}>
+						<Download class="size-4" aria-hidden="true" />
+						Installer l'app
+					</DropdownMenu.Item>
+				{/if}
 				<DropdownMenu.Item class={ITEM} closeOnSelect={false} onSelect={() => adminDarkMode.toggle()}>
 					{#if isDark}
 						<Sun class="size-4" aria-hidden="true" />
@@ -135,7 +145,16 @@
 					{/if}
 				</DropdownMenu.Item>
 				<DropdownMenu.Separator class="-mx-1 my-1 h-px bg-border" />
-				<DropdownMenu.Item class={ITEM} onSelect={() => logoutForm?.requestSubmit()}>
+				<DropdownMenu.Item
+					class={ITEM}
+					onSelect={() => {
+						// Issues 060/061 : la copie du Jour, la file d'arrivées et
+						// leurs refus ne survivent pas à la déconnexion.
+						Promise.all([clearSnapshots(), clearArrivalData()]).finally(
+							() => logoutForm?.requestSubmit()
+						);
+					}}
+				>
 					<LogOut class="size-4" aria-hidden="true" />
 					Se déconnecter
 				</DropdownMenu.Item>

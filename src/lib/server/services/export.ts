@@ -448,3 +448,55 @@ export async function exportSubscribersToCSV(options: { limit?: number } = {}) {
 	// The BOM so Excel opens the file as UTF-8.
 	return '\ufeff' + arrayToCSV(csvData, headers);
 }
+
+/**
+ * Export the Admin Bilan page's filtered table to CSV (issue 058): one
+ * row per Event × currency, in the same order as the page (newest first).
+ */
+export async function exportBilanToCSV(period: '3m' | '12m' | 'tout') {
+	const { getPastEventsBilan } = await import('./attendance');
+	const { summarizeEvent } = await import('$lib/utils/bilan');
+	const pastEvents = await getPastEventsBilan(period);
+
+	const headers = [
+		'Événement',
+		'Dernière séance',
+		'Réservés',
+		'Arrivés',
+		'No-shows',
+		'Walk-ins',
+		'Invitations',
+		'Capacité',
+		'Taux de remplissage',
+		'Taux de no-show',
+		'Devise',
+		'Acomptes conservés',
+		'Remboursements',
+		'Soldes encaissés',
+	];
+
+	const csvData: Record<string, unknown>[] = [];
+	for (const event of pastEvents) {
+		const summary = summarizeEvent(event.seatings);
+		const currencies = event.money.length > 0 ? event.money : [null];
+		for (const money of currencies) {
+			csvData.push({
+				'Événement': event.titleFr,
+				'Dernière séance': event.lastSeatingEnd.toISOString().slice(0, 10),
+				'Réservés': summary.booked,
+				'Arrivés': summary.arrived,
+				'No-shows': summary.noShows,
+				'Walk-ins': summary.walkInGuests,
+				'Invitations': summary.compGuests,
+				'Capacité': summary.capacity ?? '',
+				'Taux de remplissage': summary.fillRate === null ? '' : summary.fillRate.toFixed(4),
+				'Taux de no-show': summary.noShowRate === null ? '' : summary.noShowRate.toFixed(4),
+				'Devise': money?.currency ?? '',
+				'Acomptes conservés': money?.depositsKept ?? '',
+				'Remboursements': money?.refunds ?? '',
+				'Soldes encaissés': money?.balancesCollected ?? '',
+			});
+		}
+	}
+	return arrayToCSV(csvData, headers);
+}

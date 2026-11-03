@@ -7,7 +7,7 @@
  * Check-ins never count, cancelled Reservations are ignored.
  */
 import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest';
-import { events, eventSessions, reservations, checkIns } from '../../src/lib/server/db/schema';
+import { events, eventSessions, reservations, checkIns, payments } from '../../src/lib/server/db/schema';
 import {
 	getTestDatabase,
 	setupTestDatabase,
@@ -82,10 +82,13 @@ async function seedReservation(
 	sessionId: string,
 	values: {
 		guestName: string;
-		quantity: number;
+		quantity?: number;
 		status?: 'pending' | 'confirmed' | 'cancelled' | 'expired';
 		isComp?: boolean;
 		origin?: 'online' | 'staff' | 'walk_in';
+		currency?: string;
+		balanceAmount?: number;
+		balanceSettledAt?: Date;
 	}
 ) {
 	seq += 1;
@@ -93,11 +96,12 @@ async function seedReservation(
 		eventSessionId: sessionId,
 		guestEmail: values.origin === 'walk_in' ? null : `guest${seq}@example.com`,
 		guestName: values.guestName,
-		quantity: values.quantity,
-		totalAmount: 0,
+		quantity: values.quantity ?? 2,
+		totalAmount: values.balanceAmount ?? 0,
 		depositAmount: 0,
-		balanceAmount: 0,
-		currency: 'EUR',
+		balanceAmount: values.balanceAmount ?? 0,
+		currency: values.currency ?? 'EUR',
+		balanceSettledAt: values.balanceSettledAt ?? null,
 		status: values.status ?? 'confirmed',
 		isComp: values.isComp ?? false,
 		origin: values.origin ?? 'online',
@@ -176,6 +180,84 @@ describe('attendance', () => {
 		});
 	});
 
+	let paySeq = 0;
+	async function seedPayment(
+		reservationId: string,
+		values: { amount: number; currency?: string; status?: 'succeeded' | 'partially_refunded' | 'refunded'; refundedAmount?: number }
+	) {
+		paySeq += 1;
+		await testDb.insert(payments).values({
+			reservationId,
+			stripePaymentIntentId: `pi-attendance-${Date.now()}-${paySeq}`,
+			amount: values.amount,
+			currency: values.currency ?? 'EUR',
+			status: values.status ?? 'succeeded',
+			refundedAmount: values.refundedAmount ?? 0,
+			idempotencyKey: `idk-attendance-${Date.now()}-${paySeq}`,
+		});
+	}
+
+	it('getEventMoney (issue 057): deposits kept, refunds, settled Balances, per currency', async () => {
+		const { event, lunch } = await seedEventWithTwoSeatings();
+		const { getEventMoney } = await import('../../src/lib/server/services/attendance');
+
+		// A fully paid Deposit, kept entirely.
+		const kept = await seedReservation(lunch.id, { guestName: 'Kept' });
+		await seedPayment(kept.id, { amount: 5000 });
+
+		// A partially refunded Deposit: 5000 - 2000 kept, 2000 refunded.
+		const partial = await seedReservation(lunch.id, { guestName: 'Partial' });
+		await seedPayment(partial.id, { amount: 5000, status: 'partially_refunded', refundedAmount: 2000 });
+
+		// A fully refunded Deposit: kept 0, refunded 3000.
+		const refunded = await seedReservation(lunch.id, { guestName: 'Refunded' });
+		await seedPayment(refunded.id, { amount: 3000, status: 'refunded', refundedAmount: 3000 });
+
+		// A pending Payment never counts.
+		const pending = await seedReservation(lunch.id, { guestName: 'Pending pay' });
+		await seedPayment(pending.id, { amount: 9000, status: 'succeeded' });
+		await testDb.update(payments).set({ status: 'pending' }).where(
+			(await import('drizzle-orm')).eq(payments.reservationId, pending.id)
+		);
+
+		// Balances: settled ones count, unsettled don't.
+		await seedReservation(lunch.id, { guestName: 'Settled', balanceAmount: 4000, balanceSettledAt: new Date() });
+		await seedReservation(lunch.id, { guestName: 'Unsettled', balanceAmount: 7000 });
+
+		// A cancelled Reservation's settled Balance is ignored.
+		await seedReservation(lunch.id, { guestName: 'Cancelled settled', status: 'cancelled', balanceAmount: 6000, balanceSettledAt: new Date() });
+
+		// Another Event's money stays out.
+		const other = await seedEventWithTwoSeatings();
+		const otherReservation = await seedReservation(other.lunch.id, { guestName: 'Other event' });
+		await seedPayment(otherReservation.id, { amount: 1000 });
+
+		const eur = (await getEventMoney(event.id)).find((m) => m.currency === 'EUR');
+		expect(eur).toBeDefined();
+		expect(eur!.depositsKept).toBe(8000); // 5000 + 3000 + 0
+		expect(eur!.refunds).toBe(5000); // 2000 + 3000
+		expect(eur!.balancesCollected).toBe(4000);
+	});
+
+	it('getEventMoney splits two currencies and returns none for an Event without money', async () => {
+		const { event, lunch } = await seedEventWithTwoSeatings();
+		const { getEventMoney } = await import('../../src/lib/server/services/attendance');
+
+		const eur = await seedReservation(lunch.id, { guestName: 'EUR' });
+		await seedPayment(eur.id, { amount: 2500 });
+		const usd = await seedReservation(lunch.id, { guestName: 'USD', currency: 'USD' });
+		await seedPayment(usd.id, { amount: 4000, currency: 'USD', status: 'partially_refunded', refundedAmount: 1000 });
+		await seedReservation(lunch.id, { guestName: 'USD settled', currency: 'USD', balanceAmount: 8000, balanceSettledAt: new Date() });
+
+		const money = await getEventMoney(event.id);
+		expect(money.map((m) => m.currency)).toEqual(['EUR', 'USD']);
+		expect(money[0]).toEqual({ currency: 'EUR', depositsKept: 2500, refunds: 0, balancesCollected: 0 });
+		expect(money[1]).toEqual({ currency: 'USD', depositsKept: 3000, refunds: 1000, balancesCollected: 8000 });
+
+		const other = await seedEventWithTwoSeatings();
+		expect(await getEventMoney(other.event.id)).toEqual([]);
+	});
+
 	it('isEventOver flips at the last Seating end time, and never without Seatings', async () => {
 		const { isEventOver } = await import('../../src/lib/server/services/attendance');
 		const end = new Date('2099-06-10T21:00:00Z');
@@ -183,5 +265,120 @@ describe('attendance', () => {
 		expect(isEventOver(end, new Date('2099-06-10T21:00:00Z'))).toBe(true);
 		expect(isEventOver(end, new Date('2099-06-11T00:00:00Z'))).toBe(true);
 		expect(isEventOver(null, new Date())).toBe(false);
+	});
+});
+
+describe('getDayAttendance (issue 056)', () => {
+	beforeEach(async () => {
+		await setupTestDatabase();
+	});
+
+	it('shows live counts, No-shows only for ended Seatings, seats left', async () => {
+		const { event, lunch, dinner } = await seedEventWithTwoSeatings();
+		// Now: after lunch (12h–13h15) has ended, before dinner (19h).
+		const now = new Date('2099-06-10T15:00:00Z');
+
+		// Lunch: a party of 4 with 3 in — 3 arrived, 1 No-show (ended).
+		const four = await seedReservation(lunch.id, { guestName: 'Party of four', quantity: 4 });
+		await seedCheckIn(four.id, 3);
+		// An undone Check-in never counts: 2 still to come in the ended lunch.
+		const undone = await seedReservation(lunch.id, { guestName: 'Undone', quantity: 2 });
+		await seedCheckIn(undone.id, 2, true);
+		// A Walk-in and a Comp count in their own columns.
+		await seedReservation(lunch.id, { guestName: 'Walk-in', quantity: 3, origin: 'walk_in' });
+		await seedReservation(lunch.id, { guestName: 'Comp', quantity: 2, isComp: true });
+
+		// Dinner (not ended): no No-shows yet, a party of 2 fully in.
+		const two = await seedReservation(dinner.id, { guestName: 'Two', quantity: 2 });
+		await seedCheckIn(two.id, 2);
+
+		const { getDayAttendance } = await import('../../src/lib/server/services/attendance');
+		const day = await getDayAttendance(event.id, '2099-06-10', now);
+
+		expect(day.date).toBe('2099-06-10');
+		expect(day.services.map((s) => s.kind)).toEqual(['lunch', 'dinner']);
+
+		const lunchSeating = day.services[0].seatings[0];
+		expect(lunchSeating.ended).toBe(true);
+		expect(lunchSeating.booked).toBe(6); // party of four + the undone party
+		expect(lunchSeating.arrived).toBe(3);
+		// Ended: who hasn't come is a No-show, no longer still to come.
+		expect(lunchSeating.stillToCome).toBe(0);
+		expect(lunchSeating.noShows).toBe(3); // 1 + the 2 undone
+		expect(lunchSeating.walkIns).toEqual({ parties: 1, guests: 3 });
+		expect(lunchSeating.comps).toEqual({ parties: 1, guests: 2 });
+		// 40 − 6 booked − 3 walk-in − 2 comp guests.
+		expect(lunchSeating.seatsLeft).toBe(29);
+
+		const dinnerSeating = day.services[1].seatings[0];
+		expect(dinnerSeating.ended).toBe(false);
+		expect(dinnerSeating.noShows).toBe(0);
+		expect(dinnerSeating.stillToCome).toBe(0);
+		expect(dinnerSeating.seatsLeft).toBe(38);
+
+		expect(day.totals).toEqual({
+			booked: 8,
+			arrived: 5,
+			stillToCome: 0,
+			noShows: 3,
+			walkIns: { parties: 1, guests: 3 },
+			comps: { parties: 1, guests: 2 }
+		});
+		expect(day.services[0].totals.noShows).toBe(3);
+		expect(day.services[1].totals.noShows).toBe(0);
+	});
+
+	it('gives null seats left without capacity, and none before the Seating has ended', async () => {
+		const [event] = await testDb
+			.insert(events)
+			.values({
+				titleEn: 'No capacity',
+				titleFr: 'Sans capacité',
+				descriptionEn: 'd',
+				descriptionFr: 'd',
+				startDate: new Date('2099-07-01'),
+				endDate: new Date('2099-07-01'),
+				locationEn: 'Paris',
+				locationFr: 'Paris',
+				visibility: 'public',
+				depositType: 'fixed',
+				depositValue: 2000,
+			})
+			.returning();
+		const startTime = new Date('2099-07-01T12:00:00Z');
+		const endTime = new Date('2099-07-01T13:00:00Z');
+		const [seating] = await testDb
+			.insert(eventSessions)
+			.values({
+				eventId: event.id,
+				serviceId: await seedServiceForSession(testDb, event.id, startTime, endTime, { priceAmount: 6500 }),
+				startTime,
+				endTime,
+				totalCapacity: null,
+				availableCapacity: null,
+				published: true,
+			})
+			.returning();
+		await seedReservation(seating.id, { guestName: 'Nobody in', quantity: 5 });
+		// A Walk-in coming in never lowers the booked guests still to come.
+		const walkIn = await seedReservation(seating.id, { guestName: 'Walk-in', quantity: 3, origin: 'walk_in' });
+		await seedCheckIn(walkIn.id, 3);
+
+		const { getDayAttendance } = await import('../../src/lib/server/services/attendance');
+		// Before the end: no No-shows yet.
+		const before = await getDayAttendance(event.id, '2099-07-01', new Date('2099-07-01T12:30:00Z'));
+		expect(before.services[0].seatings[0]).toMatchObject({
+			booked: 5,
+			arrived: 3,
+			stillToCome: 5,
+			noShows: 0,
+			ended: false,
+			totalCapacity: null,
+			seatsLeft: null
+		});
+		// After the end: the absent guests become No-shows.
+		const after = await getDayAttendance(event.id, '2099-07-01', new Date('2099-07-01T13:00:00Z'));
+		expect(after.services[0].seatings[0].noShows).toBe(5);
+		expect(after.services[0].seatings[0].ended).toBe(true);
 	});
 });

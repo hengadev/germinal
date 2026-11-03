@@ -14,7 +14,7 @@ import type { StaffAccess } from '$lib/staff/access';
 import { recordAuditLog } from './audit-log';
 
 export type CheckInResult =
-	| { ok: true; arrived: number; quantity: number }
+	| { ok: true; arrived: number; quantity: number; duplicate?: boolean }
 	| { ok: false; error: string };
 
 /**
@@ -31,8 +31,11 @@ export async function recordCheckIn(input: {
 	guests: number;
 	method: 'scan' | 'manual';
 	actorId: string;
+	/** Issue 059: id of the arrival attempt. A repeat with the same id
+	 * records nothing and answers as a duplicate (a success for the caller). */
+	clientId?: string;
 }): Promise<CheckInResult> {
-	const { access, eventId, reservationId, guests, method, actorId } = input;
+	const { access, eventId, reservationId, guests, method, actorId, clientId } = input;
 
 	if (method === 'manual' && !access.can('manual_check_in')) {
 		return { ok: false, error: "Vous n'avez pas la permission de faire entrer à la main." };
@@ -66,6 +69,29 @@ export async function recordCheckIn(input: {
 		if (!party || party.eventId !== eventId) {
 			return { ok: false as const, error: 'Réservation introuvable.' };
 		}
+
+		const [{ arrived }] = await tx
+			.select({ arrived: sql<number>`coalesce(sum(${checkIns.guests}), 0)::int` })
+			.from(checkIns)
+			.where(and(eq(checkIns.reservationId, reservationId), isNull(checkIns.undoneAt)));
+
+		if (clientId !== undefined) {
+			// A client id we already recorded: this is the same arrival
+			// attempt again (a double tap, a retried request, an offline replay).
+			// Checked before the status and Day refusals: an arrival already
+			// recorded stays recorded even if the party was cancelled since. Answer as a
+			// duplicate so the caller treats it as a success, and insert
+			// nothing. The row lock above serialises racing requests with the
+			// same id, so one of them always sees the other's row here.
+			const [existing] = await tx
+				.select({ guests: checkIns.guests })
+				.from(checkIns)
+				.where(eq(checkIns.clientId, clientId));
+			if (existing) {
+				return { ok: true as const, duplicate: true, arrived, quantity: party.quantity };
+			}
+		}
+
 		if (party.status !== 'confirmed') {
 			return { ok: false as const, error: 'Cette réservation n’est pas confirmée.' };
 		}
@@ -76,22 +102,31 @@ export async function recordCheckIn(input: {
 			};
 		}
 
-		const [{ arrived }] = await tx
-			.select({ arrived: sql<number>`coalesce(sum(${checkIns.guests}), 0)::int` })
-			.from(checkIns)
-			.where(and(eq(checkIns.reservationId, reservationId), isNull(checkIns.undoneAt)));
-
 		if (arrived + guests > party.quantity) {
+			if (arrived >= party.quantity) {
+				return { ok: false as const, error: 'Toutes les personnes attendues sont déjà entrées.' };
+			}
 			return {
 				ok: false as const,
 				error: `Il ne reste que ${party.quantity - arrived} personne${party.quantity - arrived === 1 ? '' : 's'} attendue${party.quantity - arrived === 1 ? '' : 's'}.`,
 			};
 		}
 
-		const [row] = await tx
+		const inserted = await tx
 			.insert(checkIns)
-			.values({ reservationId, guests, method, checkedInBy: actorId })
+			.values({ reservationId, guests, method, checkedInBy: actorId, clientId })
+			.onConflictDoNothing({ target: checkIns.clientId })
 			.returning({ id: checkIns.id });
+		const [row] = inserted;
+		if (!row) {
+			// Lost the race on the client id: another request with the same
+			// id already recorded this arrival.
+			const [{ arrived: nowArrived }] = await tx
+				.select({ arrived: sql<number>`coalesce(sum(${checkIns.guests}), 0)::int` })
+				.from(checkIns)
+				.where(and(eq(checkIns.reservationId, reservationId), isNull(checkIns.undoneAt)));
+			return { ok: true as const, duplicate: true, arrived: nowArrived, quantity: party.quantity };
+		}
 
 		await recordAuditLog({
 			adminId: actorId,

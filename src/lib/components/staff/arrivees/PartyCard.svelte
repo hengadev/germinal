@@ -17,6 +17,10 @@
 	import PartyActionsMenu from './PartyActionsMenu.svelte';
 	import { visitOrdinalFr } from '$lib/utils/visit-ordinal';
 	import { balanceDue, capacityLabel, guests as guestsLabel, seatingTime, settleTimeLabel, type ArriveesFields } from './helpers';
+	import { onlineState, markOffline } from '$lib/staff/offline/online-state.svelte';
+	import { enqueueArrival } from '$lib/staff/offline/arrival-queue.svelte';
+	import { applyArrivalToSnapshot } from '$lib/staff/offline/snapshot-store';
+	import { addPendingArrival, pendingArrivalsFor } from '$lib/staff/offline/pending-arrivals.svelte';
 
 	let {
 		party,
@@ -54,7 +58,8 @@
 	} = $props();
 
 	const balance = $derived(balanceDue(party));
-	const arrived = $derived(party.arrived ?? 0);
+	// Issue 061 : les arrivées en file hors ligne comptent tout de suite.
+	const arrived = $derived((party.arrived ?? 0) + (party.id ? pendingArrivalsFor(party.id) : 0));
 	const expected = $derived((party.quantity ?? 0) - arrived);
 	const allIn = $derived(party.quantity !== undefined && arrived >= party.quantity);
 
@@ -75,7 +80,31 @@
 
 	// Motion (issue 033): the card flashes briefly when a check-in succeeds.
 	let flash = $state(false);
+	// Id of the arrival attempt in progress (issue 059): a double tap or a
+	// retried request with the same id counts once.
+	let checkInClientId = $state(crypto.randomUUID());
 	let flashTimer: ReturnType<typeof setTimeout> | null = null;
+	// Issue 061: an arrival made without network goes to the phone's queue
+	// and counts on screen (and in the Day's copy) straight away.
+	function queueOffline() {
+		if (!party.id) return;
+		const guests = stepper;
+		enqueueArrival({
+			clientId: checkInClientId,
+			eventId: page.params.id ?? '',
+			reservationId: party.id,
+			guestName: party.guestName ?? null,
+			guests,
+			method: 'manual',
+			queuedAt: new Date().toISOString()
+		});
+		applyArrivalToSnapshot(page.params.id ?? '', party.id, guests);
+		addPendingArrival(party.id, guests);
+		admitting = false;
+		flashOnSuccess();
+		checkInClientId = crypto.randomUUID();
+	}
+
 	function flashOnSuccess() {
 		if (result) return;
 		flash = true;
@@ -363,17 +392,35 @@
 						method="POST"
 						action="?/checkIn"
 						class="flex min-w-60 flex-1 flex-wrap items-center justify-end gap-2"
-						use:enhance={() => {
+						use:enhance={({ cancel }) => {
+							// Issue 061: offline, the arrival waits in the phone's queue.
+							if (!onlineState.online) {
+								cancel();
+								queueOffline();
+								return;
+							}
 							submitting = true;
-							return async ({ update }) => {
-								await update();
+							return async ({ result, update }) => {
 								submitting = false;
+								if (result.type === 'error') {
+									// The request never got an answer: queue it with the same
+									// id — if the server did record it, the replay is a duplicate.
+									markOffline();
+									queueOffline();
+									return;
+								}
+								await update();
 								admitting = false;
-								flashOnSuccess();
+								if (result.type === 'success') {
+									flashOnSuccess();
+									// A fresh attempt gets a fresh id.
+									checkInClientId = crypto.randomUUID();
+								}
 							};
 						}}
 					>
 						<input type="hidden" name="reservationId" value={party.id} />
+						<input type="hidden" name="clientId" value={checkInClientId} />
 						<label for="guests-{party.id}" class="text-sm font-medium text-foreground">Entrées</label>
 						<span class="inline-flex items-center rounded-lg border border-border-card">
 							<button

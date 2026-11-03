@@ -9,7 +9,11 @@
     import HeaderActions from "$lib/components/staff/nav/HeaderActions.svelte";
     import EventPicker from "$lib/components/staff/nav/EventPicker.svelte";
     import ScanOverlay from "$lib/components/staff/scanner/ScanOverlay.svelte";
+    import StaffInstallBanner from "$lib/components/staff/install/StaffInstallBanner.svelte";
+    import IOSInstallSheet from "$lib/components/staff/install/IOSInstallSheet.svelte";
     import { openScanOverlay } from "$lib/components/staff/scanner/scan-overlay.svelte";
+    import { clearSnapshots } from "$lib/staff/offline/snapshot-store";
+    import { clearArrivalData } from "$lib/staff/offline/arrival-queue.svelte";
     import type { LayoutData } from "./$types";
 
     let {
@@ -51,6 +55,9 @@
                 <HeaderActions targets={data.headerActions} />
             </div>
         </header>
+
+        <!-- L'offre d'installation (issue 062), sous l'en-tête. -->
+        {#if data.user}<StaffInstallBanner />{/if}
 
         <!-- Contenu, défilable -->
         <main class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
@@ -138,7 +145,17 @@
                     </div>
                 </div>
 
-                <form method="POST" action="/logout">
+                <form
+                    method="POST"
+                    action="/logout"
+                    onsubmit={(event) => {
+                        // The Day's copy, the arrival queue and its
+                        // conflicts are erased before the session ends.
+                        event.preventDefault();
+                        const form = event.currentTarget;
+                        Promise.all([clearSnapshots(), clearArrivalData()]).finally(() => form.submit());
+                    }}
+                >
                     <button
                         type="submit"
                         class="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg transition-colors"
@@ -152,6 +169,7 @@
 
         <!-- Contenu -->
         <main class="flex-1 bg-background min-w-0">
+            {#if data.user}<StaffInstallBanner />{/if}
             {@render children()}
         </main>
 
@@ -165,3 +183,8 @@
 
 <!-- « Pour quel événement ? », des raccourcis de l'en-tête, rendu une seule fois. -->
 <EventPicker />
+
+<!-- La feuille iOS de l'offre d'installation (issue 062), rendue une seule fois. -->
+{#if data.user}
+    <IOSInstallSheet />
+{/if}
