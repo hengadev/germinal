@@ -1,12 +1,16 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { Search, Gift } from 'lucide-svelte';
+	import { invalidateAll } from '$app/navigation';
+	import { Search, Gift, Plus } from 'lucide-svelte';
+	import Modal from '$lib/components/ui/Modal.svelte';
+	import { getToastContext } from '$lib/components/toast/state.svelte';
 	import type { ActionData, PageData } from './$types';
 	import { formatCurrency } from '$lib/utils/currency';
 	import { formatGiftCardCode } from '$lib/utils/gift-card';
 
-	let { data, form }: { data: PageData; form: ActionData } = $props();
+	let { data }: { data: PageData; form: ActionData } = $props();
 	const uid = $props.id();
+	const toast = getToastContext();
 
 	function formatDate(dateString: string | Date): string {
 		return new Date(dateString).toLocaleDateString('fr-FR', {
@@ -34,7 +38,35 @@
 		return { label: 'Active', classes: 'bg-foreground/10 text-foreground' };
 	}
 
+	// « Émettre une carte » : a modal, like the other « create » actions.
 	let issueOpen = $state(false);
+	let issuing = $state(false);
+	let issueError = $state<string | null>(null);
+	let issueForm = $state<HTMLFormElement | null>(null);
+
+	function openIssue() {
+		issueForm?.reset();
+		issueError = null;
+		issueOpen = true;
+	}
+
+	const issueEnhance = () => {
+		issuing = true;
+		issueError = null;
+		return async ({ result }: { result: import('@sveltejs/kit').ActionResult }) => {
+			issuing = false;
+			if (result.type === 'success') {
+				const code = (result.data as { issuedCode?: string } | undefined)?.issuedCode;
+				issueOpen = false;
+				toast.success('Carte émise', code ? `Carte ${code} : l'email de la carte a été mis en file d'attente.` : "L'email de la carte a été mis en file d'attente.");
+				await invalidateAll();
+			} else if (result.type === 'failure') {
+				issueError = (result.data as { issueError?: string } | undefined)?.issueError ?? 'Une erreur est survenue.';
+			} else {
+				issueError = 'Une erreur est survenue.';
+			}
+		};
+	};
 </script>
 
 <svelte:head>
@@ -42,19 +74,23 @@
 </svelte:head>
 
 <div class="px-4 sm:px-6 lg:px-8 py-8">
-	<div class="mb-6">
-		<h1 class="text-2xl font-semibold text-foreground">Cartes cadeaux</h1>
-		<p class="text-sm text-muted-foreground mt-1">
-			Chaque mouvement (réservation, porte, remboursement, ajustement) est inscrit dans le
-			relevé de la carte : le solde vaut toujours le montant initial plus le relevé.
-		</p>
+	<div class="mb-6 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+		<div>
+			<h1 class="text-2xl font-semibold text-foreground">Cartes cadeaux</h1>
+			<p class="text-sm text-muted-foreground mt-1">
+				Chaque mouvement (réservation, porte, remboursement, ajustement) est inscrit dans le
+				relevé de la carte : le solde vaut toujours le montant initial plus le relevé.
+			</p>
+		</div>
+		<button
+			type="button"
+			onclick={openIssue}
+			class="self-start inline-flex items-center gap-2 px-4 py-2 bg-foreground text-background rounded-lg hover:opacity-90 transition-colors text-sm font-medium whitespace-nowrap"
+		>
+			<Plus size={16} />
+			Émettre une carte
+		</button>
 	</div>
-
-	{#if form?.issuedCode}
-		<p class="mb-6 rounded-lg border border-border-card bg-muted/50 px-4 py-3 text-sm text-foreground">
-			Carte {form.issuedCode} émise : l'email de la carte a été mis en file d'attente.
-		</p>
-	{/if}
 
 	<!-- Search and status filter -->
 	<div class="bg-background rounded-lg border border-border-card p-4 mb-6">
@@ -92,82 +128,6 @@
 		<p class="mt-3 text-sm text-muted-foreground">
 			{data.cards.length} carte{data.cards.length > 1 ? 's' : ''}
 		</p>
-	</div>
-
-	<!-- Issue by hand -->
-	<div class="bg-background rounded-lg border border-border-card p-4 mb-6">
-		<button
-			type="button"
-			class="flex items-center gap-2 text-sm font-medium text-foreground hover:text-foreground-alt"
-			onclick={() => (issueOpen = !issueOpen)}
-		>
-			<Gift size={16} />
-			Émettre une carte
-		</button>
-		{#if issueOpen}
-			<form action="?/issue" method="post" class="mt-4 max-w-xl" use:enhance>
-				{#if form?.issueError}
-					<p class="mb-3 rounded-lg border border-border-card bg-muted/50 px-4 py-3 text-sm text-foreground">{form.issueError}</p>
-				{/if}
-				<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-					<div>
-						<label for="{uid}-amount" class="block text-sm font-medium text-foreground-alt mb-1">Montant (€)</label>
-						<input
-							id="{uid}-amount"
-							type="number"
-							name="amount"
-							min="1"
-							step="0.01"
-							required
-							class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
-						/>
-					</div>
-					<div>
-						<label for="{uid}-expiresAt" class="block text-sm font-medium text-foreground-alt mb-1">Expiration (facultatif)</label>
-						<input
-							id="{uid}-expiresAt"
-							type="date"
-							name="expiresAt"
-							class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
-						/>
-						<p class="mt-1 text-xs text-muted-foreground">Un an par défaut.</p>
-					</div>
-					<div>
-						<label for="{uid}-recipientName" class="block text-sm font-medium text-foreground-alt mb-1">Nom du destinataire</label>
-						<input
-							id="{uid}-recipientName"
-							type="text"
-							name="recipientName"
-							value={form?.recipientName ?? ''}
-							required
-							class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
-						/>
-					</div>
-					<div>
-						<label for="{uid}-recipientEmail" class="block text-sm font-medium text-foreground-alt mb-1">Email du destinataire</label>
-						<input
-							id="{uid}-recipientEmail"
-							type="email"
-							name="recipientEmail"
-							value={form?.recipientEmail ?? ''}
-							class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
-						/>
-					</div>
-				</div>
-				<div class="mt-4">
-					<label for="{uid}-message" class="block text-sm font-medium text-foreground-alt mb-1">Message (facultatif)</label>
-					<textarea
-						id="{uid}-message"
-						name="message"
-						rows="3"
-						class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
-					>{form?.message ?? ''}</textarea>
-				</div>
-				<button type="submit" class="mt-4 px-4 py-2.5 rounded-lg text-sm font-medium bg-foreground text-background hover:opacity-90">
-					Émettre
-				</button>
-			</form>
-		{/if}
 	</div>
 
 	{#if data.cards.length === 0}
@@ -217,3 +177,80 @@
 		</div>
 	{/if}
 </div>
+
+<Modal bind:isOpen={issueOpen} title="Émettre une carte" description="L'email de la carte part au destinataire dès l'émission." wide>
+	<form action="?/issue" method="post" bind:this={issueForm} use:enhance={issueEnhance}>
+		{#if issueError}
+			<p class="mb-3 rounded-lg border border-border-card bg-muted/50 px-4 py-3 text-sm text-foreground" role="alert">{issueError}</p>
+		{/if}
+		<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+			<div>
+				<label for="{uid}-amount" class="block text-sm font-medium text-foreground-alt mb-1">Montant (€)</label>
+				<input
+					id="{uid}-amount"
+					type="number"
+					name="amount"
+					min="1"
+					step="0.01"
+					required
+					class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
+				/>
+			</div>
+			<div>
+				<label for="{uid}-expiresAt" class="block text-sm font-medium text-foreground-alt mb-1">Expiration (facultatif)</label>
+				<input
+					id="{uid}-expiresAt"
+					type="date"
+					name="expiresAt"
+					class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
+				/>
+				<p class="mt-1 text-xs text-muted-foreground">Un an par défaut.</p>
+			</div>
+			<div>
+				<label for="{uid}-recipientName" class="block text-sm font-medium text-foreground-alt mb-1">Nom du destinataire</label>
+				<input
+					id="{uid}-recipientName"
+					type="text"
+					name="recipientName"
+					required
+					class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
+				/>
+			</div>
+			<div>
+				<label for="{uid}-recipientEmail" class="block text-sm font-medium text-foreground-alt mb-1">Email du destinataire</label>
+				<input
+					id="{uid}-recipientEmail"
+					type="email"
+					name="recipientEmail"
+					required
+					class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
+				/>
+			</div>
+		</div>
+		<div class="mt-4">
+			<label for="{uid}-message" class="block text-sm font-medium text-foreground-alt mb-1">Message (facultatif)</label>
+			<textarea
+				id="{uid}-message"
+				name="message"
+				rows="3"
+				class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
+			></textarea>
+		</div>
+		<div class="flex justify-end gap-3 pt-4">
+			<button
+				type="button"
+				onclick={() => (issueOpen = false)}
+				class="px-4 py-2 border border-border-input text-foreground-alt rounded-lg hover:bg-muted transition-colors text-sm font-medium"
+			>
+				Annuler
+			</button>
+			<button
+				type="submit"
+				disabled={issuing}
+				class="px-4 py-2 bg-foreground text-background rounded-lg hover:opacity-90 transition-colors text-sm font-medium disabled:opacity-50"
+			>
+				Émettre la carte
+			</button>
+		</div>
+	</form>
+</Modal>
