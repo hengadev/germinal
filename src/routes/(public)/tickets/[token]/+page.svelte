@@ -447,6 +447,20 @@ END:VCALENDAR`;
 							</dt>
 							<dd class="text-sm font-medium text-foreground text-right">
 								{$t('tickets.ticketCount', { values: { count: data.reservation.quantity } })}
+								{#if data.reservation.extras.length > 0}
+									<!-- The Extras chosen at booking (issue 068). -->
+									{#each data.reservation.extras as extra, i (i)}
+										<div class="flex items-center justify-between py-2.5 gap-4">
+											<dt class="text-sm text-muted-foreground">
+												{$t('tickets.extras')} — {$locale === 'fr' ? extra.nameFr : extra.nameEn}
+												<span class="text-xs">× {extra.quantity}</span>
+											</dt>
+											<dd class="text-sm text-foreground">
+												{formatCurrency(extra.unitPrice * extra.quantity, data.reservation.currency, $locale ?? undefined)}
+											</dd>
+										</div>
+									{/each}
+								{/if}
 							</dd>
 						</div>
 					</dl>

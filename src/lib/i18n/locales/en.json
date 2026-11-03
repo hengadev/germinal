@@ -441,7 +441,8 @@
 		},
 		"depositPaid": "Deposit paid",
 		"giftCardPaid": "of which paid by gift card",
-		"balanceDue": "Balance due at the venue"
+		"balanceDue": "Balance due at the venue",
+		"extras": "Extras"
 	},
 	"newsletterSignup": {
 		"previewTitle": "Newsletter — preview",

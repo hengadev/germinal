@@ -356,6 +356,17 @@
 		</div>
 	{/if}
 
+	{#if fields.guestList && party.extras && party.extras.length > 0}
+		<div class="mt-3 flex flex-wrap gap-1.5">
+			{#each party.extras as extra, i (i)}
+				<span class="inline-flex items-center gap-1 rounded-md border border-border-card bg-background px-2 py-0.5 text-xs text-foreground">
+					<Gift size={12} aria-hidden="true" />
+					{extra.nameFr} × {extra.quantity}
+				</span>
+			{/each}
+		</div>
+	{/if}
+
 	{#if party.id && party.quantity !== undefined && ((canCheckIn && expected > 0) || (canCorrect && arrived > 0))}
 		<div class="mt-3 flex flex-wrap items-center justify-end gap-2 border-t border-border-card pt-3">
 			{#if canCorrect && arrived > 0}

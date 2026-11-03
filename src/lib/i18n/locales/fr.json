@@ -441,7 +441,8 @@
 		},
 		"depositPaid": "Acompte payé",
 		"giftCardPaid": "dont payé par carte cadeau",
-		"balanceDue": "Reste à régler sur place"
+		"balanceDue": "Reste à régler sur place",
+		"extras": "Suppléments"
 	},
 	"newsletterSignup": {
 		"previewTitle": "Lettre d'information — aperçu",

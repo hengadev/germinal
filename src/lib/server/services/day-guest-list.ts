@@ -60,6 +60,8 @@ export interface DayGuestParty {
 	visitNumber?: number;
 	/** The Extras chosen at booking (issue 068) — guest list only. */
 	extras?: ReservationExtraLine[];
+	/** The Extras' share of total_amount — change_party only (issue 068). */
+	extrasTotal?: number;
 }
 
 /** An Extra snapshot on a party (issue 068), for the card and the sheet. */
@@ -89,7 +91,7 @@ export interface DayGuestSeating {
 	/** « Fermé aux réservations » (039): the heading shows a mark. */
 	bookingsClosed: boolean;
 	/** The Extras booked for this Seating, summed per Extra (issue 068). */
-	extras: ReservationExtraLine[];
+	extras?: ReservationExtraLine[];
 	parties: DayGuestParty[];
 }
 
