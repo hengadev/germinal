@@ -693,6 +693,64 @@ export const promotionCodes = pgTable('promotion_codes', {
 }));
 
 // ============================================
+// GIFT CARDS (issue 063)
+// ============================================
+
+export const giftCardStatusEnum = pgEnum('gift_card_status', ['active', 'cancelled'] as const);
+export const giftCardOriginEnum = pgEnum('gift_card_origin', ['online', 'admin'] as const);
+// Why a ledger row moves the balance: a booking (online, issue 065), a
+// payment at the door, a refund, or an Admin adjustment.
+export const giftCardLedgerReasonEnum = pgEnum('gift_card_ledger_reason', [
+    'booking',
+    'door',
+    'refund',
+    'admin_adjustment',
+] as const);
+
+export const giftCards = pgTable('gift_cards', {
+    id: uuid('id').defaultRandom().primaryKey(),
+    // Unguessable, case-insensitive, stored normalised (GERM-XXXX-XXXX).
+    code: varchar('code', { length: 50 }).notNull(),
+    initialAmount: integer('initial_amount').notNull(),
+    balance: integer('balance').notNull(),
+    status: giftCardStatusEnum('status').notNull().default('active'),
+    // One year after issue by default (set by the service).
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    recipientName: varchar('recipient_name', { length: 255 }),
+    recipientEmail: varchar('recipient_email', { length: 255 }),
+    message: text('message'),
+    buyerName: varchar('buyer_name', { length: 255 }),
+    buyerEmail: varchar('buyer_email', { length: 255 }),
+    origin: giftCardOriginEnum('origin').notNull().default('online'),
+    stripeReference: varchar('stripe_reference', { length: 255 }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+    codeUniqueIdx: unique('gift_cards_code_unique').on(table.code),
+    statusIdx: index('gift_cards_status_idx').on(table.status),
+    expiresAtIdx: index('gift_cards_expires_at_idx').on(table.expiresAt),
+    initialAmountCheck: check('gift_cards_initial_amount_check', sql`initial_amount > 0`),
+    balanceCheck: check('gift_cards_balance_check', sql`balance >= 0 AND balance <= initial_amount`),
+}));
+
+export const giftCardLedger = pgTable('gift_card_ledger', {
+    id: uuid('id').defaultRandom().primaryKey(),
+    giftCardId: uuid('gift_card_id')
+        .notNull()
+        .references(() => giftCards.id, { onDelete: 'cascade' }),
+    // Negative: used. Positive: credited.
+    amount: integer('amount').notNull(),
+    reason: giftCardLedgerReasonEnum('reason').notNull(),
+    reservationId: uuid('reservation_id')
+        .references(() => reservations.id, { onDelete: 'set null' }),
+    actorId: uuid('actor_id').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+    giftCardIdIdx: index('gift_card_ledger_gift_card_id_idx').on(table.giftCardId),
+    reservationIdIdx: index('gift_card_ledger_reservation_id_idx').on(table.reservationId),
+}));
+
+// ============================================
 // RESERVATION AND TICKETING TABLES
 // ============================================
 
@@ -797,6 +855,8 @@ export const reservations = pgTable('reservations', {
     paymentId: uuid('payment_id').references(() => payments.id, { onDelete: 'set null' }),
     promotionCodeId: uuid('promotion_code_id').references(() => promotionCodes.id, { onDelete: 'set null' }),
     discountAmount: integer('discount_amount').default(0).notNull(),
+    // Issue 065: how much of the total was paid with a gift card.
+    giftCardAmount: integer('gift_card_amount').default(0).notNull(),
     // Issue 023: how total_amount (after discount) splits between the
     // Deposit paid online (what Stripe charges) and the Balance due at the
     // venue. deposit_amount + balance_amount = total_amount.
@@ -854,6 +914,7 @@ export const reservations = pgTable('reservations', {
     quantityCheck: check('reservations_quantity_check', sql`quantity > 0`),
     amountCheck: check('reservations_amount_check', sql`total_amount >= 0`),
     discountCheck: check('reservations_discount_check', sql`discount_amount >= 0`),
+    giftCardAmountCheck: check('reservations_gift_card_amount_check', sql`gift_card_amount >= 0`),
     depositBalanceCheck: check('reservations_deposit_balance_check',
         sql`deposit_amount >= 0 AND balance_amount >= 0 AND deposit_amount + balance_amount = total_amount`
     ),
@@ -974,6 +1035,21 @@ export const waitlistRelations = relations(waitlist, ({ one }) => ({
     eventSession: one(eventSessions, {
         fields: [waitlist.eventSessionId],
         references: [eventSessions.id],
+    }),
+}));
+
+export const giftCardsRelations = relations(giftCards, ({ many }) => ({
+    ledger: many(giftCardLedger),
+}));
+
+export const giftCardLedgerRelations = relations(giftCardLedger, ({ one }) => ({
+    giftCard: one(giftCards, {
+        fields: [giftCardLedger.giftCardId],
+        references: [giftCards.id],
+    }),
+    reservation: one(reservations, {
+        fields: [giftCardLedger.reservationId],
+        references: [reservations.id],
     }),
 }));
 
