@@ -5,7 +5,8 @@
 // honeypot-flagged submissions and filters by type and status; status and
 // note updates work; the sidebar badge counts only « nouvelle » demandes.
 import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest';
-import { contactSubmissions } from '../../src/lib/server/db/schema';
+import { count } from 'drizzle-orm';
+import { contactSubmissions, events as eventsTable } from '../../src/lib/server/db/schema';
 import {
 	getTestDatabase,
 	setupTestDatabase,
@@ -168,5 +169,74 @@ describe('privatisation demandes (issue 069)', () => {
 		expect(await (await load()).countNewDemandes()).toBe(0);
 
 		await expect((await load()).updateDemande(row.id, { status: 'nope' })).rejects.toThrow('Invalid status');
+	});
+
+	it('creates a Draft Event from a privatisation demande, links it, and only once (issue 070)', async () => {
+		const [row] = await testDb
+			.insert(contactSubmissions)
+			.values({
+				name: 'Marc Dupont',
+				email: 'marc@example.com',
+				company: 'Acme',
+				inquiryType: 'private_event',
+				message: 'Soirée de fin d\u2019année.',
+				occasion: 'Gala annuel',
+				preferredDates: 'juin',
+				guestCount: 80,
+				budget: '5 000 €',
+			})
+			.returning();
+
+		const { event, created } = await (await load()).createEventFromDemande(row.id);
+		expect(created).toBe(true);
+		expect(event.visibility).toBe('draft');
+		expect(event.titleFr).toBe('Gala annuel');
+		expect(event.internalNotes).toContain('marc@example.com');
+		expect(event.internalNotes).toContain('Gala annuel');
+		expect(event.internalNotes).toContain('juin');
+		expect(event.internalNotes).toContain('80');
+		expect(event.internalNotes).toContain('5 000 €');
+		expect(event.internalNotes).toContain(`/admin/demandes/${row.id}`);
+		expect(event.internalNotes).toContain('Privé');
+
+		const demande = await (await load()).getContactSubmissionById(row.id);
+		expect(demande.eventId).toBe(event.id);
+		expect(demande.status).toBe('discussing');
+
+		// A second call returns the same Event and creates nothing.
+		const again = await (await load()).createEventFromDemande(row.id);
+		expect(again.created).toBe(false);
+		expect(again.event.id).toBe(event.id);
+		const [{ value: eventCount }] = await testDb
+			.select({ value: count() })
+			.from(eventsTable);
+		expect(Number(eventCount)).toBe(1);
+	});
+
+	it('falls back to the « Privatisation — <name> » title and refuses non-privatisation demandes', async () => {
+		const [noOccasion] = await testDb
+			.insert(contactSubmissions)
+			.values({
+				name: 'Jane Doe',
+				email: 'jane@example.com',
+				inquiryType: 'private_event',
+				message: 'Soirée privée.',
+			})
+			.returning();
+		const { event } = await (await load()).createEventFromDemande(noOccasion.id);
+		expect(event.titleFr).toBe('Privatisation — Jane Doe');
+
+		const [other] = await testDb
+				.insert(contactSubmissions)
+				.values({
+					name: 'Other',
+					email: 'other@example.com',
+					inquiryType: 'collaboration',
+					message: 'Bonjour.',
+				})
+				.returning();
+		await expect((await load()).createEventFromDemande(other.id)).rejects.toMatchObject({
+			name: 'CreateEventFromDemandeError',
+		});
 	});
 });
