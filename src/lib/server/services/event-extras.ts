@@ -461,3 +461,140 @@ export async function loadBookableExtras(eventId: string): Promise<BookableExtra
 		remaining: row.stock === null ? null : Math.max(0, row.stock - (bookedById.get(row.id) ?? 0)),
 	}));
 }
+
+// ---------------------------------------------------------------------------
+// Admin quantity change (issue 068)
+// ---------------------------------------------------------------------------
+
+/**
+ * Change the quantities of a Reservation's booked Extras (issue 068): one
+ * transaction, the Event Extra rows locked, the stock re-checked against
+ * every other Reservation still holding seats. Only the Balance is
+ * re-priced: the Deposit already paid never changes, and the Balance is
+ * the new total minus it (floored at 0, which then shrinks the Deposit —
+ * the constraint wants Deposit + Balance = Total). The settled mark is
+ * cleared when the Balance grows, as a party-size change does.
+ */
+export async function changeReservationExtras(input: {
+	reservationId: string;
+	/** New quantity of each booked Extra (0 removes it); booked Extras not
+	 * listed keep their quantity. */
+	quantities: { extraId: string; quantity: number }[];
+	actorId: string;
+	now?: Date;
+}): Promise<
+	| { ok: true; total: number; balance: number; currency: string }
+	| { ok: false; error: string }
+> {
+	const { reservationId, quantities, actorId } = input;
+	const now = input.now ?? new Date();
+
+	return db.transaction(async (tx: typeof db) => {
+		const [party] = await tx
+			.select({
+				id: reservations.id,
+				status: reservations.status,
+				totalAmount: reservations.totalAmount,
+				depositAmount: reservations.depositAmount,
+				balanceAmount: reservations.balanceAmount,
+				balanceSettledAt: reservations.balanceSettledAt,
+				currency: reservations.currency,
+			})
+			.from(reservations)
+			.where(eq(reservations.id, reservationId))
+			.for('update');
+		if (!party) return { ok: false as const, error: 'Réservation introuvable.' };
+		if (party.status === 'cancelled' || party.status === 'expired') {
+			return { ok: false as const, error: 'Cette réservation est annulée ou expirée.' };
+		}
+
+		const snapshots = await tx
+			.select()
+			.from(reservationExtras)
+			.where(eq(reservationExtras.reservationId, reservationId));
+		const byExtra = new Map(snapshots.map((row: typeof snapshots[number]) => [row.eventExtraId, row]));
+		const asked = new Map<string, number>();
+		for (const change of quantities) {
+			if (!Number.isInteger(change.quantity) || change.quantity < 0 || change.quantity > MAX_EXTRA_QUANTITY) {
+				return { ok: false as const, error: 'Quantité de supplément invalide.' };
+			}
+			if (byExtra.has(change.extraId)) asked.set(change.extraId, change.quantity);
+		}
+		if (asked.size === 0) return { ok: true as const, total: party.totalAmount, balance: party.balanceAmount, currency: party.currency };
+
+		// Stock: what every other seat-holding Reservation has booked.
+		const changedIds = [...asked.keys()];
+		const extraRows = (await tx
+			.select({ id: eventExtras.id, nameFr: eventExtras.nameFr, stock: eventExtras.stock })
+			.from(eventExtras)
+			.where(inArray(eventExtras.id, changedIds))
+			.for('update')) as unknown as { id: string; nameFr: string; stock: number | null }[];
+		const extraById = new Map(extraRows.map((row) => [row.id, row]));
+		const others: { eventExtraId: string; booked: number }[] = await tx
+			.select({
+				eventExtraId: reservationExtras.eventExtraId,
+				booked: sql<number>`coalesce(sum(${reservationExtras.quantity}), 0)::int`,
+			})
+			.from(reservationExtras)
+			.innerJoin(reservations, eq(reservationExtras.reservationId, reservations.id))
+			.where(and(
+				inArray(reservationExtras.eventExtraId, changedIds),
+				inArray(reservations.status, [...STOCK_HOLDING_STATUSES]),
+				sql`${reservations.id} <> ${reservationId}`
+			))
+			.groupBy(reservationExtras.eventExtraId);
+		const bookedByOthers = new Map(others.map((row: { eventExtraId: string; booked: number }) => [row.eventExtraId, row.booked]));
+		for (const [extraId, quantity] of asked) {
+			const extra = extraById.get(extraId);
+			if (!extra) continue;
+			if (extra.stock !== null && quantity + (bookedByOthers.get(extraId) ?? 0) > extra.stock) {
+				return { ok: false as const, error: `« ${extra.nameFr} » n'est plus disponible en quantité suffisante.` };
+			}
+		}
+
+		let oldExtrasTotal = 0;
+		let newExtrasTotal = 0;
+		for (const snapshot of snapshots) {
+			oldExtrasTotal += snapshot.unitPrice * snapshot.quantity;
+			const quantity = asked.get(snapshot.eventExtraId) ?? snapshot.quantity;
+			newExtrasTotal += snapshot.unitPrice * quantity;
+			if (quantity === 0) {
+				await tx.delete(reservationExtras).where(eq(reservationExtras.id, snapshot.id));
+			} else if (quantity !== snapshot.quantity) {
+				await tx
+					.update(reservationExtras)
+					.set({ quantity })
+					.where(eq(reservationExtras.id, snapshot.id));
+			}
+		}
+
+		// Re-price: only the total and the Balance move; the Deposit paid
+		// online is untouched unless the new total falls under it.
+		const total = party.totalAmount - oldExtrasTotal + newExtrasTotal;
+		const deposit = Math.min(party.depositAmount, total);
+		const balance = total - deposit;
+		const settled = balance > party.balanceAmount
+			? { balanceSettledAt: null, balanceSettledBy: null }
+			: {};
+		await tx
+			.update(reservations)
+			.set({ totalAmount: total, depositAmount: deposit, balanceAmount: balance, updatedAt: now, ...settled })
+			.where(eq(reservations.id, reservationId));
+
+		const { recordAuditLog } = await import('./audit-log');
+		await recordAuditLog({
+			adminId: actorId,
+			action: 'reservation.change_extras',
+			entityType: 'reservation',
+			entityId: reservationId,
+			metadata: {
+				reservationId,
+				before: { total: party.totalAmount, balance: party.balanceAmount },
+				after: { total, balance },
+				quantities: Object.fromEntries(asked),
+			},
+		});
+
+		return { ok: true as const, total, balance, currency: party.currency };
+	});
+}
