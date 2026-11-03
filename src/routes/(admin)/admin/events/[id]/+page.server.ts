@@ -357,6 +357,9 @@ export const load: PageServerLoad = async ({ params }) => {
 		const schedule = await loadSeatingsEditor(id);
 		const { loadPricingEditor } = await import('$lib/server/services/service-pricing');
 		const pricing = await loadPricingEditor(id);
+		// The Event's extras (issue 067) live in the same « Menus & tarifs » tab.
+		const { loadExtrasEditor } = await import('$lib/server/services/event-extras');
+		pricing.extras = await loadExtrasEditor(id);
 
 		// When the Event's last Seating starts (issue 044): what decides
 		// whether it may join the Portfolio. Its Seatings are already loaded.
@@ -990,6 +993,20 @@ const editorActions: Actions = {
 			return fail(400, { error: pricingPayloadErrorMessage(parsed.reason), fields: ['pricing'] });
 		}
 
+		// The tab's extras section (issue 067) saves with the same action;
+		// absent (the new-event form), the extras are left as they are.
+		const { parseExtrasPayload, extrasPayloadErrorMessage, saveExtras } = await import(
+			'$lib/server/services/event-extras'
+		);
+		const extrasRaw = formData.get('extras');
+		let extrasParsed: ReturnType<typeof parseExtrasPayload> | null = null;
+		if (typeof extrasRaw === 'string') {
+			extrasParsed = parseExtrasPayload(extrasRaw);
+			if (!extrasParsed.ok) {
+				return fail(400, { error: extrasPayloadErrorMessage(extrasParsed.reason), fields: ['extras'] });
+			}
+		}
+
 		if (env.USE_MOCK_DATA) {
 			return { success: 'Menus et tarifs enregistrés (mode démo — non persistés)' };
 		}
@@ -998,13 +1015,17 @@ const editorActions: Actions = {
 			const { loadPricingEditor } = await import('$lib/server/services/service-pricing');
 			const english = await englishPricing(parsed.payload, await loadPricingEditor(id), id);
 			const { menuIds } = await savePricing(id, english.value);
-			// The new Menus' ids, for the editor's drafts (issue 019); a
+			const { extraIds } = extrasParsed
+				? await saveExtras(id, extrasParsed.payload)
+				: { extraIds: undefined };
+			// The new Menus' and extras' ids, for the editor's drafts (issue 019); a
 			// Draft's autosave shows no success toast, except for this warning.
 			return {
 				success: english.translationFailed
 					? 'Menus et tarifs enregistrés, mais la traduction anglaise a échoué : elle sera retentée au prochain enregistrement.'
 					: 'Menus et tarifs enregistrés.',
 				menuIds,
+				extraIds,
 				...(english.translationFailed ? { translationFailed: true as const } : {}),
 			};
 		} catch (err) {
