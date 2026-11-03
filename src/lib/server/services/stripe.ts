@@ -1,5 +1,6 @@
 import Stripe from 'stripe';
 import { env, isStripeEnabled } from '../env';
+import { GIFT_CARD_MESSAGE_MAX } from '$lib/server/validators/gift-card';
 
 let stripeClient: Stripe | null = null;
 
@@ -73,6 +74,71 @@ export async function createCheckoutSession(params: CreateCheckoutSessionParams)
 	});
 
 	return session;
+}
+
+export type CreateGiftCardCheckoutParams = {
+	amount: number;
+	buyerName: string;
+	buyerEmail: string;
+	recipientName: string;
+	recipientEmail: string | null;
+	message: string | null;
+	delivery: 'buyer' | 'recipient';
+	locale: 'fr' | 'en';
+	successUrl: string;
+	cancelUrl: string;
+};
+
+/**
+ * Create a Stripe Checkout Session for a gift card purchase (issue 064).
+ * The form's details travel in the session metadata (all strings — Stripe
+ * rejects other types and caps each value at 500 characters, hence the
+ * capped message). The webhook routes on metadata.kind === 'gift_card'.
+ */
+export async function createGiftCardCheckoutSession(
+	params: CreateGiftCardCheckoutParams
+) {
+	const stripe = getStripeClient();
+
+	const metadata: Record<string, string> = {
+		kind: 'gift_card',
+		amount: String(params.amount),
+		buyerName: params.buyerName,
+		buyerEmail: params.buyerEmail,
+		recipientName: params.recipientName,
+		recipientEmail: params.recipientEmail ?? '',
+		message: (params.message ?? '').slice(0, GIFT_CARD_MESSAGE_MAX),
+		delivery: params.delivery,
+		locale: params.locale,
+	};
+
+	return stripe.checkout.sessions.create(
+		{
+			mode: 'payment',
+			customer_email: params.buyerEmail,
+			line_items: [
+				{
+					price_data: {
+						currency: 'eur',
+						unit_amount: params.amount,
+						product_data: {
+							name: 'Carte cadeau Germinal / Gift card',
+						},
+					},
+					quantity: 1,
+					},
+			],
+			payment_intent_data: { metadata },
+			metadata,
+			success_url: params.successUrl,
+			cancel_url: params.cancelUrl,
+			expires_at: Math.floor(Date.now() / 1000) + 24 * 60 * 60,
+		},
+		{
+			// One session per form submission; a retry gets a new session.
+			idempotencyKey: `gift-card-${crypto.randomUUID()}`,
+		}
+	);
 }
 
 /**

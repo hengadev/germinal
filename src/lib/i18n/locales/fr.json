@@ -26,7 +26,8 @@
     "talents": "Talents",
     "manifesto": "Manifeste",
     "contact": "Contact",
-    "findTicket": "Retrouver mon billet"
+    "findTicket": "Retrouver mon billet",
+    "giftCard": "Carte cadeau"
   },
   "footer": {
     "allRightsReserved": "Tous droits réservés.",
@@ -135,6 +136,35 @@
     "noEventTitle": "Aucun événement en vedette",
     "noEventDescription": "Il n'y a actuellement aucun événement en vedette. Revenez bientôt pour découvrir les prochains événements.",
     "viewAllEvents": "Voir tous les événements"
+  },
+  "giftCard": {
+    "pageTitle": "Carte cadeau | Germinal",
+    "title": "Carte cadeau",
+    "description": "Offrez les dîners, expositions et ateliers de Germinal : un montant au choix, envoyé en quelques minutes, valable un an.",
+    "form": {
+      "amount": "Montant",
+      "customAmount": "Autre montant",
+      "customAmountLabel": "Montant libre (entre 20 et 1 000 €)",
+      "buyerName": "Votre nom",
+      "buyerEmail": "Votre e-mail",
+      "recipientName": "Nom du destinataire",
+      "recipientEmail": "E-mail du destinataire",
+      "message": "Message (facultatif)",
+      "delivery": "Envoi",
+      "deliveryBuyer": "À moi-même",
+      "deliveryRecipient": "Directement au destinataire",
+      "submit": "Offrir",
+      "redirecting": "Redirection…"
+    },
+    "thanks": {
+      "pageTitle": "Merci | Germinal",
+      "title": "Merci !",
+      "sentToRecipient": "La carte cadeau a été envoyée à",
+      "sentToBuyer": "La carte cadeau a été envoyée à votre adresse",
+      "pending": "Votre paiement est confirmé ; la carte est en cours d'émission. Vous recevrez un e-mail dans quelques instants.",
+      "receiptNote": "Un reçu vous a également été envoyé par e-mail.",
+      "back": "Acheter une autre carte"
+    }
   },
   "contact": {
     "pageTitle": "Contact | Germinal",

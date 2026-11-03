@@ -26,7 +26,8 @@
     "talents": "Talents",
     "manifesto": "Manifesto",
     "contact": "Contact",
-    "findTicket": "Find my ticket"
+    "findTicket": "Find my ticket",
+    "giftCard": "Gift card"
   },
   "footer": {
     "allRightsReserved": "All rights reserved.",
@@ -135,6 +136,35 @@
     "noEventTitle": "No Spotlight Event",
     "noEventDescription": "There is currently no spotlight event. Check back soon for featured events.",
     "viewAllEvents": "View All Events"
+  },
+  "giftCard": {
+    "pageTitle": "Gift card | Germinal",
+    "title": "Gift card",
+    "description": "Give Germinal's dinners, exhibitions and workshops: an amount of your choice, sent within minutes, valid for a year.",
+    "form": {
+      "amount": "Amount",
+      "customAmount": "Other amount",
+      "customAmountLabel": "Free amount (between €20 and €1,000)",
+      "buyerName": "Your name",
+      "buyerEmail": "Your email",
+      "recipientName": "Recipient's name",
+      "recipientEmail": "Recipient's email",
+      "message": "Message (optional)",
+      "delivery": "Delivery",
+      "deliveryBuyer": "To myself",
+      "deliveryRecipient": "Straight to the recipient",
+      "submit": "Give",
+      "redirecting": "Redirecting…"
+    },
+    "thanks": {
+      "pageTitle": "Thank you | Germinal",
+      "title": "Thank you!",
+      "sentToRecipient": "The gift card has been sent to",
+      "sentToBuyer": "The gift card has been sent to your address",
+      "pending": "Your payment is confirmed; the card is being issued. You will receive an email shortly.",
+      "receiptNote": "A receipt has also been emailed to you.",
+      "back": "Buy another card"
+    }
   },
   "contact": {
     "pageTitle": "Contact | Germinal",

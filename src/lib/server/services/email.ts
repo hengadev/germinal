@@ -1409,6 +1409,8 @@ export interface GiftCardEmailData {
 	amount: number;
 	expiry: Date;
 	message: string | null;
+	/** The printable card page (issue 064), included when present. */
+	printUrl?: string | null;
 }
 
 export function generateGiftCardTextTemplate(data: GiftCardEmailData): string {
@@ -1429,7 +1431,7 @@ Voici votre carte cadeau d'une valeur de ${formatCurrency(data.amount, 'EUR', 'f
 
 Code : ${data.code}
 Valable jusqu'au ${data.expiry.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}.
-${message ? `\n${message}\n` : ''}
+${data.printUrl ? `Carte imprimable : ${data.printUrl}\n` : ''}${message ? `\n${message}\n` : ''}
 Présentez ce code lors de vos réservations pour l'utiliser.
 
 À très bientôt,
@@ -1459,6 +1461,7 @@ function generateGiftCardHtmlTemplate(data: GiftCardEmailData): string {
     <p style="margin: 0 0 16px 0; color: #212529;">Voici votre carte cadeau d'une valeur de <strong>${formatCurrency(data.amount, 'EUR', 'fr-FR')}</strong>.</p>
     <p style="margin: 24px 0; padding: 16px; background-color: #f8f9fa; border-radius: 8px; text-align: center; font-size: 20px; letter-spacing: 2px; color: #212529;"><strong>${escapeHtml(data.code)}</strong></p>
     <p style="margin: 0 0 16px 0; color: #212529;">Valable jusqu'au ${data.expiry.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}.</p>
+    ${data.printUrl ? `<p style="margin: 0 0 16px 0;"><a href="${data.printUrl}" style="color: #212529;">Imprimer la carte</a></p>` : ''}
     ${message}
     <p style="margin: 0 0 16px 0; color: #212529;">Présentez ce code lors de vos réservations pour l'utiliser.</p>
     <p style="margin: 24px 0 0 0; color: #212529;">
@@ -1501,6 +1504,105 @@ export async function sendGiftCardEmail(data: GiftCardEmailData): Promise<void> 
 		metadata: { code: data.code, amount: data.amount }
 	});
 	logger.info({ to: data.recipientEmail }, '📋 Gift card email queued');
+}
+
+export interface GiftCardReceiptEmailData {
+	buyerEmail: string;
+	buyerName: string | null;
+	recipientName: string | null;
+	/** Set only when the card went straight to the recipient. */
+	recipientEmail: string | null;
+	/** Minor units (cents). */
+	amount: number;
+	delivery: 'buyer' | 'recipient';
+	printUrl: string;
+}
+
+export function generateGiftCardReceiptTextTemplate(data: GiftCardReceiptEmailData): string {
+	const intro = data.buyerName ? `Bonjour ${data.buyerName},` : 'Bonjour,';
+	const sent = data.delivery === 'recipient'
+		? `La carte a été envoyée à ${data.recipientName}${data.recipientEmail ? ` (${data.recipientEmail})` : ''}.`
+		: 'La carte vous a été envoyée par e-mail.';
+	return `
+Votre achat de carte cadeau Germinal
+
+${intro}
+
+Merci pour votre achat d'une carte cadeau d'une valeur de ${formatCurrency(data.amount, 'EUR', 'fr-FR')}.
+${sent}
+
+Vous pouvez la retrouver et l'imprimer ici :
+${data.printUrl}
+
+À très bientôt,
+L'équipe Germinal
+
+---
+Ceci est un message de service de Germinal.
+  `.trim();
+}
+
+function generateGiftCardReceiptHtmlTemplate(data: GiftCardReceiptEmailData): string {
+	const escape = (s: string) => escapeHtml(s);
+	const sent = data.delivery === 'recipient'
+		? `La carte a été envoyée à <strong>${escape(data.recipientName ?? '')}</strong>${data.recipientEmail ? ` (${escape(data.recipientEmail)})` : ''}.`
+		: 'La carte vous a été envoyée par e-mail.';
+	return `
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Votre achat de carte cadeau Germinal</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f8f9fa; font-family: Arial, Helvetica, sans-serif;">
+  <div style="max-width: 600px; margin: 0 auto; padding: 32px 24px; background-color: #ffffff;">
+    <h1 style="margin: 0 0 24px 0; font-size: 22px; color: #212529;">Votre achat de carte cadeau Germinal</h1>
+    <p style="margin: 0 0 16px 0; color: #212529;">${data.buyerName ? escape(`Bonjour ${data.buyerName},`) : 'Bonjour,'}</p>
+    <p style="margin: 0 0 16px 0; color: #212529;">Merci pour votre achat d'une carte cadeau d'une valeur de <strong>${formatCurrency(data.amount, 'EUR', 'fr-FR')}</strong>.</p>
+    <p style="margin: 0 0 16px 0; color: #212529;">${sent}</p>
+    <p style="margin: 0 0 16px 0; color: #212529;"><a href="${data.printUrl}" style="color: #212529;">Imprimer la carte</a></p>
+    <p style="margin: 24px 0 0 0; color: #212529;">
+      À très bientôt,<br>
+      <strong>L'équipe Germinal</strong>
+    </p>
+  </div>
+
+  <div style="border-top: 1px solid #e9ecef; padding-top: 16px;">
+    <p style="margin: 0; color: #6c757d; font-size: 12px; text-align: center;">
+      Ceci est un message de service de Germinal.
+    </p>
+  </div>
+</body>
+</html>
+  `.trim();
+}
+
+/**
+ * The buyer's receipt for an online gift card purchase (issue 064): a
+ * service message, FR only, queued once the card is issued. It never
+ * shows the code — only where the card was sent and the printable link.
+ */
+export async function sendGiftCardReceiptEmail(data: GiftCardReceiptEmailData): Promise<void> {
+	if (!data.buyerEmail) return;
+	const textBody = generateGiftCardReceiptTextTemplate(data);
+	const htmlBody = generateGiftCardReceiptHtmlTemplate(data);
+
+	if (!isBrevoConfigured()) {
+		logger.info({ to: data.buyerEmail }, '📧 Brevo not configured - gift card receipt would be sent');
+		return;
+	}
+
+	const { queueEmail } = await import('../jobs/process-email-queue');
+	await queueEmail({
+		type: 'gift_card_receipt',
+		recipient: data.buyerEmail,
+		subject: 'Votre achat de carte cadeau Germinal',
+		textBody,
+		htmlBody,
+		metadata: { amount: data.amount, delivery: data.delivery }
+	});
+	logger.info({ to: data.buyerEmail }, '📋 Gift card receipt email queued');
 }
 
 export interface NewsletterConfirmationEmailData {

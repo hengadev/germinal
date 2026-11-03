@@ -8,11 +8,16 @@ import { and, desc, eq, ilike, or, sql } from 'drizzle-orm';
 import { db } from '../db';
 import { giftCardLedger, giftCards, users } from '../db/schema';
 import { recordAuditLog } from './audit-log';
+import { logger } from '$lib/server/logger';
+import { env } from '$lib/server/env';
+import { sendGiftCardEmail, sendGiftCardReceiptEmail } from './email';
 import {
+	formatGiftCardCode,
 	generateGiftCardCode,
 	maskGiftCardCode,
 	normaliseGiftCardCode
 } from '$lib/utils/gift-card';
+import type Stripe from 'stripe';
 
 /** Why findUsable refused a card. */
 export type GiftCardUnusableReason = 'unknown' | 'expired' | 'cancelled' | 'empty';
@@ -42,7 +47,8 @@ export interface IssueGiftCardInput {
 
 /** Issue a card: balance starts at the initial amount, ledger empty. */
 export async function issueGiftCard(
-	input: IssueGiftCardInput
+	input: IssueGiftCardInput,
+	client: typeof db = db
 ): Promise<GiftCard> {
 	const expiresAt =
 		input.expiresAt ?? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
@@ -51,7 +57,7 @@ export async function issueGiftCard(
 	for (let attempt = 0; attempt < 5; attempt++) {
 		const code = generateGiftCardCode();
 		try {
-			const [card] = await db
+			const [card] = await client
 				.insert(giftCards)
 				.values({
 					// Stored normalised (no dashes) — see normaliseGiftCardCode.
@@ -333,4 +339,168 @@ export async function ledgerSum(cardId: string): Promise<number> {
 		.from(giftCardLedger)
 		.where(eq(giftCardLedger.giftCardId, cardId));
 	return row?.total ?? 0;
+}
+
+/** A Checkout Session as the webhook passes it, gift-card fields only. */
+export interface GiftCardCheckoutSession {
+	id: string;
+	payment_status?: string | null;
+	metadata: Record<string, string> | StripeMetadata | null;
+}
+
+type StripeMetadata = Stripe.Checkout.Session['metadata'];
+
+function metadataValue(metadata: GiftCardCheckoutSession['metadata'], key: string): string {
+	if (!metadata) return '';
+	const value = (metadata as Record<string, unknown>)[key];
+	return typeof value === 'string' ? value : '';
+}
+
+export function isGiftCardCheckoutSession(
+	session: GiftCardCheckoutSession
+): boolean {
+	return metadataValue(session.metadata, 'kind') === 'gift_card';
+}
+
+/** The card issued by a Checkout Session, if any (for the success page). */
+export async function findGiftCardByStripeReference(
+	stripeReference: string
+): Promise<GiftCard | undefined> {
+	const [card] = await db
+		.select()
+		.from(giftCards)
+		.where(eq(giftCards.stripeReference, stripeReference))
+		.limit(1);
+	return card;
+}
+
+/** The printable card page: keyed by the card's unguessable UUID. */
+export function giftCardPrintUrl(cardId: string): string {
+	return `${env.PUBLIC_URL}/carte-cadeau/imprimer/${cardId}`;
+}
+
+export type GiftCardSessionOutcome =
+	| { ok: true; card: GiftCard; created: boolean }
+	| { ok: false; reason: 'not_gift_card' | 'unpaid' };
+
+/**
+ * Issue the gift card a paid gift-card Checkout Session bought (issue
+ * 064) — exactly once per session, even under concurrent webhook
+ * deliveries. gift_cards.stripe_reference carries no unique index, so the
+ * whole issue step runs in one transaction behind a session-scoped
+ * advisory lock: the second delivery (or the concurrent twin) finds the
+ * card already there and issues and emails nothing. Unpaid or failed
+ * sessions issue nothing; a delayed method that fails later simply never
+ * reaches this path.
+ */
+export async function handleGiftCardCheckoutSession(
+	session: GiftCardCheckoutSession
+): Promise<GiftCardSessionOutcome> {
+	if (!isGiftCardCheckoutSession(session)) {
+		return { ok: false, reason: 'not_gift_card' };
+	}
+	if (session.payment_status !== 'paid') {
+		logger.info(
+			{ checkoutSessionId: session.id, paymentStatus: session.payment_status },
+			'Gift card Checkout Session not paid; nothing issued',
+		);
+		return { ok: false, reason: 'unpaid' };
+	}
+
+	const amount = Number(metadataValue(session.metadata, 'amount'));
+	if (!Number.isInteger(amount) || amount <= 0) {
+		logger.error(
+			{ checkoutSessionId: session.id, amount },
+			'Gift card Checkout Session carries an invalid amount',
+		);
+		return { ok: false, reason: 'not_gift_card' };
+	}
+
+	const buyerName = metadataValue(session.metadata, 'buyerName');
+	const buyerEmail = metadataValue(session.metadata, 'buyerEmail');
+	const recipientName = metadataValue(session.metadata, 'recipientName');
+	const recipientEmail = metadataValue(session.metadata, 'recipientEmail') || null;
+	const message = metadataValue(session.metadata, 'message') || null;
+	const delivery = metadataValue(session.metadata, 'delivery') === 'recipient'
+		? 'recipient'
+		: 'buyer';
+
+	const outcome = await db.transaction(async (tx: typeof db) => {
+			// One issuer per session, even when two deliveries race: the
+			// transaction lock serialises them on the session id.
+			await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${session.id}))`);
+
+			const existing = await findGiftCardByStripeReferenceIn(tx, session.id);
+			if (existing) return { ok: true as const, card: existing, created: false };
+
+			const card = await issueGiftCard(
+				{
+					amount,
+					recipientName,
+					recipientEmail,
+					message,
+					buyerName,
+					buyerEmail,
+					origin: 'online',
+					stripeReference: session.id
+				},
+				tx
+			);
+			return { ok: true as const, card, created: true };
+		});
+
+	if (outcome.ok && !outcome.created) {
+		logger.info(
+			{ checkoutSessionId: session.id, code: maskGiftCardCode(outcome.card.code) },
+			'Gift card already issued for this Checkout Session; nothing sent',
+		);
+		return outcome;
+	}
+
+	const card = outcome.ok ? outcome.card : undefined;
+	if (!card) return outcome;
+	const printUrl = giftCardPrintUrl(card.id);
+	// The card email goes to the buyer when delivery is "to me", else to
+	// the recipient; the receipt always goes to the buyer. Best effort —
+	// a failure is logged, never thrown (the card is already issued).
+	const cardEmailTo = delivery === 'recipient' ? recipientEmail : buyerEmail;
+	try {
+		await sendGiftCardEmail({
+			recipientEmail: cardEmailTo,
+			recipientName: delivery === 'recipient' ? recipientName : buyerName,
+			code: formatGiftCardCode(card.code),
+			amount: card.initialAmount,
+			expiry: card.expiresAt,
+			message: card.message,
+			printUrl
+		});
+	} catch (err) {
+		logger.error({ err, to: cardEmailTo }, 'Failed to send gift card email');
+	}
+	try {
+		await sendGiftCardReceiptEmail({
+			buyerEmail,
+			buyerName,
+			recipientName,
+			recipientEmail,
+			amount: card.initialAmount,
+			delivery,
+			printUrl
+		});
+	} catch (err) {
+		logger.error({ err, to: buyerEmail }, 'Failed to send gift card receipt');
+	}
+	return outcome;
+}
+
+async function findGiftCardByStripeReferenceIn(
+	tx: typeof db,
+	stripeReference: string
+): Promise<GiftCard | undefined> {
+	const [card] = await tx
+		.select()
+		.from(giftCards)
+		.where(eq(giftCards.stripeReference, stripeReference))
+		.limit(1);
+	return card;
 }
