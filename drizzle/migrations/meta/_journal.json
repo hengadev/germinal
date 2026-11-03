@@ -379,6 +379,13 @@
       "when": 1793669781744,
       "tag": "0053_gift_cards",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1793676519902,
+      "tag": "0054_private_event_demandes",
+      "breakpoints": true
     }
   ]
 }

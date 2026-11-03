@@ -1,7 +1,8 @@
 import { db } from '../db';
 import { logger } from '$lib/server/logger';
 import { contactSubmissions } from '../db/schema';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, and, isNull, or, count } from 'drizzle-orm';
+import { z } from 'zod';
 import type { CreateContactSubmissionInput, ContactSubmission } from '$lib/types/contact';
 import { sendContactEmail } from './email';
 
@@ -23,6 +24,10 @@ export async function createContactSubmission(
     company: input.company || null,
     inquiryType: input.inquiryType,
     message: input.message,
+    occasion: input.occasion || null,
+    preferredDates: input.preferredDates || null,
+    guestCount: input.guestCount ?? null,
+    budget: input.budget || null,
     honeypot: input.honeypot || null,
     ipAddress: input.ipAddress || null,
     userAgent: input.userAgent || null,
@@ -38,6 +43,10 @@ export async function createContactSubmission(
       company: submission.company,
       inquiryType: submission.inquiryType,
       message: submission.message,
+      occasion: submission.occasion,
+      preferredDates: submission.preferredDates,
+      guestCount: submission.guestCount,
+      budget: submission.budget,
       submittedAt: submission.createdAt,
       ipAddress: submission.ipAddress,
     });
@@ -80,6 +89,87 @@ export async function getContactSubmissionById(id: string): Promise<ContactSubmi
   return submission;
 }
 
+// ============================================
+// Demandes inbox (issue 069)
+// ============================================
+
+export type RequestStatus = 'new' | 'discussing' | 'quote_sent' | 'confirmed' | 'lost';
+
+const REQUEST_STATUSES: RequestStatus[] = ['new', 'discussing', 'quote_sent', 'confirmed', 'lost'];
+
+const INQUIRY_TYPES = ['collaboration', 'new_project', 'join_roster', 'private_event', 'other'] as const;
+
+/** Not honeypot-flagged submissions, newest first, filterable. */
+export async function listDemandes(options: {
+  inquiryType?: string | null;
+  status?: string | null;
+}): Promise<ContactSubmission[]> {
+  const conditions = [or(isNull(contactSubmissions.honeypot), eq(contactSubmissions.honeypot, ''))];
+
+  if (options.inquiryType && (INQUIRY_TYPES as readonly string[]).includes(options.inquiryType)) {
+    conditions.push(eq(contactSubmissions.inquiryType, options.inquiryType as (typeof INQUIRY_TYPES)[number]));
+  }
+  if (options.status && REQUEST_STATUSES.includes(options.status as RequestStatus)) {
+    conditions.push(eq(contactSubmissions.status, options.status as RequestStatus));
+  }
+
+  return await db.query.contactSubmissions.findMany({
+    where: and(...conditions),
+    orderBy: [desc(contactSubmissions.createdAt)],
+  });
+}
+
+/** Number of « nouvelle » (status new, non-honeypot) demandes, for the badge. */
+export async function countNewDemandes(): Promise<number> {
+  const [row] = await db.select({ value: count() })
+    .from(contactSubmissions)
+    .where(and(
+      or(isNull(contactSubmissions.honeypot), eq(contactSubmissions.honeypot, '')),
+      eq(contactSubmissions.status, 'new')
+    ));
+  return Number(row?.value ?? 0);
+}
+
+const statusSchema = z.enum(['new', 'discussing', 'quote_sent', 'confirmed', 'lost']);
+
+export async function updateDemande(
+  id: string,
+  input: { status?: unknown; adminNote?: unknown }
+): Promise<ContactSubmission> {
+  const patch: { status?: RequestStatus; adminNote?: string | null } = {};
+
+  if (input.status !== undefined && input.status !== null && input.status !== '') {
+    const parsed = statusSchema.safeParse(input.status);
+    if (!parsed.success) {
+      throw new Error('Invalid status');
+    }
+    patch.status = parsed.data;
+  }
+
+  if (input.adminNote !== undefined) {
+    const note = typeof input.adminNote === 'string' ? input.adminNote.trim() : null;
+    if (note && note.length > 5000) {
+      throw new Error('Note too long');
+    }
+    patch.adminNote = note || null;
+  }
+
+  if (Object.keys(patch).length === 0) {
+    return getContactSubmissionById(id);
+  }
+
+  const [updated] = await db.update(contactSubmissions)
+    .set(patch)
+    .where(eq(contactSubmissions.id, id))
+    .returning();
+
+  if (!updated) {
+    throw new Error('Contact submission not found');
+  }
+
+  return updated;
+}
+
 export async function getFailedEmailSubmissions(): Promise<ContactSubmission[]> {
   return await db.query.contactSubmissions.findMany({
     where: eq(contactSubmissions.emailSent, false),
@@ -97,6 +187,10 @@ export async function retryContactEmail(id: string): Promise<ContactSubmission> 
       company: submission.company,
       inquiryType: submission.inquiryType,
       message: submission.message,
+      occasion: submission.occasion,
+      preferredDates: submission.preferredDates,
+      guestCount: submission.guestCount,
+      budget: submission.budget,
       submittedAt: submission.createdAt,
       ipAddress: submission.ipAddress,
     });

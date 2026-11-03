@@ -4,6 +4,7 @@ export const inquiryTypeSchema = z.enum([
   'collaboration',
   'new_project',
   'join_roster',
+  'private_event',
   'other'
 ]);
 
@@ -34,6 +35,31 @@ export const contactSubmissionSchema = z.object({
     .max(100)
     .optional()
     .transform(v => v ?? null),
+
+  // Privatisation fields (issue 069), only sent when inquiryType is 'private_event'.
+  occasion: z.string()
+    .max(255)
+    .optional()
+    .transform(v => v?.trim() || null),
+
+  preferredDates: z.string()
+    .max(500)
+    .optional()
+    .transform(v => v?.trim() || null),
+
+  guestCount: z.preprocess(
+    v => (v === '' || v === null || v === undefined ? null : v),
+    z.coerce.number()
+    .int('Number of guests must be a whole number')
+    .min(1, 'Number of guests must be at least 1')
+    .max(10000, 'Number of guests is too large')
+    .nullable()
+  ).transform(v => (v as number | null) ?? null),
+
+  budget: z.string()
+    .max(255)
+    .optional()
+    .transform(v => v?.trim() || null),
 }).refine(data => !data.honeypot || data.honeypot.trim() === '', {
   message: 'Invalid submission',
   path: ['honeypot'],

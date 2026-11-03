@@ -78,6 +78,7 @@ function formatInquiryType(type: string): string {
 		collaboration: 'Collaboration',
 		new_project: 'New Project',
 		join_roster: 'Join Roster',
+		private_event: 'Private Event',
 		other: 'Other',
 	};
 	return map[type] || type;
@@ -90,6 +91,10 @@ New Contact Form Submission
 From: ${data.name} (${data.email})
 ${data.company ? `Company/Organization: ${data.company}` : ''}
 Inquiry Type: ${formatInquiryType(data.inquiryType)}
+${data.occasion ? `Occasion: ${data.occasion}` : ''}
+${data.preferredDates ? `Preferred Dates: ${data.preferredDates}` : ''}
+${data.guestCount ? `Number of Guests: ${data.guestCount}` : ''}
+${data.budget ? `Budget: ${data.budget}` : ''}
 Submitted: ${data.submittedAt.toLocaleString('en-US', { timeZone: 'UTC' })} UTC
 
 Message:
@@ -152,6 +157,46 @@ function generateHtmlTemplate(data: ContactEmailData): string {
           ${escapeHtml(formatInquiryType(data.inquiryType))}
         </td>
       </tr>
+      ${data.occasion ? `
+      <tr>
+        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+          <strong style="color: #495057;">Occasion:</strong>
+        </td>
+        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; color: #212529;">
+          ${escapeHtml(data.occasion)}
+        </td>
+      </tr>
+      ` : ''}
+      ${data.preferredDates ? `
+      <tr>
+        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+          <strong style="color: #495057;">Preferred Dates:</strong>
+        </td>
+        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; color: #212529;">
+          ${escapeHtml(data.preferredDates)}
+        </td>
+      </tr>
+      ` : ''}
+      ${data.guestCount ? `
+      <tr>
+        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+          <strong style="color: #495057;">Number of Guests:</strong>
+        </td>
+        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; color: #212529;">
+          ${data.guestCount}
+        </td>
+      </tr>
+      ` : ''}
+      ${data.budget ? `
+      <tr>
+        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+          <strong style="color: #495057;">Budget:</strong>
+        </td>
+        <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; color: #212529;">
+          ${escapeHtml(data.budget)}
+        </td>
+      </tr>
+      ` : ''}
     </table>
   </div>
 

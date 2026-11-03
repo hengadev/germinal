@@ -1,7 +1,7 @@
 <script lang="ts">
     import { page } from "$app/state";
 
-    import { LayoutDashboard, Calendar, Users, Ticket, BarChart3, ClipboardList, ExternalLink, Settings2, ScrollText, AlertTriangle, Contact, Gift } from "lucide-svelte";
+    import { LayoutDashboard, Calendar, Users, Ticket, BarChart3, ClipboardList, ExternalLink, Settings2, ScrollText, AlertTriangle, Contact, Gift, Inbox } from "lucide-svelte";
     import ThemeToggle from "$lib/components/admin/ThemeToggle.svelte";
 
     interface SidebarProps {
@@ -14,6 +14,7 @@
             };
             staffPortalUrl: string;
             moneyAlertsTotal: number;
+            newDemandesCount: number;
         };
     }
 
@@ -44,7 +45,8 @@
         badge?: number;
     }
 
-    const desktopNavigation: NavItem[] = [
+    // Derived so the badges follow the layout data after a save.
+    const desktopNavigation: NavItem[] = $derived([
         {
             href: "/admin",
             label: "Tableau de bord",
@@ -69,6 +71,12 @@
             href: "/admin/clients",
             label: "Clients",
             icon: Contact,
+        },
+        {
+            href: "/admin/demandes",
+            label: "Demandes",
+            icon: Inbox,
+            badge: data.newDemandesCount,
         },
         {
             href: "/admin/cartes-cadeaux",
@@ -101,7 +109,7 @@
             label: "Journal d'Audit",
             icon: ScrollText,
         },
-    ];
+    ]);
 
     function isActive(href: string, currentPath: string): boolean {
         if (href === "/admin") {

@@ -15,7 +15,17 @@ export const inquiryTypeEnum = pgEnum('inquiry_type', [
     'collaboration',
     'new_project',
     'join_roster',
+    'private_event',
     'other'
+]);
+
+// Lifecycle of a Demande (issue 069), managed from the Admin inbox.
+export const requestStatusEnum = pgEnum('request_status', [
+    'new',
+    'discussing',
+    'quote_sent',
+    'confirmed',
+    'lost'
 ]);
 
 export const reservationStatusEnum = pgEnum('reservation_status', [
@@ -574,6 +584,16 @@ export const contactSubmissions = pgTable('contact_submissions', {
     company: varchar('company', { length: 255 }),
     inquiryType: inquiryTypeEnum('inquiry_type').notNull(),
     message: text('message').notNull(),
+    // Privatisation fields (issue 069), only filled when inquiryType is 'private_event'.
+    occasion: varchar('occasion', { length: 255 }),
+    preferredDates: text('preferred_dates'),
+    guestCount: integer('guest_count'),
+    budget: varchar('budget', { length: 255 }),
+    // Demande lifecycle (issue 069).
+    status: requestStatusEnum('status').default('new').notNull(),
+    adminNote: text('admin_note'),
+    // Set when the Demande becomes an Event (issue 070).
+    eventId: uuid('event_id').references(() => events.id, { onDelete: 'set null' }),
     honeypot: varchar('honeypot', { length: 100 }),
     ipAddress: varchar('ip_address', { length: 45 }),
     userAgent: varchar('user_agent', { length: 500 }),
@@ -586,6 +606,7 @@ export const contactSubmissions = pgTable('contact_submissions', {
     createdAtIdx: index('contact_submissions_created_at_idx').on(table.createdAt),
     inquiryTypeIdx: index('contact_submissions_inquiry_type_idx').on(table.inquiryType),
     emailSentIdx: index('contact_submissions_email_sent_idx').on(table.emailSent),
+    statusIdx: index('contact_submissions_status_idx').on(table.status),
 }));
 
 // ============================================
