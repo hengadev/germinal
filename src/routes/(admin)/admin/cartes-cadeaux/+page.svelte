@@ -194,7 +194,7 @@
 						{#each data.cards as card (card.id)}
 							<tr class="hover:bg-muted/50">
 								<td class="px-6 py-4">
-									<a href="/admin/cartes-cadeaux/{card.id}" class="font-medium text-foreground hover:underline">{formatGiftCardCode(card.code)}</a>
+									<a href="/admin/cartes-cadeaux/{card.id}" class="font-medium text-foreground hover:underline whitespace-nowrap">{formatGiftCardCode(card.code)}</a>
 									<p class="text-xs text-muted-foreground">{card.origin === 'admin' ? 'Émise à la main' : 'Achat en ligne'}</p>
 								</td>
 								<td class="px-6 py-4 text-foreground">

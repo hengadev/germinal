@@ -46,10 +46,14 @@
 					: 'Active'
 	);
 
-	// « Prolonger » : one year from today, prefilled and editable.
-	const defaultExpiry = $derived(
-		new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
-	);
+	// « Prolonger » : one more year after the current expiry (or after
+	// today, for a card already expired), prefilled and editable.
+	const defaultExpiry = $derived.by(() => {
+		const from = Math.max(new Date(card.expiresAt).getTime(), Date.now());
+		const next = new Date(from);
+		next.setFullYear(next.getFullYear() + 1);
+		return next.toISOString().slice(0, 10);
+	});
 	let extendValue = $state('');
 	$effect.pre(() => {
 		extendValue = defaultExpiry;
@@ -122,16 +126,21 @@
 
 			{#if card.status === 'active'}
 				<div class="mt-6 flex flex-col gap-3">
-					<form action="?/extend" method="post" use:enhance class="flex flex-col sm:flex-row gap-2">
-						<input type="hidden" name="expiresAt" value={extendValue} />
+					<form
+						action="?/extend"
+						method="post"
+						use:enhance={() => async ({ update }) => update({ reset: false })}
+						class="flex flex-col gap-2"
+					>
 						<input
 							id="{uid}-extend"
+							name="expiresAt"
 							type="date"
 							bind:value={extendValue}
-							class="flex-1 px-4 py-2.5 border border-border-input rounded-lg text-sm"
+							class="w-full px-4 py-2.5 border border-border-input rounded-lg text-sm bg-background text-foreground"
 							aria-label="Nouvelle date d'expiration"
 						/>
-						<button type="submit" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium bg-foreground text-background hover:opacity-90">
+						<button type="submit" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium bg-foreground text-background hover:opacity-90">
 							<CalendarClock size={16} /> Prolonger
 						</button>
 					</form>

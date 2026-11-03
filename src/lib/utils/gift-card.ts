@@ -1,5 +1,3 @@
-import { randomInt } from 'node:crypto';
-
 /**
  * Pure helpers for gift card codes (issue 063). The card's code is
  * unguessable: random characters from an alphabet with no ambiguous
@@ -12,13 +10,12 @@ const ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
 
 export const GIFT_CARD_CODE_PREFIX = 'GERM';
 
-/** One group of four random characters (test seam: pass a generator). */
+/** One group of four random characters. Web Crypto, so this module also
+ * loads in the browser (the Admin pages format codes with it); 256 is a
+ * multiple of the 32-letter alphabet, so `byte % 32` is unbiased. */
 function randomGroup(): string {
-	let group = '';
-	for (let i = 0; i < 4; i++) {
-		group += ALPHABET[randomInt(ALPHABET.length)];
-	}
-	return group;
+	const bytes = crypto.getRandomValues(new Uint8Array(4));
+	return Array.from(bytes, (byte) => ALPHABET[byte % ALPHABET.length]).join('');
 }
 
 /** A fresh code, e.g. `GERM-7ZK9-M3XT`. */

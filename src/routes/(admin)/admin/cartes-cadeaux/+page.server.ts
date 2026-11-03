@@ -9,6 +9,7 @@ import {
 import { sendGiftCardEmail } from '$lib/server/services/email';
 import { recordAuditLog } from '$lib/server/services/audit-log';
 import { formatGiftCardCode, maskGiftCardCode } from '$lib/utils/gift-card';
+import { parseAmountInput } from '$lib/utils/currency';
 
 const STATUSES: GiftCardStatusFilter[] = ['active', 'used_up', 'expired', 'cancelled'];
 
@@ -31,7 +32,9 @@ export const actions: Actions = {
 		requireAdmin(locals);
 		const adminId = locals.user!.id;
 		const form = await request.formData();
-		const amount = Math.round(parseFloat(String(form.get('amount') ?? '')) * 100);
+		// « 20,50 » as well as « 20.50 ».
+		const parsed = parseAmountInput(form.get('amount'));
+		const amount = 'cents' in parsed ? parsed.cents : NaN;
 		const recipientName = String(form.get('recipientName') ?? '').trim();
 		const recipientEmail = String(form.get('recipientEmail') ?? '').trim();
 		const message = String(form.get('message') ?? '').trim();
