@@ -65,17 +65,23 @@
 
 	// Extras (issue 068): per-person Extras are a checkbox taking the
 	// party size, per-unit ones a stepper; sold-out Extras are shown as such.
+	// A per-person Extra stores 1 when ticked: its quantity follows the
+	// party size (the server applies the same rule).
 	let extraQuantities = $state<Record<string, number>>({});
+	const extraQuantity = (extra: (typeof data.extras)[number]) => {
+		const chosen = extraQuantities[extra.id] ?? 0;
+		if (extra.unit !== 'per_person') return chosen;
+		// Ticked, but not enough left for a larger party: dropped.
+		const fits = extra.remaining === null || extra.remaining >= quantity;
+		return chosen > 0 && fits ? quantity : 0;
+	};
 	let extrasTotal = $derived(
-		data.extras.reduce(
-			(sum, extra) => sum + extra.priceAmount * (extraQuantities[extra.id] ?? 0),
-			0
-		)
+		data.extras.reduce((sum, extra) => sum + extra.priceAmount * extraQuantity(extra), 0)
 	);
 	let chosenExtras = $derived(
-		Object.entries(extraQuantities)
-			.filter(([, qty]) => qty > 0)
-			.map(([extraId, quantity]) => ({ extraId, quantity }))
+		data.extras
+			.map((extra) => ({ extraId: extra.id, quantity: extraQuantity(extra) }))
+			.filter((choice) => choice.quantity > 0)
 	);
 
 	// Same Pricing as the checkout (issue 023): the Promo Code discounts
@@ -221,7 +227,7 @@
 					marketingConsent,
 					promoCode: appliedPromoCode?.code ?? undefined,
 					giftCardCode: appliedGiftCard?.code ?? undefined,
-				extras: chosenExtras.length > 0 ? chosenExtras : undefined,
+					extras: chosenExtras.length > 0 ? chosenExtras : undefined,
 					...(asksDietaryRequirements && dietaryRequirements.trim()
 						? { dietaryRequirements: dietaryRequirements.trim(), dietaryConsent }
 						: {}),
@@ -433,7 +439,7 @@
 					</legend>
 					<div class="grid gap-4">
 						{#each data.extras as extra (extra.id)}
-							{@const soldOut = extra.remaining !== null && extra.remaining === 0}
+							{@const soldOut = extra.remaining !== null && extra.remaining < (extra.unit === 'per_person' ? quantity : 1)}
 							{@const max = extra.unit === 'per_person'
 								? Math.min(data.session.availableCapacity ?? 10, 10)
 								: Math.min(20, extra.remaining ?? 20)}
@@ -459,8 +465,9 @@
 										<input
 											type="checkbox"
 											disabled={isSubmitting}
+											checked={(extraQuantities[extra.id] ?? 0) > 0}
 											onchange={(e) => {
-												extraQuantities[extra.id] = (e.target as HTMLInputElement).checked ? quantity : 0;
+												extraQuantities[extra.id] = (e.target as HTMLInputElement).checked ? 1 : 0;
 											}}
 											class="w-4 h-4 border-border-input"
 										/>
@@ -475,7 +482,7 @@
 											}}
 											disabled={isSubmitting || !(extraQuantities[extra.id] ?? 0)}
 											class="w-8 h-8 border border-border-input rounded-none text-foreground hover:bg-surface disabled:opacity-40"
-											aria-label={$t('booking.extras.quantity')}
+											aria-label="{$t('booking.extras.quantity')} −1 · {$locale === 'en' ? extra.nameEn : extra.nameFr}"
 										>−</button>
 										<span class="text-sm text-foreground tabular-nums w-6 text-center">{extraQuantities[extra.id] ?? 0}</span>
 										<button
@@ -485,7 +492,7 @@
 											}}
 											disabled={isSubmitting || (extraQuantities[extra.id] ?? 0) >= max}
 											class="w-8 h-8 border border-border-input rounded-none text-foreground hover:bg-surface disabled:opacity-40"
-											aria-label={$t('booking.extras.quantity')}
+											aria-label="{$t('booking.extras.quantity')} +1 · {$locale === 'en' ? extra.nameEn : extra.nameFr}"
 										>+</button>
 									</div>
 								{/if}

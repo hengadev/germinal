@@ -341,9 +341,8 @@ export async function resolveBookingExtras(
 	const byId = new Map(rows.map((row: typeof eventExtras.$inferSelect) => [row.id, row]));
 	for (const id of asked.keys()) {
 		const row = byId.get(id);
-		if (!row || !row.active) {
-			throw new ExtraSoldOutError('Extra', 'Extra');
-		}
+		if (!row) throw new ExtraSoldOutError('Supplément', 'Extra');
+		if (!row.active) throw new ExtraSoldOutError(row.nameFr, row.nameEn);
 	}
 
 	const booked: { eventExtraId: string; booked: number }[] = await tx

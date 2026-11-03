@@ -747,8 +747,6 @@ END:VCALENDAR`;
 						{/if}
 					{/if}
 
-					<!-- Modifier le nombre (issue 046): a confirmed Reservation's
-					     number of Guests, with the live quote and capacity warning. -->
 					{#if data.reservation.extras.length > 0}
 						<!-- Suppléments (issue 068) : modifier les quantités, le solde
 						     seul est recalculé (l'acompte payé ne bouge pas). -->
@@ -806,6 +804,8 @@ END:VCALENDAR`;
 						</form>
 					{/if}
 
+					<!-- Modifier le nombre (issue 046): a confirmed Reservation's
+					     number of Guests, with the live quote and capacity warning. -->
 					{#if data.reservation.status === 'confirmed'}
 						<PartySizeChange
 							reservation={data.reservation}

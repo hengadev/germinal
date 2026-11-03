@@ -360,7 +360,6 @@
 		<div class="mt-3 flex flex-wrap gap-1.5">
 			{#each party.extras as extra, i (i)}
 				<span class="inline-flex items-center gap-1 rounded-md border border-border-card bg-background px-2 py-0.5 text-xs text-foreground">
-					<Gift size={12} aria-hidden="true" />
 					{extra.nameFr} × {extra.quantity}
 				</span>
 			{/each}
