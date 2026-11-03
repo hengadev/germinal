@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { logger } from '$lib/server/logger';
 import { createReservationSchema } from '$lib/server/validators/reservations';
-import { createReservation, DietaryConsentRequiredError, SeatingNotBookableError } from '$lib/server/services/reservations';
+import { createReservation, DietaryConsentRequiredError, GiftCardUnusableError, SeatingNotBookableError } from '$lib/server/services/reservations';
 import { checkRateLimit } from '$lib/server/rate-limit';
 import { validateCsrfToken } from '$lib/server/csrf';
 import type { RequestHandler } from './$types';
@@ -106,6 +106,20 @@ export const POST: RequestHandler = async ({ request, getClientAddress, locals }
 
 		if (error instanceof DietaryConsentRequiredError) {
 			return json({ error: error.message, code: 'DIETARY_CONSENT_REQUIRED' }, { status: 400 });
+		}
+
+		// A gift card that cannot pay (issue 065): its reason, in words.
+		if (error instanceof GiftCardUnusableError) {
+			const messages: Record<string, string> = {
+				unknown: 'Unknown gift card',
+				expired: 'This gift card has expired',
+				cancelled: 'This gift card was cancelled',
+				empty: 'This gift card has no balance left',
+			};
+			return json(
+				{ error: messages[error.reason] ?? 'This gift card cannot be used', code: 'GIFT_CARD_UNUSABLE', reason: error.reason },
+			{ status: 400 }
+			);
 		}
 
 		if (error instanceof Error && error.message === 'Invalid submission') {

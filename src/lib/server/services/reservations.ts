@@ -18,7 +18,9 @@ import { ANONYMOUS, seatingBooking, type BookingRefusal } from '$lib/utils/event
 import { dietaryAnswerOf, needsDietaryConsent } from '$lib/utils/dietary-requirements';
 import { subscribeFromReservation } from './subscribers';
 import { cancelReservationTransition, expireReservationOnHoldTimeout } from './reservation-transitions';
-import { notifyGuestOfCancellation, notifyWaitlistOfFreedSeats, refundAfterCancellation } from './cancellation-effects';
+import { notifyGuestOfCancellation, notifyWaitlistOfFreedSeats, applyRefundWithGiftCard } from './cancellation-effects';
+import { creditableGiftCardShare, findUsableGiftCard, redeemGiftCard, type GiftCardUnusableReason } from './gift-cards';
+import { splitDeposit } from '$lib/utils/gift-card';
 
 const BOOKING_REFUSAL_MESSAGES: Record<BookingRefusal, string> = {
 	'event-not-published': 'Session not found or not published',
@@ -48,6 +50,17 @@ export class DietaryConsentRequiredError extends Error {
 	constructor() {
 		super('Consent is required to share dietary requirements');
 		this.name = 'DietaryConsentRequiredError';
+	}
+}
+
+/**
+ * Thrown when a booking's gift card cannot pay (issue 065); `reason` says
+ * why, and the API endpoint turns it into a message the Guest reads.
+ */
+export class GiftCardUnusableError extends Error {
+	constructor(public readonly reason: GiftCardUnusableReason) {
+		super(`Gift card unusable: ${reason}`);
+		this.name = 'GiftCardUnusableError';
 	}
 }
 
@@ -816,7 +829,9 @@ export async function cancelReservationWithRefund(reservationId: string) {
 	if (reservation.status !== 'confirmed') {
 		throw new Error('Only confirmed reservations can be cancelled');
 	}
-	if (!reservation.payment) {
+	// A Reservation fully paid by gift card has no Payment row (issue 065);
+	// its refund goes back to the card, not through Stripe.
+	if (!reservation.payment && reservation.giftCardAmount <= 0) {
 		throw new Error('Payment not found for this reservation');
 	}
 
@@ -826,9 +841,17 @@ export async function cancelReservationWithRefund(reservationId: string) {
 	}
 	await notifyWaitlistOfFreedSeats(outcome);
 
-	const remaining = reservation.payment.amount - reservation.payment.refundedAmount;
+	// The refund covers both shares of the Deposit (issue 065): the card's
+	// share is credited back to the card first, Stripe refunds the rest.
+	// A Reservation fully paid by card has no Payment row — its whole
+	// Deposit is refunded to the card.
+	const cardShare = await creditableGiftCardShare(db, reservationId);
+	const stripeRemaining = reservation.payment
+		? reservation.payment.amount - reservation.payment.refundedAmount
+		: 0;
+	const remaining = cardShare + stripeRemaining;
 	const refund = remaining > 0
-		? await refundAfterCancellation(reservation.payment, remaining, `admin-cancel-refund-${reservationId}`)
+		? await applyRefundWithGiftCard(reservation, reservation.payment ?? null, remaining, `admin-cancel-refund-${reservationId}`)
 		: null;
 
 	// The combined cancellation + refund notification (or a plain
@@ -966,17 +989,34 @@ export async function processRefund(
 		throw new Error('Reservation is already cancelled');
 	}
 
+	// A Reservation fully paid by gift card has no Payment row (issue 065);
+	// its refundable amount is its card share, credited back to the card.
+	const cardShare = await creditableGiftCardShare(db, reservationId);
 	if (!reservation.payment) {
-		throw new Error('Payment not found for this reservation');
+		if (cardShare <= 0) {
+			throw new Error('Payment not found for this reservation');
+		}
+		if (reservation.status !== 'cancelled') {
+			const outcome = await cancelReservationTransition(reservationId, { from: ['confirmed', 'pending'] });
+			if (outcome.won) await notifyWaitlistOfFreedSeats(outcome);
+			else if (options.cancelling) throw new Error('Reservation is already cancelled');
+		}
+		const refund = await applyRefundWithGiftCard(reservation, null, cardShare, `refund-${reservationId}-card-${cardShare}`);
+		if (!refund) {
+			throw new Error('The refund failed; the Reservation is cancelled, retry the refund');
+		}
+		await notifyGuestOfCancellation(reservation, refund);
+		return { success: true, refund };
 	}
 
 	if (reservation.payment.status !== 'succeeded' && reservation.payment.status !== 'partially_refunded') {
 		throw new Error('Can only refund successful payments');
 	}
 
-	// Check if already fully refunded
+	// Check if already fully refunded — including the gift card's share
+	// (issue 065), which refunds to the card before Stripe's remainder.
 	const alreadyRefunded = reservation.payment.refundedAmount || 0;
-	const remainingBalance = reservation.payment.amount - alreadyRefunded;
+	const remainingBalance = reservation.payment.amount - alreadyRefunded + cardShare;
 	if (remainingBalance <= 0) {
 		throw new Error('Payment has already been fully refunded');
 	}
@@ -1004,7 +1044,8 @@ export async function processRefund(
 		}
 	}
 
-	const refund = await refundAfterCancellation(
+	const refund = await applyRefundWithGiftCard(
+		reservation,
 		reservation.payment,
 		refundAmount,
 		`refund-${reservation.payment.id}-${alreadyRefunded}-${refundAmount}`
@@ -1014,7 +1055,7 @@ export async function processRefund(
 	}
 
 	await notifyGuestOfCancellation(reservation, refund, {
-		isPartialRefund: alreadyRefunded + refund.amount < reservation.payment.amount,
+		isPartialRefund: alreadyRefunded + (refund?.amount ?? 0) < reservation.payment.amount + reservation.giftCardAmount,
 	});
 
 	return { success: true, refund };

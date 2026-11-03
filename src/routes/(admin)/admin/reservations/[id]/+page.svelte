@@ -853,6 +853,12 @@ END:VCALENDAR`;
 							<span class="font-semibold">-{formatCurrency(data.reservation.discountAmount, data.reservation.currency)}</span>
 						</div>
 					{/if}
+					{#if data.reservation.giftCardAmount > 0}
+						<div class="flex items-center justify-between">
+							<span class="text-muted-foreground">Payé par carte cadeau</span>
+							<span class="font-semibold">{formatCurrency(data.reservation.giftCardAmount, data.reservation.currency)}</span>
+						</div>
+					{/if}
 					<div class="flex items-center justify-between">
 						<span class="text-muted-foreground">{depositSettled ? 'Acompte payé' : 'Acompte (non encore payé)'}</span>
 						<span class="font-semibold">{formatCurrency(amounts.deposit, data.reservation.currency)}</span>

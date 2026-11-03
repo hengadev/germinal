@@ -12,6 +12,7 @@ import { db } from '../db';
 import { payments } from '../db/schema';
 import { logger } from '$lib/server/logger';
 import { seatingTitle } from '$lib/utils/seating-title';
+import { creditReservationGiftCardShare } from './gift-cards';
 
 /** What the guest notifications need of a Reservation. */
 export interface ReservationForNotification {
@@ -74,6 +75,43 @@ export async function refundAfterCancellation(
 			.catch((err: unknown) => logger.error({ err }, 'Failed to record the refund failure'));
 		return null;
 	}
+}
+
+/** What a cancellation refund needs of a Reservation (issue 065). */
+export interface ReservationForRefund {
+	id: string;
+	currency: string;
+}
+
+/**
+ * Apply a cancellation refund across both shares of a Deposit (issue 065):
+ * the gift card's share is credited back to the card first (once, however
+ * often this runs), and Stripe refunds only the remainder — what Stripe
+ * really charged. Returns the total refunded (card + Stripe), or null when
+ * nothing went through (a Stripe failure is recorded on the payment for
+ * manual handling; the card share already credited stays credited).
+ */
+export async function applyRefundWithGiftCard(
+	reservation: ReservationForRefund,
+	payment: PaymentForRefund | null,
+	amount: number,
+	idempotencyKey: string
+): Promise<{ amount: number; currency: string } | null> {
+	// The card's share first, capped at the amount refunded and at what was
+	// not already credited back to the card.
+	const cardShare = await creditReservationGiftCardShare(db, reservation.id, amount);
+	const remainder = amount - cardShare;
+
+	// A Reservation fully paid by card has no Payment row: nothing goes
+	// through Stripe, the card credit is the whole refund.
+	const stripeRefund =
+		remainder > 0 && payment
+			? await refundAfterCancellation(payment, remainder, idempotencyKey)
+			: null;
+	if (remainder > 0 && payment && !stripeRefund) return null;
+
+	const total = cardShare + (stripeRefund?.amount ?? 0);
+	return total > 0 ? { amount: total, currency: payment?.currency ?? reservation.currency } : null;
 }
 
 /** Tell the waitlist about seats a winning cancellation freed (best-effort). */

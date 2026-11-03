@@ -220,6 +220,7 @@ export function generateTicketTextTemplate(data: TicketEmailData): string {
 		tickets: 'BILLETS :',
 		total: 'Total :',
 		depositPaid: 'Acompte payé :',
+		giftCardPaid: 'dont payé par carte cadeau :',
 		balanceDue: 'Reste à régler sur place :',
 		view: 'VOIR VOS BILLETS :',
 		present: 'Présentez ce lien ou le QR code à l’entrée de l’événement.',
@@ -235,6 +236,7 @@ export function generateTicketTextTemplate(data: TicketEmailData): string {
 		tickets: 'TICKETS:',
 		total: 'Total: ',
 		depositPaid: 'Deposit paid: ',
+		giftCardPaid: 'of which by gift card: ',
 		balanceDue: 'Balance due at the venue: ',
 		view: 'VIEW YOUR TICKETS:',
 		present: 'Present this link or QR code at the event entrance.',
@@ -259,7 +261,8 @@ ${practicalInfo ? `\n${L.practicalInfo}\n${practicalInfo}` : ''}
 ${L.tickets}
 ${data.reservation.quantity} × ${money(bookedUnitPriceAmount(data.reservation), data.reservation.currency)}
 ${L.total}${money(data.reservation.totalAmount, data.reservation.currency)}${data.reservation.balanceAmount > 0 ? `
-${L.depositPaid}${money(data.reservation.depositAmount, data.reservation.currency)}
+${L.depositPaid}${money(data.reservation.depositAmount, data.reservation.currency)}${data.reservation.giftCardAmount > 0 ? `
+${L.giftCardPaid}${money(data.reservation.giftCardAmount, data.reservation.currency)}` : ''}
 ${L.balanceDue}${money(data.reservation.balanceAmount, data.reservation.currency)}` : ''}
 
 ${L.view}
@@ -299,6 +302,7 @@ export function generateTicketHtmlTemplate(data: TicketEmailData): string {
 		tickets: 'Billets',
 		total: 'Total',
 		depositPaid: 'Acompte payé',
+		giftCardPaid: 'dont payé par carte cadeau',
 		balanceDue: 'Reste à régler sur place',
 		button: 'Voir vos billets',
 		qrHint: 'Présentez ce QR code à l’entrée de l’événement',
@@ -316,6 +320,7 @@ export function generateTicketHtmlTemplate(data: TicketEmailData): string {
 		tickets: 'Tickets',
 		total: 'Total',
 		depositPaid: 'Deposit paid',
+		giftCardPaid: 'of which by gift card',
 		balanceDue: 'Balance due at the venue',
 		button: 'View Your Tickets',
 		qrHint: 'Present this QR code at the event entrance',
@@ -384,7 +389,13 @@ ${practicalInfo ? `
         <td style="padding: 8px 0; border-top: 1px solid #e9ecef; text-align: right;">
           ${money(data.reservation.depositAmount, data.reservation.currency)}
         </td>
-      </tr>
+      </tr>${data.reservation.giftCardAmount > 0 ? `
+      <tr>
+        <td style="padding: 8px 0;">${L.giftCardPaid}</td>
+        <td style="padding: 8px 0; text-align: right;">
+          ${money(data.reservation.giftCardAmount, data.reservation.currency)}
+        </td>
+      </tr>` : ''}
       <tr>
         <td style="padding: 8px 0; font-weight: 600;">${L.balanceDue}</td>
         <td style="padding: 8px 0; text-align: right; font-weight: 600;">

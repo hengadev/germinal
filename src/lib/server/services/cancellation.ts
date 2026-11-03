@@ -17,7 +17,8 @@ import { eq } from 'drizzle-orm';
 import { db } from '../db';
 import { reservations } from '../db/schema';
 import { cancelReservationTransition } from './reservation-transitions';
-import { notifyGuestOfCancellation, notifyWaitlistOfFreedSeats, refundAfterCancellation } from './cancellation-effects';
+import { notifyGuestOfCancellation, notifyWaitlistOfFreedSeats, applyRefundWithGiftCard } from './cancellation-effects';
+import { creditableGiftCardShare } from './gift-cards';
 import { refundPolicyOf } from '$lib/utils/refund-policy';
 import {
 	cancellationPreFill,
@@ -69,7 +70,9 @@ export async function getCancellationQuote(reservationId: string, now: Date = ne
 			policy: refundPolicyOf(reservation.eventSession.event),
 			seatingStart,
 			now,
-			refundable: refundableAmount(reservation.payment),
+			// The gift card's share of the Deposit refunds to the card too
+			// (issue 065), so it counts toward what is refundable.
+			refundable: refundableAmount(reservation.payment) + await creditableGiftCardShare(db, reservationId),
 		}),
 	};
 }
@@ -170,12 +173,14 @@ export async function cancelByGuest(
 	now: Date = new Date()
 ): Promise<{ refundAmount: number; currency: string }> {
 	const reservation = await loadForCancellation(reservationId);
+	const cardShare = await creditableGiftCardShare(db, reservationId);
 	const terms = guestCancellationTerms({
 		status: reservation.status,
 		policy: refundPolicyOf(reservation.eventSession.event),
 		seatingStart: reservation.eventSession.startTime,
 		now,
-		refundable: refundableAmount(reservation.payment),
+		// The gift card's share refunds to the card too (issue 065).
+		refundable: refundableAmount(reservation.payment) + cardShare,
 	});
 	if (!terms.canCancel) throw new CancellationError(terms.reason);
 
@@ -184,9 +189,11 @@ export async function cancelByGuest(
 
 	await notifyWaitlistOfFreedSeats(outcome);
 
+	// The card's share is credited back to the card first, Stripe refunds
+	// only the remainder (a fully card-paid Reservation has no Payment row).
 	const refund =
-		terms.refundAmount > 0 && reservation.payment
-			? await refundAfterCancellation(reservation.payment, terms.refundAmount, `guest-cancel-refund-${reservationId}`)
+		terms.refundAmount > 0
+			? await applyRefundWithGiftCard(reservation, reservation.payment ?? null, terms.refundAmount, `guest-cancel-refund-${reservationId}`)
 			: null;
 
 	await notifyGuestOfCancellation(reservation, refund);

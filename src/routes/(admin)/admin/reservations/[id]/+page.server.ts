@@ -77,6 +77,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 				depositAmount: (reservation as { depositAmount?: number }).depositAmount ?? null,
 				balanceAmount: (reservation as { balanceAmount?: number }).balanceAmount ?? null,
 				discountAmount: (reservation as { discountAmount?: number }).discountAmount ?? 0,
+				giftCardAmount: 0,
 				currency: reservation.currency,
 				status: reservation.status,
 				isComp: (reservation as { isComp?: boolean }).isComp ?? false,
@@ -201,6 +202,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 				depositAmount: reservation.depositAmount,
 				balanceAmount: reservation.balanceAmount,
 				discountAmount: reservation.discountAmount,
+				// Issue 065: the share of the Deposit a gift card paid.
+				giftCardAmount: reservation.giftCardAmount,
 				currency: reservation.currency,
 				status: reservation.status,
 				isComp: reservation.isComp,

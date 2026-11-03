@@ -6,7 +6,7 @@
  */
 import { and, desc, eq, ilike, or, sql } from 'drizzle-orm';
 import { db } from '../db';
-import { giftCardLedger, giftCards, users } from '../db/schema';
+import { giftCardLedger, giftCards, reservations, users } from '../db/schema';
 import { recordAuditLog } from './audit-log';
 import {
 	generateGiftCardCode,
@@ -82,10 +82,13 @@ export async function issueGiftCard(
  * whether it can pay: active, not expired, with a balance left.
  */
 export async function findUsableGiftCard(
-	typedCode: string
+	typedCode: string,
+	/** The caller's own transaction, so a booking can read the card in the
+	 * same transaction as its Reservation (issue 065). */
+	tx?: typeof db
 ): Promise<FindUsableResult> {
 	const code = normaliseGiftCardCode(typedCode);
-	const [card] = await db
+	const [card] = await (tx ?? db)
 		.select()
 		.from(giftCards)
 		.where(eq(giftCards.code, code))
@@ -139,43 +142,47 @@ export async function creditGiftCard(
 
 async function moveBalance(
 	typedCode: string,
-	input: { amount: number; reason: LedgerReason; reservationId?: string | null; actorId?: string | null }
+	input: { amount: number; reason: LedgerReason; reservationId?: string | null; actorId?: string | null; tx?: typeof db }
 ): Promise<MovementResult> {
 	const code = normaliseGiftCardCode(typedCode);
-	try {
-		return await db.transaction(async (tx: typeof db) => {
-			const [card] = await tx
-				.select()
-				.from(giftCards)
-				.where(eq(giftCards.code, code))
-				.limit(1)
-				.for('update');
-			if (!card) return { ok: false as const, error: 'Carte inconnue.' };
-			if (card.status === 'cancelled')
-				return { ok: false as const, error: 'Carte annulée.' };
-			if (card.expiresAt.getTime() <= Date.now())
-				return { ok: false as const, error: 'Carte expirée.' };
+	const run = async (runner: typeof db): Promise<MovementResult> => {
+		const [card] = await runner
+			.select()
+			.from(giftCards)
+			.where(eq(giftCards.code, code))
+			.limit(1)
+			.for('update');
+		if (!card) return { ok: false, error: 'Carte inconnue.' };
+		if (card.status === 'cancelled')
+			return { ok: false, error: 'Carte annulée.' };
+		if (card.expiresAt.getTime() <= Date.now())
+			return { ok: false, error: 'Carte expirée.' };
 
-			const next = card.balance + input.amount;
-			if (next < 0)
-				return { ok: false as const, error: 'Solde insuffisant.' };
-			if (next > card.initialAmount)
-				return { ok: false as const, error: 'Le solde dépasserait le montant initial.' };
+		const next = card.balance + input.amount;
+		if (next < 0)
+			return { ok: false, error: 'Solde insuffisant.' };
+		if (next > card.initialAmount)
+			return { ok: false, error: 'Le solde dépasserait le montant initial.' };
 
-			await tx.insert(giftCardLedger).values({
-				giftCardId: card.id,
-				amount: input.amount,
-				reason: input.reason,
-				reservationId: input.reservationId ?? null,
-				actorId: input.actorId ?? null
-			});
-			const [updated] = await tx
-				.update(giftCards)
-				.set({ balance: next, updatedAt: new Date() })
-				.where(eq(giftCards.id, card.id))
-				.returning();
-			return { ok: true as const, card: updated };
+		await runner.insert(giftCardLedger).values({
+			giftCardId: card.id,
+			amount: input.amount,
+			reason: input.reason,
+			reservationId: input.reservationId ?? null,
+			actorId: input.actorId ?? null
 		});
+		const [updated] = await runner
+			.update(giftCards)
+			.set({ balance: next, updatedAt: new Date() })
+			.where(eq(giftCards.id, card.id))
+			.returning();
+		return { ok: true, card: updated };
+	};
+	try {
+		// Inside the caller's transaction (issue 065) the movement joins it
+		// and locks the card there; on its own it stays atomic in its own.
+		if (input.tx) return await run(input.tx);
+		return await db.transaction(run);
 	} catch (err) {
 		const message = err instanceof Error ? err.message : String(err);
 		if (message.includes('gift_cards_balance_check'))
@@ -333,4 +340,93 @@ export async function ledgerSum(cardId: string): Promise<number> {
 		.from(giftCardLedger)
 		.where(eq(giftCardLedger.giftCardId, cardId));
 	return row?.total ?? 0;
+}
+
+/** How much of a Reservation's gift-card share was already credited back
+ * (its `refund` ledger rows): the guard that keeps a credit-back once. */
+export async function refundedGiftCardShare(
+	runner: typeof db,
+	reservationId: string
+): Promise<number> {
+	const [row] = await runner
+		.select({ total: sql<number>`coalesce(sum(${giftCardLedger.amount}), 0)::int` })
+		.from(giftCardLedger)
+		.where(and(
+			eq(giftCardLedger.reservationId, reservationId),
+			eq(giftCardLedger.reason, 'refund')
+		));
+	return row?.total ?? 0;
+}
+
+/** What a Reservation's gift card can still be credited back: its recorded
+ * card share minus what was already refunded to the card. */
+export async function creditableGiftCardShare(
+	runner: typeof db,
+	reservationId: string
+): Promise<number> {
+	const [reservation] = await runner
+		.select({ giftCardAmount: reservations.giftCardAmount })
+		.from(reservations)
+		.where(eq(reservations.id, reservationId))
+		.limit(1);
+	if (!reservation || reservation.giftCardAmount <= 0) return 0;
+	const refunded = await refundedGiftCardShare(runner, reservationId);
+	return Math.max(0, reservation.giftCardAmount - refunded);
+}
+
+/**
+ * Credit a Reservation's gift-card share back to its card (issue 065):
+ * called when a pending Reservation expires or its payment fails (the
+ * whole share), and by cancellation refunds (capped at `limit`, the
+ * refund the policy gives). Writes under the card's row lock, inside the
+ * caller's transaction, never above the initial amount (a card partly
+ * spent elsewhere keeps the difference out), and never twice: the share
+ * already refunded is subtracted first. Returns what was credited (0
+ * when the Reservation used no card, or nothing was left to credit).
+ */
+export async function creditReservationGiftCardShare(
+	runner: typeof db,
+	reservationId: string,
+	/** The most to credit now (minor units); the whole share by default. */
+	limit: number = Number.MAX_SAFE_INTEGER
+): Promise<number> {
+	const creditable = await creditableGiftCardShare(runner, reservationId);
+	const toCredit = Math.min(creditable, limit);
+	if (toCredit <= 0) return 0;
+
+	// The card the booking redeemed, found through its ledger row.
+	const [bookingRow] = await runner
+		.select({ giftCardId: giftCardLedger.giftCardId })
+		.from(giftCardLedger)
+		.where(and(
+			eq(giftCardLedger.reservationId, reservationId),
+			eq(giftCardLedger.reason, 'booking')
+		))
+		.limit(1);
+	if (!bookingRow) return 0;
+
+	const [card] = await runner
+		.select()
+		.from(giftCards)
+		.where(eq(giftCards.id, bookingRow.giftCardId))
+		.limit(1)
+		.for('update');
+	if (!card || card.status === 'cancelled') return 0;
+
+	// Never above the initial amount, whatever the card spent meanwhile.
+	const room = card.initialAmount - card.balance;
+	const amount = Math.min(toCredit, room);
+	if (amount <= 0) return 0;
+
+	await runner.insert(giftCardLedger).values({
+		giftCardId: card.id,
+		amount,
+		reason: 'refund',
+		reservationId
+	});
+	await runner
+		.update(giftCards)
+		.set({ balance: card.balance + amount, updatedAt: new Date() })
+		.where(eq(giftCards.id, card.id));
+	return amount;
 }
