@@ -12,7 +12,8 @@ import { scanParty } from '$lib/server/services/scan-party';
 import { recordCheckIn, undoLastCheckIn } from '$lib/server/services/check-ins';
 import { createWalkIn } from '$lib/server/services/walk-ins';
 import { createCompOnTheSpot } from '$lib/server/services/comps';
-import { settleBalance, undoSettleBalance } from '$lib/server/services/balance';
+import { settleBalance, settleBalanceWithGiftCard, undoSettleBalance } from '$lib/server/services/balance';
+import { findUsableGiftCard } from '$lib/server/services/gift-cards';
 import { getEventBrief } from '$lib/server/services/staff-brief';
 import { recordAuditLog } from '$lib/server/services/audit-log';
 import { moveReservation } from '$lib/server/services/moves';
@@ -350,6 +351,72 @@ export const actions: Actions = {
 			actorId: locals.user.id,
 		});
 		if (!result.ok) return fail(422, { error: result.error, reservationId });
+	},
+
+	settleBalanceWithGiftCard: async ({ request, locals, params }) => {
+		if (!locals.user) return fail(401, { error: 'Non authentifié' });
+
+		const access = await getStaffEventAccess(locals.user, params.id);
+
+		const formData = await request.formData();
+		const reservationId = formData.get('reservationId');
+		const code = formData.get('code');
+		if (!access.can('settle_balance')) {
+			return fail(403, {
+				error: "Vous n'avez pas la permission de régler un solde.",
+				reservationId
+			});
+		}
+		if (typeof reservationId !== 'string' || typeof code !== 'string' || !code.trim()) {
+			return fail(400, { error: 'Requête invalide.', reservationId });
+		}
+
+		const result = await settleBalanceWithGiftCard({
+			access,
+			eventId: params.id,
+			reservationId,
+			actorId: locals.user.id,
+			code
+		});
+		if (!result.ok) return fail(422, { error: result.error, reservationId });
+		return {
+			giftCardSettlement: {
+				reservationId,
+				applied: result.applied,
+				cardBalanceLeft: result.cardBalanceLeft,
+				remainder: result.remainder,
+				settled: result.settled
+			}
+		};
+	},
+
+	validateGiftCard: async ({ request, locals, params }) => {
+		if (!locals.user) return fail(401, { error: 'Non authentifié' });
+
+		// Même permission que le règlement : on ne montre le solde d'une
+		// carte qu'à qui peut l'encaisser.
+		const access = await getStaffEventAccess(locals.user, params.id);
+		if (!access.can('settle_balance')) {
+			return fail(403, { error: "Vous n'avez pas la permission de régler un solde." });
+		}
+
+		const formData = await request.formData();
+		const code = formData.get('code');
+		if (typeof code !== 'string' || !code.trim()) {
+			return fail(400, { error: 'Saisissez un code de carte cadeau.' });
+		}
+
+		const found = await findUsableGiftCard(code);
+		if (!found.ok) {
+			const messages = {
+				unknown: 'Carte cadeau inconnue.',
+				cancelled: 'Carte cadeau annulée.',
+				expired: 'Carte cadeau expirée.',
+				empty: 'Carte cadeau sans solde.'
+			} as const;
+			return fail(422, { error: messages[found.reason] });
+		}
+		return { giftCardBalance: found.card.balance };
 	},
 
 	move: async ({ request, locals, params }) => {

@@ -16,11 +16,12 @@
 	import type { RefundPolicy } from '$lib/utils/refund-policy';
 	import PartyActionsMenu from './PartyActionsMenu.svelte';
 	import { visitOrdinalFr } from '$lib/utils/visit-ordinal';
-	import { balanceDue, capacityLabel, guests as guestsLabel, seatingTime, settleTimeLabel, type ArriveesFields } from './helpers';
+	import { balanceDue, balanceDueCents, capacityLabel, guests as guestsLabel, seatingTime, settleTimeLabel, type ArriveesFields } from './helpers';
 	import { onlineState, markOffline } from '$lib/staff/offline/online-state.svelte';
 	import { enqueueArrival } from '$lib/staff/offline/arrival-queue.svelte';
 	import { applyArrivalToSnapshot } from '$lib/staff/offline/snapshot-store';
 	import { addPendingArrival, pendingArrivalsFor } from '$lib/staff/offline/pending-arrivals.svelte';
+	import { openGiftCard } from './gift-card-form.svelte';
 
 	let {
 		party,
@@ -248,31 +249,50 @@
 				par {party.balanceSettledByName ?? '—'} à {settleTimeLabel(party.balanceSettledAt, timeZone)}
 			</p>
 		{:else if canSettle && party.id}
-			<!-- Not settled yet: the door marks it settled on the venue's terminal. -->
-			<form
-				method="POST"
-				action="?/settleBalance"
-				class="mt-2"
-				use:enhance={() => {
-					settling = true;
-					return async ({ update }) => {
-						await update();
-						settling = false;
-					};
-				}}
-			>
-				<input type="hidden" name="reservationId" value={party.id} />
-				<button
-					type="submit"
-					disabled={settling}
-					aria-busy={settling}
-					class="inline-flex min-h-11 items-center gap-2 rounded-lg border border-foreground bg-background px-4 text-base font-medium text-foreground transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-foreground focus-visible:outline-none disabled:opacity-60"
+			<!-- Not settled yet: the door marks it settled on the venue's terminal,
+			     or pays part or all of it with a gift card (issue 066). -->
+			<div class="mt-2 flex flex-wrap gap-2">
+				<form
+					method="POST"
+					action="?/settleBalance"
+					use:enhance={() => {
+						settling = true;
+						return async ({ update }) => {
+							await update();
+							settling = false;
+						};
+					}}
 				>
-					{#if settling}<LoaderCircle size={16} class="animate-spin" aria-hidden="true" />
-					{:else}<Check size={16} aria-hidden="true" />{/if}
-					Réglé
-				</button>
-			</form>
+					<input type="hidden" name="reservationId" value={party.id} />
+					<button
+						type="submit"
+						disabled={settling}
+						aria-busy={settling}
+						class="inline-flex min-h-11 items-center gap-2 rounded-lg border border-foreground bg-background px-4 text-base font-medium text-foreground transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-foreground focus-visible:outline-none disabled:opacity-60"
+					>
+						{#if settling}<LoaderCircle size={16} class="animate-spin" aria-hidden="true" />
+						{:else}<Check size={16} aria-hidden="true" />{/if}
+						Réglé
+					</button>
+				</form>
+				{#if party.currency === 'EUR'}
+					<button
+						type="button"
+						onclick={() =>
+							openGiftCard({
+								reservationId: party.id!,
+								guestName: party.guestName ?? null,
+								balance: balanceDueCents(party),
+								currency: 'EUR',
+								seatingLabel
+							})}
+						class="inline-flex min-h-11 items-center gap-2 rounded-lg border border-border-card bg-background px-4 text-base font-medium text-foreground transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-foreground focus-visible:outline-none"
+					>
+						<Gift size={16} aria-hidden="true" />
+						Carte cadeau
+					</button>
+				{/if}
+			</div>
 		{/if}
 	{/if}
 

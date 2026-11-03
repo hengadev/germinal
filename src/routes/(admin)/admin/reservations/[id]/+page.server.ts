@@ -78,6 +78,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 				balanceAmount: (reservation as { balanceAmount?: number }).balanceAmount ?? null,
 				discountAmount: (reservation as { discountAmount?: number }).discountAmount ?? 0,
 				giftCardAmount: 0,
+				giftCardDoorRedemptions: [],
 				currency: reservation.currency,
 				status: reservation.status,
 				isComp: (reservation as { isComp?: boolean }).isComp ?? false,
@@ -135,7 +136,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		// Who settled the Balance and who last Moved it (issue 022), by name.
 		const { users } = await import('$lib/server/db/schema');
 		const { db } = await import('$lib/server/db');
-		const { eq } = await import('drizzle-orm');
+		const { and, desc, eq } = await import('drizzle-orm');
 		const nameOf = async (userId: string | null): Promise<string | null> => {
 			if (!userId) return null;
 			const [user] = await db
@@ -147,6 +148,33 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		};
 		const balanceSettledByName = await nameOf(reservation.balanceSettledBy);
 		const lastMovedByName = await nameOf(reservation.lastMovedBy);
+
+		// Issue 066 : les cartes cadeau utilisées à la porte pour ce solde —
+		// date, montant, code masqué.
+		const { giftCardLedger, giftCards: giftCardsTable } = await import('$lib/server/db/schema');
+		const { maskGiftCardCode } = await import('$lib/utils/gift-card');
+		const doorRedemptions = await db
+			.select({
+				amount: giftCardLedger.amount,
+				createdAt: giftCardLedger.createdAt,
+				maskedCode: giftCardsTable.code
+			})
+			.from(giftCardLedger)
+			.innerJoin(giftCardsTable, eq(giftCardLedger.giftCardId, giftCardsTable.id))
+			.where(
+				and(
+					eq(giftCardLedger.reservationId, params.id),
+				eq(giftCardLedger.reason, 'door')
+				)
+			)
+			.orderBy(desc(giftCardLedger.createdAt));
+		const giftCardDoorRedemptions = doorRedemptions.map(
+			(row: { amount: number; createdAt: Date; maskedCode: string }) => ({
+				amount: row.amount,
+				createdAt: row.createdAt.toISOString(),
+				maskedCode: maskGiftCardCode(row.maskedCode)
+			})
+		);
 
 		// Issue 046: what « Modifier le nombre » quotes against — the seats
 		// really free on the Seating and the Guests already arrived.
@@ -204,6 +232,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 				discountAmount: reservation.discountAmount,
 				// Issue 065: the share of the Deposit a gift card paid.
 				giftCardAmount: reservation.giftCardAmount,
+				// Issue 066: gift cards redeemed at the door for the Balance.
+				giftCardDoorRedemptions,
 				currency: reservation.currency,
 				status: reservation.status,
 				isComp: reservation.isComp,

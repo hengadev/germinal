@@ -141,7 +141,9 @@ export async function creditGiftCard(
 	typedCode: string,
 	input: {
 		amount: number;
-		reason: Extract<LedgerReason, 'refund' | 'admin_adjustment'>;
+		// 'door' reverses a door redemption when its settlement is undone
+		// (issue 066), so the door rows net to what is still in use.
+		reason: Extract<LedgerReason, 'refund' | 'admin_adjustment' | 'door'>;
 		reservationId?: string | null;
 		actorId?: string | null;
 		/** The caller's own transaction (issue 065). */

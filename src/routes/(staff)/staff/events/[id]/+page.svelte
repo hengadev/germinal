@@ -12,6 +12,7 @@ import Invite from '$lib/components/staff/event-menu/Invite.svelte';
 import SpotForm from '$lib/components/staff/event-menu/SpotForm.svelte';
 import CancelRefundSheet from '$lib/components/staff/arrivees/CancelRefundSheet.svelte';
 import PartySizeSheet from '$lib/components/staff/arrivees/PartySizeSheet.svelte';
+import GiftCardSheet from '$lib/components/staff/arrivees/GiftCardSheet.svelte';
 import { afterNavigate, replaceState } from '$app/navigation';
 import { invalidateAll } from '$app/navigation';
 import { deserialize } from '$app/forms';
@@ -456,6 +457,10 @@ import {
 	<!-- La feuille « Modifier le nombre » du menu ⋮ d'une carte, par-dessus tout -->
 	{#if data.arrivees && data.access.canChangeParty}
 		<PartySizeSheet />
+	{/if}
+	<!-- La feuille « Carte cadeau » (issue 066) : le serveur revérifie « Régler un solde » -->
+	{#if data.arrivees}
+		<GiftCardSheet />
 	{/if}
 
 	<!-- La feuille « Fermer aux réservations » du menu ⋮, par-dessus tout -->
