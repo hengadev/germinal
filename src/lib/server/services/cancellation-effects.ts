@@ -99,7 +99,11 @@ export async function applyRefundWithGiftCard(
 ): Promise<{ amount: number; currency: string } | null> {
 	// The card's share first, capped at the amount refunded and at what was
 	// not already credited back to the card.
-	const cardShare = await creditReservationGiftCardShare(db, reservation.id, amount);
+	// In its own transaction: creditReservationGiftCardShare locks the
+	// Reservation, so two refunds at once cannot credit the card twice.
+	const cardShare = await db.transaction((tx: typeof db) =>
+		creditReservationGiftCardShare(tx, reservation.id, amount)
+	);
 	const remainder = amount - cardShare;
 
 	// A Reservation fully paid by card has no Payment row: nothing goes

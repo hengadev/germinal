@@ -115,6 +115,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress, locals }
 				expired: 'This gift card has expired',
 				cancelled: 'This gift card was cancelled',
 				empty: 'This gift card has no balance left',
+				currency: 'Gift cards can only pay for Events priced in euros',
 			};
 			return json(
 				{ error: messages[error.reason] ?? 'This gift card cannot be used', code: 'GIFT_CARD_UNUSABLE', reason: error.reason },

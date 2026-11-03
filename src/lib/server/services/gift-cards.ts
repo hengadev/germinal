@@ -395,6 +395,13 @@ export async function creditReservationGiftCardShare(
 	/** The most to credit now (minor units); the whole share by default. */
 	limit: number = Number.MAX_SAFE_INTEGER
 ): Promise<number> {
+	// Serialise credit-backs of one Reservation: the share already refunded
+	// is read under this lock, so it is never credited twice.
+	await runner
+		.select({ id: reservations.id })
+		.from(reservations)
+		.where(eq(reservations.id, reservationId))
+		.for('update');
 	const creditable = await creditableGiftCardShare(runner, reservationId);
 	const toCredit = Math.min(creditable, limit);
 	if (toCredit <= 0) return 0;

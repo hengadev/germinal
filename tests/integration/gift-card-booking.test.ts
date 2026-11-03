@@ -242,6 +242,16 @@ describe('createReservation with a gift card', () => {
 		expect(seating.availableCapacity).toBe(100);
 	});
 
+	it('a card cannot pay an Event priced in another currency', async () => {
+		const { session } = await seedSession({ currency: 'USD' });
+		const card = await giftCards.issueGiftCard({ amount: 2500 });
+
+		const refused = await svc.createReservation(makeInput(session.id, card.code)).catch((e) => e);
+		expect(refused).toBeInstanceOf(svc.GiftCardUnusableError);
+		expect(refused.reason).toBe('currency');
+		expect(await balanceOf(card.id)).toBe(2500);
+	});
+
 	it('two concurrent bookings on one card never overspend it', async () => {
 		const { session } = await seedSession();
 		// A €30 card cannot pay a €25 Deposit twice.

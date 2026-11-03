@@ -58,7 +58,7 @@ export class DietaryConsentRequiredError extends Error {
  * why, and the API endpoint turns it into a message the Guest reads.
  */
 export class GiftCardUnusableError extends Error {
-	constructor(public readonly reason: GiftCardUnusableReason) {
+	constructor(public readonly reason: GiftCardUnusableReason | 'currency') {
 		super(`Gift card unusable: ${reason}`);
 		this.name = 'GiftCardUnusableError';
 	}
@@ -271,6 +271,9 @@ export async function createReservation(input: CreateReservationInput): Promise<
 		let cardAmount = 0;
 		let cardCode: string | null = null;
 		if (input.giftCardCode) {
+			// Gift cards hold EUR only: they cannot pay a Deposit in another
+			// currency.
+			if (price.currency !== 'EUR') throw new GiftCardUnusableError('currency');
 			const found = await findUsableGiftCard(input.giftCardCode, tx);
 			if (!found.ok) throw new GiftCardUnusableError(found.reason);
 			cardCode = found.card.code;

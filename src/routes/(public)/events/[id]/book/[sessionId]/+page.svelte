@@ -20,7 +20,7 @@
 	import { DIETARY_REQUIREMENTS_MAX_LENGTH, needsDietaryConsent } from '$lib/utils/dietary-requirements';
 	import DepositBreakdown from '$lib/components/booking/DepositBreakdown.svelte';
 	import RefundPolicyNote from '$lib/components/booking/RefundPolicyNote.svelte';
-	import { splitDeposit } from '$lib/utils/gift-card';
+	import { splitDeposit, formatGiftCardCode } from '$lib/utils/gift-card';
 	import { t, locale } from 'svelte-i18n';
 	import { siteLocale } from '$lib/i18n/index';
 	import type { PageData } from './$types';
@@ -516,7 +516,8 @@
 				{/if}
 			</div>
 
-			<!-- Gift card (issue 065) -->
+			<!-- Gift card (issue 065): cards hold EUR, so only on EUR Events -->
+			{#if data.session.currency === "EUR"}
 			<div>
 				<label for="giftCardCode" class="block text-sm font-medium text-foreground-alt mb-2">
 					{$t('booking.giftCard.label')}
@@ -527,7 +528,7 @@
 					<div class="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg px-3 py-2">
 						<div class="flex items-center gap-2 text-green-700 text-sm font-medium">
 							<Gift size={15} />
-							<span class="font-mono">{appliedGiftCard.code}</span>
+							<span class="font-mono whitespace-nowrap">{formatGiftCardCode(appliedGiftCard.code)}</span>
 							<span class="font-normal text-green-600">
 								— {$t('booking.giftCard.balance', { values: { amount: formatCurrency(appliedGiftCard.balance, data.session.currency, $locale ?? undefined) } })}
 							</span>
@@ -573,6 +574,7 @@
 					{/if}
 				{/if}
 			</div>
+			{/if}
 
 			<!-- Total -->
 			<div class="bg-surface rounded-lg p-4">
@@ -606,7 +608,7 @@
 						<span>−{formatCurrency(cardSplit.card, data.session.currency, $locale ?? undefined)}</span>
 					</div>
 				{/if}
-				<DepositBreakdown price={{ ...price, deposit: payableNow }} currency={data.session.currency} />
+				<DepositBreakdown price={{ ...price, deposit: payableNow }} currency={data.session.currency} paidByCard={cardSplit.card} />
 			</div>
 
 			<!-- What happens to the payment on cancellation (issue 027) -->
