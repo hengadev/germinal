@@ -99,7 +99,7 @@
 			<form
 				method="POST"
 				class="bg-background rounded-lg border border-border-card p-4 sm:p-6 grid gap-4"
-				use:enhance
+				use:enhance={() => async ({ update }) => update({ reset: false })}
 			>
 				<div>
 					<label for="{uid}-status" class="block text-sm font-medium text-foreground-alt mb-1">Statut</label>
@@ -126,7 +126,7 @@
 				<div class="flex items-center gap-3">
 					<button
 						type="submit"
-						class="px-4 py-2 bg-foreground text-white rounded-lg text-sm font-medium hover:bg-foreground-alt transition-colors"
+						class="px-4 py-2 bg-foreground text-background rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
 					>
 						Enregistrer
 					</button>

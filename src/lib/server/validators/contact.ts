@@ -47,13 +47,14 @@ export const contactSubmissionSchema = z.object({
     .optional()
     .transform(v => v?.trim() || null),
 
-  guestCount: z.coerce.number()
+  guestCount: z.preprocess(
+    v => (v === '' || v === null || v === undefined ? null : v),
+    z.coerce.number()
     .int('Number of guests must be a whole number')
     .min(1, 'Number of guests must be at least 1')
     .max(10000, 'Number of guests is too large')
-    .optional()
     .nullable()
-    .transform(v => v ?? null),
+  ).transform(v => (v as number | null) ?? null),
 
   budget: z.string()
     .max(255)

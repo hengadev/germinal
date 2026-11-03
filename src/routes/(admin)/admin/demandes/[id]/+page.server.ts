@@ -1,4 +1,4 @@
-import { error } from '@sveltejs/kit';
+import { error, fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { requireAdmin } from '$lib/server/auth-guards';
 import { getContactSubmissionById, updateDemande } from '$lib/server/services/contact';
@@ -23,11 +23,15 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
 export const actions: Actions = {
 	default: async ({ locals, params, request }) => {
+		requireAdmin(locals);
 		const admin = locals.user!;
 		const formData = await request.formData();
-		const before = await getContactSubmissionById(params.id);
 
 		try {
+			const before = await getContactSubmissionById(params.id);
+			if (before.honeypot && before.honeypot.trim() !== '') {
+				return fail(404, { success: false, error: 'Demande introuvable.' });
+			}
 			const demande = await updateDemande(params.id, {
 				status: formData.get('status'),
 				adminNote: formData.get('adminNote'),
@@ -48,7 +52,7 @@ export const actions: Actions = {
 			return { success: true, demande };
 		} catch (err) {
 			logger.error({ err }, 'Failed to update demande');
-			return { success: false, error: 'Impossible d’enregistrer la demande.' };
+			return fail(400, { success: false, error: 'Impossible d’enregistrer la demande.' });
 		}
 	},
 };
