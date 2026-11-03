@@ -482,7 +482,7 @@ export async function exportBilanToCSV(period: '3m' | '12m' | 'tout') {
 		for (const money of currencies) {
 			csvData.push({
 				'Événement': event.titleFr,
-				'Dernière séance': event.lastSeatingEnd,
+				'Dernière séance': event.lastSeatingEnd.toISOString().slice(0, 10),
 				'Réservés': summary.booked,
 				'Arrivés': summary.arrived,
 				'No-shows': summary.noShows,

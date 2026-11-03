@@ -357,58 +357,6 @@
                 </a>
             {/if}
 
-            {#if page.url.pathname.startsWith("/admin/bilan")}
-                <a
-                    href="/admin/bilan"
-                    class="flex-1 flex flex-col items-center justify-center gap-1 pt-3 pb-6 text-foreground"
-                >
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                    >
-                        <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
-                        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
-                        <path d="M12 11h4"></path>
-                        <path d="M12 16h4"></path>
-                        <path d="M8 11h.01"></path>
-                        <path d="M8 16h.01"></path>
-                    </svg>
-                    <span class="text-[10px] font-medium">Bilan</span>
-                </a>
-            {:else}
-                <a
-                    href="/admin/bilan"
-                    class="flex-1 flex flex-col items-center justify-center gap-1 pt-3 pb-6 text-muted-foreground hover:text-foreground-alt"
-                >
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                    >
-                        <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
-                        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
-                        <path d="M12 11h4"></path>
-                        <path d="M12 16h4"></path>
-                        <path d="M8 11h.01"></path>
-                        <path d="M8 16h.01"></path>
-                    </svg>
-                    <span class="text-[10px] font-medium">Bilan</span>
-                </a>
-            {/if}
-
         </div>
     </nav>
 
@@ -503,6 +451,31 @@
                 <circle cx="12" cy="7" r="4" />
             </svg>
             <span class="text-sm font-medium">Clients</span>
+        </a>
+        <a
+            href="/admin/bilan"
+            onclick={() => (mobileMenuOpen = false)}
+            class="flex items-center gap-3 px-4 py-3 text-foreground-alt hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+        >
+            <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+            >
+                <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                <path d="M12 11h4" />
+                <path d="M12 16h4" />
+                <path d="M8 11h.01" />
+                <path d="M8 16h.01" />
+            </svg>
+            <span class="text-sm font-medium">Bilan</span>
         </a>
         <a
             href="/admin/settings"

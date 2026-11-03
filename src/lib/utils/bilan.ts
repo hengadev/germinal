@@ -27,7 +27,8 @@ export interface EventBilanSummary {
 	compGuests: number;
 	/** Sum of the Seatings' capacities; null when none has one. */
 	capacity: number | null;
-	/** Arrived ÷ capacity; null without capacity. */
+	/** Arrived ÷ capacity, over the Seatings that have a capacity only;
+	 * null when none has one. */
 	fillRate: number | null;
 	/** No-shows ÷ booked, weighted by guests; null without bookings. */
 	noShowRate: number | null;
@@ -41,6 +42,8 @@ export function summarizeEvent(rows: BilanSeatingRow[]): EventBilanSummary {
 	let walkInGuests = 0;
 	let compGuests = 0;
 	let capacity: number | null = null;
+	// A Seating without capacity can't fill: its guests stay out of the rate.
+	let arrivedWithCapacity = 0;
 	for (const row of rows) {
 		booked += row.booked;
 		arrived += row.arrived;
@@ -49,6 +52,7 @@ export function summarizeEvent(rows: BilanSeatingRow[]): EventBilanSummary {
 		compGuests += row.compGuests;
 		if (row.totalCapacity !== null) {
 			capacity = (capacity ?? 0) + row.totalCapacity;
+			arrivedWithCapacity += row.arrived;
 		}
 	}
 	return {
@@ -58,7 +62,7 @@ export function summarizeEvent(rows: BilanSeatingRow[]): EventBilanSummary {
 		walkInGuests,
 		compGuests,
 		capacity,
-		fillRate: capacity !== null && capacity > 0 ? arrived / capacity : null,
+		fillRate: capacity !== null && capacity > 0 ? arrivedWithCapacity / capacity : null,
 		noShowRate: booked > 0 ? noShows / booked : null
 	};
 }

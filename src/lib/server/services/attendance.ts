@@ -385,10 +385,11 @@ export async function getPastEventsBilan(
 	now: Date = new Date()
 ): Promise<PastEventBilan[]> {
 	const months = period === 'tout' ? null : PERIOD_MONTHS[period];
-	const since =
-		months === null
-			? null
-			: new Date(now.getTime() - months * 31 * 24 * 60 * 60 * 1000);
+	let since: Date | null = null;
+	if (months !== null) {
+		since = new Date(now);
+		since.setMonth(since.getMonth() - months);
+	}
 
 	// Past = the Event's last Seating has ended, within the period.
 	const lastEnds = await db
@@ -406,6 +407,8 @@ export async function getPastEventsBilan(
 			pastIds.set(r.eventId, end);
 		}
 	}
+
+	if (pastIds.size === 0) return [];
 
 	const rows = await db
 		.select({

@@ -55,8 +55,9 @@ describe('summarizeEvent', () => {
 			row({ totalCapacity: 20, arrived: 10, booked: 10, noShows: 0 })
 		]);
 		expect(mixed.capacity).toBe(20);
-		// Arrived sums over both Seatings (8 + 10), only one of which has capacity.
-		expect(mixed.fillRate).toBeCloseTo(18 / 20);
+		// Only the Seating with a capacity fills: its 10 guests, not the other's 8.
+		expect(mixed.arrived).toBe(18);
+		expect(mixed.fillRate).toBeCloseTo(10 / 20);
 	});
 
 	it('leaves the No-show rate blank without bookings', () => {
