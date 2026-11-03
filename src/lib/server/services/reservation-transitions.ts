@@ -19,6 +19,7 @@ import { db } from '../db';
 import { incrementCheckoutCounter, incrementReservationCounter } from '../metrics';
 import { eventSessions, payments, reservationStatusEnum, reservations } from '../db/schema';
 import { subscribeFromReservation } from './subscribers';
+import { creditReservationGiftCardShare } from './gift-cards';
 
 export type ReservationStatus = (typeof reservationStatusEnum.enumValues)[number];
 
@@ -143,6 +144,10 @@ export async function expireReservationForFailedPayment(input: {
 
 		await restoreCapacity(tx, expired.eventSessionId, expired.quantity);
 
+		// Winner only: the card's share of the Deposit goes back to the gift
+		// card (issue 065) — a repeated failure credits nothing more.
+		await creditReservationGiftCardShare(tx, input.reservationId);
+
 		return { won: true };
 	});
 
@@ -175,6 +180,10 @@ export async function expireReservationOnHoldTimeout(reservationId: string): Pro
 		if (!expired) return { won: false };
 
 		const seating = await restoreCapacity(tx, expired.eventSessionId, expired.quantity);
+
+		// Winner only: the card's share of the Deposit goes back to the gift
+		// card (issue 065) — a repeated expiry credits nothing more.
+		await creditReservationGiftCardShare(tx, reservationId);
 
 		return {
 			won: true,

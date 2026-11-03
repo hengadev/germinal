@@ -39,6 +39,20 @@ export function formatGiftCardCode(code: string): string {
 }
 
 /**
+ * Split a Deposit (minor units) between a gift card's balance and
+ * Stripe (issue 065): the card pays first, up to its balance, and Stripe
+ * charges only the rest (0 when the card covers the whole Deposit).
+ */
+export function splitDeposit(
+	deposit: number,
+	cardBalance: number
+): { card: number; stripe: number } {
+	const safeDeposit = Math.max(0, deposit);
+	const card = Math.min(safeDeposit, Math.max(0, cardBalance));
+	return { card, stripe: safeDeposit - card };
+}
+
+/**
  * The invariant every movement maintains: the balance equals the initial
  * amount plus the ledger (negative used, positive credited).
  */

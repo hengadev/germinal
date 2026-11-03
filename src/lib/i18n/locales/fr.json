@@ -321,6 +321,24 @@
       "discountOff": "{value}% de réduction",
       "appliedLabel": "Code"
     },
+    "giftCard": {
+      "label": "Carte cadeau",
+      "placeholder": "Ex. GERM-7ZK9-M3XT",
+      "apply": "Utiliser",
+      "balance": "solde {amount}",
+      "paysDeposit": "payé par carte cadeau",
+      "removeAria": "Retirer la carte cadeau",
+      "validationError": "Impossible de vérifier la carte. Veuillez réessayer.",
+      "reasons": {
+        "unknown": "Carte cadeau inconnue",
+        "currency": "Les cartes cadeaux ne règlent que les événements en euros",
+        "expired": "Cette carte cadeau a expiré",
+        "cancelled": "Cette carte cadeau a été annulée",
+        "empty": "Cette carte cadeau n'a plus de solde",
+        "rate_limited": "Trop de tentatives. Veuillez patienter avant de réessayer.",
+        "unavailable": "Service momentanément indisponible. Veuillez réessayer."
+      }
+    },
     "errors": {
       "soldOut": "Cette session est complète.",
       "sessionStarted": "Cette session a déjà commencé.",
@@ -333,6 +351,7 @@
       "payNow": "Acompte à régler maintenant",
       "balanceAtVenue": "Reste à régler sur place",
       "noDeposit": "Rien à régler en ligne : la totalité se règle sur place.",
+      "paidByCard": "L'acompte est réglé par votre carte cadeau : le reste se règle sur place.",
       "note": "Seul l’acompte est débité en ligne ; le reste se règle sur place."
     },
     "refundPolicy": {
@@ -411,6 +430,7 @@
       "noRefundPreview": "Selon la politique de remboursement de l’événement, une annulation maintenant ne donne lieu à aucun remboursement. Vos places seront libérées."
     },
     "depositPaid": "Acompte payé",
+    "giftCardPaid": "dont payé par carte cadeau",
     "balanceDue": "Reste à régler sur place"
   },
   "newsletterSignup": {

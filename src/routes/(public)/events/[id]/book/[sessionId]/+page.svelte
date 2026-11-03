@@ -10,7 +10,8 @@
 		CheckCircle2,
 		Tag,
 		X,
-		Utensils
+		Utensils,
+		Gift
 	} from 'lucide-svelte';
 	import { page } from '$app/state';
 	import { formatCurrency } from '$lib/utils/currency';
@@ -19,6 +20,7 @@
 	import { DIETARY_REQUIREMENTS_MAX_LENGTH, needsDietaryConsent } from '$lib/utils/dietary-requirements';
 	import DepositBreakdown from '$lib/components/booking/DepositBreakdown.svelte';
 	import RefundPolicyNote from '$lib/components/booking/RefundPolicyNote.svelte';
+	import { splitDeposit, formatGiftCardCode } from '$lib/utils/gift-card';
 	import { t, locale } from 'svelte-i18n';
 	import { siteLocale } from '$lib/i18n/index';
 	import type { PageData } from './$types';
@@ -121,6 +123,47 @@
 		promoCodeError = null;
 	}
 
+	// Gift card state (issue 065): validated live like a Promo Code. The
+	// Promo Code discounts first; the card then pays toward the Deposit.
+	let giftCardInput = $state('');
+	let giftCardApplying = $state(false);
+	let giftCardError = $state<string | null>(null);
+	let appliedGiftCard = $state<{ code: string; balance: number } | null>(null);
+
+	async function applyGiftCard() {
+		const code = giftCardInput.trim().toUpperCase();
+		if (!code) return;
+
+		giftCardApplying = true;
+		giftCardError = null;
+		appliedGiftCard = null;
+
+		try {
+			const res = await fetch(`/api/gift-cards/validate?code=${encodeURIComponent(code)}`);
+			const result = await res.json();
+
+			if (result.valid) {
+				appliedGiftCard = { code: result.code, balance: result.balance };
+			} else {
+				giftCardError = $t(`booking.giftCard.reasons.${result.reason ?? 'unknown'}`);
+			}
+		} catch {
+			giftCardError = $t('booking.giftCard.validationError');
+		} finally {
+			giftCardApplying = false;
+		}
+	}
+
+	function removeGiftCard() {
+		appliedGiftCard = null;
+		giftCardInput = '';
+		giftCardError = null;
+	}
+
+	// How the Deposit splits between the card and Stripe (issue 065).
+	let cardSplit = $derived(splitDeposit(price.deposit, appliedGiftCard?.balance ?? 0));
+	let payableNow = $derived(price.deposit - cardSplit.card);
+
 	let isFormValid = $derived(
 		name.trim().length > 0 &&
 			email.trim().length > 0 &&
@@ -161,6 +204,7 @@
 					locale: siteLocale($locale),
 					marketingConsent,
 					promoCode: appliedPromoCode?.code ?? undefined,
+					giftCardCode: appliedGiftCard?.code ?? undefined,
 					...(asksDietaryRequirements && dietaryRequirements.trim()
 						? { dietaryRequirements: dietaryRequirements.trim(), dietaryConsent }
 						: {}),
@@ -472,6 +516,66 @@
 				{/if}
 			</div>
 
+			<!-- Gift card (issue 065): cards hold EUR, so only on EUR Events -->
+			{#if data.session.currency === "EUR"}
+			<div>
+				<label for="giftCardCode" class="block text-sm font-medium text-foreground-alt mb-2">
+					{$t('booking.giftCard.label')}
+					<span class="text-muted-foreground text-xs">{$t('booking.optional')}</span>
+				</label>
+
+				{#if appliedGiftCard}
+					<div class="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+						<div class="flex items-center gap-2 text-green-700 text-sm font-medium">
+							<Gift size={15} />
+							<span class="font-mono whitespace-nowrap">{formatGiftCardCode(appliedGiftCard.code)}</span>
+							<span class="font-normal text-green-600">
+								— {$t('booking.giftCard.balance', { values: { amount: formatCurrency(appliedGiftCard.balance, data.session.currency, $locale ?? undefined) } })}
+							</span>
+						</div>
+						<button
+							type="button"
+							onclick={removeGiftCard}
+							class="text-green-500 hover:text-green-700 transition-colors ml-2"
+							aria-label={$t('booking.giftCard.removeAria')}
+						>
+							<X size={16} />
+						</button>
+					</div>
+				{:else}
+					<div class="flex gap-2">
+						<div class="relative flex-1">
+							<Gift size={16} class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+							<input
+								id="giftCardCode"
+								type="text"
+								bind:value={giftCardInput}
+								placeholder={$t('booking.giftCard.placeholder')}
+								disabled={isSubmitting}
+								class="w-full pl-9 pr-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm font-mono uppercase disabled:bg-surface disabled:cursor-not-allowed {giftCardError ? 'border-red-300' : 'border-border-input'}"
+								oninput={(e) => { giftCardInput = (e.target as HTMLInputElement).value.toUpperCase(); giftCardError = null; }}
+								onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); applyGiftCard(); } }}
+							/>
+						</div>
+						<button
+							type="button"
+							onclick={applyGiftCard}
+							disabled={!giftCardInput.trim() || giftCardApplying || isSubmitting}
+							class="px-4 py-2.5 border border-border-input text-foreground-alt rounded-none hover:bg-surface transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap inline-flex items-center gap-1.5"
+						>
+							{#if giftCardApplying}
+								<Loader2 size={15} class="animate-spin" />
+							{/if}
+							{$t('booking.giftCard.apply')}
+						</button>
+					</div>
+					{#if giftCardError}
+						<p class="text-xs text-red-600 mt-1">{giftCardError}</p>
+					{/if}
+				{/if}
+			</div>
+			{/if}
+
 			<!-- Total -->
 			<div class="bg-surface rounded-lg p-4">
 				<div class="flex items-center justify-between mb-2">
@@ -495,7 +599,16 @@
 						{formatCurrency(totalAmount, data.session.currency, $locale ?? undefined)}
 					</span>
 				</div>
-				<DepositBreakdown {price} currency={data.session.currency} />
+				{#if cardSplit.card > 0}
+					<div class="flex items-center justify-between mb-2 text-green-600 text-sm">
+						<span class="flex items-center gap-1">
+							<Gift size={13} />
+							{$t('booking.giftCard.paysDeposit')}
+						</span>
+						<span>−{formatCurrency(cardSplit.card, data.session.currency, $locale ?? undefined)}</span>
+					</div>
+				{/if}
+				<DepositBreakdown price={{ ...price, deposit: payableNow }} currency={data.session.currency} paidByCard={cardSplit.card} />
 			</div>
 
 			<!-- What happens to the payment on cancellation (issue 027) -->
@@ -522,7 +635,7 @@
 					{:else}
 						{data.isMockMode
 							? $t('booking.bookDemo')
-							: price.deposit === 0
+							: payableNow === 0
 								? $t('booking.confirmBooking')
 								: price.balance > 0
 									? $t('booking.continueToPayDeposit')

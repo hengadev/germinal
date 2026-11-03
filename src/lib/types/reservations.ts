@@ -12,6 +12,8 @@ export type CreateReservationInput = {
 	quantity: number;
 	notificationPreference?: 'email' | 'sms' | 'both';
 	promoCode?: string;
+	/** Gift card code paying toward the Deposit (issue 065). */
+	giftCardCode?: string;
 	/** Dietary Requirements (issue 041): stored only on an Event that asks,
 	 * and only with `dietaryConsent`. */
 	dietaryRequirements?: string;

@@ -1,12 +1,10 @@
 import { getReservationByToken } from '$lib/server/services/reservations';
 import { error } from '@sveltejs/kit';
-import type { PageServerLoad } from './$types';
 import QRCode from 'qrcode';
 import { seatingTitlesWithFallback } from '$lib/utils/seating-title';
 import { refundPolicyOf } from '$lib/utils/refund-policy';
 
-export const load: PageServerLoad = async ({ params }) => {
-	const reservation = await getReservationByToken(params.token);
+export const load = async ({ params }) => {	const reservation = await getReservationByToken(params.token);
 
 	if (!reservation) {
 		throw error(404, 'Ticket not found');
@@ -34,6 +32,8 @@ export const load: PageServerLoad = async ({ params }) => {
 			totalAmount: reservation.totalAmount,
 			// Issue 023: the Deposit paid online and the Balance due at the venue.
 			depositAmount: reservation.depositAmount,
+			// Issue 065: the share of the Deposit a gift card paid.
+			giftCardAmount: reservation.giftCardAmount,
 			balanceAmount: reservation.balanceAmount,
 			currency: reservation.currency,
 			status: reservation.status,

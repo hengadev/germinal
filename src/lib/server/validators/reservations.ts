@@ -25,6 +25,8 @@ export const createReservationSchema = z.object({
 	notificationPreference: z.enum(['email', 'sms', 'both']).default('both'),
 	// Optional promotion code
 	promoCode: z.string().max(50).optional().transform(v => v?.trim().toUpperCase() || undefined),
+	// Optional gift card, paying toward the Deposit (issue 065)
+	giftCardCode: z.string().max(50).optional().transform(v => v?.trim().toUpperCase() || undefined),
 	// Dietary Requirements (issue 041): optional, and only with the Guest's
 	// explicit consent (health data). Ignored on an Event that does not ask.
 	dietaryRequirements: z.string()

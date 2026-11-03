@@ -321,6 +321,24 @@
       "discountOff": "{value}% off",
       "appliedLabel": "Code"
     },
+    "giftCard": {
+      "label": "Gift card",
+      "placeholder": "e.g. GERM-7ZK9-M3XT",
+      "apply": "Use",
+      "balance": "{amount} left",
+      "paysDeposit": "paid by gift card",
+      "removeAria": "Remove gift card",
+      "validationError": "Unable to check the card. Please try again.",
+      "reasons": {
+        "unknown": "Unknown gift card",
+        "currency": "Gift cards can only pay for events priced in euros",
+        "expired": "This gift card has expired",
+        "cancelled": "This gift card was cancelled",
+        "empty": "This gift card has no balance left",
+        "rate_limited": "Too many attempts. Please wait a moment and try again.",
+        "unavailable": "Service temporarily unavailable. Please try again."
+      }
+    },
     "errors": {
       "soldOut": "This session is sold out.",
       "sessionStarted": "This session has already started.",
@@ -333,6 +351,7 @@
       "payNow": "Deposit to pay now",
       "balanceAtVenue": "Balance due at the venue",
       "noDeposit": "Nothing to pay online: the full amount is settled at the venue.",
+      "paidByCard": "Your gift card pays the deposit: the rest is paid at the venue.",
       "note": "Only the deposit is charged online; the balance is settled at the venue."
     },
     "refundPolicy": {
@@ -411,6 +430,7 @@
       "noRefundPreview": "Under this event's refund policy, cancelling now gives no refund. Your seats will be released."
     },
     "depositPaid": "Deposit paid",
+    "giftCardPaid": "of which paid by gift card",
     "balanceDue": "Balance due at the venue"
   },
   "newsletterSignup": {
