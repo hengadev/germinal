@@ -11,6 +11,8 @@
     import { adminDarkMode } from "$lib/stores/adminDarkMode.svelte";
     import ThemeToggle from "$lib/components/admin/ThemeToggle.svelte";
     import type { LayoutData } from "./$types";
+    import { ExternalLink, KeyRound, LogOut } from "lucide-svelte";
+    import { ADMIN_MOBILE_BAR, ADMIN_NAV_GROUPS, isAdminNavActive, type AdminNavItem } from "./admin-nav";
 
     let {
         data,
@@ -27,6 +29,14 @@
 
     // Mobile menu drawer state
     let mobileMenuOpen = $state(false);
+
+    // The bottom bar's pages, and the ☰ menu's groups without them.
+    const allNavItems = ADMIN_NAV_GROUPS.flatMap((group) => group.items);
+    const mobileBar = ADMIN_MOBILE_BAR.map((href) => allNavItems.find((item) => item.href === href)!);
+    const menuGroups = ADMIN_NAV_GROUPS
+        .map((group) => ({ ...group, items: group.items.filter((item) => !ADMIN_MOBILE_BAR.includes(item.href)) }))
+        .filter((group) => group.items.length > 0);
+    const badgeOf = (item: AdminNavItem): number => (item.badge ? data[item.badge] : 0);
 
     // Reference to the scrollable main content area
     let mainEl: HTMLElement;
@@ -109,254 +119,26 @@
         aria-label="Mobile navigation"
     >
         <div class="flex items-stretch">
-            {#if ["/", "/admin"].includes(page.url.pathname)}
+            {#each mobileBar as item (item.href)}
+                {@const active = isAdminNavActive(item.href, page.url.pathname)}
+                {@const badge = badgeOf(item)}
                 <a
-                    href="/admin"
-                    class="flex-1 flex flex-col items-center justify-center gap-1 pt-3 pb-6 text-foreground"
+                    href={item.href}
+                    aria-current={active ? "page" : undefined}
+                    class="relative flex-1 flex flex-col items-center justify-center gap-1 pt-3 pb-6 {active
+                        ? 'text-foreground'
+                        : 'text-muted-foreground hover:text-foreground-alt'}"
                 >
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                    >
-                        <rect width="7" height="9" x="3" y="3" rx="1" />
-                        <rect width="7" height="5" x="14" y="3" rx="1" />
-                        <rect width="7" height="9" x="14" y="12" rx="1" />
-                        <rect width="7" height="5" x="3" y="16" rx="1" />
-                    </svg>
-                    <span class="text-[10px] font-medium">Accueil</span>
+                    <item.icon size={20} strokeWidth={2} />
+                    <span class="text-[10px] font-medium">{item.shortLabel ?? item.label}</span>
+                    {#if badge > 0}
+                        <span
+                            class="absolute top-1.5 left-1/2 ml-2 rounded-full bg-red-600 text-white text-[10px] font-semibold px-1 min-w-4 text-center leading-4"
+                            aria-label="{badge} à voir"
+                        >{badge}</span>
+                    {/if}
                 </a>
-            {:else}
-                <a
-                    href="/admin"
-                    class="flex-1 flex flex-col items-center justify-center gap-1 pt-3 pb-6 text-muted-foreground hover:text-foreground-alt"
-                >
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                    >
-                        <rect width="7" height="9" x="3" y="3" rx="1" />
-                        <rect width="7" height="5" x="14" y="3" rx="1" />
-                        <rect width="7" height="9" x="14" y="12" rx="1" />
-                        <rect width="7" height="5" x="3" y="16" rx="1" />
-                    </svg>
-                    <span class="text-[10px] font-medium">Accueil</span>
-                </a>
-            {/if}
-
-            {#if page.url.pathname.startsWith("/admin/events")}
-                <a
-                    href="/admin/events"
-                    class="flex-1 flex flex-col items-center justify-center gap-1 pt-3 pb-6 text-foreground"
-                >
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                    >
-                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"
-                        ></rect>
-                        <line x1="16" x2="16" y1="2" y2="6"></line>
-                        <line x1="8" x2="8" y1="2" y2="6"></line>
-                        <line x1="3" x2="21" y1="10" y2="10"></line>
-                    </svg>
-                    <span class="text-[10px] font-medium">Événements</span>
-                </a>
-            {:else}
-                <a
-                    href="/admin/events"
-                    class="flex-1 flex flex-col items-center justify-center gap-1 pt-3 pb-6 text-muted-foreground hover:text-foreground-alt"
-                >
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                    >
-                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"
-                        ></rect>
-                        <line x1="16" x2="16" y1="2" y2="6"></line>
-                        <line x1="8" x2="8" y1="2" y2="6"></line>
-                        <line x1="3" x2="21" y1="10" y2="10"></line>
-                    </svg>
-                    <span class="text-[10px] font-medium">Événements</span>
-                </a>
-            {/if}
-
-            {#if page.url.pathname.startsWith("/admin/team")}
-                <a
-                    href="/admin/team"
-                    class="flex-1 flex flex-col items-center justify-center gap-1 pt-3 pb-6 text-foreground"
-                >
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                    >
-                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"
-                        ></path>
-                        <circle cx="9" cy="7" r="4"></circle>
-                        <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
-                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                        <line x1="10" x2="10" y1="3" y2="21"></line>
-                    </svg>
-                    <span class="text-[10px] font-medium">Team</span>
-                </a>
-            {:else}
-                <a
-                    href="/admin/team"
-                    class="flex-1 flex flex-col items-center justify-center gap-1 pt-3 pb-6 text-muted-foreground hover:text-foreground-alt"
-                >
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                    >
-                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"
-                        ></path>
-                        <circle cx="9" cy="7" r="4"></circle>
-                        <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
-                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                        <line x1="10" x2="10" y1="3" y2="21"></line>
-                    </svg>
-                    <span class="text-[10px] font-medium">Team</span>
-                </a>
-            {/if}
-
-            {#if page.url.pathname.startsWith("/admin/reservations")}
-                <a
-                    href="/admin/reservations"
-                    class="flex-1 flex flex-col items-center justify-center gap-1 pt-3 pb-6 text-foreground"
-                >
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                    >
-                        <path d="M3 7v2a3 3 0 0 0 3 3 3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3"
-                        />
-                        <path d="M21 17a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9.5a2.5 2.5 0 0 1 2.8-2.3L21 17Z"
-                        />
-                        <path d="M21 7v13" />
-                    </svg>
-                    <span class="text-[10px] font-medium">Réservations</span>
-                </a>
-            {:else}
-                <a
-                    href="/admin/reservations"
-                    class="flex-1 flex flex-col items-center justify-center gap-1 pt-3 pb-6 text-muted-foreground hover:text-foreground-alt"
-                >
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                    >
-                        <path d="M3 7v2a3 3 0 0 0 3 3 3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3"
-                        />
-                        <path d="M21 17a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9.5a2.5 2.5 0 0 1 2.8-2.3L21 17Z"
-                        />
-                        <path d="M21 7v13" />
-                    </svg>
-                    <span class="text-[10px] font-medium">Réservations</span>
-                </a>
-            {/if}
-
-            {#if page.url.pathname.startsWith("/admin/analytics")}
-                <a
-                    href="/admin/analytics"
-                    class="flex-1 flex flex-col items-center justify-center gap-1 pt-3 pb-6 text-foreground"
-                >
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                    >
-                        <path d="M3 3v16a2 2 0 0 0 2 2h16" />
-                        <path d="M7 16h8" />
-                        <path d="M7 11h12" />
-                        <path d="M7 6h3" />
-                    </svg>
-                    <span class="text-[10px] font-medium">Analytiques</span>
-                </a>
-            {:else}
-                <a
-                    href="/admin/analytics"
-                    class="flex-1 flex flex-col items-center justify-center gap-1 pt-3 pb-6 text-muted-foreground hover:text-foreground-alt"
-                >
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                    >
-                        <path d="M3 3v16a2 2 0 0 0 2 2h16" />
-                        <path d="M7 16h8" />
-                        <path d="M7 11h12" />
-                        <path d="M7 6h3" />
-                    </svg>
-                    <span class="text-[10px] font-medium">Analytiques</span>
-                </a>
-            {/if}
-
+            {/each}
         </div>
     </nav>
 
@@ -405,242 +187,71 @@
             </div>
         </div>
 
-        <!-- Menu Items -->
-        <a
-            href="/admin/a-traiter"
-            onclick={() => (mobileMenuOpen = false)}
-            class="flex items-center gap-3 px-4 py-3 text-foreground-alt hover:text-foreground hover:bg-muted rounded-lg transition-colors"
-        >
-            <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-            >
-                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
-                <path d="M12 9v4" />
-                <path d="M12 17h.01" />
-            </svg>
-            <span class="text-sm font-medium">À traiter</span>
-            {#if data.moneyAlertsTotal > 0}
-                <span class="ml-auto rounded-full bg-red-600 text-white text-xs font-semibold px-2 py-0.5 min-w-5 text-center">{data.moneyAlertsTotal}</span>
-            {/if}
-        </a>
-        <a
-            href="/admin/clients"
-            onclick={() => (mobileMenuOpen = false)}
-            class="flex items-center gap-3 px-4 py-3 text-foreground-alt hover:text-foreground hover:bg-muted rounded-lg transition-colors"
-        >
-            <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-            >
-                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-                <circle cx="12" cy="7" r="4" />
-            </svg>
-            <span class="text-sm font-medium">Clients</span>
-        </a>
-        <a
-            href="/admin/demandes"
-            onclick={() => (mobileMenuOpen = false)}
-            class="flex items-center gap-3 px-4 py-3 text-foreground-alt hover:text-foreground hover:bg-muted rounded-lg transition-colors"
-        >
-            <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-            >
-                <polyline points="22 12 16 12 14 15 10 15 8 12 2 12" />
-                <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />
-            </svg>
-            <span class="text-sm font-medium">Demandes</span>
-            {#if data.newDemandesCount > 0}
-                <span class="ml-auto rounded-full bg-red-600 text-white text-xs font-semibold px-2 py-0.5 min-w-5 text-center">{data.newDemandesCount}</span>
-            {/if}
-        </a>
-        <a
-            href="/admin/cartes-cadeaux"
-            onclick={() => (mobileMenuOpen = false)}
-            class="flex items-center gap-3 px-4 py-3 text-foreground-alt hover:text-foreground hover:bg-muted rounded-lg transition-colors"
-        >
-            <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-            >
-                <rect x="3" y="8" width="18" height="4" rx="1" />
-                <path d="M12 8v13" />
-                <path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7" />
-                <path d="M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 0 1 0 5" />
-            </svg>
-            <span class="text-sm font-medium">Cartes cadeaux</span>
-        </a>
-        <a
-            href="/admin/bilan"
-            onclick={() => (mobileMenuOpen = false)}
-            class="flex items-center gap-3 px-4 py-3 text-foreground-alt hover:text-foreground hover:bg-muted rounded-lg transition-colors"
-        >
-            <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-            >
-                <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
-                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
-                <path d="M12 11h4" />
-                <path d="M12 16h4" />
-                <path d="M8 11h.01" />
-                <path d="M8 16h.01" />
-            </svg>
-            <span class="text-sm font-medium">Bilan</span>
-        </a>
-        <a
-            href="/admin/settings"
-            onclick={() => (mobileMenuOpen = false)}
-            class="flex items-center gap-3 px-4 py-3 text-foreground-alt hover:text-foreground hover:bg-muted rounded-lg transition-colors"
-        >
-            <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-            >
-                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
-                <circle cx="12" cy="12" r="3"></circle>
-            </svg>
-            <span class="text-sm font-medium">Paramètres</span>
-        </a>
-        <a
-            href="/admin/audit-log"
-            onclick={() => (mobileMenuOpen = false)}
-            class="flex items-center gap-3 px-4 py-3 text-foreground-alt hover:text-foreground hover:bg-muted rounded-lg transition-colors"
-        >
-            <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-            >
-                <path d="M16 22h2a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v4" />
-                <path d="M14 2v5h5" />
-                <path d="M2 15h10" />
-                <path d="m9 18 3-3-3-3" />
-            </svg>
-            <span class="text-sm font-medium">Journal d'Audit</span>
-        </a>
-        <a
-            href="/admin/change-password"
-            onclick={() => (mobileMenuOpen = false)}
-            class="flex items-center gap-3 px-4 py-3 text-foreground-alt hover:text-foreground hover:bg-muted rounded-lg transition-colors"
-        >
-            <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-            >
-                <path
-                    d="M2 18a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v2a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-2Z"
-                ></path>
-                <circle cx="12" cy="11" r="3"></circle>
-            </svg>
-            <span class="text-sm font-medium">Changer le mot de passe</span>
-        </a>
+        <!-- Menu Items: the rest of the navigation, under the sidebar's headings -->
+        {#each menuGroups as group (group.label)}
+            <div>
+                <p class="px-4 pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{group.label}</p>
+                {#each group.items as item (item.href)}
+                    {@const active = isAdminNavActive(item.href, page.url.pathname)}
+                    {@const badge = badgeOf(item)}
+                    <a
+                        href={item.href}
+                        onclick={() => (mobileMenuOpen = false)}
+                        aria-current={active ? "page" : undefined}
+                        class="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors {active
+                            ? 'bg-foreground text-background'
+                            : 'text-foreground-alt hover:text-foreground hover:bg-muted'}"
+                    >
+                        <item.icon size={20} strokeWidth={1.5} />
+                        <span class="text-sm font-medium">{item.label}</span>
+                        {#if badge > 0}
+                            <span class="ml-auto rounded-full bg-red-600 text-white text-xs font-semibold px-2 py-0.5 min-w-5 text-center">{badge}</span>
+                        {/if}
+                    </a>
+                {/each}
+            </div>
+        {/each}
 
-        <a
-            href="https://germinalstudio.co"
-            target="_blank"
-            rel="noopener noreferrer"
-            onclick={() => (mobileMenuOpen = false)}
-            class="flex items-center gap-3 px-4 py-3 text-foreground-alt hover:text-foreground hover:bg-muted rounded-lg transition-colors"
-        >
-            <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
+        <!-- Account: the same actions as the sidebar's account menu -->
+        <div class="border-t border-border-card pt-4">
+            <a
+                href="https://germinalstudio.co"
+                target="_blank"
+                rel="noopener noreferrer"
+                onclick={() => (mobileMenuOpen = false)}
+                class="flex items-center gap-3 px-4 py-3 text-foreground-alt hover:text-foreground hover:bg-muted rounded-lg transition-colors"
             >
-                <path d="M15 3h6v6" />
-                <path d="M10 14 21 3" />
-                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-            </svg>
-            <span class="text-sm font-medium">Voir le site</span>
-        </a>
-
-        <form method="POST" action="/logout">
-            <button
-                type="submit"
-                class="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors"
+                <ExternalLink size={20} strokeWidth={1.5} />
+                <span class="text-sm font-medium">Voir le site</span>
+            </a>
+            <a
+                href={data.staffPortalUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onclick={() => (mobileMenuOpen = false)}
+                class="flex items-center gap-3 px-4 py-3 text-foreground-alt hover:text-foreground hover:bg-muted rounded-lg transition-colors"
             >
-                <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
+                <ExternalLink size={20} strokeWidth={1.5} />
+                <span class="text-sm font-medium">Portail Staff</span>
+            </a>
+            <a
+                href="/admin/change-password"
+                onclick={() => (mobileMenuOpen = false)}
+                class="flex items-center gap-3 px-4 py-3 text-foreground-alt hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+            >
+                <KeyRound size={20} strokeWidth={1.5} />
+                <span class="text-sm font-medium">Changer le mot de passe</span>
+            </a>
+            <form method="POST" action="/logout">
+                <button
+                    type="submit"
+                    class="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors"
                 >
-                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"
-                    ></path>
-                    <polyline points="16 17 21 12 16 7"></polyline>
-                    <line x1="21" x2="9" y1="12" y2="12"></line>
-                </svg>
-                <span class="text-sm font-medium">Déconnexion</span>
-            </button>
-        </form>
+                    <LogOut size={20} strokeWidth={1.5} />
+                    <span class="text-sm font-medium">Déconnexion</span>
+                </button>
+            </form>
+        </div>
     </div>
 </Drawer>
 </div>

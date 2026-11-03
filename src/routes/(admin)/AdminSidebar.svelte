@@ -1,7 +1,8 @@
 <script lang="ts">
     import { page } from "$app/state";
 
-    import { LayoutDashboard, Calendar, Users, Ticket, BarChart3, ClipboardList, ExternalLink, Settings2, ScrollText, AlertTriangle, Contact, Gift, Inbox } from "lucide-svelte";
+    import { ExternalLink, KeyRound, LogOut, EllipsisVertical } from "lucide-svelte";
+    import { ADMIN_NAV_GROUPS, isAdminNavActive } from "./admin-nav";
     import ThemeToggle from "$lib/components/admin/ThemeToggle.svelte";
 
     interface SidebarProps {
@@ -38,85 +39,8 @@
         userMenuOpen = false;
     }
 
-    interface NavItem {
-        href: string;
-        label: string;
-        icon: typeof import("lucide-svelte").Icon;
-        badge?: number;
-    }
-
-    // Derived so the badges follow the layout data after a save.
-    const desktopNavigation: NavItem[] = $derived([
-        {
-            href: "/admin",
-            label: "Tableau de bord",
-            icon: LayoutDashboard,
-        },
-        {
-            href: "/admin/events",
-            label: "Événements",
-            icon: Calendar,
-        },
-        {
-            href: "/admin/team",
-            label: "Team",
-            icon: Users,
-        },
-        {
-            href: "/admin/reservations",
-            label: "Réservations",
-            icon: Ticket,
-        },
-        {
-            href: "/admin/clients",
-            label: "Clients",
-            icon: Contact,
-        },
-        {
-            href: "/admin/demandes",
-            label: "Demandes",
-            icon: Inbox,
-            badge: data.newDemandesCount,
-        },
-        {
-            href: "/admin/cartes-cadeaux",
-            label: "Cartes cadeaux",
-            icon: Gift,
-        },
-        {
-            href: "/admin/a-traiter",
-            label: "À traiter",
-            icon: AlertTriangle,
-            badge: data.moneyAlertsTotal,
-        },
-        {
-            href: "/admin/analytics",
-            label: "Analytiques",
-            icon: BarChart3,
-        },
-        {
-            href: "/admin/bilan",
-            label: "Bilan",
-            icon: ClipboardList,
-        },
-        {
-            href: "/admin/settings",
-            label: "Paramètres",
-            icon: Settings2,
-        },
-        {
-            href: "/admin/audit-log",
-            label: "Journal d'Audit",
-            icon: ScrollText,
-        },
-    ]);
-
-    function isActive(href: string, currentPath: string): boolean {
-        if (href === "/admin") {
-            return currentPath === "/admin" || currentPath === "/admin/";
-        }
-        return currentPath.startsWith(href);
-    }
+    const badgeOf = (key: "moneyAlertsTotal" | "newDemandesCount" | undefined): number =>
+        key ? data[key] : 0;
 </script>
 
 <!-- Desktop Sidebar Navigation -->
@@ -189,121 +113,121 @@
     </div>
 
     <!-- Navigation Items -->
-    <nav class="flex-1 py-6 {isCollapsed ? 'px-3' : 'px-4'}">
- <ul class="space-y-1">
- {#each desktopNavigation as item (item.href)}
- {@const active = isActive(item.href, page.url.pathname)}
- <li>
- <a
- href={item.href}
- class="flex items-center text-sm font-medium transition-all duration-200 rounded-lg {isCollapsed
- ? 'justify-center px-3 py-3'
- : 'gap-3 px-3 py-2.5'} {active
- ? 'bg-foreground text-background hover:bg-foreground/85'
- : 'text-foreground-alt hover:text-foreground hover:bg-surface-hover'}"
-                        aria-current={active ? "page" : undefined}
-                        title={isCollapsed ? item.label : undefined}
-                    >
-                        <item.icon size={20} strokeWidth={active ? 2 : 1.5} />
-                        {#if !isCollapsed}
-                            <span class="tracking-tight">{item.label}</span>
-                            {#if item.badge && item.badge > 0}
+    <nav class="flex-1 overflow-y-auto py-6 {isCollapsed ? 'px-3' : 'px-4'}">
+        {#each ADMIN_NAV_GROUPS as group, groupIndex (group.label)}
+            {#if isCollapsed}
+                {#if groupIndex > 0}
+                    <div class="my-3 mx-3 border-t border-border-card" role="separator"></div>
+                {/if}
+            {:else}
+                <p class="px-3 {groupIndex > 0 ? 'pt-4' : ''} pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{group.label}</p>
+            {/if}
+            <ul class="space-y-0.5" aria-label={group.label}>
+                {#each group.items as item (item.href)}
+                    {@const active = isAdminNavActive(item.href, page.url.pathname)}
+                    {@const badge = badgeOf(item.badge)}
+                    <li>
+                        <a
+                            href={item.href}
+                            class="relative flex items-center text-sm font-medium transition-all duration-200 rounded-lg {isCollapsed
+                                ? 'justify-center px-3 py-3'
+                                : 'gap-3 px-3 py-2'} {active
+                                ? 'bg-foreground text-background hover:bg-foreground/85'
+                                : 'text-foreground-alt hover:text-foreground hover:bg-surface-hover'}"
+                            aria-current={active ? "page" : undefined}
+                            title={isCollapsed ? item.label : undefined}
+                        >
+                            <item.icon size={20} strokeWidth={active ? 2 : 1.5} />
+                            {#if !isCollapsed}
+                                <span class="tracking-tight">{item.label}</span>
+                                {#if badge > 0}
+                                    <span
+                                        class="ml-auto rounded-full bg-red-600 text-white text-xs font-semibold px-2 py-0.5 min-w-5 text-center"
+                                    >{badge}</span>
+                                {/if}
+                            {:else if badge > 0}
                                 <span
-                                    class="ml-auto rounded-full bg-red-600 text-white text-xs font-semibold px-2 py-0.5 min-w-5 text-center"
-                                >{item.badge}</span>
+                                    class="absolute top-1.5 right-1.5 rounded-full bg-red-600 text-white text-[10px] font-semibold px-1 min-w-4 text-center leading-4"
+                                    aria-label="{badge} à voir"
+                                >{badge}</span>
                             {/if}
-                        {/if}
-                    </a>
-                </li>
-            {/each}
-        </ul>
+                        </a>
+                    </li>
+                {/each}
+            </ul>
+        {/each}
     </nav>
 
-    <!-- Sidebar Footer -->
+    <!-- Sidebar Footer: the same account menu, expanded or collapsed -->
+    {#snippet accountMenu(placement: string)}
+        <!-- Backdrop -->
+        <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+        <div class="fixed inset-0 z-10" onclick={closeUserMenu}></div>
+        <div
+            class="absolute z-20 bg-background border border-border-card rounded-lg shadow-popover py-1 overflow-hidden {placement}"
+            role="menu"
+        >
+            {#if isCollapsed}
+                <div class="px-3 py-2 border-b border-border-card mb-1">
+                    <p class="text-sm font-medium text-foreground truncate tracking-tight">{data.user.email}</p>
+                    <p class="text-xs text-muted-foreground capitalize">{data.user.role}</p>
+                </div>
+            {/if}
+            <a
+                href="https://germinalstudio.co"
+                target="_blank"
+                rel="noopener noreferrer"
+                onclick={closeUserMenu}
+                role="menuitem"
+                class="flex items-center gap-2.5 px-3 py-2 text-sm text-foreground-alt hover:text-foreground hover:bg-muted transition-colors"
+            >
+                <ExternalLink size={15} />
+                <span>Voir le site</span>
+            </a>
+            <a
+                href={data.staffPortalUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onclick={closeUserMenu}
+                role="menuitem"
+                class="flex items-center gap-2.5 px-3 py-2 text-sm text-foreground-alt hover:text-foreground hover:bg-muted transition-colors"
+            >
+                <ExternalLink size={15} />
+                <span>Portail Staff</span>
+            </a>
+            <a
+                href="/admin/change-password"
+                onclick={closeUserMenu}
+                role="menuitem"
+                class="flex items-center gap-2.5 px-3 py-2 text-sm text-foreground-alt hover:text-foreground hover:bg-muted transition-colors"
+            >
+                <KeyRound size={15} />
+                <span>Changer le mot de passe</span>
+            </a>
+            <div class="my-1 border-t border-border-card"></div>
+            <form method="POST" action="/logout">
+                <button
+                    type="submit"
+                    role="menuitem"
+                    class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
+                >
+                    <LogOut size={15} />
+                    <span>Déconnexion</span>
+                </button>
+            </form>
+        </div>
+    {/snippet}
+
     <div
         class="py-5 border-t border-border-card {isCollapsed ? 'px-3' : 'px-6'}"
     >
-        {#if !isCollapsed}
-            <!-- User row with kebab menu -->
-            <div class="relative">
-                {#if userMenuOpen}
-                    <!-- Backdrop -->
-                    <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-                    <div
-                        class="fixed inset-0 z-10"
-                        onclick={closeUserMenu}
-                    ></div>
-                    <!-- Dropdown (opens upward) -->
-                    <div
-                        class="absolute bottom-full left-0 right-0 mb-2 z-20 bg-background border border-border-card rounded-lg shadow-popover py-1 overflow-hidden"
-                    >
-                        <a
-                            href="https://germinalstudio.co"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onclick={closeUserMenu}
-                            class="flex items-center gap-2.5 px-3 py-2 text-sm text-foreground-alt hover:text-foreground hover:bg-muted transition-colors"
-                        >
-                            <ExternalLink size={15} />
-                            <span>Voir le site</span>
-                        </a>
-                        <a
-                            href={data.staffPortalUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onclick={closeUserMenu}
-                            class="flex items-center gap-2.5 px-3 py-2 text-sm text-foreground-alt hover:text-foreground hover:bg-muted transition-colors"
-                        >
-                            <ExternalLink size={15} />
-                            <span>Portail Staff</span>
-                        </a>
-                        <a
-                            href="/admin/change-password"
-                            onclick={closeUserMenu}
-                            class="flex items-center gap-2.5 px-3 py-2 text-sm text-foreground-alt hover:text-foreground hover:bg-muted transition-colors"
-                        >
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="15"
-                                height="15"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                            >
-                                <path d="M2 18a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v2a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-2Z"></path>
-                                <circle cx="12" cy="11" r="3"></circle>
-                            </svg>
-                            <span>Changer le mot de passe</span>
-                        </a>
-                        <div class="my-1 border-t border-border-card"></div>
-                        <form method="POST" action="/logout">
-                            <button
-                                type="submit"
-                                class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
-                            >
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    width="15"
-                                    height="15"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                >
-                                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                                    <polyline points="16 17 21 12 16 7"></polyline>
-                                    <line x1="21" x2="9" y1="12" y2="12"></line>
-                                </svg>
-                                <span>Déconnexion</span>
-                            </button>
-                        </form>
-                    </div>
-                {/if}
+        <div class="relative">
+            {#if userMenuOpen}
+                {@render accountMenu(isCollapsed
+                    ? 'left-full bottom-0 ml-3 w-60'
+                    : 'bottom-full left-0 right-0 mb-2')}
+            {/if}
+            {#if !isCollapsed}
                 <div class="flex items-center gap-3">
                     <div
                         class="w-9 h-9 flex-shrink-0 rounded-full flex items-center justify-center bg-muted border border-border-card"
@@ -324,43 +248,28 @@
                         onclick={toggleUserMenu}
                         class="flex-shrink-0 p-1.5 rounded-md text-foreground-alt hover:text-foreground hover:bg-muted transition-colors"
                         aria-label="Options utilisateur"
+                        aria-haspopup="menu"
+                        aria-expanded={userMenuOpen}
                         title="Options"
                     >
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="currentColor"
-                            stroke="none"
-                        >
-                            <circle cx="12" cy="5" r="1.5" />
-                            <circle cx="12" cy="12" r="1.5" />
-                            <circle cx="12" cy="19" r="1.5" />
-                        </svg>
+                        <EllipsisVertical size={16} />
                     </button>
                 </div>
-            </div>
-        {:else}
-            <div class="flex flex-col items-center gap-2">
-                <div
-                    class="w-9 h-9 rounded-full flex items-center justify-center bg-muted border border-border-card"
+            {:else}
+                <!-- Collapsed: the avatar opens the same menu, beside the sidebar. -->
+                <button
+                    onclick={toggleUserMenu}
+                    class="mx-auto flex w-9 h-9 rounded-full items-center justify-center bg-muted border border-border-card hover:border-foreground-alt transition-colors"
+                    aria-label="Options utilisateur"
+                    aria-haspopup="menu"
+                    aria-expanded={userMenuOpen}
                     title={data.user.email}
                 >
                     <span class="text-xs font-semibold text-foreground-alt uppercase">
                         {data.user.email[0].toUpperCase()}
                     </span>
-                </div>
-                <a
-                    href="https://germinalstudio.co"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="flex items-center justify-center w-9 h-9 text-foreground-alt hover:text-foreground hover:bg-muted rounded-lg transition-colors"
-                    title="Voir le site public"
-                >
-                    <ExternalLink size={14} />
-                </a>
-            </div>
-        {/if}
+                </button>
+            {/if}
+        </div>
     </div>
 </aside>
