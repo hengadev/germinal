@@ -15,6 +15,7 @@ const NONE: DepositRule = { type: 'none', value: 0 };
 describe('priceReservation — Deposit rules', () => {
 	it('takes the whole total online with a 100 % Deposit (full payment)', () => {
 		expect(priceReservation({ unitPrice: 6500, seats: 2, deposit: FULL_PAYMENT_DEPOSIT })).toEqual({
+			extrasTotal: 0,
 			subtotal: 13000,
 			discount: 0,
 			total: 13000,
@@ -25,6 +26,7 @@ describe('priceReservation — Deposit rules', () => {
 
 	it('takes nothing online with no Deposit: the whole total is the Balance', () => {
 		expect(priceReservation({ unitPrice: 6500, seats: 2, deposit: NONE })).toEqual({
+			extrasTotal: 0,
 			subtotal: 13000,
 			discount: 0,
 			total: 13000,
@@ -35,6 +37,7 @@ describe('priceReservation — Deposit rules', () => {
 
 	it('charges a fixed Deposit per seat', () => {
 		expect(priceReservation({ unitPrice: 6500, seats: 3, deposit: { type: 'fixed', value: 2000 } })).toEqual({
+			extrasTotal: 0,
 			subtotal: 19500,
 			discount: 0,
 			total: 19500,
@@ -45,6 +48,7 @@ describe('priceReservation — Deposit rules', () => {
 
 	it('charges a percentage Deposit of the total', () => {
 		expect(priceReservation({ unitPrice: 6500, seats: 2, deposit: { type: 'percent', value: 30 } })).toEqual({
+			extrasTotal: 0,
 			subtotal: 13000,
 			discount: 0,
 			total: 13000,
@@ -70,6 +74,7 @@ describe('priceReservation — Deposit rules', () => {
 
 	it('caps a fixed Deposit above the price at the total', () => {
 		expect(priceReservation({ unitPrice: 1500, seats: 2, deposit: { type: 'fixed', value: 2000 } })).toEqual({
+			extrasTotal: 0,
 			subtotal: 3000,
 			discount: 0,
 			total: 3000,
@@ -81,6 +86,7 @@ describe('priceReservation — Deposit rules', () => {
 	it('prices a free Seating at zero whatever the rule', () => {
 		for (const deposit of [NONE, FULL_PAYMENT_DEPOSIT, { type: 'fixed', value: 2000 } as DepositRule]) {
 			expect(priceReservation({ unitPrice: 0, seats: 4, deposit })).toEqual({
+				extrasTotal: 0,
 				subtotal: 0,
 				discount: 0,
 				total: 0,
@@ -112,7 +118,7 @@ describe('priceReservation — Promo Codes', () => {
 			seats: 2,
 			discount: { discountType: 'percent', discountValue: 10 },
 			deposit: { type: 'percent', value: 30 },
-		})).toEqual({ subtotal: 10000, discount: 1000, total: 9000, deposit: 2700, balance: 6300 });
+		})).toEqual({ extrasTotal: 0, subtotal: 10000, discount: 1000, total: 9000, deposit: 2700, balance: 6300 });
 	});
 
 	it('works out a percentage Deposit on the total after an amount Promo Code', () => {
@@ -122,7 +128,7 @@ describe('priceReservation — Promo Codes', () => {
 			seats: 2,
 			discount: { discountType: 'amount', discountValue: 2500 },
 			deposit: { type: 'percent', value: 50 },
-		})).toEqual({ subtotal: 10000, discount: 2500, total: 7500, deposit: 3750, balance: 3750 });
+		})).toEqual({ extrasTotal: 0, subtotal: 10000, discount: 2500, total: 7500, deposit: 3750, balance: 3750 });
 	});
 
 	it('caps a fixed Deposit at the discounted total', () => {
@@ -132,7 +138,7 @@ describe('priceReservation — Promo Codes', () => {
 			seats: 2,
 			discount: { discountType: 'amount', discountValue: 5000 },
 			deposit: { type: 'fixed', value: 2000 },
-		})).toEqual({ subtotal: 6000, discount: 5000, total: 1000, deposit: 1000, balance: 0 });
+		})).toEqual({ extrasTotal: 0, subtotal: 6000, discount: 5000, total: 1000, deposit: 1000, balance: 0 });
 	});
 
 	it('keeps a fixed Deposit fixed while it is below the discounted total', () => {
@@ -142,7 +148,7 @@ describe('priceReservation — Promo Codes', () => {
 			seats: 2,
 			discount: { discountType: 'amount', discountValue: 2000 },
 			deposit: { type: 'fixed', value: 1500 },
-		})).toEqual({ subtotal: 10000, discount: 2000, total: 8000, deposit: 3000, balance: 5000 });
+		})).toEqual({ extrasTotal: 0, subtotal: 10000, discount: 2000, total: 8000, deposit: 3000, balance: 5000 });
 	});
 
 	it('caps a fixed Deposit at the total after a percent Promo Code', () => {
@@ -152,7 +158,7 @@ describe('priceReservation — Promo Codes', () => {
 			seats: 2,
 			discount: { discountType: 'percent', discountValue: 50 },
 			deposit: { type: 'fixed', value: 2000 },
-		})).toEqual({ subtotal: 6000, discount: 3000, total: 3000, deposit: 3000, balance: 0 });
+		})).toEqual({ extrasTotal: 0, subtotal: 6000, discount: 3000, total: 3000, deposit: 3000, balance: 0 });
 	});
 
 	it('takes an amount Promo Code off the price, not off the Deposit', () => {
@@ -162,7 +168,7 @@ describe('priceReservation — Promo Codes', () => {
 			seats: 2,
 			discount: { discountType: 'amount', discountValue: 2500 },
 			deposit: { type: 'percent', value: 30 },
-		})).toEqual({ subtotal: 10000, discount: 2500, total: 7500, deposit: 2250, balance: 5250 });
+		})).toEqual({ extrasTotal: 0, subtotal: 10000, discount: 2500, total: 7500, deposit: 2250, balance: 5250 });
 	});
 
 	it('a 100 % Promo Code leaves nothing to pay online or at the venue, whatever the rule', () => {
@@ -172,7 +178,7 @@ describe('priceReservation — Promo Codes', () => {
 				seats: 2,
 				discount: { discountType: 'percent', discountValue: 100 },
 				deposit,
-			})).toEqual({ subtotal: 10000, discount: 10000, total: 0, deposit: 0, balance: 0 });
+			})).toEqual({ extrasTotal: 0, subtotal: 10000, discount: 10000, total: 0, deposit: 0, balance: 0 });
 		}
 	});
 
@@ -182,7 +188,7 @@ describe('priceReservation — Promo Codes', () => {
 			seats: 1,
 			discount: { discountType: 'amount', discountValue: 9999 },
 			deposit: FULL_PAYMENT_DEPOSIT,
-		})).toEqual({ subtotal: 2000, discount: 2000, total: 0, deposit: 0, balance: 0 });
+		})).toEqual({ extrasTotal: 0, subtotal: 2000, discount: 2000, total: 0, deposit: 0, balance: 0 });
 	});
 
 	it('rounds a percent Promo Code to the cent, half-up', () => {
@@ -231,7 +237,7 @@ describe('a non-EUR Event’s totals (issue 042)', () => {
 			deposit: { type: 'fixed', value: 2000 },
 		});
 		expect(price.currency).toBe('GBP');
-		expect(breakdown).toEqual({ subtotal: 17000, discount: 1000, total: 16000, deposit: 4000, balance: 12000 });
+		expect(breakdown).toEqual({ extrasTotal: 0, subtotal: 17000, discount: 1000, total: 16000, deposit: 4000, balance: 12000 });
 		expect(formatCurrency(breakdown.total, price.currency)).toBe('£160.00');
 		expect(formatCurrency(breakdown.deposit, price.currency)).toBe('£40.00');
 		expect(formatCurrency(breakdown.balance, price.currency, 'fr-FR')).toBe('120,00 £GB');
@@ -242,5 +248,65 @@ describe('a non-EUR Event’s totals (issue 042)', () => {
 		const breakdown = priceReservation({ unitPrice: chf.amount, seats: 3, deposit: FULL_PAYMENT_DEPOSIT });
 		expect(breakdown).toMatchObject({ total: 12600, deposit: 12600, balance: 0 });
 		expect(formatCurrency(breakdown.deposit, chf.currency)).toBe('CHF 126.00');
+	});
+});
+
+describe('priceReservation with extras (issue 068)', () => {
+	// Two seats at €50 plus €30 of extras (e.g. a €15 wine pairing × 2).
+	const base = { unitPrice: 5000, seats: 2, extrasTotal: 3000 };
+
+	it('adds the extras to the subtotal, promo on the meal only', () => {
+		const p = priceReservation({
+			...base,
+			discount: { discountType: 'percent', discountValue: 10 },
+			deposit: FULL_PAYMENT_DEPOSIT,
+		});
+		expect(p.subtotal).toBe(13000);
+		// 10 % of the €100 meal, never of the extras.
+		expect(p.discount).toBe(1000);
+		expect(p.total).toBe(12000);
+		expect(p.deposit).toBe(12000);
+		expect(p.balance).toBe(0);
+	});
+
+	it('a fixed deposit stays per seat, extras in the total', () => {
+		const p = priceReservation({ ...base, deposit: { type: 'fixed', value: 2000 } });
+		expect(p.total).toBe(13000);
+		expect(p.deposit).toBe(4000);
+		expect(p.balance).toBe(9000);
+	});
+
+	it('a percentage deposit covers the extras', () => {
+		const p = priceReservation({ ...base, deposit: { type: 'percent', value: 50 } });
+		expect(p.deposit).toBe(6500);
+		expect(p.balance).toBe(6500);
+	});
+
+	it('no deposit rule: nothing paid online, extras in the balance', () => {
+		const p = priceReservation({ ...base, deposit: { type: 'none', value: 0 } });
+		expect(p.deposit).toBe(0);
+		expect(p.balance).toBe(13000);
+	});
+
+	it('an amount promo is capped at the meal subtotal, not the total', () => {
+		const p = priceReservation({
+			...base,
+			discount: { discountType: 'amount', discountValue: 99999 },
+			deposit: FULL_PAYMENT_DEPOSIT,
+		});
+		expect(p.discount).toBe(10000);
+		expect(p.total).toBe(3000);
+	});
+
+	it('without extras, every breakdown is unchanged', () => {
+		const p = priceReservation({ unitPrice: 5000, seats: 2, deposit: FULL_PAYMENT_DEPOSIT });
+		expect(p).toEqual({
+			extrasTotal: 0,
+			subtotal: 10000,
+			discount: 0,
+			total: 10000,
+			deposit: 10000,
+			balance: 0,
+		});
 	});
 });

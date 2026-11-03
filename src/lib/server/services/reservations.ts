@@ -2,7 +2,7 @@ import { DEFAULT_EVENT_TIME_ZONE } from '$lib/utils/event-time';
 import { db } from '../db';
 import { logger } from '$lib/server/logger';
 import { incrementReservationCounter } from '../metrics';
-import { eventSessions, reservations, payments } from '../db/schema';
+import { eventSessions, reservations, payments, reservationExtras } from '../db/schema';
 import { eq, and, sql, lt } from 'drizzle-orm';
 import { generateAccessToken } from '$lib/utils/tokens';
 import { createCheckoutSession } from './stripe';
@@ -20,6 +20,7 @@ import { subscribeFromReservation } from './subscribers';
 import { cancelReservationTransition, expireReservationOnHoldTimeout } from './reservation-transitions';
 import { notifyGuestOfCancellation, notifyWaitlistOfFreedSeats, applyRefundWithGiftCard } from './cancellation-effects';
 import { creditableGiftCardShare, findUsableGiftCard, redeemGiftCard, type GiftCardUnusableReason } from './gift-cards';
+import { resolveBookingExtras, type ReservationExtraSnapshot } from './event-extras';
 import { splitDeposit } from '$lib/utils/gift-card';
 
 const BOOKING_REFUSAL_MESSAGES: Record<BookingRefusal, string> = {
@@ -183,6 +184,21 @@ export type CreateReservationResult = {
 };
 
 /**
+ * Store a booking's Extras snapshots (issue 068) on the just-created
+ * Reservation. Must run inside the booking transaction.
+ */
+async function insertReservationExtras(
+	tx: typeof db,
+	reservationId: string,
+	snapshots: ReservationExtraSnapshot[]
+) {
+	if (snapshots.length === 0) return;
+	await tx.insert(reservationExtras).values(
+		snapshots.map((snapshot) => ({ reservationId, ...snapshot }))
+	);
+}
+
+/**
  * Create a reservation with atomic capacity locking
  * This prevents race conditions when multiple users book simultaneously
  */
@@ -256,9 +272,20 @@ export async function createReservation(input: CreateReservationInput): Promise<
 			? { dietaryRequirements: null, dietaryConsentAt: null }
 			: dietaryAnswer;
 
+		// Extras (issue 068): the Event's active ones, resolved under their
+		// rows' lock — stock checked against every Reservation still holding
+		// seats — and snapshotted onto the Reservation.
+		const { snapshots: extraSnapshots, total: extrasTotal } = await resolveBookingExtras(
+			tx,
+			session.eventId,
+			input.quantity,
+			input.extras ?? []
+		);
+
 		const pricing = priceReservation({
 			unitPrice: price.amount,
 			seats: input.quantity,
+			extrasTotal,
 			discount,
 			deposit: event ? depositRuleOf(event) : FULL_PAYMENT_DEPOSIT,
 		});
@@ -338,6 +365,9 @@ export async function createReservation(input: CreateReservationInput): Promise<
 			// row lock (issue 065).
 			await redeemCardShare(reservation.id);
 
+			// The Extras' snapshots (issue 068).
+			await insertReservationExtras(tx, reservation.id, extraSnapshots);
+
 			// Newsletter (issue 052): confirmed without payment, so subscribed
 			// and confirmed at once — in the booking's own transaction.
 			await subscribeFromReservation(tx, reservation);
@@ -378,6 +408,9 @@ export async function createReservation(input: CreateReservationInput): Promise<
 		// Redeemed before the Checkout Session exists, so a card that lost a
 		// race rolls the booking back before anything reaches Stripe.
 		await redeemCardShare(reservation.id);
+
+		// The Extras' snapshots (issue 068).
+		await insertReservationExtras(tx, reservation.id, extraSnapshots);
 
 		// Step 8: Create Stripe Checkout Session (hosted payment page) for
 		// what is left of the Deposit after the gift card's share (issue 065)

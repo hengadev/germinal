@@ -3,6 +3,7 @@ import { error } from '@sveltejs/kit';
 import QRCode from 'qrcode';
 import { seatingTitlesWithFallback } from '$lib/utils/seating-title';
 import { refundPolicyOf } from '$lib/utils/refund-policy';
+import { loadReservationExtras } from '$lib/server/services/event-extras';
 
 export const load = async ({ params }) => {	const reservation = await getReservationByToken(params.token);
 
@@ -26,6 +27,14 @@ export const load = async ({ params }) => {	const reservation = await getReserva
 	return {
 		reservation: {
 			id: reservation.id,
+			// The Extras chosen at booking (issue 068).
+			extras: (await loadReservationExtras(reservation.id)).map((extra) => ({
+				nameFr: extra.nameFr,
+				nameEn: extra.nameEn,
+				unitPrice: extra.unitPrice,
+				unit: extra.unit,
+				quantity: extra.quantity
+			})),
 			guestName: reservation.guestName,
 			guestEmail: reservation.guestEmail,
 			quantity: reservation.quantity,

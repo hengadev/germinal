@@ -358,7 +358,17 @@
       "title": "Annulation et remboursement"
     },
     "continueToPayDeposit": "Continuer vers le paiement de l’acompte",
-    "confirmBooking": "Confirmer la réservation"
+    "confirmBooking": "Confirmer la réservation",
+    "extras": {
+      "label": "Suppléments",
+      "optional": "facultatif",
+      "perPerson": "par personne",
+      "perUnit": "l'unité",
+      "soldOut": "Épuisé",
+      "quantity": "Quantité",
+      "included": "Inclus pour {qty} personne(s)",
+      "lineTotal": "Suppléments"
+    }
   },
   "waitlist": {
     "description": "Soyez averti dès que des billets sont disponibles",
@@ -431,7 +441,8 @@
     },
     "depositPaid": "Acompte payé",
     "giftCardPaid": "dont payé par carte cadeau",
-    "balanceDue": "Reste à régler sur place"
+    "balanceDue": "Reste à régler sur place",
+    "extras": "Suppléments"
   },
   "newsletterSignup": {
     "previewTitle": "Lettre d'information — aperçu",

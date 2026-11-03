@@ -14,6 +14,8 @@ export interface PartySizeTarget {
 	seatingLabel: string;
 	/** total_amount, en centimes. */
 	total: number;
+	/** The Extras' share of the total (issue 068). */
+	extrasTotal?: number;
 	/** balance_amount, en centimes. */
 	balance: number;
 	/** L'acompte payé en ligne, remboursements déduits, en centimes. */

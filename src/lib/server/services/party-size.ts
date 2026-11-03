@@ -18,6 +18,7 @@ import {
 	eventSessions,
 	events,
 	payments,
+	reservationExtras,
 	reservations,
 } from '../db/schema';
 import { recordAuditLog } from './audit-log';
@@ -125,10 +126,18 @@ export async function changeGuests(input: {
 			.from(checkIns)
 			.where(and(eq(checkIns.reservationId, reservationId), isNull(checkIns.undoneAt)));
 
+		// The Extras' share of the total (issue 068): per-person Extras keep
+		// their booked quantity, so only the meal scales with the party.
+		const [{ extrasTotal }] = await tx
+			.select({ extrasTotal: sql<number>`coalesce(sum(${reservationExtras.unitPrice} * ${reservationExtras.quantity}), 0)::int` })
+			.from(reservationExtras)
+			.where(eq(reservationExtras.reservationId, reservationId));
+
 		const quote = quotePartySize(
 			{
 				quantity: party.quantity,
 				total: party.totalAmount,
+				extrasTotal,
 				depositPaid,
 				balance: party.balanceAmount,
 				isComp: party.isComp,

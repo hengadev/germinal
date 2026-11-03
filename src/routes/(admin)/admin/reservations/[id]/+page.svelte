@@ -747,6 +747,63 @@ END:VCALENDAR`;
 						{/if}
 					{/if}
 
+					{#if data.reservation.extras.length > 0}
+						<!-- Suppléments (issue 068) : modifier les quantités, le solde
+						     seul est recalculé (l'acompte payé ne bouge pas). -->
+						<form
+							method="POST"
+							action="?/changeExtras"
+							use:enhance={() => {
+								isSubmitting = true;
+								return async ({ result, update }) => {
+									isSubmitting = false;
+									if (result.type === 'success' && result.data) {
+										form = { success: (result.data as { message: string }).message };
+									} else if (result.type === 'failure' && result.data) {
+										form = { error: (result.data as { error: string }).error };
+									}
+									await update();
+								};
+							}}
+							class="bg-background border border-border-card rounded-lg p-4 space-y-3"
+						>
+							<h3 class="text-sm font-semibold text-foreground">Suppléments</h3>
+							{#each data.reservation.extras as extra (extra.extraId)}
+								<label class="flex items-center justify-between gap-3 text-sm">
+									<span class="text-foreground">
+										{extra.nameFr}
+										<span class="text-muted-foreground">
+											· {formatCurrency(extra.unitPrice, data.reservation.currency)} / {extra.unit === 'per_person' ? 'pers.' : 'unité'}
+										</span>
+									</span>
+									<input
+										type="number"
+										name="extra_{extra.extraId}"
+										value={extra.quantity}
+										min="0"
+										max="20"
+										class="w-20 px-2 py-1.5 border border-border-input rounded-lg text-sm tabular-nums"
+									/>
+								</label>
+							{/each}
+							<div class="flex items-center justify-between text-sm pt-1 border-t border-border-card">
+								<span class="text-muted-foreground">Total suppléments</span>
+								<span class="font-semibold">
+									{formatCurrency(data.reservation.extrasAmount, data.reservation.currency)}
+								</span>
+							</div>
+							<div class="flex justify-end">
+								<button
+									type="submit"
+									disabled={isSubmitting}
+									class="px-4 py-2 bg-foreground text-background rounded-lg text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+								>
+									Modifier les suppléments
+								</button>
+							</div>
+						</form>
+					{/if}
+
 					<!-- Modifier le nombre (issue 046): a confirmed Reservation's
 					     number of Guests, with the live quote and capacity warning. -->
 					{#if data.reservation.status === 'confirmed'}
