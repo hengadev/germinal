@@ -45,7 +45,8 @@
         badge?: number;
     }
 
-    const desktopNavigation: NavItem[] = [
+    // Derived so the badges follow the layout data after a save.
+    const desktopNavigation: NavItem[] = $derived([
         {
             href: "/admin",
             label: "Tableau de bord",
@@ -103,7 +104,7 @@
             label: "Journal d'Audit",
             icon: ScrollText,
         },
-    ];
+    ]);
 
     function isActive(href: string, currentPath: string): boolean {
         if (href === "/admin") {
