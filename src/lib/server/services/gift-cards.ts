@@ -110,6 +110,9 @@ interface MovementInput {
 	reason: Extract<LedgerReason, 'booking' | 'door'>;
 	reservationId?: string | null;
 	actorId?: string | null;
+	/** The caller's own transaction: the movement then locks and writes
+	 * within it (issue 065), instead of opening its own. */
+	tx?: typeof db;
 }
 
 /**
@@ -135,6 +138,8 @@ export async function creditGiftCard(
 		reason: Extract<LedgerReason, 'refund' | 'admin_adjustment'>;
 		reservationId?: string | null;
 		actorId?: string | null;
+		/** The caller's own transaction (issue 065). */
+		tx?: typeof db;
 	}
 ): Promise<MovementResult> {
 	return moveBalance(typedCode, { ...input, amount: input.amount });

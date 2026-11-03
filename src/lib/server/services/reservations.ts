@@ -263,14 +263,45 @@ export async function createReservation(input: CreateReservationInput): Promise<
 			deposit: event ? depositRuleOf(event) : FULL_PAYMENT_DEPOSIT,
 		});
 
+		// Gift card (issue 065): the Promo Code discounts first, then the card
+		// pays toward the Deposit. Read here, inside the booking transaction,
+		// and redeemed below under the card's row lock, so concurrent bookings
+		// on one card can never overspend it (a depleted card throws and rolls
+		// the whole booking back).
+		let cardAmount = 0;
+		let cardCode: string | null = null;
+		if (input.giftCardCode) {
+			const found = await findUsableGiftCard(input.giftCardCode, tx);
+			if (!found.ok) throw new GiftCardUnusableError(found.reason);
+			cardCode = found.card.code;
+			cardAmount = splitDeposit(pricing.deposit, found.card.balance).card;
+		}
+		// What Stripe must charge: the Deposit minus the card's share (0 when
+		// the card covers it all).
+		const payableNow = pricing.deposit - cardAmount;
+
+		// Redeem inside the transaction, once the Reservation exists to link
+		// the ledger row to. Shared by both paths below.
+		const redeemCardShare = async (reservationId: string) => {
+			if (cardAmount <= 0 || !cardCode) return;
+			const redeemed = await redeemGiftCard(cardCode, {
+				amount: cardAmount,
+				reason: 'booking',
+				reservationId,
+				tx
+			});
+			if (!redeemed.ok) throw new GiftCardUnusableError('empty');
+		};
+
 		// Step 5: Generate secure access token
 		const accessToken = generateAccessToken();
 
-		// No Deposit to collect (rule 'none', a zero price, or a 100 % Promo
-		// Code): nothing goes through Stripe (issue 025). The Reservation is
-		// confirmed right away — a regular paid-path booking, NOT comp — with
-		// no Payment row; the Ticket is sent once the transaction commits.
-		if (pricing.deposit === 0) {
+		// Nothing for Stripe to charge (rule 'none', a zero price, a 100 %
+		// Promo Code, or a gift card covering the whole Deposit — issue 065):
+		// the Reservation is confirmed right away — a regular paid-path
+		// booking, NOT comp — with no Payment row; the card's share is
+		// redeemed and the Ticket sent once the transaction commits.
+		if (payableNow === 0) {
 			const now = new Date();
 			const [reservation] = await tx.insert(reservations).values({
 				eventSessionId: input.sessionId,
@@ -295,8 +326,14 @@ export async function createReservation(input: CreateReservationInput): Promise<
 				promotionCodeId,
 				discountAmount: pricing.discount,
 				marketingConsent: input.marketingConsent === true,
+				// The card's share of the Deposit (issue 065).
+				giftCardAmount: cardAmount,
 				...dietary,
 			}).returning();
+
+			// The redemption joins the booking's transaction, under the card's
+			// row lock (issue 065).
+			await redeemCardShare(reservation.id);
 
 			// Newsletter (issue 052): confirmed without payment, so subscribed
 			// and confirmed at once — in the booking's own transaction.
@@ -330,18 +367,25 @@ export async function createReservation(input: CreateReservationInput): Promise<
 			promotionCodeId,
 			discountAmount: pricing.discount,
 			marketingConsent: input.marketingConsent === true,
+			// The card's share of the Deposit (issue 065).
+			giftCardAmount: cardAmount,
 			...dietary,
 		}).returning();
 
+		// Redeemed before the Checkout Session exists, so a card that lost a
+		// race rolls the booking back before anything reaches Stripe.
+		await redeemCardShare(reservation.id);
+
 		// Step 8: Create Stripe Checkout Session (hosted payment page) for
-		// the Deposit only — one line item whose amount is the Deposit, so
-		// Stripe charges exactly that (the Promo Code is already in it). A
-		// Deposit below the whole total is named as such.
+		// what is left of the Deposit after the gift card's share (issue 065)
+		// — one line item of that amount, so Stripe charges exactly that (the
+		// Promo Code and the card are already in it). A Deposit below the
+		// whole total is named as such.
 		const seatingLabel = `${seatingTitle(session, 'en', { timeZone: event?.timeZone ?? DEFAULT_EVENT_TIME_ZONE })}${event && (event.titleEn || event.titleFr) ? ` — ${event.titleEn || event.titleFr}` : ''}`;
 		const checkoutSession = await createCheckoutSession({
 			reservationId: reservation.id,
 			accessToken,
-			amount: pricing.deposit,
+			amount: payableNow,
 			currency: price.currency,
 			quantity: input.quantity,
 			productName: pricing.balance > 0
@@ -370,7 +414,7 @@ export async function createReservation(input: CreateReservationInput): Promise<
 			reservationId: reservation.id,
 			stripePaymentIntentId: checkoutSession.id, // placeholder; updated by webhook
 			stripeClientSecret: null,
-			amount: pricing.deposit,
+			amount: payableNow,
 			currency: price.currency,
 			status: 'pending',
 			idempotencyKey: `reservation-${reservation.id}`,
