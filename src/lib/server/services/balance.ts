@@ -172,8 +172,8 @@ export type GiftCardSettlementResult =
 	| { ok: false; error: string };
 
 /** The net amount already redeemed at the door for a Reservation: the
- * 'door' ledger rows are negative, so adding them back to the Balance
- * gives what is still owed. */
+ * 'door' ledger rows are negative (positive when an undo credited the
+ * card back), so adding them back to the Balance gives what is still owed. */
 async function doorRedeemedSoFar(reservationId: string, tx: typeof db): Promise<number> {
 	const [row] = await tx
 		.select({ total: sql<string>`coalesce(sum(${giftCardLedger.amount}), 0)` })
@@ -350,10 +350,10 @@ export async function undoSettleBalance(input: {
 		}
 
 		// Issue 066 : chaque carte cadeau utilisée à la porte pour cette
-		// Réservation est recréditée, nets des crédits antérieurs, une
-		// seule fois — ses écritures pour cette Réservation (les lignes
-		// « door » négatives, les « refund » positives) donnent ce qui
-		// lui est encore dû.
+		// Réservation est recréditée une seule fois. Le recrédit est une
+		// ligne « door » positive : les lignes « door » d'une carte se
+		// compensent, ce qui reste négatif lui est encore dû, et le calcul
+		// du restant dû (doorRedeemedSoFar) repart de zéro.
 		const doorCards = await tx
 			.select({
 				code: giftCards.code,
@@ -362,7 +362,7 @@ export async function undoSettleBalance(input: {
 			.from(giftCardLedger)
 			.innerJoin(giftCards, eq(giftCardLedger.giftCardId, giftCards.id))
 			.where(
-				sql`${giftCardLedger.reservationId} = ${reservationId} and (${giftCardLedger.reason} = 'door' or ${giftCardLedger.reason} = 'refund')`
+				sql`${giftCardLedger.reservationId} = ${reservationId} and ${giftCardLedger.reason} = 'door'`
 			)
 			.groupBy(giftCards.code);
 		let creditedBack = 0;
@@ -371,7 +371,7 @@ export async function undoSettleBalance(input: {
 			if (net >= 0) continue;
 			const credited = await creditGiftCard(card.code, {
 				amount: -net,
-				reason: 'refund',
+				reason: 'door',
 				reservationId,
 				actorId,
 				tx

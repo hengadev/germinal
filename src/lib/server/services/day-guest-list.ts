@@ -21,6 +21,8 @@ export interface DayGuestParty {
 	quantity?: number;
 	/** Balance due at the venue, in cents — only with the guest list. */
 	balanceAmount?: number;
+	/** Issue 066: what gift cards already paid of it at the door, in cents. */
+	giftCardPaidAtDoor?: number;
 	currency?: string;
 	isComp?: boolean;
 	/** Issue 020: a Walk-in recorded on the spot. */
@@ -116,6 +118,11 @@ function partyColumns(access: StaffAccess): PartyColumns {
 		columns.guestName = reservations.guestName;
 		columns.quantity = reservations.quantity;
 		columns.balanceAmount = reservations.balanceAmount;
+		columns.giftCardPaidAtDoor = sql`(
+			select coalesce(-sum(l.amount), 0)::int
+			from gift_card_ledger l
+			where l.reservation_id = ${reservations.id} and l.reason = 'door'
+		)`;
 		columns.currency = reservations.currency;
 		columns.isComp = reservations.isComp;
 		columns.origin = reservations.origin;

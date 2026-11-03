@@ -16,7 +16,7 @@
 	import type { RefundPolicy } from '$lib/utils/refund-policy';
 	import PartyActionsMenu from './PartyActionsMenu.svelte';
 	import { visitOrdinalFr } from '$lib/utils/visit-ordinal';
-	import { balanceDue, capacityLabel, guests as guestsLabel, seatingTime, settleTimeLabel, type ArriveesFields } from './helpers';
+	import { balanceDue, balanceDueCents, capacityLabel, guests as guestsLabel, seatingTime, settleTimeLabel, type ArriveesFields } from './helpers';
 	import { onlineState, markOffline } from '$lib/staff/offline/online-state.svelte';
 	import { enqueueArrival } from '$lib/staff/offline/arrival-queue.svelte';
 	import { applyArrivalToSnapshot } from '$lib/staff/offline/snapshot-store';
@@ -282,7 +282,7 @@
 							openGiftCard({
 								reservationId: party.id!,
 								guestName: party.guestName ?? null,
-								balance: party.balanceAmount ?? 0,
+								balance: balanceDueCents(party),
 								currency: 'EUR',
 								seatingLabel
 							})}

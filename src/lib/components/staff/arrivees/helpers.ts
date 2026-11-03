@@ -37,7 +37,13 @@ export function guests(count: number): string {
 /** The Balance still due on site, or null when nothing is (or it may not be seen). */
 export function balanceDue(party: DayGuestParty): string | null {
 	if (party.isComp || !party.balanceAmount || !party.currency) return null;
-	return formatCurrency(party.balanceAmount, party.currency, 'fr-FR');
+	return formatCurrency(balanceDueCents(party), party.currency, 'fr-FR');
+}
+
+/** What is still owed on site, in cents: the Balance minus what gift
+ * cards already paid of it at the door (issue 066). */
+export function balanceDueCents(party: DayGuestParty): number {
+	return Math.max(0, (party.balanceAmount ?? 0) - (party.giftCardPaidAtDoor ?? 0));
 }
 
 /** When a Balance was settled, the way the door says it: « 20 h 05 ». */

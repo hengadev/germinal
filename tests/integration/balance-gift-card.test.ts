@@ -237,12 +237,10 @@ describe('balance settled with a gift card', () => {
 		expect((await getGiftCard(card.id))!.card.balance).toBe(2500);
 
 		const rows = await testDb.select().from(giftCardLedger);
+		// The credit-back is a positive 'door' row: the door rows net to 0.
 		const door = rows.filter((r) => r.reason === 'door');
-		const refund = rows.filter((r) => r.reason === 'refund');
-		expect(door).toHaveLength(1);
-		expect(refund).toHaveLength(1);
-		expect(refund[0].amount).toBe(2000);
-		expect(refund[0].reservationId).toBe(party.id);
+		expect(door.map((r) => r.amount).sort((a, b) => a - b)).toEqual([-2000, 2000]);
+		expect(door.every((r) => r.reservationId === party.id)).toBe(true);
 
 		// Undoing again: nothing left to undo, and nothing re-credited.
 		const again = await balance.undoSettleBalance({
@@ -253,6 +251,17 @@ describe('balance settled with a gift card', () => {
 		});
 		expect(again.ok).toBe(false);
 		expect((await getGiftCard(card.id))!.card.balance).toBe(2500);
+
+		// Settling again after the undo owes the whole Balance once more.
+		const resettled = await balance.settleBalanceWithGiftCard({
+			access,
+			eventId: s.event.id,
+			reservationId: party.id,
+			actorId: s.actor.id,
+			code: card.code
+		});
+		expect(resettled).toMatchObject({ ok: true, applied: 2000, remainder: 0, settled: true });
+		expect((await getGiftCard(card.id))!.card.balance).toBe(500);
 	});
 
 	it('refuses unusable codes', async () => {

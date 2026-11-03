@@ -457,6 +457,9 @@ import {
 	<!-- La feuille « Modifier le nombre » du menu ⋮ d'une carte, par-dessus tout -->
 	{#if data.arrivees && data.access.canChangeParty}
 		<PartySizeSheet />
+	{/if}
+	<!-- La feuille « Carte cadeau » (issue 066) : le serveur revérifie « Régler un solde » -->
+	{#if data.arrivees}
 		<GiftCardSheet />
 	{/if}
 

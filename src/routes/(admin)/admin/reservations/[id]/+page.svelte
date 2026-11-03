@@ -868,8 +868,9 @@ END:VCALENDAR`;
 										<span class="text-muted-foreground">
 											{new Date(redemption.createdAt).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })} · {redemption.maskedCode}
 										</span>
-										<span class="font-semibold">-{formatCurrency(Math.abs(redemption.amount), 'EUR')}</span>
-										</li>
+										<!-- Negative: used at the door. Positive: credited back by an undo. -->
+										<span class="font-semibold tabular-nums">{redemption.amount < 0 ? '−' : '+'}{formatCurrency(Math.abs(redemption.amount), 'EUR')}{redemption.amount > 0 ? ' (recrédité)' : ''}</span>
+									</li>
 								{/each}
 							</ul>
 						</div>
