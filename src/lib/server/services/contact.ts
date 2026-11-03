@@ -221,7 +221,7 @@ export async function createEventFromDemande(id: string): Promise<{
 
 		const title = demande.occasion?.trim() || `Privatisation — ${demande.name}`;
 		const notes = [
-			`Demande de privatisation (issue 069).`,
+			`Demande de privatisation reçue par le formulaire de contact.`,
 			`Contact : ${demande.name} <${demande.email}>${demande.company ? ` — ${demande.company}` : ''}`,
 			`Occasion : ${demande.occasion ?? '—'}`,
 			`Dates souhaitées : ${demande.preferredDates ?? '—'}`,

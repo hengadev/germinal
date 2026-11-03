@@ -67,21 +67,21 @@ export const actions: Actions = {
 		requireAdmin(locals);
 		const admin = locals.user!;
 
+		let eventId: string;
 		try {
 			const { event, created } = await createEventFromDemande(params.id);
+			eventId = event.id;
 
 			if (created) {
 				await recordAuditLog({
-				adminId: admin.id,
-				action: 'demande.create_event',
-				entityType: 'contact_submission',
-				entityId: params.id,
+					adminId: admin.id,
+					action: 'demande.create_event',
+					entityType: 'contact_submission',
+					entityId: params.id,
 					// The request's details live in the Event's Internal Notes.
 					metadata: { eventId: event.id }
 				});
 			}
-
-			redirect(303, `/admin/events/${event.id}`);
 		} catch (err) {
 			if (err instanceof CreateEventFromDemandeError) {
 				return fail(err.status, { success: false, error: err.message });
@@ -89,5 +89,8 @@ export const actions: Actions = {
 			logger.error({ err }, 'Failed to create event from demande');
 			return fail(400, { success: false, error: 'Impossible de créer l\u2019événement.' });
 		}
+		// Outside the try: redirect() throws, and the catch would take it for
+		// a failure.
+		redirect(303, `/admin/events/${eventId}`);
 	},
 };
