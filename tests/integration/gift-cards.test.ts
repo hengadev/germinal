@@ -7,7 +7,7 @@
  */
 import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest';
 import { eq } from 'drizzle-orm';
-import { auditLog, giftCardLedger, giftCards, users } from '../../src/lib/server/db/schema';
+import { auditLog, emailQueue, giftCardLedger, giftCards, users } from '../../src/lib/server/db/schema';
 // The service pulls in db (whose mock reads testDb): import it lazily.
 let svc: typeof import('../../src/lib/server/services/gift-cards');
 import {
@@ -158,6 +158,29 @@ describe('redeem and credit', () => {
 		const [after] = await testDb.select().from(giftCards).where(eq(giftCards.id, card.id));
 		expect(after.balance).toBe(1000);
 		expect(await svc.ledgerSum(card.id)).toBe(-2000);
+	});
+});
+
+describe('email', () => {
+	it('queues the card email (code, amount, expiry, message)', async () => {
+		const { sendGiftCardEmail } = await import(
+			'../../src/lib/server/services/email'
+		);
+		const expiry = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
+		await sendGiftCardEmail({
+			recipientEmail: 'camille@example.com',
+			recipientName: 'Camille',
+			code: 'GERM-7ZK9-M3XT',
+			amount: 5000,
+			expiry,
+			message: 'Joyeux anniversaire'
+		});
+		const rows = await testDb.select().from(emailQueue);
+		expect(rows.length).toBe(1);
+		expect(rows[0].type).toBe('gift_card');
+		expect(rows[0].recipient).toBe('camille@example.com');
+		expect(rows[0].textBody).toContain('GERM-7ZK9-M3XT');
+		expect(rows[0].htmlBody).toContain('GERM-7ZK9-M3XT');
 	});
 });
 
