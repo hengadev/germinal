@@ -49,8 +49,10 @@ export interface PromoDiscount {
 }
 
 export interface PriceBreakdown {
-	/** Unit price × seats. */
+	/** Unit price × seats, plus the Extras. */
 	subtotal: number;
+	/** The Extras' total (issue 068): 0 when none were chosen. */
+	extrasTotal: number;
 	/** Promo Code discount, never more than the subtotal. */
 	discount: number;
 	/** What the Reservation costs: subtotal − discount. */
@@ -95,19 +97,27 @@ export function depositAmount(rule: DepositRule, total: number, seats: number): 
 	return Math.min(Math.max(deposit, 0), total);
 }
 
-/** Price a Reservation: see the module comment for the rules. */
+/** Price a Reservation: see the module comment for the rules. With
+ * Extras (issue 068) the subtotal adds them, the Promo Code discounts the
+ * meal only, and the Deposit rule takes the whole total in (a fixed
+ * per-seat Deposit stays per seat; a percentage covers the Extras). */
 export function priceReservation(input: {
 	/** Unit price per seat, minor units. */
 	unitPrice: number;
 	seats: number;
+	/** The Extras' total, minor units (issue 068); defaults to 0. */
+	extrasTotal?: number;
 	discount?: PromoDiscount | null;
 	deposit: DepositRule;
 }): PriceBreakdown {
-	const subtotal = input.unitPrice * input.seats;
-	const discount = input.discount ? discountAmount(input.discount, subtotal) : 0;
+	const extrasTotal = input.extrasTotal ?? 0;
+	const mealSubtotal = input.unitPrice * input.seats;
+	const subtotal = mealSubtotal + extrasTotal;
+	// The Promo Code discounts the meal, never the Extras.
+	const discount = input.discount ? discountAmount(input.discount, mealSubtotal) : 0;
 	const total = subtotal - discount;
 	const deposit = depositAmount(input.deposit, total, input.seats);
-	return { subtotal, discount, total, deposit, balance: total - deposit };
+	return { subtotal, extrasTotal, discount, total, deposit, balance: total - deposit };
 }
 
 /** Whether a rule is valid: the combinations the database accepts. */
