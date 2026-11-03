@@ -42,6 +42,14 @@ export function formatGiftCardCode(code: string): string {
 }
 
 /**
+ * The invariant every movement maintains: the balance equals the initial
+ * amount plus the ledger (negative used, positive credited).
+ */
+export function computeGiftCardBalance(initialAmount: number, movements: number[]): number {
+	return movements.reduce((balance, amount) => balance + amount, initialAmount);
+}
+
+/**
  * For logs and the audit trail: never the full code, only the last four
  * characters (`GERM…M3XT`).
  */

@@ -54,7 +54,8 @@ export async function issueGiftCard(
 			const [card] = await db
 				.insert(giftCards)
 				.values({
-					code,
+					// Stored normalised (no dashes) — see normaliseGiftCardCode.
+					code: normaliseGiftCardCode(code),
 					initialAmount: input.amount,
 					balance: input.amount,
 					expiresAt,
