@@ -14,6 +14,9 @@ export type CreateReservationInput = {
 	promoCode?: string;
 	/** Gift card code paying toward the Deposit (issue 065). */
 	giftCardCode?: string;
+	/** Extras chosen at booking (issue 068): one entry per Extra. A
+	 * per-person Extra ignores the quantity sent and takes the party size. */
+	extras?: { extraId: string; quantity: number }[];
 	/** Dietary Requirements (issue 041): stored only on an Event that asks,
 	 * and only with `dietaryConsent`. */
 	dietaryRequirements?: string;

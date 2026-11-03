@@ -237,7 +237,7 @@ describe('a non-EUR Event’s totals (issue 042)', () => {
 			deposit: { type: 'fixed', value: 2000 },
 		});
 		expect(price.currency).toBe('GBP');
-		expect(breakdown).toEqual({ extrasTotal: 0, subtotal: 17000, extrasTotal: 0, discount: 1000, total: 16000, deposit: 4000, balance: 12000 });
+		expect(breakdown).toEqual({ extrasTotal: 0, subtotal: 17000, discount: 1000, total: 16000, deposit: 4000, balance: 12000 });
 		expect(formatCurrency(breakdown.total, price.currency)).toBe('£160.00');
 		expect(formatCurrency(breakdown.deposit, price.currency)).toBe('£40.00');
 		expect(formatCurrency(breakdown.balance, price.currency, 'fr-FR')).toBe('120,00 £GB');
@@ -303,7 +303,6 @@ describe('priceReservation with extras (issue 068)', () => {
 		expect(p).toEqual({
 			extrasTotal: 0,
 			subtotal: 10000,
-			extrasTotal: 0,
 			discount: 0,
 			total: 10000,
 			deposit: 10000,

@@ -1,6 +1,6 @@
 import { db } from '../db';
-import { eventExtras, reservationExtras } from '../db/schema';
-import { eq, inArray } from 'drizzle-orm';
+import { eventExtras, reservationExtras, reservations } from '../db/schema';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import type { EditorEventExtra, EventExtraPayload, ExtrasPayload } from '$lib/types/pricing-editor';
 import { ScheduleSaveRefusedError } from './event-schedule';
 
@@ -263,3 +263,144 @@ export async function saveExtras(eventId: string, payload: ExtrasPayload): Promi
 		return { extraIds: Object.fromEntries(extraIdByKey) };
 	});
 }
+
+// ---------------------------------------------------------------------------
+// Booking (issue 068)
+// ---------------------------------------------------------------------------
+
+/** An Extra a Guest chose at booking, as the API takes it. */
+export interface BookingExtraChoice {
+	extraId: string;
+	quantity: number;
+}
+
+/** Upper bound on a per-unit Extra's quantity at booking. */
+export const MAX_EXTRA_QUANTITY = 20;
+
+/** Thrown when booking (or an Admin change) would take an Extra past its
+ * stock; carries the Extra's name for the Guest-facing message. */
+export class ExtraSoldOutError extends Error {
+	constructor(
+		public readonly extraNameFr: string,
+		public readonly extraNameEn: string
+	) {
+		super(`Extra sold out: ${extraNameEn}`);
+		this.name = 'ExtraSoldOutError';
+	}
+	get messageFr(): string {
+		return `« ${this.extraNameFr} » n’est plus disponible en quantité suffisante.`;
+	}
+	get messageEn(): string {
+		return `“${this.extraNameEn}” is no longer available in sufficient quantity.`;
+	}
+}
+
+/** The snapshots a booking stores on the Reservation. */
+export interface ReservationExtraSnapshot {
+	eventExtraId: string;
+	nameEn: string;
+	nameFr: string;
+	unitPrice: number;
+	unit: 'per_person' | 'per_unit';
+	quantity: number;
+}
+
+/** Statuses of Reservations that still hold their Extras' stock. */
+const STOCK_HOLDING_STATUSES = ['pending', 'processing', 'confirmed'] as const;
+
+/**
+ * Resolve a booking's Extras against the Event's active ones, under the
+ * `event_extras` rows' lock (call inside the booking transaction): a
+ * per-person Extra takes the party size as its quantity (the client's is
+ * ignored), a per-unit one keeps what was asked. Refuses with
+ * {@link ExtraSoldOutError} when an Extra is unknown, inactive, of another
+ * Event, or when its stock cannot cover the request — stock counts every
+ * booked quantity on Reservations that still hold seats.
+ */
+export async function resolveBookingExtras(
+	tx: typeof db,
+	eventId: string,
+	seats: number,
+	choices: BookingExtraChoice[]
+): Promise<{ snapshots: ReservationExtraSnapshot[]; total: number }> {
+	if (choices.length === 0) return { snapshots: [], total: 0 };
+
+	// One row per Extra, even if a client sent duplicates.
+	const asked = new Map<string, number>();
+	for (const choice of choices) {
+		if (choice.quantity < 1) continue;
+		asked.set(choice.extraId, Math.min(MAX_EXTRA_QUANTITY, choice.quantity + (asked.get(choice.extraId) ?? 0)));
+	}
+	if (asked.size === 0) return { snapshots: [], total: 0 };
+
+	const rows = await tx
+		.select()
+		.from(eventExtras)
+		.where(and(inArray(eventExtras.id, [...asked.keys()]), eq(eventExtras.eventId, eventId)))
+		.for('update') as unknown as (typeof eventExtras.$inferSelect)[];
+	const byId = new Map(rows.map((row: typeof eventExtras.$inferSelect) => [row.id, row]));
+	for (const id of asked.keys()) {
+		const row = byId.get(id);
+		if (!row || !row.active) {
+			throw new ExtraSoldOutError('Extra', 'Extra');
+		}
+	}
+
+	const booked: { eventExtraId: string; booked: number }[] = await tx
+		.select({
+			eventExtraId: reservationExtras.eventExtraId,
+			booked: sql<number>`coalesce(sum(${reservationExtras.quantity}), 0)::int`,
+		})
+		.from(reservationExtras)
+		.innerJoin(reservations, eq(reservationExtras.reservationId, reservations.id))
+		.where(and(
+			inArray(reservationExtras.eventExtraId, [...asked.keys()]),
+			inArray(reservations.status, [...STOCK_HOLDING_STATUSES])
+		))
+		.groupBy(reservationExtras.eventExtraId);
+	const bookedById = new Map(booked.map((row) => [row.eventExtraId, row.booked]));
+
+	let total = 0;
+	const snapshots: ReservationExtraSnapshot[] = [];
+	for (const row of rows) {
+		// Rows are ordered by the Map's insertion; resolve every asked Extra.
+		const quantity = row.unit === 'per_person' ? seats : (asked.get(row.id) ?? 0);
+		if (quantity < 1) continue;
+		if (row.stock !== null && (bookedById.get(row.id) ?? 0) + quantity > row.stock) {
+			throw new ExtraSoldOutError(row.nameFr, row.nameEn);
+		}
+		snapshots.push({
+			eventExtraId: row.id,
+			nameEn: row.nameEn,
+			nameFr: row.nameFr,
+			unitPrice: row.priceAmount,
+			unit: row.unit,
+			quantity,
+		});
+		total += row.priceAmount * quantity;
+	}
+	return { snapshots, total };
+}
+
+/** A Reservation's Extras snapshots, in booking order. */
+export async function loadReservationExtras(
+	reservationId: string
+): Promise<(ReservationExtraSnapshot & { id: string })[]> {
+	const { db } = await import('../db');
+	return db
+		.select({
+			id: reservationExtras.id,
+			eventExtraId: reservationExtras.eventExtraId,
+			nameEn: reservationExtras.nameEn,
+			nameFr: reservationExtras.nameFr,
+			unitPrice: reservationExtras.unitPrice,
+			unit: reservationExtras.unit,
+			quantity: reservationExtras.quantity,
+		})
+		.from(reservationExtras)
+		.where(eq(reservationExtras.reservationId, reservationId));
+}
+
+/** The Extras' total of a Reservation's snapshots, in minor units. */
+export const extrasTotalOf = (snapshots: { unitPrice: number; quantity: number }[]): number =>
+	snapshots.reduce((sum, snapshot) => sum + snapshot.unitPrice * snapshot.quantity, 0);
