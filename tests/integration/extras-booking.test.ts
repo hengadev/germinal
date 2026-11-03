@@ -12,7 +12,7 @@ const ACTOR_ID = '00000000-0000-0000-0000-000000000001';
 const seedActor = async () =>
 	await testDb.insert(users).values({
 		id: ACTOR_ID,
-		email: 'admin@example.com',
+		email: 'extras-admin@example.com',
 		firstName: 'Admin',
 		lastName: 'Test',
 		passwordHash: 'x',
