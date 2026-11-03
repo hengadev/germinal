@@ -96,7 +96,8 @@
 			deposit: data.deposit,
 		})
 	);
-	let baseAmount = $derived(price.subtotal);
+	// The meal alone: the Extras get their own line (issue 068).
+	let baseAmount = $derived(price.subtotal - price.extrasTotal);
 	let discountAmount = $derived(price.discount);
 	let totalAmount = $derived(price.total);
 
