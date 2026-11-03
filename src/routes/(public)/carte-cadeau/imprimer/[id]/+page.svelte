@@ -24,17 +24,21 @@
 	<meta name="robots" content="noindex" />
 </svelte:head>
 
-<!-- Print: the site chrome disappears, only the card remains. -->
-<style global>
+<style>
+	/* Print: only the card is printed, never the site chrome or banners. */
 	@media print {
-		nav,
-		footer,
-		header {
-			display: none !important;
+		:global(body *) {
+			visibility: hidden !important;
+		}
+		.print-card,
+		.print-card :global(*) {
+			visibility: visible !important;
 		}
 		.print-card {
+			position: absolute;
+			inset: 0 auto auto 0;
+			width: 100%;
 			border: 1px solid #000 !important;
-			box-shadow: none !important;
 		}
 	}
 </style>

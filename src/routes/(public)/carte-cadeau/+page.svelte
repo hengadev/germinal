@@ -64,8 +64,8 @@
 		{/if}
 
 		<form method="POST" class="grid gap-10" novalidate use:enhance={() => {
+			isSubmitting = true;
 			return async ({ update }) => {
-				isSubmitting = true;
 				await update();
 				isSubmitting = false;
 			};
@@ -151,15 +151,6 @@
 						value={value("recipientName")} class={inputClass(!!fieldError("recipientName"))} />
 					{#if fieldError("recipientName")}<p class="text-red-500 text-xs">{fieldError("recipientName")}</p>{/if}
 				</div>
-				<div class="grid gap-2">
-					<label for="recipientEmail" class="text-xs md:text-sm font-medium text-foreground-alt">
-						{$t("giftCard.form.recipientEmail")}
-						{#if delivery === "recipient"}<span class="text-red-500">*</span>{/if}
-					</label>
-					<input type="email" id="recipientEmail" name="recipientEmail"
-						value={value("recipientEmail")} class={inputClass(!!fieldError("recipientEmail"))} />
-					{#if fieldError("recipientEmail")}<p class="text-red-500 text-xs">{fieldError("recipientEmail")}</p>{/if}
-				</div>
 			</section>
 
 			<section class="grid gap-2">
@@ -178,6 +169,7 @@
 						class="px-4 py-2 text-sm border cursor-pointer rounded-none {delivery === 'buyer'
 							? 'bg-foreground text-white border-foreground'
 							: 'text-muted-foreground border-border-input'}"
+						aria-pressed={delivery === "buyer"}
 						onclick={() => (delivery = "buyer")}
 					>
 						{$t("giftCard.form.deliveryBuyer")}
@@ -187,12 +179,24 @@
 						class="px-4 py-2 text-sm border cursor-pointer rounded-none {delivery === 'recipient'
 							? 'bg-foreground text-white border-foreground'
 							: 'text-muted-foreground border-border-input'}"
+						aria-pressed={delivery === "recipient"}
 						onclick={() => (delivery = "recipient")}
 					>
 						{$t("giftCard.form.deliveryRecipient")}
 					</button>
 				</div>
 				<input type="hidden" name="delivery" value={delivery} />
+				{#if delivery === "recipient"}
+					<div class="grid gap-2">
+						<label for="recipientEmail" class="text-xs md:text-sm font-medium text-foreground-alt">
+							{$t("giftCard.form.recipientEmail")}
+							<span class="text-red-500">*</span>
+						</label>
+						<input type="email" id="recipientEmail" name="recipientEmail" required
+							value={value("recipientEmail")} class={inputClass(!!fieldError("recipientEmail"))} />
+						{#if fieldError("recipientEmail")}<p class="text-red-500 text-xs">{fieldError("recipientEmail")}</p>{/if}
+					</div>
+				{/if}
 			</section>
 
 			<button

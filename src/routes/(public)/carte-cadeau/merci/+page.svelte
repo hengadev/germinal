@@ -7,6 +7,7 @@
 
 <svelte:head>
 	<title>{$t("giftCard.thanks.pageTitle")}</title>
+	<meta name="robots" content="noindex" />
 </svelte:head>
 
 <div class="container mx-auto px-4 py-32 max-w-2xl grid gap-6">
