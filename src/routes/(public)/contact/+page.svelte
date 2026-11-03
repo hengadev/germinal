@@ -14,13 +14,15 @@
 
     let { form }: { form: ActionData } = $props();
 
-    const filterKeys = ["collaboration", "newProject", "joinRoster", "other"];
+    const filterKeys = ["collaboration", "newProject", "joinRoster", "privateEvent", "other"];
     const filterValues = [
         "collaboration",
         "new_project",
         "join_roster",
+        "private_event",
         "other",
     ];
+    const privateEventIndex = filterValues.indexOf("private_event");
     let filters = $derived(
         filterKeys.map((key) => $t(`contact.filters.${key}`)),
     );
@@ -37,6 +39,10 @@
         { href: "https://www.instagram.com/Germinal.studio/", Icon: Instagram },
         { href: "https://germinalstudio.co", Icon: Globe },
     ];
+
+    function isPrivateEvent(): boolean {
+        return selectedIndex === privateEventIndex;
+    }
 
     function getInquiryTypeValue(): string {
         return filterValues[selectedIndex];
@@ -306,6 +312,84 @@
                         </p>
                     {/if}
                 </div>
+
+                {#if isPrivateEvent()}
+                    <div
+                        class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-16"
+                        use:reveal={{ preset: "fade-up", delay: 275 }}
+                    >
+                        <div class="grid gap-2">
+                            <label
+                                for="occasion"
+                                class="block text-xs md:text-sm font-medium text-foreground-alt mb-2"
+                            >
+                                {$t("contact.form.occasion")}
+                            </label>
+                            <input
+                                type="text"
+                                id="occasion"
+                                name="occasion"
+                                value={getFormDataValue("occasion")}
+                                class="w-full px-3 md:px-4 py-2 text-base md:text-sm border-b border-b-border-input-hover focus:outline-none focus:ring-0 focus:shadow-none focus:border-b-border"
+                            />
+                        </div>
+                        <div class="grid gap-2">
+                            <label
+                                for="guestCount"
+                                class="block text-xs md:text-sm font-medium text-foreground-alt mb-2"
+                            >
+                                {$t("contact.form.guestCount")}
+                            </label>
+                            <input
+                                type="number"
+                                id="guestCount"
+                                name="guestCount"
+                                min="1"
+                                value={getFormDataValue("guestCount")}
+                                class="w-full px-3 md:px-4 py-2 text-base md:text-sm border-b border-b-border-input-hover focus:outline-none focus:ring-0 focus:shadow-none focus:border-b-border {hasFieldError(
+                                    'guestCount',
+                                )
+                                    ? 'border-b-red-500'
+                                    : ''}"
+                            />
+                            {#if getFieldError("guestCount")}
+                                <p class="text-red-500 text-xs md:text-sm">
+                                    {getFieldError("guestCount")}
+                                </p>
+                            {/if}
+                        </div>
+                        <div class="grid gap-2">
+                            <label
+                                for="preferredDates"
+                                class="block text-xs md:text-sm font-medium text-foreground-alt mb-2"
+                            >
+                                {$t("contact.form.preferredDates")}
+                            </label>
+                            <input
+                                type="text"
+                                id="preferredDates"
+                                name="preferredDates"
+                                value={getFormDataValue("preferredDates")}
+                                class="w-full px-3 md:px-4 py-2 text-base md:text-sm border-b border-b-border-input-hover focus:outline-none focus:ring-0 focus:shadow-none focus:border-b-border"
+                            />
+                        </div>
+                        <div class="grid gap-2">
+                            <label
+                                for="budget"
+                                class="block text-xs md:text-sm font-medium text-foreground-alt mb-2"
+                            >
+                                {$t("contact.form.budget")}
+                            </label>
+                            <input
+                                type="text"
+                                id="budget"
+                                name="budget"
+                                value={getFormDataValue("budget")}
+                                class="w-full px-3 md:px-4 py-2 text-base md:text-sm border-b border-b-border-input-hover focus:outline-none focus:ring-0 focus:shadow-none focus:border-b-border"
+                            />
+                        </div>
+                    </div>
+                {/if}
 
                 <div use:reveal={{ preset: "fade-up", delay: 300 }}>
                     <label

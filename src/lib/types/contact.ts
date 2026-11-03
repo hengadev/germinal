@@ -15,6 +15,10 @@ export type ContactEmailData = {
   company: string | null;
   inquiryType: string;
   message: string;
+  occasion?: string | null;
+  preferredDates?: string | null;
+  guestCount?: number | null;
+  budget?: string | null;
   submittedAt: Date;
   ipAddress?: string | null;
 };

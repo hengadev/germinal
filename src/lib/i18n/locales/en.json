@@ -145,7 +145,8 @@
       "collaboration": "Collaboration",
       "newProject": "New Project",
       "joinRoster": "Join Roster",
-      "other": "Other"
+      "other": "Other",
+      "privateEvent": "Private event"
     },
     "form": {
       "name": "Name",
@@ -153,7 +154,11 @@
       "company": "Company/Organization (optional)",
       "message": "Tell us about your project...",
       "send": "Send Message",
-      "sending": "Sending..."
+      "sending": "Sending...",
+      "occasion": "Occasion (optional)",
+      "preferredDates": "Preferred dates (optional)",
+      "guestCount": "Number of guests (optional)",
+      "budget": "Budget (optional)"
     },
     "sidebar": {
       "generalInquiries": "general inquiries",
