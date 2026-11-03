@@ -264,6 +264,7 @@ export function generateTicketTextTemplate(data: TicketEmailData): string {
 		practicalInfo: 'INFOS PRATIQUES :',
 		tickets: 'BILLETS :',
 		total: 'Total :',
+		extras: 'Suppléments',
 		depositPaid: 'Acompte payé :',
 		giftCardPaid: 'dont payé par carte cadeau :',
 		balanceDue: 'Reste à régler sur place :',
@@ -280,6 +281,7 @@ export function generateTicketTextTemplate(data: TicketEmailData): string {
 		practicalInfo: 'PRACTICAL INFO:',
 		tickets: 'TICKETS:',
 		total: 'Total: ',
+		extras: 'Extras',
 		depositPaid: 'Deposit paid: ',
 		giftCardPaid: 'of which by gift card: ',
 		balanceDue: 'Balance due at the venue: ',
@@ -304,7 +306,8 @@ ${where.join('\n')}
 ${practicalInfo ? `\n${L.practicalInfo}\n${practicalInfo}` : ''}
 
 ${L.tickets}
-${data.reservation.quantity} × ${money(bookedUnitPriceAmount(data.reservation), data.reservation.currency)}
+${data.reservation.quantity} × ${money(bookedUnitPriceAmount(data.reservation), data.reservation.currency)}${(data.extras ?? []).map((extra) => `
+${extra.quantity} × ${lang === 'fr' ? extra.nameFr : extra.nameEn} — ${money(extra.unitPrice * extra.quantity, data.reservation.currency)}`).join('')}
 ${L.total}${money(data.reservation.totalAmount, data.reservation.currency)}${data.reservation.balanceAmount > 0 ? `
 ${L.depositPaid}${money(data.reservation.depositAmount, data.reservation.currency)}${data.reservation.giftCardAmount > 0 ? `
 ${L.giftCardPaid}${money(data.reservation.giftCardAmount, data.reservation.currency)}` : ''}
@@ -346,6 +349,7 @@ export function generateTicketHtmlTemplate(data: TicketEmailData): string {
 		practicalInfoHeading: 'Infos pratiques',
 		tickets: 'Billets',
 		total: 'Total',
+		extras: 'Suppléments',
 		depositPaid: 'Acompte payé',
 		giftCardPaid: 'dont payé par carte cadeau',
 		balanceDue: 'Reste à régler sur place',
@@ -364,6 +368,7 @@ export function generateTicketHtmlTemplate(data: TicketEmailData): string {
 		practicalInfoHeading: 'Practical Info',
 		tickets: 'Tickets',
 		total: 'Total',
+		extras: 'Extras',
 		depositPaid: 'Deposit paid',
 		giftCardPaid: 'of which by gift card',
 		balanceDue: 'Balance due at the venue',
@@ -423,6 +428,15 @@ ${practicalInfo ? `
           ${money(data.reservation.totalAmount, data.reservation.currency)}
         </td>
       </tr>
+${(data.extras ?? []).map((extra) => `
+      <tr>
+        <td style="padding: 8px 0; border-bottom: 1px solid #e9ecef;">
+          ${L.extras} — ${escapeHtml(lang === 'fr' ? extra.nameFr : extra.nameEn)} × ${extra.quantity}
+        </td>
+        <td style="padding: 8px 0; border-bottom: 1px solid #e9ecef; text-align: right;">
+          ${money(extra.unitPrice * extra.quantity, data.reservation.currency)}
+        </td>
+      </tr>`).join('')}
       <tr>
         <td style="padding: 12px 0; font-weight: 600;">${L.total}</td>
         <td style="padding: 12px 0; text-align: right; font-weight: 600;">

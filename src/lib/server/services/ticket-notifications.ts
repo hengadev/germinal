@@ -42,6 +42,10 @@ export async function sendTicketNotifications(
 		};
 	}
 ): Promise<void> {
+	// The Extras chosen at booking (issue 068), for the email's ticket lines.
+	const { loadReservationExtras } = await import('./event-extras');
+	const extras = await loadReservationExtras(reservation.id);
+
 	try {
 		await sendTicketConfirmationEmail({
 			guestEmail: reservation.guestEmail,
@@ -52,6 +56,7 @@ export async function sendTicketNotifications(
 			event: reservation.eventSession.event,
 			// Issue 026: the email is written in the Guest's language.
 			locale: (reservation.locale as 'fr' | 'en' | null) ?? null,
+			extras,
 		});
 	} catch (error) {
 		logger.error({ err: error }, 'Failed to send ticket confirmation email');

@@ -102,6 +102,14 @@ export type TicketEmailData = {
 		practicalInfoEn?: string | null;
 		practicalInfoFr?: string | null;
 	};
+	/** The Extras chosen at booking (issue 068), snapshotted at that time. */
+	extras?: {
+		nameFr: string;
+		nameEn: string;
+		unitPrice: number;
+		unit: 'per_person' | 'per_unit';
+		quantity: number;
+	}[];
 	qrCode?: string;
 	googleCalendarUrl?: string;
 	icsUrl?: string;
