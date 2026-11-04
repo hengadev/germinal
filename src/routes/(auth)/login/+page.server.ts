@@ -36,6 +36,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 	const mockCredentials = showMockCredentials ? getMockCredentials() : [];
 
 	return {
+		isAdminDomain: locals.isAdminDomain,
 		showMockCredentials,
 		mockCredentials,
 		csrfToken: locals.csrfToken

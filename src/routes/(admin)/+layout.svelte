@@ -13,6 +13,8 @@
     import type { LayoutData } from "./$types";
     import { ExternalLink, KeyRound, LogOut } from "lucide-svelte";
     import { ADMIN_MOBILE_BAR, ADMIN_NAV_GROUPS, isAdminNavActive, type AdminNavItem } from "./admin-nav";
+    import InstallCard from "$lib/components/install/InstallCard.svelte";
+    import IOSInstallSheet from "$lib/components/install/IOSInstallSheet.svelte";
 
     let {
         data,
@@ -254,6 +256,11 @@
         </div>
     </div>
 </Drawer>
+
+<!-- L'offre d'installation (issue 075) : carte flottante au-dessus de la barre
+     mobile ou en bas à droite sur bureau, et sa feuille iOS. -->
+<InstallCard app="admin" bottomOffset="calc(5.25rem + env(safe-area-inset-bottom))" />
+<IOSInstallSheet app="admin" />
 </div>
 
 <style>
