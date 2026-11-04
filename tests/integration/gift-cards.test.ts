@@ -217,3 +217,28 @@ describe('extend and cancel', () => {
 		expect(JSON.stringify(entries[0])).not.toContain(card.code);
 	});
 });
+
+describe('list (issue 076)', () => {
+	it('hides cancelled cards by default, shows them via all and cancelled, and a search finds them', async () => {
+		const active = await svc.issueGiftCard({ amount: 1000 });
+		const cancelled = await svc.issueGiftCard({ amount: 1000 });
+		await svc.cancelGiftCard(cancelled.id, ACTOR);
+
+		// Default list (no status): cancelled cards are hidden.
+		let rows = await svc.listGiftCards({});
+		expect(rows.map((r) => r.id)).toContain(active.id);
+		expect(rows.map((r) => r.id)).not.toContain(cancelled.id);
+
+		// status = all: every card.
+		rows = await svc.listGiftCards({ status: 'all' });
+		expect(rows.map((r) => r.id)).toContain(cancelled.id);
+
+		// status = cancelled: only cancelled ones.
+		rows = await svc.listGiftCards({ status: 'cancelled' });
+		expect(rows.map((r) => r.id)).toEqual([cancelled.id]);
+
+		// A search with no status still finds a cancelled card by code.
+		rows = await svc.listGiftCards({ search: cancelled.code });
+		expect(rows.map((r) => r.id)).toEqual([cancelled.id]);
+	});
+});

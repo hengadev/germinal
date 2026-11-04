@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { invalidateAll } from '$app/navigation';
+	import { invalidateAll, goto } from '$app/navigation';
 	import { Search, Gift, Plus } from 'lucide-svelte';
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import { getToastContext } from '$lib/components/toast/state.svelte';
@@ -21,11 +21,12 @@
 	}
 
 	const statusOptions: { value: string; label: string }[] = [
-		{ value: '', label: 'Tous les statuts' },
+		{ value: '', label: 'Toutes sauf annulées' },
 		{ value: 'active', label: 'Actives' },
 		{ value: 'used_up', label: 'Épuisées' },
 		{ value: 'expired', label: 'Expirées' },
-		{ value: 'cancelled', label: 'Annulées' }
+		{ value: 'cancelled', label: 'Annulées' },
+		{ value: 'all', label: 'Toutes, annulées comprises' }
 	];
 
 	function cardStatus(card: PageData['cards'][number]): { label: string; classes: string } {
@@ -152,7 +153,10 @@
 					</thead>
 					<tbody class="divide-y divide-border-card">
 						{#each data.cards as card (card.id)}
-							<tr class="hover:bg-muted/50">
+							<tr
+							class="hover:bg-muted transition-colors cursor-pointer"
+							onclick={() => goto(`/admin/cartes-cadeaux/${card.id}`)}
+						>
 								<td class="px-6 py-4">
 									<a href="/admin/cartes-cadeaux/{card.id}" class="font-medium text-foreground hover:underline whitespace-nowrap">{formatGiftCardCode(card.code)}</a>
 									<p class="text-xs text-muted-foreground">{card.origin === 'admin' ? 'Émise à la main' : 'Achat en ligne'}</p>
