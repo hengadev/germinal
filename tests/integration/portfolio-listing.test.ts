@@ -271,7 +271,9 @@ describe('an Event joins the Portfolio only once its last Seating has started', 
 			PortfolioRequiresOverEventError
 		);
 		expect(await isPortfolio(event.id)).toBe(false);
-		expect(await listedIds()).toEqual([]);
+		// Still on « Projets », but only in its « À venir » group (issue 072):
+		// a Public Event with a Seating ahead, not a project.
+		expect(await listedIds()).toEqual([event.id]);
 	});
 
 	it('is refused for an Event without Seatings', async () => {
