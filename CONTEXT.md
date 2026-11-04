@@ -60,7 +60,7 @@ A marketing label applied to a Seating to highlight it on the booking UI. Purely
 _Avoid_: Tag, label, tier
 
 **Visibility**:
-Who can see and book an Event. **Draft**: Admins only, who can preview its public page. **Private**: anyone holding its link can see and book it, but it is never listed, never indexed by search engines and never the Spotlight (e.g., a dinner commissioned by a brand for its guests). **Public**: anyone can see and book it, and it may be the Spotlight. Taking an Event out of Draft is publishing it.
+Who can see and book an Event. **Draft**: Admins only, who can preview its public page. **Private**: anyone holding its link can see and book it, but it is never listed, never indexed by search engines and never the Spotlight (e.g., a dinner commissioned by a brand for its guests). **Public**: anyone can see and book it, it is listed in « À venir » while a published Seating is still ahead, and it may be the Spotlight. Taking an Event out of Draft is publishing it.
 _Avoid_: Published/unpublished (as a state), unlisted, hidden, status
 
 **Spotlight**:
