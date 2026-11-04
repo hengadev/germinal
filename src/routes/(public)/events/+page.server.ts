@@ -26,7 +26,7 @@ export const load: PageServerLoad = async () => {
                 .sort((a, b) => a.getTime() - b.getTime());
             return starts[0] ?? null;
         };
-        const mockUpcoming = MOCK_EVENTS.filter((e) => isUpcoming(e, nextPublishedStart(e), now)) as unknown as EventWithMedia[];
+        const mockUpcoming = MOCK_EVENTS.filter((e) => isUpcoming(e, nextPublishedStart(e), now)).map((e) => withoutPracticalInfo(e)) as unknown as EventWithMedia[];
         return {
             // ProjectIndex expects the upcoming group newest first.
             events: [...[...mockUpcoming].reverse(), ...MOCK_EVENTS.filter((e) => isListed(e) && !e.isSpotlight)
