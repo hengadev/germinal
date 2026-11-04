@@ -204,3 +204,49 @@ describe('getUpcomingEvents', () => {
 		expect(row.eventSessions.map((s: { id: string }) => s.id)).toEqual([published.id]);
 	});
 });
+
+// ---------------------------------------------------------------------------
+// « À venir » page and menu link (issue 073)
+// ---------------------------------------------------------------------------
+
+describe('the /a-venir loader and the menu link', () => {
+	beforeEach(async () => {
+		vi.clearAllMocks();
+		await setupTestDatabase();
+	});
+
+	it('lists every upcoming Public Event on /a-venir, Spotlight included', async () => {
+		const { load } = await import('../../src/routes/(public)/a-venir/+page.server');
+		// Seeded from the real clock: the loaders use new Date().
+		const ahead = (days: number) => new Date(Date.now() + days * 86_400_000).toISOString();
+		const later = await seedEvent({ visibility: 'public', day: '2026-12-20' });
+		await seedSeating(later.id, ahead(10));
+		const sooner = await seedEvent({ visibility: 'public', day: '2026-11-10' });
+		await seedSeating(sooner.id, ahead(5));
+		await testDb.update(events).set({ isSpotlight: true }).where(eq(events.id, sooner.id));
+
+		// Excluded: Private, Draft and over.
+		const priv = await seedEvent({ visibility: 'private', day: '2026-11-12' });
+		await seedSeating(priv.id, ahead(6));
+		const draft = await seedEvent({ visibility: 'draft', day: '2026-11-13' });
+		await seedSeating(draft.id, ahead(7));
+		const past = await seedEvent({ visibility: 'public', day: '2026-01-10' });
+		await seedSeating(past.id, new Date(Date.now() - 86_400_000).toISOString());
+
+		const data = (await (load as any)()) as { events: { id: string }[] };
+		expect(data.events.map((e: { id: string }) => e.id)).toEqual([sooner.id, later.id]);
+	});
+
+	it('the layout reports hasUpcomingEvents true then false', async () => {
+		const { load } = await import('../../src/routes/(public)/+layout.server');
+		const event = await seedEvent({ visibility: 'public', day: '2026-11-10' });
+		await seedSeating(event.id, new Date(Date.now() + 5 * 86_400_000).toISOString());
+
+		const locals = { user: null, isAdminDomain: false, isStaffDomain: false, csrfToken: '' };
+		expect((await load({ locals } as any)).hasUpcomingEvents).toBe(true);
+
+		// No published Seating ahead any more: nothing upcoming.
+		await testDb.update(eventSessions).set({ published: false }).where(eq(eventSessions.eventId, event.id));
+		expect((await load({ locals } as any)).hasUpcomingEvents).toBe(false);
+	});
+});

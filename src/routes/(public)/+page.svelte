@@ -106,7 +106,7 @@
 			<h2 id="upcoming-title" class="font-serif text-4xl leading-tight lg:text-6xl">
 				{$t(spotlight ? 'home.alsoUpcomingTitle' : 'home.upcomingTitle')}
 			</h2>
-			<a href="/events" class="shrink-0 text-foreground-alt underline decoration-border-input-hover underline-offset-4 hover:text-foreground hover:decoration-foreground">
+			<a href="/a-venir" class="shrink-0 text-foreground-alt underline decoration-border-input-hover underline-offset-4 hover:text-foreground hover:decoration-foreground">
 				{$t('home.fullProgramme')}
 			</a>
 		</div>

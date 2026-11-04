@@ -36,6 +36,7 @@ export async function GET() {
 	entries.push(
 		{ url: `${SITE_URL}/`, changefreq: 'weekly', priority: 1.0 },
 		{ url: `${SITE_URL}/events`, changefreq: 'daily', priority: 0.9 },
+		{ url: `${SITE_URL}/a-venir`, changefreq: 'daily', priority: 0.9 },
 		{ url: `${SITE_URL}/talents`, changefreq: 'weekly', priority: 0.8 },
 		{ url: `${SITE_URL}/manifesto`, changefreq: 'monthly', priority: 0.7 },
 		{ url: `${SITE_URL}/spotlight`, changefreq: 'daily', priority: 0.9 },

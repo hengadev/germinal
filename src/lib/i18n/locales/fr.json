@@ -22,6 +22,7 @@
   },
   "nav": {
     "upcomingEvent": "Prochain événement",
+    "upcoming": "À venir",
     "events": "Projets",
     "talents": "Talents",
     "manifesto": "Manifeste",
@@ -59,10 +60,18 @@
     "allTalents": "Tous les talents",
     "disciplinesTitle": "Ce que nous faisons"
   },
+  "aVenir": {
+    "pageTitle": "À venir | Germinal",
+    "title": "À venir",
+    "intro": "Les dîners, expositions et ateliers que nous préparons. Ouvrez-en un pour le découvrir.",
+    "empty": "Rien à venir pour le moment. Les projets passés restent à découvrir, et nous préparons les suivants.",
+    "emptyProjects": "Voir les projets",
+    "emptyContact": "Nous écrire"
+  },
   "events": {
     "pageTitle": "Projets | Germinal",
     "title": "Projets",
-    "description": "Ce qui arrive bientôt, et les événements que nous avons imaginés et réalisés, racontés en images. Ouvrez-en un pour le découvrir.",
+    "description": "Les événements que nous avons imaginés et réalisés, racontés en images. Ouvrez un projet pour le découvrir.",
     "noEvents": "Aucun projet pour le moment.",
     "lunch": "Déjeuner",
     "dinner": "Dîner",
@@ -73,6 +82,7 @@
     "noDepositNote": "Réglé en totalité sur place",
     "project": {
       "backToProjects": "Tous les projets",
+      "backToUpcoming": "À venir",
       "photographs": "Photographies",
       "credits": "Générique",
       "venue": "Lieu",

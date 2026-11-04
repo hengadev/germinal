@@ -9,9 +9,10 @@
 
     type Props = {
         hasSpotlightEvent?: boolean;
+        hasUpcomingEvents?: boolean;
     };
 
-    let { hasSpotlightEvent = true }: Props = $props();
+    let { hasSpotlightEvent = true, hasUpcomingEvents = false }: Props = $props();
 
     let scrolled = $state(false);
     let isMobileMenuOpen = $state(false);
@@ -31,6 +32,7 @@
 
     const navItems = $derived([
         ...(hasSpotlightEvent ? [{ href: "/spotlight", label: $t('nav.upcomingEvent') }] : []),
+        ...(hasUpcomingEvents ? [{ href: "/a-venir", label: $t('nav.upcoming') }] : []),
         { href: "/manifesto", label: $t('nav.manifesto') },
         { href: "/events", label: $t('nav.events') },
         { href: "/talents", label: $t('nav.talents') },
@@ -40,6 +42,12 @@
     function isActive(href: string): boolean {
         if (href === "/") {
             return page.url.pathname === "/";
+        }
+        // An Event's page sits under /events/<id>: a Portfolio project
+        // belongs to « Projets », an upcoming Public Event to « À venir ».
+        if (page.url.pathname.startsWith("/events/")) {
+            if (href === "/events") return !!page.data.project;
+            if (href === "/a-venir") return page.data.event?.visibility === "public";
         }
         return page.url.pathname.startsWith(href);
     }
