@@ -13,7 +13,7 @@ import { canBeSpotlight, canJoinPortfolio, type Visibility } from '$lib/utils/ev
 import { withoutPracticalInfo, type WithoutPracticalInfo } from '$lib/utils/practical-info';
 import { withProjectCover } from '$lib/utils/event-photos';
 import type { EventWithMedia } from '$lib/types/events';
-import { lastSeatingStartOf, listedEventsCondition, toAccessEvent } from './event-access';
+import { lastSeatingStartOf, listedEventsCondition, toAccessEvent, upcomingEventsCondition } from './event-access';
 
 /**
  * The Event columns every loader outside the admin reads: all but Internal
@@ -179,6 +179,33 @@ export async function getSpotlightEvent(): Promise<SpotlightEvent | null> {
   // The Spotlight is public: it leaves without its Practical Info (issue 040).
   if (!spotlightEvent || !canBeSpotlight(toAccessEvent(spotlightEvent))) return null;
   return withoutPracticalInfo(spotlightEvent);
+}
+
+/**
+ * « À venir » (issue 071): every Public Event with a published Seating
+ * still ahead, soonest first — ordered by each Event's next published
+ * Seating. Private Events are never listed; an Event leaves the list
+ * once its last Seating has started. No Practical Info, unpaged.
+ */
+export async function getUpcomingEvents(now = new Date()): Promise<SpotlightEvent[]> {
+  const rows = await db.query.events.findMany({
+    where: upcomingEventsCondition(now),
+    columns: PUBLIC_EVENT_COLUMNS,
+    with: {
+      coverMedia: true,
+      coverVideo: true,
+      eventSessions: {
+        where: eq(eventSessions.published, true),
+        orderBy: [eventSessions.startTime],
+      },
+    },
+  });
+  type UpcomingRow = (typeof rows)[number] & { eventSessions: { startTime: Date }[] };
+  const nextOf = (e: UpcomingRow) =>
+    e.eventSessions.find((s: { startTime: Date }) => s.startTime.getTime() > now.getTime())?.startTime.getTime() ?? Infinity;
+  return (rows as UpcomingRow[])
+    .sort((a, b) => nextOf(a) - nextOf(b))
+    .map((e) => withoutPracticalInfo(e)) as unknown as SpotlightEvent[];
 }
 
 /**

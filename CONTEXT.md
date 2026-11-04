@@ -60,12 +60,16 @@ A marketing label applied to a Seating to highlight it on the booking UI. Purely
 _Avoid_: Tag, label, tier
 
 **Visibility**:
-Who can see and book an Event. **Draft**: Admins only, who can preview its public page. **Private**: anyone holding its link can see and book it, but it is never listed, never indexed by search engines and never the Spotlight (e.g., a dinner commissioned by a brand for its guests). **Public**: anyone can see and book it, and it may be the Spotlight. Taking an Event out of Draft is publishing it.
+Who can see and book an Event. **Draft**: Admins only, who can preview its public page. **Private**: anyone holding its link can see and book it, but it is never listed, never indexed by search engines and never the Spotlight (e.g., a dinner commissioned by a brand for its guests). **Public**: anyone can see and book it, it is listed in « À venir » while a published Seating is still ahead, and it may be the Spotlight. Taking an Event out of Draft is publishing it.
 _Avoid_: Published/unpublished (as a state), unlisted, hidden, status
 
 **Spotlight**:
-The single upcoming Public Event promoted on the homepage and its own dedicated page ("Prochain événement"). Other upcoming Events are listed nowhere and reached through their link. There is always at most one Spotlight at a time — enforced by convention, not by a database constraint.
+The single upcoming Public Event promoted on the homepage and its own dedicated page ("Prochain événement"). Other upcoming Events appear in « À venir », without the promotion. There is always at most one Spotlight at a time — enforced by convention, not by a database constraint.
 _Avoid_: Featured event, hero event
+
+**À venir**:
+The homepage section — and, on « Projets », the group above the projects — that lists every Public Event with at least one published Seating still ahead, soonest first, as a typographic programme — until its last Seating starts. On « Projets » the Spotlight is included; on the homepage it is left out (the section is then titled « Aussi à venir »). Private and Draft Events never appear in it.
+_Avoid_: Upcoming events page, agenda, calendar
 
 **Portfolio**:
 The curated set of Events Germinal showcases as projects once they are over, listed under "Projets" and in the homepage gallery. Private and Public Events alike may join it, but only after their last Seating has started; it is meant to be shown with a Recap and Event Photos. An Event that is over and not in the Portfolio is listed nowhere.
