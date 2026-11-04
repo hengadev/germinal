@@ -6,7 +6,7 @@ import { bookingWindowState, DEFAULT_BOOKING_WINDOW, type BookingWindow } from '
  * The one place that decides, for every public entry point (the Event page,
  * the booking page, the reservation API, Waitlist join and notifications,
  * the `.ics` endpoint, the Events listing, the Spotlight, the homepage
- * gallery and the sitemap), whether a viewer may see an Event, whether it
+ * gallery, the homepage's « À venir » and the sitemap), whether a viewer may see an Event, whether it
  * may be listed, indexed or made the Spotlight, and whether one of its
  * Seatings can be booked or wait-listed — and if not, why. No entry point
  * checks publication on its own.
@@ -111,6 +111,22 @@ export function isIndexed(event: AccessEvent): boolean {
 /** May the Event be shown as the Spotlight: Public only. */
 export function canBeSpotlight(event: AccessEvent): boolean {
 	return event.visibility === 'public';
+}
+
+/** May the Event appear in « À venir » on the homepage (issue 071):
+ * Public, with at least one published Seating still ahead. It fails
+ * closed — an unknown next start means "not upcoming" — and the Event
+ * leaves the list once its last Seating has started. */
+export function isUpcoming(
+	event: Pick<AccessEvent, 'visibility'>,
+	nextSeatingStart: Date | null,
+	now: Date
+): boolean {
+	return (
+		event.visibility === 'public' &&
+		nextSeatingStart !== null &&
+		nextSeatingStart.getTime() > now.getTime()
+	);
 }
 
 /** May the Event join the Portfolio: only once its last Seating has

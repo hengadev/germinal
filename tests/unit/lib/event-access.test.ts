@@ -5,6 +5,7 @@ import {
 	viewerOf,
 	eventAccess,
 	isListed,
+	isUpcoming,
 	isIndexed,
 	canBeSpotlight,
 	canJoinPortfolio,
@@ -133,6 +134,37 @@ describe('listing, indexing and the Spotlight', () => {
 	it('a Portfolio Event stays un-indexed unless Public', () => {
 		expect(isIndexed({ visibility: 'private', isPortfolio: true })).toBe(false);
 		expect(isIndexed({ visibility: 'public', isPortfolio: true })).toBe(true);
+	});
+});
+
+describe('isUpcoming', () => {
+	it('is true for a Public Event with a published Seating ahead', () => {
+		expect(isUpcoming(PUBLIC, LATER, NOW)).toBe(true);
+	});
+
+	it.each([
+		['a Draft Event', DRAFT],
+		['a Private Event', PRIVATE],
+	])('is false for %s, Seating ahead or not', (_name, event) => {
+		expect(isUpcoming(event, LATER, NOW)).toBe(false);
+	});
+
+	it('is false without a Seating (null next start, fails closed)', () => {
+		expect(isUpcoming(PUBLIC, null, NOW)).toBe(false);
+	});
+
+	it('is false when every Seating is past', () => {
+		expect(isUpcoming(PUBLIC, EARLIER, NOW)).toBe(false);
+	});
+
+	it('is false when the Seating starts exactly now', () => {
+		expect(isUpcoming(PUBLIC, NOW, NOW)).toBe(false);
+	});
+
+	// An Event whose only Seatings ahead are unpublished has no
+	// published next start: null, like one without Seatings.
+	it('is false when the only Seatings ahead are unpublished (no published next start)', () => {
+		expect(isUpcoming(PUBLIC, null, NOW)).toBe(false);
 	});
 });
 
