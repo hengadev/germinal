@@ -208,6 +208,17 @@ export async function getUpcomingEvents(now = new Date()): Promise<SpotlightEven
     .map((e) => withoutPracticalInfo(e)) as unknown as SpotlightEvent[];
 }
 
+/** Does anything appear in « À venir » (issue 073)? A cheap existence
+ * query for the menu link, by the same rule as {@link getUpcomingEvents}. */
+export async function hasUpcomingEvents(now = new Date()): Promise<boolean> {
+  const rows = await db.query.events.findMany({
+    where: upcomingEventsCondition(now),
+    columns: { id: true },
+    limit: 1,
+  });
+  return rows.length > 0;
+}
+
 /**
  * Refused: making an Event that is not Public the Spotlight (issue 032,
  * ADR 0007). A Draft or Private Event can never be the Spotlight.

@@ -21,7 +21,7 @@
 {:else}
 	<!-- Full layout for normal ticket view -->
 	<div class="min-h-screen flex flex-col">
-		<Navigation hasSpotlightEvent={data.hasSpotlightEvent} />
+		<Navigation hasSpotlightEvent={data.hasSpotlightEvent} hasUpcomingEvents={data.hasUpcomingEvents} />
 
 		<main class="flex-1">
 			{@render children()}
