@@ -91,6 +91,11 @@
     "page": {
       "book": "Réserver",
       "joinWaitlist": "Liste d’attente",
+      "steps": {
+        "day": "Le jour",
+        "service": "Le repas",
+        "time": "L’horaire"
+      },
       "onTheMenu": "Au menu",
       "curator": "Commissariat",
       "venue": "Lieu",

@@ -91,6 +91,11 @@
     "page": {
       "book": "Book",
       "joinWaitlist": "Join the waitlist",
+      "steps": {
+        "day": "The day",
+        "service": "The meal",
+        "time": "The time"
+      },
       "onTheMenu": "On the menu",
       "curator": "Curated by",
       "venue": "Venue",
