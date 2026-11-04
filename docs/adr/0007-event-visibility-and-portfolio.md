@@ -13,7 +13,7 @@ An Event was either published or not, and a published Event appeared in the "Pro
 - **Public URLs use the Event's id** (`/events/<id>`), and the slug is dropped. Event ids are random UUIDs, so a Private Event's link cannot be guessed and needs no separate access key.
 - **"Projets" lists the Portfolio only.** The Portfolio is a post-event showcase: an Event joins it only once its last Seating has started (the one hard rule, so a Private Event's link is never listed while it can still be booked). It is shown with a Recap (EN/FR) and Event Photos kept apart from the announcement Visuals; a missing Recap or photo is a warning, as with publishing (ADR 0008). Its page then leads with the Recap and photos and hides the announcement text, Seatings and prices. Upcoming Events are listed only through the single Spotlight.
 
-> **Amendment (2026-11-04, issue 071).** Upcoming Public Events are no longer listed only through the Spotlight: every Public Event with at least one published Seating still ahead is listed on the homepage's « À venir » until its last Seating starts. Private Events are still never listed, and the Spotlight remains the one featured Event among them.
+> **Amendment (2026-11-04, issue 071).** Upcoming Public Events are no longer listed only through the Spotlight: every Public Event with at least one published Seating still ahead is listed on the homepage's « À venir » and at the top of « Projets » until its last Seating starts. Private Events are still never listed, and the Spotlight remains the one featured Event among them.
 
 ## Considered Options
 
