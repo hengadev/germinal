@@ -22,6 +22,7 @@
   },
   "nav": {
     "upcomingEvent": "Upcoming event",
+    "upcoming": "Coming up",
     "events": "Work",
     "talents": "Talents",
     "manifesto": "Manifesto",
@@ -59,10 +60,18 @@
     "allTalents": "All talents",
     "disciplinesTitle": "What we do"
   },
+  "upcoming": {
+    "pageTitle": "Coming up | Germinal",
+    "title": "Coming up",
+    "intro": "What is coming soon: every public event still ahead, with its dates and place, ready to be discovered.",
+    "empty": "Nothing coming up for now. Our past projects are still there to discover, and we are preparing the next ones.",
+    "emptyProjects": "See the projects",
+    "emptyContact": "Write to us"
+  },
   "events": {
     "pageTitle": "Projects | Germinal",
     "title": "Projects",
-    "description": "What is coming up, and the events we have imagined and brought to life, told in pictures. Open one to discover it.",
+    "description": "The events we have imagined and brought to life, told in pictures. Open a project to discover it.",
     "noEvents": "No projects yet.",
     "lunch": "Lunch",
     "dinner": "Dinner",
@@ -73,6 +82,7 @@
     "noDepositNote": "Paid in full at the venue",
     "project": {
       "backToProjects": "All projects",
+      "backToUpcoming": "Coming up",
       "photographs": "Photographs",
       "credits": "Credits",
       "venue": "Venue",

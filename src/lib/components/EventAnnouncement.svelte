@@ -74,7 +74,7 @@
 </svelte:head>
 
 {#snippet head()}
-	<a href="/events" class="{label} mb-6 inline-block hover:text-foreground">← {$t('events.project.backToProjects')}</a>
+	<a href="/a-venir" class="{label} mb-6 inline-block hover:text-foreground">← {$t('events.project.backToUpcoming')}</a>
 	{#if preview}<p class="{label} mb-4">{$t('events.page.previewDraft')}</p>{/if}
 	<h1 class="font-serif text-[clamp(2.75rem,5vw,4.5rem)] leading-[0.98] text-balance">{view.title}</h1>
 	{#if view.subtitle}<p class="mt-3 text-lg leading-snug text-foreground-alt">{view.subtitle}</p>{/if}
