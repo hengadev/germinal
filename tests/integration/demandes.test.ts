@@ -5,7 +5,7 @@
 // honeypot-flagged submissions and filters by type and status; status and
 // note updates work; the sidebar badge counts only « nouvelle » demandes.
 import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest';
-import { count } from 'drizzle-orm';
+import { count, eq } from 'drizzle-orm';
 import { contactSubmissions, events as eventsTable } from '../../src/lib/server/db/schema';
 import {
 	getTestDatabase,
@@ -238,5 +238,121 @@ describe('privatisation demandes (issue 069)', () => {
 		await expect((await load()).createEventFromDemande(other.id)).rejects.toMatchObject({
 			name: 'CreateEventFromDemandeError',
 		});
+	});
+});
+
+describe('demandes search, filters and sort (issue 074)', () => {
+	it('searches case-insensitively over name, email, company and message', async () => {
+		await testDb.insert(contactSubmissions).values([
+			{ name: 'Marie Curie', email: 'marie@example.com', inquiryType: 'other', message: 'Bonjour.' },
+			{ name: 'Paul', email: 'paul@example.com', company: 'ACME Corp', inquiryType: 'other', message: 'Salut.' },
+			{ name: 'Zoé', email: 'zoe@example.com', inquiryType: 'other', message: 'Un Gala en juin.' },
+		]);
+
+		expect((await (await load()).listDemandes({ search: 'MARIE' })).map((d) => d.email)).toEqual(['marie@example.com']);
+		expect((await (await load()).listDemandes({ search: 'paul@' })).map((d) => d.email)).toEqual(['paul@example.com']);
+		expect((await (await load()).listDemandes({ search: 'acme' })).map((d) => d.email)).toEqual(['paul@example.com']);
+		expect((await (await load()).listDemandes({ search: 'gala' })).map((d) => d.email)).toEqual(['zoe@example.com']);
+		expect(await (await load()).listDemandes({ search: 'introuvable' })).toHaveLength(0);
+	});
+
+	it('matches %, _ and \\ literally in the search', async () => {
+		await testDb.insert(contactSubmissions).values([
+			{ name: 'Literal 100%', email: 'pct@example.com', inquiryType: 'other', message: 'Cent pourcent.' },
+			{ name: 'Under_score', email: 'us@example.com', inquiryType: 'other', message: 'Tiret bas.' },
+			{ name: 'Back\\slash', email: 'bs@example.com', inquiryType: 'other', message: 'Antislash.' },
+			{ name: 'Any', email: 'any@example.com', inquiryType: 'other', message: 'abcdef' },
+		]);
+
+		expect((await (await load()).listDemandes({ search: '100%' })).map((d) => d.email)).toEqual(['pct@example.com']);
+		expect((await (await load()).listDemandes({ search: 'Under_' })).map((d) => d.email)).toEqual(['us@example.com']);
+		expect((await (await load()).listDemandes({ search: 'Back\\' })).map((d) => d.email)).toEqual(['bs@example.com']);
+		// A single underscore must not act as a one-character wildcard.
+		expect((await (await load()).listDemandes({ search: 'a_c' })).map((d) => d.email)).toEqual([]);
+	});
+
+	it('filters by received period', async () => {
+		const now = new Date();
+		await testDb.insert(contactSubmissions).values([
+			{
+				name: 'Recent', email: 'recent@example.com', inquiryType: 'other',
+				message: 'Récent.', createdAt: now, updatedAt: now,
+			},
+			{
+				name: 'Ancient', email: 'ancient@example.com', inquiryType: 'other',
+				message: 'Ancien.', createdAt: new Date(now.getTime() - 40 * 24 * 3600 * 1000),
+			},
+		]);
+
+		const recentOnly = await (await load()).listDemandes({
+			receivedFrom: new Date(now.getTime() - 7 * 24 * 3600 * 1000),
+		});
+		expect(recentOnly.map((d) => d.email)).toEqual(['recent@example.com']);
+
+		const ancientOnly = await (await load()).listDemandes({
+			receivedTo: new Date(now.getTime() - 10 * 24 * 3600 * 1000),
+		});
+		expect(ancientOnly.map((d) => d.email)).toEqual(['ancient@example.com']);
+	});
+
+	it('filters by lien à un événement, ignoring unknown values', async () => {
+		const [withEvent] = await testDb
+			.insert(contactSubmissions)
+			.values({ name: 'L', email: 'l@example.com', inquiryType: 'private_event', message: 'Privatisation.' })
+			.returning();
+		await testDb.insert(contactSubmissions).values({
+			name: 'N', email: 'n@example.com', inquiryType: 'other', message: 'Autre.',
+		});
+		await (await load()).createEventFromDemande(withEvent.id);
+
+		expect((await (await load()).listDemandes({ linked: 'yes' })).map((d) => d.email)).toEqual(['l@example.com']);
+		expect((await (await load()).listDemandes({ linked: 'no' })).map((d) => d.email)).toEqual(['n@example.com']);
+		expect((await (await load()).listDemandes({ linked: 'maybe' })).map((d) => d.email).sort()).toEqual([
+			'l@example.com',
+			'n@example.com',
+		]);
+	});
+
+	it('sorts by recent, oldest and last modified, ignoring unknown values', async () => {
+		const [a] = await testDb.insert(contactSubmissions).values({
+			name: 'A', email: 'a@example.com', inquiryType: 'other', message: 'A',
+			createdAt: new Date('2025-01-01T10:00:00Z'),
+		}).returning();
+		await testDb.insert(contactSubmissions).values({
+			name: 'B', email: 'b@example.com', inquiryType: 'other', message: 'B',
+			createdAt: new Date('2025-01-03T10:00:00Z'), updatedAt: new Date('2025-01-04T10:00:00Z'),
+		});
+		await testDb.insert(contactSubmissions).values({
+			name: 'C', email: 'c@example.com', inquiryType: 'other', message: 'C',
+			createdAt: new Date('2025-01-02T10:00:00Z'), updatedAt: new Date('2025-01-05T10:00:00Z'),
+		});
+		// A is modified after everything else was inserted.
+		await testDb.update(contactSubmissions)
+			.set({ updatedAt: new Date('2025-02-01T10:00:00Z') })
+			.where(eq(contactSubmissions.id, a.id));
+
+		expect((await (await load()).listDemandes({})).map((d) => d.email)).toEqual(['b@example.com', 'c@example.com', 'a@example.com']);
+		expect((await (await load()).listDemandes({ sort: 'recent' })).map((d) => d.email)).toEqual(['b@example.com', 'c@example.com', 'a@example.com']);
+		expect((await (await load()).listDemandes({ sort: 'oldest' })).map((d) => d.email)).toEqual(['a@example.com', 'c@example.com', 'b@example.com']);
+		expect((await (await load()).listDemandes({ sort: 'modified' })).map((d) => d.email)).toEqual(['a@example.com', 'c@example.com', 'b@example.com']);
+		expect((await (await load()).listDemandes({ sort: 'nonsense' })).map((d) => d.email)).toEqual(['b@example.com', 'c@example.com', 'a@example.com']);
+	});
+
+	it('moves updatedAt on status and note change', async () => {
+		const [row] = await testDb
+			.insert(contactSubmissions)
+			.values({ name: 'D', email: 'd@example.com', inquiryType: 'other', message: 'Demande.' })
+			.returning();
+		expect(row.updatedAt.getTime()).toBeGreaterThanOrEqual(row.createdAt.getTime() - 1000);
+
+		await testDb.update(contactSubmissions)
+			.set({ createdAt: new Date('2025-01-01T10:00:00Z'), updatedAt: new Date('2025-01-01T10:00:00Z') })
+			.where(eq(contactSubmissions.id, row.id));
+
+		const afterStatus = await (await load()).updateDemande(row.id, { status: 'discussing' });
+		expect(afterStatus.updatedAt.getTime()).toBeGreaterThan(new Date('2025-01-02T00:00:00Z').getTime());
+
+		const afterNote = await (await load()).updateDemande(row.id, { adminNote: 'Rappeler.' });
+		expect(afterNote.updatedAt.getTime()).toBeGreaterThanOrEqual(afterStatus.updatedAt.getTime());
 	});
 });
