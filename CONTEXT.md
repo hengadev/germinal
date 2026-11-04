@@ -64,8 +64,12 @@ Who can see and book an Event. **Draft**: Admins only, who can preview its publi
 _Avoid_: Published/unpublished (as a state), unlisted, hidden, status
 
 **Spotlight**:
-The single upcoming Public Event promoted on the homepage and its own dedicated page ("Prochain événement"). Other upcoming Events are listed nowhere and reached through their link. There is always at most one Spotlight at a time — enforced by convention, not by a database constraint.
+The single upcoming Public Event promoted on the homepage and its own dedicated page ("Prochain événement"). Other upcoming Events appear in « À venir », without the promotion. There is always at most one Spotlight at a time — enforced by convention, not by a database constraint.
 _Avoid_: Featured event, hero event
+
+**À venir**:
+The homepage section that lists every Public Event with at least one published Seating still ahead, soonest first, as a typographic programme — until its last Seating starts. Private and Draft Events never appear in it; the Spotlight is left out (the section is then titled « Aussi à venir »).
+_Avoid_: Upcoming events page, agenda, calendar
 
 **Portfolio**:
 The curated set of Events Germinal showcases as projects once they are over, listed under "Projets" and in the homepage gallery. Private and Public Events alike may join it, but only after their last Seating has started; it is meant to be shown with a Recap and Event Photos. An Event that is over and not in the Portfolio is listed nowhere.

@@ -1,6 +1,6 @@
 import { db } from '../db';
 import { events, eventDays, eventServices, eventSessions } from '../db/schema';
-import { and, desc, eq, ne } from 'drizzle-orm';
+import { and, desc, eq, ne, sql } from 'drizzle-orm';
 import { resolveSeatingPrice, type SeatingPrice } from '$lib/utils/seating-price';
 import type { AccessEvent, AccessSeating, Visibility } from '$lib/utils/event-access';
 
@@ -56,6 +56,18 @@ export function toAccessSeating(
  */
 export function listedEventsCondition() {
 	return and(eq(events.isPortfolio, true), ne(events.visibility, 'draft'));
+}
+
+/**
+ * SQL for {@link isUpcoming} (issue 071): Public Events with a published
+ * Seating still ahead, for the homepage's « À venir ». Kept equal to
+ * `isUpcoming` by tests/integration/upcoming-events.
+ */
+export function upcomingEventsCondition(now: Date) {
+	return and(
+		eq(events.visibility, 'public'),
+		sql`exists (select 1 from ${eventSessions} s where s.event_id = ${events.id} and s.published and s.start_time > ${now.toISOString()})`
+	);
 }
 
 /**
