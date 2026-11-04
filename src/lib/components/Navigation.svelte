@@ -43,6 +43,12 @@
         if (href === "/") {
             return page.url.pathname === "/";
         }
+        // An Event's page sits under /events/<id>: a Portfolio project
+        // belongs to « Projets », an upcoming Public Event to « À venir ».
+        if (page.url.pathname.startsWith("/events/")) {
+            if (href === "/events") return !!page.data.project;
+            if (href === "/a-venir") return page.data.event?.visibility === "public";
+        }
         return page.url.pathname.startsWith(href);
     }
 
