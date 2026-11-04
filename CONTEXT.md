@@ -68,7 +68,7 @@ The single upcoming Public Event promoted on the homepage and its own dedicated 
 _Avoid_: Featured event, hero event
 
 **À venir**:
-The homepage section that lists every Public Event with at least one published Seating still ahead, soonest first, as a typographic programme — until its last Seating starts. Private and Draft Events never appear in it; the Spotlight is left out (the section is then titled « Aussi à venir »).
+The homepage section — and, on « Projets », the group above the projects — that lists every Public Event with at least one published Seating still ahead, soonest first, as a typographic programme — until its last Seating starts. On « Projets » the Spotlight is included; on the homepage it is left out (the section is then titled « Aussi à venir »). Private and Draft Events never appear in it.
 _Avoid_: Upcoming events page, agenda, calendar
 
 **Portfolio**:
