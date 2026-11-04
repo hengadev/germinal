@@ -299,16 +299,15 @@ export async function listGiftCards(options: {
 				sql`${giftCards.status} = 'active' AND ${giftCards.expiresAt} <= now()`
 			);
 			break;
-		case 'all':
-		break;
-	default:
-		// No status chosen: hide cancelled cards unless a search is typed
-		// (a code search must still find a cancelled card) — issue 076.
-		if (search === '') conditions.push(sql`${giftCards.status} <> 'cancelled'`);
-		break;
-	case 'cancelled':
+		case 'cancelled':
 			conditions.push(sql`${giftCards.status} = 'cancelled'`);
 			break;
+		case 'all':
+			break;
+		default:
+			// No status chosen: cancelled cards are hidden, unless a search is
+			// typed, so a pasted code still finds a cancelled card (issue 076).
+			if (search === '') conditions.push(sql`${giftCards.status} <> 'cancelled'`);
 	}
 	return db
 		.select()
