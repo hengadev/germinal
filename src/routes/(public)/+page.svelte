@@ -13,11 +13,15 @@
 	import TalentsFrise from '$lib/components/home/TalentsFrise.svelte';
 	import { datesOf, placeOf, titleOf, yearOf } from '$lib/components/home/home';
 	import { DISCIPLINES } from '$lib/components/manifesto/manifesto';
+	import Upcoming from '$lib/components/home/Upcoming.svelte';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
 
 	const spotlight = $derived(data.spotlightEvent);
+	// « À venir » (issue 071): every upcoming Public Event but the one the
+	// hero already shows; nothing upcoming, no section.
+	const upcoming = $derived(data.upcoming.filter((e) => e.id !== spotlight?.id));
 	// The Portfolio, newest first, each with a cover.
 	const projects = $derived(data.events.filter((e) => e.isPortfolio && e.coverMedia && !e.isSpotlight));
 	const talents = $derived(data.talents);
@@ -70,7 +74,7 @@
 				</p>
 				<div class="mt-8 flex flex-wrap items-center gap-6">
 					<a href="/spotlight" class="group inline-flex items-center gap-3 bg-white px-6 py-3.5 text-foreground transition-colors hover:bg-white/85">
-						{$t('home.reserve')}
+						{$t('home.discover')}
 						<ArrowRight size={18} aria-hidden="true" class="transition-transform group-hover:translate-x-1 motion-reduce:transition-none" />
 					</a>
 				</div>
@@ -94,6 +98,21 @@
 		{/if}
 	</div>
 </section>
+
+<!-- « À venir », right under the hero (issue 071). -->
+{#if upcoming.length}
+	<section class="container mx-auto max-w-8xl px-4 pt-24 lg:pt-32" aria-labelledby="upcoming-title">
+		<div class="mb-10 flex items-baseline justify-between gap-6 lg:mb-14">
+			<h2 id="upcoming-title" class="font-serif text-4xl leading-tight lg:text-6xl">
+				{$t(spotlight ? 'home.alsoUpcomingTitle' : 'home.upcomingTitle')}
+			</h2>
+			<a href="/events" class="shrink-0 text-foreground-alt underline decoration-border-input-hover underline-offset-4 hover:text-foreground hover:decoration-foreground">
+				{$t('home.fullProgramme')}
+			</a>
+		</div>
+		<Upcoming events={upcoming} />
+	</section>
+{/if}
 
 <!-- The studio, always second. -->
 <section class="container mx-auto grid max-w-8xl gap-8 px-4 pt-32 lg:grid-cols-12 lg:gap-12 lg:pt-48" aria-labelledby="studio-title">
