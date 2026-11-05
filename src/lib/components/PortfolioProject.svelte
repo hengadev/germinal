@@ -14,6 +14,9 @@
 
 	let {
 		project,
+		/** The Admin preview of a Portfolio-only Draft (issue 081): the
+		 * same quiet marker the announcement preview shows. */
+		preview = false,
 	}: {
 		project: {
 			cover: PageMedium | null;
@@ -23,6 +26,7 @@
 			next?: { id: string; titleEn: string | null; titleFr: string | null } | null;
 			[key: string]: unknown;
 		};
+		preview?: boolean;
 	} = $props();
 
 	const view = $derived(projectPage(project, $locale));
@@ -63,6 +67,7 @@
 
 {#snippet head()}
 	<a href="/events" class="{label} mb-6 inline-block hover:text-foreground">← {$t('events.project.backToProjects')}</a>
+	{#if preview}<p class="{label} mb-4">{$t('events.page.previewDraft')}</p>{/if}
 	<h1 class="font-serif text-[clamp(2.75rem,5vw,4.5rem)] leading-[0.98] text-balance">{view.title}</h1>
 	{#if view.dates}<p class="mt-5">{view.dates}</p>{/if}
 	{#if view.city}<p class="text-foreground-alt">{view.city}</p>{/if}

@@ -52,6 +52,9 @@ export interface AccessEvent {
 	isPortfolio?: boolean;
 	/** When the Event's last Seating starts; null when it has none. */
 	lastSeatingStart?: Date | null;
+	/** Whether the Event has ever taken a Reservation, any status (078).
+	 * Absent: fail closed — a Draft previews as its announcement. */
+	hasReservations?: boolean;
 }
 
 /** What Event access needs to know about a Seating. */
@@ -74,18 +77,29 @@ export interface AccessSeating {
  * project once it is in the Portfolio (issue 045: Recap, Event Photos,
  * credits, dates and venue, without the announcement text, Seatings,
  * prices or booking); or — for an Admin looking at a Draft (issue 033) —
- * the preview of its announcement. */
-export type EventView = 'announcement' | 'portfolio' | 'preview';
+ * the preview of its announcement, or of its project page when the Draft
+ * is Portfolio-only or already in the Portfolio (issue 081). */
+export type EventView = 'announcement' | 'portfolio' | 'preview' | 'portfolio-preview';
 
 export type EventAccessDecision = { visible: true; view: EventView } | { visible: false };
 
 /** May this viewer see the Event's page, and as what. Hidden means "not found". */
-export function eventAccess(event: AccessEvent, viewer: Viewer): EventAccessDecision {
+export function eventAccess(event: AccessEvent, viewer: Viewer, now?: Date): EventAccessDecision {
 	if (event.visibility === 'draft') {
 		// The Admin preview (issue 033): an Admin sees a Draft's real page,
 		// as a Guest would, with booking disabled; everyone else gets
-		// "not found".
-		if (viewer.role === 'admin') return { visible: true, view: 'preview' };
+		// "not found". A Portfolio-only Draft (081) — or one already in the
+		// Portfolio — is previewed as the project page it will have.
+		if (viewer.role === 'admin') {
+			const asProject =
+				event.isPortfolio === true ||
+				(now !== undefined &&
+					isPortfolioOnly(
+						{ lastSeatingStart: event.lastSeatingStart ?? null, hasReservations: event.hasReservations ?? true },
+					now
+				));
+			return { visible: true, view: asProject ? 'portfolio-preview' : 'preview' };
+		}
 		return { visible: false };
 	}
 	// A Portfolio Event is shown as a project (ADR 0007, issue 045).
@@ -180,9 +194,11 @@ type Refusal = { reason: Exclude<BookingRefusal, 'full' | 'not-open'> } | { reas
 /** Refusals shared by booking and the Waitlist, before capacity. */
 function refusalBeforeCapacity({ event, seating, viewer, now }: SeatingAccessInput): Refusal | null {
 	const access = eventAccess(event, viewer);
-	// The Admin preview (033) may show a Draft's page, but no viewer ever
-	// books one: the preview view refuses like a hidden Event does.
-	if (!access.visible || access.view === 'preview') return { reason: 'event-not-published' };
+	// The Admin previews (033, 081) may show a Draft's page, but no viewer
+	// ever books one: a preview view refuses like a hidden Event does.
+	if (!access.visible || access.view === 'preview' || access.view === 'portfolio-preview') {
+		return { reason: 'event-not-published' };
+	}
 	if (!seating.published) return { reason: 'seating-unpublished' };
 	if (!seating.priced) return { reason: 'not-priced' };
 	if (seating.startTime.getTime() <= now.getTime()) return { reason: 'started' };
