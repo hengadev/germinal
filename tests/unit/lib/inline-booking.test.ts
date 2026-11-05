@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { eventPage, type PageDay, type PageSeating, type Translate } from '../../../src/lib/utils/event-page';
 import {
 	bill,
+	bookingPayload,
+	codeKind,
 	dayFits,
 	firstFit,
 	fits,
@@ -129,5 +131,55 @@ describe('menuFor', () => {
 		expect(menuFor(view, schedule, view.menus, '2027-03-13', 'lunch')?.name).toBe('Déjeuner');
 		expect(menuFor(view, schedule, view.menus, '2027-03-13', 'dinner')?.name).toBe('Dîner de gala');
 		expect(menuFor(view, schedule, view.menus, '2027-03-14', 'dinner')).toBeUndefined();
+	});
+});
+
+describe('codeKind (issue 080)', () => {
+	it('sees a gift card by its GERM prefix, whatever is typed', () => {
+		expect(codeKind('GERM-7ZK9-M3XT')).toBe('gift_card');
+		expect(codeKind('germ 7zk9-m3xt')).toBe('gift_card');
+	});
+
+	it('sends anything else to the promo code endpoint', () => {
+		expect(codeKind('SUMMER20')).toBe('promo');
+		expect(codeKind('GERMINAL')).toBe('gift_card');
+		expect(codeKind('')).toBe('promo');
+	});
+});
+
+describe('bookingPayload (issue 080)', () => {
+	const form = { firstName: ' Jean ', lastName: 'Dupont', email: ' jean@ex.com ', phone: '06 12 34 56 78', marketingConsent: true };
+
+	it('carries who is booking, the codes, the extras and the locale', () => {
+		expect(bookingPayload('s1', 2, form, {
+			extras: [{ extraId: 'x1', quantity: 2 }],
+			promo: { code: 'SUMMER20', discountType: 'percent', discountValue: 20 },
+			giftCard: { code: 'GERM7ZK9M3XT', balance: 5000 },
+			locale: 'en',
+		})).toEqual({
+			sessionId: 's1',
+			firstName: 'Jean',
+			lastName: 'Dupont',
+			email: 'jean@ex.com',
+			phone: '06 12 34 56 78',
+			quantity: 2,
+			notificationPreference: 'both',
+			promoCode: 'SUMMER20',
+			giftCardCode: 'GERM7ZK9M3XT',
+			extras: [{ extraId: 'x1', quantity: 2 }],
+			marketingConsent: true,
+			locale: 'en',
+			honeypot: '',
+		});
+	});
+
+	it('an empty phone means email only, and empty fields stay out', () => {
+		const p = bookingPayload('s1', 1, { ...form, phone: '', marketingConsent: false }, { dietary: { requirements: ' végétarien ' }, locale: 'fr' });
+		expect(p.phone).toBeUndefined();
+		expect(p.notificationPreference).toBe('email');
+		expect(p.dietaryRequirements).toBe('végétarien');
+		expect(p.dietaryConsent).toBe(true);
+		expect(p.extras).toBeUndefined();
+		expect(p.promoCode).toBeUndefined();
 	});
 });

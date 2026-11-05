@@ -202,7 +202,10 @@
       "payNowAll": "À régler maintenant",
       "payLater": "Reste à régler sur place",
       "nothingNow": "Rien à régler maintenant",
-      "waitlistFree": "Liste d’attente : rien à régler."
+      "waitlistFree": "Liste d’attente : rien à régler.",
+      "error": "Votre réservation n’a pas pu être enregistrée. Réessayez.",
+      "waitlistDoneTitle": "C’est noté",
+      "waitlistDone": "Vous êtes sur la liste d’attente. Si une table se libère, nous vous écrivons à {email}."
     }
   },
   "talents": {

@@ -41,6 +41,9 @@
 			{#each b.lines as line, i (i)}
 				<p class={row}><span>{line.label}</span><span>{b.money(line.amount)}</span></p>
 			{/each}
+			{#if b.promo && b.price.discount > 0}
+				<p class={row}><span>{b.promo.code}</span><span>−{b.money(b.price.discount)}</span></p>
+			{/if}
 		</div>
 		<p class="{row} mt-4 font-medium">
 			<span>{$t('events.booking.total')}</span><span>{b.money(b.price.total)}</span>
@@ -49,8 +52,11 @@
 			{#if b.price.deposit === 0}
 				<p class="{row} text-sm text-foreground-alt"><span>{$t('events.booking.nothingNow')}</span></p>
 			{:else}
+				{#if b.card > 0}
+					<p class="{row} text-sm"><span>{b.giftCard?.code}</span><span>−{b.money(b.card)}</span></p>
+				{/if}
 				<p class="{row} text-lg font-medium">
-					<span class="text-base">{b.price.balance > 0 ? $t('events.booking.payNowDeposit') : $t('events.booking.payNowAll')}</span><span>{b.money(b.price.deposit)}</span>
+					<span class="text-base">{b.price.balance > 0 ? $t('events.booking.payNowDeposit') : $t('events.booking.payNowAll')}</span><span>{b.money(b.payNow)}</span>
 				</p>
 				{#if b.price.balance > 0}
 					<p class="{row} text-sm text-foreground-alt"><span>{$t('events.booking.payLater')}</span><span>{b.money(b.price.balance)}</span></p>

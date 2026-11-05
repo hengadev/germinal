@@ -6,12 +6,22 @@
 	// with the consent health data needs), a code, the newsletter. Then, on
 	// a phone, the summary of the booking (beside the form from lg), and
 	// the one button.
-	import { ChevronDown, Minus, Plus } from 'lucide-svelte';
-	import { t } from 'svelte-i18n';
+	import { ChevronDown, Loader2, Minus, Plus, X } from 'lucide-svelte';
+	import { t, locale } from 'svelte-i18n';
+	import { page } from '$app/state';
+	import { siteLocale } from '$lib/i18n/index';
 	import type { EventPage } from '$lib/utils/event-page';
 	import { describeRefundPolicy } from '$lib/utils/refund-policy';
 	import type { Choice } from './choice.svelte';
-	import { bill, guestsWord, type BookingExtra } from '$lib/utils/inline-booking';
+	import {
+		bill,
+		bookingPayload,
+		codeKind,
+		guestsWord,
+		type AppliedGiftCard,
+		type AppliedPromo,
+		type BookingExtra,
+	} from '$lib/utils/inline-booking';
 	import BookingSummary from './BookingSummary.svelte';
 
 	let {
@@ -56,7 +66,110 @@
 	// ── A code, the newsletter
 	let codeOpen = $state(false);
 	let code = $state('');
+	let codeChecking = $state(false);
+	let codeError = $state<string | null>(null);
 	let newsletter = $state(false);
+
+	/** « Appliquer » decides by format which endpoint checks the code. */
+	async function applyCode() {
+		const typed = code.trim().toUpperCase();
+		if (!typed || codeChecking) return;
+		codeChecking = true;
+		codeError = null;
+		try {
+			if (codeKind(typed) === 'gift_card') {
+				const res = await fetch(`/api/gift-cards/validate?code=${encodeURIComponent(typed)}`);
+				const result = await res.json();
+				if (result.valid) {
+					choice.giftCard = { code: result.code, balance: result.balance } satisfies AppliedGiftCard;
+					code = '';
+				} else {
+					codeError = $t(`booking.giftCard.reasons.${result.reason ?? 'unknown'}`);
+				}
+			} else {
+				const res = await fetch(
+						`/api/promo-codes/validate?code=${encodeURIComponent(typed)}&sessionId=${encodeURIComponent(s.id)}`
+				);
+				const result = await res.json();
+				if (result.valid) {
+					choice.promo = {
+						code: typed,
+						discountType: result.discountType,
+						discountValue: result.discountValue,
+					} satisfies AppliedPromo;
+					code = '';
+				} else {
+					codeError = result.error ?? $t('booking.promoCode.invalidCode');
+				}
+			}
+		} catch {
+			codeError = $t('booking.promoCode.validationError');
+		} finally {
+			codeChecking = false;
+		}
+	}
+
+	// ── Sending
+	let honeypot = $state('');
+	let sending = $state(false);
+	let error = $state<string | null>(null);
+	/** The Waitlist was joined: the form gives way to the confirmation. */
+	let joined = $state(false);
+
+	const chosenExtras = $derived(
+		extras.map((x) => ({ extraId: x.id, quantity: b.qty(x) })).filter((e) => e.quantity > 0)
+	);
+
+	async function submit() {
+		if (!valid || sending) return;
+		sending = true;
+		error = null;
+		const headers = { 'Content-Type': 'application/json', 'X-CSRF-Token': page.data.csrfToken };
+		const who = { firstName, lastName, email, phone, marketingConsent: newsletter };
+		try {
+			if (waitlist) {
+				const res = await fetch('/api/waitlist/join', {
+					method: 'POST',
+					headers,
+					body: JSON.stringify({
+						sessionId: s.id,
+						firstName: firstName.trim(),
+						lastName: lastName.trim(),
+						email: email.trim(),
+						phone: phone.trim() || undefined,
+						quantity: g,
+						notificationPreference: phone.trim() ? 'both' : 'email',
+					}),
+				});
+				const result = await res.json();
+				if (!res.ok) throw new Error(result.error || $t('events.booking.error'));
+				joined = true;
+			} else {
+				const res = await fetch('/api/reservations/create', {
+					method: 'POST',
+					headers,
+					body: JSON.stringify(
+						bookingPayload(s.id, g, who, {
+							extras: chosenExtras,
+							promo: choice.promo ?? undefined,
+							giftCard: choice.giftCard ?? undefined,
+							locale: siteLocale($locale),
+							honeypot,
+							dietary: dietaryFilled ? { requirements: dietary } : undefined,
+						})
+					),
+				});
+				const result = await res.json();
+				if (!res.ok) throw new Error(result.error || $t('events.booking.error'));
+				// To Stripe's Checkout — or, with nothing to pay, to the Ticket.
+				window.location.href = result.checkoutUrl ?? result.ticketUrl;
+			}
+		} catch (err) {
+			error = err instanceof Error ? err.message : $t('events.booking.error');
+		} finally {
+			sending = false;
+		}
+	}
 
 	const valid = $derived(
 		firstName.trim() !== '' && lastName.trim() !== '' && /.+@.+\..+/.test(email.trim()) && (!dietaryFilled || dietaryConsent)
@@ -69,8 +182,8 @@
 
 	const button = $derived.by(() => {
 		if (waitlist) return $t('events.booking.joinWaitlist');
-		if (price.deposit === 0) return $t('events.booking.confirm');
-		const amount = money(price.deposit);
+		if (b.payNow === 0) return $t('events.booking.confirm');
+		const amount = money(b.payNow);
 		return price.balance > 0
 			? $t('events.booking.payDeposit', { values: { amount } })
 			: $t('events.booking.pay', { values: { amount } });
@@ -85,14 +198,20 @@
 		'flex size-9 items-center justify-center border border-border-input transition-colors hover:border-foreground disabled:opacity-30 disabled:hover:border-border-input';
 </script>
 
-<form
-	class="flex flex-col gap-10"
-	onsubmit={(e) => {
-		e.preventDefault();
-		// TODO(080): post the booking (or the Waitlist join) for real, to
-		// /api/reservations/create and /api/waitlist/join.
-	}}
->
+{#if joined}
+	<!-- The Waitlist was joined: the confirmation stands in for the form. -->
+	<div class="flex flex-col gap-4 border border-border-input bg-surface px-6 py-8">
+		<p class="font-serif text-2xl">{$t('events.booking.waitlistDoneTitle')}</p>
+		<p class="text-sm leading-relaxed text-foreground-alt">{$t('events.booking.waitlistDone', { values: { email: email.trim() } })}</p>
+	</div>
+{:else}
+	<form
+		class="flex flex-col gap-10"
+		onsubmit={(e) => {
+			e.preventDefault();
+			submit();
+		}}
+	>
 	{#if waitlist}<p class="leading-relaxed text-foreground-alt">{$t('events.booking.waitlistLead')}</p>{/if}
 
 	<!-- Who -->
@@ -194,10 +313,38 @@
 					<ChevronDown size={14} class="transition-transform {codeOpen ? 'rotate-180' : ''}" aria-hidden="true" />
 				</button>
 				{#if codeOpen}
-					<!-- TODO(080): check the code against the server (a gift card or a promo code). -->
-					<div id="b-code-panel" class="flex gap-2">
-						<input id="b-code" class="{field} uppercase placeholder:normal-case" bind:value={code} autocomplete="off" aria-label={$t('events.booking.code')} placeholder="GERM-7ZK9-M3XT" />
-						<button type="button" class="border border-foreground px-5 text-sm transition-colors hover:bg-foreground hover:text-white" disabled>{$t('events.booking.apply')}</button>
+					<div id="b-code-panel" class="flex flex-col gap-2">
+						{#if choice.promo || choice.giftCard}
+							<div class="flex flex-wrap items-center gap-2">
+								{#if choice.promo}
+									<span class="flex items-center gap-2 border border-border-input px-3 py-1.5 text-sm">
+										{choice.promo.code}
+										<span class="text-xs text-foreground-alt">
+											{choice.promo.discountType === 'percent'
+												? $t('booking.promoCode.discountOff', { values: { value: choice.promo.discountValue } })
+												: `\u2212${money(Math.min(choice.promo.discountValue, b.price.subtotal))}`}
+										</span>
+										<button type="button" class="text-foreground-alt hover:text-foreground" aria-label={$t('booking.promoCode.removeAria')} onclick={() => (choice.promo = null)}><X size={14} /></button>
+									</span>
+								{/if}
+								{#if choice.giftCard}
+									<span class="flex items-center gap-2 border border-border-input px-3 py-1.5 text-sm">
+										{choice.giftCard.code}
+										<span class="text-xs text-foreground-alt">{$t('booking.giftCard.balance', { values: { amount: money(choice.giftCard.balance) } })}</span>
+										<button type="button" class="text-foreground-alt hover:text-foreground" aria-label={$t('booking.giftCard.removeAria')} onclick={() => (choice.giftCard = null)}><X size={14} /></button>
+									</span>
+								{/if}
+							</div>
+						{:else}
+							<div class="flex gap-2">
+								<input id="b-code" class="{field} uppercase placeholder:normal-case" bind:value={code} autocomplete="off" aria-label={$t('events.booking.code')} placeholder="GERM-7ZK9-M3XT" />
+								<button type="button" class="flex items-center gap-2 border border-foreground px-5 text-sm transition-colors hover:bg-foreground hover:text-white disabled:opacity-40" disabled={codeChecking || code.trim() === ''} onclick={applyCode}>
+									{#if codeChecking}<Loader2 size={14} class="animate-spin" aria-hidden="true" />{/if}
+									{$t('events.booking.apply')}
+								</button>
+							</div>
+						{/if}
+						{#if codeError}<p class="text-sm text-foreground-alt" role="alert">{codeError}</p>{/if}
 					</div>
 				{/if}
 			</div>
@@ -213,17 +360,23 @@
 		<BookingSummary {view} {choice} {extras} {mealName} class="lg:hidden" />
 
 		<div class="flex flex-col gap-3">
+			<!-- A honeypot, as on the /book page: filled only by a bot. -->
+			<input type="text" name="company" class="sr-only" tabindex={-1} autocomplete="off" bind:value={honeypot} aria-hidden="true" />
 			<button
 				type="submit"
-				disabled={!valid || preview}
+				disabled={!valid || preview || sending}
 				title={preview ? $t('events.page.previewDraft') : undefined}
-				class="w-full bg-foreground px-6 py-4 text-sm font-medium text-white transition-colors hover:bg-foreground-alt disabled:bg-muted-foreground"
+				class="flex w-full items-center justify-center gap-2 bg-foreground px-6 py-4 text-sm font-medium text-white transition-colors hover:bg-foreground-alt disabled:bg-muted-foreground"
 			>
+				{#if sending}<Loader2 size={16} class="animate-spin" aria-hidden="true" />{/if}
 				{button}
 			</button>
+			{#if error}<p class="text-sm text-foreground-alt" role="alert">{error}</p>{/if}
 			{#if priced && price.deposit > 0 && refund}
 				<p class="text-xs leading-relaxed text-pretty text-muted-foreground">{refund}</p>
 			{/if}
 		</div>
 	</div>
 </form>
+
+{/if}

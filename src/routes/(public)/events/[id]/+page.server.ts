@@ -13,6 +13,7 @@ import { toAccessEvent, toAccessSeating } from '$lib/server/services/event-acces
 import { eventAccess, isIndexed, seatingAvailability, viewerOf, type AccessEvent } from '$lib/utils/event-access';
 import { withoutPracticalInfo } from '$lib/utils/practical-info';
 import { eventPhotosOf, projectCover, visualsOf } from '$lib/utils/event-photos';
+import { loadBookableExtras } from '$lib/server/services/event-extras';
 
 /**
  * A Portfolio Event's page is its project (issue 045, ADR 0007): the
@@ -209,6 +210,8 @@ export const load: PageServerLoad = async ({ params, locals, setHeaders }) => {
       indexed,
       schedule,
       sessions: rows.map((row) => row.item),
+      // Mock Services have no Extras.
+      extras: [],
       // Which page this is: the announcement, or the Admin preview of a
       // Draft (issue 033) — the banner and disabled booking hang off it.
       view,
@@ -289,6 +292,9 @@ export const load: PageServerLoad = async ({ params, locals, setHeaders }) => {
       indexed,
       schedule,
       sessions: rows.map((row) => row.item),
+      // The Event's active Extras (issue 080), resolved to the page's
+      // language by EventAnnouncement; the mock branch returns none.
+      extras: await loadBookableExtras(event.id),
       // Which page this is: the announcement, or the Admin preview of a
       // Draft (issue 033) — the banner and disabled booking hang off it.
       view: access.view

@@ -14,7 +14,8 @@ import type {
 } from './event-page';
 import { formatDayKey, type EventTimeLocale } from './event-time';
 import { formatPrice } from './event-page';
-import { priceReservation } from './pricing';
+import { priceReservation, type PromoDiscount } from './pricing';
+import { GIFT_CARD_CODE_PREFIX, normaliseGiftCardCode, splitDeposit } from './gift-card';
 
 export type Lang = EventTimeLocale;
 export type Kind = ServiceView['kind'];
@@ -33,6 +34,67 @@ export interface BookingExtra {
 	/** Minor units. */
 	priceAmount: number;
 	unit: 'per_person' | 'per_unit';
+}
+
+/** An applied Promo Code (issue 080): what the validation endpoint returned. */
+export interface AppliedPromo extends PromoDiscount {
+	code: string;
+}
+
+/** An applied gift card: its code and remaining balance (minor units). */
+export interface AppliedGiftCard {
+	code: string;
+	balance: number;
+}
+
+/** Which kind a typed code is, by its format alone: one that normalises
+ * to a gift card code (prefix GERM) is checked as such, anything else as
+ * a Promo Code. */
+export function codeKind(code: string): 'gift_card' | 'promo' {
+	return normaliseGiftCardCode(code).startsWith(GIFT_CARD_CODE_PREFIX) ? 'gift_card' : 'promo';
+}
+
+/** What the booking API takes, minus what only the page knows (the
+ * Seating, the chosen Extras and codes): built here so a unit test can
+ * check it (issue 080). */
+export interface BookingForm {
+	firstName: string;
+	lastName: string;
+	email: string;
+	phone: string;
+	marketingConsent: boolean;
+}
+
+export function bookingPayload(
+	sessionId: string,
+	quantity: number,
+	form: BookingForm,
+	opts: {
+		extras?: { extraId: string; quantity: number }[];
+		promo?: AppliedPromo;
+		giftCard?: AppliedGiftCard;
+		/** Sent, with its consent, only once the dietary answer is filled. */
+		dietary?: { requirements: string };
+		locale: string;
+		honeypot?: string;
+	}
+) {
+	return {
+		sessionId,
+		firstName: form.firstName.trim(),
+		lastName: form.lastName.trim(),
+		email: form.email.trim(),
+		phone: form.phone.trim() || undefined,
+		quantity,
+		notificationPreference: form.phone.trim() ? ('both' as const) : ('email' as const),
+		promoCode: opts.promo?.code,
+		giftCardCode: opts.giftCard?.code,
+		extras: opts.extras?.length ? opts.extras : undefined,
+		...(opts.dietary ? { dietaryRequirements: opts.dietary.requirements.trim(), dietaryConsent: true } : {}),
+		marketingConsent: form.marketingConsent,
+		locale: opts.locale,
+		honeypot: opts.honeypot ?? ''
+	};
 }
 
 /** A Seating the party can book, or whose Waitlist it can join. */
@@ -135,10 +197,11 @@ export function menuFor(
 	return menus.find((m) => m.name === name);
 }
 
-/** The bill so far: one line for the meal, one per Extra taken, and the price. */
+/** The bill so far: one line for the meal, one per Extra taken, then
+ * the Promo Code's discount and what a gift card pays of the Deposit. */
 export function bill(
 	view: EventPage,
-	choice: { guests: number; seating?: SeatingView; service?: ServiceView; extras: Record<string, number> },
+	choice: { guests: number; seating?: SeatingView; service?: ServiceView; extras: Record<string, number>; promo?: AppliedPromo | null; giftCard?: AppliedGiftCard | null },
 	extras: BookingExtra[],
 	mealName: string
 ) {
@@ -146,7 +209,8 @@ export function bill(
 	const qty = (x: BookingExtra) => (x.unit === 'per_person' ? (choice.extras[x.id] ? g : 0) : (choice.extras[x.id] ?? 0));
 	const unit = choice.seating?.seating.priceAmount ?? 0;
 	const extrasTotal = extras.reduce((sum, x) => sum + x.priceAmount * qty(x), 0);
-	const price = priceReservation({ unitPrice: unit, seats: g, extrasTotal, deposit: view.deposit });
+	const price = priceReservation({ unitPrice: unit, seats: g, extrasTotal, discount: choice.promo ?? undefined, deposit: view.deposit });
+	const card = choice.giftCard ? splitDeposit(price.deposit, choice.giftCard.balance).card : 0;
 	const money = (n: number) => formatPrice(n, choice.seating?.seating.currency ?? 'EUR', view.lang);
 	const lines = [
 		{ label: `${g} × ${mealName || choice.service?.label || ''}`, amount: unit * g },
@@ -154,5 +218,5 @@ export function bill(
 			.filter((x) => qty(x) > 0)
 			.map((x) => ({ label: `${x.name} × ${qty(x)}`, amount: x.priceAmount * qty(x) })),
 	];
-	return { lines, price, money, unit, qty };
+	return { lines, price, money, unit, qty, promo: choice.promo ?? null, giftCard: choice.giftCard ?? null, card, payNow: price.deposit - card };
 }
