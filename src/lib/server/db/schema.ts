@@ -239,6 +239,10 @@ export const events = pgTable('events', {
     staffBrief: text('staff_brief'),
     coverMediaId: uuid('cover_media_id'),
     coverVideoId: uuid('cover_video_id'),
+    // Issue 078: the announcement video's shape, and whether the cover
+    // image already letters in the Event's name.
+    coverVideoPortrait: boolean('cover_video_portrait').notNull().default(false),
+    coverShowsTitle: boolean('cover_shows_title').notNull().default(false),
     visibility: eventVisibilityEnum('visibility').notNull().default('draft'),
     isSpotlight: boolean('is_spotlight').default(false).notNull(),
     isPortfolio: boolean('is_portfolio').default(false).notNull(),
