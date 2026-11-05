@@ -78,7 +78,8 @@ async function eventHasReservations(eventId: string): Promise<boolean> {
 		.select({ id: reservations.id })
 		.from(reservations)
 		.innerJoin(eventSessions, eq(reservations.eventSessionId, eventSessions.id))
-		.where(eq(eventSessions.eventId, eventId));
+		.where(eq(eventSessions.eventId, eventId))
+		.limit(1);
 	return row !== undefined;
 }
 
