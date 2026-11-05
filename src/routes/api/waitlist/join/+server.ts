@@ -5,14 +5,22 @@ import { joinWaitlist, WaitlistNotAvailableError } from '$lib/server/services/wa
 import { checkRateLimit } from '$lib/server/rate-limit';
 import { validateCsrfToken } from '$lib/server/csrf';
 import type { RequestHandler } from './$types';
+import { NAME_PART_MAX_LENGTH } from '$lib/utils/person-name';
 
 const joinWaitlistSchema = z.object({
 	sessionId: z.string().uuid(),
 	email: z.string().email().toLowerCase(),
-	name: z.string().min(1).max(255),
+	// First and last name, both required; a client from before the split
+	// may still send one `name`, split at its first space.
+	firstName: z.string().trim().min(1).max(NAME_PART_MAX_LENGTH).optional(),
+	lastName: z.string().trim().min(1).max(NAME_PART_MAX_LENGTH).optional(),
+	name: z.string().trim().min(1).max(255).optional(),
 	phone: z.string().optional(),
 	quantity: z.number().int().min(1).max(10),
 	notificationPreference: z.enum(['email', 'sms', 'both']).default('both')
+}).refine((d) => (d.firstName && d.lastName) || d.name, {
+	message: 'First and last name are required',
+	path: ['lastName']
 });
 
 export const POST: RequestHandler = async ({ request, getClientAddress, locals }) => {

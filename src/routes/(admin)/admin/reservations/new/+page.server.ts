@@ -5,6 +5,7 @@ import { MOCK_EVENTS, MOCK_SESSIONS } from '$lib/mock-data';
 import { requireAdmin } from '$lib/server/auth-guards';
 import type { PageServerLoad, Actions } from './$types';
 import { seatingTitle } from '$lib/utils/seating-title';
+import { NAME_PART_MAX_LENGTH, joinName, nameFromInput } from '$lib/utils/person-name';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	requireAdmin(locals);
@@ -71,7 +72,12 @@ export const actions: Actions = {
 
 		const formData = await request.formData();
 		const sessionId = formData.get('sessionId')?.toString();
-		const name = formData.get('name')?.toString().trim();
+		const { firstName, lastName } = nameFromInput({
+			firstName: formData.get('firstName')?.toString(),
+			lastName: formData.get('lastName')?.toString(),
+			name: formData.get('name')?.toString(),
+		});
+		const name = joinName(firstName, lastName);
 		const email = formData.get('email')?.toString().trim();
 		const phone = formData.get('phone')?.toString().trim();
 		const quantityRaw = formData.get('quantity')?.toString();
@@ -85,7 +91,10 @@ export const actions: Actions = {
 			return fail(400, { error: 'Veuillez sélectionner une session' });
 		}
 		if (!name) {
-			return fail(400, { error: "Le nom de l'invité est requis" });
+			return fail(400, { error: "Le prénom ou le nom de l'invité est requis" });
+		}
+		if (firstName.length > NAME_PART_MAX_LENGTH || lastName.length > NAME_PART_MAX_LENGTH) {
+			return fail(400, { error: 'Le prénom et le nom font au plus 100 caractères' });
 		}
 		if (!email || !email.includes('@')) {
 			return fail(400, { error: "Un email d'invité valide est requis" });
@@ -109,7 +118,8 @@ export const actions: Actions = {
 			const result = await createCompReservation({
 				sessionId,
 				email,
-				name,
+				firstName,
+				lastName,
 				phone: phone || undefined,
 				quantity,
 				notificationPreference,

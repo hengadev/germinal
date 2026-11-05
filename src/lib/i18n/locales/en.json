@@ -296,6 +296,8 @@
     "description": "Complete your booking details",
     "errorTitle": "Booking Failed",
     "fullName": "Full Name",
+    "firstName": "First name",
+    "lastName": "Last name",
     "email": "Email",
     "emailHint": "Ticket confirmation will be sent here",
     "phone": "Phone Number",

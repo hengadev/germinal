@@ -22,7 +22,10 @@
 	let submitting = $state(false);
 	let error = $state<string | null>(null);
 	let seatingId = $state('');
-	let name = $state('');
+	let firstName = $state('');
+	let lastName = $state('');
+	/** First name or last name: one is enough. */
+	const name = $derived([firstName.trim(), lastName.trim()].filter(Boolean).join(' '));
 	let email = $state('');
 	let phone = $state('');
 	let quantity = $state(1);
@@ -123,7 +126,8 @@
 					? String(result.data.message)
 					: `Invitation envoyée à ${name}`;
 			toast.success('Invitation envoyée', message);
-			name = '';
+			firstName = '';
+			lastName = '';
 			email = '';
 			phone = '';
 			quantity = 1;
@@ -223,10 +227,17 @@
 					</p>
 				{/if}
 
-				<div>
-					<label class={LABEL} for="{uid}-name">Nom</label>
-					<input id="{uid}-name" name="name" type="text" bind:value={name} required
-						autocomplete="name" class={INPUT + ' mt-1'} />
+				<div class="grid grid-cols-2 gap-3">
+					<div>
+						<label class={LABEL} for="{uid}-first-name">Prénom</label>
+						<input id="{uid}-first-name" name="firstName" type="text" bind:value={firstName} maxlength="100"
+							autocomplete="given-name" class={INPUT + ' mt-1'} />
+					</div>
+					<div>
+						<label class={LABEL} for="{uid}-last-name">Nom</label>
+						<input id="{uid}-last-name" name="lastName" type="text" bind:value={lastName} maxlength="100"
+							autocomplete="family-name" class={INPUT + ' mt-1'} />
+					</div>
 				</div>
 				<div>
 					<label class={LABEL} for="{uid}-email">Email</label>

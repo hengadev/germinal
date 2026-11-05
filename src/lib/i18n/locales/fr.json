@@ -296,6 +296,8 @@
     "description": "Complétez vos informations de réservation",
     "errorTitle": "Réservation échouée",
     "fullName": "Nom complet",
+    "firstName": "Prénom",
+    "lastName": "Nom",
     "email": "Email",
     "emailHint": "La confirmation du billet sera envoyée ici",
     "phone": "Numéro de téléphone",

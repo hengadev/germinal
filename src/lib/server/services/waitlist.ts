@@ -13,6 +13,14 @@ import { formatCurrency } from '$lib/utils/currency';
 import { loadSeatingAccess } from './event-access';
 import { ANONYMOUS, waitlistAccess, type WaitlistRefusal } from '$lib/utils/event-access';
 import { bookingClosesAt, DEFAULT_BOOKING_WINDOW } from '$lib/utils/booking-window';
+import { nameColumns } from '$lib/utils/person-name';
+
+/** A waitlist entry's name columns: first and last name, and the full name
+ * the previous app version still reads (waitlist.name). */
+function waitlistNameColumns(input: { firstName?: string; lastName?: string; name?: string }) {
+	const n = nameColumns(input);
+	return { firstName: n.firstName, lastName: n.lastName, name: n.fullName };
+}
 
 /** Thrown when Event access refuses a Seating's Waitlist; `reason` says why. */
 export class WaitlistNotAvailableError extends Error {
@@ -46,7 +54,10 @@ async function waitlistDecision(sessionId: string) {
 export async function joinWaitlist(input: {
 	sessionId: string;
 	email: string;
-	name: string;
+	firstName?: string;
+	lastName?: string;
+	/** @deprecated One name, split at its first space. */
+	name?: string;
 	phone?: string;
 	quantity: number;
 	notificationPreference?: 'email' | 'sms' | 'both';
@@ -76,7 +87,7 @@ export async function joinWaitlist(input: {
 	const [entry] = await db.insert(waitlist).values({
 		eventSessionId: input.sessionId,
 		email: input.email,
-		name: input.name,
+		...waitlistNameColumns(input),
 		phone: input.phone ?? null,
 		notificationPreference: input.notificationPreference ?? 'both',
 		quantity: input.quantity,

@@ -10,6 +10,7 @@ import { checkIns, eventDays, eventServices, eventSessions } from '../db/schema'
 import type { StaffAccess } from '$lib/staff/access';
 import { createStaffReservation } from './reservations';
 import { recordAuditLog } from './audit-log';
+import { nameFromInput } from '$lib/utils/person-name';
 import { spotPartyError } from './walk-ins';
 
 export type CompResult = { ok: true; reservationId: string } | { ok: false; error: string };
@@ -25,18 +26,22 @@ export async function createCompOnTheSpot(input: {
 	access: StaffAccess;
 	eventId: string;
 	seatingId: string;
-	name: string;
+	firstName?: string;
+	lastName?: string;
+	/** @deprecated One name, split at its first space. */
+	name?: string;
 	quantity: number;
 	email?: string;
 	phone?: string;
 	actorId: string;
 }): Promise<CompResult> {
-	const { access, eventId, seatingId, name, quantity, email, phone, actorId } = input;
+	const { access, eventId, seatingId, quantity, email, phone, actorId } = input;
+	const { firstName, lastName } = nameFromInput(input);
 
 	if (!access.can('comp')) {
 		return { ok: false, error: "Vous n'avez pas la permission d'offrir une invitation." };
 	}
-	const invalid = spotPartyError({ name, quantity, email, phone });
+	const invalid = spotPartyError({ firstName, lastName, quantity, email, phone });
 	if (invalid) return { ok: false, error: invalid };
 
 	return db.transaction(async (tx: typeof db) => {
@@ -55,7 +60,7 @@ export async function createCompOnTheSpot(input: {
 		}
 
 		const { reservation } = await createStaffReservation(
-			{ kind: 'comp', sessionId: seatingId, name: name.trim(), quantity, email, phone, actorId },
+			{ kind: 'comp', sessionId: seatingId, firstName, lastName, quantity, email, phone, actorId },
 			tx
 		);
 

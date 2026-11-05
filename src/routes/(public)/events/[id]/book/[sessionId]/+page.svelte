@@ -33,7 +33,8 @@
 
 	type NotificationPreference = 'email' | 'sms' | 'both';
 
-	let name = $state('');
+	let firstName = $state('');
+	let lastName = $state('');
 	let email = $state('');
 	let phone = $state('');
 	let quantity = $state(1);
@@ -188,7 +189,8 @@
 	let payableNow = $derived(price.deposit - cardSplit.card);
 
 	let isFormValid = $derived(
-		name.trim().length > 0 &&
+		firstName.trim().length > 0 &&
+		lastName.trim().length > 0 &&
 			email.trim().length > 0 &&
 			email.includes('@') &&
 			quantity >= 1 &&
@@ -219,7 +221,8 @@
 				body: JSON.stringify({
 					sessionId: data.session.id,
 					email: email.trim(),
-					name: name.trim(),
+					firstName: firstName.trim(),
+					lastName: lastName.trim(),
 					phone: phone.trim() || undefined,
 					quantity,
 					notificationPreference,
@@ -327,21 +330,41 @@
 				</div>
 			{/if}
 
-			<!-- Name Field -->
-			<div>
-				<label for="name" class="block text-sm font-medium text-foreground-alt mb-2">
-					{$t('booking.fullName')} <span class="text-red-500">*</span>
-				</label>
-				<div class="relative">
-					<User size={18} class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+			<!-- First and last name, side by side -->
+			<div class="grid grid-cols-2 gap-3">
+				<div>
+					<label for="firstName" class="block text-sm font-medium text-foreground-alt mb-2">
+						{$t('booking.firstName')} <span class="text-red-500">*</span>
+					</label>
+					<div class="relative">
+						<User size={18} class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+						<input
+							id="firstName"
+							type="text"
+							bind:value={firstName}
+							required
+							maxlength="100"
+							autocomplete="given-name"
+							placeholder="Jean"
+							disabled={isSubmitting}
+							class="w-full pl-10 pr-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm disabled:bg-surface disabled:cursor-not-allowed"
+						/>
+					</div>
+				</div>
+				<div>
+					<label for="lastName" class="block text-sm font-medium text-foreground-alt mb-2">
+						{$t('booking.lastName')} <span class="text-red-500">*</span>
+					</label>
 					<input
-						id="name"
+						id="lastName"
 						type="text"
-						bind:value={name}
+						bind:value={lastName}
 						required
-						placeholder="Jean Dupont"
+						maxlength="100"
+						autocomplete="family-name"
+						placeholder="Dupont"
 						disabled={isSubmitting}
-						class="w-full pl-10 pr-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm disabled:bg-surface disabled:cursor-not-allowed"
+						class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm disabled:bg-surface disabled:cursor-not-allowed"
 					/>
 				</div>
 			</div>
