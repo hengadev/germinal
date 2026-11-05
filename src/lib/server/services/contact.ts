@@ -1,7 +1,7 @@
 import { db } from '../db';
 import { logger } from '$lib/server/logger';
 import { contactSubmissions } from '../db/schema';
-import { eq, desc, and, isNull, or, count } from 'drizzle-orm';
+import { eq, desc, and, asc, gte, ilike, isNotNull, isNull, lt, or, count } from 'drizzle-orm';
 import { events } from '../db/schema';
 import { z } from 'zod';
 import type { CreateContactSubmissionInput, ContactSubmission } from '$lib/types/contact';
@@ -64,6 +64,7 @@ export async function createContactSubmission(
       emailSent,
       emailSentAt,
       emailError,
+      updatedAt: new Date(),
     })
     .where(eq(contactSubmissions.id, submission.id))
     .returning();
@@ -100,11 +101,27 @@ const REQUEST_STATUSES: RequestStatus[] = ['new', 'discussing', 'quote_sent', 'c
 
 const INQUIRY_TYPES = ['collaboration', 'new_project', 'join_roster', 'private_event', 'other'] as const;
 
-/** Not honeypot-flagged submissions, newest first, filterable. */
-export async function listDemandes(options: {
+/** Search wildcards matched literally (issue 074). */
+function escapeLike(value: string): string {
+  return value.replace(/[\\%_]/g, (c) => `\\${c}`);
+}
+
+export type DemandeSort = 'recent' | 'oldest' | 'modified';
+
+const DEMANDE_SORTS: DemandeSort[] = ['recent', 'oldest', 'modified'];
+
+export type ListDemandesOptions = {
   inquiryType?: string | null;
   status?: string | null;
-}): Promise<ContactSubmission[]> {
+  search?: string | null;
+  receivedFrom?: Date | null;
+  receivedTo?: Date | null;
+  linked?: string | null;
+  sort?: string | null;
+};
+
+/** Not honeypot-flagged submissions, filterable and sortable (issue 074). */
+export async function listDemandes(options: ListDemandesOptions): Promise<ContactSubmission[]> {
   const conditions = [or(isNull(contactSubmissions.honeypot), eq(contactSubmissions.honeypot, ''))];
 
   if (options.inquiryType && (INQUIRY_TYPES as readonly string[]).includes(options.inquiryType)) {
@@ -114,9 +131,45 @@ export async function listDemandes(options: {
     conditions.push(eq(contactSubmissions.status, options.status as RequestStatus));
   }
 
+  const search = options.search?.trim();
+  if (search) {
+    const pattern = `%${escapeLike(search)}%`;
+    conditions.push(or(
+      ilike(contactSubmissions.name, pattern),
+      ilike(contactSubmissions.email, pattern),
+      ilike(contactSubmissions.company, pattern),
+      ilike(contactSubmissions.message, pattern)
+    ));
+  }
+
+  if (options.receivedFrom) {
+    conditions.push(gte(contactSubmissions.createdAt, options.receivedFrom));
+  }
+  if (options.receivedTo) {
+    // receivedTo is exclusive: the start of the day after the range.
+    conditions.push(lt(contactSubmissions.createdAt, options.receivedTo));
+  }
+
+  if (options.linked === 'yes') {
+    conditions.push(isNotNull(contactSubmissions.eventId));
+  } else if (options.linked === 'no') {
+    conditions.push(isNull(contactSubmissions.eventId));
+  }
+
+  const sort: DemandeSort =
+    options.sort && DEMANDE_SORTS.includes(options.sort as DemandeSort)
+      ? (options.sort as DemandeSort)
+      : 'recent';
+  const orderBy =
+    sort === 'oldest'
+      ? [asc(contactSubmissions.createdAt)]
+      : sort === 'modified'
+        ? [desc(contactSubmissions.updatedAt)]
+        : [desc(contactSubmissions.createdAt)];
+
   return await db.query.contactSubmissions.findMany({
     where: and(...conditions),
-    orderBy: [desc(contactSubmissions.createdAt)],
+    orderBy,
   });
 }
 
@@ -137,7 +190,9 @@ export async function updateDemande(
   id: string,
   input: { status?: unknown; adminNote?: unknown }
 ): Promise<ContactSubmission> {
-  const patch: { status?: RequestStatus; adminNote?: string | null } = {};
+  const patch: { status?: RequestStatus; adminNote?: string | null; updatedAt: Date } = {
+    updatedAt: new Date()
+  };
 
   if (input.status !== undefined && input.status !== null && input.status !== '') {
     const parsed = statusSchema.safeParse(input.status);
@@ -242,7 +297,7 @@ export async function createEventFromDemande(id: string): Promise<{
 		}).returning();
 
 		await tx.update(contactSubmissions)
-			.set({ eventId: event.id, status: 'discussing' })
+			.set({ eventId: event.id, status: 'discussing', updatedAt: new Date() })
 			.where(eq(contactSubmissions.id, id));
 
 		return { event, created: true };
@@ -279,6 +334,7 @@ export async function retryContactEmail(id: string): Promise<ContactSubmission> 
         emailSent: true,
         emailSentAt: new Date(),
         emailError: null,
+        updatedAt: new Date(),
       })
       .where(eq(contactSubmissions.id, id))
       .returning();
@@ -290,6 +346,7 @@ export async function retryContactEmail(id: string): Promise<ContactSubmission> 
     const [updated] = await db.update(contactSubmissions)
       .set({
         emailError: errorMessage,
+        updatedAt: new Date(),
       })
       .where(eq(contactSubmissions.id, id))
       .returning();

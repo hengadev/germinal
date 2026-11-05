@@ -288,7 +288,7 @@ export async function cancelGiftCard(
 	return { ok: true as const, card: updated };
 }
 
-export type GiftCardStatusFilter = 'active' | 'used_up' | 'expired' | 'cancelled';
+export type GiftCardStatusFilter = 'active' | 'used_up' | 'expired' | 'cancelled' | 'all';
 
 /** The Admin list, with search and the status filter (issue 063). */
 export async function listGiftCards(options: {
@@ -328,6 +328,12 @@ export async function listGiftCards(options: {
 		case 'cancelled':
 			conditions.push(sql`${giftCards.status} = 'cancelled'`);
 			break;
+		case 'all':
+			break;
+		default:
+			// No status chosen: cancelled cards are hidden, unless a search is
+			// typed, so a pasted code still finds a cancelled card (issue 076).
+			if (search === '') conditions.push(sql`${giftCards.status} <> 'cancelled'`);
 	}
 	return db
 		.select()

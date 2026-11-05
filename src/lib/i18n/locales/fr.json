@@ -3,15 +3,7 @@
     "offlineReady": "Application prête pour une utilisation hors ligne",
     "newVersion": "Une nouvelle version est disponible",
     "reload": "Recharger",
-    "close": "Fermer",
-    "installTitle": "Installer l'application",
-    "installDescription": "Accédez rapidement à Germinal depuis votre écran d'accueil.",
-    "installButton": "Installer",
-    "installDismiss": "Plus tard",
-    "iosTitle": "Installer {appName}",
-    "iosSubtitle": "Ajoutez à l'écran d'accueil pour la meilleure expérience",
-    "iosStep1": "Appuyez sur le bouton <strong>Partager</strong>",
-    "iosStep2": "Faites défiler et appuyez sur <strong>Ajouter à l'écran d'accueil</strong>"
+    "close": "Fermer"
   },
   "cookieConsent": {
     "title": "Nous utilisons des cookies",

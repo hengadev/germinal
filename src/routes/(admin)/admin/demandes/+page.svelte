@@ -6,6 +6,8 @@
 	let { data }: { data: PageData } = $props();
 	const uid = $props.id();
 
+	let period = $state(['today', '7d', '30d', 'custom'].includes(data.period) ? data.period : '');
+
 	const typeLabels: Record<string, string> = {
 		collaboration: 'Collaboration',
 		new_project: 'Nouveau projet',
@@ -44,14 +46,29 @@
 		const search = new URLSearchParams();
 		const current: Record<string, string> = {
 			type: data.inquiryType,
-			status: data.status
+			status: data.status,
+			search: data.search,
+			period: data.period,
+			from: data.period === 'custom' ? data.from : '',
+			to: data.period === 'custom' ? data.to : '',
+			linked: data.linked,
+			sort: data.sort
 		};
 		for (const [key, value] of Object.entries({ ...current, ...params })) {
-			if (value) search.set(key, value);
+			if (value && value !== 'recent') search.set(key, value);
 		}
 		const query = search.toString();
 		return query ? `/admin/demandes?${query}` : '/admin/demandes';
 	}
+
+	const hasActiveFilter = $derived(
+		!!data.inquiryType ||
+			!!data.status ||
+			!!data.search ||
+			!!data.period ||
+			!!data.linked ||
+			(!!data.sort && data.sort !== 'recent')
+	);
 </script>
 
 <svelte:head>
@@ -62,43 +79,128 @@
 	<div class="mb-6">
 		<h1 class="text-2xl font-semibold text-foreground">Demandes</h1>
 		<p class="text-sm text-muted-foreground mt-1">
-			Tous les messages du formulaire de contact, du plus récent au plus ancien.
+			Tous les messages du formulaire de contact : cherchez, filtrez et triez.
 		</p>
 	</div>
 
 	<!-- Filters -->
 	<div class="bg-background rounded-lg border border-border-card p-4 mb-6">
-		<form action="/admin/demandes" method="get" class="flex flex-col sm:flex-row gap-4">
-			<div class="flex-1">
-				<label for="{uid}-type" class="block text-sm font-medium text-foreground-alt mb-1">Type</label>
-				<select
-					id="{uid}-type"
-					name="type"
-					class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
-				>
-					<option value="">Tous les types</option>
-					{#each Object.entries(typeLabels) as [value, label] (value)}
-						<option value={value} selected={data.inquiryType === value}>{label}</option>
-					{/each}
-				</select>
+		<form action="/admin/demandes" method="get" class="flex flex-col gap-4">
+			<div class="flex flex-col sm:flex-row gap-4">
+				<div class="flex-1">
+					<label for="{uid}-search" class="block text-sm font-medium text-foreground-alt mb-1">Recherche</label>
+					<input
+						id="{uid}-search"
+						type="search"
+						name="search"
+						value={data.search}
+						placeholder="Nom, e-mail, société, message…"
+						class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
+					/>
+				</div>
 			</div>
-			<div class="flex-1">
-				<label for="{uid}-status" class="block text-sm font-medium text-foreground-alt mb-1">Statut</label>
-				<select
-					id="{uid}-status"
-					name="status"
-					class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
-				>
-					<option value="">Tous les statuts</option>
-					{#each Object.entries(statusLabels) as [value, label] (value)}
-						<option value={value} selected={data.status === value}>{label}</option>
-					{/each}
-				</select>
+			<div class="grid grid-cols-2 gap-3 sm:flex sm:flex-row sm:gap-4">
+				<div class="flex-1">
+					<label for="{uid}-type" class="block text-sm font-medium text-foreground-alt mb-1">Type</label>
+					<select
+						id="{uid}-type"
+						name="type"
+						class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
+					>
+						<option value="">Tous les types</option>
+						{#each Object.entries(typeLabels) as [value, label] (value)}
+							<option value={value} selected={data.inquiryType === value}>{label}</option>
+						{/each}
+					</select>
+				</div>
+				<div class="flex-1">
+					<label for="{uid}-status" class="block text-sm font-medium text-foreground-alt mb-1">Statut</label>
+					<select
+						id="{uid}-status"
+						name="status"
+						class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
+					>
+						<option value="">Tous les statuts</option>
+						{#each Object.entries(statusLabels) as [value, label] (value)}
+							<option value={value} selected={data.status === value}>{label}</option>
+						{/each}
+					</select>
+				</div>
+				<div class="flex-1">
+					<label for="{uid}-period" class="block text-sm font-medium text-foreground-alt mb-1">Période reçue</label>
+					<select
+						id="{uid}-period"
+						name="period"
+						bind:value={period}
+						class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
+					>
+						<option value="">Toutes les dates</option>
+						<option value="today">Aujourd'hui</option>
+						<option value="7d">7 derniers jours</option>
+						<option value="30d">30 derniers jours</option>
+						<option value="custom">Personnalisée</option>
+					</select>
+				</div>
 			</div>
-			<div class="flex items-end">
-				<button type="submit" class="px-4 py-2 border border-border-input rounded-lg text-sm text-foreground hover:bg-muted">
-					Appliquer
-				</button>
+			{#if period === 'custom'}
+				<div class="grid grid-cols-2 gap-3 sm:flex sm:flex-row sm:gap-4">
+					<div class="flex-1">
+						<label for="{uid}-from" class="block text-sm font-medium text-foreground-alt mb-1">Du</label>
+						<input
+							id="{uid}-from"
+							type="date"
+							name="from"
+							value={data.from}
+							class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
+						/>
+					</div>
+					<div class="flex-1">
+						<label for="{uid}-to" class="block text-sm font-medium text-foreground-alt mb-1">Au</label>
+						<input
+							id="{uid}-to"
+							type="date"
+							name="to"
+							value={data.to}
+							class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
+						/>
+					</div>
+				</div>
+			{/if}
+			<div class="grid grid-cols-2 gap-3 sm:flex sm:flex-row sm:gap-4">
+				<div class="flex-1">
+					<label for="{uid}-linked" class="block text-sm font-medium text-foreground-alt mb-1">Liée à un événement</label>
+					<select
+						id="{uid}-linked"
+						name="linked"
+						class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
+					>
+						<option value="">Toutes</option>
+						<option value="yes" selected={data.linked === 'yes'}>Oui</option>
+						<option value="no" selected={data.linked === 'no'}>Non</option>
+					</select>
+				</div>
+				<div class="flex-1">
+					<label for="{uid}-sort" class="block text-sm font-medium text-foreground-alt mb-1">Tri</label>
+					<select
+						id="{uid}-sort"
+						name="sort"
+						class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
+					>
+						<option value="recent" selected={data.sort !== 'oldest' && data.sort !== 'modified'}>Plus récentes</option>
+						<option value="oldest" selected={data.sort === 'oldest'}>Plus anciennes</option>
+						<option value="modified" selected={data.sort === 'modified'}>Dernières modifiées</option>
+					</select>
+				</div>
+				<div class="col-span-2 flex items-end gap-2">
+					<button type="submit" class="px-4 py-2 border border-border-input rounded-lg text-sm text-foreground hover:bg-muted">
+						Appliquer
+					</button>
+					{#if hasActiveFilter}
+						<a href="/admin/demandes" class="px-4 py-2 text-sm text-foreground-alt hover:text-foreground underline">
+							Réinitialiser
+						</a>
+					{/if}
+				</div>
 			</div>
 		</form>
 		<p class="mt-3 text-sm text-muted-foreground">
@@ -122,6 +224,7 @@
 							<th class="px-6 py-4 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">Expéditeur</th>
 							<th class="px-6 py-4 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">Type</th>
 							<th class="px-6 py-4 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">Statut</th>
+							<th class="px-6 py-4 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">Modifiée le</th>
 							<th class="px-6 py-4"></th>
 						</tr>
 					</thead>
@@ -139,6 +242,7 @@
 										{statusLabels[demande.status] ?? demande.status}
 									</span>
 								</td>
+								<td class="px-6 py-4 text-sm text-foreground-alt">{formatDate(demande.updatedAt)}</td>
 								<td class="px-6 py-4 text-right">
 									<a href="/admin/demandes/{demande.id}" class="inline-flex items-center gap-1 text-sm text-foreground-alt hover:text-foreground">
 										Voir <ChevronRight size={14} />
@@ -169,7 +273,10 @@
 					</div>
 					<div class="mt-2 flex items-center justify-between gap-2">
 						<span class="text-xs text-foreground-alt">{typeLabels[demande.inquiryType] ?? demande.inquiryType}</span>
-						<span class="text-xs text-muted-foreground">{formatDate(demande.createdAt)}</span>
+						<span class="text-xs text-muted-foreground">Reçue le {formatDate(demande.createdAt)}</span>
+					</div>
+					<div class="mt-1 flex items-center justify-end">
+						<span class="text-xs text-muted-foreground">Modifiée le {formatDate(demande.updatedAt)}</span>
 					</div>
 				</a>
 			{/each}

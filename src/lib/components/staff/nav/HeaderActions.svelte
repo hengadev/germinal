@@ -16,7 +16,7 @@
 	import { page } from '$app/state';
 	import { adminDarkMode } from '$lib/stores/adminDarkMode.svelte';
 	import { openSpotForm } from '$lib/components/staff/event-menu/spot-form.svelte';
-	import { canOfferStaffInstall, openStaffInstall } from '$lib/components/staff/install/install-prompt.svelte';
+	import { canOfferInstall, openInstall } from '$lib/components/install/install-prompt.svelte';
 	import { openCloseBookingsForm } from '$lib/components/staff/event-menu/close-bookings-form.svelte';
 	import { openInviteForm } from '$lib/components/staff/event-menu/invite-form.svelte';
 	import { pickEvent, type PickableEvent } from './event-picker.svelte';
@@ -27,7 +27,7 @@
 	let { targets }: { targets: HeaderActionTargets } = $props();
 
 	const isDark = $derived(adminDarkMode.get());
-	const canInstall = $derived(canOfferStaffInstall());
+	const canInstall = $derived(canOfferInstall());
 
 	/** Lance un raccourci sur l'événement ouvert, le seul possible, ou celui choisi. */
 	function start(action: string, events: PickableEvent[], open: () => void) {
@@ -130,7 +130,7 @@
 					Actualiser
 				</DropdownMenu.Item>
 				{#if canInstall}
-					<DropdownMenu.Item class={ITEM} onSelect={() => (chosen = openStaffInstall)}>
+					<DropdownMenu.Item class={ITEM} onSelect={() => (chosen = openInstall)}>
 						<Download class="size-4" aria-hidden="true" />
 						Installer l'app
 					</DropdownMenu.Item>
