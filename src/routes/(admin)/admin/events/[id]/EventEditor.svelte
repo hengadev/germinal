@@ -37,6 +37,7 @@
 	import { setEnglishAuto } from '$lib/components/admin/EnglishVersion.svelte';
 
 	import Essentiel from './Essentiel.svelte';
+	import Publication from './Publication.svelte';
 	import Lieu from './Lieu.svelte';
 	import Seatings from './Seatings.svelte';
 	import Pricing from './Pricing.svelte';
@@ -556,7 +557,7 @@
 	onsubmitcapture={submitForm}
 	class="container mx-auto px-4 py-8 lg:py-12"
 >
-	<div class="flex items-start gap-3 mb-8">
+	<div class="flex flex-wrap items-start gap-3 mb-8">
 		<a
 			href="/admin/events"
 			aria-label="Retour aux événements"
@@ -565,7 +566,7 @@
 		>
 			<ArrowLeft size={20} />
 		</a>
-		<div>
+		<div class="min-w-0 flex-1">
 			<h1 class="text-3xl lg:text-4xl font-bold mb-2">{headerTitle}</h1>
 			<p class="text-muted-foreground flex items-center gap-2 flex-wrap">
 				<!-- Aperçu (issue 033) : ouvre la page publique — un brouillon
@@ -677,6 +678,10 @@
 				<span role="status" class="sr-only">{saveAnnouncement}</span>
 			</p>
 		</div>
+		<!-- Publication (issue 077): on the title row, from every tab. -->
+		<div class="shrink-0 ml-auto pt-1.5">
+			<Publication {event} lastSeatingStart={data.lastSeatingStart ?? null} warnings={publishingWarnings} />
+		</div>
 	</div>
 
 	{#if form?.error}
@@ -762,7 +767,7 @@
 	{/snippet}
 
 	{#snippet essentiel()}
-		<Essentiel bind:this={essentielTab} {event} lastSeatingStart={data.lastSeatingStart ?? null} warnings={publishingWarnings} />
+		<Essentiel bind:this={essentielTab} {event} />
 	{/snippet}
 	{#snippet lieu()}
 		<Lieu bind:this={lieuTab} {event} zones={data.timeZones ?? []} locked={data.timeZoneLocked ?? false} bind:timeZone />
