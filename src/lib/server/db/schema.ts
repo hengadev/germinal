@@ -676,6 +676,10 @@ export const waitlist = pgTable('waitlist', {
         .notNull()
         .references(() => eventSessions.id, { onDelete: 'cascade' }),
     email: varchar('email', { length: 255 }).notNull(),
+    // First and last name apart, as on a Reservation; name still holds the
+    // full name until it is dropped.
+    firstName: varchar('first_name', { length: 100 }),
+    lastName: varchar('last_name', { length: 100 }),
     name: varchar('name', { length: 255 }).notNull(),
     phone: varchar('phone', { length: 50 }),
     notificationPreference: notificationPreferenceEnum('notification_preference').notNull().default('both'),
@@ -767,9 +771,15 @@ export const giftCards = pgTable('gift_cards', {
     status: giftCardStatusEnum('status').notNull().default('active'),
     // One year after issue by default (set by the service).
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    // First and last names apart, as on a Reservation; recipient_name and
+    // buyer_name still hold the full names until they are dropped.
+    recipientFirstName: varchar('recipient_first_name', { length: 100 }),
+    recipientLastName: varchar('recipient_last_name', { length: 100 }),
     recipientName: varchar('recipient_name', { length: 255 }),
     recipientEmail: varchar('recipient_email', { length: 255 }),
     message: text('message'),
+    buyerFirstName: varchar('buyer_first_name', { length: 100 }),
+    buyerLastName: varchar('buyer_last_name', { length: 100 }),
     buyerName: varchar('buyer_name', { length: 255 }),
     buyerEmail: varchar('buyer_email', { length: 255 }),
     origin: giftCardOriginEnum('origin').notNull().default('online'),
@@ -878,6 +888,13 @@ export const reservations = pgTable('reservations', {
         .references(() => eventSessions.id, { onDelete: 'restrict' }),
     // Issue 020: absent for Walk-ins, who may have no email at all.
     guestEmail: varchar('guest_email', { length: 255 }),
+    // The Guest's name in two parts (first name, last name), so each can be
+    // set apart (a ticket, Stripe, the arrivals sorted by last name).
+    // Nullable while guest_name is phased out: rows written by the previous
+    // app version have only guest_name. guest_name still holds the full
+    // name until it is dropped (see docs/deployment, the migration rule).
+    guestFirstName: varchar('guest_first_name', { length: 100 }),
+    guestLastName: varchar('guest_last_name', { length: 100 }),
     guestName: varchar('guest_name', { length: 255 }).notNull(),
     guestPhone: varchar('guest_phone', { length: 50 }),
     notificationPreference: notificationPreferenceEnum('notification_preference').notNull().default('both'),
