@@ -79,7 +79,7 @@
 	<div class="mb-6">
 		<h1 class="text-2xl font-semibold text-foreground">Demandes</h1>
 		<p class="text-sm text-muted-foreground mt-1">
-			Tous les messages du formulaire de contact, du plus récent au plus ancien.
+			Tous les messages du formulaire de contact : cherchez, filtrez et triez.
 		</p>
 	</div>
 
@@ -99,7 +99,7 @@
 					/>
 				</div>
 			</div>
-			<div class="flex flex-col sm:flex-row gap-4">
+			<div class="grid grid-cols-2 gap-3 sm:flex sm:flex-row sm:gap-4">
 				<div class="flex-1">
 					<label for="{uid}-type" class="block text-sm font-medium text-foreground-alt mb-1">Type</label>
 					<select
@@ -143,7 +143,7 @@
 				</div>
 			</div>
 			{#if period === 'custom'}
-				<div class="flex flex-col sm:flex-row gap-4">
+				<div class="grid grid-cols-2 gap-3 sm:flex sm:flex-row sm:gap-4">
 					<div class="flex-1">
 						<label for="{uid}-from" class="block text-sm font-medium text-foreground-alt mb-1">Du</label>
 						<input
@@ -166,7 +166,7 @@
 					</div>
 				</div>
 			{/if}
-			<div class="flex flex-col sm:flex-row gap-4">
+			<div class="grid grid-cols-2 gap-3 sm:flex sm:flex-row sm:gap-4">
 				<div class="flex-1">
 					<label for="{uid}-linked" class="block text-sm font-medium text-foreground-alt mb-1">Liée à un événement</label>
 					<select
@@ -191,7 +191,7 @@
 						<option value="modified" selected={data.sort === 'modified'}>Dernières modifiées</option>
 					</select>
 				</div>
-				<div class="flex items-end gap-2">
+				<div class="col-span-2 flex items-end gap-2">
 					<button type="submit" class="px-4 py-2 border border-border-input rounded-lg text-sm text-foreground hover:bg-muted">
 						Appliquer
 					</button>
