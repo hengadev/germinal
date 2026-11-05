@@ -83,6 +83,25 @@
 			</div>
 		{/if}
 
+		{#if view.menus.length}
+			<div class="flex flex-col gap-8">
+				{#each view.menus as menu, i (i)}
+					<div class="flex flex-col gap-3">
+						{#if menu.name}
+							<p class="{label}">{menu.name}</p>
+						{/if}
+						{#each menu.courses as course, j (j)}
+							<div class="flex flex-col gap-1">
+									{#if course.label}<p class="text-sm italic text-foreground-alt">{course.label}</p>{/if}
+									{#each course.dishes as d, k (k)}<p class="leading-relaxed text-pretty">{d}</p>{/each}
+							</div>
+						{/each}
+						{#if menu.note}<p class="text-sm text-foreground-alt">{menu.note}</p>{/if}
+					</div>
+				{/each}
+			</div>
+		{/if}
+
 		<dl class="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 border-t border-border-card pt-6 text-sm" aria-label={$t('events.project.credits')}>
 			{#each view.credits as credit, i (i)}
 				<dt class="text-muted-foreground">{credit.role}</dt>
