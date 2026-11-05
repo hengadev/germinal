@@ -304,7 +304,7 @@ export const load: PageServerLoad = async ({ params }) => {
 		const seatingStarts = sessions.map((s) => new Date(s.startTime).getTime());
 		const lastSeatingStart = seatingStarts.length > 0 ? new Date(Math.max(...seatingStarts)) : null;
 
-		return { event, sessions, reservations, promoCodes: [], talents, days, schedule, venueCapacity, pricing, timeZones: listTimeZones(), timeZoneLocked: reservations.length > 0, lastSeatingStart, englishAuto: isTranslationEnabled(), staffBrief: { general: null, roles: [] } };
+		return { event, sessions, reservations, promoCodes: [], talents, days, schedule, venueCapacity, pricing, timeZones: listTimeZones(), timeZoneLocked: reservations.length > 0, hasReservations: reservations.length > 0, lastSeatingStart, englishAuto: isTranslationEnabled(), staffBrief: { general: null, roles: [] } };
 	}
 
 	// Database mode - fetch from database
@@ -458,6 +458,7 @@ export const load: PageServerLoad = async ({ params }) => {
 			// has a Reservation (ADR 0006).
 			timeZones: listTimeZones(),
 			timeZoneLocked: reservationsData.length > 0,
+			hasReservations: reservationsData.length > 0,
 			lastSeatingStart,
 			// The English is generated from the French on save (DeepL).
 			englishAuto: isTranslationEnabled(),

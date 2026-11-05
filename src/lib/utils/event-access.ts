@@ -138,6 +138,20 @@ export function canJoinPortfolio(event: AccessEvent, now: Date): boolean {
 	return lastSeatingStart !== null && lastSeatingStart.getTime() <= now.getTime();
 }
 
+/**
+ * Whether the Event is a **Portfolio-only Event** (issue 078): an Event
+ * with at least one Seating, whose every Seating has started, and that
+ * has never taken a Reservation — any status counts, a cancelled one
+ * included, and Waitlist entries don't (they live apart). It gets the
+ * reduced admin editor and a project preview.
+ */
+export function isPortfolioOnly(
+	{ lastSeatingStart, hasReservations }: { lastSeatingStart: Date | null; hasReservations: boolean },
+	now: Date
+): boolean {
+	return !hasReservations && canJoinPortfolio({ visibility: 'public', lastSeatingStart }, now);
+}
+
 /** Why a Seating cannot be booked, in the order the rules are checked. */
 export type BookingRefusal =
 	| 'event-not-published'

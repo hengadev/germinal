@@ -17,6 +17,7 @@
 	import { cn } from '$lib/utils/design-system';
 	import { clearFieldErrors } from '$lib/utils/editor-field-errors';
 	import { eventCompleteness, EVENT_EDITOR_TABS, type EventWarning } from '$lib/utils/event-warnings';
+	import { isPortfolioOnly } from '$lib/utils/event-access';
 	import { differsOnlyByHash, tabIndexFromHash } from '$lib/utils/editor-tab';
 	import { liveEditorWarnings, type UnsavedEditorValues } from '$lib/utils/event-warnings-live';
 	import type { MediaAltText } from '$lib/utils/media-alt';
@@ -89,11 +90,28 @@
 		{ id: 'promotions', title: 'Promotions' },
 	];
 	// « Portfolio » comes last: it is filled in after the Event.
-	const tabs = [
-		...EDITOR_TABS.filter((tab) => tab.id !== 'portfolio'),
-		...OPERATIONAL_TABS,
-		...EDITOR_TABS.filter((tab) => tab.id === 'portfolio'),
-	];
+	//
+	// A Portfolio-only Event (issue 078) — past, and never a Reservation —
+	// gets the reduced editor: only Essentiel, Lieu, Dates & séances and
+	// Portfolio. The other tabs are not even mounted, so they are never
+	// saved or marked modified, and their saved data is left untouched.
+	const portfolioOnly = $derived(
+		isPortfolioOnly(
+			{ lastSeatingStart: data.lastSeatingStart ?? null, hasReservations: data.hasReservations ?? false },
+			new Date()
+		)
+	);
+	const tabs = $derived(
+		portfolioOnly
+			? [
+				...EDITOR_TABS.filter((tab) => ['essentiel', 'lieu', 'dates-seances', 'portfolio'].includes(tab.id)),
+			]
+			: [
+				...EDITOR_TABS.filter((tab) => tab.id !== 'portfolio'),
+				...OPERATIONAL_TABS,
+				...EDITOR_TABS.filter((tab) => tab.id === 'portfolio'),
+			]
+	);
 
 	// Base classes of bits-components/TabsList + TabsTrigger, with the editor's overrides.
 	const TAB_LIST_CLASS = cn(
@@ -591,6 +609,13 @@
 					<Copy size={14} />
 					Dupliquer
 				</button>
+				{#if portfolioOnly}
+					<span aria-hidden="true">·</span>
+					<!-- Portfolio-only Event (issue 078): past, never a Reservation —
+					     the reduced editor, and the project preview once it joins the
+					     Portfolio. -->
+					<span class="italic">Événement passé — pour le Portfolio</span>
+				{/if}
 				{#if warnings.length > 0}
 					<span aria-hidden="true">·</span>
 					<!-- « À vérifier » (issue 038): what is missing for publishing,
@@ -793,13 +818,16 @@
 	{@render panel('essentiel', essentiel)}
 	{@render panel('lieu', lieu)}
 	{@render panel('dates-seances', seatings)}
-	{@render panel('tarifs', pricing)}
-	{@render panel('programme', programme)}
-	{@render panel('visuels', visuels)}
-	{@render panel('pratique', pratique)}
-	{@render panel('apres-evenement', apresEvenement)}
+	{#if !portfolioOnly}
+		{@render panel('tarifs', pricing)}
+		{@render panel('programme', programme)}
+		{@render panel('visuels', visuels)}
+		{@render panel('pratique', pratique)}
+		{@render panel('apres-evenement', apresEvenement)}
+	{/if}
 	{@render panel('portfolio', portfolio)}
 
+	{#if !portfolioOnly}
 	{#snippet team()}<Team {data} {form} />{/snippet}
 	{#snippet brief()}<Brief {data} {form} active={activeTab === panelIndex('brief')} />{/snippet}
 	{#snippet tasks()}<Tasks {data} {form} />{/snippet}
@@ -812,6 +840,7 @@
 	{@render panel('reservations', reservations, false)}
 	{@render panel('bilan', bilan, false)}
 	{@render panel('promotions', promotions, false)}
+	{/if}
 
 	{#if held && heldTabs.length > 0}
 		<!-- Held edits of a published Event (issue 020): nothing reaches
