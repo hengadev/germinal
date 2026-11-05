@@ -11,7 +11,7 @@ import { recordAuditLog } from '$lib/server/services/audit-log';
 import { formatGiftCardCode, maskGiftCardCode } from '$lib/utils/gift-card';
 import { parseAmountInput } from '$lib/utils/currency';
 
-const STATUSES: GiftCardStatusFilter[] = ['active', 'used_up', 'expired', 'cancelled'];
+const STATUSES: GiftCardStatusFilter[] = ['active', 'used_up', 'expired', 'cancelled', 'all'];
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	requireAdmin(locals);
