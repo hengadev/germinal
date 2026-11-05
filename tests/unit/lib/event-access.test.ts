@@ -9,6 +9,7 @@ import {
 	isIndexed,
 	canBeSpotlight,
 	canJoinPortfolio,
+	isPortfolioOnly,
 	parseVisibility,
 	VISIBILITIES,
 	seatingBooking,
@@ -184,6 +185,37 @@ describe('canJoinPortfolio', () => {
 
 	it('a last Seating start that is unknown refuses', () => {
 		expect(canJoinPortfolio(PUBLIC, NOW)).toBe(false);
+	});
+});
+
+describe('isPortfolioOnly', () => {
+	// A Portfolio-only Event (issue 078): at least one Seating, all
+	// started, and never a Reservation — any status, a cancelled one
+	// included; Waitlist entries live apart and never count.
+	it('is false with no Seating, even without Reservations', () => {
+		expect(isPortfolioOnly({ lastSeatingStart: null, hasReservations: false }, NOW)).toBe(false);
+	});
+
+	it('is false while the last Seating is still to come', () => {
+		expect(isPortfolioOnly({ lastSeatingStart: LATER, hasReservations: false }, NOW)).toBe(false);
+	});
+
+	it('is true when the last Seating starts exactly now, without Reservations', () => {
+		expect(isPortfolioOnly({ lastSeatingStart: NOW, hasReservations: false }, NOW)).toBe(true);
+	});
+
+	it('is false for a past Seating with Reservations', () => {
+		expect(isPortfolioOnly({ lastSeatingStart: EARLIER, hasReservations: true }, NOW)).toBe(false);
+	});
+
+	it('is true for a past Seating with no Reservation', () => {
+		expect(isPortfolioOnly({ lastSeatingStart: EARLIER, hasReservations: false }, NOW)).toBe(true);
+	});
+
+	it('is false when the only Reservation is cancelled — the Event has still taken one', () => {
+		// "hasReservations" counts any status, cancelled included: the
+		// caller's existence query decides, the predicate just refuses.
+		expect(isPortfolioOnly({ lastSeatingStart: EARLIER, hasReservations: true }, NOW)).toBe(false);
 	});
 });
 

@@ -75,6 +75,9 @@ _Avoid_: Upcoming events page, agenda, calendar
 The curated set of Events Germinal showcases as projects once they are over, listed under "Projets" and in the homepage gallery. Private and Public Events alike may join it, but only after their last Seating has started; it is meant to be shown with a Recap and Event Photos. An Event that is over and not in the Portfolio is listed nowhere.
 _Avoid_: Archive, past events, gallery (the homepage block only)
 
+**Portfolio-only Event**:
+An Event that has at least one Seating, whose every Seating has started, and that has never taken a Reservation — any status counts, a cancelled one included, and Waitlist entries don't. It gets a reduced editor (Essentiel, Lieu, Dates & séances, Portfolio) and a project preview.
+
 **Recap**:
 The text written after an Event for its Portfolio presentation, telling what took place. Once the Event is in the Portfolio, its page leads with the Recap and no longer shows the announcement text, Seatings or prices.
 _Avoid_: Summary, review, compte rendu (in code/docs)
