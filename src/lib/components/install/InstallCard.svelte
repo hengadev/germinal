@@ -2,7 +2,7 @@
 	/**
 	 * Carte flottante d'installation (issue 075) : en bas de l'écran au-dessus
 	 * de la barre mobile (`bottomOffset`, barre + bouton Scanner + zone de
-	 * sécurité), en bas à droite (~20rem) sur bureau. Sur Android quand le
+	 * sécurité ; mobile seulement), en bas à droite (~20rem) sur bureau. Sur Android quand le
 	 * navigateur a fourni son invite, sur iPhone pour ouvrir la feuille
 	 * « Partager → Sur l'écran d'accueil ». Écartée pour 14 jours.
 	 */
@@ -20,7 +20,8 @@
 
 	let { app, bottomOffset = '1rem' }: { app: 'staff' | 'admin'; bottomOffset?: string } = $props();
 
-	const appLabel = $derived(app === 'admin' ? "l'app Admin" : "l'app Staff");	const icon = $derived(app === 'admin' ? '/pwa-admin-192x192.png' : '/pwa-192x192.png');
+	const appLabel = $derived(app === 'admin' ? "l'app Admin" : "l'app Staff");
+	const icon = $derived(app === 'admin' ? '/pwa-admin-192x192.png' : '/pwa-192x192.png');
 
 	let visible = $state(false);
 
@@ -41,8 +42,8 @@
 {#if visible}
 	<!-- fixed: elle ne pousse jamais le contenu de la page. -->
 	<div
-		class="fixed left-4 right-4 z-50 rounded-xl border border-border-card bg-background p-4 shadow-popover lg:left-auto lg:right-4 lg:w-80"
-		style="bottom: {bottomOffset};"
+		class="fixed left-4 right-4 bottom-[var(--install-bottom)] z-50 rounded-xl border border-border-card bg-background p-4 shadow-popover lg:left-auto lg:right-4 lg:bottom-4 lg:w-80"
+		style="--install-bottom: {bottomOffset};"
 		role="region"
 		aria-label="Installer {appLabel}"
 		transition:slide={{ duration: motion(200) }}
