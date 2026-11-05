@@ -86,7 +86,7 @@ export async function draftCompleteness(
 		seatingsOf.set(row.eventId, seatings);
 	}
 
-	const withReservations = new Set(reservationRows.map((row) => row.eventId));
+	const withReservations = new Set(reservationRows.map((row: { eventId: string }) => row.eventId));
 
 	const completeness: Record<string, EventCompleteness> = {};
 	for (const event of drafts) {

@@ -477,8 +477,8 @@ describe('portfolioOnlyWarnings and portfolioOnly completeness (issue 079)', () 
 				descriptionEn: null,
 				descriptionFr: null,
 				visualCount: 0,
-				services: [{ ...COMPLETE.services[0], menuId: null, priceAmount: null }],
-				bookingWindow: { opensAt: COMPLETE.seatings[0].startTime, closesHoursBefore: null }
+				services: [{ serviceId: 's1', date: '2027-03-12', kind: 'dinner', menuId: null, priceAmount: null }],
+				bookingWindow: { opensAt: new Date('2027-03-12T19:00:00Z'), closesHoursBefore: null }
 			}),
 			...eventWarnings({ ...COMPLETE, visualsWithoutAlt: 1 })
 		];
