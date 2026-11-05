@@ -631,7 +631,9 @@ export const contactSubmissions = pgTable('contact_submissions', {
     emailSentAt: timestamp('email_sent_at', { withTimezone: true }),
     emailError: text('email_error'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => ({
+    contactUpdatedAtIdx: index('contact_submissions_updated_at_idx').on(table.updatedAt),
     emailIdx: index('contact_submissions_email_idx').on(table.email),
     createdAtIdx: index('contact_submissions_created_at_idx').on(table.createdAt),
     inquiryTypeIdx: index('contact_submissions_inquiry_type_idx').on(table.inquiryType),
