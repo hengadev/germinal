@@ -77,14 +77,6 @@
 
 	const event = $derived(data.event as EditorEvent);
 
-	// The Publication control's look (issue 077), switched with `?pub=`:
-	// a status pill (a), an inline segmented control (b) or a sticky bar (c).
-	const publicationVariant = $derived(
-		page.url.searchParams.get('pub') === 'b' || page.url.searchParams.get('pub') === 'c'
-			? (page.url.searchParams.get('pub') as 'b' | 'c')
-			: 'a'
-	);
-
 	// The Event tabs, shared with Draft completeness (issue 013).
 	const EDITOR_TABS = EVENT_EDITOR_TABS;
 	// Its team, tasks, Reservations and Promo Codes.
@@ -686,21 +678,11 @@
 				<span role="status" class="sr-only">{saveAnnouncement}</span>
 			</p>
 		</div>
-		<!-- Publication (issue 077): from every tab, on the title row —
-		     variant a (pill) or b (inline); c is the bar below. -->
-		{#if publicationVariant !== 'c'}
-			<!-- B needs the room: under the title on a phone, beside it from sm. -->
-			<div class="{publicationVariant === 'b' ? 'w-full pl-12 sm:w-auto sm:pl-0' : 'shrink-0'} ml-auto pt-1.5">
-				<Publication {event} lastSeatingStart={data.lastSeatingStart ?? null} warnings={publishingWarnings} variant={publicationVariant} />
-			</div>
-		{/if}
-	</div>
-	{#if publicationVariant === 'c'}
-		<!-- C sticks under the header row while the tabs scroll. -->
-		<div class="sticky top-0 z-30 mb-6 -mt-4">
-			<Publication {event} lastSeatingStart={data.lastSeatingStart ?? null} warnings={publishingWarnings} variant="c" />
+		<!-- Publication (issue 077): on the title row, from every tab. -->
+		<div class="shrink-0 ml-auto pt-1.5">
+			<Publication {event} lastSeatingStart={data.lastSeatingStart ?? null} warnings={publishingWarnings} />
 		</div>
-	{/if}
+	</div>
 
 	{#if form?.error}
 		<div class="mb-6 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg">
@@ -881,19 +863,6 @@
 			</div>
 		</section>
 	{/if}
-</div>
-
-<!-- Variant switcher for the Publication pick (issue 077) — removed once
-     the Admin has chosen. -->
-<div class="back-office fixed bottom-24 lg:bottom-4 left-1/2 -translate-x-1/2 z-[9000] flex items-center gap-1 rounded-full border border-border-input bg-background p-1 shadow-lg text-sm">
-	<span class="px-2 text-xs text-muted-foreground whitespace-nowrap">Variante</span>
-	{#each [['a', 'A'], ['b', 'B'], ['c', 'C']] as [v, label] (v)}
-		<a
-			href="?pub={v}{page.url.hash}"
-			data-sveltekit-replacestate
-			class="px-3 py-1 rounded-full whitespace-nowrap {publicationVariant === v ? 'bg-foreground text-background' : 'text-foreground-alt hover:bg-muted'}"
-		>{label}</a>
-	{/each}
 </div>
 
 <Modal

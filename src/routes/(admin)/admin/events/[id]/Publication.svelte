@@ -1,11 +1,8 @@
 <script lang="ts">
 	// « Publication » control (ADR 0010, issue 077): Visibility, Spotlight
 	// and Portfolio, posted to their own action the moment they change.
-	// It lives in the editor's header, reachable from every tab — in one
-	// of three toggleable looks (`?pub=a|b|c`, default a):
-	//   a — a status pill that opens the full controls in a popover;
-	//   b — an inline segmented control with small toggles under it;
-	//   c — a slim sticky bar under the header row.
+	// It lives on the editor's title row, reachable from every tab: a
+	// status pill that opens the full controls in a popover.
 	// Not a unit of the editor's save controller (`data-editor-skip`): its
 	// changes are saved here, never marking a tab modified.
 	import { enhance } from '$app/forms';
@@ -27,7 +24,6 @@
 		event,
 		lastSeatingStart = null,
 		warnings = [],
-		variant = 'a',
 	}: {
 		event: EditorEvent;
 		/** Start of the Event's last Seating, for the Portfolio rule (issue 044). */
@@ -35,7 +31,6 @@
 		/** What is missing for publishing (issue 038), for the confirmation
 		 * shown when the Event leaves Brouillon. */
 		warnings?: EventWarning[];
-		variant?: 'a' | 'b' | 'c';
 	} = $props();
 
 	const uid = $props.id();
@@ -150,11 +145,11 @@
 	}
 </script>
 
-{#snippet segmentOptions(compact = false)}
+{#snippet segmentOptions()}
 	{#each VISIBILITIES as option, i (option)}
 		<label
 			for="{uid}-visibility-{option}"
-			class="flex-1 flex items-center justify-center gap-1.5 px-3 {compact ? 'py-1' : 'py-1.5'} text-sm font-medium cursor-pointer
+			class="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm font-medium cursor-pointer
 				border border-border-input {i === 0 ? 'rounded-l-md' : ''} {i === VISIBILITIES.length - 1 ? 'rounded-r-md' : ''} {i > 0 ? '-ml-px' : ''} whitespace-nowrap transition-colors
 				{visibility === option ? 'bg-foreground text-background z-10' : 'bg-background text-foreground-alt hover:bg-muted'}"
 			title={VISIBILITY_HINTS[option]}
@@ -174,11 +169,11 @@
 	{/each}
 {/snippet}
 
-{#snippet toggles(compact = false)}
+{#snippet toggles()}
 	<!-- Spotlight Status (amber) -->
 	<label
 		for="{uid}-isSpotlight"
-		class="flex items-center gap-2 {compact ? 'text-xs' : 'text-sm'} text-amber-900 cursor-pointer"
+		class="flex items-center gap-2 text-sm text-amber-900 cursor-pointer"
 	>
 		<input
 			id="{uid}-isSpotlight"
@@ -200,7 +195,7 @@
 	<!-- Portfolio Status (indigo) -->
 	<label
 		for="{uid}-isPortfolio"
-		class="flex items-center gap-2 {compact ? 'text-xs' : 'text-sm'} text-indigo-900 cursor-pointer"
+		class="flex items-center gap-2 text-sm text-indigo-900 cursor-pointer"
 	>
 		<input
 			id="{uid}-isPortfolio"
@@ -221,32 +216,20 @@
 	</label>
 {/snippet}
 
-{#snippet formBody(compact = false)}
+{#snippet formBody()}
 	<!-- The controls post through the one form below (`form=`), which stays
 	     mounted when the popover closes — « Publier quand même » submits it
 	     after the confirmation dialog has taken the popover's place. -->
-	<div class="flex {compact ? 'flex-col sm:flex-row sm:items-center gap-2 sm:gap-4' : 'flex-col gap-3'}">
-		{#if compact}
-			<div class="flex items-center gap-2" role="group" aria-label="Visibilité">
-				<div class="inline-flex rounded-md overflow-hidden w-full sm:w-auto">
-					{@render segmentOptions(true)}
-				</div>
-				{#if publishing}<span class="text-xs text-muted-foreground" aria-live="polite">Enregistrement…</span>{/if}
+	<div class="flex flex-col gap-3">
+		<fieldset>
+			<legend class="sr-only">Visibilité</legend>
+			<div class="flex rounded-md overflow-hidden border border-border-input">
+				{@render segmentOptions()}
 			</div>
-			<div class="flex flex-wrap items-center gap-x-4 gap-y-1">
-				{@render toggles(true)}
-			</div>
-		{:else}
-			<fieldset>
-				<legend class="sr-only">Visibilité</legend>
-				<div class="flex rounded-md overflow-hidden border border-border-input">
-					{@render segmentOptions(false)}
-				</div>
-			</fieldset>
-			<div class="flex flex-col gap-2">
-				{@render toggles(false)}
-			</div>
-		{/if}
+		</fieldset>
+		<div class="flex flex-col gap-2">
+			{@render toggles()}
+		</div>
 	</div>
 {/snippet}
 
@@ -262,73 +245,54 @@
 	hidden
 ></form>
 
-{#if variant === 'a'}
-	<!-- A — status pill + popover -->
-	<Popover.Root>
-		<Popover.Trigger
-			class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border-input bg-background text-sm font-medium text-foreground hover:bg-muted transition-colors cursor-pointer"
-			title="Publication — modifier la visibilité, la mise à la une, le Portfolio"
+<!-- The status pill; the controls open in a popover. -->
+<Popover.Root>
+	<Popover.Trigger
+		class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border-input bg-background text-sm font-medium text-foreground hover:bg-muted transition-colors cursor-pointer"
+		title="Publication — modifier la visibilité, la mise à la une, le Portfolio"
+	>
+		<span
+			aria-hidden="true"
+			class="inline-block size-2 rounded-full {visibility === 'public' ? 'bg-green-600' : visibility === 'private' ? 'bg-amber-500' : 'bg-muted-foreground/50'}"
+		></span>
+		{VISIBILITY_LABELS[visibility]}
+		{#if spotlightAllowed && isSpotlight}<Sparkles size={13} aria-hidden="true" class="text-amber-500" aria-label="À la une" />{/if}
+		{#if isPortfolio}<LayoutGrid size={13} aria-hidden="true" class="text-indigo-500" aria-label="Portfolio" />{/if}
+		{#if publishing}<span class="text-xs text-muted-foreground" aria-live="polite">…</span>{/if}
+	</Popover.Trigger>
+	<Popover.Portal>
+		<Popover.Content
+			side="bottom"
+			align="end"
+			sideOffset={8}
+			aria-label="Publication"
+			class="back-office z-[10000] w-[min(26rem,calc(100vw-2rem))] border border-border-input rounded-lg p-4 bg-background shadow-lg"
 		>
-			<span
-				aria-hidden="true"
-				class="inline-block size-2 rounded-full {visibility === 'public' ? 'bg-green-600' : visibility === 'private' ? 'bg-amber-500' : 'bg-muted-foreground/50'}"
-			></span>
-			{VISIBILITY_LABELS[visibility]}
-			{#if spotlightAllowed && isSpotlight}<Sparkles size={13} aria-hidden="true" class="text-amber-500" aria-label="À la une" />{/if}
-			{#if isPortfolio}<LayoutGrid size={13} aria-hidden="true" class="text-indigo-500" aria-label="Portfolio" />{/if}
-			{#if publishing}<span class="text-xs text-muted-foreground" aria-live="polite">…</span>{/if}
-		</Popover.Trigger>
-		<Popover.Portal>
-			<Popover.Content
-				side="bottom"
-				align="end"
-				sideOffset={8}
-				aria-label="Publication"
-				class="back-office z-[10000] w-[min(26rem,calc(100vw-2rem))] border border-border-input rounded-lg p-4 bg-background shadow-lg"
-			>
-				<p class="text-base font-semibold text-foreground mb-1">
-					Publication
-					{#if publishing}
-						<span class="text-sm font-normal text-muted-foreground" aria-live="polite">— enregistrement…</span>
+			<p class="text-base font-semibold text-foreground mb-1">
+				Publication
+				{#if publishing}
+					<span class="text-sm font-normal text-muted-foreground" aria-live="polite">— enregistrement…</span>
+				{/if}
+			</p>
+			<p class="text-xs text-muted-foreground mb-3">
+				Chaque choix s’enregistre à l’instant, indépendamment du reste de l’événement.
+			</p>
+			<div class="space-y-3">
+				{@render formBody()}
+				<p class="text-xs text-muted-foreground">
+					{VISIBILITY_HINTS[visibility]}
+					{#if !portfolioJoinable}
+						{#if lastSeatingStart}
+							Un événement ne rejoint le Portfolio qu’une fois sa dernière séance commencée, prévue le {new Date(lastSeatingStart).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}.
+						{:else}
+							Un événement ne rejoint le Portfolio qu’une fois sa dernière séance commencée ; celui-ci n’a pas encore de séance.
+						{/if}
 					{/if}
 				</p>
-				<p class="text-xs text-muted-foreground mb-3">
-					Chaque choix s’enregistre à l’instant, indépendamment du reste de l’événement.
-				</p>
-				<div class="space-y-3">
-					{@render formBody(false)}
-					<p class="text-xs text-muted-foreground">
-						{VISIBILITY_HINTS[visibility]}
-						{#if !portfolioJoinable}
-							{#if lastSeatingStart}
-								Un événement ne rejoint le Portfolio qu’une fois sa dernière séance commencée, prévue le {new Date(lastSeatingStart).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}.
-							{:else}
-								Un événement ne rejoint le Portfolio qu’une fois sa dernière séance commencée ; celui-ci n’a pas encore de séance.
-							{/if}
-						{/if}
-					</p>
-				</div>
-			</Popover.Content>
-		</Popover.Portal>
-	</Popover.Root>
-{:else if variant === 'b'}
-	<!-- B — inline segmented control + small toggles -->
-	<div class="flex flex-col items-start sm:items-end gap-2">
-		<p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Publication</p>
-		{@render formBody(true)}
-	</div>
-{:else}
-	<!-- C — slim sticky bar under the header row -->
-	<div class="-mx-1 px-1 py-2 bg-background border-b border-border-card">
-		<div class="flex items-center justify-between gap-3 flex-wrap">
-			<p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-				Publication
-				{#if publishing}<span class="normal-case text-muted-foreground" aria-live="polite">— enregistrement…</span>{/if}
-			</p>
-			{@render formBody(true)}
-		</div>
-	</div>
-{/if}
+			</div>
+		</Popover.Content>
+	</Popover.Portal>
+</Popover.Root>
 
 <!-- Publishing confirmation (issue 038, ADR 0008): leaving Brouillon with
      points missing shows them here; the Admin decides (ADR 0008). -->
