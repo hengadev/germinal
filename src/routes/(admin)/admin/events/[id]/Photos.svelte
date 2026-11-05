@@ -18,7 +18,16 @@
 		event,
 		onAltChange,
 	}: {
-		event: { id: string; coverMediaId: string | null; coverMedia?: Media | null; media?: Media[] };
+		event: {
+			id: string;
+			coverMediaId: string | null;
+			coverMedia?: Media | null;
+			media?: Media[];
+			coverVideoId?: string | null;
+			coverVideo?: Media | null;
+			coverVideoPortrait?: boolean;
+			coverShowsTitle?: boolean;
+		};
 		/** An image's alt texts were saved (issue 043): the editor's
 		 * warnings follow them. */
 		onAltChange?: (mediaId: string, alt: { altEn: string | null; altFr: string | null }) => void;
@@ -28,9 +37,42 @@
 	// as saved (« Annuler », issue 020).
 	const savedCoverOf = (saved: typeof event) => (saved.coverMedia ? [saved.coverMedia] : []);
 	const savedGalleryOf = (saved: typeof event) =>
-		visualsOf(saved.media).filter((m: Media) => m && m.id !== saved.coverMediaId);
+		visualsOf(saved.media).filter((m: Media) => m && m.id !== saved.coverMediaId && m.id !== saved.coverVideoId);
 	let existingCoverMedia = $state.raw(savedCoverOf(event));
 	let existingGalleryMedia = $state.raw(savedGalleryOf(event));
+
+	// The announcement video (issue 078): its Media when one is set, and
+	// whether it is portrait, read from the file in the browser.
+	let coverVideo = $state.raw<Media | null>(event.coverVideo ?? null);
+	let coverVideoPortrait = $state(event.coverVideoPortrait ?? false);
+	let coverShowsTitle = $state(event.coverShowsTitle ?? false);
+
+	function handleVideoUpload(uploaded: Media[]) {
+		if (uploaded.length > 0) {
+			coverVideo = uploaded[0];
+			// The shape is read from the <video> preview once its metadata
+			// loads (onVideoMetadata below).
+			coverVideoPortrait = false;
+		}
+		reportChange(formEl);
+	}
+
+	function handleVideoRemove() {
+		coverVideo = null;
+		coverVideoPortrait = false;
+		reportChange(formEl);
+	}
+
+	function onVideoMetadata(e: Event) {
+		const video = e.currentTarget as HTMLVideoElement;
+		coverVideoPortrait = video.videoHeight > video.videoWidth;
+		reportChange(formEl);
+	}
+
+	function handleCoverShowsTitleChange(e: Event) {
+		coverShowsTitle = (e.currentTarget as HTMLInputElement).checked;
+		reportChange(formEl);
+	}
 
 	let formEl: HTMLFormElement | undefined = $state();
 	let coverMediaId = $state(event.coverMediaId ?? null);
@@ -119,6 +161,9 @@
 		existingGalleryMedia = savedGalleryOf(event);
 		coverMediaId = event.coverMediaId ?? null;
 		galleryMediaIds = existingGalleryMedia.map((m: Media) => m.id);
+		coverVideo = event.coverVideo ?? null;
+		coverVideoPortrait = event.coverVideoPortrait ?? false;
+		coverShowsTitle = event.coverShowsTitle ?? false;
 	}
 
 	/** What this tab holds now, saved or not: « À vérifier » and the tab
@@ -154,6 +199,63 @@
 				{onAltChange}
 			/>
 			<input type="hidden" name="coverMediaId" value={coverMediaId ?? ''} />
+		</div>
+
+		<!-- Announcement video (issue 078) -->
+		<div>
+			<h2 class="text-base font-semibold text-foreground mb-1">Vidéo d’annonce</h2>
+			<p class="text-sm text-muted-foreground mb-4">
+				Lue en boucle et sans son en tête de la page de l’événement, devant la couverture.
+				La couverture sert d’image d’attente.
+			</p>
+			{#if coverVideo}
+				<div class="mb-4">
+					<video
+						src={coverVideo.url}
+						class="w-full max-h-64 rounded-md border border-border-card"
+						muted
+						controls
+						onloadedmetadata={onVideoMetadata}
+					></video>
+					<p class="text-xs text-muted-foreground mt-1">
+						{coverVideoPortrait ? 'Format vertical (portrait)' : 'Format horizontal (paysage)'}
+					</p>
+					<button
+						type="button"
+						onclick={handleVideoRemove}
+						class="mt-2 px-4 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
+					>
+						Retirer la vidéo
+					</button>
+				</div>
+			{/if}
+			<MediaUpload
+				mode="single"
+				accept="video/*"
+				entityType="event"
+				entityId={event.id}
+				role="visual"
+				maxSizeMB={100}
+				onUpload={handleVideoUpload}
+				onRemove={handleVideoRemove}
+			/>
+			<input type="hidden" name="coverVideoId" value={coverVideo?.id ?? ''} />
+			<input type="hidden" name="coverVideoPortrait" value={coverVideoPortrait ? 'true' : 'false'} />
+			<label class="flex items-start gap-2 mt-6 text-sm text-foreground cursor-pointer">
+				<input
+					type="checkbox"
+					class="mt-0.5"
+					checked={coverShowsTitle}
+					onchange={handleCoverShowsTitleChange}
+				/>
+				<span>
+					La couverture montre déjà le nom de l’événement
+					<span class="block text-xs text-muted-foreground font-normal">
+						Elle est alors montrée en entier, et le titre n’est pas répété dessus.
+					</span>
+				</span>
+			</label>
+			<input type="hidden" name="coverShowsTitle" value={coverShowsTitle ? 'true' : 'false'} />
 		</div>
 
 		<!-- Gallery -->

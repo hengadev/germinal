@@ -1,5 +1,5 @@
 {
-  "id": "123d2d03-2712-42bc-98c9-b07166e5f6d3",
+  "id": "f65f023b-ddd5-499f-8723-3e195c3863b2",
   "prevId": "7b46a927-a7c4-44ce-9195-4f006d859592",
   "version": "7",
   "dialect": "postgresql",
@@ -402,31 +402,9 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
         }
       },
       "indexes": {
-        "contact_submissions_updated_at_idx": {
-          "name": "contact_submissions_updated_at_idx",
-          "columns": [
-            {
-              "expression": "updated_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
         "contact_submissions_email_idx": {
           "name": "contact_submissions_email_idx",
           "columns": [
@@ -2623,6 +2601,18 @@
           "primaryKey": false,
           "notNull": true
         },
+        "recipient_first_name": {
+          "name": "recipient_first_name",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "recipient_last_name": {
+          "name": "recipient_last_name",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
         "recipient_name": {
           "name": "recipient_name",
           "type": "varchar(255)",
@@ -2638,6 +2628,18 @@
         "message": {
           "name": "message",
           "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "buyer_first_name": {
+          "name": "buyer_first_name",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "buyer_last_name": {
+          "name": "buyer_last_name",
+          "type": "varchar(100)",
           "primaryKey": false,
           "notNull": false
         },
@@ -3508,6 +3510,18 @@
         "guest_email": {
           "name": "guest_email",
           "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "guest_first_name": {
+          "name": "guest_first_name",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "guest_last_name": {
+          "name": "guest_last_name",
+          "type": "varchar(100)",
           "primaryKey": false,
           "notNull": false
         },
@@ -5133,6 +5147,18 @@
           "type": "varchar(255)",
           "primaryKey": false,
           "notNull": true
+        },
+        "first_name": {
+          "name": "first_name",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_name": {
+          "name": "last_name",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
         },
         "name": {
           "name": "name",

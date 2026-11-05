@@ -17,5 +17,5 @@
     <!-- A Portfolio Event is shown as its project (issue 045). -->
     <PortfolioProject project={data.project} />
 {:else if data.event}
-    <EventAnnouncement event={data.event} schedule={data.schedule} preview={data.view === "preview"} />
+    <EventAnnouncement event={data.event} schedule={data.schedule} extras={data.extras} preview={data.view === "preview"} />
 {/if}

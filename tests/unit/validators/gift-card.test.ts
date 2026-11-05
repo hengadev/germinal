@@ -9,9 +9,11 @@ import {
 const base = {
 	amount: '10000',
 	customAmount: '',
-	buyerName: 'Marie Dupont',
+	buyerFirstName: 'Marie',
+	buyerLastName: 'Dupont',
 	buyerEmail: 'Marie@Example.com',
-	recipientName: 'Jean Martin',
+	recipientFirstName: 'Jean',
+	recipientLastName: 'Martin',
 	recipientEmail: null,
 	message: '',
 	delivery: 'buyer',
@@ -110,5 +112,27 @@ describe('giftCardPurchaseSchema', () => {
 			message: 'a'.repeat(501)
 		});
 		expect(result.success).toBe(false);
+	});
+
+	it('takes the buyer’s first and last name, both required, trimmed', () => {
+		const ok = giftCardPurchaseSchema.safeParse({ ...base, buyerFirstName: '  Anne-Laure ', buyerLastName: ' d’Arcy ' });
+		expect(ok.success).toBe(true);
+		if (ok.success) {
+			expect(ok.data.buyerFirstName).toBe('Anne-Laure');
+			expect(ok.data.buyerLastName).toBe('d’Arcy');
+		}
+		expect(giftCardPurchaseSchema.safeParse({ ...base, buyerLastName: '' }).success).toBe(false);
+		expect(giftCardPurchaseSchema.safeParse({ ...base, buyerFirstName: '   ' }).success).toBe(false);
+		expect(giftCardPurchaseSchema.safeParse({ ...base, buyerFirstName: 'a'.repeat(101) }).success).toBe(false);
+		expect(giftCardPurchaseSchema.safeParse({ ...base, buyerLastName: 'Dupont<script>' }).success).toBe(false);
+	});
+
+	it('needs only the recipient’s first name', () => {
+		const ok = giftCardPurchaseSchema.safeParse({ ...base, recipientLastName: '' });
+		expect(ok.success).toBe(true);
+		if (ok.success) expect(ok.data.recipientLastName).toBe('');
+		const missing = giftCardPurchaseSchema.safeParse({ ...base, recipientLastName: null });
+		expect(missing.success).toBe(true);
+		expect(giftCardPurchaseSchema.safeParse({ ...base, recipientFirstName: '' }).success).toBe(false);
 	});
 });

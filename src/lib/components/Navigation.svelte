@@ -17,9 +17,27 @@
     let scrolled = $state(false);
     let isMobileMenuOpen = $state(false);
 
-    // Only the home page opens on a full-screen photograph; the Event pages
-    // keep theirs beside the text, under a solid bar.
-    const isHeroPage = $derived(page.url.pathname === "/");
+    // Only the home page opens on a full-screen photograph; so does an
+    // announcement page whose hero fills the first screen (a video, or a
+    // cover that does not already show the Event's name) — the Event
+    // pages keep a key visual or no hero at all under a solid bar.
+    const heroEvent = $derived(
+        page.data.event as
+            | {
+                    coverVideo?: { type?: string; url?: string } | null;
+                    coverMedia?: { type?: string; url?: string } | null;
+                    coverShowsTitle?: boolean;
+              }
+            | null
+            | undefined
+    );
+    const fullBleedHero = $derived.by(() => {
+        const e = heroEvent;
+        if (!e || page.data.project || !/^\/events\/[^/]+\/?$/.test(page.url.pathname)) return false;
+        if (e.coverVideo?.type === 'video' && e.coverVideo.url) return true;
+        return e.coverMedia?.type === 'image' && !!e.coverMedia.url && e.coverShowsTitle !== true;
+    });
+    const isHeroPage = $derived(page.url.pathname === '/' || fullBleedHero);
     const showScrolledState = $derived(!isHeroPage || scrolled);
 
     function handleScroll() {

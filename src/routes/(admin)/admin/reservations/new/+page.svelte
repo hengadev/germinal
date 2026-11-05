@@ -130,15 +130,29 @@
 
 		<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
 			<div>
-				<label for="name" class="block text-sm font-medium text-foreground-alt mb-1">
+				<label for="firstName" class="block text-sm font-medium text-foreground-alt mb-1">
 					<User size={14} class="inline mr-1" />
-					Nom de l'invité <span class="text-red-600">*</span>
+					Prénom
 				</label>
 				<input
-					id="name"
-					name="name"
+					id="firstName"
+					name="firstName"
 					type="text"
-					required
+					autocomplete="off"
+					maxlength="100"
+					class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
+				/>
+			</div>
+			<div>
+				<label for="lastName" class="block text-sm font-medium text-foreground-alt mb-1">
+					Nom
+				</label>
+				<input
+					id="lastName"
+					name="lastName"
+					type="text"
+					autocomplete="off"
+					maxlength="100"
 					class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
 				/>
 			</div>

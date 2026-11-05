@@ -10,6 +10,7 @@ import { checkIns, eventDays, eventServices, eventSessions } from '../db/schema'
 import type { StaffAccess } from '$lib/staff/access';
 import { createStaffReservation } from './reservations';
 import { recordAuditLog } from './audit-log';
+import { NAME_PART_MAX_LENGTH, nameFromInput } from '$lib/utils/person-name';
 
 export type WalkInResult = { ok: true; reservationId: string } | { ok: false; error: string };
 
@@ -19,14 +20,19 @@ export type WalkInResult = { ok: true; reservationId: string } | { ok: false; er
  * The limits are the columns' own, so a long paste never fails the insert.
  */
 export function spotPartyError(input: {
-	name: string;
+	firstName?: string;
+	lastName?: string;
+	/** @deprecated One name, split at its first space. */
+	name?: string;
 	quantity: number;
 	email?: string;
 	phone?: string;
 }): string | null {
-	const name = input.name.trim();
-	if (name === '') return 'Le nom est obligatoire.';
-	if (name.length > 255) return 'Le nom est trop long.';
+	// At the door a first name or a last name alone is enough (« M. Dupont »).
+	const { firstName, lastName } = nameFromInput(input);
+	if (firstName === '' && lastName === '') return 'Le prénom ou le nom est obligatoire.';
+	if (firstName.length > NAME_PART_MAX_LENGTH) return 'Le prénom est trop long.';
+	if (lastName.length > NAME_PART_MAX_LENGTH) return 'Le nom est trop long.';
 	if (!Number.isInteger(input.quantity) || input.quantity < 1) {
 		return 'Le nombre de personnes doit être au moins 1.';
 	}
@@ -50,18 +56,22 @@ export async function createWalkIn(input: {
 	access: StaffAccess;
 	eventId: string;
 	seatingId: string;
-	name: string;
+	firstName?: string;
+	lastName?: string;
+	/** @deprecated One name, split at its first space. */
+	name?: string;
 	quantity: number;
 	email?: string;
 	phone?: string;
 	actorId: string;
 }): Promise<WalkInResult> {
-	const { access, eventId, seatingId, name, quantity, email, phone, actorId } = input;
+	const { access, eventId, seatingId, quantity, email, phone, actorId } = input;
+	const { firstName, lastName } = nameFromInput(input);
 
 	if (!access.can('walk_in')) {
 		return { ok: false, error: "Vous n'avez pas la permission d'ajouter un walk-in." };
 	}
-	const invalid = spotPartyError({ name, quantity, email, phone });
+	const invalid = spotPartyError({ firstName, lastName, quantity, email, phone });
 	if (invalid) return { ok: false, error: invalid };
 
 	return db.transaction(async (tx: typeof db) => {
@@ -80,7 +90,7 @@ export async function createWalkIn(input: {
 		}
 
 		const { reservation } = await createStaffReservation(
-			{ kind: 'walk_in', sessionId: seatingId, name: name.trim(), quantity, email, phone, actorId },
+			{ kind: 'walk_in', sessionId: seatingId, firstName, lastName, quantity, email, phone, actorId },
 			tx
 		);
 

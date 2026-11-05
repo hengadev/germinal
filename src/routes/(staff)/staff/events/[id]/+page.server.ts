@@ -21,6 +21,7 @@ import { cancelParty, refundParty, withRefundInfo } from '$lib/server/services/p
 import { changeParty } from '$lib/server/services/party-size';
 import { withPartySizeInfo } from '$lib/server/services/day-guest-list';
 import { formatCurrency, parseAmountInput } from '$lib/utils/currency';
+import { joinName, nameFromInput } from '$lib/utils/person-name';
 
 // The French refusal shown in place of a check-in button.
 function refusalMessage(explanation: Awaited<ReturnType<typeof explainTicket>>): string {
@@ -180,7 +181,12 @@ export const actions: Actions = {
 
 		const formData = await request.formData();
 		const seatingId = formData.get('seatingId');
-		const name = formData.get('name');
+		// First and last name; a page cached before the split sends one name.
+		const { firstName, lastName } = nameFromInput({
+			firstName: formData.get('firstName')?.toString(),
+			lastName: formData.get('lastName')?.toString(),
+			name: formData.get('name')?.toString(),
+		});
 		const quantity = Number(formData.get('quantity'));
 		const email = formData.get('email');
 		const phone = formData.get('phone');
@@ -188,7 +194,7 @@ export const actions: Actions = {
 		if (!access.can('walk_in')) {
 			return fail(403, { error: "Vous n'avez pas la permission d'ajouter un walk-in.", walkIn: true });
 		}
-		if (typeof seatingId !== 'string' || typeof name !== 'string' || !Number.isInteger(quantity)) {
+		if (typeof seatingId !== 'string' || !Number.isInteger(quantity)) {
 			return fail(400, { error: 'Requête invalide.', walkIn: true });
 		}
 
@@ -196,7 +202,8 @@ export const actions: Actions = {
 			access,
 			eventId: params.id,
 			seatingId,
-			name,
+			firstName,
+			lastName,
 			quantity,
 			email: typeof email === 'string' && email.trim() !== '' ? email.trim() : undefined,
 			phone: typeof phone === 'string' && phone.trim() !== '' ? phone.trim() : undefined,
@@ -214,7 +221,12 @@ export const actions: Actions = {
 
 		const formData = await request.formData();
 		const seatingId = formData.get('seatingId');
-		const name = formData.get('name');
+		// First and last name; a page cached before the split sends one name.
+		const { firstName, lastName } = nameFromInput({
+			firstName: formData.get('firstName')?.toString(),
+			lastName: formData.get('lastName')?.toString(),
+			name: formData.get('name')?.toString(),
+		});
 		const quantity = Number(formData.get('quantity'));
 		const email = formData.get('email');
 		const phone = formData.get('phone');
@@ -222,7 +234,7 @@ export const actions: Actions = {
 		if (!access.can('comp')) {
 			return fail(403, { error: "Vous n'avez pas la permission d'offrir une invitation.", comp: true });
 		}
-		if (typeof seatingId !== 'string' || typeof name !== 'string' || !Number.isInteger(quantity)) {
+		if (typeof seatingId !== 'string' || !Number.isInteger(quantity)) {
 			return fail(400, { error: 'Requête invalide.', comp: true });
 		}
 
@@ -230,7 +242,8 @@ export const actions: Actions = {
 			access,
 			eventId: params.id,
 			seatingId,
-			name,
+			firstName,
+			lastName,
 			quantity,
 			email: typeof email === 'string' && email.trim() !== '' ? email.trim() : undefined,
 			phone: typeof phone === 'string' && phone.trim() !== '' ? phone.trim() : undefined,
@@ -639,7 +652,13 @@ export const actions: Actions = {
 
 		const formData = await request.formData();
 		const seatingId = formData.get('seatingId');
-		const name = formData.get('name')?.toString().trim();
+		// First and last name; a page cached before the split sends one name.
+		const { firstName, lastName } = nameFromInput({
+			firstName: formData.get('firstName')?.toString(),
+			lastName: formData.get('lastName')?.toString(),
+			name: formData.get('name')?.toString(),
+		});
+		const name = joinName(firstName, lastName);
 		const email = formData.get('email')?.toString().trim();
 		const phone = formData.get('phone')?.toString().trim();
 		const quantity = parseInt(formData.get('quantity')?.toString() ?? '1', 10);
@@ -647,7 +666,10 @@ export const actions: Actions = {
 			return fail(400, { error: 'Choisissez une séance.', invite: true });
 		}
 		if (!name) {
-			return fail(400, { error: "Le nom de l'invité est requis.", invite: true });
+			return fail(400, { error: "Le prénom ou le nom de l'invité est requis.", invite: true });
+		}
+		if (firstName.length > 100 || lastName.length > 100) {
+			return fail(400, { error: 'Le prénom et le nom font au plus 100 caractères.', invite: true });
 		}
 		if (!email || !email.includes('@')) {
 			return fail(400, { error: 'Un email valide est requis : le billet est envoyé par email.', invite: true });
@@ -683,7 +705,8 @@ export const actions: Actions = {
 			const result = await createCompReservation({
 				sessionId: seatingId,
 				email,
-				name,
+				firstName,
+				lastName,
 				phone: phone || undefined,
 				quantity,
 				// Le billet part par email ; pas d'option SMS depuis le portail.

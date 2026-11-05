@@ -126,6 +126,44 @@ describe('eventPage', () => {
 	});
 });
 
+describe('hero', () => {
+	it('is the announcement video when one is set, with the cover as its poster', () => {
+		const withVideo = {
+			...event,
+			coverMedia: { url: 'https://cdn.test/cover.webp' },
+			coverVideo: { type: 'video', url: 'https://cdn.test/annonce.mp4' },
+			coverVideoPortrait: true,
+		};
+		expect(eventPage(withVideo, [], 'fr', t).hero).toEqual({
+			type: 'video',
+			src: 'https://cdn.test/annonce.mp4',
+			poster: 'https://cdn.test/cover.webp',
+			shape: 'portrait',
+			hasName: false,
+		});
+	});
+
+	it('is the cover image, landscape, marked when it letters in the name', () => {
+		const withCover = {
+			...event,
+			coverMedia: { url: 'https://cdn.test/cover.webp' },
+			coverShowsTitle: true,
+		};
+		expect(eventPage(withCover, [], 'fr', t).hero).toEqual({
+			type: 'image',
+			src: 'https://cdn.test/cover.webp',
+			poster: null,
+			shape: 'landscape',
+			hasName: true,
+		});
+		expect(eventPage({ ...withCover, coverShowsTitle: false }, [], 'fr', t).hero?.hasName).toBe(false);
+	});
+
+	it('is null without a video or a cover image', () => {
+		expect(eventPage(event, [], 'fr', t).hero).toBeNull();
+	});
+});
+
 describe('page text', () => {
 	it('splits paragraphs on blank lines', () => {
 		expect(paragraphsOf('Un.\n\n  Deux.\n\n\n')).toEqual(['Un.', 'Deux.']);

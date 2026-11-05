@@ -7,7 +7,12 @@ export type Media = typeof media.$inferSelect;
 export type CreateReservationInput = {
 	sessionId: string;
 	email: string;
-	name: string;
+	/** The Guest's first and last name. */
+	firstName?: string;
+	lastName?: string;
+	/** @deprecated A client from before the split sends one name: it is
+	 * split at its first space (see utils/person-name). */
+	name?: string;
 	phone?: string;
 	quantity: number;
 	notificationPreference?: 'email' | 'sms' | 'both';
@@ -41,7 +46,10 @@ export type CreateReservationInput = {
 export type CreateCompReservationInput = {
 	sessionId: string;
 	email: string;
-	name: string;
+	firstName?: string;
+	lastName?: string;
+	/** @deprecated One name, split at its first space. */
+	name?: string;
 	phone?: string;
 	quantity: number;
 	notificationPreference?: 'email' | 'sms' | 'both';

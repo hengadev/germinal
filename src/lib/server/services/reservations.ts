@@ -22,6 +22,14 @@ import { notifyGuestOfCancellation, notifyWaitlistOfFreedSeats, applyRefundWithG
 import { creditableGiftCardShare, findUsableGiftCard, redeemGiftCard, type GiftCardUnusableReason } from './gift-cards';
 import { resolveBookingExtras, type ReservationExtraSnapshot } from './event-extras';
 import { splitDeposit } from '$lib/utils/gift-card';
+import { nameColumns } from '$lib/utils/person-name';
+
+/** A Reservation's Guest name columns: first and last name, and the full
+ * name the previous app version still reads (guest_name). */
+function guestNameColumns(input: { firstName?: string | null; lastName?: string | null; name?: string | null }) {
+	const n = nameColumns(input);
+	return { guestFirstName: n.firstName, guestLastName: n.lastName, guestName: n.fullName };
+}
 
 const BOOKING_REFUSAL_MESSAGES: Record<BookingRefusal, string> = {
 	'event-not-published': 'Session not found or not published',
@@ -336,7 +344,7 @@ export async function createReservation(input: CreateReservationInput): Promise<
 			const [reservation] = await tx.insert(reservations).values({
 				eventSessionId: input.sessionId,
 				guestEmail: input.email,
-				guestName: input.name,
+				...guestNameColumns(input),
 				guestPhone: input.phone ?? null,
 				notificationPreference: input.notificationPreference ?? 'both',
 				quantity: input.quantity,
@@ -383,7 +391,7 @@ export async function createReservation(input: CreateReservationInput): Promise<
 		const [reservation] = await tx.insert(reservations).values({
 			eventSessionId: input.sessionId,
 			guestEmail: input.email,
-			guestName: input.name,
+			...guestNameColumns(input),
 			guestPhone: input.phone ?? null,
 			notificationPreference: input.notificationPreference ?? 'both',
 			quantity: input.quantity,
@@ -560,7 +568,7 @@ export async function createCompReservation(input: CreateCompReservationInput) {
 		const [reservation] = await tx.insert(reservations).values({
 			eventSessionId: input.sessionId,
 			guestEmail: input.email,
-			guestName: input.name,
+			...guestNameColumns(input),
 			guestPhone: input.phone ?? null,
 			notificationPreference: input.notificationPreference ?? 'both',
 			quantity: input.quantity,
@@ -649,7 +657,10 @@ export async function createCompReservation(input: CreateCompReservationInput) {
 export type CreateStaffReservationInput = {
 	kind: 'walk_in' | 'comp';
 	sessionId: string;
-	name: string;
+	firstName?: string;
+	lastName?: string;
+	/** @deprecated One name, split at its first space. */
+	name?: string;
 	quantity: number;
 	email?: string;
 	phone?: string;
@@ -686,7 +697,7 @@ export async function createStaffReservation(
 	const [reservation] = await tx.insert(reservations).values({
 		eventSessionId: input.sessionId,
 		guestEmail: input.email ?? null,
-		guestName: input.name,
+		...guestNameColumns(input),
 		guestPhone: input.phone ?? null,
 		notificationPreference: 'both',
 		quantity: input.quantity,

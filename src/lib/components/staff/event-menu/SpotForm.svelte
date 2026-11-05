@@ -33,7 +33,8 @@
 	let sheetEl = $state<HTMLElement | null>(null);
 	let submitting = $state(false);
 	let seatingId = $state('');
-	let name = $state('');
+	let firstName = $state('');
+	let lastName = $state('');
 	let quantity = $state(2);
 	let email = $state('');
 	let phone = $state('');
@@ -56,7 +57,8 @@
 
 	function close() {
 		closeSpotForm();
-		name = '';
+		firstName = '';
+		lastName = '';
 		email = '';
 		phone = '';
 		quantity = 2;
@@ -133,9 +135,15 @@
 						{/each}
 					</select>
 				</div>
-				<div>
-					<label class={LABEL} for="{uid}-name">Nom</label>
-					<input id="{uid}-name" name="name" type="text" bind:value={name} required class={INPUT} />
+				<div class="grid grid-cols-2 gap-3">
+					<div>
+						<label class={LABEL} for="{uid}-first-name">Prénom</label>
+						<input id="{uid}-first-name" name="firstName" type="text" bind:value={firstName} maxlength="100" class={INPUT} />
+					</div>
+					<div>
+						<label class={LABEL} for="{uid}-last-name">Nom</label>
+						<input id="{uid}-last-name" name="lastName" type="text" bind:value={lastName} maxlength="100" class={INPUT} />
+					</div>
 				</div>
 				<div>
 					<span class={LABEL} id="{uid}-quantity-label">Personnes</span>

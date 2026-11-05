@@ -110,6 +110,47 @@ describe('gift card checkout webhook (issue 064)', () => {
 		expect(sendGiftCardReceiptEmailMock.mock.calls[0][0].buyerEmail).toBe('marie@example.com');
 	});
 
+	it('stores the buyer’s and the recipient’s first and last names apart', async () => {
+		await handleCheckoutSuccess(
+			giftCardSession({
+				id: 'cs_gift_names',
+				metadata: {
+					kind: 'gift_card',
+					amount: '5000',
+					buyerFirstName: 'Anne-Laure',
+					buyerLastName: 'd’Arcy',
+					buyerName: 'Anne-Laure d’Arcy',
+					buyerEmail: 'anne@example.com',
+					recipientFirstName: 'Claire',
+					recipientLastName: '',
+					recipientName: 'Claire',
+					recipientEmail: '',
+					message: '',
+					delivery: 'buyer',
+					locale: 'fr',
+				},
+			})
+		);
+
+		const [card] = await cardsBySession('cs_gift_names');
+		expect(card.buyerFirstName).toBe('Anne-Laure');
+		expect(card.buyerLastName).toBe('d’Arcy');
+		expect(card.buyerName).toBe('Anne-Laure d’Arcy');
+		expect(card.recipientFirstName).toBe('Claire');
+		expect(card.recipientLastName).toBe('');
+		expect(card.recipientName).toBe('Claire');
+	});
+
+	it('a session opened before the split (full names only) — the names are split', async () => {
+		await handleCheckoutSuccess(giftCardSession());
+
+		const [card] = await cardsBySession('cs_gift_test_1');
+		expect(card.buyerFirstName).toBe('Marie');
+		expect(card.buyerLastName).toBe('Dupont');
+		expect(card.recipientFirstName).toBe('Jean');
+		expect(card.recipientLastName).toBe('Martin');
+	});
+
 	it('a repeated delivery of the same event issues and emails nothing new', async () => {
 		await handleCheckoutSuccess(giftCardSession());
 		await handleCheckoutSuccess(giftCardSession());

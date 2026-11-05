@@ -191,6 +191,30 @@ describe('createReservation', () => {
 		expect(updatedSession.availableCapacity).toBe(98); // 100 − 2
 	});
 
+	it('first and last name — stored apart, and joined in guest_name for the previous app version', async () => {
+		const { session } = await seedPublishedSession();
+		const { createReservation } = await import('../../src/lib/server/services/reservations');
+
+		const result = await createReservation(
+			makeInput(session.id, { name: undefined, firstName: 'Jean-Pierre', lastName: 'de la Tour' })
+		);
+		const [reservation] = await testDb.select().from(reservations).where(eq(reservations.id, result.reservation.id));
+		expect(reservation.guestFirstName).toBe('Jean-Pierre');
+		expect(reservation.guestLastName).toBe('de la Tour');
+		expect(reservation.guestName).toBe('Jean-Pierre de la Tour');
+	});
+
+	it('an old client’s single name — split at its first space', async () => {
+		const { session } = await seedPublishedSession();
+		const { createReservation } = await import('../../src/lib/server/services/reservations');
+
+		const result = await createReservation(makeInput(session.id, { name: 'Margaux Ferrand' }));
+		const [reservation] = await testDb.select().from(reservations).where(eq(reservations.id, result.reservation.id));
+		expect(reservation.guestFirstName).toBe('Margaux');
+		expect(reservation.guestLastName).toBe('Ferrand');
+		expect(reservation.guestName).toBe('Margaux Ferrand');
+	});
+
 	it('untitled Seating — Stripe Checkout gets the label derived from Day, Service and time', async () => {
 		const { session } = await seedPublishedSession({ titleEn: null, titleFr: null });
 		const { createReservation } = await import('../../src/lib/server/services/reservations');

@@ -35,26 +35,31 @@ export const actions: Actions = {
 		// « 20,50 » as well as « 20.50 ».
 		const parsed = parseAmountInput(form.get('amount'));
 		const amount = 'cents' in parsed ? parsed.cents : NaN;
-		const recipientName = String(form.get('recipientName') ?? '').trim();
+		const recipientFirstName = String(form.get('recipientFirstName') ?? '').trim();
+		const recipientLastName = String(form.get('recipientLastName') ?? '').trim();
 		const recipientEmail = String(form.get('recipientEmail') ?? '').trim();
 		const message = String(form.get('message') ?? '').trim();
 		const expiryParam = String(form.get('expiresAt') ?? '').trim();
 		const expiresAt = expiryParam !== '' ? new Date(`${expiryParam}T12:00:00`) : undefined;
 
 		if (!Number.isFinite(amount) || amount <= 0)
-			return fail(400, { issueError: 'Montant invalide.', recipientName, recipientEmail, message, expiresAt: expiryParam });
-		if (recipientName === '' || recipientEmail === '')
-			return fail(400, { issueError: 'Nom et email du destinataire requis.', recipientName, recipientEmail, message, expiresAt: expiryParam });
+			return fail(400, { issueError: 'Montant invalide.', recipientFirstName, recipientLastName, recipientEmail, message, expiresAt: expiryParam });
+		if (recipientFirstName === '' || recipientEmail === '')
+			return fail(400, { issueError: 'Prénom et email du destinataire requis.', recipientFirstName, recipientLastName, recipientEmail, message, expiresAt: expiryParam });
+		if (recipientFirstName.length > 100 || recipientLastName.length > 100)
+			return fail(400, { issueError: 'Le prénom et le nom font au plus 100 caractères.', recipientFirstName, recipientLastName, recipientEmail, message, expiresAt: expiryParam });
 		if (expiresAt && Number.isNaN(expiresAt.getTime()))
-			return fail(400, { issueError: 'Date d’expiration invalide.', recipientName, recipientEmail, message, expiresAt: expiryParam });
+			return fail(400, { issueError: 'Date d’expiration invalide.', recipientFirstName, recipientLastName, recipientEmail, message, expiresAt: expiryParam });
 
 		const card = await issueGiftCard({
 			amount,
 			expiresAt,
-			recipientName,
+			recipientFirstName,
+			recipientLastName,
 			recipientEmail: recipientEmail || null,
 			message: message || null,
-			buyerName: recipientName,
+			buyerFirstName: recipientFirstName,
+			buyerLastName: recipientLastName,
 			buyerEmail: recipientEmail || null,
 			origin: 'admin'
 		});
