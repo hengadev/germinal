@@ -42,7 +42,7 @@
 {#if visible}
 	<!-- fixed: elle ne pousse jamais le contenu de la page. -->
 	<div
-		class="fixed left-4 right-4 bottom-[var(--install-bottom)] z-50 rounded-xl border border-border-card bg-background p-4 shadow-popover lg:left-auto lg:right-4 lg:bottom-4 lg:w-80"
+		class="back-office fixed left-4 right-4 bottom-[var(--install-bottom)] z-50 rounded-xl border border-border-card bg-background p-4 shadow-popover lg:left-auto lg:right-4 lg:bottom-4 lg:w-80"
 		style="--install-bottom: {bottomOffset};"
 		role="region"
 		aria-label="Installer {appLabel}"
