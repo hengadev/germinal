@@ -331,6 +331,7 @@ export function eventPage(event: Localized, schedule: PageDay[], locale: string 
 
 	return {
 		lang,
+		hero: heroOf(event),
 		title: text(lang, event, 'title'),
 		subtitle: text(lang, event, 'subtitle'),
 		description: paragraphsOf(text(lang, event, 'description')),
@@ -362,6 +363,43 @@ export function eventPage(event: Localized, schedule: PageDay[], locale: string 
 }
 
 export type EventPage = ReturnType<typeof eventPage>;
+
+/** The first screen of the announcement (issue 078): the promotional
+ * video, else the cover image, full frame. */
+export interface HeroMedium {
+	type: 'image' | 'video';
+	src: string;
+	/** The still shown before the video plays and under reduced motion: the cover. */
+	poster: string | null;
+	shape: 'portrait' | 'landscape';
+	/** The image already shows the Event's name: the page does not repeat it. */
+	hasName: boolean;
+}
+
+/** The page's Hero: the Event's video, else its cover image, else null. */
+export function heroOf(event: Localized): HeroMedium | null {
+	const video = event.coverVideo as { type?: string; url?: string } | null | undefined;
+	const cover = event.coverMedia as { url?: string } | null | undefined;
+	if (video?.type === 'video' && typeof video.url === 'string') {
+		return {
+			type: 'video',
+			src: video.url,
+			poster: typeof cover?.url === 'string' ? cover.url : null,
+			shape: event.coverVideoPortrait ? 'portrait' : 'landscape',
+			hasName: false,
+		};
+	}
+	if (typeof cover?.url === 'string') {
+		return {
+			type: 'image',
+			src: cover.url,
+			poster: null,
+			shape: 'landscape',
+			hasName: event.coverShowsTitle === true,
+		};
+	}
+	return null;
+}
 
 /** The Event's price in one line: « 85 € par convive », « À partir de 45 € », « Gratuit, sur réservation ». */
 export function priceLineOf(schedule: PageDay[], lang: EventTimeLocale, t: Translate): string {
