@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { detectInstallPlatform } from '$lib/components/staff/install/detect';
+import { detectInstallPlatform } from '$lib/components/install/detect';
 
 const ANDROID_CHROME =
 	'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Mobile Safari/537.36';

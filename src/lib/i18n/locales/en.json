@@ -3,15 +3,7 @@
     "offlineReady": "App ready for offline use",
     "newVersion": "A new version is available",
     "reload": "Reload",
-    "close": "Close",
-    "installTitle": "Install the app",
-    "installDescription": "Add Germinal to your home screen for quick access.",
-    "installButton": "Install",
-    "installDismiss": "Later",
-    "iosTitle": "Install {appName}",
-    "iosSubtitle": "Add to home screen for the best experience",
-    "iosStep1": "Tap the <strong>Share</strong> button",
-    "iosStep2": "Scroll and tap <strong>Add to Home Screen</strong>"
+    "close": "Close"
   },
   "cookieConsent": {
     "title": "We use cookies",

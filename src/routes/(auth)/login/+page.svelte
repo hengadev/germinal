@@ -3,6 +3,8 @@
 	import { AlertCircle, Eye, EyeOff } from 'lucide-svelte';
 	import type { PageData } from './$types';
 	import { t } from 'svelte-i18n';
+	import InstallCard from '$lib/components/install/InstallCard.svelte';
+	import IOSInstallSheet from '$lib/components/install/IOSInstallSheet.svelte';
 
 	let { data, form }: { data: PageData; form: import('./$types').ActionData } = $props();
 
@@ -99,3 +101,9 @@
 		{/if}
 	</div>
 </div>
+
+<!-- L'offre d'installation de l'app Admin (issue 075), sur le domaine admin. -->
+{#if data.isAdminDomain}
+	<InstallCard app="admin" bottomOffset="calc(1rem + env(safe-area-inset-bottom))" />
+	<IOSInstallSheet app="admin" />
+{/if}

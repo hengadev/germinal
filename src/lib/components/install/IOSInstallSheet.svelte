@@ -6,17 +6,20 @@
 	import { fade, fly } from 'svelte/transition';
 	import { Share, SquarePlus, X } from 'lucide-svelte';
 	import { motion, cubicOut } from '$lib/components/staff/motion';
-	import { staffInstall } from './install-prompt.svelte';
+	import { installOffer } from './install-prompt.svelte';
+
+	let { app }: { app: 'staff' | 'admin' } = $props();
+	const appLabel = $derived(app === 'admin' ? "l'app Admin" : "l'app Staff");
 
 	function close() {
-		staffInstall.showIOSSheet = false;
+		installOffer.showIOSSheet = false;
 	}
 
 	const STEP = 'flex items-start gap-3 rounded-lg border border-border-card p-3';
 	const ICON = 'mt-0.5 size-5 shrink-0 text-foreground';
 </script>
 
-{#if staffInstall.showIOSSheet}
+{#if installOffer.showIOSSheet}
 	<div
 		class="fixed inset-0 z-[59] bg-black/50"
 		transition:fade={{ duration: motion(150) }}
@@ -35,7 +38,7 @@
 		data-no-swipe
 	>
 		<header class="mb-3 flex items-center justify-between gap-3">
-			<h2 class="text-lg font-semibold text-foreground">Installer l'app Staff</h2>
+			<h2 class="text-lg font-semibold text-foreground">Installer {appLabel}</h2>
 			<button
 				type="button"
 				onclick={close}
