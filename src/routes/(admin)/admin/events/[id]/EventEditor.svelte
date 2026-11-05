@@ -95,9 +95,11 @@
 	// gets the reduced editor: only Essentiel, Lieu, Dates & séances and
 	// Portfolio. The other tabs are not even mounted, so they are never
 	// saved or marked modified, and their saved data is left untouched.
-	const portfolioOnly = isPortfolioOnly(
-		{ lastSeatingStart: data.lastSeatingStart ?? null, hasReservations: data.hasReservations ?? false },
-		new Date()
+	const portfolioOnly = $derived(
+		isPortfolioOnly(
+			{ lastSeatingStart: data.lastSeatingStart ?? null, hasReservations: data.hasReservations ?? false },
+			new Date()
+		)
 	);
 	const tabs = $derived(
 		portfolioOnly
