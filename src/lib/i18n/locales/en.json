@@ -128,7 +128,81 @@
         "next": "Next photo",
         "open": "Enlarge photo {index}"
       },
-      "comingUp": "Coming up"
+      "comingUp": "Coming up",
+      "soon": "Coming up",
+      "times": "Times",
+      "video": {
+        "pause": "Pause",
+        "play": "Play the video",
+        "soundOn": "Turn the sound on",
+        "mute": "Mute"
+      }
+    },
+    "booking": {
+      "eyebrow": "Book a table",
+      "yourTable": "Your table",
+      "guestsQ": "How many of you?",
+      "dayQ": "Which day?",
+      "mealQ": "Lunch or dinner?",
+      "timeQ": "What time?",
+      "guests": {
+        "one": "1 guest",
+        "other": "{n} guests"
+      },
+      "largerParty": "For more than {n} guests, write to us:",
+      "contact": "get in touch",
+      "oneLess": "One guest fewer",
+      "oneMore": "One guest more",
+      "perGuest": "per guest",
+      "details": "Your details",
+      "firstName": "First name",
+      "lastName": "Last name",
+      "email": "Email",
+      "emailHint": "Your ticket will be sent there.",
+      "phone": "Phone",
+      "optional": "optional",
+      "phoneHint": "To reach you on the day, if need be.",
+      "total": "Total",
+      "full": "Full",
+      "fullFor": {
+        "one": "Full",
+        "other": "Full for {n}"
+      },
+      "ended": "Over",
+      "opensSoon": "Opens soon",
+      "unavailable": "Unavailable",
+      "waitlist": "Waitlist",
+      "lastSeats": "Last seats",
+      "seatsLeft": {
+        "one": "Last seat",
+        "other": "{n} seats left"
+      },
+      "waitlistLead": "This service is full. Leave your details: if a table frees up, we will write to you at once.",
+      "joinWaitlist": "Join the waitlist",
+      "confirm": "Confirm the booking",
+      "payDeposit": "Pay the deposit · {amount}",
+      "pay": "Pay · {amount}",
+      "or": "or",
+      "add": "To add",
+      "unitEach": "each",
+      "forTable": "for the {n} of you",
+      "kitchen": "For the kitchen",
+      "dietary": "Allergies or diet",
+      "dietaryPh": "E.g. nut allergy, vegetarian, gluten-free…",
+      "dietaryHint": "For the whole table.",
+      "consent": "I agree that Germinal keeps this health information to adapt the meal. Only the Germinal team sees it; it is erased 30 days after the sitting.",
+      "consentNeeded": "Tick the box to send this to the kitchen, or empty the field.",
+      "codeQ": "A promo code or a gift card?",
+      "code": "Code",
+      "apply": "Apply",
+      "newsletter": "Hear about Germinal’s next events",
+      "summaryTitle": "Your booking",
+      "summaryEmpty": "Choose a day and a time to see the price.",
+      "payNowDeposit": "Deposit to pay now",
+      "payNowAll": "To pay now",
+      "payLater": "Left to pay on the day",
+      "nothingNow": "Nothing to pay now",
+      "waitlistFree": "Waiting list: nothing to pay."
     }
   },
   "talents": {

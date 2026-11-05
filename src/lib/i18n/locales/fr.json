@@ -128,7 +128,81 @@
         "next": "Photo suivante",
         "open": "Agrandir la photo {index}"
       },
-      "comingUp": "À venir"
+      "comingUp": "À venir",
+      "soon": "Prochainement",
+      "times": "Horaires",
+      "video": {
+        "pause": "Mettre en pause",
+        "play": "Lire la vidéo",
+        "soundOn": "Activer le son",
+        "mute": "Couper le son"
+      }
+    },
+    "booking": {
+      "eyebrow": "Réserver une table",
+      "yourTable": "Votre table",
+      "guestsQ": "Combien serez-vous ?",
+      "dayQ": "Quel jour ?",
+      "mealQ": "Déjeuner ou dîner ?",
+      "timeQ": "À quelle heure ?",
+      "guests": {
+        "one": "1 convive",
+        "other": "{n} convives"
+      },
+      "largerParty": "Au-delà de {n} convives, écrivez-nous :",
+      "contact": "nous contacter",
+      "oneLess": "Un convive de moins",
+      "oneMore": "Un convive de plus",
+      "perGuest": "par convive",
+      "details": "Vos coordonnées",
+      "firstName": "Prénom",
+      "lastName": "Nom",
+      "email": "E-mail",
+      "emailHint": "Votre billet vous y sera envoyé.",
+      "phone": "Téléphone",
+      "optional": "facultatif",
+      "phoneHint": "Pour vous prévenir le jour même, si besoin.",
+      "total": "Total",
+      "full": "Complet",
+      "fullFor": {
+        "one": "Complet",
+        "other": "Complet pour {n}"
+      },
+      "ended": "Terminé",
+      "opensSoon": "Bientôt ouvert",
+      "unavailable": "Indisponible",
+      "waitlist": "Liste d’attente",
+      "lastSeats": "Dernières places",
+      "seatsLeft": {
+        "one": "Plus qu’une place",
+        "other": "Plus que {n} places"
+      },
+      "waitlistLead": "Ce service est complet. Laissez-nous vos coordonnées : si une table se libère, nous vous écrivons aussitôt.",
+      "joinWaitlist": "Rejoindre la liste d’attente",
+      "confirm": "Confirmer la réservation",
+      "payDeposit": "Payer l’acompte · {amount}",
+      "pay": "Payer · {amount}",
+      "or": "ou",
+      "add": "À ajouter",
+      "unitEach": "l’une",
+      "forTable": "pour vous {n}",
+      "kitchen": "Pour la cuisine",
+      "dietary": "Allergies ou régime",
+      "dietaryPh": "Ex. : allergie aux fruits à coque, végétarien, sans gluten…",
+      "dietaryHint": "Pour toute la table.",
+      "consent": "J’accepte que Germinal conserve ces informations de santé pour adapter le repas. Seule l’équipe Germinal les voit ; elles sont effacées 30 jours après la séance.",
+      "consentNeeded": "Cochez la case pour les transmettre à la cuisine, ou videz le champ.",
+      "codeQ": "Un code promo ou une carte cadeau ?",
+      "code": "Code",
+      "apply": "Appliquer",
+      "newsletter": "Recevoir les prochains événements de Germinal",
+      "summaryTitle": "Votre réservation",
+      "summaryEmpty": "Choisissez un jour et un horaire pour voir le prix.",
+      "payNowDeposit": "Acompte à régler maintenant",
+      "payNowAll": "À régler maintenant",
+      "payLater": "Reste à régler sur place",
+      "nothingNow": "Rien à régler maintenant",
+      "waitlistFree": "Liste d’attente : rien à régler."
     }
   },
   "talents": {
