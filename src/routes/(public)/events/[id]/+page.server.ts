@@ -69,6 +69,19 @@ async function eventDaysOf(eventId: string): Promise<string[]> {
   return rows.map((row) => row.date);
 }
 
+/** Whether the Event has ever taken a Reservation, any status (078). */
+async function eventHasReservations(eventId: string): Promise<boolean> {
+	const { db } = await import('$lib/server/db');
+	const { reservations, eventSessions } = await import('$lib/server/db/schema');
+	const { eq } = await import('drizzle-orm');
+	const [row] = await db
+		.select({ id: reservations.id })
+		.from(reservations)
+		.innerJoin(eventSessions, eq(reservations.eventSessionId, eventSessions.id))
+		.where(eq(eventSessions.eventId, eventId));
+	return row !== undefined;
+}
+
 // « Projets » lists every project on one page.
 const PROJECTS_LIMIT = 100;
 
@@ -225,14 +238,26 @@ export const load: PageServerLoad = async ({ params, locals, setHeaders }) => {
     throw error(404, 'Event not found');
   }
   // Event access (issue 030): an Event the viewer may not see is not found.
-  const accessEvent = toAccessEvent(event);
-  const access = eventAccess(accessEvent, viewer);
+  let accessEvent = toAccessEvent(event);
+  // The project preview (issue 081): only on the Admin-Draft path does the
+  // load fetch what the Portfolio-only predicate needs — the last Seating
+  // start and whether any Reservation exists.
+  if (accessEvent.visibility === 'draft' && viewer.role === 'admin') {
+    const { db } = await import('$lib/server/db');
+    const { lastSeatingStartOf } = await import('$lib/server/services/event-access');
+    accessEvent = {
+      ...accessEvent,
+      lastSeatingStart: await lastSeatingStartOf(db, event.id),
+      hasReservations: await eventHasReservations(event.id),
+    };
+  }
+  const access = eventAccess(accessEvent, viewer, now);
   if (!access.visible) {
     throw error(404, 'Event not found');
   }
   const indexed = robots(accessEvent, setHeaders);
 
-  if (access.view === 'portfolio') {
+  if (access.view === 'portfolio' || access.view === 'portfolio-preview') {
     // No Seatings, prices or booking on a project page (issue 045).
     const days = await eventDaysOf(event.id);
     const page = projectPage(withoutPracticalInfo(event), days);
