@@ -473,19 +473,6 @@
       "lineTotal": "Extras"
     }
   },
-  "waitlist": {
-    "description": "Get notified when tickets become available",
-    "successTitle": "You're on the Waitlist!",
-    "successMessage": "We'll notify you at {email} when tickets become available.",
-    "done": "Done",
-    "currentlySoldOut": "Currently Sold Out",
-    "infoTitle": "Join the Waitlist",
-    "infoMessage": "We'll email you if tickets become available. You'll have 24 hours to complete your purchase.",
-    "errorTitle": "Failed to Join Waitlist",
-    "genericError": "Failed to join waitlist",
-    "emailHint": "We'll notify you here when tickets are available",
-    "joining": "Joining..."
-  },
   "tickets": {
     "pageTitle": "Your Tickets - {eventTitle}",
     "ogDescription": "Ticket for {eventTitle} on {date}. {quantity, plural, one {# seat} other {# seats}} reserved.",

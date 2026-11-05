@@ -473,19 +473,6 @@
       "lineTotal": "Suppléments"
     }
   },
-  "waitlist": {
-    "description": "Soyez averti dès que des billets sont disponibles",
-    "successTitle": "Vous êtes sur liste d'attente !",
-    "successMessage": "Nous vous préviendrons à {email} dès que des billets seront disponibles.",
-    "done": "Terminé",
-    "currentlySoldOut": "Actuellement complet",
-    "infoTitle": "Rejoignez la liste d'attente",
-    "infoMessage": "Nous vous enverrons un email si des billets se libèrent. Vous aurez 24 heures pour finaliser votre achat.",
-    "errorTitle": "Échec de l'inscription à la liste d'attente",
-    "genericError": "Échec de l'inscription à la liste d'attente",
-    "emailHint": "Nous vous informerons ici dès que des billets seront disponibles",
-    "joining": "Inscription en cours..."
-  },
   "tickets": {
     "pageTitle": "Vos billets - {eventTitle}",
     "ogDescription": "Billet pour {eventTitle} le {date}. {quantity, plural, one {# place réservée} other {# places réservées}}.",
