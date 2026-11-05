@@ -719,7 +719,7 @@
 		</div>
 		<!-- Publication (issue 077): on the title row, from every tab. -->
 		<div class="shrink-0 ml-auto pt-1.5">
-			<Publication {event} lastSeatingStart={data.lastSeatingStart ?? null} warnings={warnings} />
+			<Publication {event} lastSeatingStart={data.lastSeatingStart ?? null} warnings={portfolioOnly ? portfolioOnlyWarnings(publishingWarnings) : publishingWarnings} />
 		</div>
 	</div>
 
