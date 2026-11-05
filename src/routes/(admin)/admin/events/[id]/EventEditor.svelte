@@ -883,6 +883,19 @@
 	{/if}
 </div>
 
+<!-- Variant switcher for the Publication pick (issue 077) — removed once
+     the Admin has chosen. -->
+<div class="back-office fixed bottom-24 lg:bottom-4 left-1/2 -translate-x-1/2 z-[9000] flex items-center gap-1 rounded-full border border-border-input bg-background p-1 shadow-lg text-sm">
+	<span class="px-2 text-xs text-muted-foreground whitespace-nowrap">Variante</span>
+	{#each [['a', 'A'], ['b', 'B'], ['c', 'C']] as [v, label] (v)}
+		<a
+			href="?pub={v}{page.url.hash}"
+			data-sveltekit-replacestate
+			class="px-3 py-1 rounded-full whitespace-nowrap {publicationVariant === v ? 'bg-foreground text-background' : 'text-foreground-alt hover:bg-muted'}"
+		>{label}</a>
+	{/each}
+</div>
+
 <Modal
 	bind:isOpen={confirmSaveOpen}
 	title="Enregistrer les modifications ?"
