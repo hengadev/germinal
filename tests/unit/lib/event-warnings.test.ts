@@ -5,6 +5,7 @@ import {
 	eventCompleteness,
 	eventWarnings,
 	portfolioWarnings,
+	portfolioOnlyWarnings,
 	savedEventWarnings,
 	type PortfolioWarningsInput,
 	type EditorWarningsEvent,
@@ -461,5 +462,83 @@ describe('eventCompleteness (issue 013)', () => {
 			'missing-recap-en',
 			'no-event-photo',
 		]);
+	});
+});
+
+describe('portfolioOnlyWarnings and portfolioOnly completeness (issue 079)', () => {
+	it('drops exactly the booking-side and project-page-irrelevant warnings', () => {
+		// A Service without Menu or price plus the default snapshot covers
+		// every omitted code: prices, menus, descriptions, visuals, window.
+		// The two Visual warnings are mutually exclusive, so both snapshots
+		// join the list.
+		const warnings = [
+			...eventWarnings({
+				...COMPLETE,
+				descriptionEn: null,
+				descriptionFr: null,
+				visualCount: 0,
+				services: [{ ...COMPLETE.services[0], menuId: null, priceAmount: null }],
+				bookingWindow: { opensAt: COMPLETE.seatings[0].startTime, closesHoursBefore: null }
+			}),
+			...eventWarnings({ ...COMPLETE, visualsWithoutAlt: 1 })
+		];
+		const dropped = portfolioOnlyWarnings(warnings).map((warning) => warning.code);
+		for (const code of [
+			'service-without-price',
+			'service-without-menu',
+			'missing-description-en',
+			'missing-description-fr',
+			'no-visual',
+			'visual-without-alt',
+			'booking-window-opens-after-close'
+		]) {
+			expect(dropped).not.toContain(code);
+			expect(warnings.map((warning) => warning.code)).toContain(code);
+		}
+	});
+
+	it('keeps the title, location, Seating and Portfolio warnings', () => {
+		const warnings = [
+			...eventWarnings({ titleEn: '', titleFr: '', locationEn: '', locationFr: '' }),
+			...portfolioWarnings({})
+		];
+		const kept = portfolioOnlyWarnings(warnings).map((warning) => warning.code);
+		for (const code of [
+			'missing-title-fr',
+			'missing-title-en',
+			'missing-location-fr',
+			'missing-location-en',
+			'no-seating',
+			'missing-recap-fr',
+			'no-event-photo'
+		]) {
+			expect(kept).toContain(code);
+		}
+	});
+
+	it('leaves other Events’ warnings untouched when not applied', () => {
+		// The filter is only called for Portfolio-only Events; the full
+		// list keeps every code.
+		expect(eventWarnings({}).length).toBeGreaterThan(0);
+		expect(portfolioOnlyWarnings(eventWarnings({})).length).toBeLessThan(eventWarnings({}).length);
+	});
+
+	it('counts 4 tabs for a Portfolio-only Event, Portfolio included', () => {
+		const warnings = portfolioOnlyWarnings([
+			...eventWarnings(COMPLETE),
+			...portfolioWarnings({})
+		]);
+		expect(eventCompleteness(warnings, { portfolioOnly: true })).toMatchObject({
+			complete: 3,
+			total: 4
+		});
+	});
+
+	it('reads 4/4 for a finished Portfolio-only project', () => {
+		const warnings = portfolioOnlyWarnings([...eventWarnings(COMPLETE), ...portfolioWarnings(COMPLETE_PROJECT)]);
+		expect(eventCompleteness(warnings, { portfolioOnly: true })).toMatchObject({
+			complete: 4,
+			total: 4
+		});
 	});
 });

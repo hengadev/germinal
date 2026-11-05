@@ -460,6 +460,29 @@ export interface EventCompleteness {
  * pratiques have no rule, so counting them would only pad the score. */
 const CHECKED_TABS: readonly EditorTabId[] = ['essentiel', 'lieu', 'dates-seances', 'tarifs', 'visuels'];
 
+/** The tabs counted for a Portfolio-only Event (issue 079): the reduced
+ * editor's tabs — only what its project page reads. */
+const PORTFOLIO_ONLY_CHECKED_TABS: readonly EditorTabId[] = ['essentiel', 'lieu', 'dates-seances', 'portfolio'];
+
+/** The warnings a Portfolio-only Event drops (issue 079): its booking side
+ * (prices, menus, Booking Window) and what its project page doesn't show
+ * (descriptions, visuals). Only the list is filtered, never the rules. */
+const PORTFOLIO_ONLY_OMITTED_CODES: readonly EventWarningCode[] = [
+	'service-without-price',
+	'service-without-menu',
+	'missing-description-en',
+	'missing-description-fr',
+	'no-visual',
+	'visual-without-alt',
+	'booking-window-opens-after-close'
+];
+
+/** A Portfolio-only Event's warnings: the list minus the omitted codes
+ * (issue 079). Other Events' warnings are left unchanged by not calling it. */
+export function portfolioOnlyWarnings(warnings: readonly EventWarning[]): EventWarning[] {
+	return warnings.filter(({ code }) => !PORTFOLIO_ONLY_OMITTED_CODES.includes(code));
+}
+
 /**
  * Draft completeness (issue 013, ADR 0010): the editor's warnings grouped
  * by tab — what is missing in each of the editor's Event tabs — and how many
@@ -470,14 +493,18 @@ const CHECKED_TABS: readonly EditorTabId[] = ['essentiel', 'lieu', 'dates-seance
  */
 export function eventCompleteness(
 	warnings: readonly EventWarning[],
-	{ isPortfolio = false }: { isPortfolio?: boolean } = {}
+	{ isPortfolio = false, portfolioOnly = false }: { isPortfolio?: boolean; portfolioOnly?: boolean } = {}
 ): EventCompleteness {
 	const tabs: EventTabCompleteness[] = EVENT_EDITOR_TABS.map(({ id, title }) => ({
 		tab: id,
 		title,
 		warnings: warnings.filter((warning) => warning.tab === id),
 	}));
-	const checked = tabs.filter(({ tab }) => CHECKED_TABS.includes(tab) || (isPortfolio && tab === 'portfolio'));
+	// A Portfolio-only Event counts the reduced editor's tabs, Portfolio
+	// always among them (issue 079): a finished project reads 4/4.
+	const checked = portfolioOnly
+		? tabs.filter(({ tab }) => PORTFOLIO_ONLY_CHECKED_TABS.includes(tab))
+		: tabs.filter(({ tab }) => CHECKED_TABS.includes(tab) || (isPortfolio && tab === 'portfolio'));
 	return {
 		tabs,
 		complete: checked.filter((tab) => tab.warnings.length === 0).length,

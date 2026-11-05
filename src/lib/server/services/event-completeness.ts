@@ -1,9 +1,10 @@
 import { eq, inArray, sql } from 'drizzle-orm';
 import { db } from '../db';
-import { eventDays, eventServices, eventSessions } from '../db/schema';
+import { eventDays, eventServices, eventSessions, reservations } from '../db/schema';
 import {
 	editorPortfolioWarnings,
 	eventCompleteness,
+	portfolioOnlyWarnings,
 	savedEventWarnings,
 	type EditorPortfolioEvent,
 	type EditorWarningsEvent,
@@ -12,6 +13,7 @@ import {
 	type WarningService,
 } from '$lib/utils/event-warnings';
 import type { Visibility } from '$lib/utils/event-access';
+import { isPortfolioOnly } from '$lib/utils/event-access';
 
 /**
  * Draft completeness for the Events list (issue 013, ADR 0010): each
@@ -38,7 +40,7 @@ export async function draftCompleteness(
 	if (drafts.length === 0) return {};
 
 	const ids = drafts.map((event) => event.id);
-	const [serviceRows, seatingRows] = await Promise.all([
+	const [serviceRows, seatingRows, reservationRows] = await Promise.all([
 		db
 			.select({
 				eventId: eventDays.eventId,
@@ -54,6 +56,14 @@ export async function draftCompleteness(
 		db
 			.select({ eventId: eventSessions.eventId, startTime: eventSessions.startTime })
 			.from(eventSessions)
+			.where(inArray(eventSessions.eventId, ids)),
+		// Whether each Draft has ever taken a Reservation (issue 079): any
+		// status counts, cancelled included. One query for the whole list,
+		// never one per Event.
+		db
+			.selectDistinct({ eventId: eventSessions.eventId })
+			.from(reservations)
+			.innerJoin(eventSessions, eq(reservations.eventSessionId, eventSessions.id))
 			.where(inArray(eventSessions.eventId, ids)),
 	]);
 
@@ -76,6 +86,8 @@ export async function draftCompleteness(
 		seatingsOf.set(row.eventId, seatings);
 	}
 
+	const withReservations = new Set(reservationRows.map((row) => row.eventId));
+
 	const completeness: Record<string, EventCompleteness> = {};
 	for (const event of drafts) {
 		// The Portfolio list joins the warnings only for a Portfolio Event,
@@ -84,7 +96,21 @@ export async function draftCompleteness(
 			...savedEventWarnings(event, servicesOf.get(event.id) ?? [], seatingsOf.get(event.id) ?? []),
 			...(event.isPortfolio ? editorPortfolioWarnings(event) : []),
 		];
-		completeness[event.id] = eventCompleteness(warnings, { isPortfolio: event.isPortfolio });
+		// A Portfolio-only Event (issue 079): past and never a Reservation —
+		// only its project page's warnings count, over the reduced 4 tabs.
+		const seatings = seatingsOf.get(event.id) ?? [];
+		const lastSeatingStart = seatings.reduce<Date | null>(
+			(latest, seating) => (latest === null || seating.startTime > latest ? seating.startTime : latest),
+			null
+		);
+		const portfolioOnly = isPortfolioOnly(
+			{ lastSeatingStart, hasReservations: withReservations.has(event.id) },
+			new Date()
+		);
+		completeness[event.id] = eventCompleteness(
+			portfolioOnly ? portfolioOnlyWarnings(warnings) : warnings,
+			{ isPortfolio: event.isPortfolio, portfolioOnly }
+		);
 	}
 	return completeness;
 }

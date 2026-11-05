@@ -7,7 +7,7 @@
  */
 import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest';
 import { eq } from 'drizzle-orm';
-import { events, eventDays, eventMenus, eventServices, eventSessions, media } from '../../src/lib/server/db/schema';
+import { events, eventDays, eventMenus, eventServices, eventSessions, media, reservations } from '../../src/lib/server/db/schema';
 import { getTestDatabase, setupTestDatabase, closeTestDatabase, TEST_DATABASE_URL } from '../fixtures/database';
 import { wallClockToInstant } from '../../src/lib/utils/event-time';
 import type { EventCompleteness } from '../../src/lib/utils/event-warnings';
@@ -144,5 +144,98 @@ describe('Draft completeness in the Events list', () => {
 			.returning();
 		const completeness = await loadCompleteness();
 		expect(completeness[published.id]).toBeUndefined();
+	});
+});
+
+/** A complete Draft whose single Seating is in the past (issue 079). */
+async function seedPastDraft() {
+	const [event] = await testDb
+		.insert(events)
+		.values({
+			visibility: 'draft',
+			timeZone: ZONE,
+			titleEn: 'A Night at the Salon',
+			titleFr: 'Une soirée au salon',
+			descriptionEn: 'An intimate dinner.',
+			descriptionFr: 'Un dîner intimiste.',
+			locationEn: 'The Salon, Paris',
+			locationFr: 'Le Salon, Paris',
+		})
+		.returning();
+	const [visual] = await testDb
+		.insert(media)
+		.values({
+			type: 'image',
+			url: 'https://x/v.jpg',
+			s3Key: 'v',
+			mimeType: 'image/jpeg',
+			size: 1,
+			eventId: event.id,
+			role: 'visual',
+			isCover: true,
+			altEn: 'A laid table',
+			altFr: 'Une table dressée',
+		})
+		.returning();
+	await testDb.update(events).set({ coverMediaId: visual.id }).where(eq(events.id, event.id));
+	const [menu] = await testDb
+		.insert(eventMenus)
+		.values({ eventId: event.id, nameEn: 'Spring', nameFr: 'Printemps' })
+		.returning();
+	const [day] = await testDb.insert(eventDays).values({ eventId: event.id, date: '2024-03-12' }).returning();
+	const [service] = await testDb
+		.insert(eventServices)
+		.values({ dayId: day.id, kind: 'dinner', defaultSeatingDurationMinutes: 180, menuId: menu.id, priceAmount: 9000 })
+		.returning();
+	const [session] = await testDb
+		.insert(eventSessions)
+		.values({
+			eventId: event.id,
+			serviceId: service.id,
+			startTime: wallClockToInstant('2024-03-12', 19 * 60, ZONE),
+			endTime: wallClockToInstant('2024-03-12', 22 * 60, ZONE),
+		})
+		.returning();
+	return { event, session };
+}
+
+describe('Portfolio-only Draft completeness (issue 079)', () => {
+	beforeEach(async () => {
+		await setupTestDatabase();
+	});
+
+	it('counts a Portfolio-only Draft out of 4, dropping the booking-side warnings', async () => {
+		// Same complete Draft as above, but the Service loses its price and
+		// Menu: those warnings are dropped, not counted, for such an Event.
+		// A Portfolio Event's Recap and photos still count.
+		const { event } = await seedPastDraft();
+		await testDb.update(events).set({ isPortfolio: true }).where(eq(events.id, event.id));
+		const days = await testDb.select({ id: eventDays.id }).from(eventDays).where(eq(eventDays.eventId, event.id));
+		for (const day of days) {
+			await testDb.update(eventServices).set({ priceAmount: null, menuId: null }).where(eq(eventServices.dayId, day.id));
+		}
+		const completeness = await loadCompleteness();
+		expect(completeness[event.id]).toMatchObject({ complete: 3, total: 4 });
+		const codes = completeness[event.id].tabs.flatMap((tab) => tab.warnings.map((w) => w.code));
+		expect(codes).toEqual(['missing-recap-fr', 'missing-recap-en', 'no-event-photo']);
+	});
+
+	it('keeps counting a Draft with a Reservation out of 5', async () => {
+		const { event, session } = await seedPastDraft();
+		await testDb.insert(reservations).values({
+			eventSessionId: session.id,
+			guestEmail: 'guest@example.com',
+			guestName: 'Guest',
+			quantity: 2,
+			totalAmount: 0,
+			depositAmount: 0,
+			balanceAmount: 0,
+			status: 'cancelled',
+			origin: 'online',
+			accessToken: `atk-079-${event.id}`,
+			expiresAt: new Date(Date.now() + 15 * 60 * 1000),
+		});
+		const completeness = await loadCompleteness();
+		expect(completeness[event.id]).toMatchObject({ complete: 5, total: 5 });
 	});
 });
