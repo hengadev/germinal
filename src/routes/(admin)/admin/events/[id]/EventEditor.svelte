@@ -37,6 +37,7 @@
 	import { setEnglishAuto } from '$lib/components/admin/EnglishVersion.svelte';
 
 	import Essentiel from './Essentiel.svelte';
+	import Publication from './Publication.svelte';
 	import Lieu from './Lieu.svelte';
 	import Seatings from './Seatings.svelte';
 	import Pricing from './Pricing.svelte';
@@ -75,6 +76,14 @@
 	});
 
 	const event = $derived(data.event as EditorEvent);
+
+	// The Publication control's look (issue 077), switched with `?pub=`:
+	// a status pill (a), an inline segmented control (b) or a sticky bar (c).
+	const publicationVariant = $derived(
+		page.url.searchParams.get('pub') === 'b' || page.url.searchParams.get('pub') === 'c'
+			? (page.url.searchParams.get('pub') as 'b' | 'c')
+			: 'a'
+	);
 
 	// The Event tabs, shared with Draft completeness (issue 013).
 	const EDITOR_TABS = EVENT_EDITOR_TABS;
@@ -556,7 +565,7 @@
 	onsubmitcapture={submitForm}
 	class="container mx-auto px-4 py-8 lg:py-12"
 >
-	<div class="flex items-start gap-3 mb-8">
+	<div class="flex flex-wrap items-start gap-3 mb-8">
 		<a
 			href="/admin/events"
 			aria-label="Retour aux événements"
@@ -565,7 +574,7 @@
 		>
 			<ArrowLeft size={20} />
 		</a>
-		<div>
+		<div class="min-w-0 flex-1">
 			<h1 class="text-3xl lg:text-4xl font-bold mb-2">{headerTitle}</h1>
 			<p class="text-muted-foreground flex items-center gap-2 flex-wrap">
 				<!-- Aperçu (issue 033) : ouvre la page publique — un brouillon
@@ -677,7 +686,19 @@
 				<span role="status" class="sr-only">{saveAnnouncement}</span>
 			</p>
 		</div>
-	</div>
+		<!-- Publication (issue 077): from every tab, on the title row —
+		     variant a (pill) or b (inline); c is the bar below. -->
+		{#if publicationVariant !== 'c'}
+			<div class="shrink-0 ml-auto pt-1.5">
+				<Publication {event} lastSeatingStart={data.lastSeatingStart ?? null} warnings={publishingWarnings} variant={publicationVariant} />
+			</div>
+		{/if}
+		</div>
+		{#if publicationVariant === 'c'}
+			<div class="mb-6 -mt-4">
+				<Publication {event} lastSeatingStart={data.lastSeatingStart ?? null} warnings={publishingWarnings} variant="c" />
+			</div>
+		{/if}
 
 	{#if form?.error}
 		<div class="mb-6 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg">
@@ -762,7 +783,7 @@
 	{/snippet}
 
 	{#snippet essentiel()}
-		<Essentiel bind:this={essentielTab} {event} lastSeatingStart={data.lastSeatingStart ?? null} warnings={publishingWarnings} />
+		<Essentiel bind:this={essentielTab} {event} />
 	{/snippet}
 	{#snippet lieu()}
 		<Lieu bind:this={lieuTab} {event} zones={data.timeZones ?? []} locked={data.timeZoneLocked ?? false} bind:timeZone />
