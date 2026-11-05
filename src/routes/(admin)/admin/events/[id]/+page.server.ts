@@ -747,6 +747,10 @@ const editorActions: Actions = {
 		const formData = await request.formData();
 		const coverMediaId = formData.get('coverMediaId')?.toString() || null;
 		const galleryMediaIdsRaw = formData.get('galleryMediaIds')?.toString() || null;
+		// Issue 078: the announcement video and the cover's key-visual flag.
+		const coverVideoIdRaw = formData.get('coverVideoId')?.toString() || null;
+		const coverVideoPortrait = formData.get('coverVideoPortrait')?.toString() === 'true';
+		const coverShowsTitle = formData.get('coverShowsTitle')?.toString() === 'true';
 
 		let galleryIds: string[] = [];
 		try { galleryIds = galleryMediaIdsRaw ? JSON.parse(galleryMediaIdsRaw) : []; } catch { /* ignore */ }
@@ -770,7 +774,27 @@ const editorActions: Actions = {
 			// Link the Visuals to the Event, cover first; Event Photos are
 			// never touched here (issue 045), nor made the Visual cover.
 			const saved = await saveEventVisuals(id, coverMediaId, galleryIds);
-			await updateEvent(id, { coverMediaId: coverMediaId && saved.includes(coverMediaId) ? coverMediaId : null });
+			// The announcement video must be one of this Event's videos; a
+			// Media of another Event or of another type is refused (null).
+			let coverVideoId: string | null = null;
+			if (coverVideoIdRaw) {
+				const { db } = await import('$lib/server/db');
+				const { media: mediaTable } = await import('$lib/server/db/schema');
+				const { and, eq } = await import('drizzle-orm');
+				const [video] = await db
+					.select({ id: mediaTable.id })
+					.from(mediaTable)
+					.where(and(eq(mediaTable.id, coverVideoIdRaw), eq(mediaTable.eventId, id), eq(mediaTable.type, 'video')))
+					.limit(1);
+				coverVideoId = video?.id ?? null;
+			}
+			await updateEvent(id, {
+				coverMediaId: coverMediaId && saved.includes(coverMediaId) ? coverMediaId : null,
+				coverVideoId,
+				// The shape is reset when the video is removed.
+				coverVideoPortrait: coverVideoId ? coverVideoPortrait : false,
+				coverShowsTitle,
+			});
 		} catch (error) {
 			logger.error({ err: error }, 'Error updating media');
 			return fail(500, { error: 'Échec de la mise à jour des photos' });
