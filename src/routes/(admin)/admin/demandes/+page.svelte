@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { Inbox, ChevronRight } from 'lucide-svelte';
+	import { goto } from '$app/navigation';
+	import { Inbox } from 'lucide-svelte';
 	import type { PageData } from './$types';
 	import type { ContactSubmission } from '$lib/types/contact';
 
@@ -225,12 +226,14 @@
 							<th class="px-6 py-4 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">Type</th>
 							<th class="px-6 py-4 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">Statut</th>
 							<th class="px-6 py-4 text-left text-xs font-semibold text-foreground-alt uppercase tracking-wider">Modifiée le</th>
-							<th class="px-6 py-4"></th>
 						</tr>
 					</thead>
 					<tbody class="divide-y divide-border-card">
 						{#each data.demandes as demande (demande.id)}
-							<tr class="hover:bg-muted/50">
+							<tr
+								class="hover:bg-muted transition-colors cursor-pointer"
+								onclick={() => goto(`/admin/demandes/${demande.id}`)}
+							>
 								<td class="px-6 py-4 text-sm text-foreground">{formatDate(demande.createdAt)}</td>
 								<td class="px-6 py-4">
 									<p class="text-sm font-medium text-foreground">{demande.name}</p>
@@ -243,11 +246,6 @@
 									</span>
 								</td>
 								<td class="px-6 py-4 text-sm text-foreground-alt">{formatDate(demande.updatedAt)}</td>
-								<td class="px-6 py-4 text-right">
-									<a href="/admin/demandes/{demande.id}" class="inline-flex items-center gap-1 text-sm text-foreground-alt hover:text-foreground">
-										Voir <ChevronRight size={14} />
-									</a>
-								</td>
 							</tr>
 						{/each}
 					</tbody>
