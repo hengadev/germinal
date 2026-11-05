@@ -27,3 +27,4 @@ An Event was either published or not, and a published Event appeared in the "Pro
 - The create form loses its slug field. Routes, the `.ics` endpoint, emails and reminders move from slug to id.
 - The Portfolio flag can only be set once the Event is over. A Public Event that is over and not in the Portfolio is listed nowhere, but its page stays reachable (Tickets link to it).
 - The homepage gallery draws its cover from the Event Photos.
+- A past Event that never took a Reservation gets a reduced editor and a project preview.

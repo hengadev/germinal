@@ -24,6 +24,7 @@
 		event,
 		lastSeatingStart = null,
 		warnings = [],
+		portfolioOnly = false,
 	}: {
 		event: EditorEvent;
 		/** Start of the Event's last Seating, for the Portfolio rule (issue 044). */
@@ -31,6 +32,9 @@
 		/** What is missing for publishing (issue 038), for the confirmation
 		 * shown when the Event leaves Brouillon. */
 		warnings?: EventWarning[];
+		/** A Portfolio-only Event (issue 078) not yet in the Portfolio
+		 * gets the « Ajouter au Portfolio » main action (issue 080). */
+		portfolioOnly?: boolean;
 	} = $props();
 
 	const uid = $props.id();
@@ -86,11 +90,23 @@
 			return;
 		}
 		if (publishDialogWasOpen && !publishConfirmed) {
-			visibility = event?.visibility ?? 'draft';
+			// Back to what is saved — including the Portfolio a cancelled
+			// « Ajouter au Portfolio » (issue 080) had set.
+			resetPublication();
 		}
 		publishDialogWasOpen = false;
 		publishConfirmed = false;
 	});
+
+	// « Ajouter au Portfolio » (issue 080): a Portfolio-only Event that
+	// isn't in it yet gets one main action — Public and Portfolio together
+	// in one submission, with the same warnings confirmation as publishing.
+	function addToPortfolio() {
+		visibility = 'public';
+		isSpotlight = false;
+		isPortfolio = true;
+		publicationFormEl?.requestSubmit();
+	}
 
 	function chooseVisibility(option: Visibility) {
 		visibility = option;
@@ -278,6 +294,18 @@
 				Chaque choix s’enregistre à l’instant, indépendamment du reste de l’événement.
 			</p>
 			<div class="space-y-3">
+				{#if portfolioOnly && !isPortfolio}
+					<!-- One main action (issue 080): Public and Portfolio in one
+					     submission; the controls below stay for other choices. -->
+					<button
+						type="button"
+						onclick={addToPortfolio}
+						class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-background bg-indigo-600 border border-indigo-600 rounded-lg hover:bg-indigo-700 hover:border-indigo-700 transition-colors cursor-pointer"
+					>
+						<LayoutGrid size={15} aria-hidden="true" />
+						Ajouter au Portfolio
+					</button>
+				{/if}
 				{@render formBody()}
 				<p class="text-xs text-muted-foreground">
 					{VISIBILITY_HINTS[visibility]}

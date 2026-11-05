@@ -315,3 +315,69 @@ describe('an Event joins the Portfolio only once its last Seating has started', 
 		expect(await listedIds()).toEqual([]);
 	});
 });
+
+// ---------------------------------------------------------------------------
+// « Ajouter au Portfolio » (issue 080)
+// ---------------------------------------------------------------------------
+
+describe('« Ajouter au Portfolio » sets Public and Portfolio in one submission', () => {
+	beforeEach(async () => {
+		vi.clearAllMocks();
+		await setupTestDatabase();
+	});
+
+	it('takes a Portfolio-only Event from Brouillon to Public and in the Portfolio, and lists it', async () => {
+		const event = await seedEvent({ visibility: 'draft', day: '2025-01-10' });
+		await seedPastSeating(event.id, '2025-01-10');
+
+		const { actions } = await import('../../src/routes/(admin)/admin/events/[id]/+page.server');
+		const result: any = await actions.updatePublication(publicationForm(event.id, { isPortfolio: 'true' }));
+		expect(result?.status).toBeUndefined();
+
+		const [row] = await testDb
+			.select({ visibility: events.visibility, isPortfolio: events.isPortfolio })
+			.from(events)
+			.where(eq(events.id, event.id));
+		expect(row.visibility).toBe('public');
+		expect(row.isPortfolio).toBe(true);
+		expect(await listedIds()).toEqual([event.id]);
+	});
+
+	it('is refused while a Seating is still ahead, and the Event stays a Brouillon out of the Portfolio', async () => {
+		const event = await seedEvent({ visibility: 'draft', day: '2099-06-01' });
+		const [seating] = await testDb
+			.insert(eventSessions)
+			.values({
+				eventId: event.id,
+				serviceId: await seedServiceForSession(
+					testDb,
+					event.id,
+					new Date('2099-06-01T19:00:00Z'),
+					new Date('2099-06-01T22:00:00Z')
+				),
+				titleEn: 'Dinner',
+				titleFr: 'Dîner',
+				startTime: new Date('2099-06-01T19:00:00Z'),
+				endTime: new Date('2099-06-01T22:00:00Z'),
+				totalCapacity: 10,
+				availableCapacity: 10,
+				published: true,
+				allowWaitlist: true,
+			})
+			.returning();
+		expect(seating.startTime.getTime()).toBeGreaterThan(Date.now());
+
+		const { actions } = await import('../../src/routes/(admin)/admin/events/[id]/+page.server');
+		const result: any = await actions.updatePublication(publicationForm(event.id, { isPortfolio: 'true' }));
+		expect(result.status).toBe(400);
+		expect(result.data.fields).toEqual(['isPortfolio']);
+
+		const [row] = await testDb
+			.select({ visibility: events.visibility, isPortfolio: events.isPortfolio })
+			.from(events)
+			.where(eq(events.id, event.id));
+		expect(row.visibility).toBe('draft');
+		expect(row.isPortfolio).toBe(false);
+		expect(await listedIds()).toEqual([]);
+	});
+});

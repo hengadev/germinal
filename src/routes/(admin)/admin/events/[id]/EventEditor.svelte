@@ -16,7 +16,8 @@
 	import { ArrowLeft, ChevronRight, Copy, Eye, X } from 'lucide-svelte';
 	import { cn } from '$lib/utils/design-system';
 	import { clearFieldErrors } from '$lib/utils/editor-field-errors';
-	import { eventCompleteness, EVENT_EDITOR_TABS, type EventWarning } from '$lib/utils/event-warnings';
+	import { eventCompleteness, EVENT_EDITOR_TABS, portfolioOnlyWarnings, type EventWarning } from '$lib/utils/event-warnings';
+	import { isPortfolioOnly } from '$lib/utils/event-access';
 	import { differsOnlyByHash, tabIndexFromHash } from '$lib/utils/editor-tab';
 	import { liveEditorWarnings, type UnsavedEditorValues } from '$lib/utils/event-warnings-live';
 	import type { MediaAltText } from '$lib/utils/media-alt';
@@ -89,11 +90,28 @@
 		{ id: 'promotions', title: 'Promotions' },
 	];
 	// « Portfolio » comes last: it is filled in after the Event.
-	const tabs = [
-		...EDITOR_TABS.filter((tab) => tab.id !== 'portfolio'),
-		...OPERATIONAL_TABS,
-		...EDITOR_TABS.filter((tab) => tab.id === 'portfolio'),
-	];
+	//
+	// A Portfolio-only Event (issue 078) — past, and never a Reservation —
+	// gets the reduced editor: only Essentiel, Lieu, Dates & séances and
+	// Portfolio. The other tabs are not even mounted, so they are never
+	// saved or marked modified, and their saved data is left untouched.
+	const portfolioOnly = $derived(
+		isPortfolioOnly(
+			{ lastSeatingStart: data.lastSeatingStart ?? null, hasReservations: data.hasReservations ?? false },
+			new Date()
+		)
+	);
+	const tabs = $derived(
+		portfolioOnly
+			? [
+				...EDITOR_TABS.filter((tab) => ['essentiel', 'lieu', 'dates-seances', 'portfolio'].includes(tab.id)),
+			]
+			: [
+				...EDITOR_TABS.filter((tab) => tab.id !== 'portfolio'),
+				...OPERATIONAL_TABS,
+				...EDITOR_TABS.filter((tab) => tab.id === 'portfolio'),
+			]
+	);
 
 	// Base classes of bits-components/TabsList + TabsTrigger, with the editor's overrides.
 	const TAB_LIST_CLASS = cn(
@@ -206,15 +224,29 @@
 	// and alt text. Always shown in « Portfolio »; joins « À vérifier » once
 	// the Event is in the Portfolio. Warnings only, like publishing's.
 	const portfolioWarnings = $derived(liveWarnings.portfolio);
+	// A Portfolio-only Event shows only what its project page reads
+	// (issue 079): « À vérifier », the tab marks and the leave-Brouillon
+	// confirmation all use this filtered list.
 	const warnings = $derived(
-		event.isPortfolio ? [...publishingWarnings, ...portfolioWarnings] : publishingWarnings
+		portfolioOnly
+			? portfolioOnlyWarnings(
+					event.isPortfolio ? [...publishingWarnings, ...portfolioWarnings] : publishingWarnings
+			)
+			: event.isPortfolio
+				? [...publishingWarnings, ...portfolioWarnings]
+				: publishingWarnings
 	);
 	let warningsOpen = $state(false);
 
 	// What is missing, per tab (issue 013's grouping): each tab label marks
 	// its own (issue 021) — Portfolio's only for a Portfolio Event, as above.
 	const missingByTab = $derived(
-		new Map(eventCompleteness(warnings, { isPortfolio: event.isPortfolio === true }).tabs.map((tab) => [tab.tab as string, tab.warnings.length]))
+		new Map(
+			eventCompleteness(warnings, {
+				isPortfolio: event.isPortfolio === true,
+				portfolioOnly
+			}).tabs.map((tab) => [tab.tab as string, tab.warnings.length])
+		)
 	);
 
 	// Save controller (issue 016, ADR 0010): each form of the Event's own
@@ -591,6 +623,13 @@
 					<Copy size={14} />
 					Dupliquer
 				</button>
+				{#if portfolioOnly}
+					<span aria-hidden="true">·</span>
+					<!-- Portfolio-only Event (issue 078): past, never a Reservation —
+					     the reduced editor, and the project preview once it joins the
+					     Portfolio. -->
+					<span class="italic">Événement passé — pour le Portfolio</span>
+				{/if}
 				{#if warnings.length > 0}
 					<span aria-hidden="true">·</span>
 					<!-- « À vérifier » (issue 038): what is missing for publishing,
@@ -680,7 +719,7 @@
 		</div>
 		<!-- Publication (issue 077): on the title row, from every tab. -->
 		<div class="shrink-0 ml-auto pt-1.5">
-			<Publication {event} lastSeatingStart={data.lastSeatingStart ?? null} warnings={publishingWarnings} />
+			<Publication {event} lastSeatingStart={data.lastSeatingStart ?? null} warnings={portfolioOnly ? portfolioOnlyWarnings(publishingWarnings) : publishingWarnings} {portfolioOnly} />
 		</div>
 	</div>
 
@@ -793,13 +832,16 @@
 	{@render panel('essentiel', essentiel)}
 	{@render panel('lieu', lieu)}
 	{@render panel('dates-seances', seatings)}
-	{@render panel('tarifs', pricing)}
-	{@render panel('programme', programme)}
-	{@render panel('visuels', visuels)}
-	{@render panel('pratique', pratique)}
-	{@render panel('apres-evenement', apresEvenement)}
+	{#if !portfolioOnly}
+		{@render panel('tarifs', pricing)}
+		{@render panel('programme', programme)}
+		{@render panel('visuels', visuels)}
+		{@render panel('pratique', pratique)}
+		{@render panel('apres-evenement', apresEvenement)}
+	{/if}
 	{@render panel('portfolio', portfolio)}
 
+	{#if !portfolioOnly}
 	{#snippet team()}<Team {data} {form} />{/snippet}
 	{#snippet brief()}<Brief {data} {form} active={activeTab === panelIndex('brief')} />{/snippet}
 	{#snippet tasks()}<Tasks {data} {form} />{/snippet}
@@ -812,6 +854,7 @@
 	{@render panel('reservations', reservations, false)}
 	{@render panel('bilan', bilan, false)}
 	{@render panel('promotions', promotions, false)}
+	{/if}
 
 	{#if held && heldTabs.length > 0}
 		<!-- Held edits of a published Event (issue 020): nothing reaches

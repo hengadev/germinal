@@ -9,6 +9,7 @@ import {
 	isIndexed,
 	canBeSpotlight,
 	canJoinPortfolio,
+	isPortfolioOnly,
 	parseVisibility,
 	VISIBILITIES,
 	seatingBooking,
@@ -93,10 +94,42 @@ describe('eventAccess', () => {
 		['private', ADMIN, { visible: true, view: 'portfolio' }],
 		['public', ANONYMOUS, { visible: true, view: 'portfolio' }],
 		['public', ADMIN, { visible: true, view: 'portfolio' }],
-		['draft', ADMIN, { visible: true, view: 'preview' }],
+		['draft', ADMIN, { visible: true, view: 'portfolio-preview' }],
 		['draft', ANONYMOUS, { visible: false }],
 	] as const)('a %s Portfolio Event', (visibility, viewer, expected) => {
 		expect(eventAccess({ visibility, isPortfolio: true }, viewer)).toEqual(expected);
+	});
+
+	// Issue 081: an Admin previewing a Portfolio-only Draft — past, and
+	// without a single Reservation — sees its project page; any other Draft
+	// previews as its announcement, and only an Admin previews at all.
+	it('a Portfolio-only Draft previews as a project for the Admin', () => {
+		expect(eventAccess({ visibility: 'draft', lastSeatingStart: EARLIER, hasReservations: false }, ADMIN, NOW)).toEqual({
+			visible: true,
+			view: 'portfolio-preview',
+		});
+	});
+
+	// A Draft with a Seating still ahead, one that has taken a Reservation,
+	// or one without Seatings, keeps the announcement preview; so does one
+	// whose Reservation state is unknown (fail closed) or decided without a
+	// `now`.
+	it.each([
+		['an upcoming Seating', { visibility: 'draft', lastSeatingStart: LATER, hasReservations: false } as const, NOW],
+		['a Reservation', { visibility: 'draft', lastSeatingStart: EARLIER, hasReservations: true } as const, NOW],
+		['no Seatings', { visibility: 'draft', lastSeatingStart: null, hasReservations: false } as const, NOW],
+		['an unknown Reservation state', { visibility: 'draft', lastSeatingStart: EARLIER } as const, NOW],
+		['no `now` given', { visibility: 'draft', lastSeatingStart: EARLIER, hasReservations: false } as const, undefined],
+	])('%s keeps the announcement preview', (_, event, now) => {
+		expect(eventAccess(event, ADMIN, now)).toEqual({ visible: true, view: 'preview' });
+	});
+
+	// A non-Admin is never shown a Draft, whatever it would preview as.
+	it.each([
+		['announcement', { visibility: 'draft', lastSeatingStart: LATER, hasReservations: false }],
+		['project', { visibility: 'draft', lastSeatingStart: EARLIER, hasReservations: false }],
+	] as const)('the anonymous viewer is not found on a Draft with a %s preview', (_, event) => {
+		expect(eventAccess(event, ANONYMOUS, NOW)).toEqual({ visible: false });
 	});
 });
 
@@ -184,6 +217,37 @@ describe('canJoinPortfolio', () => {
 
 	it('a last Seating start that is unknown refuses', () => {
 		expect(canJoinPortfolio(PUBLIC, NOW)).toBe(false);
+	});
+});
+
+describe('isPortfolioOnly', () => {
+	// A Portfolio-only Event (issue 078): at least one Seating, all
+	// started, and never a Reservation — any status, a cancelled one
+	// included; Waitlist entries live apart and never count.
+	it('is false with no Seating, even without Reservations', () => {
+		expect(isPortfolioOnly({ lastSeatingStart: null, hasReservations: false }, NOW)).toBe(false);
+	});
+
+	it('is false while the last Seating is still to come', () => {
+		expect(isPortfolioOnly({ lastSeatingStart: LATER, hasReservations: false }, NOW)).toBe(false);
+	});
+
+	it('is true when the last Seating starts exactly now, without Reservations', () => {
+		expect(isPortfolioOnly({ lastSeatingStart: NOW, hasReservations: false }, NOW)).toBe(true);
+	});
+
+	it('is false for a past Seating with Reservations', () => {
+		expect(isPortfolioOnly({ lastSeatingStart: EARLIER, hasReservations: true }, NOW)).toBe(false);
+	});
+
+	it('is true for a past Seating with no Reservation', () => {
+		expect(isPortfolioOnly({ lastSeatingStart: EARLIER, hasReservations: false }, NOW)).toBe(true);
+	});
+
+	it('is false when the only Reservation is cancelled — the Event has still taken one', () => {
+		// "hasReservations" counts any status, cancelled included: the
+		// caller's existence query decides, the predicate just refuses.
+		expect(isPortfolioOnly({ lastSeatingStart: EARLIER, hasReservations: true }, NOW)).toBe(false);
 	});
 });
 

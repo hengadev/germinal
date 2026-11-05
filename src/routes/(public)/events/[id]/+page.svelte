@@ -14,8 +14,9 @@
 </svelte:head>
 
 {#if data.project}
-    <!-- A Portfolio Event is shown as its project (issue 045). -->
-    <PortfolioProject project={data.project} />
+    <!-- A Portfolio Event is shown as its project (issue 045), or a
+         Portfolio-only Draft as its preview (issue 081). -->
+    <PortfolioProject project={data.project} preview={data.view === "portfolio-preview"} />
 {:else if data.event}
     <EventAnnouncement event={data.event} schedule={data.schedule} extras={data.extras} preview={data.view === "preview"} />
 {/if}
