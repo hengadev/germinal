@@ -33,7 +33,8 @@ const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 /**
  * Turns a preset (or a custom 'YYYY-MM-DD' from/to) into a UTC date range
- * covering whole Paris days. `to` is inclusive (exclusive upper bound).
+ * covering whole Paris days: `from` inclusive, `to` exclusive (the start of
+ * the day after the last one).
  * Invalid or missing values yield null bounds; callers then simply don't
  * filter on that bound.
  */

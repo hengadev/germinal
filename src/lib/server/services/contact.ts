@@ -1,7 +1,7 @@
 import { db } from '../db';
 import { logger } from '$lib/server/logger';
 import { contactSubmissions } from '../db/schema';
-import { eq, desc, and, asc, gte, ilike, isNotNull, isNull, lte, or, count } from 'drizzle-orm';
+import { eq, desc, and, asc, gte, ilike, isNotNull, isNull, lt, or, count } from 'drizzle-orm';
 import { events } from '../db/schema';
 import { z } from 'zod';
 import type { CreateContactSubmissionInput, ContactSubmission } from '$lib/types/contact';
@@ -146,7 +146,8 @@ export async function listDemandes(options: ListDemandesOptions): Promise<Contac
     conditions.push(gte(contactSubmissions.createdAt, options.receivedFrom));
   }
   if (options.receivedTo) {
-    conditions.push(lte(contactSubmissions.createdAt, options.receivedTo));
+    // receivedTo is exclusive: the start of the day after the range.
+    conditions.push(lt(contactSubmissions.createdAt, options.receivedTo));
   }
 
   if (options.linked === 'yes') {

@@ -67,7 +67,7 @@
 			!!data.search ||
 			!!data.period ||
 			!!data.linked ||
-			!!data.sort
+			(!!data.sort && data.sort !== 'recent')
 	);
 </script>
 
