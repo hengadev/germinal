@@ -163,6 +163,7 @@
 				id="{uid}-visibility-{option}"
 				type="radio"
 				name="visibility"
+				form="{uid}-publication"
 				value={option}
 				bind:group={visibility}
 				onchange={() => chooseVisibility(option)}
@@ -182,6 +183,7 @@
 		<input
 			id="{uid}-isSpotlight"
 			name="isSpotlight"
+			form="{uid}-publication"
 			type="checkbox"
 			bind:checked={isSpotlight}
 			value="true"
@@ -203,6 +205,7 @@
 		<input
 			id="{uid}-isPortfolio"
 			name="isPortfolio"
+			form="{uid}-publication"
 			type="checkbox"
 			bind:checked={isPortfolio}
 			value="true"
@@ -219,42 +222,45 @@
 {/snippet}
 
 {#snippet formBody(compact = false)}
-	<form
-		bind:this={publicationFormEl}
-		method="POST"
-		action="?/updatePublication"
-		use:enhance={publicationEnhance}
-		data-editor-skip
-	>
-		<!-- The control's state, not the DOM, decides what is posted. -->
-		<div class="flex {compact ? 'flex-col sm:flex-row sm:items-center gap-2 sm:gap-4' : 'flex-col gap-3'}">
-			{#if compact}
-				<div class="flex items-center gap-2" role="group" aria-label="Visibilité">
-					<div class="inline-flex rounded-md overflow-hidden w-full sm:w-auto">
-						{@render segmentOptions(true)}
-					</div>
-					{#if publishing}<span class="text-xs text-muted-foreground" aria-live="polite">Enregistrement…</span>{/if}
+	<!-- The controls post through the one form below (`form=`), which stays
+	     mounted when the popover closes — « Publier quand même » submits it
+	     after the confirmation dialog has taken the popover's place. -->
+	<div class="flex {compact ? 'flex-col sm:flex-row sm:items-center gap-2 sm:gap-4' : 'flex-col gap-3'}">
+		{#if compact}
+			<div class="flex items-center gap-2" role="group" aria-label="Visibilité">
+				<div class="inline-flex rounded-md overflow-hidden w-full sm:w-auto">
+					{@render segmentOptions(true)}
 				</div>
-				<div class="flex flex-wrap items-center gap-x-4 gap-y-1">
-					{@render toggles(true)}
+				{#if publishing}<span class="text-xs text-muted-foreground" aria-live="polite">Enregistrement…</span>{/if}
+			</div>
+			<div class="flex flex-wrap items-center gap-x-4 gap-y-1">
+				{@render toggles(true)}
+			</div>
+		{:else}
+			<fieldset>
+				<legend class="sr-only">Visibilité</legend>
+				<div class="flex rounded-md overflow-hidden border border-border-input">
+					{@render segmentOptions(false)}
 				</div>
-			{:else}
-				<fieldset>
-					<legend class="sr-only">Visibilité</legend>
-					<div class="flex rounded-md overflow-hidden border border-border-input">
-						{@render segmentOptions(false)}
-					</div>
-				</fieldset>
-				<div class="flex flex-col gap-2">
-					{@render toggles(false)}
-				</div>
-			{/if}
-		</div>
-		<!-- Every choice saves on its own; this button only serves
-		     keyboards, screen readers and a page without JavaScript. -->
-		<button type="submit" class="sr-only">Enregistrer la publication</button>
-	</form>
+			</fieldset>
+			<div class="flex flex-col gap-2">
+				{@render toggles(false)}
+			</div>
+		{/if}
+	</div>
 {/snippet}
+
+<!-- The control's state, not the DOM, decides what is posted (see
+     publicationEnhance), so the form itself holds no field. -->
+<form
+	id="{uid}-publication"
+	bind:this={publicationFormEl}
+	method="POST"
+	action="?/updatePublication"
+	use:enhance={publicationEnhance}
+	data-editor-skip
+	hidden
+></form>
 
 {#if variant === 'a'}
 	<!-- A — status pill + popover -->
@@ -278,7 +284,7 @@
 				align="end"
 				sideOffset={8}
 				aria-label="Publication"
-				class="z-[10000] w-[min(26rem,calc(100vw-2rem))] border border-border-input rounded-lg p-4 bg-background shadow-lg"
+				class="back-office z-[10000] w-[min(26rem,calc(100vw-2rem))] border border-border-input rounded-lg p-4 bg-background shadow-lg"
 			>
 				<p class="text-base font-semibold text-foreground mb-1">
 					Publication
@@ -313,7 +319,7 @@
 	</div>
 {:else}
 	<!-- C — slim sticky bar under the header row -->
-	<div class="sticky top-0 z-30 -mx-1 px-1 py-2 bg-background/95 backdrop-blur border-b border-border-card">
+	<div class="-mx-1 px-1 py-2 bg-background border-b border-border-card">
 		<div class="flex items-center justify-between gap-3 flex-wrap">
 			<p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">
 				Publication

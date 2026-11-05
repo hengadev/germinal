@@ -689,16 +689,18 @@
 		<!-- Publication (issue 077): from every tab, on the title row —
 		     variant a (pill) or b (inline); c is the bar below. -->
 		{#if publicationVariant !== 'c'}
-			<div class="shrink-0 ml-auto pt-1.5">
+			<!-- B needs the room: under the title on a phone, beside it from sm. -->
+			<div class="{publicationVariant === 'b' ? 'w-full pl-12 sm:w-auto sm:pl-0' : 'shrink-0'} ml-auto pt-1.5">
 				<Publication {event} lastSeatingStart={data.lastSeatingStart ?? null} warnings={publishingWarnings} variant={publicationVariant} />
 			</div>
 		{/if}
+	</div>
+	{#if publicationVariant === 'c'}
+		<!-- C sticks under the header row while the tabs scroll. -->
+		<div class="sticky top-0 z-30 mb-6 -mt-4">
+			<Publication {event} lastSeatingStart={data.lastSeatingStart ?? null} warnings={publishingWarnings} variant="c" />
 		</div>
-		{#if publicationVariant === 'c'}
-			<div class="mb-6 -mt-4">
-				<Publication {event} lastSeatingStart={data.lastSeatingStart ?? null} warnings={publishingWarnings} variant="c" />
-			</div>
-		{/if}
+	{/if}
 
 	{#if form?.error}
 		<div class="mb-6 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg">
