@@ -1,6 +1,7 @@
 import Stripe from 'stripe';
 import { env, isStripeEnabled } from '../env';
 import { GIFT_CARD_MESSAGE_MAX } from '$lib/server/validators/gift-card';
+import { joinName } from '$lib/utils/person-name';
 
 let stripeClient: Stripe | null = null;
 
@@ -78,9 +79,11 @@ export async function createCheckoutSession(params: CreateCheckoutSessionParams)
 
 export type CreateGiftCardCheckoutParams = {
 	amount: number;
-	buyerName: string;
+	buyerFirstName: string;
+	buyerLastName: string;
 	buyerEmail: string;
-	recipientName: string;
+	recipientFirstName: string;
+	recipientLastName: string;
 	recipientEmail: string | null;
 	message: string | null;
 	delivery: 'buyer' | 'recipient';
@@ -103,9 +106,15 @@ export async function createGiftCardCheckoutSession(
 	const metadata: Record<string, string> = {
 		kind: 'gift_card',
 		amount: String(params.amount),
-		buyerName: params.buyerName,
+		buyerFirstName: params.buyerFirstName,
+		buyerLastName: params.buyerLastName,
+		// The full names too, for the previous app version's webhook while a
+		// deploy rolls out (drop with the old columns).
+		buyerName: joinName(params.buyerFirstName, params.buyerLastName),
 		buyerEmail: params.buyerEmail,
-		recipientName: params.recipientName,
+		recipientFirstName: params.recipientFirstName,
+		recipientLastName: params.recipientLastName,
+		recipientName: joinName(params.recipientFirstName, params.recipientLastName),
 		recipientEmail: params.recipientEmail ?? '',
 		message: (params.message ?? '').slice(0, GIFT_CARD_MESSAGE_MAX),
 		delivery: params.delivery,

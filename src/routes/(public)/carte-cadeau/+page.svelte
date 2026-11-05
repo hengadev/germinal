@@ -123,16 +123,24 @@
 				{/if}
 			</section>
 
-			<section class="grid grid-cols-1 md:grid-cols-2 gap-6">
-				<div class="grid gap-2">
-					<label for="buyerName" class="text-xs md:text-sm font-medium text-foreground-alt">
-						{$t("giftCard.form.buyerName")} <span class="text-red-500">*</span>
+			<section class="grid grid-cols-2 gap-x-3 gap-y-6 md:gap-6">
+				<div class="grid content-end gap-2">
+					<label for="buyerFirstName" class="text-xs md:text-sm font-medium text-foreground-alt">
+						{$t("giftCard.form.buyerFirstName")} <span class="text-red-500">*</span>
 					</label>
-					<input type="text" id="buyerName" name="buyerName" required
-						value={value("buyerName")} class={inputClass(!!fieldError("buyerName"))} />
-					{#if fieldError("buyerName")}<p class="text-red-500 text-xs">{fieldError("buyerName")}</p>{/if}
+					<input type="text" id="buyerFirstName" name="buyerFirstName" required maxlength="100" autocomplete="given-name"
+						value={value("buyerFirstName")} class={inputClass(!!fieldError("buyerFirstName"))} />
+					{#if fieldError("buyerFirstName")}<p class="text-red-500 text-xs">{fieldError("buyerFirstName")}</p>{/if}
 				</div>
-				<div class="grid gap-2">
+				<div class="grid content-end gap-2">
+					<label for="buyerLastName" class="text-xs md:text-sm font-medium text-foreground-alt">
+						{$t("giftCard.form.buyerLastName")} <span class="text-red-500">*</span>
+					</label>
+					<input type="text" id="buyerLastName" name="buyerLastName" required maxlength="100" autocomplete="family-name"
+						value={value("buyerLastName")} class={inputClass(!!fieldError("buyerLastName"))} />
+					{#if fieldError("buyerLastName")}<p class="text-red-500 text-xs">{fieldError("buyerLastName")}</p>{/if}
+				</div>
+				<div class="col-span-2 grid gap-2">
 					<label for="buyerEmail" class="text-xs md:text-sm font-medium text-foreground-alt">
 						{$t("giftCard.form.buyerEmail")} <span class="text-red-500">*</span>
 					</label>
@@ -142,14 +150,22 @@
 				</div>
 			</section>
 
-			<section class="grid grid-cols-1 md:grid-cols-2 gap-6">
-				<div class="grid gap-2">
-					<label for="recipientName" class="text-xs md:text-sm font-medium text-foreground-alt">
-						{$t("giftCard.form.recipientName")} <span class="text-red-500">*</span>
+			<section class="grid grid-cols-2 gap-x-3 gap-y-6 md:gap-6">
+				<div class="grid content-end gap-2">
+					<label for="recipientFirstName" class="text-xs md:text-sm font-medium text-foreground-alt">
+						{$t("giftCard.form.recipientFirstName")} <span class="text-red-500">*</span>
 					</label>
-					<input type="text" id="recipientName" name="recipientName" required
-						value={value("recipientName")} class={inputClass(!!fieldError("recipientName"))} />
-					{#if fieldError("recipientName")}<p class="text-red-500 text-xs">{fieldError("recipientName")}</p>{/if}
+					<input type="text" id="recipientFirstName" name="recipientFirstName" required maxlength="100" autocomplete="off"
+						value={value("recipientFirstName")} class={inputClass(!!fieldError("recipientFirstName"))} />
+					{#if fieldError("recipientFirstName")}<p class="text-red-500 text-xs">{fieldError("recipientFirstName")}</p>{/if}
+				</div>
+				<div class="grid content-end gap-2">
+					<label for="recipientLastName" class="text-xs md:text-sm font-medium text-foreground-alt">
+						{$t("giftCard.form.recipientLastName")} <span class="text-muted-foreground font-normal">{$t("giftCard.form.optional")}</span>
+					</label>
+					<input type="text" id="recipientLastName" name="recipientLastName" maxlength="100" autocomplete="off"
+						value={value("recipientLastName")} class={inputClass(!!fieldError("recipientLastName"))} />
+					{#if fieldError("recipientLastName")}<p class="text-red-500 text-xs">{fieldError("recipientLastName")}</p>{/if}
 				</div>
 			</section>
 

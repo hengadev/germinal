@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { NAME_PART_MAX_LENGTH } from '$lib/utils/person-name';
 
 /**
  * The public gift card form (issue 064). Amounts are minor units (cents);
@@ -20,25 +21,35 @@ export function parseFreeAmount(input: string): number | null {
 	return Math.round(euros * 100);
 }
 
+/** A required first or last name: trimmed, letters of any alphabet,
+ * spaces, apostrophes, hyphens and dots, at most 100 characters. */
+const namePart = (required: string) =>
+	z.string()
+		.trim()
+		.min(1, required)
+		.max(NAME_PART_MAX_LENGTH)
+		.regex(/^[\p{L}\p{M}\s'’.-]+$/u, 'Nom invalide');
+
 export const giftCardPurchaseSchema = z.object({
 	/** Preset amount in cents, or 'custom' to read customAmount. */
 	amount: z.enum(['5000', '10000', '15000', '20000', 'custom']),
 	customAmount: z.string().optional().default(''),
 
-	buyerName: z.string()
-		.min(1, 'Le nom est requis')
-		.max(255)
-		.regex(/^[\p{L}\s'’-]+$/u, 'Nom invalide'),
+	// First and last names apart (see utils/person-name). The buyer gives
+	// both; a recipient's first name is enough (« pour Claire »).
+	buyerFirstName: namePart('Le prénom est requis'),
+	buyerLastName: namePart('Le nom est requis'),
 	buyerEmail: z.string()
 		.min(1, "L'adresse e-mail est requise")
 		.email('Adresse e-mail invalide')
 		.max(255)
 		.toLowerCase(),
 
-	recipientName: z.string()
-		.min(1, 'Le nom du destinataire est requis')
-		.max(255)
-		.regex(/^[\p{L}\s'’-]+$/u, 'Nom invalide'),
+	recipientFirstName: namePart('Le prénom du destinataire est requis'),
+	recipientLastName: z.preprocess(
+		(v) => (typeof v === 'string' ? v.trim() : ''),
+		z.string().max(NAME_PART_MAX_LENGTH).regex(/^[\p{L}\p{M}\s'’.-]*$/u, 'Nom invalide')
+	),
 
 	/** Required only when the card is sent straight to the recipient. */
 	recipientEmail: z.preprocess(

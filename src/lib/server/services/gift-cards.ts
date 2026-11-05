@@ -18,6 +18,19 @@ import {
 	normaliseGiftCardCode
 } from '$lib/utils/gift-card';
 import type Stripe from 'stripe';
+import { joinName, nameColumns, nameFromInput } from '$lib/utils/person-name';
+
+/** A gift card's buyer or recipient name: first and last name, and the
+ * full name the previous app version still reads; all null when none. */
+function personName(
+	firstName: string | null | undefined,
+	lastName: string | null | undefined,
+	name: string | null | undefined
+): { first: string | null; last: string | null; full: string | null } {
+	const n = nameColumns({ firstName, lastName, name });
+	if (n.fullName === '') return { first: null, last: null, full: null };
+	return { first: n.firstName, last: n.lastName, full: n.fullName };
+}
 
 /** Why findUsable refused a card. */
 export type GiftCardUnusableReason = 'unknown' | 'expired' | 'cancelled' | 'empty';
@@ -36,9 +49,16 @@ export interface IssueGiftCardInput {
 	amount: number;
 	/** Defaults to one year from now. */
 	expiresAt?: Date;
+	/** First and last names apart; an old caller's full name is split. */
+	recipientFirstName?: string | null;
+	recipientLastName?: string | null;
+	/** @deprecated One name, split at its first space. */
 	recipientName?: string | null;
 	recipientEmail?: string | null;
 	message?: string | null;
+	buyerFirstName?: string | null;
+	buyerLastName?: string | null;
+	/** @deprecated One name, split at its first space. */
 	buyerName?: string | null;
 	buyerEmail?: string | null;
 	origin?: 'online' | 'admin';
@@ -52,6 +72,8 @@ export async function issueGiftCard(
 ): Promise<GiftCard> {
 	const expiresAt =
 		input.expiresAt ?? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+	const recipient = personName(input.recipientFirstName, input.recipientLastName, input.recipientName);
+	const buyer = personName(input.buyerFirstName, input.buyerLastName, input.buyerName);
 
 	// Codes are random and unique; a collision retries with a fresh one.
 	for (let attempt = 0; attempt < 5; attempt++) {
@@ -65,10 +87,14 @@ export async function issueGiftCard(
 					initialAmount: input.amount,
 					balance: input.amount,
 					expiresAt,
-					recipientName: input.recipientName ?? null,
+					recipientFirstName: recipient.first,
+					recipientLastName: recipient.last,
+					recipientName: recipient.full,
 					recipientEmail: input.recipientEmail ?? null,
 					message: input.message ?? null,
-					buyerName: input.buyerName ?? null,
+					buyerFirstName: buyer.first,
+					buyerLastName: buyer.last,
+					buyerName: buyer.full,
 					buyerEmail: input.buyerEmail ?? null,
 					origin: input.origin ?? 'online',
 					stripeReference: input.stripeReference ?? null
@@ -430,9 +456,21 @@ export async function handleGiftCardCheckoutSession(
 		return { ok: false, reason: 'not_gift_card' };
 	}
 
-	const buyerName = metadataValue(session.metadata, 'buyerName');
+	// Names apart; a session opened by the previous app version carries
+	// only the full names, split at their first space.
+	const buyer = nameFromInput({
+		firstName: metadataValue(session.metadata, 'buyerFirstName'),
+		lastName: metadataValue(session.metadata, 'buyerLastName'),
+		name: metadataValue(session.metadata, 'buyerName'),
+	});
+	const recipient = nameFromInput({
+		firstName: metadataValue(session.metadata, 'recipientFirstName'),
+		lastName: metadataValue(session.metadata, 'recipientLastName'),
+		name: metadataValue(session.metadata, 'recipientName'),
+	});
+	const buyerName = joinName(buyer.firstName, buyer.lastName);
 	const buyerEmail = metadataValue(session.metadata, 'buyerEmail');
-	const recipientName = metadataValue(session.metadata, 'recipientName');
+	const recipientName = joinName(recipient.firstName, recipient.lastName);
 	const recipientEmail = metadataValue(session.metadata, 'recipientEmail') || null;
 	const message = metadataValue(session.metadata, 'message') || null;
 	const delivery = metadataValue(session.metadata, 'delivery') === 'recipient'
@@ -450,10 +488,12 @@ export async function handleGiftCardCheckoutSession(
 			const card = await issueGiftCard(
 				{
 					amount,
-					recipientName,
+					recipientFirstName: recipient.firstName,
+					recipientLastName: recipient.lastName,
 					recipientEmail,
 					message,
-					buyerName,
+					buyerFirstName: buyer.firstName,
+					buyerLastName: buyer.lastName,
 					buyerEmail,
 					origin: 'online',
 					stripeReference: session.id

@@ -42,9 +42,11 @@ export const actions: Actions = {
 		const data = {
 			amount: formData.get('amount'),
 			customAmount: formData.get('customAmount') ?? '',
-			buyerName: formData.get('buyerName'),
+			buyerFirstName: formData.get('buyerFirstName'),
+			buyerLastName: formData.get('buyerLastName'),
 			buyerEmail: formData.get('buyerEmail'),
-			recipientName: formData.get('recipientName'),
+			recipientFirstName: formData.get('recipientFirstName'),
+			recipientLastName: formData.get('recipientLastName') ?? '',
 			recipientEmail: formData.get('recipientEmail') ?? '',
 			message: formData.get('message') ?? '',
 			delivery: formData.get('delivery'),
@@ -65,9 +67,11 @@ export const actions: Actions = {
 		try {
 			const session = await createGiftCardCheckoutSession({
 				amount: validated.data.amountCents!,
-				buyerName: validated.data.buyerName,
+				buyerFirstName: validated.data.buyerFirstName,
+				buyerLastName: validated.data.buyerLastName,
 				buyerEmail: validated.data.buyerEmail,
-				recipientName: validated.data.recipientName,
+				recipientFirstName: validated.data.recipientFirstName,
+				recipientLastName: validated.data.recipientLastName,
 				recipientEmail: validated.data.delivery === 'recipient'
 					? validated.data.recipientEmail
 					: null,

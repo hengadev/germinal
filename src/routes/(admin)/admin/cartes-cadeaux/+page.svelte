@@ -206,15 +206,15 @@
 				/>
 				<p class="mt-1 text-xs text-muted-foreground">Un an par défaut.</p>
 			</div>
-			<div>
-				<label for="{uid}-recipientName" class="block text-sm font-medium text-foreground-alt mb-1">Nom du destinataire</label>
-				<input
-					id="{uid}-recipientName"
-					type="text"
-					name="recipientName"
-					required
-					class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm"
-				/>
+			<div class="grid grid-cols-2 gap-3">
+				<div>
+					<label for="{uid}-recipientFirstName" class="block text-sm font-medium text-foreground-alt mb-1">Prénom du destinataire</label>
+					<input id="{uid}-recipientFirstName" type="text" name="recipientFirstName" required maxlength="100" class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm" />
+				</div>
+				<div>
+					<label for="{uid}-recipientLastName" class="block text-sm font-medium text-foreground-alt mb-1">Nom <span class="text-muted-foreground font-normal">(facultatif)</span></label>
+					<input id="{uid}-recipientLastName" type="text" name="recipientLastName" maxlength="100" class="w-full px-4 py-2.5 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent text-sm" />
+				</div>
 			</div>
 			<div>
 				<label for="{uid}-recipientEmail" class="block text-sm font-medium text-foreground-alt mb-1">Email du destinataire</label>
