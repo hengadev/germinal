@@ -10,6 +10,7 @@
 	import type { EventPage, MenuView, PageDay } from '$lib/utils/event-page';
 	import BookingDetails from './BookingDetails.svelte';
 	import MenuSheet from '../MenuSheet.svelte';
+	import DrinksSheet from '../DrinksSheet.svelte';
 	import { Choice } from './choice.svelte';
 	import {
 		MAX_GUESTS,
@@ -199,6 +200,11 @@
 			{#key menu.name}
 				<MenuSheet {menu} heading={menuHead} class="py-6" />
 			{/key}
+		{/if}
+
+		{#if choice.service && view.drinks}
+			<!-- The Drinks card (issue 086), after the Menu: paid on site. -->
+			<DrinksSheet drinks={view.drinks} class="py-6" />
 		{/if}
 
 		{#if choice.service}

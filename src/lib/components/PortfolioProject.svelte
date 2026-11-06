@@ -105,6 +105,26 @@
 			</div>
 		{/if}
 
+		{#if view.drinks}
+			<!-- The Drinks card (issue 086), after the Menus. -->
+			<div class="flex flex-col gap-3">
+				<p class="{label}">{$t('events.drinks.title')}</p>
+				{#each view.drinks.sections as section, j (j)}
+					<div class="flex flex-col gap-1">
+						{#if section.label}<p class="text-sm italic text-foreground-alt">{section.label}</p>{/if}
+						{#each section.drinks as d, k (k)}
+							<p class="flex items-baseline gap-3 leading-relaxed">
+								<span class="text-pretty">{d.name}</span>
+								{#if d.price}<span class="ml-auto shrink-0 tabular-nums text-foreground-alt">{d.price}</span>{/if}
+							</p>
+							{#if d.description}<p class="text-sm text-muted-foreground">{d.description}</p>{/if}
+						{/each}
+					</div>
+				{/each}
+				{#if view.drinks.note}<p class="text-sm text-foreground-alt">{view.drinks.note}</p>{/if}
+			</div>
+		{/if}
+
 		<dl class="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 border-t border-border-card pt-6 text-sm" aria-label={$t('events.project.credits')}>
 			{#each view.credits as credit, i (i)}
 				<dt class="text-muted-foreground">{credit.role}</dt>

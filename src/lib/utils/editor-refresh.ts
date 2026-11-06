@@ -222,3 +222,46 @@ export function followSavedServices<P extends PricingServiceDraftLike>(current: 
 	}
 	return same ? null : next;
 }
+
+// ---- « Carte des boissons » (issue 086) ---------------------------------------
+
+/** A Drinks card draft: only its drinks with a French name are saved, in
+ * order, and only its sections keeping one. */
+export interface DrinkCardDraftLike {
+	sections: {
+		key?: number;
+		labelEn: string;
+		drinks: { key?: number; nameEn: string; nameFr: string; descriptionEn: string }[];
+	}[];
+	noteEn: string;
+}
+
+/**
+ * Take the English generated on save into the Drinks card draft, where
+ * not edited since the save started (issue 019): matched by key between
+ * the draft and what was sent, then by position with what was saved —
+ * when the saved card no longer lines up with what was sent, nothing is
+ * taken.
+ */
+export function adoptSavedDrinkCard(card: DrinkCardDraftLike, sent: DrinkCardDraftLike, saved: DrinkCardDraftLike): void {
+	assign(card, keepEdits({ noteEn: sent.noteEn }, { noteEn: card.noteEn }, { noteEn: saved.noteEn }));
+	const written = (drinks: DrinkCardDraftLike['sections'][number]['drinks']) => drinks.filter((drink) => drink.nameFr.trim());
+	const kept = sent.sections.filter((section) => written(section.drinks).length > 0);
+	if (kept.length !== saved.sections.length) return;
+	for (const section of card.sections) {
+		const i = kept.findIndex((k) => k.key === section.key);
+		if (i === -1) continue;
+		const keptDrinks = written(kept[i].drinks);
+		if (keptDrinks.length !== saved.sections[i].drinks.length) continue;
+		assign(section, keepEdits({ labelEn: kept[i].labelEn }, { labelEn: section.labelEn }, { labelEn: saved.sections[i].labelEn }));
+		for (const drink of section.drinks) {
+			const d = keptDrinks.findIndex((k) => k.key === drink.key);
+			if (d === -1) continue;
+			const english = (from: DrinkCardDraftLike['sections'][number]['drinks'][number]) => ({
+				nameEn: from.nameEn,
+				descriptionEn: from.descriptionEn,
+			});
+			assign(drink, keepEdits(english(keptDrinks[d]), english(drink), english(saved.sections[i].drinks[d])));
+		}
+	}
+}

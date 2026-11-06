@@ -346,6 +346,8 @@ export function eventPage(event: Localized, schedule: PageDay[], locale: string 
 		priceLine: priceLineOf(schedule, lang, t),
 		days,
 		menus,
+		/** The Drinks card (issue 086), after the Menus; null when none. */
+		drinks: drinksViewOf(event.drinkCard as StoredDrinkCard | null | undefined, (event.currency as string | undefined) ?? 'EUR', lang),
 		summary,
 		summaryLabel,
 		/** Under the Seatings: what is paid when, the Refund Policy, the dietary question. */
@@ -469,6 +471,74 @@ export function menuCourseViews(courses: readonly StoredMenuCourse[], lang: Even
 		.filter((course) => course.dishes.length > 0);
 }
 
+/** The Event's Drinks card (issue 086) as stored on
+ * `event_drink_cards` (both languages). */
+export interface StoredDrinkCard {
+	sections: {
+		labelEn: string;
+		labelFr: string;
+		drinks: {
+			nameEn: string;
+			nameFr: string;
+			descriptionEn: string | null;
+			descriptionFr: string | null;
+			/** Minor units of the Event's currency; null when none. */
+			priceAmount: number | null;
+		}[];
+	}[];
+	noteEn: string | null;
+	noteFr: string | null;
+}
+
+/** A drink as the Drinks card renders it. */
+export interface DrinkItemView {
+	name: string;
+	/** A quieter line under the name; empty when none. */
+	description: string;
+	/** « 12 € » in the Event's currency; empty when the drink has no price. */
+	price: string;
+}
+
+/** A section of the Drinks card (« Au verre », « Bouteilles »…). */
+export interface DrinkSectionView {
+	label: string;
+	drinks: DrinkItemView[];
+}
+
+/** The Drinks card as the announcement and the project page render it. */
+export interface DrinksView {
+	sections: DrinkSectionView[];
+	/** The note under the sections (paid on site…); empty when none. */
+	note: string;
+}
+
+/** The Event's Drinks card in the reader's language, with the same
+ * French/English fallback as the rest of the page: each section's label,
+ * then each drink — name, description and price on the right when set, in
+ * the Event's currency. Sections without a drink are left out; a card
+ * without any gives null (nothing shown). */
+export function drinksViewOf(
+	card: StoredDrinkCard | null | undefined,
+	currency: string,
+	lang: EventTimeLocale
+): DrinksView | null {
+	if (!card) return null;
+	const sections = card.sections
+		.map((section) => ({
+			label: localizedText(section.labelEn, section.labelFr, lang).trim(),
+			drinks: section.drinks
+				.map((drink) => ({
+					name: localizedText(drink.nameEn, drink.nameFr, lang).trim(),
+					description: localizedText(drink.descriptionEn, drink.descriptionFr, lang).trim(),
+					price: drink.priceAmount === null ? '' : formatPrice(drink.priceAmount, currency, lang),
+				}))
+				.filter((drink) => drink.name !== ''),
+		}))
+		.filter((section) => section.drinks.length > 0);
+	if (sections.length === 0) return null;
+	return { sections, note: localizedText(card.noteEn, card.noteFr, lang).trim() };
+}
+
 /** A Menu as the project page loads it (issue 083): raw bilingual rows. */
 export interface ProjectMenuRow {
 	id: string;
@@ -515,7 +585,14 @@ export function projectMenusOf(
 
 /** The Portfolio project: the Recap and the Event Photos, credits, dates and venue. */
 export function projectPage(
-	project: Localized & { days?: string[] | null; menuServices?: ProjectMenuService[]; menus?: ProjectMenuRow[] },
+	project: Localized & {
+		days?: string[] | null;
+		menuServices?: ProjectMenuService[];
+		menus?: ProjectMenuRow[];
+		drinkCard?: StoredDrinkCard | null;
+		/** The Event's currency, for the Drinks card's prices. */
+		currency?: string | null;
+	},
 	locale: string | null | undefined
 ) {
 	const lang = pageLang(locale);
@@ -524,6 +601,7 @@ export function projectPage(
 		title: text(lang, project, 'title'),
 		recap: paragraphsOf(text(lang, project, 'recap')),
 		menus: projectMenusOf(project.menuServices ?? [], project.menus ?? [], lang),
+		drinks: drinksViewOf(project.drinkCard ?? null, project.currency ?? 'EUR', lang),
 		dates: formatProjectDates(project.days ?? [], lang),
 		city: text(lang, project, 'city') || text(lang, project, 'location'),
 		venueLines: venueLinesOf(project, lang),
