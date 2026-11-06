@@ -87,7 +87,10 @@
 	);
 	const words: Wording = {
 		menuName: (key) => menuOptions.find((menu) => menu.key === key)?.label ?? 'Aucun menu',
-		drinksName: (key) => (key === '' ? 'sans carte des boissons' : drinkCardOptions.find((card) => card.key === key)?.label ?? 'sans carte des boissons'),
+		// Said only once the Event has a Drinks card, so a summary without
+		// any stays « Menu · prix ».
+		drinksName: (key) =>
+			drinkCardOptions.length === 0 ? '' : (drinkCardOptions.find((card) => card.key === key)?.label ?? 'sans boissons'),
 		// Menus-only mode (issue 082): no price to show, not even in a summary.
 		price: (price) => (menusOnly ? '' : price === null ? 'prix non défini' : price === 0 ? 'gratuit' : formatCurrency(Math.round(price * 100), currency, 'fr-FR')),
 	};

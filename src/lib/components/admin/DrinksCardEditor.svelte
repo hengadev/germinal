@@ -201,6 +201,17 @@
 									class="w-20 shrink-0 bg-transparent text-right text-sm tabular-nums border border-transparent rounded-sm hover:border-border-input focus:border-foreground focus:outline-none placeholder:text-muted-foreground/60"
 									style="font-family: var(--font-sans)"
 								/>
+								{#if section.drinks.length > 1}
+									<!-- After the price, never over it. -->
+									<button
+										type="button"
+										onclick={() => section.drinks.splice(d, 1)}
+										aria-label="Retirer la boisson {d + 1} de la section {s + 1}"
+										class="size-9 shrink-0 self-center inline-flex items-center justify-center rounded-full text-muted-foreground/70 hover:text-red-600 hover:bg-muted cursor-pointer"
+									>
+										<X size={14} />
+									</button>
+								{/if}
 							</div>
 							{#if english}
 								<input
@@ -218,16 +229,6 @@
 									aria-label="Description de la boisson {d + 1} de la section {s + 1}"
 									class="{BARE} text-xs text-muted-foreground"
 								/>
-							{/if}
-							{#if section.drinks.length > 1}
-								<button
-									type="button"
-									onclick={() => section.drinks.splice(d, 1)}
-									aria-label="Retirer la boisson {d + 1} de la section {s + 1}"
-									class="absolute right-0 top-0 size-9 inline-flex items-center justify-center rounded-full text-muted-foreground/70 hover:text-red-600 hover:bg-muted cursor-pointer"
-								>
-									<X size={14} />
-								</button>
 							{/if}
 						</div>
 					{/each}

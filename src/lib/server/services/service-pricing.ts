@@ -793,7 +793,8 @@ export async function savePricing(eventId: string, payload: PricingPayload): Pro
 					menuId: service.menuKey === null ? null : menuIdByKey.get(service.menuKey)!,
 					drinkCardId: service.drinkCardKey === null
 						? null
-						: drinkCardIdByKey.get(service.drinkCardKey)!,
+						// A card emptied in the same save is gone: the meal offers none.
+						: drinkCardIdByKey.get(service.drinkCardKey) ?? null,
 					priceAmount: service.priceAmount,
 					updatedAt: new Date(),
 				})
