@@ -1,6 +1,9 @@
 <script lang="ts">
 	// « Essentiel » tab (issue 036): titles, subtitles and descriptions —
-	// nothing required (ADR 0008) — and the Internal Notes (issue 039).
+	// nothing required (ADR 0008) — and the Internal Notes (issue 039). A
+	// Portfolio-only Event never has an announcement, so its subtitles and
+	// descriptions are hidden (and, not posted, left as saved): its page
+	// reads the Récap from « Portfolio ».
 	// Saved with `updateEvent`, which only touches the fields posted here.
 	// The Publication control (Visibility, Spotlight, Portfolio, ADR 0010)
 	// lives in the editor's header (issue 077).
@@ -12,7 +15,7 @@
 	import { Type, FileText, Lock } from 'lucide-svelte';
 	import type { EssentielValues } from '$lib/utils/event-warnings-live';
 
-	let { event }: { event: EditorEvent } = $props();
+	let { event, portfolioOnly = false }: { event: EditorEvent; portfolioOnly?: boolean } = $props();
 
 	const toast = getToastContext();
 	let saving = $state(false);
@@ -72,20 +75,24 @@
 					<input id="titleFr" name="titleFr" type="text" bind:value={titleFr} placeholder="Festival de musique d'été 2026" class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent" />
 				</div>
 			</div>
-			<div>
-				<label for="subtitleFr" class="block text-sm font-medium text-foreground-alt mb-2">Sous-titre (Optionnel)</label>
-				<div class="relative">
-					<FileText size={18} class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-					<input id="subtitleFr" name="subtitleFr" type="text" bind:value={subtitleFr} placeholder="Une courte phrase accrocheuse pour l'événement..." class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent" />
+			{#if portfolioOnly}
+				<p class="-mt-3 text-xs text-muted-foreground">Pour un projet, le texte de la page est le Récap, dans l’onglet « Portfolio ».</p>
+			{:else}
+				<div>
+					<label for="subtitleFr" class="block text-sm font-medium text-foreground-alt mb-2">Sous-titre (Optionnel)</label>
+					<div class="relative">
+						<FileText size={18} class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+						<input id="subtitleFr" name="subtitleFr" type="text" bind:value={subtitleFr} placeholder="Une courte phrase accrocheuse pour l'événement..." class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent" />
+					</div>
 				</div>
-			</div>
-			<div>
-				<label for="descriptionFr" class="block text-sm font-medium text-foreground-alt mb-2">Description</label>
-				<div class="relative">
-					<FileText size={18} class="absolute left-3 top-3 text-muted-foreground" />
-					<textarea id="descriptionFr" name="descriptionFr" bind:value={descriptionFr} rows="5" placeholder="Décrivez votre événement..." class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent resize-none"></textarea>
+				<div>
+					<label for="descriptionFr" class="block text-sm font-medium text-foreground-alt mb-2">Description</label>
+					<div class="relative">
+						<FileText size={18} class="absolute left-3 top-3 text-muted-foreground" />
+						<textarea id="descriptionFr" name="descriptionFr" bind:value={descriptionFr} rows="5" placeholder="Décrivez votre événement..." class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent resize-none"></textarea>
+					</div>
 				</div>
-			</div>
+			{/if}
 
 			<EnglishVersion>
 				<div>
@@ -95,20 +102,22 @@
 						<input id="titleEn" name="titleEn" type="text" bind:value={titleEn} placeholder="Summer Music Festival 2026" class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent" />
 					</div>
 				</div>
-				<div>
-					<label for="subtitleEn" class="block text-sm font-medium text-foreground-alt mb-2">Sous-titre (Anglais)</label>
-					<div class="relative">
-						<FileText size={18} class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-						<input id="subtitleEn" name="subtitleEn" type="text" bind:value={subtitleEn} placeholder="A short tagline for the event..." class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent" />
+				{#if !portfolioOnly}
+					<div>
+						<label for="subtitleEn" class="block text-sm font-medium text-foreground-alt mb-2">Sous-titre (Anglais)</label>
+						<div class="relative">
+							<FileText size={18} class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+							<input id="subtitleEn" name="subtitleEn" type="text" bind:value={subtitleEn} placeholder="A short tagline for the event..." class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent" />
+						</div>
 					</div>
-				</div>
-				<div>
-					<label for="descriptionEn" class="block text-sm font-medium text-foreground-alt mb-2">Description (Anglais)</label>
-					<div class="relative">
-						<FileText size={18} class="absolute left-3 top-3 text-muted-foreground" />
-						<textarea id="descriptionEn" name="descriptionEn" bind:value={descriptionEn} rows="5" placeholder="Describe your event..." class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent resize-none"></textarea>
+					<div>
+						<label for="descriptionEn" class="block text-sm font-medium text-foreground-alt mb-2">Description (Anglais)</label>
+						<div class="relative">
+							<FileText size={18} class="absolute left-3 top-3 text-muted-foreground" />
+							<textarea id="descriptionEn" name="descriptionEn" bind:value={descriptionEn} rows="5" placeholder="Describe your event..." class="w-full pl-10 pr-4 py-3 border border-border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent resize-none"></textarea>
+						</div>
 					</div>
-				</div>
+				{/if}
 			</EnglishVersion>
 
 			<!-- Notes internes (issue 039): only Admins ever see them -->

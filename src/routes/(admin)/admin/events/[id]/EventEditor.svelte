@@ -808,7 +808,7 @@
 	{/snippet}
 
 	{#snippet essentiel()}
-		<Essentiel bind:this={essentielTab} {event} />
+		<Essentiel bind:this={essentielTab} {event} {portfolioOnly} />
 	{/snippet}
 	{#snippet lieu()}
 		<Lieu bind:this={lieuTab} {event} zones={data.timeZones ?? []} locked={data.timeZoneLocked ?? false} bind:timeZone />
