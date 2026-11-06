@@ -5,7 +5,7 @@
  */
 import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest';
 import { eq } from 'drizzle-orm';
-import { events, eventSessions, reservations, waitlist } from '../../src/lib/server/db/schema';
+import { events, eventSessions, reservations, talents, waitlist } from '../../src/lib/server/db/schema';
 import {
 	getTestDatabase,
 	setupTestDatabase,
@@ -447,6 +447,31 @@ describe('a Draft is listed nowhere', () => {
 		const xml = await (await GET()).text();
 		expect(xml).toContain(`/events/${event.id}`);
 		expect(xml).not.toContain(draft.id);
+	});
+
+	it('lists « À venir », « Talents » and the Spotlight only while they have something', async () => {
+		const { GET } = await import('../../src/routes/sitemap.xml/+server');
+		const empty = await (await GET()).text();
+		expect(empty).not.toMatch(/\/(a-venir|talents|spotlight)</);
+
+		const event = await seedEvent(true);
+		await seedSeating(event.id, { published: true });
+		await testDb.update(events).set({ isSpotlight: true }).where(eq(events.id, event.id));
+		const [shown] = await testDb
+			.insert(talents)
+			.values({ firstName: 'Shown', lastName: 'T', roleEn: 'Chef', roleFr: 'Cheffe', bioEn: 'b', bioFr: 'b', published: true })
+			.returning({ id: talents.id });
+		const [hidden] = await testDb
+			.insert(talents)
+			.values({ firstName: 'Hidden', lastName: 'T', roleEn: 'Chef', roleFr: 'Cheffe', bioEn: 'b', bioFr: 'b', published: false })
+			.returning({ id: talents.id });
+
+		const full = await (await GET()).text();
+		expect(full).toContain('/a-venir<');
+		expect(full).toContain('/talents<');
+		expect(full).toContain('/spotlight<');
+		expect(full).toContain(`/talents/${shown.id}`);
+		expect(full).not.toContain(hidden.id);
 	});
 
 	it('the listing query agrees with Event access for every Event', async () => {
