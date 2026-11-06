@@ -384,7 +384,7 @@ export function capacityLabel(capacity: number | null, venueCapacity: number | n
 /** One line: « 12h30 » or « 19h00 · 21h30 », or « Pas de dîner ». */
 export function mealLine(meal: MealPlan, kind: Kind, facet: Facet, words: Wording): string {
 	if (!meal.served) return `Pas de ${MEAL[kind].toLowerCase()}`;
-	if (facet === 'tarifs') return `${words.menuName(meal.menu)} · ${words.price(meal.price)}`;
+	if (facet === 'tarifs') return [words.menuName(meal.menu), words.price(meal.price)].filter(Boolean).join(' · ');
 	return meal.starts.length === 0 ? 'Aucune séance' : meal.starts.map(frClock).join(' · ');
 }
 

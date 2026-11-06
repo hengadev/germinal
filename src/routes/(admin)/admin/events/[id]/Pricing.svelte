@@ -40,7 +40,7 @@
 	import type { PricingEditorData } from '$lib/types/pricing-editor';
 	import type { PricingValues } from '$lib/utils/event-warnings-live';
 
-	let { data }: { data: { pricing?: PricingEditorData } } = $props();
+	let { data, menusOnly = false }: { data: { pricing?: PricingEditorData }; menusOnly?: boolean } = $props();
 
 	const toast = getToastContext();
 
@@ -81,7 +81,8 @@
 	);
 	const words: Wording = {
 		menuName: (key) => menuOptions.find((menu) => menu.key === key)?.label ?? 'Aucun menu',
-		price: (price) => (price === null ? 'prix non défini' : price === 0 ? 'gratuit' : formatCurrency(Math.round(price * 100), currency, 'fr-FR')),
+		// Menus-only mode (issue 082): no price to show, not even in a summary.
+		price: (price) => (menusOnly ? '' : price === null ? 'prix non défini' : price === 0 ? 'gratuit' : formatCurrency(Math.round(price * 100), currency, 'fr-FR')),
 	};
 
 	// Only saved Services are priced: the list follows each save of
@@ -152,7 +153,7 @@
 		};
 		return async ({ result, formElement }: { result: import('@sveltejs/kit').ActionResult; formElement: HTMLFormElement }) => {
 			saving = false;
-			await handleTabResult(result, toast, 'Menus et tarifs enregistrés', formElement, () => {
+			await handleTabResult(result, toast, menusOnly ? 'Menus enregistrés' : 'Menus et tarifs enregistrés', formElement, () => {
 				const menuIds = (result as { data?: { menuIds?: Record<string, string> } }).data?.menuIds;
 				const extraIds = (result as { data?: { extraIds?: Record<string, string> } }).data?.extraIds;
 				adoptSaved(sent, menuIds, extraIds);
@@ -232,6 +233,7 @@
 		bind:services
 		bind:currency
 		currencyLocked={data.pricing?.currencyLocked ?? false}
+		{menusOnly}
 		daysTabName="Dates & séances"
 		servicesList={services.some((service) => service.legacySeatings.length > 0)}
 	>
@@ -246,13 +248,16 @@
 				{words}
 				menus={menuOptions}
 				{currency}
+				{menusOnly}
 				idPrefix="pricing-programme"
 				onnewmenu={(use) => editor?.createMenu(use)}
 			/>
 		{/if}
 	</PricingEditor>
 
-	<ExtrasEditor bind:this={extrasEditor} bind:extras {currency} />
+	{#if !menusOnly}
+		<ExtrasEditor bind:this={extrasEditor} bind:extras {currency} />
+	{/if}
 
 	<!-- Hidden on a Draft, which saves itself (issue 019), and on a published
 	     Event, which saves through its bar (issue 020). -->
@@ -262,7 +267,7 @@
 			disabled={saving}
 			class="sm:ml-auto px-6 py-3 bg-foreground text-background rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-foreground focus:ring-offset-2 transition-colors font-medium disabled:opacity-60"
 		>
-			{saving ? 'Enregistrement…' : 'Enregistrer les menus et tarifs'}
+			{saving ? 'Enregistrement…' : menusOnly ? 'Enregistrer les menus' : 'Enregistrer les menus et tarifs'}
 		</button>
 	</div>
 </form>

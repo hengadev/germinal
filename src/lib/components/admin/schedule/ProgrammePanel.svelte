@@ -28,6 +28,7 @@
 		idPrefix,
 		programmeExtra,
 		onnewmenu,
+		menusOnly = false,
 	}: {
 		programme: Programme;
 		selected?: string[];
@@ -38,6 +39,8 @@
 		/** Settings of the programme shared by both meals (the Venue Capacity). */
 		programmeExtra?: Snippet;
 		onnewmenu?: (use: (key: string) => void) => void;
+		/** Menus-only mode (issue 082): the price per guest stays hidden. */
+		menusOnly?: boolean;
 	} = $props();
 
 	const facet = $derived(programme.facet);
@@ -167,6 +170,7 @@
 			{words}
 			{menus}
 			{currency}
+			{menusOnly}
 			value={v ? v.value : programme.plan[kind]}
 			base={v ? programme.plan[kind] : null}
 			overridden={v?.overridden}

@@ -24,7 +24,7 @@ import { loadBookableExtras } from '$lib/server/services/event-extras';
 function projectPage<E extends {
   media?: { id: string; role?: 'visual' | 'event_photo' | null; isCover?: boolean | null }[] | null;
   coverMedia?: { id: string } | null;
-}>(event: E, days: string[]) {
+}>(event: E, days: string[], menus?: { menuServices: unknown[]; menus: unknown[] }) {
   const {
     descriptionEn: _descriptionEn,
     descriptionFr: _descriptionFr,
@@ -46,8 +46,36 @@ function projectPage<E extends {
       cover: projectCover({ media, coverMedia }) as NonNullable<E['media']>[number] | E['coverMedia'] | null,
       eventPhotos: photos as NonNullable<E['media']>,
       days,
+      // The Menus its Services offered (issue 083), as raw rows localized
+      // by `projectPage` — no prices.
+      ...(menus ?? { menuServices: [], menus: [] }),
     },
   };
+}
+
+/** The Event's Services (Day's date, kind, Menu) and its Menus, as the
+ * project page shows its Menus (issue 083). No prices. */
+async function menusOfEvent(eventId: string) {
+  const { db } = await import('$lib/server/db');
+  const { eventDays, eventServices, eventMenus } = await import('$lib/server/db/schema');
+  const { eq } = await import('drizzle-orm');
+  const menuServices = await db
+    .select({ date: eventDays.date, kind: eventServices.kind, menuId: eventServices.menuId })
+    .from(eventServices)
+    .innerJoin(eventDays, eq(eventServices.dayId, eventDays.id))
+    .where(eq(eventDays.eventId, eventId));
+  const menus = await db
+    .select({
+      id: eventMenus.id,
+      nameEn: eventMenus.nameEn,
+      nameFr: eventMenus.nameFr,
+      courses: eventMenus.courses,
+      descriptionEn: eventMenus.descriptionEn,
+      descriptionFr: eventMenus.descriptionFr
+    })
+    .from(eventMenus)
+    .where(eq(eventMenus.eventId, eventId));
+  return { menuServices, menus };
 }
 
 /** The Event as its announcement shows it: with its Visuals only, never
@@ -261,7 +289,7 @@ export const load: PageServerLoad = async ({ params, locals, setHeaders }) => {
   if (access.view === 'portfolio' || access.view === 'portfolio-preview') {
     // No Seatings, prices or booking on a project page (issue 045).
     const days = await eventDaysOf(event.id);
-    const page = projectPage(withoutPracticalInfo(event), days);
+    const page = projectPage(withoutPracticalInfo(event), days, await menusOfEvent(event.id));
     return { view: access.view, indexed, project: { ...page.project, next: await nextProjectOf(event.id) }, event: null, schedule: [], sessions: [] };
   }
 

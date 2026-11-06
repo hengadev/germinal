@@ -412,13 +412,76 @@ export function priceLineOf(schedule: PageDay[], lang: EventTimeLocale, t: Trans
 	return t(amounts.size === 1 ? 'events.page.price.each' : 'events.page.price.from', { values: { amount } });
 }
 
+/** A Service as the project page loads it: its Day's date, its kind and
+ * the Menu it offered. */
+export interface ProjectMenuService {
+	date: string;
+	kind: 'lunch' | 'dinner';
+	menuId: string | null;
+}
+
+/** A Menu as the project page loads it (issue 083): raw bilingual rows. */
+export interface ProjectMenuRow {
+	id: string;
+	nameEn: string;
+	nameFr: string;
+	courses?: { labelEn: string; labelFr: string; dishes: { en: string; fr: string }[] }[] | null;
+	descriptionEn?: string | null;
+	descriptionFr?: string | null;
+}
+
+/** A Menu in the reader's language (issue 083). */
+export interface ProjectMenu {
+	name: string;
+	courses: { label: string; dishes: string[] }[];
+	note: string;
+}
+
+const dish = (lang: EventTimeLocale, d: { en: string; fr: string }) => localizedText(d.en, d.fr, lang);
+
+/** The distinct Menus a project's Services offered, in the order of their
+ * first Service (Day, then lunch before dinner), each with its Courses
+ * (label, then dishes) and its note, in the reader's language with the same
+ * French/English fallback as the Recap. Courses without a dish are left out. */
+export function projectMenusOf(
+	services: ProjectMenuService[],
+	menus: ProjectMenuRow[],
+	lang: EventTimeLocale
+): ProjectMenu[] {
+	const byId = new Map(menus.map((menu) => [menu.id, menu]));
+	const seen = new Set<string>();
+	return [...services]
+		.sort((a, b) => a.date.localeCompare(b.date) || (a.kind === b.kind ? 0 : a.kind === 'lunch' ? -1 : 1))
+		.flatMap((service) => {
+			if (!service.menuId || seen.has(service.menuId)) return [];
+			seen.add(service.menuId);
+			const menu = byId.get(service.menuId);
+			if (!menu) return [];
+			return [menu];
+		})
+		.map((menu) => ({
+			name: localizedText(menu.nameEn, menu.nameFr, lang).trim(),
+			courses: (menu.courses ?? [])
+				.map((course) => ({
+					label: localizedText(course.labelEn, course.labelFr, lang).trim(),
+					dishes: course.dishes.map((d) => dish(lang, d)).filter(Boolean),
+				}))
+				.filter((course) => course.dishes.length > 0),
+			note: localizedText(menu.descriptionEn ?? null, menu.descriptionFr ?? null, lang).trim(),
+		}));
+}
+
 /** The Portfolio project: the Recap and the Event Photos, credits, dates and venue. */
-export function projectPage(project: Localized & { days?: string[] | null }, locale: string | null | undefined) {
+export function projectPage(
+	project: Localized & { days?: string[] | null; menuServices?: ProjectMenuService[]; menus?: ProjectMenuRow[] },
+	locale: string | null | undefined
+) {
 	const lang = pageLang(locale);
 	return {
 		lang,
 		title: text(lang, project, 'title'),
 		recap: paragraphsOf(text(lang, project, 'recap')),
+		menus: projectMenusOf(project.menuServices ?? [], project.menus ?? [], lang),
 		dates: formatProjectDates(project.days ?? [], lang),
 		city: text(lang, project, 'city') || text(lang, project, 'location'),
 		venueLines: venueLinesOf(project, lang),

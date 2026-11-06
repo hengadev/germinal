@@ -20,6 +20,7 @@
 		idPrefix,
 		programmeExtra,
 		onnewmenu,
+		menusOnly = false,
 	}: {
 		programme: Programme;
 		words: Wording;
@@ -29,6 +30,8 @@
 		programmeExtra?: Snippet;
 		/** « + Nouveau menu… » in the Menu list: create one, then `use` it. */
 		onnewmenu?: (use: (key: string) => void) => void;
+		/** Menus-only mode (issue 082): the price per guest stays hidden. */
+		menusOnly?: boolean;
 	} = $props();
 
 	let selected: string[] = $state([]);
@@ -145,6 +148,6 @@
 		class="scroll-mt-16 lg:sticky lg:top-4 bg-background rounded-lg border {selected.length ? 'border-amber-300' : 'border-border-card'}"
 		aria-label="Déjeuner et dîner"
 	>
-		<ProgrammePanel bind:this={panel} {programme} bind:selected {words} {menus} {currency} {idPrefix} {programmeExtra} {onnewmenu} />
+		<ProgrammePanel bind:this={panel} {programme} bind:selected {words} {menus} {currency} {menusOnly} {idPrefix} {programmeExtra} {onnewmenu} />
 	</aside>
 </div>

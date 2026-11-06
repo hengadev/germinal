@@ -243,6 +243,7 @@
 		services = $bindable(),
 		currency = $bindable(),
 		currencyLocked = false,
+		menusOnly = false,
 		daysTabName,
 		seatingCountOf,
 		servicesList = true,
@@ -256,6 +257,10 @@
 		currency: string;
 		/** The Event has a Reservation: the currency can no longer change. */
 		currencyLocked?: boolean;
+		/** Menus-only mode (issue 082): a Portfolio-only Event's « Menus »
+		 * tab — prices, currency, Deposit and refund stay hidden, their
+		 * validation with them. */
+		menusOnly?: boolean;
 		/** The tab where Days and meals are picked, named in the empty state. */
 		daysTabName: string;
 		/** Live Seating count per Service, when the host edits Seatings
@@ -575,6 +580,7 @@
 				return { id: `menu-${menu.key}-nameEn`, message: `Le menu ${index + 1} doit avoir un nom en anglais.` };
 			}
 		}
+		if (!menusOnly) {
 		if (!depositRule) {
 			return deposit.type === 'percent'
 				? { id: 'deposit-percent', message: 'Pourcentage d’acompte invalide : saisissez un nombre entier entre 1 et 100.' }
@@ -611,6 +617,7 @@
 				};
 			}
 		}
+		}
 		return null;
 	}
 
@@ -623,6 +630,7 @@
 	<input type="hidden" name="pricing" value={payload} />
 
 	<div class="flex flex-wrap items-center gap-2" role="toolbar" aria-label="Devise, menus et paiement">
+		{#if !menusOnly}
 		<label
 			class="relative inline-flex items-center gap-2 h-9 px-3 text-sm rounded-lg border border-border-input bg-background text-foreground hover:bg-muted cursor-pointer focus-within:ring-2 focus-within:ring-foreground {currencyLocked ? 'opacity-60 cursor-not-allowed' : ''}"
 			title={currencyLocked
@@ -644,6 +652,7 @@
 				{/each}
 			</select>
 		</label>
+		{/if}
 
 		<button type="button" onclick={openMenus} class="inline-flex items-center gap-2 h-9 px-3 text-sm rounded-lg border border-border-input bg-background text-foreground hover:bg-muted cursor-pointer" title={menus.map(menuLabel).join(' · ') || undefined}>
 			{#if menus.length === 0}
@@ -654,6 +663,7 @@
 			{/if}
 		</button>
 
+		{#if !menusOnly}
 		<button type="button" onclick={() => (depositOpen = true)} class="inline-flex items-center gap-2 h-9 px-3 text-sm rounded-lg border border-border-input bg-background text-foreground hover:bg-muted cursor-pointer" title={depositSummary || undefined}>
 			Acompte
 			<span class="tabular-nums {depositRule ? 'text-muted-foreground' : 'text-amber-700'}">· {depositShort}</span>
@@ -663,6 +673,7 @@
 			Remboursement
 			<span class={refundPreview ? 'text-muted-foreground' : 'text-amber-700'}>· {refundShort}</span>
 		</button>
+		{/if}
 	</div>
 
 	{@render children?.()}

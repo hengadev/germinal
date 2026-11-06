@@ -42,6 +42,7 @@
 		currency = 'EUR',
 		dates = [],
 		onnewmenu,
+		menusOnly = false,
 	}: {
 		kind: Kind;
 		facet: Facet;
@@ -66,6 +67,8 @@
 		dates?: string[];
 		/** « + Nouveau menu… »: create a Menu, then offer it on this meal. */
 		onnewmenu?: (use: (key: string) => void) => void;
+		/** Menus-only mode (issue 082): the price per guest stays hidden. */
+		menusOnly?: boolean;
 	} = $props();
 
 	const NEW_MENU = '__new__';
@@ -161,7 +164,8 @@
 	}
 
 	// The programme's capacity is the Venue Capacity, set once above both meals.
-	const shows = (field: Field) => FACET_FIELDS[facet].includes(field) && !(field === 'capacity' && !base);
+	// Menus-only mode (issue 082): the price is not the tab's to edit.
+	const shows = (field: Field) => FACET_FIELDS[facet].includes(field) && !(field === 'capacity' && !base) && !(menusOnly && field === 'price');
 	const LABEL = 'block text-xs font-medium text-foreground-alt mb-1';
 	const INPUT =
 		'px-3 py-2 border border-border-input rounded-lg bg-background text-sm focus:outline-none focus:ring-2 focus:ring-foreground focus:border-transparent';
