@@ -5,6 +5,7 @@ import {
 	formatPrice,
 	paragraphsOf,
 	priceLineOf,
+	projectMenusOf,
 	seatingStateOf,
 	type PageDay,
 	type PageSeating,
@@ -180,5 +181,49 @@ describe('page text', () => {
 	it('drops the cents of a whole price', () => {
 		expect(plain(formatPrice(8500, 'EUR', 'fr'))).toBe('85 €');
 		expect(formatPrice(8550, 'EUR', 'en')).toBe('€85.50');
+	});
+});
+
+describe('projectMenusOf', () => {
+	const menu = (id: string, nameEn: string, nameFr = nameEn) => ({
+		id,
+		nameEn,
+		nameFr,
+		courses: [
+			{ labelEn: 'Starter', labelFr: 'Entrée', dishes: [{ en: 'Broth', fr: 'Bouillon' }] },
+			{ labelEn: 'Dessert', labelFr: 'Dessert', dishes: [] },
+			{ labelEn: '', labelFr: '', dishes: [{ en: '', fr: '' }] },
+		],
+		descriptionEn: 'Wine included',
+		descriptionFr: 'Vin compris',
+	});
+
+	it('returns each distinct Menu once, ordered by Day then lunch before dinner', () => {
+		const services = [
+			{ date: '2025-06-02', kind: 'dinner' as const, menuId: 'b' },
+			{ date: '2025-06-01', kind: 'dinner' as const, menuId: 'b' },
+			{ date: '2025-06-01', kind: 'lunch' as const, menuId: 'a' },
+			{ date: '2025-06-03', kind: 'lunch' as const, menuId: null },
+		];
+		const names = projectMenusOf(services, [menu('a', 'A'), menu('b', 'B')], 'fr').map((m) => m.name);
+		expect(names).toEqual(['A', 'B']);
+	});
+
+	it('localizes labels, dishes and the note with the French/English fallback', () => {
+		const [fr, en] = ['fr', 'en'].map((lang) => projectMenusOf([{ date: '2025-06-01', kind: 'lunch', menuId: 'a' }], [menu('a', 'Menu', 'Carte')], lang as 'fr' | 'en')[0]);
+		expect(fr.courses).toEqual([{ label: 'Entrée', dishes: ['Bouillon'] }]);
+		expect(fr.note).toBe('Vin compris');
+		expect(en.courses).toEqual([{ label: 'Starter', dishes: ['Broth'] }]);
+		expect(en.note).toBe('Wine included');
+	});
+
+	it('falls back to the other language and drops empty Courses', () => {
+		const onlyFr = { id: 'a', nameEn: '', nameFr: 'Carte', courses: [{ labelEn: '', labelFr: 'Entrée', dishes: [{ en: '', fr: 'Bouillon' }] }], descriptionEn: null, descriptionFr: 'Vin compris' };
+		const m = projectMenusOf([{ date: '2025-06-01', kind: 'dinner', menuId: 'a' }], [onlyFr], 'en')[0];
+		expect(m).toEqual({ name: 'Carte', courses: [{ label: 'Entrée', dishes: ['Bouillon'] }], note: 'Vin compris' });
+	});
+
+	it('shows nothing without Menus', () => {
+		expect(projectMenusOf([{ date: '2025-06-01', kind: 'lunch', menuId: null }], [], 'fr')).toEqual([]);
 	});
 });
