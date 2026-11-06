@@ -812,7 +812,7 @@
 		<Lieu bind:this={lieuTab} {event} zones={data.timeZones ?? []} locked={data.timeZoneLocked ?? false} bind:timeZone />
 	{/snippet}
 	{#snippet seatings()}
-		<Seatings bind:this={seatingsTab} {data} timeZone={data.event.timeZone} />
+		<Seatings bind:this={seatingsTab} {data} timeZone={data.event.timeZone} {portfolioOnly} />
 	{/snippet}
 	{#snippet pricing()}
 		<Pricing bind:this={pricingTab} {data} />

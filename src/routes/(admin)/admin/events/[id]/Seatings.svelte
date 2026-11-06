@@ -46,6 +46,7 @@
 		data,
 		timeZone = data.event?.timeZone,
 		services = $bindable(toSeatingDrafts(data.schedule ?? [])),
+		portfolioOnly = false,
 	}: {
 		data: {
 			days?: PickedDay[];
@@ -61,6 +62,8 @@
 		/** Clock the Seatings are typed on: the Event's saved Time Zone. */
 		timeZone?: string;
 		services?: DraftSeatingService[];
+		/** A Portfolio-only Event takes no bookings: no Booking Window. */
+		portfolioOnly?: boolean;
 	} = $props();
 
 	const toast = getToastContext();
@@ -459,7 +462,12 @@
 	<SeatingsEditor bind:this={editor} bind:services bind:venueCapacity {timeZone} layout="none" />
 
 	<!-- Booking Window (issue 035): both optional; empty keeps bookings open
-	     from publication until each Seating starts. -->
+	     from publication until each Seating starts. A Portfolio-only Event
+	     takes no bookings: its stored window is posted back unchanged. -->
+	{#if portfolioOnly}
+		<input type="hidden" name="bookingOpensAt" value={bookingOpensAt} />
+		<input type="hidden" name="bookingClosesHoursBefore" value={bookingClosesHoursBefore ?? ''} />
+	{:else}
 	<section class="bg-background rounded-lg border border-border-card p-4 lg:p-6" aria-labelledby="booking-window-title">
 		<h3 id="booking-window-title" class="text-lg font-semibold text-foreground">Ouverture des réservations</h3>
 		<p class="text-sm text-muted-foreground">
@@ -505,6 +513,7 @@
 			</div>
 		</div>
 	</section>
+	{/if}
 
 	<!-- Hidden on a Draft, which saves itself (issue 019), and on a published
 	     Event, which saves through its bar (issue 020). -->
