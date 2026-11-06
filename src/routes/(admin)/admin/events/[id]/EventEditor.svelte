@@ -95,6 +95,8 @@
 	// gets the reduced editor: only Essentiel, Lieu, Dates & séances and
 	// Portfolio. The other tabs are not even mounted, so they are never
 	// saved or marked modified, and their saved data is left untouched.
+	// « Menus » (issue 082): its pricing tab in menus-only mode — the tab's
+	// own title there, not the standard « Menus & tarifs ».
 	const portfolioOnly = $derived(
 		isPortfolioOnly(
 			{ lastSeatingStart: data.lastSeatingStart ?? null, hasReservations: data.hasReservations ?? false },
@@ -103,9 +105,9 @@
 	);
 	const tabs = $derived(
 		portfolioOnly
-			? [
-				...EDITOR_TABS.filter((tab) => ['essentiel', 'lieu', 'dates-seances', 'portfolio'].includes(tab.id)),
-			]
+			? EDITOR_TABS.filter((tab) => ['essentiel', 'lieu', 'dates-seances', 'tarifs', 'portfolio'].includes(tab.id)).map(
+				(tab) => (tab.id === 'tarifs' ? { ...tab, title: 'Menus' } : tab)
+			)
 			: [
 				...EDITOR_TABS.filter((tab) => tab.id !== 'portfolio'),
 				...OPERATIONAL_TABS,
@@ -394,7 +396,7 @@
 	// tabs; « Enregistrer » asks first, then saves them all in tab order
 	// (« Dates & séances » before « Menus & tarifs »), reloads the page data
 	// once and reports in one toast; « Annuler » puts them back as saved.
-	const heldTabs = $derived(held ? modifiedTabs(saveState.tabs, EDITOR_TABS) : []);
+	const heldTabs = $derived(held ? modifiedTabs(saveState.tabs, portfolioOnly ? tabs : EDITOR_TABS) : []);
 	let confirmSaveOpen = $state(false);
 	let discarding = $state(false);
 	// Tabs the last save of them all left unsaved, with why, while they
@@ -814,9 +816,7 @@
 	{#snippet seatings()}
 		<Seatings bind:this={seatingsTab} {data} timeZone={data.event.timeZone} />
 	{/snippet}
-	{#snippet pricing()}
-		<Pricing bind:this={pricingTab} {data} />
-	{/snippet}
+	{#snippet pricing()}<Pricing bind:this={pricingTab} {data} menusOnly={portfolioOnly} />{/snippet}
 	{#snippet programme()}<Programme bind:this={programmeTab} {event} talents={data.talents ?? []} />{/snippet}
 	{#snippet visuels()}<Photos bind:this={visualsTab} event={data.event} onAltChange={handleAltChange} />{/snippet}
 	{#snippet pratique()}
@@ -832,8 +832,8 @@
 	{@render panel('essentiel', essentiel)}
 	{@render panel('lieu', lieu)}
 	{@render panel('dates-seances', seatings)}
+	{@render panel('tarifs', pricing)}
 	{#if !portfolioOnly}
-		{@render panel('tarifs', pricing)}
 		{@render panel('programme', programme)}
 		{@render panel('visuels', visuels)}
 		{@render panel('pratique', pratique)}

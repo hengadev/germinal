@@ -35,6 +35,7 @@ import {
 	type EventTextFields,
 } from '$lib/server/services/event-draft';
 import { fillEnglish } from '$lib/server/services/event-translation';
+import { isPortfolioOnly } from '$lib/utils/event-access';
 import { translatePricing, type StoredPricingText } from '$lib/server/services/pricing-translation';
 import { translateSeatings } from '$lib/server/services/seating-translation';
 import { getTranslator, isTranslationEnabled } from '$lib/server/services/translator';
@@ -1009,7 +1010,7 @@ const editorActions: Actions = {
 		const { id } = params;
 		const formData = await request.formData();
 
-		const { parsePricingPayload, pricingPayloadErrorMessage, savePricing } = await import(
+		const { parsePricingPayload, pricingPayloadErrorMessage, savePricing, eventHasReservations, loadPricingEditor } = await import(
 			'$lib/server/services/service-pricing'
 		);
 		const raw = formData.get('pricing');
@@ -1018,14 +1019,38 @@ const editorActions: Actions = {
 			return fail(400, { error: pricingPayloadErrorMessage(parsed.reason), fields: ['pricing'] });
 		}
 
+		// A Portfolio-only Event's « Menus » tab (issue 082): only the
+		// Menus and each Service's Menu are saved — its hidden prices,
+		// currency, Deposit, refund and extras stay exactly as stored,
+		// whatever the form posts.
+		const { db } = await import('$lib/server/db');
+		const stored = await loadPricingEditor(id);
+		const portfolioOnly = isPortfolioOnly(
+			{ lastSeatingStart: await lastSeatingStart(id), hasReservations: await eventHasReservations(db, id) },
+			new Date()
+		);
+		let payload = parsed.payload;
+		if (portfolioOnly) {
+			const storedPrices = new Map(stored.services.map((service) => [service.serviceId, service.priceAmount]));
+			payload = {
+				menus: payload.menus,
+				services: payload.services.map((service) => ({
+					...service,
+					priceAmount: storedPrices.get(service.serviceId) ?? null,
+					clearLegacyPrices: false,
+				})),
+			};
+		}
+
 		// The tab's extras section (issue 067) saves with the same action;
-		// absent (the new-event form), the extras are left as they are.
+		// absent (the new-event form), the extras are left as they are —
+		// and skipped entirely for a Portfolio-only Event (issue 082).
 		const { parseExtrasPayload, extrasPayloadErrorMessage, saveExtras } = await import(
 			'$lib/server/services/event-extras'
 		);
 		const extrasRaw = formData.get('extras');
 		let extrasParsed: ReturnType<typeof parseExtrasPayload> | null = null;
-		if (typeof extrasRaw === 'string') {
+		if (typeof extrasRaw === 'string' && !portfolioOnly) {
 			extrasParsed = parseExtrasPayload(extrasRaw);
 			if (!extrasParsed.ok) {
 				return fail(400, { error: extrasPayloadErrorMessage(extrasParsed.reason), fields: ['extras'] });
@@ -1037,8 +1062,7 @@ const editorActions: Actions = {
 		}
 
 		try {
-			const { loadPricingEditor } = await import('$lib/server/services/service-pricing');
-			const english = await englishPricing(parsed.payload, await loadPricingEditor(id), id);
+			const english = await englishPricing(payload, stored, id);
 			const { menuIds } = await savePricing(id, english.value);
 			const { extraIds } = extrasParsed
 				? await saveExtras(id, extrasParsed.payload)
