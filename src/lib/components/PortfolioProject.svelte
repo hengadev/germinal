@@ -92,8 +92,8 @@
 						{/if}
 						{#each menu.courses as course, j (j)}
 							<div class="flex flex-col gap-1">
-									{#if course.label}<p class="text-sm italic text-foreground-alt">{course.label}</p>{/if}
-									{#each course.dishes as d, k (k)}<p class="leading-relaxed text-pretty">{d}</p>{/each}
+								{#if course.label}<p class="text-sm italic text-foreground-alt">{course.label}</p>{/if}
+								{#each course.dishes as d, k (k)}<p class="leading-relaxed text-pretty">{d}</p>{/each}
 							</div>
 						{/each}
 						{#if menu.note}<p class="text-sm text-foreground-alt">{menu.note}</p>{/if}
