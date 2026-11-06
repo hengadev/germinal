@@ -78,7 +78,11 @@
       "photographs": "Photographies",
       "credits": "Générique",
       "venue": "Lieu",
-      "curator": "Commissariat"
+      "curator": "Commissariat",
+      "menu": "Le menu",
+      "menus": "Les menus",
+      "drinks": "La carte des boissons",
+      "drinksCards": "Les cartes des boissons"
     },
     "page": {
       "book": "Réserver",

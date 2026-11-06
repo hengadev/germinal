@@ -4,13 +4,17 @@
 	// column (PhotoColumnLayout) with the title, dates and city, the Recap
 	// (first paragraph as the lead), the credits and the next project. No
 	// announcement text, Seatings, prices or booking: those belonged to the
-	// Event before it happened.
+	// Event before it happened. Its Menus and Drinks cards open as printed
+	// cards over the page.
 	import { t, locale } from 'svelte-i18n';
 	import { page } from '$app/state';
 	import { mediaAlt } from '$lib/utils/media-alt';
 	import { localizedText } from '$lib/utils/event-text';
 	import { projectPage, type PageMedium } from '$lib/utils/event-page';
 	import PhotoColumnLayout from './PhotoColumnLayout.svelte';
+	import CardDialog from './event-page/CardDialog.svelte';
+	import MenuSheet from './event-page/MenuSheet.svelte';
+	import DrinksSheet from './event-page/DrinksSheet.svelte';
 	import { projectStream } from '$lib/utils/event-photos';
 
 	let {
@@ -39,6 +43,11 @@
 	const ogDescription = $derived((view.recap[0] ?? '').slice(0, 200));
 	const ogImage = $derived(project.cover?.type === 'image' ? project.cover.url : undefined);
 
+	/** The printed card open over the page, if any. */
+	let opened: 'menus' | 'drinks' | null = $state(null);
+
+	const cardButton =
+		'inline-flex min-h-11 items-center border border-border-input px-5 font-serif text-lg transition-colors hover:border-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground';
 	const label = 'text-xxs font-medium uppercase tracking-[0.15em] text-muted-foreground';
 </script>
 
@@ -65,98 +74,85 @@
 {#snippet head()}
 	<a href="/events" class="{label} mb-6 inline-block hover:text-foreground">← {$t('events.project.backToProjects')}</a>
 	{#if preview}<p class="{label} mb-4">{$t('events.page.previewDraft')}</p>{/if}
-	<h1 class="font-serif text-[clamp(2.75rem,5vw,4.5rem)] leading-[0.98] text-balance">{view.title}</h1>
+	<h1 class="font-serif text-[clamp(2.75rem,5vw,4.5rem)] leading-[0.98] text-balance lg:text-[clamp(2.75rem,3.8vw,4rem)]">{view.title}</h1>
 	{#if view.dates}<p class="mt-5">{view.dates}</p>{/if}
 	{#if view.city}<p class="text-foreground-alt">{view.city}</p>{/if}
 {/snippet}
 
+{#snippet nextProject()}
+	<a href="/events/{project.next?.id}" class="group block border-t border-foreground/80 pt-5">
+		<span class={label}>{$t('events.page.nextProject')}</span>
+		<span class="mt-2 block font-serif text-3xl underline-offset-8 group-hover:underline">{next}</span>
+	</a>
+{/snippet}
+
+<!-- On desktop the next project closes the photographs, not the text. -->
+{#snippet afterPhotos()}
+	{#if project.next}<div class="px-10 pt-16 pb-20">{@render nextProject()}</div>{/if}
+{/snippet}
+
 {#snippet body()}
-	<div class="flex flex-col gap-12">
+	<div class="flex flex-col gap-12 lg:flex-1 lg:gap-8">
 		{#if view.recap.length}
 			<div class="flex flex-col gap-4">
 				{#each view.recap as paragraph, i (i)}
-					<p class={i === 0 ? 'font-serif text-xl leading-snug text-pretty' : 'leading-relaxed text-pretty text-foreground-alt'}>{paragraph}</p>
+					<p class={i === 0 ? 'font-serif text-xl leading-snug text-pretty lg:text-lg' : 'leading-relaxed text-pretty text-foreground-alt'}>{paragraph}</p>
 				{/each}
 			</div>
 		{/if}
 
-		{#if view.menus.length}
-			<div class="flex flex-col gap-8">
-				{#each view.menus as menu, i (i)}
-					<div class="flex flex-col gap-3">
-						{#if menu.name}
-							<p class="{label}">{menu.name}</p>
-						{/if}
-						{#each menu.courses as course, j (j)}
-							<div class="flex flex-col gap-1">
-								{#if course.label}<p class="text-sm italic text-foreground-alt">{course.label}</p>{/if}
-								{#each course.dishes as d, k (k)}
-									{#if k > 0 && d.alternative}
-										<p class="font-serif text-sm italic text-foreground-alt">{$t('events.booking.or')}{#if d.note}<span class="ml-1 text-xs not-italic">{d.note}</span>{/if}</p>
-									{/if}
-									<p class="leading-relaxed text-pretty">{d.name}</p>
-									{#if d.description}<p class="text-sm text-muted-foreground">{d.description}</p>{/if}
-								{/each}
-							</div>
-						{/each}
-						{#if menu.note}<p class="text-sm text-foreground-alt">{menu.note}</p>{/if}
-					</div>
-				{/each}
+		{#if view.menus.length || view.drinks.length}
+			<!-- The Menus and Drinks cards (issues 083, 087) wait behind a
+			     button each, set as printed cards in a sheet over the page. -->
+			<div class="flex flex-wrap gap-2">
+				{#if view.menus.length}
+					<button type="button" onclick={() => (opened = 'menus')} class={cardButton}>
+						{$t(view.menus.length > 1 ? 'events.project.menus' : 'events.project.menu')}
+					</button>
+				{/if}
+				{#if view.drinks.length}
+					<button type="button" onclick={() => (opened = 'drinks')} class={cardButton}>
+						{$t(view.drinks.length > 1 ? 'events.project.drinksCards' : 'events.project.drinks')}
+					</button>
+				{/if}
 			</div>
 		{/if}
 
-		{#if view.drinks.length}
-			<!-- The distinct Drinks cards offered (issue 087), after the Menus,
-			     each under its name. -->
-			<div class="flex flex-col gap-6">
-				<p class="{label}">{$t('events.drinks.title')}</p>
-				{#each view.drinks as drinkCard, i (i)}
-					<div class="flex flex-col gap-3">
-						{#if drinkCard.name}<p class="font-serif text-lg">{drinkCard.name}</p>{/if}
-						{#each drinkCard.sections as section, j (j)}
-							<div class="flex flex-col gap-1">
-								{#if section.label}<p class="text-sm italic text-foreground-alt">{section.label}</p>{/if}
-								{#each section.drinks as d, k (k)}
-									<p class="flex items-baseline gap-3 leading-relaxed">
-										<span class="text-pretty">{d.name}</span>
-										{#if d.price}<span class="ml-auto shrink-0 tabular-nums text-foreground-alt">{d.price}</span>{/if}
-									</p>
-									{#if d.description}<p class="text-sm text-muted-foreground">{d.description}</p>{/if}
-								{/each}
-							</div>
-						{/each}
-						{#if drinkCard.note}<p class="text-sm text-foreground-alt">{drinkCard.note}</p>{/if}
-					</div>
+		<div class="flex flex-col gap-12 lg:mt-auto lg:gap-8">
+			<dl class="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 border-t border-border-card pt-6 text-sm" aria-label={$t('events.project.credits')}>
+				{#each view.credits as credit, i (i)}
+					<dt class="text-muted-foreground">{credit.role}</dt>
+					<dd>
+						{#if credit.href}
+							<a href={credit.href} class="underline decoration-border-input-hover underline-offset-4 hover:decoration-foreground">{credit.name}</a>
+						{:else}{credit.name}{/if}
+					</dd>
 				{/each}
-			</div>
-		{/if}
+				{#if view.curator}
+					<dt class="text-muted-foreground">{$t('events.project.curator')}</dt>
+					<dd>{view.curator}</dd>
+				{/if}
+				{#if view.venueLines.length}
+					<dt class="text-muted-foreground">{$t('events.project.venue')}</dt>
+					<dd>{view.venueLines.join(', ')}</dd>
+				{/if}
+			</dl>
 
-		<dl class="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 border-t border-border-card pt-6 text-sm" aria-label={$t('events.project.credits')}>
-			{#each view.credits as credit, i (i)}
-				<dt class="text-muted-foreground">{credit.role}</dt>
-				<dd>
-					{#if credit.href}
-						<a href={credit.href} class="underline decoration-border-input-hover underline-offset-4 hover:decoration-foreground">{credit.name}</a>
-					{:else}{credit.name}{/if}
-				</dd>
-			{/each}
-			{#if view.curator}
-				<dt class="text-muted-foreground">{$t('events.project.curator')}</dt>
-				<dd>{view.curator}</dd>
-			{/if}
-			{#if view.venueLines.length}
-				<dt class="text-muted-foreground">{$t('events.project.venue')}</dt>
-				<dd>{view.venueLines.join(', ')}</dd>
-			{/if}
-		</dl>
-
-		{#if project.next}
-			<a href="/events/{project.next.id}" class="group border-t border-foreground/80 pt-5">
-				<span class={label}>{$t('events.page.nextProject')}</span>
-				<span class="mt-2 block font-serif text-3xl underline-offset-8 group-hover:underline">{next} →</span>
-			</a>
-		{/if}
+			{#if project.next}<div class="lg:hidden">{@render nextProject()}</div>{/if}
+		</div>
 	</div>
 {/snippet}
 
-<PhotoColumnLayout {photos} title={view.title} {head} {body} />
+<PhotoColumnLayout {photos} title={view.title} {head} {body} fill after={afterPhotos} />
+
+<CardDialog open={opened === 'menus'} onclose={() => (opened = null)} label={$t(view.menus.length > 1 ? 'events.project.menus' : 'events.project.menu')}>
+	{#each view.menus as menu, i (i)}
+		<MenuSheet {menu} />
+	{/each}
+</CardDialog>
+
+<CardDialog open={opened === 'drinks'} onclose={() => (opened = null)} label={$t('events.drinks.title')}>
+	{#each view.drinks as drinkCard, i (i)}
+		<DrinksSheet drinks={drinkCard} heading="" />
+	{/each}
+</CardDialog>

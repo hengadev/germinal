@@ -16,12 +16,20 @@
 		title,
 		head,
 		body,
+		fill = false,
+		after,
 	}: {
 		photos: PageMedium[];
 		/** The Event's title: the fallback alt text and the viewer's heading. */
 		title: string;
 		head: Snippet;
 		body: Snippet;
+		/** The column holds the whole viewport on desktop, its body stretched
+		 * to the bottom, so its text reads as one page beside the photographs
+		 * (the Portfolio project). */
+		fill?: boolean;
+		/** Closes the photographs on desktop (the next project). */
+		after?: Snippet;
 	} = $props();
 
 	let open: number | null = $state(null);
@@ -66,7 +74,7 @@
 	<!-- Without photographs the column simply widens into a page. -->
 	<div
 		class="px-6 pt-10 pb-24 lg:px-12 lg:pt-14 lg:pb-16 {photos.length
-			? 'lg:sticky lg:top-[72px] lg:col-span-5 lg:h-[calc(100svh-72px)] lg:overflow-y-auto xl:col-span-4'
+			? `lg:sticky lg:top-[72px] lg:col-span-5 lg:h-[calc(100svh-72px)] lg:overflow-y-auto ${fill ? 'lg:flex lg:flex-col lg:pt-10 lg:pb-10' : 'xl:col-span-4'}`
 			: 'lg:col-span-7 xl:col-span-6'}"
 	>
 		{@render head()}
@@ -75,14 +83,15 @@
 				{@render stream()}
 			</section>
 		{/if}
-		<div class="mt-14 lg:mt-12">{@render body()}</div>
+		<div class="mt-14 {fill ? 'lg:mt-8 lg:flex lg:flex-1 lg:flex-col' : 'lg:mt-12'}">{@render body()}</div>
 	</div>
 	{#if photos.length}
 		<section
-			class="hidden flex-col gap-2 pt-2 pr-2 lg:col-span-7 lg:flex xl:col-span-8"
+			class="hidden flex-col gap-2 pt-2 pr-2 lg:col-span-7 lg:flex {fill ? '' : 'xl:col-span-8'}"
 			aria-label={$t('events.project.photographs')}
 		>
 			{@render stream()}
+			{@render after?.()}
 		</section>
 	{/if}
 </div>

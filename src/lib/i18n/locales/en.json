@@ -78,7 +78,11 @@
       "photographs": "Photographs",
       "credits": "Credits",
       "venue": "Venue",
-      "curator": "Curated by"
+      "curator": "Curated by",
+      "menu": "The menu",
+      "menus": "The menus",
+      "drinks": "The drinks",
+      "drinksCards": "The drinks"
     },
     "page": {
       "book": "Book",
