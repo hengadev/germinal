@@ -39,11 +39,11 @@
 		>
 			{#if photo.type === 'video'}
 				<!-- A project video (issue 084): still on its first frame, never
-			     autoplaying — a discreet mark says it plays once chosen. -->
+				     autoplaying; a discreet mark says it plays once chosen. -->
 				<span class="relative block w-full">
-						<video src={photo.url} preload="metadata" muted playsinline class="block h-auto w-full" aria-label={mediaAlt(photo, $locale, title)}></video>
-						<span class="absolute bottom-3 left-3 flex size-8 items-center justify-center bg-white/80 text-xs text-foreground" aria-hidden="true">▶</span>
-					</span>
+					<video src={`${photo.url}#t=0.1`} preload="metadata" muted playsinline class="block h-auto w-full" aria-label={mediaAlt(photo, $locale, title)}></video>
+					<span class="absolute bottom-3 left-3 flex size-8 items-center justify-center bg-background/80 text-xs text-foreground" aria-hidden="true">▶</span>
+				</span>
 			{:else}
 				<img
 					src={photo.url}
