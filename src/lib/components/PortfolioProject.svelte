@@ -11,6 +11,7 @@
 	import { localizedText } from '$lib/utils/event-text';
 	import { projectPage, type PageMedium } from '$lib/utils/event-page';
 	import PhotoColumnLayout from './PhotoColumnLayout.svelte';
+	import { projectStream } from '$lib/utils/event-photos';
 
 	let {
 		project,
@@ -30,12 +31,8 @@
 	} = $props();
 
 	const view = $derived(projectPage(project, $locale));
-	// The cover leads the photographs.
-	const photos = $derived(
-		[project.cover, ...project.eventPhotos.filter((photo) => photo.id !== project.cover?.id)].filter(
-			(m): m is PageMedium => m !== null
-		)
-	);
+	// The cover leads, then the videos, then the other photos (issue 084).
+	const photos = $derived(projectStream(project.cover, project.eventPhotos));
 	const next = $derived(project.next ? localizedText(project.next.titleEn, project.next.titleFr, $locale) : '');
 
 	const ogTitle = $derived(view.title ? `${view.title} | Germinal` : 'Germinal');

@@ -38,7 +38,12 @@
 			class="relative block w-full cursor-zoom-in"
 		>
 			{#if photo.type === 'video'}
-				<video src={photo.url} autoplay muted loop playsinline class="block h-auto w-full" aria-label={mediaAlt(photo, $locale, title)}></video>
+				<!-- A project video (issue 084): still on its first frame, never
+			     autoplaying — a discreet mark says it plays once chosen. -->
+				<span class="relative block w-full">
+						<video src={photo.url} preload="metadata" muted playsinline class="block h-auto w-full" aria-label={mediaAlt(photo, $locale, title)}></video>
+						<span class="absolute bottom-3 left-3 flex size-8 items-center justify-center bg-white/80 text-xs text-foreground" aria-hidden="true">▶</span>
+					</span>
 			{:else}
 				<img
 					src={photo.url}
