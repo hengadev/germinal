@@ -13,6 +13,7 @@ import { DEFAULT_EVENT_TIME_ZONE } from '$lib/utils/event-time';
 import { EVENT_TEXT_FIELDS } from '$lib/server/services/event-draft';
 import type { EventCompleteness } from '$lib/utils/event-warnings';
 import { parseEventListSort, sortEventList } from '$lib/utils/event-list-sort';
+import { withProjectCover } from '$lib/utils/event-photos';
 
 /** The list's filter: one Visibility, the Portfolio, or every Event. */
 export type EventListFilter = 'all' | 'draft' | 'private' | 'public' | 'portfolio';
@@ -53,7 +54,15 @@ export const load: PageServerLoad = async ({ url }) => {
         visibility: filter === 'all' || filter === 'portfolio' ? undefined : filter,
         portfolioOnly: filter === 'portfolio',
     });
-    const eventsData = sortEventList(result.data as EventWithMedia[], sort);
+    // A Portfolio project shows the cover chosen in « Portfolio », as on the
+    // public site; so does an Event with no Visual cover (a Portfolio-only
+    // Event has no « Visuels » tab).
+    const eventsData = sortEventList(
+        (result.data as EventWithMedia[]).map((event) =>
+            event.isPortfolio || !event.coverMedia ? withProjectCover(event) : event
+        ),
+        sort
+    );
 
     // Draft completeness (issue 013, ADR 0010): each Draft's « 3/5 ».
     const { draftCompleteness } = await import('$lib/server/services/event-completeness');
