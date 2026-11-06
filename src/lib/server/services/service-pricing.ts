@@ -1,7 +1,11 @@
 import { db } from '../db';
-import { coupons, eventDays, eventMenus, eventServices, eventSessions, events, reservations } from '../db/schema';
+import { coupons, eventDays, eventDrinkCards, eventMenus, eventServices, eventSessions, events, reservations } from '../db/schema';
 import { and, eq, inArray, isNotNull, sql } from 'drizzle-orm';
 import type {
+	DrinkCardPayload,
+	DrinkItem,
+	DrinkSection,
+	EditorDrinkCard,
 	EditorMenu,
 	EditorServicePricing,
 	MenuCourse,
@@ -32,6 +36,12 @@ import {
 	MAX_COURSE_DISHES,
 	MAX_COURSE_LABEL,
 	MAX_MENU_COURSES,
+	MAX_DRINKS_PER_SECTION,
+	MAX_DRINK_CARD_NOTE,
+	MAX_DRINK_DESCRIPTION,
+	MAX_DRINK_NAME,
+	MAX_DRINK_SECTIONS,
+	MAX_DRINK_SECTION_LABEL,
 } from '$lib/types/pricing-editor';
 
 /**
@@ -240,6 +250,82 @@ function parseCourses(value: unknown): MenuCourse[] | false {
 		courses.push({ labelEn: labelEn ?? '', labelFr: labelFr ?? '', dishes });
 	}
 	return courses.length > MAX_MENU_COURSES ? false : courses;
+}
+
+/** The Drinks card as posted (issue 086): its sections in order, each
+ * with its drinks in order. A drink without a French name is dropped (a
+ * line started but not written yet), and a section without a drink too —
+ * the note alone does not keep a card. False when malformed, too many or
+ * too long. */
+function parseDrinkSections(value: unknown): DrinkSection[] | false {
+	if (!Array.isArray(value)) return false;
+	const sections: DrinkSection[] = [];
+	for (const entry of value) {
+		if (typeof entry !== 'object' || entry === null) return false;
+		const section = entry as Record<string, unknown>;
+		const labelEn = optionalText(section.labelEn, MAX_DRINK_SECTION_LABEL);
+		const labelFr = optionalText(section.labelFr, MAX_DRINK_SECTION_LABEL);
+		if (labelEn === false || labelFr === false || !Array.isArray(section.drinks)) return false;
+		const drinks: DrinkItem[] = [];
+		for (const raw of section.drinks) {
+			if (typeof raw !== 'object' || raw === null) return false;
+			const drink = raw as Record<string, unknown>;
+			const nameEn = optionalText(drink.nameEn, MAX_DRINK_NAME);
+			const nameFr = optionalText(drink.nameFr, MAX_DRINK_NAME);
+			const descriptionEn = optionalText(drink.descriptionEn, MAX_DRINK_DESCRIPTION);
+			const descriptionFr = optionalText(drink.descriptionFr, MAX_DRINK_DESCRIPTION);
+			if (nameEn === false || nameFr === false || descriptionEn === false || descriptionFr === false) return false;
+			if (
+				drink.priceAmount !== null &&
+				drink.priceAmount !== undefined &&
+				(!Number.isInteger(drink.priceAmount) ||
+					(drink.priceAmount as number) < 0 ||
+					(drink.priceAmount as number) > MAX_PRICE_AMOUNT)
+			) {
+				return false;
+			}
+			if (nameFr !== null) {
+				drinks.push({
+					nameEn: nameEn ?? '',
+					nameFr,
+					descriptionEn,
+					descriptionFr,
+					priceAmount: (drink.priceAmount as number | null | undefined) ?? null,
+				});
+			}
+		}
+		if (drinks.length > MAX_DRINKS_PER_SECTION) return false;
+		if (drinks.length === 0) continue;
+		sections.push({ labelEn: labelEn ?? '', labelFr: labelFr ?? '', drinks });
+	}
+	return sections.length > MAX_DRINK_SECTIONS ? false : sections;
+}
+
+/** Why a posted Drinks card was refused: always the same message. */
+export const DRINK_CARD_PAYLOAD_ERROR =
+	'La carte des boissons est invalide : au plus 10 sections de 30 boissons, des textes courts et des prix positifs ou nuls au centime près.';
+
+/**
+ * Parse the Drinks card posted by the Menus tab (issue 086) as `drinkCard`:
+ * its sections and note. A card with no drink left parses to no section,
+ * which the save turns into deleting the row. Null when malformed, too
+ * many or too long.
+ */
+export function parseDrinkCardPayload(raw: string | null): DrinkCardPayload | null {
+	if (raw === null) return null;
+	let parsed: unknown;
+	try {
+		parsed = JSON.parse(raw);
+	} catch {
+		return null;
+	}
+	if (typeof parsed !== 'object' || parsed === null) return null;
+	const card = parsed as Record<string, unknown>;
+	const sections = parseDrinkSections(card.sections);
+	const noteEn = optionalText(card.noteEn, MAX_DRINK_CARD_NOTE);
+	const noteFr = optionalText(card.noteFr, MAX_DRINK_CARD_NOTE);
+	if (sections === false || noteEn === false || noteFr === false) return null;
+	return { sections, noteEn, noteFr };
 }
 
 /**
@@ -638,6 +724,32 @@ export async function savePricing(eventId: string, payload: PricingPayload): Pro
 			await tx.delete(eventMenus)
 				.where(inArray(eventMenus.id, removed.map((menu) => menu.id)));
 		}
+
+		// The Drinks card (issue 086): one row per Event, upserted with the
+		// tab — an empty card (no drink) deletes it. Absent from the payload,
+		// it is left as stored.
+		if (payload.drinkCard) {
+			if (payload.drinkCard.sections.length > 0) {
+				await tx.insert(eventDrinkCards)
+					.values({
+						eventId,
+						sections: payload.drinkCard.sections,
+						noteEn: payload.drinkCard.noteEn,
+						noteFr: payload.drinkCard.noteFr,
+					})
+					.onConflictDoUpdate({
+						target: eventDrinkCards.eventId,
+						set: {
+							sections: payload.drinkCard.sections,
+							noteEn: payload.drinkCard.noteEn,
+							noteFr: payload.drinkCard.noteFr,
+							updatedAt: new Date(),
+						},
+					});
+			} else {
+				await tx.delete(eventDrinkCards).where(eq(eventDrinkCards.eventId, eventId));
+			}
+		}
 		return { menuIds: Object.fromEntries(menuIdByKey) };
 	});
 }
@@ -750,10 +862,28 @@ export async function loadPricingEditor(eventId: string): Promise<PricingEditorD
 
 	return {
 		menus,
+		drinkCard: await loadEventDrinkCard(eventId),
 		services,
 		currency: event?.currency ?? DEFAULT_EVENT_CURRENCY,
 		currencyLocked: await eventHasReservations(db, eventId),
 		deposit: depositRuleOf(event ?? {}),
 		refundPolicy: refundPolicyOf(event ?? {}),
 	};
+}
+
+/**
+ * The Event's Drinks card (issue 086) as loaded for the edit page and the
+ * public pages: its sections and note, or null when the Event has none.
+ */
+export async function loadEventDrinkCard(eventId: string): Promise<EditorDrinkCard | null> {
+	const [card] = await db
+		.select({
+			sections: eventDrinkCards.sections,
+			noteEn: eventDrinkCards.noteEn,
+			noteFr: eventDrinkCards.noteFr,
+		})
+		.from(eventDrinkCards)
+		.where(eq(eventDrinkCards.eventId, eventId))
+		.limit(1);
+	return card ?? null;
 }

@@ -3,6 +3,10 @@ import {
 	MAX_COURSE_DISH_DESCRIPTION,
 	MAX_COURSE_DISH_NOTE,
 	MAX_COURSE_LABEL,
+	MAX_DRINK_CARD_NOTE,
+	MAX_DRINK_DESCRIPTION,
+	MAX_DRINK_NAME,
+	MAX_DRINK_SECTION_LABEL,
 	type EditorMenu,
 	type PricingPayload,
 } from '$lib/types/pricing-editor';
@@ -22,6 +26,16 @@ import type { Translator } from './translator';
 export interface StoredPricingText {
 	menus: readonly Pick<EditorMenu, 'id' | 'nameEn' | 'nameFr' | 'courses' | 'descriptionEn' | 'descriptionFr'>[];
 	refundPolicy: { textEn: string | null; textFr: string | null };
+	/** The Event's Drinks card (issue 086), matched by position. */
+	drinkCard?: {
+		sections: readonly {
+			labelEn: string;
+			labelFr: string;
+			drinks: readonly { nameEn: string; nameFr: string; descriptionEn: string | null; descriptionFr: string | null }[];
+		}[];
+		noteEn: string | null;
+		noteFr: string | null;
+	} | null;
 }
 
 const norm = (value: string | null | undefined) => (value?.trim() ? value : null);
@@ -102,6 +116,52 @@ export async function translatePricing(
 		})
 		: -1;
 
+	// The Drinks card (issue 086): each text matched to the saved one at
+	// the same place — section by section, drink by drink — then the note.
+	const drinkCard = payload.drinkCard;
+	const drinkAt = drinkCard
+		? drinkCard.sections.map((section, s) => {
+			const savedSection = stored?.drinkCard?.sections[s];
+			return {
+				label: add({
+					fr: norm(section.labelFr),
+					en: norm(section.labelEn),
+					storedFr: norm(savedSection?.labelFr),
+					storedEn: norm(savedSection?.labelEn),
+					maxLength: MAX_DRINK_SECTION_LABEL,
+				}),
+				drinks: section.drinks.map((drink, d) => {
+					const savedDrink = savedSection?.drinks[d];
+					return {
+						name: add({
+							fr: norm(drink.nameFr),
+							en: norm(drink.nameEn),
+							storedFr: norm(savedDrink?.nameFr),
+							storedEn: norm(savedDrink?.nameEn),
+							maxLength: MAX_DRINK_NAME,
+						}),
+						description: add({
+							fr: norm(drink.descriptionFr),
+							en: norm(drink.descriptionEn),
+							storedFr: norm(savedDrink?.descriptionFr),
+							storedEn: norm(savedDrink?.descriptionEn),
+							maxLength: MAX_DRINK_DESCRIPTION,
+						}),
+					};
+				}),
+			};
+		})
+		: [];
+	const drinkNoteAt = drinkCard
+		? add({
+			fr: norm(drinkCard.noteFr),
+			en: norm(drinkCard.noteEn),
+			storedFr: norm(stored?.drinkCard?.noteFr),
+			storedEn: norm(stored?.drinkCard?.noteEn),
+			maxLength: MAX_DRINK_CARD_NOTE,
+		})
+		: -1;
+
 	const english = await followFrench(pairs, translator);
 	const at = (i: number) => english.value[i];
 	const value: PricingPayload = {
@@ -127,6 +187,21 @@ export async function translatePricing(
 	};
 	if (refund) {
 		value.refundPolicy = { ...refund, textEn: at(refundAt) };
+	}
+	if (drinkCard) {
+		value.drinkCard = {
+			...drinkCard,
+			sections: drinkCard.sections.map((section, s) => ({
+				...section,
+				labelEn: at(drinkAt[s].label) ?? '',
+				drinks: section.drinks.map((drink, d) => ({
+					...drink,
+					nameEn: at(drinkAt[s].drinks[d].name) ?? '',
+					descriptionEn: at(drinkAt[s].drinks[d].description),
+				})),
+			})),
+			noteEn: at(drinkNoteAt),
+		};
 	}
 	return { ...english, value };
 }
