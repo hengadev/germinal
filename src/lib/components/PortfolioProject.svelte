@@ -92,7 +92,7 @@
 								{#if course.label}<p class="text-sm italic text-foreground-alt">{course.label}</p>{/if}
 								{#each course.dishes as d, k (k)}
 									{#if k > 0 && d.alternative}
-										<p class="font-serif text-sm italic text-foreground-alt">{$locale?.startsWith('en') ? 'or' : 'ou'}{#if d.note}<span class="ml-1 text-xs not-italic">{d.note}</span>{/if}</p>
+										<p class="font-serif text-sm italic text-foreground-alt">{$t('events.booking.or')}{#if d.note}<span class="ml-1 text-xs not-italic">{d.note}</span>{/if}</p>
 									{/if}
 									<p class="leading-relaxed text-pretty">{d.name}</p>
 									{#if d.description}<p class="text-sm text-muted-foreground">{d.description}</p>{/if}

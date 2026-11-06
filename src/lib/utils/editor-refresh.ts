@@ -183,10 +183,11 @@ function adoptCourseEnglish(courses: CourseDraftLike[], sent: CourseDraftLike[],
 		for (const dish of course.dishes) {
 			const d = keptDishes.findIndex((k) => k.key === dish.key);
 			if (d === -1) continue;
+			// Saved rows hold null where the draft holds '', so both read as ''.
 			const english = (from: CourseDraftLike['dishes'][number]) => ({
 				nameEn: from.nameEn,
-				descriptionEn: from.descriptionEn,
-				noteEn: from.noteEn,
+				descriptionEn: from.descriptionEn ?? '',
+				noteEn: from.noteEn ?? '',
 			});
 			assign(dish, keepEdits(english(keptDishes[d]), english(dish), english(saved[i].dishes[d])));
 		}
