@@ -198,6 +198,10 @@
       "error": "Your booking could not be saved. Please try again.",
       "waitlistDoneTitle": "Noted",
       "waitlistDone": "You are on the waitlist. If a table frees up, we will write to {email}."
+    },
+    "drinks": {
+      "title": "Drinks",
+      "onSite": "Paid on site"
     }
   },
   "talents": {

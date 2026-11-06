@@ -54,6 +54,50 @@ export interface EditorMenu {
 	descriptionFr: string | null;
 }
 
+/** A drink of the Event's Drinks card (issue 086): its name, an optional
+ * description (each in French and English) and an optional price in minor
+ * units of the Event's currency — informational only, paid on site. */
+export interface DrinkItem {
+	nameEn: string;
+	nameFr: string;
+	descriptionEn: string | null;
+	descriptionFr: string | null;
+	priceAmount: number | null;
+}
+
+/** One section of the Drinks card (« Au verre », « Bouteilles »…): its
+ * label (FR/EN) and its drinks in order. */
+export interface DrinkSection {
+	labelEn: string;
+	labelFr: string;
+	drinks: DrinkItem[];
+}
+
+export const MAX_DRINK_SECTIONS = 10;
+export const MAX_DRINK_SECTION_LABEL = 60;
+export const MAX_DRINKS_PER_SECTION = 30;
+/** A drink's name (a line of the card). */
+export const MAX_DRINK_NAME = 200;
+export const MAX_DRINK_DESCRIPTION = 500;
+/** The card's note (paid on site, allergens…). */
+export const MAX_DRINK_CARD_NOTE = 1000;
+
+/** The Event's Drinks card as loaded for the edit page; null (or absent)
+ * when the Event has none. */
+export interface EditorDrinkCard {
+	sections: DrinkSection[];
+	noteEn: string | null;
+	noteFr: string | null;
+}
+
+/** The Event's Drinks card as posted: absent, it is left as stored; with
+ * no drink, its row is deleted. */
+export interface DrinkCardPayload {
+	sections: DrinkSection[];
+	noteEn: string | null;
+	noteFr: string | null;
+}
+
 /** A migrated Seating that kept its own price (migration 0021). */
 export interface EditorLegacySeatingPrice {
 	seatingId: string;
@@ -98,6 +142,8 @@ export interface EditorEventExtra {
 
 export interface PricingEditorData {
 	menus: EditorMenu[];
+	/** The Event's Drinks card (issue 086). */
+	drinkCard?: EditorDrinkCard | null;
 	services: EditorServicePricing[];
 	/** The Event's extras (issue 067), in display order. */
 	extras?: EditorEventExtra[];
@@ -166,4 +212,6 @@ export interface PricingPayload {
 	deposit?: DepositRule;
 	/** The Event's Refund Policy (issue 027); left unchanged when absent. */
 	refundPolicy?: RefundPolicy;
+	/** The Event's Drinks card (issue 086); left unchanged when absent. */
+	drinkCard?: DrinkCardPayload;
 }
