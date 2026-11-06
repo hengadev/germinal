@@ -116,9 +116,13 @@
                         <a href="/contact" class="text-white/60 hover:text-white text-sm transition-colors w-fit">
                             {$t('nav.contact')}
                         </a>
-                        <a href="/find-ticket" class="text-white/60 hover:text-white text-sm transition-colors w-fit">
-                            {$t('nav.findTicket')}
-                        </a>
+                        <!-- Tickets are sold only for upcoming Events: « Retrouver mon
+                             billet » follows « À venir ». -->
+                        {#if data.hasUpcomingEvents}
+                            <a href="/find-ticket" class="text-white/60 hover:text-white text-sm transition-colors w-fit">
+                                {$t('nav.findTicket')}
+                            </a>
+                        {/if}
                         {#if data.giftCardsOnSale}
                             <a href="/carte-cadeau" class="text-white/60 hover:text-white text-sm transition-colors w-fit">
                                 {$t('nav.giftCard')}
