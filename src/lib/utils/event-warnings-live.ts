@@ -73,11 +73,14 @@ export interface VisualsValues {
 	galleryMediaIds: readonly string[];
 }
 
-/** What « Portfolio » holds: the Recap and the Event Photos. */
+/** What « Portfolio » holds: the Recap, the Event Photos (images, plus
+ * the project's videos, issue 084). */
 export interface PortfolioValues {
 	recapEn: string;
 	recapFr: string;
 	photos: readonly ({ id: string } & MediaAltText)[];
+	/** The project's videos, saved with the photos (issue 084). */
+	videos?: readonly ({ id: string } & MediaAltText)[];
 	coverId: string | null;
 }
 
@@ -181,7 +184,9 @@ export function liveWarningInputs(
 	};
 
 	const savedPhotos = eventPhotosOf(event.media);
-	const photos = unsaved.portfolio?.photos ?? savedPhotos;
+	const photos = unsaved.portfolio
+		? [...unsaved.portfolio.photos, ...(unsaved.portfolio.videos ?? [])]
+		: savedPhotos;
 	const coverId = unsaved.portfolio
 		? unsaved.portfolio.coverId
 		: (savedPhotos.find((photo) => photo.isCover === true)?.id ?? null);

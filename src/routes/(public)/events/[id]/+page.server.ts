@@ -12,7 +12,7 @@ import type { MenuCourse } from '$lib/types/pricing-editor';
 import { toAccessEvent, toAccessSeating } from '$lib/server/services/event-access';
 import { eventAccess, isIndexed, seatingAvailability, viewerOf, type AccessEvent } from '$lib/utils/event-access';
 import { withoutPracticalInfo } from '$lib/utils/practical-info';
-import { eventPhotosOf, projectCover, visualsOf } from '$lib/utils/event-photos';
+import { projectCover, projectStream, visualsOf } from '$lib/utils/event-photos';
 import { loadBookableExtras } from '$lib/server/services/event-extras';
 
 /**
@@ -38,13 +38,15 @@ function projectPage<E extends {
     coverVideo: _coverVideo,
     ...rest
   } = event as E & Record<string, unknown>;
-  const photos = eventPhotosOf(media);
+  const cover = projectCover({ media, coverMedia }) as NonNullable<E['media']>[number] | E['coverMedia'] | null;
   return {
     project: {
       ...(rest as Omit<E, 'media' | 'coverMedia' | 'coverVideo'>),
       // The project cover: the Event Photos' cover, else the Visual one.
-      cover: projectCover({ media, coverMedia }) as NonNullable<E['media']>[number] | E['coverMedia'] | null,
-      eventPhotos: photos as NonNullable<E['media']>,
+      cover,
+      // The photo stream (issue 084): the cover, then the videos, then the
+      // other photos.
+      eventPhotos: projectStream(cover, media) as NonNullable<E['media']>,
       days,
       // The Menus its Services offered (issue 083), as raw rows localized
       // by `projectPage` — no prices.

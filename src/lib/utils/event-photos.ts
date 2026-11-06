@@ -11,6 +11,10 @@
 /** What these helpers read off a media row. */
 export interface RoledMedia {
 	id: string;
+	/** `image` or `video`; Event Photos of type video are the project's
+	 * videos (issue 084) and never a cover. Read loosely (a string) so the
+	 * public pages' media types fit without a cast. */
+	type?: string | null;
 	/** `visual`, `event_photo`, or null (media from before roles, Talent
 	 * media) — anything but `event_photo` reads as a Visual. */
 	role?: 'visual' | 'event_photo' | null;
@@ -34,9 +38,35 @@ export function eventPhotosOf<M extends RoledMedia>(media: readonly M[] | null |
 	return cover ? [cover, ...photos.filter((photo) => photo !== cover)] : photos;
 }
 
-/** The Event Photo chosen as the project cover, or null. */
+/** The Event Photo chosen as the project cover, or null. A video is
+ * never the cover (issue 084). */
 export function eventPhotoCover<M extends RoledMedia>(media: readonly M[] | null | undefined): M | null {
-	return (media ?? []).find((medium) => isEventPhoto(medium) && medium.isCover === true) ?? null;
+	return (media ?? []).find((medium) => isEventPhoto(medium) && medium.type !== 'video' && medium.isCover === true) ?? null;
+}
+
+/** An Event's project videos (issue 084): its Event Photos of type
+ * video, in the order given. */
+export function projectVideosOf<M extends RoledMedia>(media: readonly M[] | null | undefined): M[] {
+	return (media ?? []).filter((medium) => isEventPhoto(medium) && medium.type === 'video');
+}
+
+/** An Event's Event Photos that are images, cover first (the videos are
+ * left to `projectVideosOf`, issue 084). */
+export function projectPhotosOf<M extends RoledMedia>(media: readonly M[] | null | undefined): M[] {
+	return eventPhotosOf(media).filter((medium) => medium.type !== 'video');
+}
+
+/** The project page's photo stream (issue 084): the cover, then the
+ * videos in their order, then the other photos in theirs. The cover is
+ * never a video (`eventPhotoCover`); if it comes from elsewhere it is
+ * only kept out of the photos. */
+export function projectStream<M extends RoledMedia>(
+	cover: M | RoledMedia | null | undefined,
+	media: readonly M[] | null | undefined
+): M[] {
+	const photos = projectPhotosOf(media).filter((photo) => photo.id !== cover?.id);
+	const stream = cover ? [cover, ...projectVideosOf(media), ...photos] : [...projectVideosOf(media), ...photos];
+	return stream as M[];
 }
 
 /** An Event as listings read it: its media and its Visual cover. */
