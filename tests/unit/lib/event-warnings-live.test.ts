@@ -76,7 +76,7 @@ const SCHEDULE: EditorService[] = [
 const PRICING: PricingEditorData = {
 	menus: [{ id: 'm1', nameEn: 'Spring', nameFr: 'Printemps', courses: [], descriptionEn: null, descriptionFr: null }],
 	services: [
-		{ serviceId: 's1', date: '2027-03-12', kind: 'dinner', menuId: 'm1', priceAmount: 9000, seatingCount: 1, legacySeatings: [] },
+		{ serviceId: 's1', date: '2027-03-12', kind: 'dinner', menuId: 'm1', drinkCardId: null, priceAmount: 9000, seatingCount: 1, legacySeatings: [] },
 	],
 	deposit: FULL_PAYMENT_DEPOSIT,
 	refundPolicy: DEFAULT_REFUND_POLICY,

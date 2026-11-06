@@ -832,12 +832,15 @@ export async function savePricing(eventId: string, payload: PricingPayload): Pro
 
 		// Drinks cards left out of the payload (or emptied) are deleted — the
 		// Services that still offered one are simply unlinked (the foreign
-		// key sets them to none), unlike the Menus.
-		const listedCardIds = new Set(keptDrinkCards.flatMap((card) => (card.id === null ? [] : [card.id])));
-		const removedCards = existingDrinkCards.filter((card) => !listedCardIds.has(card.id));
-		if (removedCards.length > 0) {
-			await tx.delete(eventDrinkCards)
-				.where(inArray(eventDrinkCards.id, removedCards.map((card) => card.id)));
+		// key sets them to none), unlike the Menus. Absent from the payload
+		// (the new-event form), the cards are left as stored.
+		if (payload.drinkCards !== undefined) {
+			const listedCardIds = new Set(keptDrinkCards.flatMap((card) => (card.id === null ? [] : [card.id])));
+			const removedCards = existingDrinkCards.filter((card) => !listedCardIds.has(card.id));
+			if (removedCards.length > 0) {
+				await tx.delete(eventDrinkCards)
+					.where(inArray(eventDrinkCards.id, removedCards.map((card) => card.id)));
+			}
 		}
 		return {
 			menuIds: Object.fromEntries(menuIdByKey),

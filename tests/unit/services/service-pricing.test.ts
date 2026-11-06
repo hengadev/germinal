@@ -40,6 +40,7 @@ function service(overrides: Record<string, unknown> = {}) {
 	return {
 		serviceId: LUNCH,
 		menuKey: MENU_ID,
+		drinkCardKey: null,
 		priceAmount: 4500,
 		clearLegacyPrices: false,
 		...overrides,
@@ -68,7 +69,7 @@ describe('parsePricingPayload', () => {
 	it('accepts a zero price and an unset price', () => {
 		const result = parse({
 			menus: [],
-			services: [service({ menuKey: null, priceAmount: 0 }), service({ serviceId: DINNER, menuKey: null, priceAmount: null })],
+			services: [service({ menuKey: null, drinkCardKey: null, priceAmount: 0 }), service({ serviceId: DINNER, menuKey: null, drinkCardKey: null, priceAmount: null })],
 		});
 		if (!result.ok) throw new Error('expected ok');
 		expect(result.payload.services.map((entry) => entry.priceAmount)).toEqual([0, null]);

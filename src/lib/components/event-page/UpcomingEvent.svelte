@@ -6,7 +6,7 @@
 	// Then the text and the facts side by side, and the booking with the
 	// Menu of the meal picked beside it.
 	import { t } from 'svelte-i18n';
-	import type { EventPage, MenuView, PageDay } from '$lib/utils/event-page';
+	import type { DrinksView, EventPage, MenuView, PageDay } from '$lib/utils/event-page';
 	import HeroMedia from './HeroMedia.svelte';
 	import Facts from './Facts.svelte';
 	import InlineBooking from './booking/InlineBooking.svelte';
@@ -23,12 +23,15 @@
 		view: EventPage;
 		schedule: PageDay[];
 		extras?: BookingExtra[];
+		/** The distinct Drinks cards offered (issue 087). */
+		drinks?: DrinksView[];
 		asksDietary?: boolean;
 		preview?: boolean;
 	} = $props();
 
 	const medium = $derived(view.hero);
 	const menus: MenuView[] = $derived(view.menus);
+	const drinks: DrinksView[] = $derived(view.drinks);
 	const canBook = $derived(view.summary === 'open' || view.summary === 'waitlist');
 	const label = 'text-xxs font-medium uppercase tracking-[0.15em]';
 	const keyVisual = $derived(Boolean(medium?.hasName));
@@ -100,7 +103,7 @@
 	{#if view.days.length && view.summary !== 'past'}
 		<section id="reserver" class="mx-auto max-w-7xl scroll-mt-24 px-6 pt-12 pb-28 lg:px-12">
 			<h2 class="mb-10 font-serif text-4xl">{$t('events.page.book')}</h2>
-			<InlineBooking {view} {schedule} {menus} {extras} {asksDietary} {preview} />
+			<InlineBooking {view} {schedule} {menus} {drinks} {extras} {asksDietary} {preview} />
 		</section>
 	{/if}
 </article>

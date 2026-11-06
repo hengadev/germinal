@@ -8,13 +8,13 @@ import type { PageServerLoad } from './$types';
 import type { EventWithMedia } from '$lib/types/events';
 import { seatingTitlesWithFallback } from '$lib/utils/seating-title';
 import type { ServiceKind } from '$lib/utils/seating-times';
-import type { MenuCourse } from '$lib/types/pricing-editor';
+import type { DrinkSection, MenuCourse } from '$lib/types/pricing-editor';
 import { toAccessEvent, toAccessSeating } from '$lib/server/services/event-access';
 import { eventAccess, isIndexed, seatingAvailability, viewerOf, type AccessEvent } from '$lib/utils/event-access';
 import { withoutPracticalInfo } from '$lib/utils/practical-info';
 import { projectCover, projectStream, visualsOf } from '$lib/utils/event-photos';
 import { loadBookableExtras } from '$lib/server/services/event-extras';
-import { loadEventDrinkCard } from '$lib/server/services/service-pricing';
+import { loadEventDrinkCards } from '$lib/server/services/service-pricing';
 
 /**
  * A Portfolio Event's page is its project (issue 045, ADR 0007): the
@@ -25,7 +25,7 @@ import { loadEventDrinkCard } from '$lib/server/services/service-pricing';
 function projectPage<E extends {
   media?: { id: string; role?: 'visual' | 'event_photo' | null; isCover?: boolean | null }[] | null;
   coverMedia?: { id: string } | null;
-}>(event: E, days: string[], menus?: { menuServices: unknown[]; menus: unknown[]; drinkCard?: unknown }) {
+}>(event: E, days: string[], menus?: { menuServices: unknown[]; menus: unknown[]; drinkServices?: unknown[]; drinkCards?: unknown[] }) {
   const {
     descriptionEn: _descriptionEn,
     descriptionFr: _descriptionFr,
@@ -50,21 +50,21 @@ function projectPage<E extends {
       eventPhotos: projectStream(cover, media) as NonNullable<E['media']>,
       days,
       // The Menus its Services offered (issue 083), as raw rows localized
-      // by `projectPage` — and its Drinks card (issue 086).
+      // by `projectPage` — and its Drinks cards (issues 086, 087).
       ...(menus ?? { menuServices: [], menus: [] }),
     },
   };
 }
 
 /** The Event's Services (Day's date, kind, Menu) and its Menus, as the
- * project page shows its Menus (issue 083), and its Drinks card (issue
- * 086). No prices. */
+ * project page shows its Menus (issue 083), and its Drinks cards with the
+ * Services that offered them (issue 087). No prices. */
 async function menusOfEvent(eventId: string) {
   const { db } = await import('$lib/server/db');
   const { eventDays, eventServices, eventMenus } = await import('$lib/server/db/schema');
   const { eq } = await import('drizzle-orm');
   const menuServices = await db
-    .select({ date: eventDays.date, kind: eventServices.kind, menuId: eventServices.menuId })
+    .select({ date: eventDays.date, kind: eventServices.kind, menuId: eventServices.menuId, drinkCardId: eventServices.drinkCardId })
     .from(eventServices)
     .innerJoin(eventDays, eq(eventServices.dayId, eventDays.id))
     .where(eq(eventDays.eventId, eventId));
@@ -79,7 +79,8 @@ async function menusOfEvent(eventId: string) {
     })
     .from(eventMenus)
     .where(eq(eventMenus.eventId, eventId));
-  return { menuServices, menus, drinkCard: await loadEventDrinkCard(eventId) };
+  const drinkCards = await loadEventDrinkCards(eventId);
+  return { menuServices, menus, drinkServices: menuServices, drinkCards };
 }
 
 /** The Event as its announcement shows it: with its Visuals only, never
@@ -146,8 +147,9 @@ function robots(event: AccessEvent, setHeaders: (headers: Record<string, string>
   return indexed;
 }
 
-/** What a Service offers on the public page (issue 022): its Menu and the
- * price per guest, shown once per Service rather than on every Seating. */
+/** What a Service offers on the public page (issue 022): its Menu, its
+ * Drinks card (issue 087) and the price per guest, shown once per Service
+ * rather than on every Seating. */
 interface ServiceOffer {
   menu: {
     nameEn: string;
@@ -155,6 +157,14 @@ interface ServiceOffer {
     courses: MenuCourse[];
     descriptionEn: string | null;
     descriptionFr: string | null;
+  } | null;
+  /** The meal's Drinks card, like its Menu; null for none. */
+  drinks: {
+    nameEn: string;
+    nameFr: string;
+    sections: DrinkSection[];
+    noteEn: string | null;
+    noteFr: string | null;
   } | null;
   /** Minor units; null while the price is not announced yet. */
   priceAmount: number | null;
@@ -245,6 +255,7 @@ export const load: PageServerLoad = async ({ params, locals, setHeaders }) => {
     // Mock Services have no Menu; their price is their first Seating's.
     const schedule = buildSchedule(rows, (_serviceId, items) => ({
       menu: null,
+      drinks: null,
       priceAmount: items[0].priceAmount,
       currency: items[0].currency,
     }));
@@ -336,6 +347,7 @@ export const load: PageServerLoad = async ({ params, locals, setHeaders }) => {
       const offer = offers.get(serviceId);
       return {
         menu: offer?.menu ?? null,
+        drinks: offer?.drinks ?? null,
         priceAmount: offer?.priceAmount ?? null,
         currency: offer?.currency ?? 'EUR',
       };
@@ -346,8 +358,9 @@ export const load: PageServerLoad = async ({ params, locals, setHeaders }) => {
       // The public page never carries Practical Info (issue 040) — not even
       // for the Admin previewing a Draft — and the announcement shows only
       // the Visuals, never the Event Photos (issue 045).
-      // Its Drinks card (issue 086), shown after the Menu of the meal picked.
-      event: { ...onlyVisuals(withoutPracticalInfo(event)), drinkCard: await loadEventDrinkCard(event.id) },
+      // Each meal's Drinks card (issue 087) travels with its Menu, in the
+      // schedule's Services.
+      event: onlyVisuals(withoutPracticalInfo(event)),
       indexed,
       schedule,
       sessions: rows.map((row) => row.item),

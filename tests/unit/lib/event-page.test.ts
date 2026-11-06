@@ -37,7 +37,7 @@ function seating(overrides: Partial<PageSeating> = {}): PageSeating {
 }
 
 function day(date: string, sessions: PageSeating[], priceAmount: number | null = 8500, menu: PageDay['services'][number]['menu'] = null): PageDay {
-	return { date, services: [{ kind: 'dinner', menu, priceAmount, currency: 'EUR', sessions }] };
+	return { date, services: [{ kind: 'dinner', menu, drinks: null, priceAmount, currency: 'EUR', sessions }] };
 }
 
 const event = { id: 'e1', timeZone: 'Europe/Paris', titleFr: 'Braises', titleEn: 'Embers', depositType: 'percent', depositValue: 100 };

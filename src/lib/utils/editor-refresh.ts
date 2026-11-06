@@ -267,6 +267,7 @@ export function adoptSavedDrinkCards<C extends DrinkCardDraftLike>(
 		assign<DrinkCardDraftLike>(card, { id });
 		if (sentCard) {
 			assign<DrinkCardDraftLike>(card, keepEdits({ nameEn: sentCard.nameEn }, { nameEn: card.nameEn }, { nameEn: savedCard.nameEn }));
+			assign<DrinkCardDraftLike>(card, keepEdits({ noteEn: sentCard.noteEn }, { noteEn: card.noteEn }, { noteEn: savedCard.noteEn }));
 			adoptDrinkCardEnglish(card.sections ?? [], sentCard.sections ?? [], savedCard.sections ?? []);
 		}
 	}
