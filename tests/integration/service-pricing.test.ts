@@ -74,8 +74,8 @@ const TASTING = {
 	nameEn: 'Tasting menu',
 	nameFr: 'Menu dégustation',
 	courses: [
-		{ labelEn: 'Starter', labelFr: 'Entrée', dishes: [{ en: 'Oysters', fr: 'Huîtres' }, { en: 'Soup', fr: 'Velouté' }] },
-		{ labelEn: 'Main course', labelFr: 'Plat', dishes: [{ en: 'Lamb', fr: 'Agneau' }] },
+		{ labelEn: 'Starter', labelFr: 'Entrée', dishes: [{ nameFr: 'Huîtres', nameEn: 'Oysters', descriptionFr: null, descriptionEn: null, alternative: false, noteFr: null, noteEn: null }, { nameFr: 'Velouté', nameEn: 'Soup', descriptionFr: null, descriptionEn: null, alternative: true, noteFr: null, noteEn: null }] },
+		{ labelEn: 'Main course', labelFr: 'Plat', dishes: [{ nameFr: 'Agneau', nameEn: 'Lamb', descriptionFr: 'En croûte', descriptionEn: 'In a crust', alternative: false, noteFr: null, noteEn: null }] },
 	],
 	descriptionEn: 'Seven courses',
 	descriptionFr: 'Sept services',
@@ -118,7 +118,8 @@ describe('savePricing', () => {
 
 		const offers = await getServiceOffersByEventId(event.id);
 		expect(offers.get(lunch.serviceId)).toMatchObject({ menu: { nameFr: 'Menu dégustation' }, priceAmount: 4500 });
-		expect(offers.get(dinner.serviceId)).toMatchObject({ menu: { nameFr: 'Menu dégustation' }, priceAmount: 8500 });
+		// What the announcement page serves keeps descriptions and alternatives.
+		expect(offers.get(dinner.serviceId)).toMatchObject({ menu: { nameFr: 'Menu dégustation', courses: TASTING.courses }, priceAmount: 8500 });
 
 		// Each Seating is now booked at its own Service's price.
 		expect(await getSeatingPrice(testDb, lunch.seatingId)).toEqual({ amount: 4500, currency: 'EUR', legacy: false });

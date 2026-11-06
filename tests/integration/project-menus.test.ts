@@ -119,7 +119,24 @@ async function seedPortfolioEventWithMenu() {
 			eventId: event.id,
 			nameEn: 'Spring menu',
 			nameFr: 'Menu de printemps',
-			courses: [{ labelEn: 'Starter', labelFr: 'Entrée', dishes: [{ en: 'Broth', fr: 'Bouillon' }] }],
+			courses: [
+				{
+					labelEn: 'Starter',
+					labelFr: 'Entrée',
+					dishes: [
+						{ nameFr: 'Bouillon', nameEn: 'Broth', descriptionFr: null, descriptionEn: null, alternative: false, noteFr: null, noteEn: null },
+						{
+							nameFr: 'Ravioles',
+							nameEn: '',
+							descriptionFr: 'Maison',
+							descriptionEn: null,
+							alternative: true,
+							noteFr: 'Sans gluten',
+							noteEn: null,
+						},
+					],
+				},
+			],
 			descriptionEn: 'Wine included',
 			descriptionFr: 'Vin compris',
 		})
@@ -161,6 +178,16 @@ describe('the public Event page of a Portfolio Event (issue 083)', () => {
 				id: data.project.menus[0].id,
 				nameFr: 'Menu de printemps',
 				descriptionFr: 'Vin compris',
+				courses: [
+					{
+						labelEn: 'Starter',
+						labelFr: 'Entrée',
+						dishes: [
+							{ nameFr: 'Bouillon', nameEn: 'Broth', descriptionFr: null, descriptionEn: null, alternative: false, noteFr: null, noteEn: null },
+							{ nameFr: 'Ravioles', nameEn: '', descriptionFr: 'Maison', descriptionEn: null, alternative: true, noteFr: 'Sans gluten', noteEn: null },
+						],
+					},
+				],
 			}),
 		]);
 		const serialized = JSON.stringify(data.project);

@@ -66,7 +66,16 @@
 	];
 
 	export function newDish(): DraftDish {
-		return { key: nextKey++, en: '', fr: '' };
+		return {
+			key: nextKey++,
+			nameEn: '',
+			nameFr: '',
+			descriptionEn: '',
+			descriptionFr: '',
+			alternative: false,
+			noteEn: '',
+			noteFr: '',
+		};
 	}
 
 	/** A new Course with one dish to write, labelled as the one that
@@ -127,7 +136,14 @@
 			courses: menu.courses.map((course) => ({
 				...course,
 				key: nextKey++,
-				dishes: course.dishes.map((dish) => ({ ...dish, key: nextKey++ })),
+				dishes: course.dishes.map((dish) => ({
+					...dish,
+					descriptionEn: dish.descriptionEn ?? '',
+					descriptionFr: dish.descriptionFr ?? '',
+					noteEn: dish.noteEn ?? '',
+					noteFr: dish.noteFr ?? '',
+					key: nextKey++,
+				})),
 			})),
 			descriptionEn: menu.descriptionEn ?? '',
 			descriptionFr: menu.descriptionFr ?? '',
@@ -462,8 +478,16 @@
 						labelEn: course.labelEn.trim(),
 						labelFr: course.labelFr.trim(),
 						dishes: course.dishes
-							.filter((dish) => dish.fr.trim())
-							.map((dish) => ({ en: dish.en.trim(), fr: dish.fr.trim() })),
+							.filter((dish) => (dish.nameFr ?? '').trim())
+							.map((dish) => ({
+								nameEn: (dish.nameEn ?? '').trim(),
+								nameFr: (dish.nameFr ?? '').trim(),
+								descriptionEn: (dish.descriptionEn ?? '').trim() || null,
+								descriptionFr: (dish.descriptionFr ?? '').trim() || null,
+								alternative: dish.alternative,
+								noteEn: (dish.noteEn ?? '').trim() || null,
+								noteFr: (dish.noteFr ?? '').trim() || null,
+							})),
 					}))
 					.filter((course) => course.dishes.length > 0),
 				descriptionEn: menu.descriptionEn.trim() || null,
@@ -546,7 +570,7 @@
 		if (index === -1) return;
 		const menu = menus[index];
 		const touched =
-			menu.nameFr.trim() || menu.nameEn.trim() || menu.descriptionFr.trim() || menu.descriptionEn.trim() || menu.courses.some((c) => c.dishes.some((d) => d.fr.trim()));
+			menu.nameFr.trim() || menu.nameEn.trim() || menu.descriptionFr.trim() || menu.descriptionEn.trim() || menu.courses.some((c) => c.dishes.some((d) => (d.nameFr ?? '').trim() || (d.descriptionFr ?? '').trim()));
 		if (touched) use(key);
 		else menus.splice(index, 1);
 	});

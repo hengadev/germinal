@@ -123,11 +123,17 @@ export interface MenuDraftLike {
 	courses?: CourseDraftLike[];
 }
 
-/** A Course draft: only its dishes with French are saved, in order. */
+/** A Course draft: only its dishes with a French name are saved, in order. */
 export interface CourseDraftLike {
 	key?: number;
 	labelEn: string;
-	dishes: { key?: number; en: string; fr: string }[];
+	dishes: {
+		key?: number;
+		nameEn: string;
+		nameFr: string;
+		descriptionEn: string | null;
+		noteEn: string | null;
+	}[];
 }
 
 /**
@@ -165,7 +171,7 @@ export function adoptSavedMenus<M extends MenuDraftLike>(
  * not edited since: what was saved is what was sent with French, in the
  * same order. */
 function adoptCourseEnglish(courses: CourseDraftLike[], sent: CourseDraftLike[], saved: CourseDraftLike[]): void {
-	const written = (dishes: CourseDraftLike['dishes']) => dishes.filter((dish) => dish.fr.trim());
+	const written = (dishes: CourseDraftLike['dishes']) => dishes.filter((dish) => dish.nameFr.trim());
 	const kept = sent.filter((course) => written(course.dishes).length > 0);
 	if (kept.length !== saved.length) return;
 	for (const course of courses) {
@@ -177,7 +183,13 @@ function adoptCourseEnglish(courses: CourseDraftLike[], sent: CourseDraftLike[],
 		for (const dish of course.dishes) {
 			const d = keptDishes.findIndex((k) => k.key === dish.key);
 			if (d === -1) continue;
-			assign(dish, keepEdits({ en: keptDishes[d].en }, { en: dish.en }, { en: saved[i].dishes[d].en }));
+			// Saved rows hold null where the draft holds '', so both read as ''.
+			const english = (from: CourseDraftLike['dishes'][number]) => ({
+				nameEn: from.nameEn,
+				descriptionEn: from.descriptionEn ?? '',
+				noteEn: from.noteEn ?? '',
+			});
+			assign(dish, keepEdits(english(keptDishes[d]), english(dish), english(saved[i].dishes[d])));
 		}
 	}
 }
