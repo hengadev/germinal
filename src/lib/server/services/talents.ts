@@ -9,6 +9,16 @@ import {
 } from '$lib/utils/pagination';
 import { invalidateCacheTags, CACHE_TAGS } from '$lib/server/cache';
 
+/** Whether any Talent is published: the navigation links « Talents » only then. */
+export async function hasPublishedTalents(): Promise<boolean> {
+	const rows = await db.query.talents.findMany({
+		where: eq(talents.published, true),
+		columns: { id: true },
+		limit: 1,
+	});
+	return rows.length > 0;
+}
+
 export async function getAllTalents(options: { publishedOnly?: boolean; page?: number; limit?: number; cursor?: string }) {
 	const { publishedOnly = true, page = 1, limit = 20 } = options;
 

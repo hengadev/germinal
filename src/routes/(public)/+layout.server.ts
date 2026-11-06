@@ -1,6 +1,7 @@
 import type { LayoutServerLoad } from './$types';
 import { getSpotlightEvent, hasUpcomingEvents } from '$lib/server/services/events';
-import { MOCK_EVENTS, MOCK_SESSIONS, USE_MOCK_DATA } from '$lib/mock-data';
+import { hasPublishedTalents } from '$lib/server/services/talents';
+import { MOCK_EVENTS, MOCK_TALENTS, MOCK_SESSIONS, USE_MOCK_DATA } from '$lib/mock-data';
 import { canBeSpotlight, isUpcoming } from '$lib/utils/event-access';
 
 /** The mock Events' next published Seating still ahead, or null. */
@@ -18,18 +19,22 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 	// Check if spotlight event exists (for navigation)
 	let hasSpotlightEvent = false;
 	let upcomingEvents = false;
+	let talentsPublished = false;
 	if (USE_MOCK_DATA) {
 		hasSpotlightEvent = MOCK_EVENTS.some(e => e.isSpotlight && canBeSpotlight(e));
 		const now = new Date();
 		upcomingEvents = MOCK_EVENTS.some(e => isUpcoming(e, mockNextPublishedStart(e), now));
+		talentsPublished = MOCK_TALENTS.length > 0;
 	} else {
 		try {
 			const spotlightEvent = await getSpotlightEvent();
 			hasSpotlightEvent = spotlightEvent !== null;
 			upcomingEvents = await hasUpcomingEvents();
+			talentsPublished = await hasPublishedTalents();
 		} catch {
 			hasSpotlightEvent = false;
 			upcomingEvents = false;
+			talentsPublished = false;
 		}
 	}
 
@@ -38,6 +43,7 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 		isAdminDomain: locals.isAdminDomain,
 		csrfToken: locals.csrfToken,
 		hasSpotlightEvent,
-		hasUpcomingEvents: upcomingEvents
+		hasUpcomingEvents: upcomingEvents,
+		hasPublishedTalents: talentsPublished
 	};
 };

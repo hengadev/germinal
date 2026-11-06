@@ -4,6 +4,7 @@
 // but the Admin (404, not 403), mirroring how Event access gates Events.
 // Real test database; the route handlers are called directly.
 import { describe, it, expect, beforeEach, beforeAll, afterAll, vi } from 'vitest';
+import { eq } from 'drizzle-orm';
 import { events, media, talents } from '../../src/lib/server/db/schema';
 import { getTestDatabase, setupTestDatabase, closeTestDatabase, TEST_DATABASE_URL } from '../fixtures/database';
 
@@ -188,5 +189,17 @@ describe('media detail API', () => {
 
 	it.each(['publishedTalent', 'publicEvent'])('%s media is readable by anyone', async (key) => {
 		expect(await get(key, ANONYMOUS)).toBe(200);
+	});
+});
+
+describe('the « Talents » navigation link', () => {
+	const locals = { user: null, isAdminDomain: false, isStaffDomain: false, csrfToken: '' };
+
+	it('shows while a Talent is published, and goes when none is', async () => {
+		const { load } = await import('../../src/routes/(public)/+layout.server');
+		expect((await load({ locals } as any)).hasPublishedTalents).toBe(true);
+
+		await testDb.update(talents).set({ published: false }).where(eq(talents.id, published));
+		expect((await load({ locals } as any)).hasPublishedTalents).toBe(false);
 	});
 });

@@ -10,9 +10,10 @@
     type Props = {
         hasSpotlightEvent?: boolean;
         hasUpcomingEvents?: boolean;
+        hasPublishedTalents?: boolean;
     };
 
-    let { hasSpotlightEvent = true, hasUpcomingEvents = false }: Props = $props();
+    let { hasSpotlightEvent = true, hasUpcomingEvents = false, hasPublishedTalents = false }: Props = $props();
 
     let scrolled = $state(false);
     let isMobileMenuOpen = $state(false);
@@ -53,7 +54,7 @@
         ...(hasUpcomingEvents ? [{ href: "/a-venir", label: $t('nav.upcoming') }] : []),
         { href: "/manifesto", label: $t('nav.manifesto') },
         { href: "/events", label: $t('nav.events') },
-        { href: "/talents", label: $t('nav.talents') },
+        ...(hasPublishedTalents ? [{ href: "/talents", label: $t('nav.talents') }] : []),
         { href: "/contact", label: $t('nav.contact') },
     ]);
 

@@ -54,7 +54,7 @@
 </script>
 
 <div class="min-h-screen flex flex-col">
-    <Navigation hasSpotlightEvent={data.hasSpotlightEvent} hasUpcomingEvents={data.hasUpcomingEvents} />
+    <Navigation hasSpotlightEvent={data.hasSpotlightEvent} hasUpcomingEvents={data.hasUpcomingEvents} hasPublishedTalents={data.hasPublishedTalents} />
 
     <main class="flex-1">
         {@render children()}
@@ -108,9 +108,11 @@
                         <a href="/events" class="text-white/60 hover:text-white text-sm transition-colors w-fit">
                             {$t('nav.events')}
                         </a>
-                        <a href="/talents" class="text-white/60 hover:text-white text-sm transition-colors w-fit">
-                            {$t('nav.talents')}
-                        </a>
+                        {#if data.hasPublishedTalents}
+                            <a href="/talents" class="text-white/60 hover:text-white text-sm transition-colors w-fit">
+                                {$t('nav.talents')}
+                            </a>
+                        {/if}
                         <a href="/contact" class="text-white/60 hover:text-white text-sm transition-colors w-fit">
                             {$t('nav.contact')}
                         </a>
