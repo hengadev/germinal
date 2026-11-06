@@ -322,18 +322,21 @@ export const eventMenus = pgTable('event_menus', {
     eventIdIdx: index('event_menus_event_id_idx').on(table.eventId),
 }));
 
-// An Event's Drinks card (issue 086): its sections in order, each with a
-// label (FR/EN) and drinks in order — a drink has a name, an optional
-// description (FR/EN) and an optional price in minor units of the Event's
-// currency. Informational only: no link to Services or Reservations; the
-// drinks are paid on site. At most one card per Event; an empty one (no
-// drink) is deleted on save.
+// An Event's Drinks cards (issues 086, 087), like its Menus: any number
+// per Event, each with a name (FR/EN) and offered on the Services (meals)
+// that pick it. Its sections in order, each with a label (FR/EN) and
+// drinks in order — a drink has a name, an optional description (FR/EN)
+// and an optional price in minor units of the Event's currency.
+// Informational only: no link to Reservations; the drinks are paid on
+// site. A card left out of a save is deleted; one left empty (no drink)
+// is deleted on save.
 export const eventDrinkCards = pgTable('event_drink_cards', {
     id: uuid('id').defaultRandom().primaryKey(),
     eventId: uuid('event_id')
         .notNull()
-        .references(() => events.id, { onDelete: 'cascade' })
-        .unique(),
+        .references(() => events.id, { onDelete: 'cascade' }),
+    nameEn: varchar('name_en', { length: 255 }).notNull(),
+    nameFr: varchar('name_fr', { length: 255 }).notNull(),
     sections: jsonb('sections')
         .$type<{
             labelEn: string;
@@ -354,7 +357,9 @@ export const eventDrinkCards = pgTable('event_drink_cards', {
     noteFr: text('note_fr'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (table) => ({
+    eventIdIdx: index('event_drink_cards_event_id_idx').on(table.eventId),
+}));
 
 // A Service is a meal (lunch or dinner) on a Day and owns one or more
 // Seatings (the `event_sessions` table). The default Seating duration is
@@ -381,6 +386,10 @@ export const eventServices = pgTable('event_services', {
     // first with a French message; the constraint is the backstop).
     menuId: uuid('menu_id')
         .references(() => eventMenus.id),
+    // The Drinks card the meal offers (issue 087), like its Menu: none
+    // until picked, and none again once the card is deleted (SET NULL).
+    drinkCardId: uuid('drink_card_id')
+        .references(() => eventDrinkCards.id, { onDelete: 'set null' }),
     // Minor units (cents), zero allowed (free Events, ADR 0001); NULL until set.
     priceAmount: integer('price_amount'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
@@ -388,6 +397,7 @@ export const eventServices = pgTable('event_services', {
 }, (table) => ({
     dayIdIdx: index('event_services_day_id_idx').on(table.dayId),
     menuIdIdx: index('event_services_menu_id_idx').on(table.menuId),
+    drinkCardIdIdx: index('event_services_drink_card_id_idx').on(table.drinkCardId),
     dayKindUnique: unique('event_services_day_kind_unique').on(table.dayId, table.kind),
     priceCheck: check('event_services_price_check',
         sql`price_amount IS NULL OR price_amount >= 0`
@@ -514,7 +524,7 @@ export const eventsRelations = relations(events, ({ many, one }) => ({
     eventSessions: many(eventSessions),
     days: many(eventDays),
     menus: many(eventMenus),
-    drinkCard: one(eventDrinkCards),
+    drinkCards: many(eventDrinkCards),
     coupons: many(coupons),
     staff: many(eventStaff),
     roleBriefs: many(eventRoleBriefs),
@@ -529,11 +539,12 @@ export const eventDaysRelations = relations(eventDays, ({ one, many }) => ({
     services: many(eventServices),
 }));
 
-export const eventDrinkCardsRelations = relations(eventDrinkCards, ({ one }) => ({
+export const eventDrinkCardsRelations = relations(eventDrinkCards, ({ one, many }) => ({
     event: one(events, {
         fields: [eventDrinkCards.eventId],
         references: [events.id],
     }),
+    services: many(eventServices),
 }));
 
 export const eventMenusRelations = relations(eventMenus, ({ one, many }) => ({
@@ -552,6 +563,10 @@ export const eventServicesRelations = relations(eventServices, ({ one, many }) =
     menu: one(eventMenus, {
         fields: [eventServices.menuId],
         references: [eventMenus.id],
+    }),
+    drinkCard: one(eventDrinkCards, {
+        fields: [eventServices.drinkCardId],
+        references: [eventDrinkCards.id],
     }),
     eventSessions: many(eventSessions),
 }));
