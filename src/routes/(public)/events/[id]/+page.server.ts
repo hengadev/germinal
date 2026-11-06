@@ -14,6 +14,7 @@ import { eventAccess, isIndexed, seatingAvailability, viewerOf, type AccessEvent
 import { withoutPracticalInfo } from '$lib/utils/practical-info';
 import { projectCover, projectStream, visualsOf } from '$lib/utils/event-photos';
 import { loadBookableExtras } from '$lib/server/services/event-extras';
+import { loadEventDrinkCard } from '$lib/server/services/service-pricing';
 
 /**
  * A Portfolio Event's page is its project (issue 045, ADR 0007): the
@@ -24,7 +25,7 @@ import { loadBookableExtras } from '$lib/server/services/event-extras';
 function projectPage<E extends {
   media?: { id: string; role?: 'visual' | 'event_photo' | null; isCover?: boolean | null }[] | null;
   coverMedia?: { id: string } | null;
-}>(event: E, days: string[], menus?: { menuServices: unknown[]; menus: unknown[] }) {
+}>(event: E, days: string[], menus?: { menuServices: unknown[]; menus: unknown[]; drinkCard?: unknown }) {
   const {
     descriptionEn: _descriptionEn,
     descriptionFr: _descriptionFr,
@@ -49,14 +50,15 @@ function projectPage<E extends {
       eventPhotos: projectStream(cover, media) as NonNullable<E['media']>,
       days,
       // The Menus its Services offered (issue 083), as raw rows localized
-      // by `projectPage` — no prices.
+      // by `projectPage` — and its Drinks card (issue 086).
       ...(menus ?? { menuServices: [], menus: [] }),
     },
   };
 }
 
 /** The Event's Services (Day's date, kind, Menu) and its Menus, as the
- * project page shows its Menus (issue 083). No prices. */
+ * project page shows its Menus (issue 083), and its Drinks card (issue
+ * 086). No prices. */
 async function menusOfEvent(eventId: string) {
   const { db } = await import('$lib/server/db');
   const { eventDays, eventServices, eventMenus } = await import('$lib/server/db/schema');
@@ -77,7 +79,7 @@ async function menusOfEvent(eventId: string) {
     })
     .from(eventMenus)
     .where(eq(eventMenus.eventId, eventId));
-  return { menuServices, menus };
+  return { menuServices, menus, drinkCard: await loadEventDrinkCard(eventId) };
 }
 
 /** The Event as its announcement shows it: with its Visuals only, never
@@ -344,7 +346,8 @@ export const load: PageServerLoad = async ({ params, locals, setHeaders }) => {
       // The public page never carries Practical Info (issue 040) — not even
       // for the Admin previewing a Draft — and the announcement shows only
       // the Visuals, never the Event Photos (issue 045).
-      event: onlyVisuals(withoutPracticalInfo(event)),
+      // Its Drinks card (issue 086), shown after the Menu of the meal picked.
+      event: { ...onlyVisuals(withoutPracticalInfo(event)), drinkCard: await loadEventDrinkCard(event.id) },
       indexed,
       schedule,
       sessions: rows.map((row) => row.item),

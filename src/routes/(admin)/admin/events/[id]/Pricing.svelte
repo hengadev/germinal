@@ -14,7 +14,7 @@
 	import { enhance } from '$app/forms';
 	import { getToastContext } from '$lib/components/toast/state.svelte';
 	import { reportSave } from '$lib/utils/editor-save-form';
-	import { adoptSavedMenus, followSavedServices, keepEdits } from '$lib/utils/editor-refresh';
+	import { adoptSavedDrinkCard, adoptSavedMenus, followSavedServices, keepEdits } from '$lib/utils/editor-refresh';
 	import { AUTOSAVE_ATTRIBUTE, handleTabResult } from './editor-forms';
 	import ProgrammeEditor from '$lib/components/admin/schedule/ProgrammeEditor.svelte';
 	import {
@@ -37,6 +37,7 @@
 		type DraftRefund,
 	} from '$lib/components/admin/PricingEditor.svelte';
 	import ExtrasEditor, { toDraftExtras, type DraftExtra } from '$lib/components/admin/ExtrasEditor.svelte';
+	import DrinkCardEditor, { toDraftDrinkCard, type DraftDrinkCard } from '$lib/components/admin/DrinkCardEditor.svelte';
 	import type { PricingEditorData } from '$lib/types/pricing-editor';
 	import type { PricingValues } from '$lib/utils/event-warnings-live';
 
@@ -50,9 +51,11 @@
 	let services: DraftPricingService[] = $state(toDraftPricingServices(data.pricing));
 	let currency: string = $state(toDraftCurrency(data.pricing));
 	let extras: DraftExtra[] = $state(toDraftExtras(data.pricing));
+	let drinkCard: DraftDrinkCard = $state(toDraftDrinkCard(data.pricing));
 	let saving = $state(false);
 	let editor: ReturnType<typeof PricingEditor> | undefined = $state();
 	let extrasEditor: ReturnType<typeof ExtrasEditor> | undefined = $state();
+	let drinksEditor: ReturnType<typeof DrinkCardEditor> | undefined = $state();
 
 	const findService = (date: string, kind: string) => services.find((service) => service.date === date && service.kind === kind);
 
@@ -129,10 +132,10 @@
 	// the cursor while the Admin types. An explicit save says it with a
 	// toast and goes to the field.
 	let refused = $state(false);
-	const shownBlocking = $derived(refused ? (editor?.firstBlockingField() ?? extrasEditor?.firstBlockingField() ?? null) : null);
+	const shownBlocking = $derived(refused ? (editor?.firstBlockingField() ?? drinksEditor?.firstBlockingField() ?? extrasEditor?.firstBlockingField() ?? null) : null);
 
 	function savePricingEnhance({ cancel, formElement }: { cancel: () => void; formElement: HTMLFormElement }) {
-		const blocking = editor?.firstBlockingField() ?? extrasEditor?.firstBlockingField() ?? null;
+		const blocking = editor?.firstBlockingField() ?? drinksEditor?.firstBlockingField() ?? extrasEditor?.firstBlockingField() ?? null;
 		if (blocking) {
 			cancel();
 			reportSave(formElement, { ok: false, reason: 'invalid', message: blocking.message });
@@ -148,6 +151,7 @@
 		saving = true;
 		const sent = {
 			menus: $state.snapshot(menus),
+			drinkCard: $state.snapshot(drinkCard),
 			refundTextEn: refund.textEn,
 			clearing: new Set(services.filter((service) => service.clearLegacyPrices).map((service) => service.serviceId)),
 		};
@@ -167,11 +171,12 @@
 	 * generated from the French is taken where not edited meanwhile.
 	 */
 	function adoptSaved(
-		sent: { menus: DraftMenu[]; refundTextEn: string; clearing: Set<string> },
+		sent: { menus: DraftMenu[]; drinkCard: DraftDrinkCard; refundTextEn: string; clearing: Set<string> },
 		menuIds: Record<string, string> | undefined,
 		extraIds: Record<string, string> | undefined
 	) {
 		adoptSavedMenus(menus, sent.menus, toDraftMenus(data.pricing), menuIds);
+		adoptSavedDrinkCard(drinkCard, sent.drinkCard, toDraftDrinkCard(data.pricing));
 		// The new extras take their ids, keeping what was typed since the
 		// save started (issue 019).
 		if (extraIds) {
@@ -201,6 +206,7 @@
 		refund = toDraftRefund(data.pricing);
 		currency = toDraftCurrency(data.pricing);
 		extras = toDraftExtras(data.pricing);
+		drinkCard = toDraftDrinkCard(data.pricing);
 		programme.reinfer();
 	}
 
@@ -254,6 +260,9 @@
 			/>
 		{/if}
 	</PricingEditor>
+
+	<!-- The Drinks card (issue 086), in the Portfolio-only « Menus » tab too. -->
+	<DrinkCardEditor bind:this={drinksEditor} bind:card={drinkCard} {currency} />
 
 	{#if !menusOnly}
 		<ExtrasEditor bind:this={extrasEditor} bind:extras {currency} />

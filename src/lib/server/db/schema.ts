@@ -299,7 +299,19 @@ export const eventMenus = pgTable('event_menus', {
     nameEn: varchar('name_en', { length: 255 }).notNull(),
     nameFr: varchar('name_fr', { length: 255 }).notNull(),
     courses: jsonb('courses')
-        .$type<{ labelEn: string; labelFr: string; dishes: { en: string; fr: string }[] }[]>()
+        .$type<{
+            labelEn: string;
+            labelFr: string;
+            dishes: {
+                nameEn: string;
+                nameFr: string;
+                descriptionEn: string | null;
+                descriptionFr: string | null;
+                alternative: boolean;
+                noteEn: string | null;
+                noteFr: string | null;
+            }[];
+        }[]>()
         .notNull()
         .default(sql`'[]'::jsonb`),
     descriptionEn: text('description_en'),
@@ -309,6 +321,40 @@ export const eventMenus = pgTable('event_menus', {
 }, (table) => ({
     eventIdIdx: index('event_menus_event_id_idx').on(table.eventId),
 }));
+
+// An Event's Drinks card (issue 086): its sections in order, each with a
+// label (FR/EN) and drinks in order — a drink has a name, an optional
+// description (FR/EN) and an optional price in minor units of the Event's
+// currency. Informational only: no link to Services or Reservations; the
+// drinks are paid on site. At most one card per Event; an empty one (no
+// drink) is deleted on save.
+export const eventDrinkCards = pgTable('event_drink_cards', {
+    id: uuid('id').defaultRandom().primaryKey(),
+    eventId: uuid('event_id')
+        .notNull()
+        .references(() => events.id, { onDelete: 'cascade' })
+        .unique(),
+    sections: jsonb('sections')
+        .$type<{
+            labelEn: string;
+            labelFr: string;
+            drinks: {
+                nameEn: string;
+                nameFr: string;
+                descriptionEn: string | null;
+                descriptionFr: string | null;
+                /** Minor units of the Event's currency; null when the drink
+                 * has no price of its own. */
+                priceAmount: number | null;
+            }[];
+        }[]>()
+        .notNull()
+        .default(sql`'[]'::jsonb`),
+    noteEn: text('note_en'),
+    noteFr: text('note_fr'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
 
 // A Service is a meal (lunch or dinner) on a Day and owns one or more
 // Seatings (the `event_sessions` table). The default Seating duration is
@@ -468,6 +514,7 @@ export const eventsRelations = relations(events, ({ many, one }) => ({
     eventSessions: many(eventSessions),
     days: many(eventDays),
     menus: many(eventMenus),
+    drinkCard: one(eventDrinkCards),
     coupons: many(coupons),
     staff: many(eventStaff),
     roleBriefs: many(eventRoleBriefs),
@@ -480,6 +527,13 @@ export const eventDaysRelations = relations(eventDays, ({ one, many }) => ({
         references: [events.id],
     }),
     services: many(eventServices),
+}));
+
+export const eventDrinkCardsRelations = relations(eventDrinkCards, ({ one }) => ({
+    event: one(events, {
+        fields: [eventDrinkCards.eventId],
+        references: [events.id],
+    }),
 }));
 
 export const eventMenusRelations = relations(eventMenus, ({ one, many }) => ({

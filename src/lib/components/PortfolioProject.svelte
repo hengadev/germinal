@@ -90,12 +90,38 @@
 						{#each menu.courses as course, j (j)}
 							<div class="flex flex-col gap-1">
 								{#if course.label}<p class="text-sm italic text-foreground-alt">{course.label}</p>{/if}
-								{#each course.dishes as d, k (k)}<p class="leading-relaxed text-pretty">{d}</p>{/each}
+								{#each course.dishes as d, k (k)}
+									{#if k > 0 && d.alternative}
+										<p class="font-serif text-sm italic text-foreground-alt">{$t('events.booking.or')}{#if d.note}<span class="ml-1 text-xs not-italic">{d.note}</span>{/if}</p>
+									{/if}
+									<p class="leading-relaxed text-pretty">{d.name}</p>
+									{#if d.description}<p class="text-sm text-muted-foreground">{d.description}</p>{/if}
+								{/each}
 							</div>
 						{/each}
 						{#if menu.note}<p class="text-sm text-foreground-alt">{menu.note}</p>{/if}
 					</div>
 				{/each}
+			</div>
+		{/if}
+
+		{#if view.drinks}
+			<!-- The Drinks card (issue 086), after the Menus. -->
+			<div class="flex flex-col gap-3">
+				<p class="{label}">{$t('events.drinks.title')}</p>
+				{#each view.drinks.sections as section, j (j)}
+					<div class="flex flex-col gap-1">
+						{#if section.label}<p class="text-sm italic text-foreground-alt">{section.label}</p>{/if}
+						{#each section.drinks as d, k (k)}
+							<p class="flex items-baseline gap-3 leading-relaxed">
+								<span class="text-pretty">{d.name}</span>
+								{#if d.price}<span class="ml-auto shrink-0 tabular-nums text-foreground-alt">{d.price}</span>{/if}
+							</p>
+							{#if d.description}<p class="text-sm text-muted-foreground">{d.description}</p>{/if}
+						{/each}
+					</div>
+				{/each}
+				{#if view.drinks.note}<p class="text-sm text-foreground-alt">{view.drinks.note}</p>{/if}
 			</div>
 		{/if}
 

@@ -5,6 +5,7 @@ import {
 	formatPrice,
 	paragraphsOf,
 	priceLineOf,
+	menuCourseViews,
 	projectMenusOf,
 	seatingStateOf,
 	type PageDay,
@@ -104,7 +105,19 @@ describe('eventPage', () => {
 	});
 
 	it('shows a Menu served at several Services once, saying where', () => {
-		const course = (...dishes: string[]) => ({ labelFr: '', labelEn: '', dishes: dishes.map((fr) => ({ fr, en: '' })) });
+		const course = (...dishes: string[]) => ({
+			labelFr: '',
+			labelEn: '',
+			dishes: dishes.map((fr, d) => ({
+				nameFr: fr,
+				nameEn: '',
+				descriptionFr: null,
+				descriptionEn: null,
+				alternative: false,
+				noteFr: null,
+				noteEn: null,
+			})),
+		});
 		const menu = {
 			nameFr: 'Feu de bois',
 			nameEn: 'Wood fire',
@@ -114,7 +127,7 @@ describe('eventPage', () => {
 		};
 		const page = eventPage(event, [day('2027-03-12', [seating()], 8500, menu), day('2027-03-13', [seating({ id: 's2' })], 8500, menu)], 'fr', t);
 		expect(page.menus).toHaveLength(1);
-		expect(page.menus[0].courses.map((c) => c.dishes)).toEqual([['Huîtres', 'Velouté'], ['Agneau'], ['Poire']]);
+		expect(page.menus[0].courses.map((c) => c.dishes.map((dish) => dish.name))).toEqual([['Huîtres', 'Velouté'], ['Agneau'], ['Poire']]);
 		expect(page.menus[0].note).toBe('Accord mets et vins en option');
 		expect(page.menus[0].services).toHaveLength(2);
 	});
@@ -190,9 +203,9 @@ describe('projectMenusOf', () => {
 		nameEn,
 		nameFr,
 		courses: [
-			{ labelEn: 'Starter', labelFr: 'Entrée', dishes: [{ en: 'Broth', fr: 'Bouillon' }] },
+			{ labelEn: 'Starter', labelFr: 'Entrée', dishes: [{ nameEn: 'Broth', nameFr: 'Bouillon', descriptionEn: null, descriptionFr: null, alternative: false, noteEn: null, noteFr: null }] },
 			{ labelEn: 'Dessert', labelFr: 'Dessert', dishes: [] },
-			{ labelEn: '', labelFr: '', dishes: [{ en: '', fr: '' }] },
+			{ labelEn: '', labelFr: '', dishes: [{ nameEn: '', nameFr: '', descriptionEn: null, descriptionFr: null, alternative: false, noteEn: null, noteFr: null }] },
 		],
 		descriptionEn: 'Wine included',
 		descriptionFr: 'Vin compris',
@@ -211,19 +224,72 @@ describe('projectMenusOf', () => {
 
 	it('localizes labels, dishes and the note with the French/English fallback', () => {
 		const [fr, en] = ['fr', 'en'].map((lang) => projectMenusOf([{ date: '2025-06-01', kind: 'lunch', menuId: 'a' }], [menu('a', 'Menu', 'Carte')], lang as 'fr' | 'en')[0]);
-		expect(fr.courses).toEqual([{ label: 'Entrée', dishes: ['Bouillon'] }]);
+		expect(fr.courses).toEqual([{ label: 'Entrée', dishes: [{ name: 'Bouillon', description: '', alternative: false, note: '' }] }]);
 		expect(fr.note).toBe('Vin compris');
-		expect(en.courses).toEqual([{ label: 'Starter', dishes: ['Broth'] }]);
+		expect(en.courses).toEqual([{ label: 'Starter', dishes: [{ name: 'Broth', description: '', alternative: false, note: '' }] }]);
 		expect(en.note).toBe('Wine included');
 	});
 
 	it('falls back to the other language and drops empty Courses', () => {
-		const onlyFr = { id: 'a', nameEn: '', nameFr: 'Carte', courses: [{ labelEn: '', labelFr: 'Entrée', dishes: [{ en: '', fr: 'Bouillon' }] }], descriptionEn: null, descriptionFr: 'Vin compris' };
+		const onlyFr = { id: 'a', nameEn: '', nameFr: 'Carte', courses: [{ labelEn: '', labelFr: 'Entrée', dishes: [{ nameEn: '', nameFr: 'Bouillon', descriptionEn: null, descriptionFr: null, alternative: false, noteEn: null, noteFr: null }] }], descriptionEn: null, descriptionFr: 'Vin compris' };
 		const m = projectMenusOf([{ date: '2025-06-01', kind: 'dinner', menuId: 'a' }], [onlyFr], 'en')[0];
-		expect(m).toEqual({ name: 'Carte', courses: [{ label: 'Entrée', dishes: ['Bouillon'] }], note: 'Vin compris' });
+		expect(m).toEqual({ name: 'Carte', courses: [{ label: 'Entrée', dishes: [{ name: 'Bouillon', description: '', alternative: false, note: '' }] }], note: 'Vin compris' });
 	});
 
 	it('shows nothing without Menus', () => {
 		expect(projectMenusOf([{ date: '2025-06-01', kind: 'lunch', menuId: null }], [], 'fr')).toEqual([]);
+	});
+});
+
+describe('menuCourseViews', () => {
+	const dish = (nameFr: string, over: Record<string, unknown> = {}) => ({
+		nameFr,
+		nameEn: '',
+		descriptionFr: null,
+		descriptionEn: null,
+		alternative: false,
+		noteFr: null,
+		noteEn: null,
+		...over,
+	});
+
+	it('reads dishes served together, alternatives with and without a note, and missing descriptions', () => {
+		const views = menuCourseViews(
+			[
+				{
+					labelFr: 'Entrée',
+					labelEn: '',
+					dishes: [
+						dish('Huîtres', { descriptionFr: 'De Normandie' }),
+						dish('Velouté', { alternative: true, noteFr: 'Options sans gluten', noteEn: 'Gluten-free options' }),
+						dish('Ravioles'),
+						dish('Velouté de potimarron', { alternative: true }),
+					],
+				},
+			],
+			'fr'
+		);
+		expect(views).toEqual([
+			{
+				label: 'Entrée',
+				dishes: [
+					{ name: 'Huîtres', description: 'De Normandie', alternative: false, note: '' },
+					{ name: 'Velouté', description: '', alternative: true, note: 'Options sans gluten' },
+					{ name: 'Ravioles', description: '', alternative: false, note: '' },
+					{ name: 'Velouté de potimarron', description: '', alternative: true, note: '' },
+				],
+			},
+		]);
+	});
+
+	it('drops dishes without a name, Courses left empty, and never reads the first dish as an alternative', () => {
+		const views = menuCourseViews(
+			[
+				{ labelFr: 'Plat', labelEn: '', dishes: [dish('', { alternative: true, noteFr: 'Note' }), dish('Agneau')] },
+				{ labelFr: 'Dessert', labelEn: '', dishes: [dish('')] },
+			],
+			'fr'
+		);
+		expect(views).toEqual([{ label: 'Plat', dishes: [{ name: 'Agneau', description: '', alternative: false, note: '' }] }]);
 	});
 });

@@ -111,9 +111,9 @@ export interface DayView {
 
 export interface MenuView {
 	name: string;
-	/** Its Courses in order, in the page's language; several dishes are
-	 * a choice for the guest. */
-	courses: { label: string; dishes: string[] }[];
+	/** Its Courses in order, in the page's language; dishes after the
+	 * first are served together unless marked as alternatives. */
+	courses: MenuCourseView[];
 	/** The note under the Courses (wine pairing, allergens…); empty when none. */
 	note: string;
 	/** Where it is served (« Dîner · ven. 12 mars »), when the Event has several Menus. */
@@ -288,10 +288,7 @@ export function eventPage(event: Localized, schedule: PageDay[], locale: string 
 		for (const [s, service] of day.services.entries()) {
 			if (!service.menu) continue;
 			const name = localizedText(service.menu.nameEn, service.menu.nameFr, lang);
-			const courses = service.menu.courses.map((course) => ({
-				label: localizedText(course.labelEn, course.labelFr, lang),
-				dishes: course.dishes.map((dish) => localizedText(dish.en, dish.fr, lang)),
-			}));
+			const courses = menuCourseViews(service.menu.courses, lang);
 			const note = localizedText(service.menu.descriptionEn, service.menu.descriptionFr, lang);
 			const where = `${days[d].services[s].label} · ${formatDayKey(day.date, lang, { weekday: 'short', day: 'numeric', month: 'short' })}`;
 			const same = menus.find(
@@ -349,6 +346,8 @@ export function eventPage(event: Localized, schedule: PageDay[], locale: string 
 		priceLine: priceLineOf(schedule, lang, t),
 		days,
 		menus,
+		/** The Drinks card (issue 086), after the Menus; null when none. */
+		drinks: drinksViewOf(event.drinkCard as StoredDrinkCard | null | undefined, (event.currency as string | undefined) ?? 'EUR', lang),
 		summary,
 		summaryLabel,
 		/** Under the Seatings: what is paid when, the Refund Policy, the dietary question. */
@@ -420,12 +419,132 @@ export interface ProjectMenuService {
 	menuId: string | null;
 }
 
+/** A Menu's Courses as stored on `event_menus` (both languages). */
+export interface StoredMenuCourse {
+	labelEn: string;
+	labelFr: string;
+	dishes: {
+		nameEn: string;
+		nameFr: string;
+		descriptionEn: string | null;
+		descriptionFr: string | null;
+		alternative: boolean;
+		noteEn: string | null;
+		noteFr: string | null;
+	}[];
+}
+
+/** A dish as the Menu sheet and the project page render it. */
+export interface MenuDishView {
+	name: string;
+	/** A quieter line under the name; empty when none. */
+	description: string;
+	/** True when served instead of the previous dish (« ou »). */
+	alternative: boolean;
+	/** The alternative's short note (« options sans gluten »); empty when none. */
+	note: string;
+}
+
+/** A Course as the Menu sheet and the project page render it. */
+export interface MenuCourseView {
+	label: string;
+	dishes: MenuDishView[];
+}
+
+/** A Menu's Courses in the reader's language, with the same French/
+ * English fallback as the rest of the page: each dish's name, then its
+ * description, and « ou » before an alternative (never the first of a
+ * Course). Courses and dishes without a name are left out. */
+export function menuCourseViews(courses: readonly StoredMenuCourse[], lang: EventTimeLocale): MenuCourseView[] {
+	return courses
+		.map((course) => ({
+			label: localizedText(course.labelEn, course.labelFr, lang).trim(),
+			dishes: course.dishes
+				.map((dish, d) => ({
+					name: localizedText(dish.nameEn, dish.nameFr, lang).trim(),
+					description: localizedText(dish.descriptionEn, dish.descriptionFr, lang).trim(),
+					alternative: dish.alternative && d > 0,
+					note: localizedText(dish.noteEn, dish.noteFr, lang).trim(),
+				}))
+				.filter((dish) => dish.name !== ''),
+		}))
+		.filter((course) => course.dishes.length > 0);
+}
+
+/** The Event's Drinks card (issue 086) as stored on
+ * `event_drink_cards` (both languages). */
+export interface StoredDrinkCard {
+	sections: {
+		labelEn: string;
+		labelFr: string;
+		drinks: {
+			nameEn: string;
+			nameFr: string;
+			descriptionEn: string | null;
+			descriptionFr: string | null;
+			/** Minor units of the Event's currency; null when none. */
+			priceAmount: number | null;
+		}[];
+	}[];
+	noteEn: string | null;
+	noteFr: string | null;
+}
+
+/** A drink as the Drinks card renders it. */
+export interface DrinkItemView {
+	name: string;
+	/** A quieter line under the name; empty when none. */
+	description: string;
+	/** « 12 € » in the Event's currency; empty when the drink has no price. */
+	price: string;
+}
+
+/** A section of the Drinks card (« Au verre », « Bouteilles »…). */
+export interface DrinkSectionView {
+	label: string;
+	drinks: DrinkItemView[];
+}
+
+/** The Drinks card as the announcement and the project page render it. */
+export interface DrinksView {
+	sections: DrinkSectionView[];
+	/** The note under the sections (paid on site…); empty when none. */
+	note: string;
+}
+
+/** The Event's Drinks card in the reader's language, with the same
+ * French/English fallback as the rest of the page: each section's label,
+ * then each drink — name, description and price on the right when set, in
+ * the Event's currency. Sections without a drink are left out; a card
+ * without any gives null (nothing shown). */
+export function drinksViewOf(
+	card: StoredDrinkCard | null | undefined,
+	currency: string,
+	lang: EventTimeLocale
+): DrinksView | null {
+	if (!card) return null;
+	const sections = card.sections
+		.map((section) => ({
+			label: localizedText(section.labelEn, section.labelFr, lang).trim(),
+			drinks: section.drinks
+				.map((drink) => ({
+					name: localizedText(drink.nameEn, drink.nameFr, lang).trim(),
+					description: localizedText(drink.descriptionEn, drink.descriptionFr, lang).trim(),
+					price: drink.priceAmount === null ? '' : formatPrice(drink.priceAmount, currency, lang),
+				}))
+				.filter((drink) => drink.name !== ''),
+		}))
+		.filter((section) => section.drinks.length > 0);
+	if (sections.length === 0) return null;
+	return { sections, note: localizedText(card.noteEn, card.noteFr, lang).trim() };
+}
+
 /** A Menu as the project page loads it (issue 083): raw bilingual rows. */
 export interface ProjectMenuRow {
 	id: string;
 	nameEn: string;
 	nameFr: string;
-	courses?: { labelEn: string; labelFr: string; dishes: { en: string; fr: string }[] }[] | null;
+	courses?: StoredMenuCourse[] | null;
 	descriptionEn?: string | null;
 	descriptionFr?: string | null;
 }
@@ -433,11 +552,9 @@ export interface ProjectMenuRow {
 /** A Menu in the reader's language (issue 083). */
 export interface ProjectMenu {
 	name: string;
-	courses: { label: string; dishes: string[] }[];
+	courses: MenuCourseView[];
 	note: string;
 }
-
-const dish = (lang: EventTimeLocale, d: { en: string; fr: string }) => localizedText(d.en, d.fr, lang);
 
 /** The distinct Menus a project's Services offered, in the order of their
  * first Service (Day, then lunch before dinner), each with its Courses
@@ -461,19 +578,21 @@ export function projectMenusOf(
 		})
 		.map((menu) => ({
 			name: localizedText(menu.nameEn, menu.nameFr, lang).trim(),
-			courses: (menu.courses ?? [])
-				.map((course) => ({
-					label: localizedText(course.labelEn, course.labelFr, lang).trim(),
-					dishes: course.dishes.map((d) => dish(lang, d)).filter(Boolean),
-				}))
-				.filter((course) => course.dishes.length > 0),
+			courses: menuCourseViews(menu.courses ?? [], lang),
 			note: localizedText(menu.descriptionEn ?? null, menu.descriptionFr ?? null, lang).trim(),
 		}));
 }
 
 /** The Portfolio project: the Recap and the Event Photos, credits, dates and venue. */
 export function projectPage(
-	project: Localized & { days?: string[] | null; menuServices?: ProjectMenuService[]; menus?: ProjectMenuRow[] },
+	project: Localized & {
+		days?: string[] | null;
+		menuServices?: ProjectMenuService[];
+		menus?: ProjectMenuRow[];
+		drinkCard?: StoredDrinkCard | null;
+		/** The Event's currency, for the Drinks card's prices. */
+		currency?: string | null;
+	},
 	locale: string | null | undefined
 ) {
 	const lang = pageLang(locale);
@@ -482,6 +601,7 @@ export function projectPage(
 		title: text(lang, project, 'title'),
 		recap: paragraphsOf(text(lang, project, 'recap')),
 		menus: projectMenusOf(project.menuServices ?? [], project.menus ?? [], lang),
+		drinks: drinksViewOf(project.drinkCard ?? null, project.currency ?? 'EUR', lang),
 		dates: formatProjectDates(project.days ?? [], lang),
 		city: text(lang, project, 'city') || text(lang, project, 'location'),
 		venueLines: venueLinesOf(project, lang),

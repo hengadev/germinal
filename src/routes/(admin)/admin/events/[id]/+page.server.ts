@@ -1010,7 +1010,15 @@ const editorActions: Actions = {
 		const { id } = params;
 		const formData = await request.formData();
 
-		const { parsePricingPayload, pricingPayloadErrorMessage, savePricing, eventHasReservations, loadPricingEditor } = await import(
+		const {
+			parsePricingPayload,
+			pricingPayloadErrorMessage,
+			savePricing,
+			eventHasReservations,
+			loadPricingEditor,
+			parseDrinkCardPayload,
+			DRINK_CARD_PAYLOAD_ERROR,
+		} = await import(
 			'$lib/server/services/service-pricing'
 		);
 		const raw = formData.get('pricing');
@@ -1030,10 +1038,19 @@ const editorActions: Actions = {
 			new Date()
 		);
 		let payload = parsed.payload;
+		// The Drinks card (issue 086) saves with the Menus, in both tabs;
+		// absent (the new-event form), it is left as stored.
+		const drinkCardRaw = formData.get('drinkCard');
+		if (typeof drinkCardRaw === 'string') {
+			const drinkCard = parseDrinkCardPayload(drinkCardRaw);
+			if (!drinkCard) return fail(400, { error: DRINK_CARD_PAYLOAD_ERROR, fields: ['drinkCard'] });
+			payload = { ...payload, drinkCard };
+		}
 		if (portfolioOnly) {
 			const storedPrices = new Map(stored.services.map((service) => [service.serviceId, service.priceAmount]));
 			payload = {
 				menus: payload.menus,
+				drinkCard: payload.drinkCard,
 				services: payload.services.map((service) => ({
 					...service,
 					priceAmount: storedPrices.get(service.serviceId) ?? null,

@@ -9,10 +9,20 @@ import type { RefundPolicy } from '$lib/utils/refund-policy';
  * `parsePricingPayload`).
  */
 
-/** A dish served at a Course. */
+/** A dish served at a Course: its name and an optional description,
+ * each in French and English. Several dishes in one Course are served
+ * together unless one is an `alternative`: the page then reads « ou »
+ * before it, with an optional short note (« options sans gluten »). */
 export interface MenuDish {
-	en: string;
-	fr: string;
+	nameEn: string;
+	nameFr: string;
+	descriptionEn: string | null;
+	descriptionFr: string | null;
+	/** True when served instead of the previous dish, never the first of
+	 * a Course. */
+	alternative: boolean;
+	noteEn: string | null;
+	noteFr: string | null;
 }
 
 /** One step of a Menu (« Entrée », « Plat »…): its label and what is
@@ -27,7 +37,11 @@ export interface MenuCourse {
 export const MAX_MENU_COURSES = 20;
 export const MAX_COURSE_LABEL = 60;
 export const MAX_COURSE_DISHES = 6;
+/** A dish's name (a line of the printed card). */
 export const MAX_COURSE_DISH = 500;
+export const MAX_COURSE_DISH_DESCRIPTION = 500;
+/** An alternative's short note (« options sans gluten »). */
+export const MAX_COURSE_DISH_NOTE = 120;
 
 /** A Menu described once on the Event: its Courses in order, then an
  * optional note (the `description`: wine pairing, allergens…). */
@@ -38,6 +52,50 @@ export interface EditorMenu {
 	courses: MenuCourse[];
 	descriptionEn: string | null;
 	descriptionFr: string | null;
+}
+
+/** A drink of the Event's Drinks card (issue 086): its name, an optional
+ * description (each in French and English) and an optional price in minor
+ * units of the Event's currency — informational only, paid on site. */
+export interface DrinkItem {
+	nameEn: string;
+	nameFr: string;
+	descriptionEn: string | null;
+	descriptionFr: string | null;
+	priceAmount: number | null;
+}
+
+/** One section of the Drinks card (« Au verre », « Bouteilles »…): its
+ * label (FR/EN) and its drinks in order. */
+export interface DrinkSection {
+	labelEn: string;
+	labelFr: string;
+	drinks: DrinkItem[];
+}
+
+export const MAX_DRINK_SECTIONS = 10;
+export const MAX_DRINK_SECTION_LABEL = 60;
+export const MAX_DRINKS_PER_SECTION = 30;
+/** A drink's name (a line of the card). */
+export const MAX_DRINK_NAME = 200;
+export const MAX_DRINK_DESCRIPTION = 500;
+/** The card's note (paid on site, allergens…). */
+export const MAX_DRINK_CARD_NOTE = 1000;
+
+/** The Event's Drinks card as loaded for the edit page; null (or absent)
+ * when the Event has none. */
+export interface EditorDrinkCard {
+	sections: DrinkSection[];
+	noteEn: string | null;
+	noteFr: string | null;
+}
+
+/** The Event's Drinks card as posted: absent, it is left as stored; with
+ * no drink, its row is deleted. */
+export interface DrinkCardPayload {
+	sections: DrinkSection[];
+	noteEn: string | null;
+	noteFr: string | null;
 }
 
 /** A migrated Seating that kept its own price (migration 0021). */
@@ -84,6 +142,8 @@ export interface EditorEventExtra {
 
 export interface PricingEditorData {
 	menus: EditorMenu[];
+	/** The Event's Drinks card (issue 086). */
+	drinkCard?: EditorDrinkCard | null;
 	services: EditorServicePricing[];
 	/** The Event's extras (issue 067), in display order. */
 	extras?: EditorEventExtra[];
@@ -152,4 +212,6 @@ export interface PricingPayload {
 	deposit?: DepositRule;
 	/** The Event's Refund Policy (issue 027); left unchanged when absent. */
 	refundPolicy?: RefundPolicy;
+	/** The Event's Drinks card (issue 086); left unchanged when absent. */
+	drinkCard?: DrinkCardPayload;
 }

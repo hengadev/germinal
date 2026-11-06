@@ -7,8 +7,8 @@
 	// large enough for a finger. FR/EN shows the card in either language;
 	// with translation on, the English is generated from the French on save
 	// and a correction typed here is kept.
-	import { ArrowDown, ArrowUp, Plus, Split, Trash2, X } from 'lucide-svelte';
-	import { MAX_COURSE_DISH, MAX_COURSE_DISHES, MAX_COURSE_LABEL, MAX_MENU_COURSES } from '$lib/types/pricing-editor';
+	import { ArrowDown, ArrowUp, Plus, Trash2, X } from 'lucide-svelte';
+	import { MAX_COURSE_DISH, MAX_COURSE_DISH_DESCRIPTION, MAX_COURSE_DISH_NOTE, MAX_COURSE_DISHES, MAX_COURSE_LABEL, MAX_MENU_COURSES } from '$lib/types/pricing-editor';
 	import { COURSE_LABELS, newCourse, newDish, type DraftMenu } from './PricingEditor.svelte';
 
 	let {
@@ -61,8 +61,8 @@
 		focusLater(dishId(course.key, course.dishes[0].key));
 	}
 
-	function addChoice() {
-		const course = menu?.courses[at];
+	function addDish(courseKey: number) {
+		const course = menu?.courses.find((c) => c.key === courseKey);
 		if (!course || course.dishes.length >= MAX_COURSE_DISHES) return;
 		const dish = newDish();
 		course.dishes.push(dish);
@@ -152,7 +152,6 @@
 
 		<ol aria-label="Étapes">
 			{#each m.courses as course, i (course.key)}
-				{@const choice = course.dishes.length > 1}
 				<li
 					class="my-1 rounded-lg border px-2 py-3 transition-colors {course.key === current ? 'border-foreground/30 bg-background' : 'border-transparent'}"
 					onfocusin={() => (current = course.key)}
@@ -164,42 +163,97 @@
 						<input list="menu-course-labels" maxlength={MAX_COURSE_LABEL} bind:value={course.labelFr} placeholder="Étape" aria-label="Étape {i + 1}" class={LABEL} />
 					{/if}
 					{#each course.dishes as dish, d (dish.key)}
-						{#if d > 0}<p class="text-center text-xs italic text-muted-foreground" aria-hidden="true">{english ? 'or' : 'ou'}</p>{/if}
+						{#if d > 0 && dish.alternative}
+							<p class="text-center font-serif text-sm italic text-muted-foreground" aria-hidden="true">{english ? 'or' : 'ou'}</p>
+						{/if}
 						<div class="relative">
 							{#if english}
 								<input
 									id={dishId(course.key, dish.key)}
 									maxlength={MAX_COURSE_DISH}
-									bind:value={dish.en}
-									placeholder={dish.fr || 'What is served'}
-									aria-label="{choice ? `Choix ${d + 1}` : 'Plat'} de l’étape {i + 1} (anglais)"
-									class="{BARE} text-lg italic {choice ? 'px-9' : ''}"
+									bind:value={dish.nameEn}
+									placeholder={dish.nameFr || 'What is served'}
+									aria-label="Plat {d + 1} de l’étape {i + 1} (anglais)"
+									class="{BARE} text-lg italic {d > 0 ? 'px-9' : 'pr-9'}"
 								/>
 							{:else}
 								<input
 									id={dishId(course.key, dish.key)}
 									maxlength={MAX_COURSE_DISH}
-									bind:value={dish.fr}
-									placeholder={d === 0 ? 'Ce qui est servi' : 'Autre choix'}
-									aria-label="{choice ? `Choix ${d + 1}` : 'Plat'} de l’étape {i + 1}"
-									class="{BARE} text-lg italic {choice ? 'px-9' : ''}"
+									bind:value={dish.nameFr}
+									placeholder={d === 0 ? 'Ce qui est servi' : 'Autre plat'}
+									aria-label="Plat {d + 1} de l’étape {i + 1}"
+									class="{BARE} text-lg italic {d > 0 ? 'px-9' : 'pr-9'}"
 								/>
 							{/if}
-							{#if choice}
+							{#if d > 0}
+								<button
+									type="button"
+									onclick={() => (dish.alternative = !dish.alternative)}
+									aria-pressed={dish.alternative}
+									title={dish.alternative ? 'Servi en même temps que le plat précédent' : 'Servi à la place du plat précédent (« ou »)'}
+									class="absolute left-0 top-1/2 -translate-y-1/2 h-9 px-1 font-serif text-sm italic cursor-pointer {dish.alternative ? 'text-foreground' : 'text-muted-foreground/40 hover:text-muted-foreground'}"
+								>
+									{english ? 'or' : 'ou'}
+								</button>
+							{/if}
+							{#if course.dishes.length > 1}
 								<button
 									type="button"
 									onclick={() => course.dishes.splice(d, 1)}
-									aria-label="Retirer le choix {d + 1} de l’étape {i + 1}"
+									aria-label="Retirer le plat {d + 1} de l’étape {i + 1}"
 									class="absolute right-0 top-1/2 -translate-y-1/2 size-9 inline-flex items-center justify-center rounded-full text-muted-foreground/70 hover:text-red-600 hover:bg-muted cursor-pointer"
 								>
 									<X size={14} />
 								</button>
 							{/if}
 						</div>
+						{#if english}
+							<input
+								maxlength={MAX_COURSE_DISH_DESCRIPTION}
+								bind:value={dish.descriptionEn}
+								placeholder={dish.descriptionFr || 'Description (optional)'}
+								aria-label="Description du plat {d + 1} de l’étape {i + 1} (anglais)"
+								class="{BARE} text-xs text-muted-foreground"
+							/>
+						{:else}
+							<input
+								maxlength={MAX_COURSE_DISH_DESCRIPTION}
+								bind:value={dish.descriptionFr}
+								placeholder="Une précision sur ce plat ?"
+								aria-label="Description du plat {d + 1} de l’étape {i + 1}"
+								class="{BARE} text-xs text-muted-foreground"
+							/>
+						{/if}
+						{#if d > 0 && dish.alternative}
+							{#if english}
+								<input
+									maxlength={MAX_COURSE_DISH_NOTE}
+									bind:value={dish.noteEn}
+									placeholder={dish.noteFr || 'Note (optional)'}
+									aria-label="Note du « ou » du plat {d + 1} de l’étape {i + 1} (anglais)"
+									class="{BARE} text-[10px] uppercase tracking-[0.15em] text-muted-foreground"
+								/>
+							{:else}
+								<input
+									maxlength={MAX_COURSE_DISH_NOTE}
+									bind:value={dish.noteFr}
+									placeholder="Une note ? Options sans gluten…"
+									aria-label="Note du « ou » du plat {d + 1} de l’étape {i + 1}"
+									class="{BARE} text-[10px] uppercase tracking-[0.15em] text-muted-foreground"
+								/>
+							{/if}
+						{/if}
 					{/each}
-					{#if choice}
-						<p class="mt-0.5 text-center text-[10px] uppercase tracking-[0.2em] text-muted-foreground">{english ? 'your choice' : 'au choix'}</p>
-					{/if}
+					<button
+						type="button"
+						onclick={() => addDish(course.key)}
+						disabled={course.dishes.length >= MAX_COURSE_DISHES}
+						class="mx-auto block min-h-9 px-4 text-xs text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:hover:text-muted-foreground cursor-pointer"
+						style="font-family: var(--font-sans)"
+					>
+						+ Ajouter un plat
+					</button>
 				</li>
 			{/each}
 		</ol>
@@ -223,7 +277,7 @@
 	>
 		<button type="button" class={TOOL} disabled={at <= 0} onclick={() => move(at - 1)}><ArrowUp size={18} aria-hidden="true" />Monter</button>
 		<button type="button" class={TOOL} disabled={at === -1 || at === m.courses.length - 1} onclick={() => move(at + 1)}><ArrowDown size={18} aria-hidden="true" />Descendre</button>
-		<button type="button" class={TOOL} disabled={at === -1 || m.courses[at].dishes.length >= MAX_COURSE_DISHES} onclick={addChoice}><Split size={18} aria-hidden="true" />Choix</button>
+		<button type="button" class={TOOL} disabled={at === -1 || m.courses[at].dishes.length >= MAX_COURSE_DISHES} onclick={() => addDish(m.courses[at].key)}><Plus size={18} aria-hidden="true" />Plat</button>
 		<button type="button" class={TOOL} disabled={m.courses.length >= MAX_MENU_COURSES} onclick={insert}><Plus size={18} aria-hidden="true" />Étape</button>
 		<button type="button" class="{TOOL} text-red-600" disabled={at === -1} onclick={remove}><Trash2 size={18} aria-hidden="true" />Retirer</button>
 	</div>
