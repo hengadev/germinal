@@ -64,7 +64,7 @@ describe('hasEventText', () => {
 describe('pricingHasContent', () => {
 	const untouched: PricingPayload = {
 		menus: [],
-		services: [{ serviceId: 'x', menuKey: null, priceAmount: null, clearLegacyPrices: false }],
+		services: [{ serviceId: 'x', menuKey: null, drinkCardKey: null, priceAmount: null, clearLegacyPrices: false }],
 		deposit: { type: 'percent', value: 100 },
 		refundPolicy: { type: 'rules', textEn: null, textFr: null, tiers: [{ hoursBefore: 24, percent: 100 }] },
 	};

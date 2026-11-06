@@ -105,23 +105,29 @@
 			</div>
 		{/if}
 
-		{#if view.drinks}
-			<!-- The Drinks card (issue 086), after the Menus. -->
-			<div class="flex flex-col gap-3">
+		{#if view.drinks.length}
+			<!-- The distinct Drinks cards offered (issue 087), after the Menus,
+			     each under its name. -->
+			<div class="flex flex-col gap-6">
 				<p class="{label}">{$t('events.drinks.title')}</p>
-				{#each view.drinks.sections as section, j (j)}
-					<div class="flex flex-col gap-1">
-						{#if section.label}<p class="text-sm italic text-foreground-alt">{section.label}</p>{/if}
-						{#each section.drinks as d, k (k)}
-							<p class="flex items-baseline gap-3 leading-relaxed">
-								<span class="text-pretty">{d.name}</span>
-								{#if d.price}<span class="ml-auto shrink-0 tabular-nums text-foreground-alt">{d.price}</span>{/if}
-							</p>
-							{#if d.description}<p class="text-sm text-muted-foreground">{d.description}</p>{/if}
+				{#each view.drinks as drinkCard, i (i)}
+					<div class="flex flex-col gap-3">
+						{#if drinkCard.name}<p class="font-serif text-lg">{drinkCard.name}</p>{/if}
+						{#each drinkCard.sections as section, j (j)}
+							<div class="flex flex-col gap-1">
+								{#if section.label}<p class="text-sm italic text-foreground-alt">{section.label}</p>{/if}
+								{#each section.drinks as d, k (k)}
+									<p class="flex items-baseline gap-3 leading-relaxed">
+										<span class="text-pretty">{d.name}</span>
+										{#if d.price}<span class="ml-auto shrink-0 tabular-nums text-foreground-alt">{d.price}</span>{/if}
+									</p>
+									{#if d.description}<p class="text-sm text-muted-foreground">{d.description}</p>{/if}
+								{/each}
+							</div>
 						{/each}
+						{#if drinkCard.note}<p class="text-sm text-foreground-alt">{drinkCard.note}</p>{/if}
 					</div>
 				{/each}
-				{#if view.drinks.note}<p class="text-sm text-foreground-alt">{view.drinks.note}</p>{/if}
 			</div>
 		{/if}
 

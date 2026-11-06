@@ -13,6 +13,7 @@ import { formatProjectDates } from './project-dates';
 import { derivedSeatingTitle } from './seating-title';
 import type { BookingRefusal } from './event-access';
 import type { MenuCourse } from '$lib/types/pricing-editor';
+import type { DrinkSection } from '$lib/types/pricing-editor';
 
 export type Translate = (id: string, options?: { values?: Record<string, string | number> }) => string;
 
@@ -66,6 +67,8 @@ export interface PageService {
 		descriptionEn: string | null;
 		descriptionFr: string | null;
 	} | null;
+	/** The meal's Drinks card (issue 087), like its Menu; null for none. */
+	drinks: StoredDrinkCard | null;
 	priceAmount: number | null;
 	currency: string;
 	sessions: PageSeating[];
@@ -282,8 +285,22 @@ export function eventPage(event: Localized, schedule: PageDay[], locale: string 
 	const services = days.flatMap((day) => day.services);
 	const seatings = services.flatMap((service) => service.seatings);
 
-	// One Menu served at several Services is shown once.
+	// One Menu served at several Services is shown once. The Drinks card
+	// of each meal (issue 087) is likewise shown once by name.
 	const menus: MenuView[] = [];
+	// Each distinct Drinks card offered (issue 087), in order of the first
+	// meal that offers it.
+	const drinks: DrinksView[] = [];
+	const drinkNames = new Set<string>();
+	for (const day of schedule) {
+		for (const service of day.services) {
+			const card = drinksViewOf(service.drinks, service.currency, lang);
+			if (card && !drinkNames.has(card.name)) {
+				drinkNames.add(card.name);
+				drinks.push(card);
+			}
+		}
+	}
 	for (const [d, day] of schedule.entries()) {
 		for (const [s, service] of day.services.entries()) {
 			if (!service.menu) continue;
@@ -346,8 +363,9 @@ export function eventPage(event: Localized, schedule: PageDay[], locale: string 
 		priceLine: priceLineOf(schedule, lang, t),
 		days,
 		menus,
-		/** The Drinks card (issue 086), after the Menus; null when none. */
-		drinks: drinksViewOf(event.drinkCard as StoredDrinkCard | null | undefined, (event.currency as string | undefined) ?? 'EUR', lang),
+		/** The distinct Drinks cards offered (issues 086, 087), after the
+		 * Menus, in order of the first meal that offers each. */
+		drinks,
 		summary,
 		summaryLabel,
 		/** Under the Seatings: what is paid when, the Refund Policy, the dietary question. */
@@ -412,11 +430,12 @@ export function priceLineOf(schedule: PageDay[], lang: EventTimeLocale, t: Trans
 }
 
 /** A Service as the project page loads it: its Day's date, its kind and
- * the Menu it offered. */
+ * the Menu it offered — and the Drinks card it offered (issue 087). */
 export interface ProjectMenuService {
 	date: string;
 	kind: 'lunch' | 'dinner';
 	menuId: string | null;
+	drinkCardId?: string | null;
 }
 
 /** A Menu's Courses as stored on `event_menus` (both languages). */
@@ -471,9 +490,12 @@ export function menuCourseViews(courses: readonly StoredMenuCourse[], lang: Even
 		.filter((course) => course.dishes.length > 0);
 }
 
-/** The Event's Drinks card (issue 086) as stored on
- * `event_drink_cards` (both languages). */
+/** A Drinks card as stored on `event_drink_cards` (both languages,
+ * issues 086 and 087). */
 export interface StoredDrinkCard {
+	id?: string;
+	nameEn: string;
+	nameFr: string;
 	sections: {
 		labelEn: string;
 		labelFr: string;
@@ -505,8 +527,10 @@ export interface DrinkSectionView {
 	drinks: DrinkItemView[];
 }
 
-/** The Drinks card as the announcement and the project page render it. */
+/** A Drinks card as the announcement and the project page render it. */
 export interface DrinksView {
+	/** The card's name in the reader's language. */
+	name: string;
 	sections: DrinkSectionView[];
 	/** The note under the sections (paid on site…); empty when none. */
 	note: string;
@@ -536,7 +560,7 @@ export function drinksViewOf(
 		}))
 		.filter((section) => section.drinks.length > 0);
 	if (sections.length === 0) return null;
-	return { sections, note: localizedText(card.noteEn, card.noteFr, lang).trim() };
+	return { name: localizedText(card.nameEn, card.nameFr, lang).trim(), sections, note: localizedText(card.noteEn, card.noteFr, lang).trim() };
 }
 
 /** A Menu as the project page loads it (issue 083): raw bilingual rows. */
@@ -583,14 +607,35 @@ export function projectMenusOf(
 		}));
 }
 
+/** The distinct Drinks cards a project's Services offered (issue 087), in
+ * the order of their first Service — like `projectMenusOf`. */
+export function projectDrinksOf(
+	services: ProjectMenuService[],
+	cards: (StoredDrinkCard & { id: string })[],
+	lang: EventTimeLocale,
+	currency: string
+): DrinksView[] {
+	const byId = new Map(cards.map((card) => [card.id, card]));
+	const seen = new Set<string>();
+	return [...services]
+		.sort((a, b) => a.date.localeCompare(b.date) || (a.kind === b.kind ? 0 : a.kind === 'lunch' ? -1 : 1))
+		.flatMap((service) => {
+			if (!service.drinkCardId || seen.has(service.drinkCardId)) return [];
+			seen.add(service.drinkCardId);
+			const view = drinksViewOf(byId.get(service.drinkCardId) ?? null, currency, lang);
+			return view ? [view] : [];
+		});
+}
+
 /** The Portfolio project: the Recap and the Event Photos, credits, dates and venue. */
 export function projectPage(
 	project: Localized & {
 		days?: string[] | null;
 		menuServices?: ProjectMenuService[];
 		menus?: ProjectMenuRow[];
-		drinkCard?: StoredDrinkCard | null;
-		/** The Event's currency, for the Drinks card's prices. */
+		drinkServices?: ProjectMenuService[];
+		drinkCards?: (StoredDrinkCard & { id: string })[];
+		/** The Event's currency, for the Drinks cards' prices. */
 		currency?: string | null;
 	},
 	locale: string | null | undefined
@@ -601,7 +646,7 @@ export function projectPage(
 		title: text(lang, project, 'title'),
 		recap: paragraphsOf(text(lang, project, 'recap')),
 		menus: projectMenusOf(project.menuServices ?? [], project.menus ?? [], lang),
-		drinks: drinksViewOf(project.drinkCard ?? null, project.currency ?? 'EUR', lang),
+		drinks: projectDrinksOf(project.drinkServices ?? [], project.drinkCards ?? [], lang, project.currency ?? 'EUR'),
 		dates: formatProjectDates(project.days ?? [], lang),
 		city: text(lang, project, 'city') || text(lang, project, 'location'),
 		venueLines: venueLinesOf(project, lang),

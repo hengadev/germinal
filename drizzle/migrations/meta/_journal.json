@@ -428,6 +428,13 @@
       "when": 1793960559432,
       "tag": "0060_event_drink_cards",
       "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1793970586431,
+      "tag": "0061_drinks_cards_per_meal",
+      "breakpoints": true
     }
   ]
 }

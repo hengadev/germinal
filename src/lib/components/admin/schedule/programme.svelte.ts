@@ -59,6 +59,8 @@ export interface MealPlan {
 	capacity: number | null;
 	/** Menu key, '' for no Menu. */
 	menu: string;
+	/** Drinks card key (issue 087), '' for none. */
+	drinks: string;
 	/** Price per guest in major units; null while not set. */
 	price: number | null;
 	/** Its Seatings are on the site and bookable. */
@@ -74,7 +76,7 @@ export type Facet = 'seances' | 'tarifs';
 /** The fields each tab edits. */
 export const FACET_FIELDS: Record<Facet, Field[]> = {
 	seances: ['served', 'starts', 'duration', 'capacity', 'published', 'waitlist', 'seatings'],
-	tarifs: ['menu', 'price'],
+	tarifs: ['menu', 'price', 'drinks'],
 };
 
 /** The tab's drafts, read and written one Day's meal at a time. */
@@ -103,6 +105,7 @@ export const EMPTY_MEAL: MealPlan = {
 	duration: null,
 	capacity: null,
 	menu: '',
+	drinks: '',
 	price: null,
 	published: true,
 	waitlist: false,
@@ -141,7 +144,7 @@ export function inferProgramme(source: ScheduleSource): Record<Kind, MealPlan> {
 		}
 		const fallback = NEW_PROGRAMME[kind];
 		const plan = { served: served.length * 2 >= meals.length && served.length > 0 } as MealPlan;
-		for (const field of ['starts', 'duration', 'capacity', 'menu', 'price', 'published', 'waitlist', 'seatings'] as const) {
+		for (const field of ['starts', 'duration', 'capacity', 'menu', 'drinks', 'price', 'published', 'waitlist', 'seatings'] as const) {
 			const value = mostShared(served.map((meal) => meal[field]));
 			(plan as unknown as Record<string, unknown>)[field] = copy(value ?? fallback[field]);
 		}
@@ -371,6 +374,9 @@ export function daysSummary(days: string[]): string {
 /** How a tab names its Menus and prices. */
 export interface Wording {
 	menuName: (key: string) => string;
+	/** The name of a meal's Drinks card (issue 087); optional, like the
+	 * field itself outside « Menus & tarifs ». */
+	drinksName?: (key: string) => string;
 	price: (price: number | null) => string;
 	/** The Venue Capacity, which Seatings without their own inherit. */
 	venueCapacity?: number | null;
@@ -384,7 +390,8 @@ export function capacityLabel(capacity: number | null, venueCapacity: number | n
 /** One line: « 12h30 » or « 19h00 · 21h30 », or « Pas de dîner ». */
 export function mealLine(meal: MealPlan, kind: Kind, facet: Facet, words: Wording): string {
 	if (!meal.served) return `Pas de ${MEAL[kind].toLowerCase()}`;
-	if (facet === 'tarifs') return [words.menuName(meal.menu), words.price(meal.price)].filter(Boolean).join(' · ');
+	if (facet === 'tarifs')
+		return [words.menuName(meal.menu), words.drinksName?.(meal.drinks), words.price(meal.price)].filter(Boolean).join(' · ');
 	return meal.starts.length === 0 ? 'Aucune séance' : meal.starts.map(frClock).join(' · ');
 }
 
@@ -413,6 +420,8 @@ export function describeException(programme: Programme, date: string, words: Wor
 					return 'titre ou badge';
 				case 'menu':
 					return words.menuName(meal.menu);
+				case 'drinks':
+					return words.drinksName?.(meal.drinks) ?? '';
 				case 'price':
 					return words.price(meal.price);
 			}

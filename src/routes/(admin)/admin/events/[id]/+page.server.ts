@@ -290,6 +290,7 @@ export const load: PageServerLoad = async ({ params }) => {
 					date: service.date,
 					kind: service.kind,
 					menuId: null,
+					drinkCardId: null,
 					priceAmount: first?.priceAmount ?? null,
 					seatingCount: service.seatings.length,
 					legacySeatings: [],
@@ -1016,8 +1017,6 @@ const editorActions: Actions = {
 			savePricing,
 			eventHasReservations,
 			loadPricingEditor,
-			parseDrinkCardPayload,
-			DRINK_CARD_PAYLOAD_ERROR,
 		} = await import(
 			'$lib/server/services/service-pricing'
 		);
@@ -1038,19 +1037,11 @@ const editorActions: Actions = {
 			new Date()
 		);
 		let payload = parsed.payload;
-		// The Drinks card (issue 086) saves with the Menus, in both tabs;
-		// absent (the new-event form), it is left as stored.
-		const drinkCardRaw = formData.get('drinkCard');
-		if (typeof drinkCardRaw === 'string') {
-			const drinkCard = parseDrinkCardPayload(drinkCardRaw);
-			if (!drinkCard) return fail(400, { error: DRINK_CARD_PAYLOAD_ERROR, fields: ['drinkCard'] });
-			payload = { ...payload, drinkCard };
-		}
 		if (portfolioOnly) {
 			const storedPrices = new Map(stored.services.map((service) => [service.serviceId, service.priceAmount]));
 			payload = {
 				menus: payload.menus,
-				drinkCard: payload.drinkCard,
+				drinkCards: payload.drinkCards,
 				services: payload.services.map((service) => ({
 					...service,
 					priceAmount: storedPrices.get(service.serviceId) ?? null,
@@ -1080,7 +1071,7 @@ const editorActions: Actions = {
 
 		try {
 			const english = await englishPricing(payload, stored, id);
-			const { menuIds } = await savePricing(id, english.value);
+			const { menuIds, drinkCardIds } = await savePricing(id, english.value);
 			const { extraIds } = extrasParsed
 				? await saveExtras(id, extrasParsed.payload)
 				: { extraIds: undefined };
@@ -1091,6 +1082,7 @@ const editorActions: Actions = {
 					? 'Menus et tarifs enregistrés, mais la traduction anglaise a échoué : elle sera retentée au prochain enregistrement.'
 					: 'Menus et tarifs enregistrés.',
 				menuIds,
+				drinkCardIds,
 				extraIds,
 				...(english.translationFailed ? { translationFailed: true as const } : {}),
 			};

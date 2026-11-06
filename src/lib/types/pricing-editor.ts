@@ -82,17 +82,28 @@ export const MAX_DRINK_DESCRIPTION = 500;
 /** The card's note (paid on site, allergens…). */
 export const MAX_DRINK_CARD_NOTE = 1000;
 
-/** The Event's Drinks card as loaded for the edit page; null (or absent)
- * when the Event has none. */
+/** One of the Event's Drinks cards (issues 086, 087), like a Menu:
+ * its name, then its sections in order (« Au verre », « Bouteilles »…) —
+ * each with its label (FR/EN) and its drinks in order — and an optional
+ * note. Offered on the Services that pick it. */
 export interface EditorDrinkCard {
+	id: string;
+	nameEn: string;
+	nameFr: string;
 	sections: DrinkSection[];
 	noteEn: string | null;
 	noteFr: string | null;
 }
 
-/** The Event's Drinks card as posted: absent, it is left as stored; with
- * no drink, its row is deleted. */
+/** A Drinks card as posted (like a Menu): `id` null creates it. `key` is
+ * how Services refer to it in the same payload. A card left empty (no
+ * drink) or left out of the payload is deleted; the Services that offered
+ * it then offer none. */
 export interface DrinkCardPayload {
+	key: string;
+	id: string | null;
+	nameEn: string;
+	nameFr: string;
 	sections: DrinkSection[];
 	noteEn: string | null;
 	noteFr: string | null;
@@ -113,6 +124,8 @@ export interface EditorServicePricing {
 	date: string;
 	kind: ServiceKind;
 	menuId: string | null;
+	/** The Drinks card (issue 087) the meal offers, like its Menu. */
+	drinkCardId: string | null;
 	/** Minor units, in the Event's currency; null while the price is not
 	 * set (Seatings unbookable). */
 	priceAmount: number | null;
@@ -142,8 +155,8 @@ export interface EditorEventExtra {
 
 export interface PricingEditorData {
 	menus: EditorMenu[];
-	/** The Event's Drinks card (issue 086). */
-	drinkCard?: EditorDrinkCard | null;
+	/** The Event's Drinks cards (issues 086, 087), oldest first. */
+	drinkCards?: EditorDrinkCard[];
 	services: EditorServicePricing[];
 	/** The Event's extras (issue 067), in display order. */
 	extras?: EditorEventExtra[];
@@ -175,6 +188,8 @@ export interface ServicePricingPayload {
 	serviceId: string;
 	/** `key` of a Menu in the same payload, or null for no Menu. */
 	menuKey: string | null;
+	/** `key` of a Drinks card in the same payload, or null for none. */
+	drinkCardKey: string | null;
 	/** Minor units, zero allowed; null leaves the price unset. */
 	priceAmount: number | null;
 	/** Drop the legacy per-Seating prices so every Seating of the Service
@@ -212,6 +227,7 @@ export interface PricingPayload {
 	deposit?: DepositRule;
 	/** The Event's Refund Policy (issue 027); left unchanged when absent. */
 	refundPolicy?: RefundPolicy;
-	/** The Event's Drinks card (issue 086); left unchanged when absent. */
-	drinkCard?: DrinkCardPayload;
+	/** The Event's Drinks cards (issues 086, 087); left unchanged when
+	 * absent (the new-event form). */
+	drinkCards?: DrinkCardPayload[];
 }

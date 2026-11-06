@@ -39,9 +39,11 @@
 		idPrefix,
 		words,
 		menus = [],
+		drinkCards = [],
 		currency = 'EUR',
 		dates = [],
 		onnewmenu,
+		onnewdrinkscard,
 		menusOnly = false,
 	}: {
 		kind: Kind;
@@ -62,16 +64,21 @@
 		words: Wording;
 		/** The Event's Menus (« Menus & tarifs »). */
 		menus?: { key: string; label: string }[];
+		/** The Event's Drinks cards (issue 087). */
+		drinkCards?: { key: string; label: string }[];
 		currency?: string;
 		/** The Days edited; none for the programme. */
 		dates?: string[];
 		/** « + Nouveau menu… »: create a Menu, then offer it on this meal. */
 		onnewmenu?: (use: (key: string) => void) => void;
+		/** « + Nouvelle carte… »: create a Drinks card, then offer it. */
+		onnewdrinkscard?: (use: (key: string) => void) => void;
 		/** Menus-only mode (issue 082): the price per guest stays hidden. */
 		menusOnly?: boolean;
 	} = $props();
 
 	const NEW_MENU = '__new__';
+	const NEW_DRINKS = '__new_drinks__';
 
 	const DURATIONS = $derived.by(() => {
 		// 15 min to 6 h, by quarter hours; a saved duration off that list stays.
@@ -152,6 +159,8 @@
 				return capacityLabel(base.capacity, words.venueCapacity);
 			case 'menu':
 				return words.menuName(base.menu);
+			case 'drinks':
+				return words.drinksName?.(base.drinks) ?? '';
 			case 'price':
 				return words.price(base.price);
 			case 'published':
@@ -463,6 +472,30 @@
 						{/each}
 						{#if onnewmenu}
 							<option value={NEW_MENU}>+ Nouveau menu…</option>
+						{/if}
+					</select>
+				</div>
+			{/if}
+			{#if shows('drinks')}
+				<div class="min-w-0 max-w-full">
+					<label for="{idPrefix}-drinks" class={LABEL}>Boissons{@render mark('drinks')}</label>
+					<select
+						id="{idPrefix}-drinks"
+						value={value.drinks}
+						onchange={(e) => {
+							const select = e.currentTarget;
+							if (select.value !== NEW_DRINKS) return onset('drinks', select.value);
+							select.value = value.drinks;
+							onnewdrinkscard?.((key) => onset('drinks', key));
+						}}
+						class="{INPUT} max-w-full pr-8 cursor-pointer"
+					>
+						<option value="">Aucune</option>
+						{#each drinkCards as card (card.key)}
+							<option value={card.key}>{card.label}</option>
+						{/each}
+						{#if onnewdrinkscard}
+							<option value={NEW_DRINKS}>+ Nouvelle carte…</option>
 						{/if}
 					</select>
 				</div>

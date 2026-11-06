@@ -7,7 +7,7 @@
 	// the summary of the booking.
 	import { tick } from 'svelte';
 	import { t } from 'svelte-i18n';
-	import type { EventPage, MenuView, PageDay } from '$lib/utils/event-page';
+	import type { DrinksView, EventPage, MenuView, PageDay } from '$lib/utils/event-page';
 	import BookingDetails from './BookingDetails.svelte';
 	import MenuSheet from '../MenuSheet.svelte';
 	import DrinksSheet from '../DrinksSheet.svelte';
@@ -17,6 +17,7 @@
 		TAP_GUESTS,
 		dayFits,
 		dayOver,
+		drinksFor,
 		fits,
 		guestsWord,
 		menuFor,
@@ -34,6 +35,7 @@
 		view,
 		schedule,
 		menus,
+		drinks = [],
 		extras = [],
 		asksDietary = false,
 		/** The Admin preview of a Draft: the steps are shown, never submitted. */
@@ -42,6 +44,8 @@
 		view: EventPage;
 		schedule: PageDay[];
 		menus: MenuView[];
+		/** The distinct Drinks cards offered (issue 087). */
+		drinks?: DrinksView[];
 		extras?: BookingExtra[];
 		asksDietary?: boolean;
 		preview?: boolean;
@@ -56,6 +60,10 @@
 		choice.day && choice.service ? menuFor(view, schedule, menus, choice.day.date, choice.service.kind) : undefined
 	);
 	const menuHead = $derived(choice.day && choice.service ? `${choice.service.label} · ${shortDay(choice.day, view.lang)}` : '');
+	/** The Drinks card (issue 087) of the meal picked, after its Menu. */
+	const drink = $derived(
+		choice.day && choice.service ? drinksFor(view, schedule, drinks, choice.day.date, choice.service.kind) : undefined
+	);
 	const q = $derived(choice.ready ? quote(view, choice.seating!, choice.guests) : null);
 
 	/** Under the steps: each meal's deposit is said at the meal, the refund policy in the details. */
@@ -202,9 +210,10 @@
 			{/key}
 		{/if}
 
-		{#if choice.service && view.drinks}
-			<!-- The Drinks card (issue 086), after the Menu: paid on site. -->
-			<DrinksSheet drinks={view.drinks} class="py-6" />
+		{#if drink}
+			<!-- The Drinks card (issue 087) of the meal picked, after its
+			     Menu: paid on site. -->
+			<DrinksSheet drinks={drink} class="py-6" />
 		{/if}
 
 		{#if choice.service}

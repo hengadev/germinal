@@ -24,21 +24,27 @@
 		selected = $bindable([]),
 		words,
 		menus,
+		drinkCards,
 		currency,
 		idPrefix,
 		programmeExtra,
 		onnewmenu,
+		onnewdrinkscard,
 		menusOnly = false,
 	}: {
 		programme: Programme;
 		selected?: string[];
 		words: Wording;
 		menus?: { key: string; label: string }[];
+		/** The Event's Drinks cards (issue 087). */
+		drinkCards?: { key: string; label: string }[];
 		currency?: string;
 		idPrefix: string;
 		/** Settings of the programme shared by both meals (the Venue Capacity). */
 		programmeExtra?: Snippet;
 		onnewmenu?: (use: (key: string) => void) => void;
+		/** « + Nouvelle carte… » in the Drinks list (issue 087). */
+		onnewdrinkscard?: (use: (key: string) => void) => void;
 		/** Menus-only mode (issue 082): the price per guest stays hidden. */
 		menusOnly?: boolean;
 	} = $props();
@@ -169,6 +175,7 @@
 			{facet}
 			{words}
 			{menus}
+			{drinkCards}
 			{currency}
 			{menusOnly}
 			value={v ? v.value : programme.plan[kind]}
@@ -181,6 +188,7 @@
 			onsetinfo={facet === 'seances' ? (v ? v.setInfo : (start, info) => programme.setSeatingInfo(null, kind, start, info)) : undefined}
 			{dates}
 			{onnewmenu}
+			{onnewdrinkscard}
 			idPrefix="{idPrefix}-{exception ? 'sel' : 'prog'}-{kind}"
 		/>
 	{/key}

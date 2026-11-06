@@ -14,7 +14,7 @@
 	import { enhance } from '$app/forms';
 	import { getToastContext } from '$lib/components/toast/state.svelte';
 	import { reportSave } from '$lib/utils/editor-save-form';
-	import { adoptSavedDrinkCard, adoptSavedMenus, followSavedServices, keepEdits } from '$lib/utils/editor-refresh';
+	import { adoptSavedDrinkCards, adoptSavedMenus, followSavedServices, keepEdits } from '$lib/utils/editor-refresh';
 	import { AUTOSAVE_ATTRIBUTE, handleTabResult } from './editor-forms';
 	import ProgrammeEditor from '$lib/components/admin/schedule/ProgrammeEditor.svelte';
 	import {
@@ -37,7 +37,7 @@
 		type DraftRefund,
 	} from '$lib/components/admin/PricingEditor.svelte';
 	import ExtrasEditor, { toDraftExtras, type DraftExtra } from '$lib/components/admin/ExtrasEditor.svelte';
-	import DrinkCardEditor, { toDraftDrinkCard, type DraftDrinkCard } from '$lib/components/admin/DrinkCardEditor.svelte';
+	import { toDraftDrinkCards, type DraftDrinkCard } from '$lib/components/admin/DrinkCardEditor.svelte';
 	import type { PricingEditorData } from '$lib/types/pricing-editor';
 	import type { PricingValues } from '$lib/utils/event-warnings-live';
 
@@ -51,11 +51,10 @@
 	let services: DraftPricingService[] = $state(toDraftPricingServices(data.pricing));
 	let currency: string = $state(toDraftCurrency(data.pricing));
 	let extras: DraftExtra[] = $state(toDraftExtras(data.pricing));
-	let drinkCard: DraftDrinkCard = $state(toDraftDrinkCard(data.pricing));
+	let drinkCards: DraftDrinkCard[] = $state(toDraftDrinkCards(data.pricing));
 	let saving = $state(false);
 	let editor: ReturnType<typeof PricingEditor> | undefined = $state();
 	let extrasEditor: ReturnType<typeof ExtrasEditor> | undefined = $state();
-	let drinksEditor: ReturnType<typeof DrinkCardEditor> | undefined = $state();
 
 	const findService = (date: string, kind: string) => services.find((service) => service.date === date && service.kind === kind);
 
@@ -66,12 +65,13 @@
 		meal(date, kind): MealPlan {
 			const service = findService(date, kind);
 			if (!service) return { ...EMPTY_MEAL };
-			return { ...EMPTY_MEAL, served: true, menu: service.menuKey, price: service.price };
+			return { ...EMPTY_MEAL, served: true, menu: service.menuKey, drinks: service.drinkCardKey, price: service.price };
 		},
 		write(date, kind, field, value) {
 			const service = findService(date, kind);
 			if (!service) return;
 			if (field === 'menu') service.menuKey = value as string;
+			else if (field === 'drinks') service.drinkCardKey = value as string;
 			else if (field === 'price') service.price = value as number | null;
 		},
 	};
@@ -82,8 +82,15 @@
 	const menuOptions = $derived(
 		menus.map((menu, index) => ({ key: menu.key, label: menu.nameFr.trim() || menu.nameEn.trim() || `Menu ${index + 1} (sans nom)` }))
 	);
+	const drinkCardOptions = $derived(
+		drinkCards.map((card, index) => ({ key: card.key, label: card.nameFr.trim() || card.nameEn.trim() || `Carte ${index + 1} (sans nom)` }))
+	);
 	const words: Wording = {
 		menuName: (key) => menuOptions.find((menu) => menu.key === key)?.label ?? 'Aucun menu',
+		// Said only once the Event has a Drinks card, so a summary without
+		// any stays « Menu · prix ».
+		drinksName: (key) =>
+			drinkCardOptions.length === 0 ? '' : (drinkCardOptions.find((card) => card.key === key)?.label ?? 'sans boissons'),
 		// Menus-only mode (issue 082): no price to show, not even in a summary.
 		price: (price) => (menusOnly ? '' : price === null ? 'prix non défini' : price === 0 ? 'gratuit' : formatCurrency(Math.round(price * 100), currency, 'fr-FR')),
 	};
@@ -105,6 +112,7 @@
 				const plan = programme.plan[service.kind];
 				if (!plan.served) continue;
 				service.menuKey = plan.menu;
+				service.drinkCardKey = plan.drinks;
 				service.price = plan.price;
 			}
 		});
@@ -132,10 +140,10 @@
 	// the cursor while the Admin types. An explicit save says it with a
 	// toast and goes to the field.
 	let refused = $state(false);
-	const shownBlocking = $derived(refused ? (editor?.firstBlockingField() ?? drinksEditor?.firstBlockingField() ?? extrasEditor?.firstBlockingField() ?? null) : null);
+	const shownBlocking = $derived(refused ? (editor?.firstBlockingField() ?? extrasEditor?.firstBlockingField() ?? null) : null);
 
 	function savePricingEnhance({ cancel, formElement }: { cancel: () => void; formElement: HTMLFormElement }) {
-		const blocking = editor?.firstBlockingField() ?? drinksEditor?.firstBlockingField() ?? extrasEditor?.firstBlockingField() ?? null;
+		const blocking = editor?.firstBlockingField() ?? extrasEditor?.firstBlockingField() ?? null;
 		if (blocking) {
 			cancel();
 			reportSave(formElement, { ok: false, reason: 'invalid', message: blocking.message });
@@ -151,7 +159,7 @@
 		saving = true;
 		const sent = {
 			menus: $state.snapshot(menus),
-			drinkCard: $state.snapshot(drinkCard),
+			drinkCards: $state.snapshot(drinkCards),
 			refundTextEn: refund.textEn,
 			clearing: new Set(services.filter((service) => service.clearLegacyPrices).map((service) => service.serviceId)),
 		};
@@ -159,8 +167,9 @@
 			saving = false;
 			await handleTabResult(result, toast, menusOnly ? 'Menus enregistrés' : 'Menus et tarifs enregistrés', formElement, () => {
 				const menuIds = (result as { data?: { menuIds?: Record<string, string> } }).data?.menuIds;
+				const drinkCardIds = (result as { data?: { drinkCardIds?: Record<string, string> } }).data?.drinkCardIds;
 				const extraIds = (result as { data?: { extraIds?: Record<string, string> } }).data?.extraIds;
-				adoptSaved(sent, menuIds, extraIds);
+				adoptSaved(sent, menuIds, drinkCardIds, extraIds);
 			});
 		};
 	}
@@ -171,12 +180,13 @@
 	 * generated from the French is taken where not edited meanwhile.
 	 */
 	function adoptSaved(
-		sent: { menus: DraftMenu[]; drinkCard: DraftDrinkCard; refundTextEn: string; clearing: Set<string> },
+		sent: { menus: DraftMenu[]; drinkCards: DraftDrinkCard[]; refundTextEn: string; clearing: Set<string> },
 		menuIds: Record<string, string> | undefined,
+		drinkCardIds: Record<string, string> | undefined,
 		extraIds: Record<string, string> | undefined
 	) {
 		adoptSavedMenus(menus, sent.menus, toDraftMenus(data.pricing), menuIds);
-		adoptSavedDrinkCard(drinkCard, sent.drinkCard, toDraftDrinkCard(data.pricing));
+		adoptSavedDrinkCards(drinkCards, sent.drinkCards, toDraftDrinkCards(data.pricing), drinkCardIds);
 		// The new extras take their ids, keeping what was typed since the
 		// save started (issue 019).
 		if (extraIds) {
@@ -206,7 +216,7 @@
 		refund = toDraftRefund(data.pricing);
 		currency = toDraftCurrency(data.pricing);
 		extras = toDraftExtras(data.pricing);
-		drinkCard = toDraftDrinkCard(data.pricing);
+		drinkCards = toDraftDrinkCards(data.pricing);
 		programme.reinfer();
 	}
 
@@ -234,6 +244,7 @@
 	<PricingEditor
 		bind:this={editor}
 		bind:menus
+		bind:drinkCards
 		bind:deposit
 		bind:refund
 		bind:services
@@ -255,14 +266,13 @@
 				menus={menuOptions}
 				{currency}
 				{menusOnly}
+				drinkCards={drinkCardOptions}
 				idPrefix="pricing-programme"
 				onnewmenu={(use) => editor?.createMenu(use)}
+				onnewdrinkscard={(use) => editor?.createDrinkCard(use)}
 			/>
 		{/if}
 	</PricingEditor>
-
-	<!-- The Drinks card (issue 086), in the Portfolio-only « Menus » tab too. -->
-	<DrinkCardEditor bind:this={drinksEditor} bind:card={drinkCard} {currency} />
 
 	{#if !menusOnly}
 		<ExtrasEditor bind:this={extrasEditor} bind:extras {currency} />

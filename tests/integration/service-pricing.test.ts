@@ -97,8 +97,8 @@ describe('savePricing', () => {
 		await savePricing(event.id, {
 			menus: [TASTING],
 			services: [
-				{ serviceId: lunch.serviceId, menuKey: 'new-tasting', priceAmount: 4500, clearLegacyPrices: false },
-				{ serviceId: dinner.serviceId, menuKey: 'new-tasting', priceAmount: 8500, clearLegacyPrices: false },
+				{ serviceId: lunch.serviceId, menuKey: 'new-tasting', drinkCardKey: null, priceAmount: 4500, clearLegacyPrices: false },
+				{ serviceId: dinner.serviceId, menuKey: 'new-tasting', drinkCardKey: null, priceAmount: 8500, clearLegacyPrices: false },
 			],
 		});
 
@@ -133,7 +133,7 @@ describe('savePricing', () => {
 
 		await savePricing(event.id, {
 			menus: [],
-			services: [{ serviceId: lunch.serviceId, menuKey: null, priceAmount: 0, clearLegacyPrices: false }],
+			services: [{ serviceId: lunch.serviceId, menuKey: null, drinkCardKey: null, priceAmount: 0, clearLegacyPrices: false }],
 		});
 
 		expect(await getSeatingPrice(testDb, lunch.seatingId)).toEqual({ amount: 0, currency: 'EUR', legacy: false });
@@ -146,7 +146,7 @@ describe('savePricing', () => {
 
 		await savePricing(event.id, {
 			menus: [TASTING],
-			services: [{ serviceId: lunch.serviceId, menuKey: 'new-tasting', priceAmount: 3000, clearLegacyPrices: false }],
+			services: [{ serviceId: lunch.serviceId, menuKey: 'new-tasting', drinkCardKey: null, priceAmount: 3000, clearLegacyPrices: false }],
 		});
 		const [menu] = (await loadPricingEditor(event.id)).menus;
 
@@ -170,7 +170,7 @@ describe('savePricing', () => {
 
 		await savePricing(event.id, {
 			menus: [],
-			services: [{ serviceId: lunch.serviceId, menuKey: null, priceAmount: 3000, clearLegacyPrices: false }],
+			services: [{ serviceId: lunch.serviceId, menuKey: null, drinkCardKey: null, priceAmount: 3000, clearLegacyPrices: false }],
 		});
 		expect(await testDb.select().from(eventMenus).where(eq(eventMenus.eventId, event.id))).toHaveLength(0);
 	});
@@ -185,7 +185,7 @@ describe('savePricing', () => {
 
 		await expect(savePricing(event.id, {
 			menus: [],
-			services: [{ serviceId: theirs.serviceId, menuKey: null, priceAmount: 100, clearLegacyPrices: false }],
+			services: [{ serviceId: theirs.serviceId, menuKey: null, drinkCardKey: null, priceAmount: 100, clearLegacyPrices: false }],
 		})).rejects.toBeInstanceOf(UnknownPricingTargetError);
 
 		await savePricing(other.id, { menus: [TASTING], services: [] });
@@ -220,7 +220,7 @@ describe('savePricing', () => {
 
 		const payload = (clearLegacyPrices: boolean): PricingPayload => ({
 			menus: [],
-			services: [{ serviceId: first.serviceId, menuKey: null, priceAmount: 4500, clearLegacyPrices }],
+			services: [{ serviceId: first.serviceId, menuKey: null, drinkCardKey: null, priceAmount: 4500, clearLegacyPrices }],
 		});
 
 		await savePricing(event.id, payload(false));
@@ -247,7 +247,7 @@ describe('savePricing', () => {
 
 		await savePricing(event.id, {
 			menus: [],
-			services: [{ serviceId: dinner.serviceId, menuKey: null, priceAmount: 7000, clearLegacyPrices: false }],
+			services: [{ serviceId: dinner.serviceId, menuKey: null, drinkCardKey: null, priceAmount: 7000, clearLegacyPrices: false }],
 			currency: 'GBP',
 		});
 		[row] = await getPublishedScheduleByEventId(event.id);
@@ -338,8 +338,8 @@ describe('savePricing — one currency per Event (issue 042)', () => {
 		await savePricing(event.id, {
 			menus: [],
 			services: [
-				{ serviceId: lunch.serviceId, menuKey: null, priceAmount: 4500, clearLegacyPrices: false },
-				{ serviceId: dinner.serviceId, menuKey: null, priceAmount: 8500, clearLegacyPrices: false },
+				{ serviceId: lunch.serviceId, menuKey: null, drinkCardKey: null, priceAmount: 4500, clearLegacyPrices: false },
+				{ serviceId: dinner.serviceId, menuKey: null, drinkCardKey: null, priceAmount: 8500, clearLegacyPrices: false },
 			],
 			currency: 'USD',
 		});
@@ -383,7 +383,7 @@ describe('savePricing — one currency per Event (issue 042)', () => {
 
 		const payload: PricingPayload = {
 			menus: [],
-			services: [{ serviceId: dinner.serviceId, menuKey: null, priceAmount: 9900, clearLegacyPrices: false }],
+			services: [{ serviceId: dinner.serviceId, menuKey: null, drinkCardKey: null, priceAmount: 9900, clearLegacyPrices: false }],
 			currency: 'GBP',
 		};
 		await expect(savePricing(event.id, payload)).rejects.toBeInstanceOf(CurrencyChangeRefusedError);

@@ -37,12 +37,12 @@ const menu = { nameFr: 'Menu du foyer', nameEn: 'Hearth menu', courses: [], desc
 
 /** Two days, a lunch and a dinner with different Menus on the second. */
 const schedule: PageDay[] = [
-	{ date: '2027-03-12', services: [{ kind: 'dinner', menu, priceAmount: 8500, currency: 'EUR', sessions: [seating({ id: 'd1-19' })] }] },
+	{ date: '2027-03-12', services: [{ kind: 'dinner', menu, drinks: null, priceAmount: 8500, currency: 'EUR', sessions: [seating({ id: 'd1-19' })] }] },
 	{
 		date: '2027-03-13',
 		services: [
-			{ kind: 'lunch', menu: { ...menu, nameFr: 'Déjeuner', nameEn: 'Lunch' }, priceAmount: 4500, currency: 'EUR', sessions: [seating({ id: 'd2-12', startTime: '2027-03-13T12:00:00.000Z', endTime: '2027-03-13T15:00:00.000Z' })] },
-			{ kind: 'dinner', menu: { ...menu, nameFr: 'Dîner de gala', nameEn: 'Gala dinner' }, priceAmount: 9500, currency: 'EUR', sessions: [seating({ id: 'd2-19' })] },
+			{ kind: 'lunch', menu: { ...menu, nameFr: 'Déjeuner', nameEn: 'Lunch' }, drinks: null, priceAmount: 4500, currency: 'EUR', sessions: [seating({ id: 'd2-12', startTime: '2027-03-13T12:00:00.000Z', endTime: '2027-03-13T15:00:00.000Z' })] },
+			{ kind: 'dinner', menu: { ...menu, nameFr: 'Dîner de gala', nameEn: 'Gala dinner' }, drinks: null, priceAmount: 9500, currency: 'EUR', sessions: [seating({ id: 'd2-19' })] },
 		],
 	},
 ];
@@ -68,7 +68,7 @@ describe('fits / serviceFits / dayFits / firstFit', () => {
 		expect(fits(seatingView, 21)).toBe(false);
 		const waitlist = eventPage(
 			event,
-			[{ date: '2027-03-12', services: [{ kind: 'dinner', menu, priceAmount: 8500, currency: 'EUR', sessions: [seating({ id: 'w1', availableCapacity: 0, soldOut: true, allowWaitlist: true })] }] }],
+			[{ date: '2027-03-12', services: [{ kind: 'dinner', menu, drinks: null, priceAmount: 8500, currency: 'EUR', sessions: [seating({ id: 'w1', availableCapacity: 0, soldOut: true, allowWaitlist: true })] }] }],
 			'fr',
 			t
 		).days[0].services[0].seatings[0];
@@ -115,7 +115,7 @@ describe('bill', () => {
 		const vip = eventPage(event, [
 			{
 				date: '2027-03-12',
-				services: [{ kind: 'dinner', menu, priceAmount: 15000, currency: 'EUR', sessions: [seating({ id: 'vip-19', badgeType: 'vip', priceAmount: 15000 })] }],
+				services: [{ kind: 'dinner', menu, drinks: null, priceAmount: 15000, currency: 'EUR', sessions: [seating({ id: 'vip-19', badgeType: 'vip', priceAmount: 15000 })] }],
 			},
 		], 'fr', t).days[0].services[0].seatings[0];
 		expect(vip.vip).toBe(true);

@@ -16,20 +16,26 @@
 		programme,
 		words,
 		menus,
+		drinkCards,
 		currency,
 		idPrefix,
 		programmeExtra,
 		onnewmenu,
+		onnewdrinkscard,
 		menusOnly = false,
 	}: {
 		programme: Programme;
 		words: Wording;
 		menus?: { key: string; label: string }[];
+		/** The Event's Drinks cards (issue 087). */
+		drinkCards?: { key: string; label: string }[];
 		currency?: string;
 		idPrefix: string;
 		programmeExtra?: Snippet;
 		/** « + Nouveau menu… » in the Menu list: create one, then `use` it. */
 		onnewmenu?: (use: (key: string) => void) => void;
+		/** « + Nouvelle carte… » in the Drinks list (issue 087). */
+		onnewdrinkscard?: (use: (key: string) => void) => void;
 		/** Menus-only mode (issue 082): the price per guest stays hidden. */
 		menusOnly?: boolean;
 	} = $props();
@@ -148,6 +154,6 @@
 		class="scroll-mt-16 lg:sticky lg:top-4 bg-background rounded-lg border {selected.length ? 'border-amber-300' : 'border-border-card'}"
 		aria-label="Déjeuner et dîner"
 	>
-		<ProgrammePanel bind:this={panel} {programme} bind:selected {words} {menus} {currency} {menusOnly} {idPrefix} {programmeExtra} {onnewmenu} />
+		<ProgrammePanel bind:this={panel} {programme} bind:selected {words} {menus} {drinkCards} {currency} {menusOnly} {idPrefix} {programmeExtra} {onnewmenu} {onnewdrinkscard} />
 	</aside>
 </div>

@@ -7,6 +7,7 @@ import {
 	MAX_DRINK_DESCRIPTION,
 	MAX_DRINK_NAME,
 	MAX_DRINK_SECTION_LABEL,
+	type EditorDrinkCard,
 	type EditorMenu,
 	type PricingPayload,
 } from '$lib/types/pricing-editor';
@@ -26,16 +27,9 @@ import type { Translator } from './translator';
 export interface StoredPricingText {
 	menus: readonly Pick<EditorMenu, 'id' | 'nameEn' | 'nameFr' | 'courses' | 'descriptionEn' | 'descriptionFr'>[];
 	refundPolicy: { textEn: string | null; textFr: string | null };
-	/** The Event's Drinks card (issue 086), matched by position. */
-	drinkCard?: {
-		sections: readonly {
-			labelEn: string;
-			labelFr: string;
-			drinks: readonly { nameEn: string; nameFr: string; descriptionEn: string | null; descriptionFr: string | null }[];
-		}[];
-		noteEn: string | null;
-		noteFr: string | null;
-	} | null;
+	/** The Event's Drinks cards (issues 086, 087), matched by id like the
+	 * Menus. */
+	drinkCards?: readonly Pick<EditorDrinkCard, 'id' | 'nameEn' | 'nameFr' | 'sections' | 'noteEn' | 'noteFr'>[];
 }
 
 const norm = (value: string | null | undefined) => (value?.trim() ? value : null);
@@ -116,12 +110,22 @@ export async function translatePricing(
 		})
 		: -1;
 
-	// The Drinks card (issue 086): each text matched to the saved one at
-	// the same place — section by section, drink by drink — then the note.
-	const drinkCard = payload.drinkCard;
-	const drinkAt = drinkCard
-		? drinkCard.sections.map((section, s) => {
-			const savedSection = stored?.drinkCard?.sections[s];
+	// The Drinks cards (issues 086, 087): their names (required), then each
+	// text matched to the saved one at the same place — section by section,
+	// drink by drink — then the note.
+	const drinkCards = payload.drinkCards;
+	const drinkCardAt = (drinkCards ?? []).map((card) => {
+		const saved = card.id ? stored?.drinkCards?.find((c) => c.id === card.id) : undefined;
+		const name = add({
+			fr: norm(card.nameFr),
+			en: norm(card.nameEn),
+			storedFr: norm(saved?.nameFr),
+			storedEn: norm(saved?.nameEn),
+			required: true,
+			maxLength: 255,
+		});
+		const sections = card.sections.map((section, s) => {
+			const savedSection = saved?.sections[s];
 			return {
 				label: add({
 					fr: norm(section.labelFr),
@@ -150,18 +154,16 @@ export async function translatePricing(
 					};
 				}),
 			};
-		})
-		: [];
-	const drinkNoteAt = drinkCard
-		? add({
-			fr: norm(drinkCard.noteFr),
-			en: norm(drinkCard.noteEn),
-			storedFr: norm(stored?.drinkCard?.noteFr),
-			storedEn: norm(stored?.drinkCard?.noteEn),
+		});
+		const note = add({
+			fr: norm(card.noteFr),
+			en: norm(card.noteEn),
+			storedFr: norm(saved?.noteFr),
+			storedEn: norm(saved?.noteEn),
 			maxLength: MAX_DRINK_CARD_NOTE,
-		})
-		: -1;
-
+		});
+		return { name, sections, note };
+	});
 	const english = await followFrench(pairs, translator);
 	const at = (i: number) => english.value[i];
 	const value: PricingPayload = {
@@ -188,20 +190,21 @@ export async function translatePricing(
 	if (refund) {
 		value.refundPolicy = { ...refund, textEn: at(refundAt) };
 	}
-	if (drinkCard) {
-		value.drinkCard = {
-			...drinkCard,
-			sections: drinkCard.sections.map((section, s) => ({
+	if (drinkCards) {
+		value.drinkCards = drinkCards.map((card, c) => ({
+			...card,
+			nameEn: at(drinkCardAt[c].name) ?? card.nameFr,
+			sections: card.sections.map((section, s) => ({
 				...section,
-				labelEn: at(drinkAt[s].label) ?? '',
+				labelEn: at(drinkCardAt[c].sections[s].label) ?? '',
 				drinks: section.drinks.map((drink, d) => ({
 					...drink,
-					nameEn: at(drinkAt[s].drinks[d].name) ?? '',
-					descriptionEn: at(drinkAt[s].drinks[d].description),
+					nameEn: at(drinkCardAt[c].sections[s].drinks[d].name) ?? '',
+					descriptionEn: at(drinkCardAt[c].sections[s].drinks[d].description),
 				})),
 			})),
-			noteEn: at(drinkNoteAt),
-		};
+			noteEn: at(drinkCardAt[c].note),
+		}));
 	}
 	return { ...english, value };
 }
