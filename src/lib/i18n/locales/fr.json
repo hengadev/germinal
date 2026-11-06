@@ -587,8 +587,7 @@
       "controllerTitle": "1. Responsable du traitement",
       "controllerBody": "Le responsable du traitement est :",
       "controllerName": "Germinal",
-      "controllerAddress": "[ADRESSE — À COMPLÉTER]",
-      "controllerEmail": "Email : privacy@germinalstudio.co",
+      "controllerEmail": "Email : contact@germinalstudio.co",
       "dataTitle": "2. Données personnelles collectées",
       "dataIntro": "Nous collectons les catégories suivantes de données personnelles :",
       "dataReservation": "Données de réservation : prénom, nom, adresse e-mail, numéro de téléphone — collectées lors de la réservation d'une Session ou de la création d'une Réservation.",
@@ -631,7 +630,7 @@
       "rightPortability": "Recevoir vos données dans un format portable",
       "rightObject": "Vous opposer au traitement fondé sur l'intérêt légitime",
       "rightWithdraw": "Retirer votre consentement à tout moment",
-      "rightsExercice": "Pour exercer l'un de ces droits, contactez-nous à privacy@germinalstudio.co.",
+      "rightsExercice": "Pour exercer l'un de ces droits, contactez-nous à contact@germinalstudio.co.",
       "rightsComplaint": "Si vous estimez que vos droits ne sont pas respectés, vous pouvez introduire une réclamation auprès de la CNIL (www.cnil.fr).",
       "cookiesTitle": "7. Cookies",
       "cookiesIntro": "Nous utilisons les catégories de cookies suivantes :",
@@ -645,13 +644,12 @@
       "publisherTitle": "1. Éditeur du site",
       "publisherBody": "Le présent site est édité par :",
       "publisherName": "Germinal",
-      "publisherAddress": "[ADRESSE — À COMPLÉTER]",
       "publisherEmail": "Email : contact@germinalstudio.co",
-      "publisherDirector": "Directeur de la publication : [NOM — À COMPLÉTER]",
+      "publisherDirector": "Directeur de la publication : Germinal",
       "hostingTitle": "2. Hébergement",
       "hostingBody": "Le présent site est hébergé par :",
-      "hostingName": "[HÉBERGEUR — À COMPLÉTER]",
-      "hostingAddress": "[ADRESSE DE L'HÉBERGEUR — À COMPLÉTER]",
+      "hostingName": "Hetzner Online GmbH",
+      "hostingAddress": "Industriestr. 25, 91710 Gunzenhausen, Allemagne",
       "ipTitle": "3. Propriété intellectuelle",
       "ipBody": "L'ensemble des contenus du présent site (textes, images, graphismes, logos) est la propriété exclusive de Germinal et est protégé par le droit d'auteur français et international. Toute reproduction, représentation, modification ou adaptation, totale ou partielle, sans autorisation écrite préalable de Germinal, est strictement interdite.",
       "dataTitle": "4. Données personnelles",
@@ -696,7 +694,7 @@
     },
     "q5": {
       "question": "Comment contacter Germinal ?",
-      "answer": "Vous pouvez nous joindre via notre page contact, par email à privacy@germinalstudio.co, ou via notre Instagram @Germinal.studio. Nous répondons généralement sous 48 heures."
+      "answer": "Vous pouvez nous joindre via notre page contact, par email à contact@germinalstudio.co, ou via notre Instagram @Germinal.studio. Nous répondons généralement sous 48 heures."
     }
   },
   "admin": {

@@ -17,9 +17,8 @@
             <p>{$t("legal.mentions.publisherBody")}</p>
             <div class="pl-4 border-l-2 border-border-input grid gap-1">
                 <p class="font-medium text-foreground">{$t("legal.mentions.publisherName")}</p>
-                <p class="text-red-600 font-medium">{$t("legal.mentions.publisherAddress")}</p>
                 <p>{$t("legal.mentions.publisherEmail")}</p>
-                <p class="text-red-600 font-medium">{$t("legal.mentions.publisherDirector")}</p>
+                <p>{$t("legal.mentions.publisherDirector")}</p>
             </div>
         </section>
 
@@ -28,8 +27,8 @@
             <h2 class="text-xl font-serif text-foreground">{$t("legal.mentions.hostingTitle")}</h2>
             <p>{$t("legal.mentions.hostingBody")}</p>
             <div class="pl-4 border-l-2 border-border-input grid gap-1">
-                <p class="text-red-600 font-medium">{$t("legal.mentions.hostingName")}</p>
-                <p class="text-red-600 font-medium">{$t("legal.mentions.hostingAddress")}</p>
+                <p class="font-medium text-foreground">{$t("legal.mentions.hostingName")}</p>
+                <p>{$t("legal.mentions.hostingAddress")}</p>
             </div>
         </section>
 

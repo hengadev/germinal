@@ -20,7 +20,6 @@
             <p>{$t("legal.privacy.controllerBody")}</p>
             <div class="pl-4 border-l-2 border-border-input grid gap-1">
                 <p class="font-medium text-foreground">{$t("legal.privacy.controllerName")}</p>
-                <p class="text-red-600 font-medium">{$t("legal.privacy.controllerAddress")}</p>
                 <p>{$t("legal.privacy.controllerEmail")}</p>
             </div>
         </section>

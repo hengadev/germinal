@@ -587,8 +587,7 @@
       "controllerTitle": "1. Data Controller",
       "controllerBody": "The data controller is:",
       "controllerName": "Germinal",
-      "controllerAddress": "[ADRESSE — À COMPLÉTER]",
-      "controllerEmail": "Email: privacy@germinalstudio.co",
+      "controllerEmail": "Email: contact@germinalstudio.co",
       "dataTitle": "2. Personal Data We Collect",
       "dataIntro": "We collect the following categories of personal data:",
       "dataReservation": "Reservation data: first name, last name, email address, phone number — collected when you book a Session or create a Reservation.",
@@ -631,7 +630,7 @@
       "rightPortability": "Receive your data in a portable format",
       "rightObject": "Object to processing based on legitimate interest",
       "rightWithdraw": "Withdraw your consent at any time",
-      "rightsExercice": "To exercise any of these rights, contact us at privacy@germinalstudio.co.",
+      "rightsExercice": "To exercise any of these rights, contact us at contact@germinalstudio.co.",
       "rightsComplaint": "If you believe your rights are not respected, you can lodge a complaint with the CNIL (www.cnil.fr).",
       "cookiesTitle": "7. Cookies",
       "cookiesIntro": "We use the following categories of cookies:",
@@ -645,13 +644,12 @@
       "publisherTitle": "1. Publisher",
       "publisherBody": "This website is published by:",
       "publisherName": "Germinal",
-      "publisherAddress": "[ADDRESS — TO BE COMPLETED]",
       "publisherEmail": "Email: contact@germinalstudio.co",
-      "publisherDirector": "Publication Director: [NAME — TO BE COMPLETED]",
+      "publisherDirector": "Publication Director: Germinal",
       "hostingTitle": "2. Hosting",
       "hostingBody": "This website is hosted by:",
-      "hostingName": "[HOSTING PROVIDER — TO BE COMPLETED]",
-      "hostingAddress": "[HOSTING PROVIDER ADDRESS — TO BE COMPLETED]",
+      "hostingName": "Hetzner Online GmbH",
+      "hostingAddress": "Industriestr. 25, 91710 Gunzenhausen, Germany",
       "ipTitle": "3. Intellectual Property",
       "ipBody": "All content on this website (texts, images, graphics, logos) is the exclusive property of Germinal and is protected under French and international intellectual property law. Any reproduction, representation, modification, or adaptation, in whole or in part, without prior written authorisation from Germinal, is strictly prohibited.",
       "dataTitle": "4. Personal Data",
@@ -696,7 +694,7 @@
     },
     "q5": {
       "question": "How can I contact Germinal?",
-      "answer": "You can reach us through our contact page, by email at privacy@germinalstudio.co, or via our Instagram @Germinal.studio. We typically respond within 48 hours."
+      "answer": "You can reach us through our contact page, by email at contact@germinalstudio.co, or via our Instagram @Germinal.studio. We typically respond within 48 hours."
     }
   },
   "admin": {
