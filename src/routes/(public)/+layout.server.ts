@@ -1,6 +1,7 @@
 import type { LayoutServerLoad } from './$types';
 import { getSpotlightEvent, hasUpcomingEvents } from '$lib/server/services/events';
 import { hasPublishedTalents } from '$lib/server/services/talents';
+import { giftCardsOnSale } from '$lib/server/services/site-settings';
 import { MOCK_EVENTS, MOCK_TALENTS, MOCK_SESSIONS, USE_MOCK_DATA } from '$lib/mock-data';
 import { canBeSpotlight, isUpcoming } from '$lib/utils/event-access';
 
@@ -44,6 +45,8 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 		csrfToken: locals.csrfToken,
 		hasSpotlightEvent,
 		hasUpcomingEvents: upcomingEvents,
-		hasPublishedTalents: talentsPublished
+		hasPublishedTalents: talentsPublished,
+		// « Carte cadeau » is linked only while the Admin has it on sale.
+		giftCardsOnSale: await giftCardsOnSale()
 	};
 };

@@ -502,6 +502,8 @@ export const siteSettings = pgTable('site_settings', {
     heroVideoId: uuid('hero_video_id').references(() => media.id, { onDelete: 'set null' }),
     senderEmail: varchar('sender_email', { length: 255 }),
     maintenanceMode: boolean('maintenance_mode').default(false).notNull(),
+    // « Cartes cadeaux »: off, the gift card page is closed and unlinked.
+    giftCardsEnabled: boolean('gift_cards_enabled').default(false).notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 

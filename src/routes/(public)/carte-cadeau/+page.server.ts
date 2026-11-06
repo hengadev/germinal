@@ -1,13 +1,16 @@
-import { fail, redirect, type Actions } from '@sveltejs/kit';
+import { error, fail, redirect, type Actions } from '@sveltejs/kit';
 import { logger } from '$lib/server/logger';
 import { giftCardPurchaseSchema } from '$lib/server/validators/gift-card';
 import { checkRateLimit } from '$lib/server/rate-limit';
 import { validateCsrfTokenFromForm } from '$lib/server/csrf';
 import { env } from '$lib/server/env';
 import { createGiftCardCheckoutSession } from '$lib/server/services/stripe';
+import { giftCardsOnSale } from '$lib/server/services/site-settings';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
+	// Closed in the Admin's settings: the page does not exist.
+	if (!(await giftCardsOnSale())) error(404, 'Not found');
 	return {
 		csrfToken: locals.csrfToken
 	};
@@ -15,6 +18,9 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 export const actions: Actions = {
 	default: async ({ request, getClientAddress, locals }) => {
+		// A form left open, or posted directly, sells nothing while closed.
+		if (!(await giftCardsOnSale())) error(404, 'Not found');
+
 		const ip = getClientAddress();
 
 		// Rate limit: the Inquiry policy (5 submissions per hour per client

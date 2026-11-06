@@ -172,3 +172,30 @@ export async function setMaintenanceMode(enabled: boolean) {
         .where(eq(siteSettings.id, 1));
     invalidateCacheTags([CACHE_TAGS.SETTINGS]);
 }
+
+/**
+ * Open or close the gift card page (« Cartes cadeaux »). Closed, its footer
+ * link is gone and /carte-cadeau answers 404; cards already sold still work.
+ */
+export async function setGiftCardsEnabled(enabled: boolean) {
+    await getOrCreateSettings();
+
+    await db.update(siteSettings)
+        .set({ giftCardsEnabled: enabled, updatedAt: new Date() })
+        .where(eq(siteSettings.id, 1));
+    invalidateCacheTags([CACHE_TAGS.SETTINGS]);
+}
+
+/**
+ * Whether gift cards are on sale. Mock-data mode has no settings and keeps
+ * them open; an unreadable setting keeps them closed, so no payment is taken
+ * by mistake.
+ */
+export async function giftCardsOnSale(): Promise<boolean> {
+    if (env.USE_MOCK_DATA) return true;
+    try {
+        return (await getCachedSiteSettings())?.giftCardsEnabled === true;
+    } catch {
+        return false;
+    }
+}

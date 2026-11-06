@@ -210,4 +210,31 @@ export const actions: Actions = {
             return fail(500, { error: 'Update failed' });
         }
     },
+
+    toggleGiftCards: async ({ request, locals }) => {
+        requireAdmin(locals);
+        if (env.USE_MOCK_DATA) return fail(400, { error: 'Not available in mock mode' });
+
+        const formData = await request.formData();
+        const enabled = formData.get('giftCardsEnabled') === 'true';
+
+        try {
+            const { setGiftCardsEnabled } = await import('$lib/server/services/site-settings');
+            await setGiftCardsEnabled(enabled);
+
+            const { recordAuditLog } = await import('$lib/server/services/audit-log');
+            await recordAuditLog({
+                adminId: locals.user!.id,
+                action: 'settings.update',
+                entityType: 'settings',
+                entityId: 'site_settings',
+                metadata: { field: 'giftCardsEnabled', enabled },
+            });
+
+            return { success: true };
+        } catch (err) {
+            logger.error({ err }, '[Settings] Failed to toggle gift cards');
+            return fail(500, { error: 'Update failed' });
+        }
+    },
 };

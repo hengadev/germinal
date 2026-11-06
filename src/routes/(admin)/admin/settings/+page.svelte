@@ -1,6 +1,6 @@
 <script lang="ts">
     import { enhance } from '$app/forms';
-    import { Upload, Trash2, Image, Video, Mail, AlertTriangle } from 'lucide-svelte';
+    import { Upload, Trash2, Image, Video, Mail, AlertTriangle, Gift } from 'lucide-svelte';
     import { getToastContext } from '$lib/components/toast/state.svelte';
     import type { PageData } from './$types';
 
@@ -47,6 +47,8 @@
     let senderEmail = $state(settings?.senderEmail ?? '');
     let maintenanceMode = $state(settings?.maintenanceMode ?? false);
     let maintenanceForm: HTMLFormElement;
+    let giftCardsEnabled = $state(settings?.giftCardsEnabled ?? false);
+    let giftCardsForm: HTMLFormElement;
 
     function handleSenderEmailResult() {
         return async ({ result, update }: { result: import('@sveltejs/kit').ActionResult; update: (opts?: { reset?: boolean }) => Promise<void> }) => {
@@ -56,6 +58,19 @@
                 // without telling the bound state, so screen and state disagree.
                 await update({ reset: false });
             } else if (result.type === 'failure') {
+                const err = (result.data as { error?: string })?.error ?? 'Une erreur est survenue';
+                toast.error('Erreur', err);
+            }
+        };
+    }
+
+    function handleGiftCardsResult() {
+        return async ({ result, update }: { result: import('@sveltejs/kit').ActionResult; update: (opts?: { reset?: boolean }) => Promise<void> }) => {
+            if (result.type === 'success') {
+                toast.success('Succès', giftCardsEnabled ? 'Cartes cadeaux en vente' : 'Cartes cadeaux fermées');
+                await update({ reset: false });
+            } else if (result.type === 'failure') {
+                giftCardsEnabled = !giftCardsEnabled; // revert optimistic toggle
                 const err = (result.data as { error?: string })?.error ?? 'Une erreur est survenue';
                 toast.error('Erreur', err);
             }
@@ -87,7 +102,7 @@
         <div class="max-w-2xl mx-auto grid gap-8">
             <div>
                 <h1 class="text-2xl font-bold">Paramètres du Site</h1>
-                <p class="text-muted-foreground mt-1 text-sm">Configurez les médias de la page d'accueil, l'adresse expéditeur des emails et le mode maintenance.</p>
+                <p class="text-muted-foreground mt-1 text-sm">Configurez les médias de la page d'accueil, l'adresse expéditeur des emails, les cartes cadeaux et le mode maintenance.</p>
             </div>
 
             {#if hasBoth}
@@ -287,6 +302,45 @@
                         >
                             Enregistrer
                         </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Gift cards -->
+            <div class="bg-background rounded-lg border border-border-card p-6 grid gap-5">
+                <div class="flex items-center gap-3">
+                    <Gift size={20} class="text-muted-foreground" />
+                    <div>
+                        <h2 class="font-semibold">Cartes cadeaux</h2>
+                        <p class="text-xs text-muted-foreground">Ouvre la vente des cartes cadeaux sur le site, avec son lien en pied de page. Les cartes déjà vendues restent utilisables dans tous les cas.</p>
+                    </div>
+                </div>
+
+                <form
+                    bind:this={giftCardsForm}
+                    method="POST"
+                    action="?/toggleGiftCards"
+                    use:enhance={handleGiftCardsResult}
+                >
+                    <input type="hidden" name="giftCardsEnabled" value={giftCardsEnabled ? 'true' : 'false'} />
+                    <div class="flex items-center gap-3 p-4 bg-muted rounded-lg">
+                        <input
+                            id="giftCardsEnabled"
+                            type="checkbox"
+                            bind:checked={giftCardsEnabled}
+                            class="w-5 h-5 text-foreground border-border-input rounded focus:ring-foreground"
+                            onchange={() => giftCardsForm.requestSubmit()}
+                        />
+                        <div>
+                            <label for="giftCardsEnabled" class="block text-sm font-medium text-foreground cursor-pointer">Vendre des cartes cadeaux</label>
+                            <p class="text-xs text-muted-foreground">
+                                {#if giftCardsEnabled}
+                                    En vente — la page « Carte cadeau » est ouverte
+                                {:else}
+                                    Fermée — la page « Carte cadeau » n’est ni accessible ni liée
+                                {/if}
+                            </p>
+                        </div>
                     </div>
                 </form>
             </div>

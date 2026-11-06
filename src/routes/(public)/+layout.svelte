@@ -119,9 +119,11 @@
                         <a href="/find-ticket" class="text-white/60 hover:text-white text-sm transition-colors w-fit">
                             {$t('nav.findTicket')}
                         </a>
-                        <a href="/carte-cadeau" class="text-white/60 hover:text-white text-sm transition-colors w-fit">
-                            {$t('nav.giftCard')}
-                        </a>
+                        {#if data.giftCardsOnSale}
+                            <a href="/carte-cadeau" class="text-white/60 hover:text-white text-sm transition-colors w-fit">
+                                {$t('nav.giftCard')}
+                            </a>
+                        {/if}
                     </nav>
                 </div>
 

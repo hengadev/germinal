@@ -435,6 +435,13 @@
       "when": 1793970586431,
       "tag": "0061_drinks_cards_per_meal",
       "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1793987167921,
+      "tag": "0062_gift_cards_switch",
+      "breakpoints": true
     }
   ]
 }
