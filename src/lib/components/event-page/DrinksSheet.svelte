@@ -12,7 +12,7 @@
 <section class="flex flex-col items-center gap-7 text-center {className}">
 	<header class="flex flex-col gap-1.5">
 		<p class="text-xxs font-medium uppercase tracking-[0.15em] text-muted-foreground">{$t('events.drinks.onSite')}</p>
-		<h3 class="font-serif text-2xl leading-tight text-balance">{$t('events.drinks.title')}</h3>
+		<h3 class="font-serif text-2xl leading-tight text-balance">{drinks.name || $t('events.drinks.title')}</h3>
 	</header>
 	<ol class="flex w-full max-w-sm flex-col gap-5">
 		{#each drinks.sections as section, i (i)}

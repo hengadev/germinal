@@ -97,7 +97,8 @@ export async function getSeatingPrices(seatingIds: string[]): Promise<Map<string
 	return new Map(rows.map((row) => [row.id, resolveSeatingPrice(row)]));
 }
 
-/** A Service's Menu (if any) and price as the public pages show them. */
+/** A Service's Menu and Drinks card (if any) and price as the public
+ * pages show them. */
 export interface PublicServiceOffer {
 	serviceId: string;
 	menu: {
@@ -106,6 +107,14 @@ export interface PublicServiceOffer {
 		courses: MenuCourse[];
 		descriptionEn: string | null;
 		descriptionFr: string | null;
+	} | null;
+	/** The meal's Drinks card (issue 087), like its Menu; null for none. */
+	drinks: {
+		nameEn: string;
+		nameFr: string;
+		sections: DrinkSection[];
+		noteEn: string | null;
+		noteFr: string | null;
 	} | null;
 	/** Minor units; null while the price is not set. */
 	priceAmount: number | null;
@@ -124,6 +133,11 @@ export async function getServiceOffersByEventId(eventId: string): Promise<Map<st
 		menuCourses: MenuCourse[] | null;
 		menuDescriptionEn: string | null;
 		menuDescriptionFr: string | null;
+		drinkNameEn: string | null;
+		drinkNameFr: string | null;
+		drinkSections: DrinkSection[] | null;
+		drinkNoteEn: string | null;
+		drinkNoteFr: string | null;
 	}[] = await db
 		.select({
 			serviceId: eventServices.id,
@@ -134,11 +148,17 @@ export async function getServiceOffersByEventId(eventId: string): Promise<Map<st
 			menuCourses: eventMenus.courses,
 			menuDescriptionEn: eventMenus.descriptionEn,
 			menuDescriptionFr: eventMenus.descriptionFr,
+			drinkNameEn: eventDrinkCards.nameEn,
+			drinkNameFr: eventDrinkCards.nameFr,
+			drinkSections: eventDrinkCards.sections,
+			drinkNoteEn: eventDrinkCards.noteEn,
+			drinkNoteFr: eventDrinkCards.noteFr,
 		})
 		.from(eventServices)
 		.innerJoin(eventDays, eq(eventServices.dayId, eventDays.id))
 		.innerJoin(events, eq(eventDays.eventId, events.id))
 		.leftJoin(eventMenus, eq(eventServices.menuId, eventMenus.id))
+		.leftJoin(eventDrinkCards, eq(eventServices.drinkCardId, eventDrinkCards.id))
 		.where(eq(eventDays.eventId, eventId));
 
 	return new Map(rows.map((row) => [row.serviceId, {
@@ -150,6 +170,15 @@ export async function getServiceOffersByEventId(eventId: string): Promise<Map<st
 				courses: row.menuCourses ?? [],
 				descriptionEn: row.menuDescriptionEn,
 				descriptionFr: row.menuDescriptionFr,
+			}
+			: null,
+		drinks: row.drinkNameEn !== null && row.drinkNameFr !== null
+			? {
+				nameEn: row.drinkNameEn,
+				nameFr: row.drinkNameFr,
+				sections: row.drinkSections ?? [],
+				noteEn: row.drinkNoteEn,
+				noteFr: row.drinkNoteFr,
 			}
 			: null,
 		priceAmount: row.priceAmount,
@@ -166,6 +195,8 @@ export type PricingParseFailure =
 	| 'malformed'
 	| 'menu'
 	| 'menu-name'
+	| 'drink-card'
+	| 'drink-card-name'
 	| 'service'
 	| 'price'
 	| 'currency'
@@ -301,38 +332,13 @@ function parseDrinkSections(value: unknown): DrinkSection[] | false {
 	return sections.length > MAX_DRINK_SECTIONS ? false : sections;
 }
 
-/** Why a posted Drinks card was refused: always the same message. */
-export const DRINK_CARD_PAYLOAD_ERROR =
-	'La carte des boissons est invalide : au plus 10 sections de 30 boissons, des textes courts et des prix positifs ou nuls au centime près.';
-
-/**
- * Parse the Drinks card posted by the Menus tab (issue 086) as `drinkCard`:
- * its sections and note. A card with no drink left parses to no section,
- * which the save turns into deleting the row. Null when malformed, too
- * many or too long.
- */
-export function parseDrinkCardPayload(raw: string | null): DrinkCardPayload | null {
-	if (raw === null) return null;
-	let parsed: unknown;
-	try {
-		parsed = JSON.parse(raw);
-	} catch {
-		return null;
-	}
-	if (typeof parsed !== 'object' || parsed === null) return null;
-	const card = parsed as Record<string, unknown>;
-	const sections = parseDrinkSections(card.sections);
-	const noteEn = optionalText(card.noteEn, MAX_DRINK_CARD_NOTE);
-	const noteFr = optionalText(card.noteFr, MAX_DRINK_CARD_NOTE);
-	if (sections === false || noteEn === false || noteFr === false) return null;
-	return { sections, noteEn, noteFr };
-}
-
 /**
  * Parse the payload posted by the « Menus & tarifs » tab: the Event's Menus
- * (FR name required, EN name, Courses and note optional) and each Service's Menu and
- * price (whole minor units, zero allowed, or null for “not set yet”), and
- * the Event's currency (issue 042; absent, it is left as is).
+ * and Drinks cards (FR name required, EN name, content and note optional;
+ * issue 087 makes the cards a list like the Menus) and each Service's
+ * Menu, Drinks card and price (whole minor units, zero allowed, or null
+ * for “not set yet”), and the Event's currency (issue 042; absent, it is
+ * left as is).
  * Returns a failure reason the admin form maps to French copy.
  */
 export function parsePricingPayload(raw: string | null): PricingParseResult {
@@ -348,7 +354,7 @@ export function parsePricingPayload(raw: string | null): PricingParseResult {
 	if (typeof parsed !== 'object' || parsed === null) {
 		return { ok: false, reason: 'malformed' };
 	}
-	const { menus, services, currency, deposit, refundPolicy } = parsed as Record<string, unknown>;
+	const { menus, drinkCards, services, currency, deposit, refundPolicy } = parsed as Record<string, unknown>;
 	if (!Array.isArray(menus) || !Array.isArray(services)) {
 		return { ok: false, reason: 'malformed' };
 	}
@@ -393,6 +399,50 @@ export function parsePricingPayload(raw: string | null): PricingParseResult {
 		});
 	}
 
+	// The Event's Drinks cards (issue 087), parsed like its Menus.
+	const drinkCardKeys = new Set<string>();
+	const drinkCardIds = new Set<string>();
+	const parsedDrinkCards: DrinkCardPayload[] = [];
+	if (drinkCards !== undefined && !Array.isArray(drinkCards)) {
+		return { ok: false, reason: 'drink-card' };
+	}
+	for (const entry of drinkCards ?? []) {
+		if (typeof entry !== 'object' || entry === null) {
+			return { ok: false, reason: 'drink-card' };
+		}
+		const card = entry as Record<string, unknown>;
+		if (typeof card.key !== 'string' || card.key === '' || drinkCardKeys.has(card.key)) {
+			return { ok: false, reason: 'drink-card' };
+		}
+		if (card.id !== null && (typeof card.id !== 'string' || !UUID_PATTERN.test(card.id) || drinkCardIds.has(card.id))) {
+			return { ok: false, reason: 'drink-card' };
+		}
+		// The English name may be left blank: it is generated from the
+		// French (pricing-translation.ts) before the card is saved.
+		const cardNameEn = optionalText(card.nameEn, 255);
+		const cardNameFr = requiredText(card.nameFr, 255);
+		if (cardNameEn === false || cardNameFr === false) {
+			return { ok: false, reason: 'drink-card-name' };
+		}
+		const sections = parseDrinkSections(card.sections);
+		const noteEn = optionalText(card.noteEn, MAX_DRINK_CARD_NOTE);
+		const noteFr = optionalText(card.noteFr, MAX_DRINK_CARD_NOTE);
+		if (sections === false || noteEn === false || noteFr === false) {
+			return { ok: false, reason: 'drink-card' };
+		}
+		drinkCardKeys.add(card.key);
+		if (card.id !== null) drinkCardIds.add(card.id as string);
+		parsedDrinkCards.push({
+			key: card.key,
+			id: card.id as string | null,
+			nameEn: cardNameEn ?? '',
+			nameFr: cardNameFr,
+			sections,
+			noteEn,
+			noteFr,
+		});
+	}
+
 	const serviceIds = new Set<string>();
 	const parsedServices: ServicePricingPayload[] = [];
 	for (const entry of services) {
@@ -405,6 +455,10 @@ export function parsePricingPayload(raw: string | null): PricingParseResult {
 		}
 		if (service.menuKey !== null && (typeof service.menuKey !== 'string' || !menuKeys.has(service.menuKey))) {
 			return { ok: false, reason: 'menu' };
+		}
+		if (service.drinkCardKey !== null && service.drinkCardKey !== undefined &&
+			(typeof service.drinkCardKey !== 'string' || !drinkCardKeys.has(service.drinkCardKey))) {
+			return { ok: false, reason: 'drink-card' };
 		}
 		if (
 			service.priceAmount !== null &&
@@ -426,6 +480,7 @@ export function parsePricingPayload(raw: string | null): PricingParseResult {
 		parsedServices.push({
 			serviceId: service.serviceId,
 			menuKey: service.menuKey as string | null,
+			drinkCardKey: (service.drinkCardKey as string | null | undefined) ?? null,
 			priceAmount: service.priceAmount as number | null,
 			clearLegacyPrices: service.clearLegacyPrices,
 		});
@@ -471,6 +526,7 @@ export function parsePricingPayload(raw: string | null): PricingParseResult {
 		ok: true,
 		payload: {
 			menus: parsedMenus,
+			...(drinkCards !== undefined ? { drinkCards: parsedDrinkCards } : {}),
 			services: parsedServices,
 			...(parsedCurrency ? { currency: parsedCurrency } : {}),
 			...(parsedDeposit ? { deposit: parsedDeposit } : {}),
@@ -514,6 +570,10 @@ export function pricingPayloadErrorMessage(reason: PricingParseFailure): string 
 			return 'Un des menus soumis est invalide.';
 		case 'menu-name':
 			return 'Chaque menu doit avoir un nom en français ; un nom compte 255 caractères au plus.';
+		case 'drink-card':
+			return 'Une des cartes des boissons soumise est invalide : au plus 10 sections de 30 boissons, des textes courts et des prix positifs ou nuls au centime près.';
+		case 'drink-card-name':
+			return 'Chaque carte des boissons doit avoir un nom en français ; un nom compte 255 caractères au plus.';
 		case 'service':
 			return 'Un des repas soumis est invalide.';
 		case 'price':
@@ -579,6 +639,9 @@ export interface SavedPricing {
 	/** Each posted Menu's id by its key, created ones included: the editor
 	 * keeps its drafts and takes their ids. */
 	menuIds: Record<string, string>;
+	/** Each posted Drinks card's id by its key, created ones included
+	 * (issue 087). */
+	drinkCardIds: Record<string, string>;
 }
 
 /**
@@ -588,9 +651,11 @@ export interface SavedPricing {
  * prices), and the Event takes the currency, the Deposit rule and the
  * Refund Policy when they are posted.
  * Services outside the payload are untouched. Refuses — with a
- * French message and nothing written — a Menu or Service of another Event,
- * deleting a Menu still offered on a Service, and changing the currency
- * once the Event has a Reservation.
+ * French message and nothing written — a Menu, Drinks card or Service of
+ * another Event, deleting a Menu still offered on a Service, and changing
+ * the currency once the Event has a Reservation. A Drinks card left out
+ * of the payload or emptied is deleted; the Services that offered it then
+ * offer none.
  */
 export async function savePricing(eventId: string, payload: PricingPayload): Promise<SavedPricing> {
 	return db.transaction(async (tx: typeof db): Promise<SavedPricing> => {
@@ -655,6 +720,19 @@ export async function savePricing(eventId: string, payload: PricingPayload): Pro
 				throw new UnknownPricingTargetError();
 			}
 		}
+		const existingDrinkCards: { id: string }[] = await tx
+			.select({ id: eventDrinkCards.id })
+			.from(eventDrinkCards)
+			.where(eq(eventDrinkCards.eventId, eventId));
+		const existingDrinkCardIds = new Set(existingDrinkCards.map((card) => card.id));
+		// An emptied card (no drink left) is dropped from the payload's list,
+		// so the removal pass below deletes its row (issue 086).
+		const keptDrinkCards = (payload.drinkCards ?? []).filter((card) => card.sections.length > 0);
+		for (const card of keptDrinkCards) {
+			if (card.id !== null && !existingDrinkCardIds.has(card.id)) {
+				throw new UnknownPricingTargetError();
+			}
+		}
 		for (const service of payload.services) {
 			if (!eventServiceIds.has(service.serviceId)) {
 				throw new UnknownPricingTargetError();
@@ -684,11 +762,39 @@ export async function savePricing(eventId: string, payload: PricingPayload): Pro
 			}
 		}
 
-		// Services: Menu and price, then the legacy prices they drop.
+		// Drinks cards (issue 087): update the listed ones, create the new
+		// ones — like the Menus above.
+		const drinkCardIdByKey = new Map<string, string>();
+		for (const card of keptDrinkCards) {
+			const fields = {
+				nameEn: card.nameEn,
+				nameFr: card.nameFr,
+				sections: card.sections,
+				noteEn: card.noteEn,
+				noteFr: card.noteFr,
+			};
+			if (card.id === null) {
+				const [created]: { id: string }[] = await tx.insert(eventDrinkCards)
+					.values({ eventId, ...fields })
+					.returning({ id: eventDrinkCards.id });
+				drinkCardIdByKey.set(card.key, created.id);
+			} else {
+				await tx.update(eventDrinkCards)
+					.set({ ...fields, updatedAt: new Date() })
+					.where(eq(eventDrinkCards.id, card.id));
+				drinkCardIdByKey.set(card.key, card.id);
+			}
+		}
+
+		// Services: Menu, Drinks card and price, then the legacy prices they drop.
 		for (const service of payload.services) {
 			await tx.update(eventServices)
 				.set({
 					menuId: service.menuKey === null ? null : menuIdByKey.get(service.menuKey)!,
+					drinkCardId: service.drinkCardKey === null
+						? null
+						// A card emptied in the same save is gone: the meal offers none.
+						: drinkCardIdByKey.get(service.drinkCardKey) ?? null,
 					priceAmount: service.priceAmount,
 					updatedAt: new Date(),
 				})
@@ -725,32 +831,22 @@ export async function savePricing(eventId: string, payload: PricingPayload): Pro
 				.where(inArray(eventMenus.id, removed.map((menu) => menu.id)));
 		}
 
-		// The Drinks card (issue 086): one row per Event, upserted with the
-		// tab — an empty card (no drink) deletes it. Absent from the payload,
-		// it is left as stored.
-		if (payload.drinkCard) {
-			if (payload.drinkCard.sections.length > 0) {
-				await tx.insert(eventDrinkCards)
-					.values({
-						eventId,
-						sections: payload.drinkCard.sections,
-						noteEn: payload.drinkCard.noteEn,
-						noteFr: payload.drinkCard.noteFr,
-					})
-					.onConflictDoUpdate({
-						target: eventDrinkCards.eventId,
-						set: {
-							sections: payload.drinkCard.sections,
-							noteEn: payload.drinkCard.noteEn,
-							noteFr: payload.drinkCard.noteFr,
-							updatedAt: new Date(),
-						},
-					});
-			} else {
-				await tx.delete(eventDrinkCards).where(eq(eventDrinkCards.eventId, eventId));
+		// Drinks cards left out of the payload (or emptied) are deleted — the
+		// Services that still offered one are simply unlinked (the foreign
+		// key sets them to none), unlike the Menus. Absent from the payload
+		// (the new-event form), the cards are left as stored.
+		if (payload.drinkCards !== undefined) {
+			const listedCardIds = new Set(keptDrinkCards.flatMap((card) => (card.id === null ? [] : [card.id])));
+			const removedCards = existingDrinkCards.filter((card) => !listedCardIds.has(card.id));
+			if (removedCards.length > 0) {
+				await tx.delete(eventDrinkCards)
+					.where(inArray(eventDrinkCards.id, removedCards.map((card) => card.id)));
 			}
 		}
-		return { menuIds: Object.fromEntries(menuIdByKey) };
+		return {
+			menuIds: Object.fromEntries(menuIdByKey),
+			drinkCardIds: Object.fromEntries(drinkCardIdByKey),
+		};
 	});
 }
 
@@ -805,6 +901,7 @@ export async function loadPricingEditor(eventId: string): Promise<PricingEditorD
 		kind: ServiceKind;
 		date: string;
 		menuId: string | null;
+		drinkCardId: string | null;
 		priceAmount: number | null;
 	}[] = await db
 		.select({
@@ -812,6 +909,7 @@ export async function loadPricingEditor(eventId: string): Promise<PricingEditorD
 			kind: eventServices.kind,
 			date: sql<string>`${eventDays.date}::text`,
 			menuId: eventServices.menuId,
+			drinkCardId: eventServices.drinkCardId,
 			priceAmount: eventServices.priceAmount,
 		})
 		.from(eventServices)
@@ -845,6 +943,7 @@ export async function loadPricingEditor(eventId: string): Promise<PricingEditorD
 				date: service.date,
 				kind: service.kind,
 				menuId: service.menuId,
+				drinkCardId: service.drinkCardId,
 				priceAmount: service.priceAmount,
 				seatingCount: seatings.length,
 				legacySeatings: seatings.flatMap((seating) =>
@@ -860,9 +959,22 @@ export async function loadPricingEditor(eventId: string): Promise<PricingEditorD
 			};
 		});
 
+	const drinkCards: EditorDrinkCard[] = await db
+		.select({
+			id: eventDrinkCards.id,
+			nameEn: eventDrinkCards.nameEn,
+			nameFr: eventDrinkCards.nameFr,
+			sections: eventDrinkCards.sections,
+			noteEn: eventDrinkCards.noteEn,
+			noteFr: eventDrinkCards.noteFr,
+		})
+		.from(eventDrinkCards)
+		.where(eq(eventDrinkCards.eventId, eventId))
+		.orderBy(eventDrinkCards.createdAt, eventDrinkCards.id);
+
 	return {
 		menus,
-		drinkCard: await loadEventDrinkCard(eventId),
+		drinkCards,
 		services,
 		currency: event?.currency ?? DEFAULT_EVENT_CURRENCY,
 		currencyLocked: await eventHasReservations(db, eventId),
@@ -872,18 +984,21 @@ export async function loadPricingEditor(eventId: string): Promise<PricingEditorD
 }
 
 /**
- * The Event's Drinks card (issue 086) as loaded for the edit page and the
- * public pages: its sections and note, or null when the Event has none.
+ * The Event's Drinks cards (issues 086, 087) as loaded for the edit page
+ * and the public pages: oldest first, each with its name, sections and
+ * note.
  */
-export async function loadEventDrinkCard(eventId: string): Promise<EditorDrinkCard | null> {
-	const [card] = await db
+export async function loadEventDrinkCards(eventId: string): Promise<EditorDrinkCard[]> {
+	return db
 		.select({
+			id: eventDrinkCards.id,
+			nameEn: eventDrinkCards.nameEn,
+			nameFr: eventDrinkCards.nameFr,
 			sections: eventDrinkCards.sections,
 			noteEn: eventDrinkCards.noteEn,
 			noteFr: eventDrinkCards.noteFr,
 		})
 		.from(eventDrinkCards)
 		.where(eq(eventDrinkCards.eventId, eventId))
-		.limit(1);
-	return card ?? null;
+		.orderBy(eventDrinkCards.createdAt, eventDrinkCards.id);
 }

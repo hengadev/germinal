@@ -35,6 +35,8 @@ export interface PatternSourceService<Badge extends string = string> {
 	kind: ServiceKind;
 	defaultSeatingDurationMinutes: number;
 	menuId: string | null;
+	/** The source's Drinks card id (issue 087), mapped like the Menu. */
+	drinkCardId: string | null;
 	priceAmount: number | null;
 	seatings: PatternSourceSeating<Badge>[];
 }
@@ -69,6 +71,8 @@ export interface PatternService<Badge extends string = string> {
 	defaultSeatingDurationMinutes: number;
 	/** The source's Menu id: the caller maps it to the copy's Menu. */
 	menuId: string | null;
+	/** The source's Drinks card id (issue 087), mapped like the Menu. */
+	drinkCardId: string | null;
 	priceAmount: number | null;
 	seatings: PatternSeating<Badge>[];
 }
@@ -120,6 +124,7 @@ export function planSchedulePattern<Badge extends string>(
 					kind,
 					defaultSeatingDurationMinutes: DEFAULT_SERVICE_DURATION_MINUTES[kind],
 					menuId: null,
+					drinkCardId: null,
 					priceAmount: null,
 					seatings: [],
 				});
@@ -150,6 +155,7 @@ export function planSchedulePattern<Badge extends string>(
 				kind,
 				defaultSeatingDurationMinutes: pattern.defaultSeatingDurationMinutes,
 				menuId: pattern.menuId,
+				drinkCardId: pattern.drinkCardId,
 				priceAmount: pattern.priceAmount,
 				seatings,
 			});

@@ -1,6 +1,6 @@
 import { asc, eq, inArray, sql } from 'drizzle-orm';
 import { db } from '../db';
-import { eventDays, eventMenus, eventServices, eventSessions, events } from '../db/schema';
+import { eventDays, eventDrinkCards, eventMenus, eventServices, eventSessions, events } from '../db/schema';
 import { recomputeEventDatesFromDays, type PickedServiceDay } from './event-schedule';
 import { planSchedulePattern, servedKinds, type PatternSourceService } from '$lib/utils/schedule-pattern';
 import type { ServiceKind } from '$lib/utils/event-time';
@@ -116,6 +116,23 @@ export async function duplicateEvent(sourceId: string, days: PickedServiceDay[])
 			menuIds.set(menu.id, created.id);
 		}
 
+		// The Drinks cards too (issue 087), each mapped to its copy.
+		const drinkCards = await tx.select().from(eventDrinkCards)
+			.where(eq(eventDrinkCards.eventId, sourceId))
+			.orderBy(asc(eventDrinkCards.createdAt));
+		const drinkCardIds = new Map<string, string>();
+		for (const card of drinkCards) {
+			const [created] = await tx.insert(eventDrinkCards).values({
+				eventId: copy.id,
+				nameEn: card.nameEn,
+				nameFr: card.nameFr,
+				sections: card.sections,
+				noteEn: card.noteEn,
+				noteFr: card.noteFr,
+			}).returning({ id: eventDrinkCards.id });
+			drinkCardIds.set(card.id, created.id);
+		}
+
 		const pattern = await loadPatternSource(tx, sourceId);
 		const planned = planSchedulePattern(pattern, days, source.timeZone);
 
@@ -131,6 +148,7 @@ export async function duplicateEvent(sourceId: string, days: PickedServiceDay[])
 					kind: service.kind,
 					defaultSeatingDurationMinutes: service.defaultSeatingDurationMinutes,
 					menuId: service.menuId ? menuIds.get(service.menuId) ?? null : null,
+					drinkCardId: service.drinkCardId ? drinkCardIds.get(service.drinkCardId) ?? null : null,
 					priceAmount: service.priceAmount,
 				}).returning({ id: eventServices.id });
 
@@ -172,6 +190,7 @@ async function loadPatternSource(tx: typeof db, eventId: string): Promise<Patter
 		kind: ServiceKind;
 		defaultSeatingDurationMinutes: number;
 		menuId: string | null;
+		drinkCardId: string | null;
 		priceAmount: number | null;
 	}[] = await tx.select({
 		id: eventServices.id,
@@ -179,6 +198,7 @@ async function loadPatternSource(tx: typeof db, eventId: string): Promise<Patter
 		kind: eventServices.kind,
 		defaultSeatingDurationMinutes: eventServices.defaultSeatingDurationMinutes,
 		menuId: eventServices.menuId,
+		drinkCardId: eventServices.drinkCardId,
 		priceAmount: eventServices.priceAmount,
 	})
 		.from(eventServices)

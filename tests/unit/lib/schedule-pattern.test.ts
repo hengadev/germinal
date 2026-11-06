@@ -41,6 +41,7 @@ function service(overrides: Partial<PatternSourceService> & Pick<PatternSourceSe
 	return {
 		defaultSeatingDurationMinutes: 90,
 		menuId: null,
+		drinkCardId: null,
 		priceAmount: null,
 		seatings: [],
 		...overrides,
@@ -100,6 +101,7 @@ describe('planSchedulePattern', () => {
 			kind: 'dinner',
 			defaultSeatingDurationMinutes: DEFAULT_SERVICE_DURATION_MINUTES.dinner,
 			menuId: null,
+			drinkCardId: null,
 			priceAmount: null,
 			seatings: [],
 		});

@@ -30,6 +30,14 @@
 	} from '$lib/utils/refund-policy';
 	import type { ServiceKind } from '$lib/utils/seating-times';
 	import { DEFAULT_EVENT_CURRENCY } from '$lib/utils/currency';
+	import DrinksCardEditor from '$lib/components/admin/DrinksCardEditor.svelte';
+	import {
+		drinkCardPayload,
+		isValidDrinkPrice,
+		newDrinkCard,
+		toDraftDrinkCards,
+		type DraftDrinkCard,
+	} from './DrinkCardEditor.svelte';
 
 	/** A dish as edited; `key` keeps its line while choices come and go. */
 	export interface DraftDish extends MenuDish {
@@ -95,6 +103,8 @@
 		date: string;
 		kind: ServiceKind;
 		menuKey: string;
+		/** Key of the meal's Drinks card (issue 087), '' for none. */
+		drinkCardKey: string;
 		/** Price in major units as typed; null when left blank (not set). */
 		price: number | null;
 		seatingCount: number;
@@ -156,6 +166,7 @@
 			date: service.date,
 			kind: service.kind,
 			menuKey: service.menuId ?? '',
+			drinkCardKey: service.drinkCardId ?? '',
 			price: service.priceAmount === null ? null : service.priceAmount / 100,
 			seatingCount: service.seatingCount,
 			legacySeatings: service.legacySeatings,
@@ -170,6 +181,7 @@
 			date,
 			kind,
 			menuKey: '',
+			drinkCardKey: '',
 			price: null,
 			seatingCount: 0,
 			legacySeatings: [],
@@ -220,6 +232,10 @@
 		return `new-${nextKey++}`;
 	}
 
+	export function newDrinkCardKey(): string {
+		return `new-drink-${nextKey++}`;
+	}
+
 	export function newTierKey(): number {
 		return nextKey++;
 	}
@@ -227,7 +243,7 @@
 
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { AlertTriangle, CalendarDays, ChevronDown, Lock, Plus, Trash2, UtensilsCrossed } from 'lucide-svelte';
+	import { AlertTriangle, CalendarDays, ChevronDown, GlassWater, Lock, Plus, Trash2, UtensilsCrossed } from 'lucide-svelte';
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import EnglishVersion, { getEnglishAuto } from '$lib/components/admin/EnglishVersion.svelte';
 	import MenuCardEditor from '$lib/components/admin/MenuCardEditor.svelte';
@@ -254,6 +270,7 @@
 
 	let {
 		menus = $bindable(),
+		drinkCards = $bindable(),
 		deposit = $bindable(),
 		refund = $bindable(),
 		services = $bindable(),
@@ -266,6 +283,8 @@
 		children,
 	}: {
 		menus: DraftMenu[];
+		/** The Event's Drinks cards (issue 087), like its Menus. */
+		drinkCards: DraftDrinkCard[];
 		deposit: DraftDeposit;
 		refund: DraftRefund;
 		services: DraftPricingService[];
@@ -304,6 +323,13 @@
 	let deleteOpen = $state(false);
 	/** The Menu created from a meal's « + Nouveau menu… », offered there on « Terminé ». */
 	let creating: { key: string; use: (key: string) => void } | null = null;
+	/** The Drinks cards' modal, like the Menus' (issue 087). */
+	let drinksOpen = $state(false);
+	let shownDrinkCard: string | null = $state(null);
+	let drinksEnglish = $state(false);
+	let deletingDrinkCard: DraftDrinkCard | null = $state(null);
+	let deleteDrinksOpen = $state(false);
+	let creatingDrinks: { key: string; use: (key: string) => void } | null = null;
 
 	const englishAuto = getEnglishAuto();
 
@@ -493,9 +519,11 @@
 				descriptionEn: menu.descriptionEn.trim() || null,
 				descriptionFr: menu.descriptionFr.trim() || null,
 			})),
+			drinkCards: drinkCards.map(drinkCardPayload),
 			services: services.map((service) => ({
 				serviceId: service.serviceId,
 				menuKey: service.menuKey === '' ? null : service.menuKey,
+				drinkCardKey: service.drinkCardKey === '' ? null : service.drinkCardKey,
 				priceAmount: isBlank(service.price) ? null : Math.round((service.price as number) * 100),
 				clearLegacyPrices: service.clearLegacyPrices,
 			})),
@@ -525,6 +553,69 @@
 		const listed = offered.slice(0, 4).map((service) => `${MEAL_LABEL[service.kind].toLowerCase()} du ${dayLabel(service.date)}`);
 		return listed.join(', ') + (offered.length > 4 ? `… (+${offered.length - 4})` : '');
 	}
+
+	function drinkCardLabel(card: DraftDrinkCard, index: number): string {
+		return card.nameFr.trim() || card.nameEn.trim() || `Carte ${index + 1} (sans nom)`;
+	}
+
+	function servicesOfferingDrinkCard(card: DraftDrinkCard): number {
+		return services.filter((service) => service.drinkCardKey === card.key).length;
+	}
+
+	function mealsOfferingDrinkCard(card: DraftDrinkCard): string {
+		const offered = services.filter((service) => service.drinkCardKey === card.key);
+		const listed = offered.slice(0, 4).map((service) => `${MEAL_LABEL[service.kind].toLowerCase()} du ${dayLabel(service.date)}`);
+		return listed.join(', ') + (offered.length > 4 ? `… (+${offered.length - 4})` : '');
+	}
+
+	function addDrinkCard(): string {
+		const key = newDrinkCardKey();
+		drinkCards.push(newDrinkCard(key));
+		shownDrinkCard = key;
+		drinksEnglish = false;
+		setTimeout(() => document.getElementById(`drink-${key}-nameFr`)?.focus(), MODAL_RENDER_MS);
+		return key;
+	}
+
+	function openDrinks() {
+		if (!drinkCards.some((card) => card.key === shownDrinkCard)) shownDrinkCard = drinkCards[0]?.key ?? null;
+		drinksOpen = true;
+	}
+
+	function askRemoveDrinkCard() {
+		deletingDrinkCard = drinkCards.find((card) => card.key === shownDrinkCard) ?? null;
+		deleteDrinksOpen = deletingDrinkCard !== null;
+	}
+
+	/** Deleting a Drinks card in use leaves its meals without one. */
+	function removeDrinkCard(index: number) {
+		deleteDrinksOpen = false;
+		if (index === -1) return;
+		const [card] = drinkCards.splice(index, 1);
+		for (const service of services) if (service.drinkCardKey === card.key) service.drinkCardKey = '';
+		shownDrinkCard = drinkCards[Math.max(0, index - 1)]?.key ?? null;
+	}
+
+	/** Open the Drinks modal on a new, blank card; on « Terminé », `use` it
+	 * if it was named or written, else drop it. */
+	export function createDrinkCard(use: (key: string) => void) {
+		creatingDrinks = { key: addDrinkCard(), use };
+		drinksOpen = true;
+	}
+
+	$effect(() => {
+		if (drinksOpen || !creatingDrinks) return;
+		const { key, use } = creatingDrinks;
+		creatingDrinks = null;
+		const index = drinkCards.findIndex((card) => card.key === key);
+		if (index === -1) return;
+		const card = drinkCards[index];
+		const touched =
+			card.nameFr.trim() || card.nameEn.trim() ||
+			card.sections.some((section) => section.drinks.some((drink) => drink.nameFr.trim() || drink.descriptionFr.trim()));
+		if (touched) use(key);
+		else drinkCards.splice(index, 1);
+	});
 
 	function addMenu(): string {
 		const key = newMenuKey();
@@ -587,6 +678,12 @@
 			menuEnglish = id.endsWith('En');
 			menusOpen = true;
 		}
+		else if (id.startsWith('drink-')) {
+			const card = drinkCards.find((c) => id.startsWith(`drink-${c.key}-`));
+			if (card) shownDrinkCard = card.key;
+			drinksEnglish = id.endsWith('En');
+			drinksOpen = true;
+		}
 		else if (id.startsWith('deposit-')) depositOpen = true;
 		else if (id.startsWith('refund-')) refundOpen = true;
 		else return false;
@@ -602,6 +699,25 @@
 			// Generated from the French when translation is on.
 			if (!englishAuto && !menu.nameEn.trim()) {
 				return { id: `menu-${menu.key}-nameEn`, message: `Le menu ${index + 1} doit avoir un nom en anglais.` };
+			}
+		}
+		for (const [index, card] of drinkCards.entries()) {
+			if (!card.nameFr.trim()) {
+				return { id: `drink-${card.key}-nameFr`, message: `La carte des boissons ${index + 1} doit avoir un nom en français.` };
+			}
+			if (!englishAuto && !card.nameEn.trim()) {
+				return { id: `drink-${card.key}-nameEn`, message: `La carte des boissons ${index + 1} doit avoir un nom en anglais.` };
+			}
+			for (const section of card.sections) {
+				for (const drink of section.drinks) {
+					if (!isValidDrinkPrice(drink.price)) {
+						const label = drink.nameFr.trim() || 'une boisson';
+						return {
+							id: `drink-${card.key}-section-${section.key}-drink-${drink.key}-price`,
+							message: `Prix invalide pour « ${label} » : un montant positif ou nul, au centime près, ou vide.`,
+						};
+					}
+				}
 			}
 		}
 		if (!menusOnly) {
@@ -687,6 +803,15 @@
 			{/if}
 		</button>
 
+		<button type="button" onclick={openDrinks} class="inline-flex items-center gap-2 h-9 px-3 text-sm rounded-lg border border-border-input bg-background text-foreground hover:bg-muted cursor-pointer" title={drinkCards.map(drinkCardLabel).join(' · ') || undefined}>
+			{#if drinkCards.length === 0}
+				<Plus size={14} aria-hidden="true" /> Créer une carte des boissons
+			{:else}
+				<GlassWater size={14} class="text-muted-foreground" aria-hidden="true" />
+				Boissons <span class="text-muted-foreground tabular-nums">· {drinkCards.length}</span>
+			{/if}
+		</button>
+
 		{#if !menusOnly}
 		<button type="button" onclick={() => (depositOpen = true)} class="inline-flex items-center gap-2 h-9 px-3 text-sm rounded-lg border border-border-input bg-background text-foreground hover:bg-muted cursor-pointer" title={depositSummary || undefined}>
 			Acompte
@@ -724,6 +849,53 @@
 			{/if}
 			{@render done(() => (menusOpen = false))}
 		</div>
+	</Modal>
+
+	<Modal bind:isOpen={drinksOpen} wide title="Cartes des boissons" description="Chaque carte est décrite une fois, telle que les convives la liront ; les boissons sont réglées sur place, un repas peut en proposer une ou aucune.">
+		<DrinksCardEditor
+			cards={drinkCards}
+			bind:selected={shownDrinkCard}
+			bind:english={drinksEnglish}
+			{englishAuto}
+			cardLabel={drinkCardLabel}
+			offering={servicesOfferingDrinkCard}
+			onadd={() => addDrinkCard()}
+		/>
+		<div class="flex justify-end gap-2 pt-4">
+			{#if drinkCards.some((card) => card.key === shownDrinkCard)}
+				<button
+					type="button"
+					onclick={askRemoveDrinkCard}
+					class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border border-red-300 bg-background text-red-700 hover:bg-red-50 transition-colors cursor-pointer"
+				>
+					<Trash2 size={16} aria-hidden="true" /> Supprimer cette carte
+				</button>
+			{/if}
+			{@render done(() => (drinksOpen = false))}
+		</div>
+	</Modal>
+
+	<Modal bind:isOpen={deleteDrinksOpen} title="Supprimer « {deletingDrinkCard ? drinkCardLabel(deletingDrinkCard, drinkCards.indexOf(deletingDrinkCard)) : ''} » ?">
+		{#if deletingDrinkCard}
+			{@const used = servicesOfferingDrinkCard(deletingDrinkCard)}
+			<p class="text-sm text-foreground-alt">
+				{#if used === 0}
+					Cette carte n’est proposée sur aucun repas. Ses sections et sa note seront perdues.
+				{:else}
+					Cette carte est proposée sur {used} repas : {mealsOfferingDrinkCard(deletingDrinkCard)}. Ces repas resteront sans carte des boissons, et ses sections et sa note seront perdues.
+				{/if}
+			</p>
+			<div class="flex justify-end gap-2 pt-6">
+				<button type="button" onclick={() => (deleteDrinksOpen = false)} class="px-4 py-2 text-sm rounded-lg text-foreground-alt hover:bg-muted cursor-pointer">Garder</button>
+				<button
+					type="button"
+					onclick={() => deletingDrinkCard && removeDrinkCard(drinkCards.indexOf(deletingDrinkCard))}
+					class="px-4 py-2 text-sm font-medium rounded-lg bg-red-600 text-white hover:bg-red-700 cursor-pointer"
+				>
+					Supprimer la carte
+				</button>
+			</div>
+		{/if}
 	</Modal>
 
 	<Modal bind:isOpen={deleteOpen} title="Supprimer « {deleting ? menuLabel(deleting, menus.indexOf(deleting)) : ''} » ?">
@@ -1004,7 +1176,7 @@
 					{@const blank = isBlank(service.price)}
 					{@const seatingCount = seatingCountOf?.(service.serviceId) ?? service.seatingCount}
 					<div class="px-4 lg:px-6 py-4 space-y-3">
-						<div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(12rem,1fr)_minmax(12rem,1fr)_10rem] lg:items-end">
+						<div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(12rem,1fr)_minmax(12rem,1fr)_minmax(12rem,1fr)_10rem] lg:items-end">
 							<div class="sm:col-span-2 lg:col-span-1 lg:pb-2">
 								<p class="text-sm font-medium text-foreground">{MEAL_LABEL[service.kind]}</p>
 								<p class="text-xs text-muted-foreground first-letter:uppercase">
@@ -1017,6 +1189,15 @@
 									<option value="">Aucun menu</option>
 									{#each menus as menu, index (menu.key)}
 										<option value={menu.key}>{menuLabel(menu, index)}</option>
+									{/each}
+								</select>
+							</div>
+							<div>
+								<label for="service-{service.serviceId}-drinks" class={LABEL_CLASS}>Boissons</label>
+								<select id="service-{service.serviceId}-drinks" bind:value={service.drinkCardKey} class={INPUT_CLASS}>
+									<option value="">Aucune carte</option>
+									{#each drinkCards as card, index (card.key)}
+										<option value={card.key}>{drinkCardLabel(card, index)}</option>
 									{/each}
 								</select>
 							</div>

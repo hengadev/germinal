@@ -6,6 +6,7 @@
  */
 import type {
 	DayView,
+	DrinksView,
 	EventPage,
 	MenuView,
 	SeatingView,
@@ -195,6 +196,21 @@ export function menuFor(
 	if (!menu) return undefined;
 	const name = view.lang === 'en' ? menu.nameEn || menu.nameFr : menu.nameFr || menu.nameEn;
 	return menus.find((m) => m.name === name);
+}
+
+/** The Drinks card offered at one Service (issue 087), found by its name
+ * in the page's language — like `menuFor`. */
+export function drinksFor(
+	view: EventPage,
+	schedule: { date: string; services: { kind: string; drinks: { nameFr: string; nameEn: string } | null }[] }[],
+	drinks: DrinksView[],
+	date: string,
+	kind: string
+): DrinksView | undefined {
+	const card = schedule.find((d) => d.date === date)?.services.find((s) => s.kind === kind)?.drinks;
+	if (!card) return undefined;
+	const name = view.lang === 'en' ? card.nameEn || card.nameFr : card.nameFr || card.nameEn;
+	return drinks.find((c) => c.name === name);
 }
 
 /** The bill so far: one line for the meal, one per Extra taken, then
