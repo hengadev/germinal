@@ -62,7 +62,10 @@
 			<div class="relative flex min-h-0 flex-1 items-center justify-center px-4 lg:px-24">
 				{#key current.id}
 					{#if current.type === 'video'}
-						<video src={current.url} autoplay muted loop playsinline class="max-h-full max-w-full" aria-label={mediaAlt(current, $locale, title)}></video>
+						<!-- A project video (issue 084): native controls and sound, no
+						     loop. The key block rebuilds it as the viewer moves on,
+						     and the dialog closes, so it never keeps playing. -->
+						<video src={current.url} controls playsinline class="max-h-full max-w-full" aria-label={mediaAlt(current, $locale, title)}></video>
 					{:else}
 						<img src={current.url} alt={mediaAlt(current, $locale, title)} draggable="false" class="max-h-full max-w-full object-contain select-none" />
 					{/if}

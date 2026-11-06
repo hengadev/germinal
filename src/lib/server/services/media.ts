@@ -140,7 +140,11 @@ export async function saveEventPhotos(eventId: string, photoIds: readonly string
       .where(and(eq(media.eventId, eventId), eq(media.role, 'event_photo'), eq(media.isCover, true)));
     const cover = coverId !== null && saved.includes(coverId) ? coverId : null;
     if (cover) {
-      await tx.update(media).set({ isCover: true }).where(eq(media.id, cover));
+      // A video is never the cover (issue 084): only an image reads as
+      // one, else no cover is set.
+      await tx.update(media)
+        .set({ isCover: true })
+        .where(and(eq(media.id, cover), eq(media.type, 'image')));
     }
     return saved;
   });

@@ -11,7 +11,7 @@
 	import { getToastContext } from '$lib/components/toast/state.svelte';
 	import type { Media } from '$lib/types/media';
 	import type { EventWarning } from '$lib/utils/event-warnings';
-	import { eventPhotosOf } from '$lib/utils/event-photos';
+	import { projectPhotosOf, projectVideosOf } from '$lib/utils/event-photos';
 	import { mediaAlt } from '$lib/utils/media-alt';
 	import { canJoinPortfolio } from '$lib/utils/event-access';
 	import { handleTabResult, type EditorEvent } from './editor-forms';
@@ -54,11 +54,14 @@
 		};
 	}
 
-	// ---- Event Photos ------------------------------------------------------
-	// What the uploader starts from: replaced as a whole to put it back as
-	// saved (« Annuler », issue 020).
-	let existingPhotos = $state.raw(eventPhotosOf(event?.media));
+	// ---- Event Photos and project videos --------------------------------
+	// What the uploaders start from: replaced as a whole to put it back as
+	// saved (« Annuler », issue 020). The videos (issue 084) are Event media
+	// of the same role, kept in their own list: never a cover choice.
+	let existingPhotos = $state.raw(projectPhotosOf(event?.media));
+	let existingVideos = $state.raw(projectVideosOf(event?.media));
 	let photos: Media[] = $state([...existingPhotos]);
+	let videos: Media[] = $state([...existingVideos]);
 	let coverId: string | null = $state(existingPhotos.find((photo) => photo.isCover)?.id ?? null);
 	let savingPhotos = $state(false);
 	let photosFormEl: HTMLFormElement | undefined = $state();
@@ -72,6 +75,7 @@
 
 	function handleRemove(mediaId: string) {
 		photos = photos.filter((photo) => photo.id !== mediaId);
+		videos = videos.filter((video) => video.id !== mediaId);
 		if (coverId === mediaId) coverId = photos[0]?.id ?? null;
 		reportChange(photosFormEl);
 	}
@@ -80,6 +84,18 @@
 		photos = mediaIds
 			.map((id) => photos.find((photo) => photo.id === id))
 			.filter((photo): photo is Media => photo !== undefined);
+		reportChange(photosFormEl);
+	}
+
+	function handleVideoUpload(uploaded: Media[]) {
+		videos = [...videos, ...uploaded];
+		reportChange(photosFormEl);
+	}
+
+	function handleVideoReorder(mediaIds: string[]) {
+		videos = mediaIds
+			.map((id) => videos.find((video) => video.id === id))
+			.filter((video): video is Media => video !== undefined);
 		reportChange(photosFormEl);
 	}
 
@@ -151,15 +167,17 @@
 	/** Back to the saved Event Photos (« Annuler », issue 020). Uploads and
 	 * deletions are stored at once: the page data is reloaded first. */
 	export function restorePhotos() {
-		existingPhotos = eventPhotosOf(event?.media);
+		existingPhotos = projectPhotosOf(event?.media);
+		existingVideos = projectVideosOf(event?.media);
 		photos = [...existingPhotos];
+		videos = [...existingVideos];
 		coverId = existingPhotos.find((photo) => photo.isCover)?.id ?? null;
 	}
 
 	/** What this tab holds now, saved or not: the Portfolio list and the
 	 * tab mark follow it as it is typed (issue 021). */
 	export function warningValues(): PortfolioValues {
-		return { recapEn, recapFr, photos, coverId };
+		return { recapEn, recapFr, photos, videos, coverId };
 	}
 </script>
 
@@ -280,6 +298,28 @@
 				{onAltChange}
 			/>
 
+			<div class="mt-6">
+				<h4 class="text-sm font-medium text-foreground-alt mb-1">Vidéos du projet</h4>
+				<p class="text-xs text-muted-foreground mb-3">
+					Les vidéos de promotion du projet, affichées sur sa page après la couverture. Elles ne peuvent pas
+					être la couverture.
+				</p>
+				<MediaUpload
+					mode="multiple"
+					accept="video/*"
+					entityType="event"
+					entityId={event?.id}
+					role="event_photo"
+					existingMedia={existingVideos}
+					maxSizeMB={100}
+					onUpload={handleVideoUpload}
+					onRemove={handleRemove}
+					onReorder={handleVideoReorder}
+					onBeforeRemove={event ? beforeRemove : undefined}
+					{onAltChange}
+				/>
+			</div>
+
 			{#if photos.length > 0}
 				<fieldset>
 					<legend class="text-sm font-medium text-foreground-alt mb-1">Couverture du projet</legend>
@@ -290,15 +330,11 @@
 						{#each photos as photo (photo.id)}
 							<label class="relative cursor-pointer">
 								<input type="radio" name="eventPhotoCoverChoice" value={photo.id} bind:group={coverId} class="peer sr-only" />
-								{#if photo.type === 'video'}
-									<video src={photo.url} muted class="size-20 object-cover rounded-md border-2 border-transparent peer-checked:border-foreground peer-focus-visible:ring-2 peer-focus-visible:ring-foreground peer-focus-visible:ring-offset-2"></video>
-								{:else}
-									<img
-										src={photo.url}
-										alt={mediaAlt(photo, 'fr', 'Photo de l’événement')}
-										class="size-20 object-cover rounded-md border-2 border-transparent opacity-70 peer-checked:opacity-100 peer-checked:border-foreground peer-focus-visible:ring-2 peer-focus-visible:ring-foreground peer-focus-visible:ring-offset-2"
-									/>
-								{/if}
+								<img
+									src={photo.url}
+									alt={mediaAlt(photo, 'fr', 'Photo de l’événement')}
+									class="size-20 object-cover rounded-md border-2 border-transparent opacity-70 peer-checked:opacity-100 peer-checked:border-foreground peer-focus-visible:ring-2 peer-focus-visible:ring-foreground peer-focus-visible:ring-offset-2"
+								/>
 								{#if coverId === photo.id}
 									<span class="absolute bottom-1 left-1 rounded bg-foreground px-1.5 py-0.5 text-[10px] font-medium text-background">Couverture</span>
 								{/if}
@@ -308,7 +344,7 @@
 				</fieldset>
 			{/if}
 
-			<input type="hidden" name="eventPhotoIds" value={JSON.stringify(photos.map((photo) => photo.id))} />
+			<input type="hidden" name="eventPhotoIds" value={JSON.stringify([...photos, ...videos].map((photo) => photo.id))} />
 			<input type="hidden" name="eventPhotoCoverId" value={coverId ?? ''} />
 
 			<!-- Hidden on a Draft, which saves itself (issue 018). -->
