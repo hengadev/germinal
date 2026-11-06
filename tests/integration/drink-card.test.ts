@@ -150,8 +150,8 @@ describe('the Drinks cards (issue 087)', () => {
 
 		let editor = await loadPricingEditor(event.id);
 		expect(editor.drinkCards).toHaveLength(2);
-		const card1 = editor.drinkCards.find((c) => c.nameFr === 'Boissons')!;
-		const card2 = editor.drinkCards.find((c) => c.nameFr === 'Boissons du soir')!;
+		const card1 = editor.drinkCards!.find((c) => c.nameFr === 'Boissons')!;
+		const card2 = editor.drinkCards!.find((c) => c.nameFr === 'Boissons du soir')!;
 		expect(editor.services.find((s) => s.serviceId === serviceId)?.drinkCardId).toBe(card2.id);
 		expect(editor.services.find((s) => s.serviceId === otherServiceId)?.drinkCardId).toBeNull();
 
