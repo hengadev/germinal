@@ -1,4 +1,11 @@
-import { MAX_COURSE_DISH, MAX_COURSE_LABEL, type EditorMenu, type PricingPayload } from '$lib/types/pricing-editor';
+import {
+	MAX_COURSE_DISH,
+	MAX_COURSE_DISH_DESCRIPTION,
+	MAX_COURSE_DISH_NOTE,
+	MAX_COURSE_LABEL,
+	type EditorMenu,
+	type PricingPayload,
+} from '$lib/types/pricing-editor';
 import { MAX_REFUND_POLICY_TEXT } from '$lib/utils/refund-policy';
 import { followFrench, type EnglishResult, type FrenchEnglishPair } from './event-translation';
 import type { Translator } from './translator';
@@ -47,15 +54,32 @@ export async function translatePricing(
 					storedEn: norm(savedCourse?.labelEn),
 					maxLength: MAX_COURSE_LABEL,
 				}),
-				dishes: course.dishes.map((dish, d) =>
-					add({
-						fr: norm(dish.fr),
-						en: norm(dish.en),
-						storedFr: norm(savedCourse?.dishes[d]?.fr),
-						storedEn: norm(savedCourse?.dishes[d]?.en),
-						maxLength: MAX_COURSE_DISH,
-					})
-				),
+				dishes: course.dishes.map((dish, d) => {
+					const savedDish = savedCourse?.dishes[d];
+					return {
+						name: add({
+							fr: norm(dish.nameFr),
+							en: norm(dish.nameEn),
+							storedFr: norm(savedDish?.nameFr),
+							storedEn: norm(savedDish?.nameEn),
+							maxLength: MAX_COURSE_DISH,
+						}),
+						description: add({
+							fr: norm(dish.descriptionFr),
+							en: norm(dish.descriptionEn),
+							storedFr: norm(savedDish?.descriptionFr),
+							storedEn: norm(savedDish?.descriptionEn),
+							maxLength: MAX_COURSE_DISH_DESCRIPTION,
+						}),
+						note: add({
+							fr: norm(dish.noteFr),
+							en: norm(dish.noteEn),
+							storedFr: norm(savedDish?.noteFr),
+							storedEn: norm(savedDish?.noteEn),
+							maxLength: MAX_COURSE_DISH_NOTE,
+						}),
+					};
+				}),
 			};
 		});
 		const description = add({
@@ -88,7 +112,15 @@ export async function translatePricing(
 			courses: menu.courses.map((course, c) => ({
 				...course,
 				labelEn: at(menuAt[m].courses[c].label) ?? '',
-				dishes: course.dishes.map((dish, d) => ({ ...dish, en: at(menuAt[m].courses[c].dishes[d]) ?? '' })),
+				dishes: course.dishes.map((dish, d) => {
+					const english = menuAt[m].courses[c].dishes[d];
+					return {
+						...dish,
+						nameEn: at(english.name) ?? '',
+						descriptionEn: at(english.description),
+						noteEn: dish.alternative ? at(english.note) : null,
+					};
+				}),
 			})),
 			descriptionEn: at(menuAt[m].description),
 		})),

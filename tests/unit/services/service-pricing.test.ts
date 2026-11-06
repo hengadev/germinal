@@ -9,6 +9,20 @@ const MENU_ID = '6f1c1a52-4b7e-4d1f-9a55-0a1b2c3d4e5f';
 const LUNCH = '0b6c7d8e-1f20-4a3b-8c4d-5e6f70819203';
 const DINNER = '1c7d8e9f-2031-4b4c-9d5e-6f7081920314';
 
+/** A dish as posted, with the new shape’s defaults; `fr`/`en` name it. */
+function dish({ fr = '', en = '', ...overrides }: Record<string, unknown> = {}) {
+	return {
+		nameFr: fr,
+		nameEn: en,
+		descriptionFr: null,
+		descriptionEn: null,
+		alternative: false,
+		noteFr: null,
+		noteEn: null,
+		...overrides,
+	};
+}
+
 function menu(overrides: Record<string, unknown> = {}) {
 	return {
 		key: MENU_ID,
@@ -22,6 +36,7 @@ function menu(overrides: Record<string, unknown> = {}) {
 }
 
 function service(overrides: Record<string, unknown> = {}) {
+
 	return {
 		serviceId: LUNCH,
 		menuKey: MENU_ID,
@@ -74,9 +89,9 @@ describe('parsePricingPayload', () => {
 			menus: [
 				menu({
 					courses: [
-						{ labelFr: ' Entrée ', labelEn: '', dishes: [{ fr: ' Huîtres ', en: ' Oysters ' }, { fr: ' ', en: '' }, { fr: 'Velouté', en: '' }] },
-						{ labelFr: 'Plat', labelEn: 'Main course', dishes: [{ fr: '  ', en: '' }] },
-						{ labelFr: '', labelEn: '', dishes: [{ fr: 'Poire', en: '' }] },
+						{ labelFr: ' Entrée ', labelEn: '', dishes: [dish({ fr: ' Huîtres ', en: ' Oysters ' }), dish({ fr: ' ' }), dish({ fr: 'Velouté', alternative: true, noteFr: ' Sans gluten ' })] },
+						{ labelFr: 'Plat', labelEn: 'Main course', dishes: [dish({ fr: '  ' })] },
+						{ labelFr: '', labelEn: '', dishes: [dish({ fr: 'Poire', descriptionFr: ' Poireau ?' })] },
 					],
 				}),
 			],
@@ -84,9 +99,25 @@ describe('parsePricingPayload', () => {
 		});
 		if (!result.ok) throw new Error('expected ok');
 		expect(result.payload.menus[0].courses).toEqual([
-			{ labelFr: 'Entrée', labelEn: '', dishes: [{ fr: 'Huîtres', en: 'Oysters' }, { fr: 'Velouté', en: '' }] },
-			{ labelFr: '', labelEn: '', dishes: [{ fr: 'Poire', en: '' }] },
+			{
+				labelFr: 'Entrée',
+				labelEn: '',
+				dishes: [
+					{ nameFr: 'Huîtres', nameEn: 'Oysters', descriptionFr: null, descriptionEn: null, alternative: false, noteFr: null, noteEn: null },
+					{ nameFr: 'Velouté', nameEn: '', descriptionFr: null, descriptionEn: null, alternative: true, noteFr: 'Sans gluten', noteEn: null },
+				],
+			},
+			{ labelFr: '', labelEn: '', dishes: [{ nameFr: 'Poire', nameEn: '', descriptionFr: 'Poireau ?', descriptionEn: null, alternative: false, noteFr: null, noteEn: null }] },
 		]);
+	});
+
+	it('never keeps the first dish of a Course as an alternative', () => {
+		const result = parse({
+			menus: [menu({ courses: [{ labelFr: '', labelEn: '', dishes: [dish({ fr: 'Agneau', alternative: true, noteFr: 'Note' })] }] })],
+			services: [],
+		});
+		if (!result.ok) throw new Error('expected ok');
+		expect(result.payload.menus[0].courses[0].dishes[0]).toMatchObject({ alternative: false, noteFr: null, noteEn: null });
 	});
 
 	it('gives a Menu posted without Courses none', () => {
@@ -117,10 +148,12 @@ describe('parsePricingPayload', () => {
 		['a non-object', [], 'malformed'],
 		['a Menu without a French name', { menus: [menu({ nameFr: ' ' })], services: [] }, 'menu-name'],
 		['Courses that are not a list', { menus: [menu({ courses: 'Huîtres' })], services: [] }, 'menu'],
-		['a Course dish too long', { menus: [menu({ courses: [{ labelFr: '', labelEn: '', dishes: [{ fr: 'x'.repeat(501), en: '' }] }] })], services: [] }, 'menu'],
+		['a Course dish name too long', { menus: [menu({ courses: [{ labelFr: '', labelEn: '', dishes: [dish({ fr: 'x'.repeat(501) })] }] })], services: [] }, 'menu'],
+		['a Course dish description too long', { menus: [menu({ courses: [{ labelFr: '', labelEn: '', dishes: [dish({ fr: 'Plat', descriptionFr: 'x'.repeat(501) })] }] })], services: [] }, 'menu'],
+		['a Course dish note too long', { menus: [menu({ courses: [{ labelFr: '', labelEn: '', dishes: [dish({ fr: 'Plat' }), dish({ fr: 'Autre', alternative: true, noteFr: 'x'.repeat(121) })] }] })], services: [] }, 'menu'],
 		['a Course without a list of dishes', { menus: [menu({ courses: [{ labelFr: '', labelEn: '', dishes: 'Plat' }] })], services: [] }, 'menu'],
-		['a Course with more than 6 dishes', { menus: [menu({ courses: [{ labelFr: '', labelEn: '', dishes: Array.from({ length: 7 }, () => ({ fr: 'Plat', en: '' })) }] })], services: [] }, 'menu'],
-		['more than 20 Courses', { menus: [menu({ courses: Array.from({ length: 21 }, () => ({ labelFr: '', labelEn: '', dishes: [{ fr: 'Plat', en: '' }] })) })], services: [] }, 'menu'],
+		['a Course with more than 6 dishes', { menus: [menu({ courses: [{ labelFr: '', labelEn: '', dishes: Array.from({ length: 7 }, () => dish({ fr: 'Plat' })) }] })], services: [] }, 'menu'],
+		['more than 20 Courses', { menus: [menu({ courses: Array.from({ length: 21 }, () => ({ labelFr: '', labelEn: '', dishes: [dish({ fr: 'Plat' })] })) })], services: [] }, 'menu'],
 		['duplicate Menu keys', { menus: [menu(), menu({ id: null })], services: [] }, 'menu'],
 		['a Service naming an unknown Menu', { menus: [], services: [service({ menuKey: 'nope' })] }, 'menu'],
 		['a duplicate Service', { menus: [menu()], services: [service(), service()] }, 'service'],

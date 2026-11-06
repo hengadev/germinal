@@ -28,8 +28,15 @@
 					<p class="text-xxs font-medium uppercase tracking-[0.15em] text-muted-foreground">{course.label}</p>
 				{/if}
 				{#each course.dishes as dish, d (d)}
-					{#if d > 0}<p class="font-serif text-sm italic text-muted-foreground">{$t('events.booking.or')}</p>{/if}
-					<p class="leading-snug text-balance">{dish}</p>
+					{#if d > 0 && dish.alternative}
+						<p class="font-serif text-sm italic text-muted-foreground">
+							{$t('events.booking.or')}{#if dish.note}<span class="ml-1 text-xs not-italic">{dish.note}</span>{/if}
+						</p>
+					{/if}
+					<p class="leading-snug text-balance">{dish.name}</p>
+					{#if dish.description}
+						<p class="text-xs leading-relaxed text-pretty text-muted-foreground">{dish.description}</p>
+					{/if}
 				{/each}
 			</li>
 		{/each}

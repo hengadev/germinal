@@ -25,7 +25,14 @@ import type { ServiceKind } from '$lib/utils/seating-times';
 import { clockOf, DEFAULT_EVENT_TIME_ZONE } from '$lib/utils/event-time';
 import { DEFAULT_EVENT_CURRENCY, EVENT_CURRENCIES, parseEventCurrency } from '$lib/utils/currency';
 import { ScheduleSaveRefusedError } from './event-schedule';
-import { MAX_COURSE_DISH, MAX_COURSE_DISHES, MAX_COURSE_LABEL, MAX_MENU_COURSES } from '$lib/types/pricing-editor';
+import {
+	MAX_COURSE_DISH,
+	MAX_COURSE_DISH_DESCRIPTION,
+	MAX_COURSE_DISH_NOTE,
+	MAX_COURSE_DISHES,
+	MAX_COURSE_LABEL,
+	MAX_MENU_COURSES,
+} from '$lib/types/pricing-editor';
 
 /**
  * Menus and Service prices (issue 022).
@@ -178,19 +185,39 @@ function optionalText(value: unknown, maxLength: number): string | null | false 
 	return trimmed === '' ? null : trimmed;
 }
 
-/** A Course's dishes as posted, in order; a dish with no French is
- * dropped (a choice added but not written yet). False when malformed, too
- * many or too long. */
+/** A Course's dishes as posted, in order; a dish with no French name
+ * is dropped (a dish added but not written yet), and the first is never
+ * an alternative. False when malformed, too many or too long. */
 function parseDishes(value: unknown): MenuDish[] | false {
 	if (!Array.isArray(value)) return false;
 	const dishes: MenuDish[] = [];
-	for (const entry of value) {
+	for (const [index, entry] of value.entries()) {
 		if (typeof entry !== 'object' || entry === null) return false;
 		const dish = entry as Record<string, unknown>;
-		const en = optionalText(dish.en, MAX_COURSE_DISH);
-		const fr = optionalText(dish.fr, MAX_COURSE_DISH);
-		if (en === false || fr === false) return false;
-		if (fr !== null) dishes.push({ en: en ?? '', fr });
+		const nameEn = optionalText(dish.nameEn, MAX_COURSE_DISH);
+		const nameFr = optionalText(dish.nameFr, MAX_COURSE_DISH);
+		const descriptionEn = optionalText(dish.descriptionEn, MAX_COURSE_DISH_DESCRIPTION);
+		const descriptionFr = optionalText(dish.descriptionFr, MAX_COURSE_DISH_DESCRIPTION);
+		const noteEn = optionalText(dish.noteEn, MAX_COURSE_DISH_NOTE);
+		const noteFr = optionalText(dish.noteFr, MAX_COURSE_DISH_NOTE);
+		if (
+			nameEn === false || nameFr === false || descriptionEn === false || descriptionFr === false ||
+			noteEn === false || noteFr === false
+		) {
+			return false;
+		}
+		if (nameFr !== null) {
+			const alternative = dish.alternative === true && index > 0;
+			dishes.push({
+				nameEn: nameEn ?? '',
+				nameFr,
+				descriptionEn,
+				descriptionFr,
+				alternative,
+				noteEn: alternative ? noteEn : null,
+				noteFr: alternative ? noteFr : null,
+			});
+		}
 	}
 	return dishes.length > MAX_COURSE_DISHES ? false : dishes;
 }

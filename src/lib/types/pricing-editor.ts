@@ -9,10 +9,20 @@ import type { RefundPolicy } from '$lib/utils/refund-policy';
  * `parsePricingPayload`).
  */
 
-/** A dish served at a Course. */
+/** A dish served at a Course: its name and an optional description,
+ * each in French and English. Several dishes in one Course are served
+ * together unless one is an `alternative`: the page then reads « ou »
+ * before it, with an optional short note (« options sans gluten »). */
 export interface MenuDish {
-	en: string;
-	fr: string;
+	nameEn: string;
+	nameFr: string;
+	descriptionEn: string | null;
+	descriptionFr: string | null;
+	/** True when served instead of the previous dish, never the first of
+	 * a Course. */
+	alternative: boolean;
+	noteEn: string | null;
+	noteFr: string | null;
 }
 
 /** One step of a Menu (« Entrée », « Plat »…): its label and what is
@@ -27,7 +37,11 @@ export interface MenuCourse {
 export const MAX_MENU_COURSES = 20;
 export const MAX_COURSE_LABEL = 60;
 export const MAX_COURSE_DISHES = 6;
+/** A dish's name (a line of the printed card). */
 export const MAX_COURSE_DISH = 500;
+export const MAX_COURSE_DISH_DESCRIPTION = 500;
+/** An alternative's short note (« options sans gluten »). */
+export const MAX_COURSE_DISH_NOTE = 120;
 
 /** A Menu described once on the Event: its Courses in order, then an
  * optional note (the `description`: wine pairing, allergens…). */
