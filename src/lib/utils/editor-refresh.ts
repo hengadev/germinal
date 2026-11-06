@@ -223,11 +223,14 @@ export function followSavedServices<P extends PricingServiceDraftLike>(current: 
 	return same ? null : next;
 }
 
-// ---- « Carte des boissons » (issue 086) ---------------------------------------
+// ---- « Carte des boissons » (issue 087) ---------------------------------------
 
-/** A Drinks card draft: only its drinks with a French name are saved, in
- * order, and only its sections keeping one. */
+/** A Drinks card draft: its name, then only its drinks with a French name
+ * are saved, in order, and only its sections keeping one. */
 export interface DrinkCardDraftLike {
+	key: string;
+	id: string | null;
+	nameEn: string;
 	sections: {
 		key?: number;
 		labelEn: string;
@@ -237,23 +240,55 @@ export interface DrinkCardDraftLike {
 }
 
 /**
- * Take the English generated on save into the Drinks card draft, where
- * not edited since the save started (issue 019): matched by key between
- * the draft and what was sent, then by position with what was saved —
- * when the saved card no longer lines up with what was sent, nothing is
- * taken.
+ * After a pricing save, give the `cards` the Admin is still editing what
+ * the save made — in place, keeping everything typed (issue 087), like
+ * `adoptSavedMenus`: a card sent takes its id (`drinkCardIds`, by key) and,
+ * where not edited since, its generated English — its name, then each kept
+ * section and drink, matched by key between the draft and what was sent,
+ * then by position with what was saved. A card not on the server is new
+ * again.
  */
-export function adoptSavedDrinkCard(card: DrinkCardDraftLike, sent: DrinkCardDraftLike, saved: DrinkCardDraftLike): void {
-	assign(card, keepEdits({ noteEn: sent.noteEn }, { noteEn: card.noteEn }, { noteEn: saved.noteEn }));
+export function adoptSavedDrinkCards<C extends DrinkCardDraftLike>(
+	cards: C[],
+	sent: readonly DrinkCardDraftLike[],
+	saved: readonly DrinkCardDraftLike[],
+	drinkCardIds: Readonly<Record<string, string>> | undefined
+): void {
+	const sentByKey = new Map(sent.map((card) => [card.key, card]));
+	const savedById = new Map(saved.map((card) => [card.id, card]));
+	for (const card of cards) {
+		const sentCard = sentByKey.get(card.key);
+		const id = card.id ?? (sentCard ? drinkCardIds?.[card.key] : undefined) ?? null;
+		const savedCard = id === null ? undefined : savedById.get(id);
+		if (!savedCard) {
+			assign<DrinkCardDraftLike>(card, { id: null });
+			continue;
+		}
+		assign<DrinkCardDraftLike>(card, { id });
+		if (sentCard) {
+			assign<DrinkCardDraftLike>(card, keepEdits({ nameEn: sentCard.nameEn }, { nameEn: card.nameEn }, { nameEn: savedCard.nameEn }));
+			adoptDrinkCardEnglish(card.sections ?? [], sentCard.sections ?? [], savedCard.sections ?? []);
+		}
+	}
+}
+
+/** A section (and each of its drinks) sent takes its saved English where
+ * not edited since: what was saved is what was sent with French, in the
+ * same order. */
+function adoptDrinkCardEnglish(
+	cards: DrinkCardDraftLike['sections'],
+	sent: DrinkCardDraftLike['sections'],
+	saved: DrinkCardDraftLike['sections']
+): void {
 	const written = (drinks: DrinkCardDraftLike['sections'][number]['drinks']) => drinks.filter((drink) => drink.nameFr.trim());
-	const kept = sent.sections.filter((section) => written(section.drinks).length > 0);
-	if (kept.length !== saved.sections.length) return;
-	for (const section of card.sections) {
+	const kept = sent.filter((section) => written(section.drinks).length > 0);
+	if (kept.length !== saved.length) return;
+	for (const section of cards) {
 		const i = kept.findIndex((k) => k.key === section.key);
 		if (i === -1) continue;
 		const keptDrinks = written(kept[i].drinks);
-		if (keptDrinks.length !== saved.sections[i].drinks.length) continue;
-		assign(section, keepEdits({ labelEn: kept[i].labelEn }, { labelEn: section.labelEn }, { labelEn: saved.sections[i].labelEn }));
+		if (keptDrinks.length !== saved[i].drinks.length) continue;
+		assign(section, keepEdits({ labelEn: kept[i].labelEn }, { labelEn: section.labelEn }, { labelEn: saved[i].labelEn }));
 		for (const drink of section.drinks) {
 			const d = keptDrinks.findIndex((k) => k.key === drink.key);
 			if (d === -1) continue;
@@ -261,7 +296,7 @@ export function adoptSavedDrinkCard(card: DrinkCardDraftLike, sent: DrinkCardDra
 				nameEn: from.nameEn,
 				descriptionEn: from.descriptionEn,
 			});
-			assign(drink, keepEdits(english(keptDrinks[d]), english(drink), english(saved.sections[i].drinks[d])));
+			assign(drink, keepEdits(english(keptDrinks[d]), english(drink), english(saved[i].drinks[d])));
 		}
 	}
 }
